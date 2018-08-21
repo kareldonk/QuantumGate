@@ -37,8 +37,8 @@ You'll require the latest version of Microsoft Visual Studio 2017, as well as th
 
 #### QuantumGate Test Applications/Extenders
 
-| Name | Version | Folder |
-|------|---------|--------|
+| Name | Version |
+|------|---------|
 | [Monocypher](https://github.com/LoupVaillant/Monocypher) | Latest. |
 | [JSON for Modern C++](https://github.com/nlohmann/json) | At least 3.2.1 |
 
