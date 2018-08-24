@@ -59,3 +59,7 @@ Documentation can be found in the [Wiki](https://github.com/kareldonk/QuantumGat
 ### License
 
 See the [`LICENSE`](https://github.com/kareldonk/QuantumGate/blob/master/LICENSE) file in the project root for details.
+
+### Contact
+
+For maximum efficiency and transparancy [open an issue](https://github.com/kareldonk/QuantumGate/issues) on QuantumGate's GitHub repository with any quenstions and/or comments that you may have. Contact information for the author can be found at https://www.kareldonk.com.
