@@ -62,4 +62,8 @@ See the [`LICENSE`](https://github.com/kareldonk/QuantumGate/blob/master/LICENSE
 
 ### Contact
 
-For maximum efficiency and transparancy [open an issue](https://github.com/kareldonk/QuantumGate/issues) on QuantumGate's GitHub repository with any quenstions and/or comments that you may have. Contact information for the author can be found at https://www.kareldonk.com.
+For maximum efficiency and transparancy [open an issue](https://github.com/kareldonk/QuantumGate/issues) on QuantumGate's GitHub repository with any questions and/or comments that you may have. Contact information for the author can be found at https://www.kareldonk.com.
+
+### Donations
+
+This project is self-funded. If you like it and would like to ensure its continued and speedy development, consider donating to the author. If this software has served you well (in commercial projects), consider supporting its further development through donations to the author. For details please contact the author using the above contact information. Please be advised, though, that **[the author does not accept contributions from governments, governmental organizations, government funded organizations, or other comparable terrorist organizations](https://blog.kareldonk.com/why-i-will-never-work-for-any-government-ever-again/)**. The author values the truth and will make no compromises with regard to the software, its mission and purpose.
