@@ -58,11 +58,12 @@ Documentation can be found in the [Wiki](https://github.com/kareldonk/QuantumGat
 
 ### License
 
-See the [`LICENSE`](https://github.com/kareldonk/QuantumGate/blob/master/LICENSE) file in the project root for details.
+The license for the QuantumGate source code can be found in the [`LICENSE`](https://github.com/kareldonk/QuantumGate/blob/master/LICENSE) file in the project root. In addition, QuantumGate uses third party source code covered under separate licenses. This includes an implementation of SipHash (in `QuantumGateCryptoLib\SipHash`). Refer to the `LICENSE` files in the subfolders for details.
+In addition, licenses for implementations of NTRUPrime (`QuantumGateCryptoLib\NTRUPrime`), NewHope (`QuantumGateCryptoLib\NewHope`) and Classic McEliece (`QuantumGateCryptoLib\McEliece`) have not yet been obtained.  
 
 ### Contact
 
-For maximum efficiency and transparancy [open an issue](https://github.com/kareldonk/QuantumGate/issues) on QuantumGate's GitHub repository with any questions and/or comments that you may have. Contact information for the author can be found at https://www.kareldonk.com.
+For maximum efficiency and transparency [open an issue](https://github.com/kareldonk/QuantumGate/issues) on QuantumGate's GitHub repository with any questions and/or comments that you may have. Contact information for the author can be found at https://www.kareldonk.com.
 
 ### Donations
 
