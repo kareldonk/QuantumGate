@@ -1,0 +1,709 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugUnitTests|Win32">
+      <Configuration>DebugUnitTests</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugUnitTests|x64">
+      <Configuration>DebugUnitTests</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseUnitTests|Win32">
+      <Configuration>ReleaseUnitTests</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseUnitTests|x64">
+      <Configuration>ReleaseUnitTests</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A6B8A4CE-ECAB-47D4-B9E8-651386DF5193}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>QuantumGate</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <ProjectName>QuantumGateLib</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>QuantumGate32D</TargetName>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\zstd\lib;$(SolutionDir)Dependencies\GSL\include;$(SolutionDir)Dependencies\pcg-cpp\include;$(SolutionDir)Dependencies\zlib;$(SolutionDir)Dependencies\openssl\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\lib;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <EnableCppCoreCheck>true</EnableCppCoreCheck>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
+    <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
+    <CustomBuildBeforeTargets>
+    </CustomBuildBeforeTargets>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>QuantumGate32SD</TargetName>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\zstd\lib;$(SolutionDir)Dependencies\GSL\include;$(SolutionDir)Dependencies\pcg-cpp\include;$(SolutionDir)Dependencies\zlib;$(SolutionDir)Dependencies\openssl\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\lib;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <EnableCppCoreCheck>true</EnableCppCoreCheck>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
+    <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
+    <CustomBuildBeforeTargets>
+    </CustomBuildBeforeTargets>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>QuantumGate64D</TargetName>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\zstd\lib;$(SolutionDir)Dependencies\GSL\include;$(SolutionDir)Dependencies\pcg-cpp\include;$(SolutionDir)Dependencies\zlib;$(SolutionDir)Dependencies\openssl\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\lib;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <EnableCppCoreCheck>true</EnableCppCoreCheck>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
+    <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
+    <CustomBuildBeforeTargets>
+    </CustomBuildBeforeTargets>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>QuantumGate64SD</TargetName>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\zstd\lib;$(SolutionDir)Dependencies\GSL\include;$(SolutionDir)Dependencies\pcg-cpp\include;$(SolutionDir)Dependencies\zlib;$(SolutionDir)Dependencies\openssl\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\lib;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <EnableCppCoreCheck>true</EnableCppCoreCheck>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
+    <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
+    <CustomBuildBeforeTargets>
+    </CustomBuildBeforeTargets>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\zstd\lib;$(SolutionDir)Dependencies\GSL\include;$(SolutionDir)Dependencies\pcg-cpp\include;$(SolutionDir)Dependencies\zlib;$(SolutionDir)Dependencies\openssl\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\lib;$(LibraryPath)</LibraryPath>
+    <TargetName>QuantumGate32</TargetName>
+    <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <EnableCppCoreCheck>true</EnableCppCoreCheck>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
+    <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
+    <CustomBuildBeforeTargets>
+    </CustomBuildBeforeTargets>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\zstd\lib;$(SolutionDir)Dependencies\GSL\include;$(SolutionDir)Dependencies\pcg-cpp\include;$(SolutionDir)Dependencies\zlib;$(SolutionDir)Dependencies\openssl\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\lib;$(LibraryPath)</LibraryPath>
+    <TargetName>QuantumGate32S</TargetName>
+    <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <EnableCppCoreCheck>true</EnableCppCoreCheck>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
+    <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
+    <CustomBuildBeforeTargets>
+    </CustomBuildBeforeTargets>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\zstd\lib;$(SolutionDir)Dependencies\GSL\include;$(SolutionDir)Dependencies\pcg-cpp\include;$(SolutionDir)Dependencies\zlib;$(SolutionDir)Dependencies\openssl\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\lib;$(LibraryPath)</LibraryPath>
+    <TargetName>QuantumGate64</TargetName>
+    <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <EnableCppCoreCheck>true</EnableCppCoreCheck>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
+    <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
+    <CustomBuildBeforeTargets>
+    </CustomBuildBeforeTargets>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\zstd\lib;$(SolutionDir)Dependencies\GSL\include;$(SolutionDir)Dependencies\pcg-cpp\include;$(SolutionDir)Dependencies\zlib;$(SolutionDir)Dependencies\openssl\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\lib;$(LibraryPath)</LibraryPath>
+    <TargetName>QuantumGate64S</TargetName>
+    <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <EnableCppCoreCheck>true</EnableCppCoreCheck>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
+    <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
+    <CustomBuildBeforeTargets>
+    </CustomBuildBeforeTargets>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;QUANTUMGATE_DLL;QUANTUMGATE_EXPORTS;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <EnablePREfast>false</EnablePREfast>
+      <AdditionalOptions>/wd26490 /permissive- %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+      <Message>Running Build.ps1 PowerShell script</Message>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Command>powershell.exe $(SolutionDir)Scripts\EncBuild.ps1 $(MSBuildProjectDirectory)\Version.h</Command>
+      <Outputs>None</Outputs>
+      <Inputs>
+      </Inputs>
+      <TreatOutputAsContent>
+      </TreatOutputAsContent>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <EnablePREfast>false</EnablePREfast>
+      <AdditionalOptions>/wd26490 /permissive- %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+      <Message>Running Build.ps1 PowerShell script</Message>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Command>powershell.exe $(SolutionDir)Scripts\EncBuild.ps1 $(MSBuildProjectDirectory)\Version.h</Command>
+      <Outputs>None</Outputs>
+      <Inputs>
+      </Inputs>
+      <TreatOutputAsContent>
+      </TreatOutputAsContent>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;QUANTUMGATE_DLL;QUANTUMGATE_EXPORTS;_WIN64;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <EnablePREfast>false</EnablePREfast>
+      <AdditionalOptions>/wd26490 /permissive- %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+      <Message>Running Build.ps1 PowerShell script</Message>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Command>powershell.exe $(SolutionDir)Scripts\EncBuild.ps1 $(MSBuildProjectDirectory)\Version.h</Command>
+      <Outputs>None</Outputs>
+      <Inputs>
+      </Inputs>
+      <TreatOutputAsContent>
+      </TreatOutputAsContent>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;_WIN64;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <EnablePREfast>false</EnablePREfast>
+      <AdditionalOptions>/wd26490 /permissive- %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+      <Message>Running Build.ps1 PowerShell script</Message>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Command>powershell.exe $(SolutionDir)Scripts\EncBuild.ps1 $(MSBuildProjectDirectory)\Version.h</Command>
+      <Outputs>None</Outputs>
+      <Inputs>
+      </Inputs>
+      <TreatOutputAsContent>
+      </TreatOutputAsContent>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;QUANTUMGATE_DLL;QUANTUMGATE_EXPORTS;NDEBUG;_WINDOWS;_USRDLL;QUANTUMGATE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <EnablePREfast>false</EnablePREfast>
+      <AdditionalOptions>/wd26490 /permissive- %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+      <Message>Running Build.ps1 PowerShell script</Message>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Command>powershell.exe $(SolutionDir)Scripts\EncBuild.ps1 $(MSBuildProjectDirectory)\Version.h</Command>
+      <Outputs>None</Outputs>
+      <Inputs>
+      </Inputs>
+      <TreatOutputAsContent>
+      </TreatOutputAsContent>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;NDEBUG;_WINDOWS;_USRDLL;QUANTUMGATE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <EnablePREfast>false</EnablePREfast>
+      <AdditionalOptions>/wd26490 /permissive- %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+      <Message>Running Build.ps1 PowerShell script</Message>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Command>powershell.exe $(SolutionDir)Scripts\EncBuild.ps1 $(MSBuildProjectDirectory)\Version.h</Command>
+      <Outputs>None</Outputs>
+      <Inputs>
+      </Inputs>
+      <TreatOutputAsContent>
+      </TreatOutputAsContent>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;QUANTUMGATE_DLL;QUANTUMGATE_EXPORTS;_WIN64;NDEBUG;_WINDOWS;_USRDLL;QUANTUMGATE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <EnablePREfast>false</EnablePREfast>
+      <AdditionalOptions>/wd26490 /permissive- %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+      <Message>Running Build.ps1 PowerShell script</Message>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Command>powershell.exe $(SolutionDir)Scripts\EncBuild.ps1 $(MSBuildProjectDirectory)\Version.h</Command>
+      <Outputs>None</Outputs>
+      <Inputs>
+      </Inputs>
+      <TreatOutputAsContent>
+      </TreatOutputAsContent>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;_WIN64;NDEBUG;_WINDOWS;_USRDLL;QUANTUMGATE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <EnablePREfast>false</EnablePREfast>
+      <AdditionalOptions>/wd26490 /permissive- %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+      <Message>Running Build.ps1 PowerShell script</Message>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Command>powershell.exe $(SolutionDir)Scripts\EncBuild.ps1 $(MSBuildProjectDirectory)\Version.h</Command>
+      <Outputs>None</Outputs>
+      <Inputs>
+      </Inputs>
+      <TreatOutputAsContent>
+      </TreatOutputAsContent>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Algorithms.h" />
+    <ClInclude Include="API\AccessManager.h" />
+    <ClInclude Include="API\Callback.h" />
+    <ClInclude Include="API\Console.h" />
+    <ClInclude Include="API\Extender.h" />
+    <ClInclude Include="API\Local.h" />
+    <ClInclude Include="API\LocalEnvironment.h" />
+    <ClInclude Include="API\PeerEvent.h" />
+    <ClInclude Include="API\QuantumGate.h" />
+    <ClInclude Include="API\Result.h" />
+    <ClInclude Include="Common\Callback.h" />
+    <ClInclude Include="Common\Console.h" />
+    <ClInclude Include="Common\Dispatcher.h" />
+    <ClInclude Include="Common\Endian.h" />
+    <ClInclude Include="Common\Hash.h" />
+    <ClInclude Include="Common\Random.h" />
+    <ClInclude Include="Common\ScopeGuard.h" />
+    <ClInclude Include="Common\Traits.h" />
+    <ClInclude Include="Common\Util.h" />
+    <ClInclude Include="Common\UUID.h" />
+    <ClInclude Include="Compression\Compression.h" />
+    <ClInclude Include="Compression\ZlibStreams.h" />
+    <ClInclude Include="Compression\ZstdStreams.h" />
+    <ClInclude Include="Concurrency\DummyMutex.h" />
+    <ClInclude Include="Concurrency\EventCondition.h" />
+    <ClInclude Include="Concurrency\PriorityQueue.h" />
+    <ClInclude Include="Concurrency\Queue.h" />
+    <ClInclude Include="Concurrency\RecursiveSharedMutex.h" />
+    <ClInclude Include="Concurrency\SharedSpinMutex.h" />
+    <ClInclude Include="Concurrency\SpinMutex.h" />
+    <ClInclude Include="Concurrency\ThreadLocalCache.h" />
+    <ClInclude Include="Concurrency\ThreadPool.h" />
+    <ClInclude Include="Concurrency\ThreadSafe.h" />
+    <ClInclude Include="Core\Access\AccessManager.h" />
+    <ClInclude Include="Core\Access\IPAccessControl.h" />
+    <ClInclude Include="Core\Access\IPFilters.h" />
+    <ClInclude Include="Core\Access\IPSubnetLimits.h" />
+    <ClInclude Include="Core\Access\PeerAccessControl.h" />
+    <ClInclude Include="Core\Extender\ExtenderControl.h" />
+    <ClInclude Include="Core\Extender\Extender.h" />
+    <ClInclude Include="Core\Extender\ExtenderModule.h" />
+    <ClInclude Include="Core\Extender\ExtenderManager.h" />
+    <ClInclude Include="Core\KeyGeneration\KeyGenerationEvent.h" />
+    <ClInclude Include="Core\KeyGeneration\KeyGenerationManager.h" />
+    <ClInclude Include="Core\ListenerManager.h" />
+    <ClInclude Include="Core\LocalEnvironment.h" />
+    <ClInclude Include="Core\Local.h" />
+    <ClInclude Include="Core\Message.h" />
+    <ClInclude Include="Core\MessageDetails.h" />
+    <ClInclude Include="Core\MessageTransport.h" />
+    <ClInclude Include="Core\MessageTypes.h" />
+    <ClInclude Include="Core\Peer\Peer.h" />
+    <ClInclude Include="Core\Peer\PeerData.h" />
+    <ClInclude Include="Core\Peer\PeerEvent.h" />
+    <ClInclude Include="Core\Peer\PeerExtenderUUIDs.h" />
+    <ClInclude Include="Core\Peer\PeerGate.h" />
+    <ClInclude Include="Core\Peer\PeerKeyExchange.h" />
+    <ClInclude Include="Core\Peer\PeerKeys.h" />
+    <ClInclude Include="Core\Peer\PeerKeyUpdate.h" />
+    <ClInclude Include="Core\Peer\PeerLookupMaps.h" />
+    <ClInclude Include="Core\Peer\PeerMessageProcessor.h" />
+    <ClInclude Include="Core\Peer\PeerNoiseQueue.h" />
+    <ClInclude Include="Core\Peer\PeerNoiseItem.h" />
+    <ClInclude Include="Core\Peer\PeerManager.h" />
+    <ClInclude Include="Core\Relay\RelayEvents.h" />
+    <ClInclude Include="Core\Relay\RelayLink.h" />
+    <ClInclude Include="Core\Relay\RelayManager.h" />
+    <ClInclude Include="Core\Relay\RelaySocket.h" />
+    <ClInclude Include="Crypto\Crypto.h" />
+    <ClInclude Include="Crypto\KeyData.h" />
+    <ClInclude Include="Crypto\McEliece.h" />
+    <ClInclude Include="Crypto\NewHope.h" />
+    <ClInclude Include="Crypto\NTRUPrime.h" />
+    <ClInclude Include="Crypto\OpenSSL.h" />
+    <ClInclude Include="Crypto\OpenSSLSign.h" />
+    <ClInclude Include="Crypto\OpenSSLSymmetric.h" />
+    <ClInclude Include="dllmain.h" />
+    <ClInclude Include="Memory\Allocator.h" />
+    <ClInclude Include="Memory\Buffer.h" />
+    <ClInclude Include="Memory\BufferIO.h" />
+    <ClInclude Include="Memory\BufferReader.h" />
+    <ClInclude Include="Memory\BufferView.h" />
+    <ClInclude Include="Memory\BufferWriter.h" />
+    <ClInclude Include="Memory\PoolAllocator.h" />
+    <ClInclude Include="Memory\ProtectedAllocator.h" />
+    <ClInclude Include="Network\BinaryIPAddress.h" />
+    <ClInclude Include="Network\IPAddress.h" />
+    <ClInclude Include="Network\IPEndpoint.h" />
+    <ClInclude Include="Network\Socket.h" />
+    <ClInclude Include="Network\SocketBase.h" />
+    <ClInclude Include="Network\SocketIOStatus.h" />
+    <ClInclude Include="Result.h" />
+    <ClInclude Include="Settings.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="Types.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="Version.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="API\AccessManager.cpp" />
+    <ClCompile Include="API\Extender.cpp" />
+    <ClCompile Include="API\Local.cpp" />
+    <ClCompile Include="API\LocalEnvironment.cpp" />
+    <ClCompile Include="API\PeerEvent.cpp" />
+    <ClCompile Include="API\QuantumGate.cpp" />
+    <ClCompile Include="Common\Console.cpp" />
+    <ClCompile Include="Common\Hash.cpp" />
+    <ClCompile Include="Common\Random.cpp" />
+    <ClCompile Include="Common\Util.cpp" />
+    <ClCompile Include="Common\UUID.cpp" />
+    <ClCompile Include="Compression\Compression.cpp" />
+    <ClCompile Include="Concurrency\RecursiveSharedMutex.cpp" />
+    <ClCompile Include="Core\Access\AccessManager.cpp" />
+    <ClCompile Include="Core\Access\IPAccessControl.cpp" />
+    <ClCompile Include="Core\Access\IPFilters.cpp" />
+    <ClCompile Include="Core\Access\IPSubnetLimits.cpp" />
+    <ClCompile Include="Core\Access\PeerAccessControl.cpp" />
+    <ClCompile Include="Core\Extender\ExtenderControl.cpp" />
+    <ClCompile Include="Core\Extender\Extender.cpp" />
+    <ClCompile Include="Core\Extender\ExtenderModule.cpp" />
+    <ClCompile Include="Core\Extender\ExtenderManager.cpp" />
+    <ClCompile Include="Core\KeyGeneration\KeyGenerationManager.cpp" />
+    <ClCompile Include="Core\ListenerManager.cpp" />
+    <ClCompile Include="Core\LocalEnvironment.cpp" />
+    <ClCompile Include="Core\Local.cpp" />
+    <ClCompile Include="Core\Message.cpp" />
+    <ClCompile Include="Core\MessageTransport.cpp" />
+    <ClCompile Include="Core\Peer\Peer.cpp" />
+    <ClCompile Include="Core\Peer\PeerEvent.cpp" />
+    <ClCompile Include="Core\Peer\PeerExtenderUUIDs.cpp" />
+    <ClCompile Include="Core\Peer\PeerGate.cpp" />
+    <ClCompile Include="Core\Peer\PeerKeyUpdate.cpp" />
+    <ClCompile Include="Core\Peer\PeerLookupMaps.cpp" />
+    <ClCompile Include="Core\Peer\PeerMessageProcessor.cpp" />
+    <ClCompile Include="Core\Peer\PeerMessageProcessorReadyState.cpp" />
+    <ClCompile Include="Core\Peer\PeerNoiseQueue.cpp" />
+    <ClCompile Include="Core\Peer\PeerNoiseItem.cpp" />
+    <ClCompile Include="Core\Peer\PeerManager.cpp" />
+    <ClCompile Include="Core\Relay\RelayManager.cpp" />
+    <ClCompile Include="Core\Relay\RelaySocket.cpp" />
+    <ClCompile Include="Crypto\Crypto.cpp" />
+    <ClCompile Include="Crypto\KeyData.cpp" />
+    <ClCompile Include="dllmain.cpp">
+      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
+      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|Win32'">false</CompileAsManaged>
+      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsManaged>
+      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|x64'">false</CompileAsManaged>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|x64'">
+      </PrecompiledHeader>
+      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
+      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|Win32'">false</CompileAsManaged>
+      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsManaged>
+      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|x64'">false</CompileAsManaged>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|x64'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Memory\BufferIO.cpp" />
+    <ClCompile Include="Memory\BufferReader.cpp" />
+    <ClCompile Include="Memory\BufferWriter.cpp" />
+    <ClCompile Include="Memory\PoolAllocator.cpp" />
+    <ClCompile Include="Memory\ProtectedAllocator.cpp" />
+    <ClCompile Include="Network\BinaryIPAddress.cpp" />
+    <ClCompile Include="Network\IPAddress.cpp" />
+    <ClCompile Include="Network\IPEndpoint.cpp" />
+    <ClCompile Include="Network\Socket.cpp" />
+    <ClCompile Include="Result.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="QuantumGate.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="TODO.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

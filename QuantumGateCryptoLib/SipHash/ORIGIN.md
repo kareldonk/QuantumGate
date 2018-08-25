@@ -1,0 +1,1 @@
+The source code in this folder was downloaded from: https://github.com/veorq/SipHash

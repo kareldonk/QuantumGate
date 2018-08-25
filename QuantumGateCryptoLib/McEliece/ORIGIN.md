@@ -1,0 +1,1 @@
+The source code in this folder was obtained from: https://classic.mceliece.org/

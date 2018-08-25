@@ -1,0 +1,186 @@
+// This file is part of the QuantumGate project. For copyright and
+// licensing information refer to the license file(s) in the project root.
+
+#include "stdafx.h"
+#include "Local.h"
+#include "..\Core\Local.h"
+
+namespace QuantumGate::API
+{
+	Local::Local() noexcept :
+		m_Local(std::make_shared<QuantumGate::Implementation::Core::Local>()),
+		m_AccessManager(&m_Local->GetAccessManager())
+	{}
+
+	Result<> Local::Startup(const StartupParameters& params) noexcept
+	{
+		return m_Local->Startup(params);
+	}
+
+	Result<> Local::Shutdown() noexcept
+	{
+		return m_Local->Shutdown();
+	}
+
+	const bool Local::IsRunning() const noexcept
+	{
+		return m_Local->IsRunning();
+	}
+
+	Result<> Local::EnableListeners() noexcept
+	{
+		return m_Local->EnableListeners();
+	}
+
+	Result<> Local::DisableListeners() noexcept
+	{
+		return m_Local->DisableListeners();
+	}
+
+	const bool Local::AreListenersEnabled() const noexcept
+	{
+		return m_Local->AreListenersEnabled();
+	}
+
+	Result<> Local::EnableExtenders() noexcept
+	{
+		return m_Local->EnableExtenders();
+	}
+
+	Result<> Local::DisableExtenders() noexcept
+	{
+		return m_Local->DisableExtenders();
+	}
+
+	const bool Local::AreExtendersEnabled() const noexcept
+	{
+		return m_Local->AreExtendersEnabled();
+	}
+
+	Result<> Local::EnableRelays() noexcept
+	{
+		return m_Local->EnableRelays();
+	}
+
+	Result<> Local::DisableRelays() noexcept
+	{
+		return m_Local->DisableRelays();
+	}
+
+	const bool Local::AreRelaysEnabled() const noexcept
+	{
+		return m_Local->AreRelaysEnabled();
+	}
+
+	const LocalEnvironment Local::GetEnvironment() const noexcept
+	{
+		return LocalEnvironment(&m_Local->GetEnvironment());
+	}
+
+	AccessManager& Local::GetAccessManager() noexcept
+	{
+		return m_AccessManager;
+	}
+
+	Result<bool> Local::AddExtender(const std::shared_ptr<Extender>& extender) noexcept
+	{
+		return m_Local->AddExtender(extender);
+	}
+
+	Result<> Local::RemoveExtender(const std::shared_ptr<Extender>& extender) noexcept
+	{
+		return m_Local->RemoveExtender(extender);
+	}
+
+	Result<> Local::AddExtenderModule(const Path& module_path) noexcept
+	{
+		return m_Local->AddExtenderModule(module_path);
+	}
+
+	Result<> Local::RemoveExtenderModule(const Path& module_path) noexcept
+	{
+		return m_Local->RemoveExtenderModule(module_path);
+	}
+
+	const bool Local::HasExtender(const ExtenderUUID& extuuid) const noexcept
+	{
+		return m_Local->HasExtender(extuuid);
+	}
+
+	std::weak_ptr<Extender> Local::GetExtender(const ExtenderUUID& extuuid) const noexcept
+	{
+		return m_Local->GetExtender(extuuid);
+	}
+
+	Result<ConnectDetails> Local::ConnectTo(ConnectParameters&& params) noexcept
+	{
+		return m_Local->ConnectTo(std::move(params));
+	}
+
+	Result<std::pair<PeerLUID, bool>> Local::ConnectTo(ConnectParameters&& params,
+													   ConnectCallback&& function) noexcept
+	{
+		return m_Local->ConnectTo(std::move(params), std::move(function));
+	}
+
+	Result<> Local::DisconnectFrom(const PeerLUID pluid) noexcept
+	{
+		return m_Local->DisconnectFrom(pluid);
+	}
+
+	Result<> Local::DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept
+	{
+		return m_Local->DisconnectFrom(pluid, std::move(function));
+	}
+
+	std::tuple<UInt, UInt, UInt, UInt> Local::GetVersion() const noexcept
+	{
+		return m_Local->GetVersion();
+	}
+
+	String Local::GetVersionString() const noexcept
+	{
+		return m_Local->GetVersionString();
+	}
+
+	std::pair<UInt, UInt> Local::GetProtocolVersion() const noexcept
+	{
+		return m_Local->GetProtocolVersion();
+	}
+
+	String Local::GetProtocolVersionString() const noexcept
+	{
+		return m_Local->GetProtocolVersionString();
+	}
+
+	Result<PeerUUID> Local::GetUUID() const noexcept
+	{
+		return m_Local->GetUUID();
+	}
+
+	Result<PeerDetails> Local::GetPeerDetails(const PeerLUID pluid) const noexcept
+	{
+		return m_Local->GetPeerDetails(pluid);
+	}
+
+	Result<std::vector<PeerLUID>> Local::QueryPeers(const PeerQueryParameters& params) const noexcept
+	{
+		return m_Local->QueryPeers(params);
+	}
+
+	Result<> Local::SetSecurityLevel(const SecurityLevel level,
+									 const std::optional<SecurityParameters>& params) noexcept
+	{
+		return m_Local->SetSecurityLevel(level, params);
+	}
+
+	const SecurityLevel Local::GetSecurityLevel() const noexcept
+	{
+		return m_Local->GetSecurityLevel();
+	}
+
+	SecurityParameters Local::GetSecurityParameters() const noexcept
+	{
+		return m_Local->GetSecurityParameters();
+	}
+}

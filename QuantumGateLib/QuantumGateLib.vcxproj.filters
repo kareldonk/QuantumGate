@@ -1,0 +1,566 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\API">
+      <UniqueIdentifier>{bdf47bf9-0b8a-47c6-9e09-2d69d5f4bc9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\API">
+      <UniqueIdentifier>{344b13a6-de82-46bb-80fd-ae43a0875cfc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Compression">
+      <UniqueIdentifier>{77dfdaf2-4fa9-4b88-8c8a-cb00636287ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Compression">
+      <UniqueIdentifier>{1e03ad8b-136a-465a-80c7-ffa0a21b2cf8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Concurrency">
+      <UniqueIdentifier>{c70654da-264e-4b58-8687-6d2225ee5bd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Concurrency">
+      <UniqueIdentifier>{7367cfac-a177-42e1-85e6-9bcfd4780813}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Crypto">
+      <UniqueIdentifier>{6f523a99-be73-4e0a-8f7f-89d5e38044ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Crypto">
+      <UniqueIdentifier>{c5980718-d764-43c3-8e61-582007dc9d0a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Network">
+      <UniqueIdentifier>{c2f2d90d-a06e-429c-9893-576fa1e000dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Network">
+      <UniqueIdentifier>{97bc7dbb-fd86-4a4f-8325-847c4f163cc5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core">
+      <UniqueIdentifier>{79310f08-1fed-4054-b2ab-5fb17d684b80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Core">
+      <UniqueIdentifier>{c4345238-e23f-4fc1-abad-47c8e84bb81f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Common">
+      <UniqueIdentifier>{a5e14d94-4d5f-44e3-9d50-5372ef67eda6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Common">
+      <UniqueIdentifier>{3d72df55-dd8d-48d4-8f13-e2d9cce0c88b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Memory">
+      <UniqueIdentifier>{7b08d00d-e1dc-4d7b-8938-83dfdd899ed2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Memory">
+      <UniqueIdentifier>{6662e66d-a84c-4225-a952-4d2eed992609}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core\Relay">
+      <UniqueIdentifier>{e23e10bb-99f1-43bd-92a6-80a483051411}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Core\Relay">
+      <UniqueIdentifier>{600197c7-3e40-45d4-a180-4def577297d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core\Extender">
+      <UniqueIdentifier>{520be465-3dc2-4534-b995-5aff9042674a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Core\Extender">
+      <UniqueIdentifier>{f40731f5-0588-4fec-a6c9-c5e6b76a18e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Core\Access">
+      <UniqueIdentifier>{226d7bdc-3d34-454a-bc79-167ebe65dbb5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core\Access">
+      <UniqueIdentifier>{590519a2-67e3-4e4d-b184-e889df019390}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core\Peer">
+      <UniqueIdentifier>{5f146485-c86b-4c3b-8454-c466321ec2b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Core\Peer">
+      <UniqueIdentifier>{f595f6bc-e642-4818-8849-0b979f8d5223}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Core\KeyGeneration">
+      <UniqueIdentifier>{5eedfd4e-dead-4127-adf2-1a398b111a3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core\KeyGeneration">
+      <UniqueIdentifier>{310611a8-f42e-401d-9ba4-bf06ecca1573}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Settings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Result.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="API\QuantumGate.h">
+      <Filter>Header Files\API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Local.h">
+      <Filter>Header Files\API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Extender.h">
+      <Filter>Header Files\API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\AccessManager.h">
+      <Filter>Header Files\API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\PeerEvent.h">
+      <Filter>Header Files\API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\LocalEnvironment.h">
+      <Filter>Header Files\API</Filter>
+    </ClInclude>
+    <ClInclude Include="Compression\Compression.h">
+      <Filter>Header Files\Compression</Filter>
+    </ClInclude>
+    <ClInclude Include="Compression\ZstdStreams.h">
+      <Filter>Header Files\Compression</Filter>
+    </ClInclude>
+    <ClInclude Include="Compression\ZlibStreams.h">
+      <Filter>Header Files\Compression</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\SharedSpinMutex.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\DummyMutex.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\SpinMutex.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\ThreadLocalCache.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\ThreadPool.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\ThreadSafe.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\RecursiveSharedMutex.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\EventCondition.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\Crypto.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\IPAddress.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Socket.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Message.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\MessageTransport.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Callback.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Dispatcher.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Endian.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Random.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Util.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Traits.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\KeyData.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\SocketIOStatus.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\OpenSSL.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dllmain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\BinaryIPAddress.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithms.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\UUID.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\OpenSSLSign.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\ScopeGuard.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\SocketBase.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Console.h">
+      <Filter>Header Files\API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Callback.h">
+      <Filter>Header Files\API</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Console.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Hash.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\PriorityQueue.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\Queue.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\Allocator.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\Buffer.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\BufferIO.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\BufferReader.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\BufferView.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\BufferWriter.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\ProtectedAllocator.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Extender\ExtenderManager.h">
+      <Filter>Header Files\Core\Extender</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Relay\RelaySocket.h">
+      <Filter>Header Files\Core\Relay</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Relay\RelayManager.h">
+      <Filter>Header Files\Core\Relay</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Relay\RelayLink.h">
+      <Filter>Header Files\Core\Relay</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Extender\ExtenderModule.h">
+      <Filter>Header Files\Core\Extender</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Access\IPAccessControl.h">
+      <Filter>Header Files\Core\Access</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Access\IPFilters.h">
+      <Filter>Header Files\Core\Access</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Access\IPSubnetLimits.h">
+      <Filter>Header Files\Core\Access</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Access\PeerAccessControl.h">
+      <Filter>Header Files\Core\Access</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Access\AccessManager.h">
+      <Filter>Header Files\Core\Access</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ListenerManager.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerExtenderUUIDs.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerGate.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerKeys.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerMessageProcessor.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerNoiseItem.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\Peer.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerManager.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerNoiseQueue.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerLookupMaps.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerEvent.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Extender\ExtenderControl.h">
+      <Filter>Header Files\Core\Extender</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Relay\RelayEvents.h">
+      <Filter>Header Files\Core\Relay</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\McEliece.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\NTRUPrime.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\KeyGeneration\KeyGenerationEvent.h">
+      <Filter>Header Files\Core\KeyGeneration</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\KeyGeneration\KeyGenerationManager.h">
+      <Filter>Header Files\Core\KeyGeneration</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\OpenSSLSymmetric.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\LocalEnvironment.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Local.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Extender\Extender.h">
+      <Filter>Header Files\Core\Extender</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Result.h">
+      <Filter>Header Files\API</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\IPEndpoint.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerKeyUpdate.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerKeyExchange.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\NewHope.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerData.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\PoolAllocator.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\MessageDetails.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\MessageTypes.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Result.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="API\QuantumGate.cpp">
+      <Filter>Source Files\API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Local.cpp">
+      <Filter>Source Files\API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Extender.cpp">
+      <Filter>Source Files\API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\AccessManager.cpp">
+      <Filter>Source Files\API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\PeerEvent.cpp">
+      <Filter>Source Files\API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\LocalEnvironment.cpp">
+      <Filter>Source Files\API</Filter>
+    </ClCompile>
+    <ClCompile Include="Compression\Compression.cpp">
+      <Filter>Source Files\Compression</Filter>
+    </ClCompile>
+    <ClCompile Include="Concurrency\RecursiveSharedMutex.cpp">
+      <Filter>Source Files\Concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\Crypto.cpp">
+      <Filter>Source Files\Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\IPAddress.cpp">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Message.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\MessageTransport.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Random.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Util.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\KeyData.cpp">
+      <Filter>Source Files\Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\UUID.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Console.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Hash.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\BufferIO.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\BufferReader.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\BufferWriter.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Extender\ExtenderManager.cpp">
+      <Filter>Source Files\Core\Extender</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Relay\RelayManager.cpp">
+      <Filter>Source Files\Core\Relay</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Relay\RelaySocket.cpp">
+      <Filter>Source Files\Core\Relay</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Extender\ExtenderModule.cpp">
+      <Filter>Source Files\Core\Extender</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Socket.cpp">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Access\IPAccessControl.cpp">
+      <Filter>Source Files\Core\Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Access\IPFilters.cpp">
+      <Filter>Source Files\Core\Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Access\IPSubnetLimits.cpp">
+      <Filter>Source Files\Core\Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Access\PeerAccessControl.cpp">
+      <Filter>Source Files\Core\Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Access\AccessManager.cpp">
+      <Filter>Source Files\Core\Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ListenerManager.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerExtenderUUIDs.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerGate.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerMessageProcessor.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerMessageProcessorReadyState.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerNoiseItem.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\Peer.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerManager.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerNoiseQueue.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerLookupMaps.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerEvent.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Extender\ExtenderControl.cpp">
+      <Filter>Source Files\Core\Extender</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\KeyGeneration\KeyGenerationManager.cpp">
+      <Filter>Source Files\Core\KeyGeneration</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\ProtectedAllocator.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\LocalEnvironment.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Local.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Extender\Extender.cpp">
+      <Filter>Source Files\Core\Extender</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\IPEndpoint.cpp">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerKeyUpdate.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\BinaryIPAddress.cpp">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\PoolAllocator.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="QuantumGate.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="TODO.txt" />
+  </ItemGroup>
+</Project>

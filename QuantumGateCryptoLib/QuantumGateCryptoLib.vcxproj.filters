@@ -1,0 +1,315 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\McEliece">
+      <UniqueIdentifier>{2e67fbc9-5e95-4f20-9111-1aceaff16c78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\SipHash">
+      <UniqueIdentifier>{778eabc5-a34e-4378-ad64-7447aa91d96d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Common">
+      <UniqueIdentifier>{d921f82a-394f-4834-8e6b-1ec1fe9216ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\NTRUPrime">
+      <UniqueIdentifier>{2f9e8f25-6459-43a6-98d0-87a6815caa1f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\McEliece">
+      <UniqueIdentifier>{59ba49e5-246b-450d-a791-550121daaad1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\NTRUPrime">
+      <UniqueIdentifier>{f5e66d08-d0ff-4d09-86e8-ca692ebaf005}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Common">
+      <UniqueIdentifier>{45ca645a-2287-40f6-bc7f-f480ab2ae6cf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\NewHope">
+      <UniqueIdentifier>{ebf915d5-0a77-40c9-afef-aeabe4d43605}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\NewHope">
+      <UniqueIdentifier>{2da00a30-7c2b-4b3f-8a06-dfc79614d142}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="QuantumGateCryptoLib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_hash.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\benes.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\bm.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\controlbits.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_hash_sha512.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_int8.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_int16.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_int32.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem_mceliece8192128.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_kem_sntrup4591761.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_verify_32.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_uint16.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_uint32.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\gf.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\decrypt.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\encrypt.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\operations.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\params.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\pk_gen.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\params.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\mod3.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\modq.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\int32_sort.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\r3.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\randombytes.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\randombytes.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\nist\rng.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\root.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\sk_gen.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\small.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\synd.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\swap.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\transpose.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\util.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\api.h">
+      <Filter>Header Files\NewHope</Filter>
+    </ClInclude>
+    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\cpapke.h">
+      <Filter>Header Files\NewHope</Filter>
+    </ClInclude>
+    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\fips202.h">
+      <Filter>Header Files\NewHope</Filter>
+    </ClInclude>
+    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\ntt.h">
+      <Filter>Header Files\NewHope</Filter>
+    </ClInclude>
+    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\params.h">
+      <Filter>Header Files\NewHope</Filter>
+    </ClInclude>
+    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\poly.h">
+      <Filter>Header Files\NewHope</Filter>
+    </ClInclude>
+    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\reduce.h">
+      <Filter>Header Files\NewHope</Filter>
+    </ClInclude>
+    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\verify.h">
+      <Filter>Header Files\NewHope</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\controlbits.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\benes.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\bm.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\decrypt.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\encrypt.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\gf.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\operations.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\pk_gen.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\root.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\synd.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\util.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\transpose.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="SipHash\siphash.c">
+      <Filter>Source Files\SipHash</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\nist\rng.c">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\sk_gen.c">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\swap.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\small.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_rounded.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_round3.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_recip3.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_mult.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\randomweightw.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\randomsmall.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\random32.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\r3_recip.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\r3_mult.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\keypair.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\int32_sort.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\enc.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\dec.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_verify_32.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_hash_sha512.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\cpapke.c">
+      <Filter>Source Files\NewHope</Filter>
+    </ClCompile>
+    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\fips202.c">
+      <Filter>Source Files\NewHope</Filter>
+    </ClCompile>
+    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\kem.c">
+      <Filter>Source Files\NewHope</Filter>
+    </ClCompile>
+    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\ntt.c">
+      <Filter>Source Files\NewHope</Filter>
+    </ClCompile>
+    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\poly.c">
+      <Filter>Source Files\NewHope</Filter>
+    </ClCompile>
+    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\precomp.c">
+      <Filter>Source Files\NewHope</Filter>
+    </ClCompile>
+    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\reduce.c">
+      <Filter>Source Files\NewHope</Filter>
+    </ClCompile>
+    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\verify.c">
+      <Filter>Source Files\NewHope</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
