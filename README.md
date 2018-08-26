@@ -67,3 +67,7 @@ For maximum efficiency and transparency [open an issue](https://github.com/karel
 ### Donations
 
 This project is self-funded. If you like it and would like to ensure its continued and speedy development, consider donating to the author. If this software has served you well (in commercial projects), consider supporting its further development through donations to the author. For details please contact the author using the above contact information. Please be advised, though, that **[the author does not accept contributions from governments, governmental organizations, government funded organizations, or other comparable terrorist organizations](https://blog.kareldonk.com/why-i-will-never-work-for-any-government-ever-again/)**. The author values the truth and will make no compromises with regard to the software, its mission and purpose.
+
+### Contributing
+
+The author is currently especially looking for engineers who would like to review the source code, report bugs or other issues, do security audits, and especially cryptographers who want to help review the cryptographic protocols used including their implementation.
