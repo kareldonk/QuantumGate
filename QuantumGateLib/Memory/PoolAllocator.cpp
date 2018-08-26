@@ -81,12 +81,11 @@ namespace QuantumGate::Implementation::Memory
 		if (n >= PoolAllocationMinimumSize && n <= PoolAllocationMaximumSize)
 		{
 			manage = true;
-			len = PoolAllocationMinimumSize * 2;
+			len = PoolAllocationMinimumSize;
 
-			while (true)
+			while (n > len)
 			{
-				if (n <= len) break;
-				else len *= 2;
+				len *= 2;
 			}
 		}
 

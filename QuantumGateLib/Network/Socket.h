@@ -85,7 +85,7 @@ namespace QuantumGate::Implementation::Network
 		static const int SockOptGetInt(const SOCKET s, const int optname) noexcept;
 
 		static constexpr std::chrono::seconds LingerTime{ 10 };
-		static constexpr Size ReadWriteBufferSize{ 65'536 }; //64Kb
+		static constexpr Size ReadWriteBufferSize{ 65'535 }; //64Kb
 
 	protected:
 		inline const SOCKET GetSocket() const noexcept { return m_Socket; }

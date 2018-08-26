@@ -1104,7 +1104,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						}
 						else
 						{
-							const auto retval3 = ProcessMessages(*msg.GetMessageData(), *symkey);
+							const auto retval3 = ProcessMessages(msg.GetMessageData(), *symkey);
 							return std::make_tuple(retval3.first, retval3.second, msg.GetNextRandomDataPrefixLength());
 						}
 					}

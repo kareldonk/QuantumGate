@@ -852,11 +852,11 @@ namespace QuantumGate::Implementation::Core
 		// Minimum should not be greater than maximum
 		if (params.Message.MinRandomDataPrefixSize > params.Message.MaxRandomDataPrefixSize) return false;
 		// Only supports random data prefix size up to UInt16 (2^16)
-		if (params.Message.MaxRandomDataPrefixSize > 65536) return false;
+		if (params.Message.MaxRandomDataPrefixSize > std::numeric_limits<UInt16>::max()) return false;
 
 		if (params.Message.MinInternalRandomDataSize > params.Message.MaxInternalRandomDataSize) return false;
 		// Only supports random data size up to UInt16 (2^16)
-		if (params.Message.MaxInternalRandomDataSize > 65536) return false;
+		if (params.Message.MaxInternalRandomDataSize > std::numeric_limits<UInt16>::max()) return false;
 
 		if (params.Noise.MinMessagesPerInterval > params.Noise.MaxMessagesPerInterval) return false;
 		if (params.Noise.MinMessageSize > params.Noise.MaxMessageSize) return false;

@@ -12,6 +12,7 @@
 #include "Console.h"
 #include "Common\Util.h"
 #include "Common\Endian.h"
+#include "Common\ScopeGuard.h"
 #include "Memory\BufferWriter.h"
 #include "Memory\BufferReader.h"
 #include "Crypto\Crypto.h"
@@ -629,13 +630,13 @@ namespace QuantumGate::Socks5Extender
 		{
 			auto key = c->WithSharedLock()->GetKey();
 
-			[[maybe_unused]] const auto[it, ret] = connections.insert({ key, std::move(c) });
+			[[maybe_unused]] const auto[it, inserted] = connections.insert({ key, std::move(c) });
 
-			assert(ret);
-			if (!ret) LogErr(GetName() + L": could not add new connection");
-
-			success = ret;
+			assert(inserted);
+			success = inserted;
 		});
+
+		if (!success) LogErr(GetName() + L": could not add new connection");
 
 		return success;
 	}
@@ -1005,6 +1006,9 @@ namespace QuantumGate::Socks5Extender
 		const auto ret = GetAddrInfoW(domain.c_str(), L"0", nullptr, &result);
 		if (ret == 0)
 		{
+			// Free ADDRINFO resources when we leave
+			auto sg = MakeScopeGuard([&] { FreeAddrInfoW(result); });
+
 			for (auto ptr = result; ptr != nullptr; ptr = ptr->ai_next)
 			{
 				if (ptr->ai_family == AF_INET || ptr->ai_family == AF_INET6)
@@ -1012,8 +1016,6 @@ namespace QuantumGate::Socks5Extender
 					return { IPAddress(ptr->ai_addr) };
 				}
 			}
-
-			FreeAddrInfoW(result);
 		}
 		else LogErr(GetName() + L": could not resolve IP addresses for domain %s", domain.c_str());
 

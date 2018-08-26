@@ -143,7 +143,7 @@ namespace QuantumGate::Implementation::Core
 	void MessageTransport::IHeader::SetRandomDataSize(const Size minrndsize, const Size maxrndsize) noexcept
 	{
 		// Only supports random data size up to UInt16 (2^16)
-		assert(minrndsize < 65536 && maxrndsize < 65536);
+		assert(minrndsize <= std::numeric_limits<UInt16>::max() && maxrndsize <= std::numeric_limits<UInt16>::max());
 
 		m_RandomDataSize = static_cast<UInt16>(abs(Random::GetPseudoRandomNumber(minrndsize, maxrndsize)));
 
@@ -211,11 +211,9 @@ namespace QuantumGate::Implementation::Core
 		}
 	}
 
-	const Buffer* MessageTransport::GetMessageData() const noexcept
+	const Buffer& MessageTransport::GetMessageData() const noexcept
 	{
-		if (IsValid()) return &m_MessageData;
-
-		return nullptr;
+		return m_MessageData;
 	}
 
 	void MessageTransport::Validate() noexcept

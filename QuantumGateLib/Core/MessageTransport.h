@@ -121,21 +121,12 @@ namespace QuantumGate::Implementation::Core
 		[[nodiscard]] inline const bool IsValid() const noexcept { return m_Valid; }
 
 		inline void SetMessageCounter(const UInt8 counter) noexcept { m_IHeader.SetMessageCounter(counter); }
-		inline const UInt8 GetMessageCounter() const noexcept
-		{
-			if (IsValid()) return m_IHeader.GetMessageCounter();
-			return 0;
-		}
-
+		inline const UInt8 GetMessageCounter() const noexcept { return m_IHeader.GetMessageCounter(); }
 		inline const void SetMessageNonceSeed(UInt32 seed) noexcept { m_OHeader.SetMessageNonceSeed(seed); }
-		inline const UInt32 GetMessageNonceSeed() const noexcept
-		{
-			if (IsValid()) return m_OHeader.GetMessageNonceSeed();
-			return 0;
-		}
+		inline const UInt32 GetMessageNonceSeed() const noexcept { return m_OHeader.GetMessageNonceSeed(); }
 
 		void SetMessageData(Buffer&& buffer) noexcept;
-		const Buffer* GetMessageData() const noexcept;
+		const Buffer& GetMessageData() const noexcept;
 
 		inline void SetCurrentRandomDataPrefixLength(const UInt16 len) noexcept { m_RandomDataPrefixLength = len; }
 		inline void SetNextRandomDataPrefixLength(const UInt16 len) noexcept { m_IHeader.SetRandomDataPrefixLength(len); }
