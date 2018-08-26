@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "api.h"
 #include "poly.h"
-#include "..\..\..\..\Common\nist\rng.h"
+#include "..\..\Common\nist\rng.h"
 #include "fips202.h"
 
 /*************************************************

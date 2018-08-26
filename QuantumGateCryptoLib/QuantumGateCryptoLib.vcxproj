@@ -185,14 +185,14 @@
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\synd.h" />
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\transpose.h" />
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\util.h" />
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\api.h" />
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\cpapke.h" />
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\fips202.h" />
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\ntt.h" />
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\params.h" />
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\poly.h" />
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\reduce.h" />
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\verify.h" />
+    <ClInclude Include="NewHope\ref\ccakem.h" />
+    <ClInclude Include="NewHope\ref\cpapke.h" />
+    <ClInclude Include="NewHope\ref\fips202.h" />
+    <ClInclude Include="NewHope\ref\ntt.h" />
+    <ClInclude Include="NewHope\ref\params.h" />
+    <ClInclude Include="NewHope\ref\poly.h" />
+    <ClInclude Include="NewHope\ref\reduce.h" />
+    <ClInclude Include="NewHope\ref\verify.h" />
     <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_hash_sha512.h" />
     <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_int16.h" />
     <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_int32.h" />
@@ -299,49 +299,49 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\cpapke.c">
+    <ClCompile Include="NewHope\ref\ccakem.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\fips202.c">
+    <ClCompile Include="NewHope\ref\cpapke.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\kem.c">
+    <ClCompile Include="NewHope\ref\fips202.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\ntt.c">
+    <ClCompile Include="NewHope\ref\ntt.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\poly.c">
+    <ClCompile Include="NewHope\ref\poly.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\precomp.c">
+    <ClCompile Include="NewHope\ref\precomp.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\reduce.c">
+    <ClCompile Include="NewHope\ref\reduce.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\verify.c">
+    <ClCompile Include="NewHope\ref\verify.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

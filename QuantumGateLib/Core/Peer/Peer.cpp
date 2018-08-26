@@ -965,10 +965,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 		}
 
-		if (num > 1)
+		DbgInvoke([&]()
 		{
-			LogWarn(L"Send %u", num);
-		}
+			if (num > 1)
+			{
+				LogDbg(L"Sent %u messages in one transport", num);
+			}
+		});
 
 		return std::make_pair(success, num);
 	}
@@ -1187,10 +1190,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			success = false;
 		}
 
-		if (num > 1)
+		DbgInvoke([&]()
 		{
-			LogWarn(L"Process %u", num);
-		}
+			if (num > 1)
+			{
+				LogDbg(L"Processed %u messages from one transport", num);
+			}
+		});
 
 		return std::make_pair(success, num);
 	}

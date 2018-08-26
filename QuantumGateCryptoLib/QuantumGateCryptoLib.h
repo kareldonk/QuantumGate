@@ -6,7 +6,7 @@
 #include "Common\nist\rng.h"
 #include "McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem_mceliece8192128.h"
 #include "NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_kem_sntrup4591761.h"
-#include "NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\api.h"
+#include "NewHope\ref\ccakem.h"
 
 // The siphash function is defined in the siphash.c reference implementation file
 // included in the SipHash folder, and available online at: https://github.com/veorq/SipHash

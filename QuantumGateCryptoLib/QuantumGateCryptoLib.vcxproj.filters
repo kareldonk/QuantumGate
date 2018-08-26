@@ -159,28 +159,28 @@
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem.h">
       <Filter>Header Files\McEliece</Filter>
     </ClInclude>
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\api.h">
+    <ClInclude Include="NewHope\ref\ccakem.h">
       <Filter>Header Files\NewHope</Filter>
     </ClInclude>
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\cpapke.h">
+    <ClInclude Include="NewHope\ref\cpapke.h">
       <Filter>Header Files\NewHope</Filter>
     </ClInclude>
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\fips202.h">
+    <ClInclude Include="NewHope\ref\fips202.h">
       <Filter>Header Files\NewHope</Filter>
     </ClInclude>
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\ntt.h">
+    <ClInclude Include="NewHope\ref\ntt.h">
       <Filter>Header Files\NewHope</Filter>
     </ClInclude>
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\params.h">
+    <ClInclude Include="NewHope\ref\params.h">
       <Filter>Header Files\NewHope</Filter>
     </ClInclude>
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\poly.h">
+    <ClInclude Include="NewHope\ref\poly.h">
       <Filter>Header Files\NewHope</Filter>
     </ClInclude>
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\reduce.h">
+    <ClInclude Include="NewHope\ref\reduce.h">
       <Filter>Header Files\NewHope</Filter>
     </ClInclude>
-    <ClInclude Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\verify.h">
+    <ClInclude Include="NewHope\ref\verify.h">
       <Filter>Header Files\NewHope</Filter>
     </ClInclude>
   </ItemGroup>
@@ -287,28 +287,28 @@
     <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_hash_sha512.c">
       <Filter>Source Files\NTRUPrime</Filter>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\cpapke.c">
+    <ClCompile Include="NewHope\ref\ccakem.c">
       <Filter>Source Files\NewHope</Filter>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\fips202.c">
+    <ClCompile Include="NewHope\ref\cpapke.c">
       <Filter>Source Files\NewHope</Filter>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\kem.c">
+    <ClCompile Include="NewHope\ref\fips202.c">
       <Filter>Source Files\NewHope</Filter>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\ntt.c">
+    <ClCompile Include="NewHope\ref\ntt.c">
       <Filter>Source Files\NewHope</Filter>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\poly.c">
+    <ClCompile Include="NewHope\ref\poly.c">
       <Filter>Source Files\NewHope</Filter>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\precomp.c">
+    <ClCompile Include="NewHope\ref\precomp.c">
       <Filter>Source Files\NewHope</Filter>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\reduce.c">
+    <ClCompile Include="NewHope\ref\reduce.c">
       <Filter>Source Files\NewHope</Filter>
     </ClCompile>
-    <ClCompile Include="NewHope\Optimized_Implementation\crypto_kem\newhope1024cca\verify.c">
+    <ClCompile Include="NewHope\ref\verify.c">
       <Filter>Source Files\NewHope</Filter>
     </ClCompile>
   </ItemGroup>
