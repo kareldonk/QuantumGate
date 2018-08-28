@@ -251,7 +251,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] const bool CheckAndProcessKeyUpdate() noexcept;
 
-		void SetMessageDataSizeOffset(const ProtectedBuffer& encr_authkey, const ProtectedBuffer& decr_authkey) noexcept;
+		void SetInitialConditionsWithGlobalSharedSecret(const ProtectedBuffer& encr_authkey,
+														const ProtectedBuffer& decr_authkey) noexcept;
 
 		[[nodiscard]] inline const bool IsAutoGenKeyAllowed() const noexcept;
 
@@ -278,7 +279,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		std::bitset<8> m_Flags{ 0 };
 
-		MessageTransport::DataSizeSettings m_MessageDataSizeSettings;
+		MessageTransport::DataSizeSettings m_MessageTransportDataSizeSettings;
 
 		UInt16 m_NextLocalRandomDataPrefixLength{ 0 };
 		UInt16 m_NextPeerRandomDataPrefixLength{ 0 };

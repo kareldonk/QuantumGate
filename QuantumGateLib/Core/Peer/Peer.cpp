@@ -70,8 +70,8 @@ namespace QuantumGate::Implementation::Core::Peer
 				// We need to have symmetric keys already if we get here
 				assert(!m_Keys.GetSymmetricKeyPairs().empty());
 
-				SetMessageDataSizeOffset(m_Keys.GetSymmetricKeyPairs()[0]->EncryptionKey->AuthKey,
-										 m_Keys.GetSymmetricKeyPairs()[0]->DecryptionKey->AuthKey);
+				SetInitialConditionsWithGlobalSharedSecret(m_Keys.GetSymmetricKeyPairs()[0]->EncryptionKey->AuthKey,
+														   m_Keys.GetSymmetricKeyPairs()[0]->DecryptionKey->AuthKey);
 			}
 			else return false;
 		}
@@ -79,16 +79,30 @@ namespace QuantumGate::Implementation::Core::Peer
 		return SetStatus(Status::Initialized);
 	}
 
-	void Peer::SetMessageDataSizeOffset(const ProtectedBuffer& encr_authkey, const ProtectedBuffer& decr_authkey) noexcept
+	void Peer::SetInitialConditionsWithGlobalSharedSecret(const ProtectedBuffer& encr_authkey,
+														  const ProtectedBuffer& decr_authkey) noexcept
 	{
-		const auto seed = std::max(static_cast<UInt8>(encr_authkey[0]),
-								   static_cast<UInt8>(decr_authkey[0]));
+		const auto seed = static_cast<float>(std::max(static_cast<UInt8>(encr_authkey[0]),
+													  static_cast<UInt8>(decr_authkey[0]))) / 255.f;
 
-		const auto num = (static_cast<float>(seed) / 255.f) * static_cast<float>(MessageTransport::MaxMessageDataSizeOffset);
-		m_MessageDataSizeSettings.Offset = static_cast<UInt8>(std::floor(num));
+		const auto mtds = seed * static_cast<float>(MessageTransport::MaxMessageDataSizeOffset);
+		m_MessageTransportDataSizeSettings.Offset = static_cast<UInt8>(std::floor(mtds));
 
-		m_MessageDataSizeSettings.XOR = *(reinterpret_cast<const UInt32*>(encr_authkey.GetBytes())) ^
+		m_MessageTransportDataSizeSettings.XOR = *(reinterpret_cast<const UInt32*>(encr_authkey.GetBytes())) ^
 			*(reinterpret_cast<const UInt32*>(decr_authkey.GetBytes()));
+
+		// With a Global Shared Secret known to both peers we can start the first
+		// Message Transport with a random data prefix of a length that's only
+		// known to the peers; in this case between 0 - 64 bytes depending on
+		// the Global Shared Secret. This overrides the Min/MaxRandomDataPrefixSize
+		// in the Settings for the first Message Transport being sent.
+		m_NextLocalRandomDataPrefixLength = static_cast<UInt16>(std::floor(seed * 64.f));
+		m_NextPeerRandomDataPrefixLength = m_NextLocalRandomDataPrefixLength;
+
+		Dbg(L"\r\nGSS initial conditions:");
+		Dbg(L"Seed: %f ", seed);
+		Dbg(L"MsgTDSOffset: %u bits", m_MessageTransportDataSizeSettings.Offset);
+		Dbg(L"RndDPrefixLen: %u bytes\r\n", m_NextLocalRandomDataPrefixLength);
 	}
 
 	void Peer::EnableSend() noexcept
@@ -296,11 +310,12 @@ namespace QuantumGate::Implementation::Core::Peer
 				// If the peer was accepted/connected but did not reach the ready state quick enough remove it
 				LogErr(L"Peer %s did not complete handshake quick enough; will disconnect", GetPeerName().c_str());
 
+				SetDisconnectCondition(DisconnectCondition::TimedOutError);
+
 				// This might be an attack ("slowloris" for example) so limit the
 				// number of times this may happen by updating the IP reputation
 				UpdateReputation(Access::IPReputationUpdate::DeteriorateMinimal);
 
-				SetDisconnectCondition(DisconnectCondition::TimedOutError);
 				return false;
 			}
 			else if (status == Status::Connected && GetIOStatus().CanWrite())
@@ -776,7 +791,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		while (!m_SendQueue.Empty() ||
 			(!m_DelayedSendQueue.Empty() && m_DelayedSendQueue.Front().IsTime()))
 		{
-			auto msg = MessageTransport(m_MessageDataSizeSettings, settings);
+			auto msg = MessageTransport(m_MessageTransportDataSizeSettings, settings);
 
 			Buffer nonce;
 			std::shared_ptr<Crypto::SymmetricKeyData> symkey(nullptr);
@@ -984,7 +999,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		// Check if there's a message in the receive buffer
 		MessageTransportCheck msgchk = MessageTransport::Peek(m_NextPeerRandomDataPrefixLength,
-															  m_MessageDataSizeSettings, m_ReceiveBuffer);
+															  m_MessageTransportDataSizeSettings, m_ReceiveBuffer);
 
 		// If there was no data in the buffer or an incomplete message, check if there's
 		// data to receive from the peer, otherwise proceed to process what we have
@@ -994,7 +1009,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			// Check if we have a complete message now
 			if (success) msgchk = MessageTransport::Peek(m_NextPeerRandomDataPrefixLength,
-														 m_MessageDataSizeSettings, m_ReceiveBuffer);
+														 m_MessageTransportDataSizeSettings, m_ReceiveBuffer);
 		}
 
 		if (msgchk == MessageTransportCheck::CompleteMessage)
@@ -1009,7 +1024,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			while (true)
 			{
 				if (MessageTransport::GetFromBuffer(m_NextPeerRandomDataPrefixLength,
-													m_MessageDataSizeSettings,
+													m_MessageTransportDataSizeSettings,
 													m_ReceiveBuffer, msgbuf) == MessageTransportCheck::CompleteMessage)
 				{
 					const auto&[retval, nump, nrndplen] = ProcessMessage(msgbuf, settings);
@@ -1073,7 +1088,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				if (symkey != nullptr)
 				{
-					auto msg = MessageTransport(m_MessageDataSizeSettings, settings);
+					auto msg = MessageTransport(m_MessageTransportDataSizeSettings, settings);
 
 					Dbg(L"Receive buffer: %d bytes - %s", msgbuf.GetSize(), Util::GetBase64(msgbuf)->c_str());
 

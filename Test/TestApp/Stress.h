@@ -33,6 +33,7 @@ class Stress
 		StartupParameters StartupParams;
 		String IP;
 		UInt16 Port{ 0 };
+		ProtectedBuffer GlobalSharedSecret;
 		std::atomic_bool Stop{ false };
 	};
 
@@ -50,7 +51,7 @@ public:
 	static bool IsConnectStressRunning() noexcept;
 
 	static const bool StartMultiInstanceStress(const StartupParameters& startup_params,
-											   const CString& ip, const UInt16 port);
+											   const CString& ip, const UInt16 port, const ProtectedBuffer& gsecret);
 	static void StopMultiInstanceStress();
 	static bool IsMultiInstanceStressRunning() noexcept;
 

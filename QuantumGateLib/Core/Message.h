@@ -142,6 +142,8 @@ namespace QuantumGate::Implementation::Core
 		static const BufferView GetFromBuffer(BufferView& srcbuf);
 
 	public:
+		static constexpr Size MinMessageDataSizeForCompression{ 128 }; // Bytes
+
 		static constexpr Size MaxMessageDataSize{
 			// Reserve space for MessageHeader (21 bytes)
 			MessageTransport::MaxMessageDataSize - 21

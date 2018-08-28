@@ -225,7 +225,8 @@ namespace QuantumGate::Implementation::Core
 
 		auto msghdr = m_Header;
 
-		if (hasmsgdata && m_UseCompression)
+		if (hasmsgdata && m_UseCompression &&
+			m_MessageData.GetSize() >= Message::MinMessageDataSizeForCompression)
 		{
 			// These types should not get compressed
 			assert(GetMessageType() != MessageType::Noise &&

@@ -1363,10 +1363,16 @@ void CTestAppDlg::OnStressMultipleInstances()
 
 			params.Listeners.Enable = false;
 			params.EnableExtenders = true;
-
 			params.RequireAuthentication = false;
 
-			Stress::StartMultiInstanceStress(params, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort());
+			ProtectedBuffer gsecret;
+			auto passphrase = dlg.GetPassPhrase();
+			if (passphrase.GetLength() > 0)
+			{
+				if (!GenerateGlobalSharedSecret(passphrase, gsecret)) return;
+			}
+
+			Stress::StartMultiInstanceStress(params, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort(), gsecret);
 		}
 	}
 	else Stress::StopMultiInstanceStress();
