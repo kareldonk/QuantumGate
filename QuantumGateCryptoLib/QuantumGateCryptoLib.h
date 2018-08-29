@@ -3,18 +3,18 @@
 
 #pragma once
 
-#include "Common\nist\rng.h"
+#include "Common\Random.h"
 #include "McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem_mceliece8192128.h"
 #include "NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_kem_sntrup4591761.h"
 #include "NewHope\ref\ccakem.h"
 
-// The siphash function is defined in the siphash.c reference implementation file
-// included in the SipHash folder, and available online at: https://github.com/veorq/SipHash
+// The siphash function is defined in the siphash.c reference
+// implementation file included in the SipHash folder
 #ifdef __cplusplus
 extern "C" {
 #endif
-	extern int siphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
-					   uint8_t *out, const size_t outlen);
+	int siphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
+				uint8_t *out, const size_t outlen);
 #ifdef __cplusplus
 }
 #endif

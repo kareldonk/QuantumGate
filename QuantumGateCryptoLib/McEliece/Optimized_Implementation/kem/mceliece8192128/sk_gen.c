@@ -80,7 +80,7 @@ int sk_gen(unsigned char *sk)
 	
 	while (1)
 	{
-		if (randombytes((unsigned char *)a, sizeof(a)) != 0) return -1;
+		randombytes((unsigned char *) a, sizeof(a)); 
 
 		for (i = 0; i < SYS_T; i++) a[i] &= GFMASK;
 
@@ -90,7 +90,7 @@ int sk_gen(unsigned char *sk)
 	for (i = 0; i < SYS_T; i++) 
 		store2( sk + SYS_N/8 + i*2, g[i] );
 
-	if (randombytes(sk, SYS_N / 8) != 0) return -1;
+	randombytes(sk, SYS_N/8);
 
 	if (controlbits(sk + SYS_N / 8 + IRR_BYTES) == -1) return -1;
 

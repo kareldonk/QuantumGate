@@ -129,9 +129,6 @@
     <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\randombytes.h">
       <Filter>Header Files\NTRUPrime</Filter>
     </ClInclude>
-    <ClInclude Include="Common\nist\rng.h">
-      <Filter>Header Files\Common</Filter>
-    </ClInclude>
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\root.h">
       <Filter>Header Files\McEliece</Filter>
     </ClInclude>
@@ -183,6 +180,9 @@
     <ClInclude Include="NewHope\ref\verify.h">
       <Filter>Header Files\NewHope</Filter>
     </ClInclude>
+    <ClInclude Include="Common\Random.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -226,9 +226,6 @@
     </ClCompile>
     <ClCompile Include="SipHash\siphash.c">
       <Filter>Source Files\SipHash</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\nist\rng.c">
-      <Filter>Source Files\Common</Filter>
     </ClCompile>
     <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\sk_gen.c">
       <Filter>Source Files\McEliece</Filter>
@@ -310,6 +307,9 @@
     </ClCompile>
     <ClCompile Include="NewHope\ref\verify.c">
       <Filter>Source Files\NewHope</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Random.c">
+      <Filter>Source Files\Common</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

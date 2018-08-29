@@ -11,8 +11,7 @@
 #include "NewHope.h"
 #include "..\Common\Random.h"
 #include "..\Common\ScopeGuard.h"
-
-#include <wincrypt.h> // CryptAcquireContext, CryptGenRandom
+#include "..\..\QuantumGateCryptoLib\QuantumGateCryptoLib.h"
 
 namespace QuantumGate::Implementation::Crypto
 {
@@ -193,21 +192,12 @@ namespace QuantumGate::Implementation::Crypto
 
 	std::optional<UInt64> GetCryptoRandomNumber() noexcept
 	{
-		// Fill with data to use as an auxiliary random seed
-		UInt64 num = Random::GetPseudoRandomNumber();
-
-		HCRYPTPROV ctx{ 0 };
-		if (CryptAcquireContext(&ctx, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+		UInt64 num{ 0 };
+		if (QGCryptoGetRandomBytes(reinterpret_cast<UChar*>(&num), sizeof(num)) == 0)
 		{
-			// When we leave release context
-			auto sg = MakeScopeGuard([&] { CryptReleaseContext(ctx, 0); });
-
-			if (CryptGenRandom(ctx, sizeof(num), reinterpret_cast<BYTE*>(&num)))
-			{
-				return { num };
-			}
+			return { num };
 		}
-
+		
 		return std::nullopt;
 	}
 
@@ -215,19 +205,12 @@ namespace QuantumGate::Implementation::Crypto
 	{
 		try
 		{
-			// Fill with data to use as an auxiliary random seed
-			Buffer bytes = Random::GetPseudoRandomBytes(size);
+			Buffer bytes(size);
 
-			HCRYPTPROV ctx{ 0 };
-			if (CryptAcquireContext(&ctx, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+			if (QGCryptoGetRandomBytes(reinterpret_cast<UChar*>(bytes.GetBytes()),
+									   gsl::narrow<ULong>(bytes.GetSize())) == 0)
 			{
-				// When we leave release context
-				auto sg = MakeScopeGuard([&] { CryptReleaseContext(ctx, 0); });
-
-				if (CryptGenRandom(ctx, static_cast<DWORD>(bytes.GetSize()), reinterpret_cast<BYTE*>(bytes.GetBytes())))
-				{
-					return { std::move(bytes) };
-				}
+				return { std::move(bytes) };
 			}
 		}
 		catch (...) {}

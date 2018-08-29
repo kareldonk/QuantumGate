@@ -1,1 +1,1 @@
-#include "..\..\..\..\Common\nist\rng.h"
+#include "..\..\..\..\Common\Random.h"

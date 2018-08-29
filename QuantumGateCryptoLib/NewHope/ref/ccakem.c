@@ -2,7 +2,7 @@
 #include "api.h"
 #include "cpapke.h"
 #include "params.h"
-#include "..\..\Common\nist\rng.h"
+#include "..\..\Common\Random.h"
 #include "fips202.h"
 #include "verify.h"
 

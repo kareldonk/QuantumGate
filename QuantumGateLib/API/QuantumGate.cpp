@@ -4,6 +4,8 @@
 #include "stdafx.h"
 #include "QuantumGate.h"
 
+#include "..\..\QuantumGateCryptoLib\QuantumGateCryptoLib.h"
+
 #include <openssl/conf.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
@@ -39,6 +41,12 @@ namespace QuantumGate
 	{
 		Dbg(L"QuantumGate DLL initializing...");
 
+		if (QGCryptoInitRng() != 0)
+		{
+			Dbg(L"WARNING: QGCryptoInitRng() failed");
+			abort();
+		}
+
 		InitOpenSSLDLL();
 	}
 
@@ -47,5 +55,7 @@ namespace QuantumGate
 		Dbg(L"QuantumGate DLL deinitializing...");
 
 		DeInitOpenSSLDLL();
+
+		QGCryptoDeinitRng();
 	}
 }

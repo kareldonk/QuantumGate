@@ -166,7 +166,7 @@
     <Lib />
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Common\nist\rng.h" />
+    <ClInclude Include="Common\Random.h" />
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\benes.h" />
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\bm.h" />
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\controlbits.h" />
@@ -215,7 +215,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common\nist\rng.c">
+    <ClCompile Include="Common\Random.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

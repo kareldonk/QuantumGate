@@ -17,19 +17,13 @@ namespace QuantumGate::Implementation::Crypto
 		{
 			try
 			{
-				auto bytes = GetCryptoRandomBytes(48);
-				if (bytes)
+				keydata.LocalPublicKey.Allocate(m_PublicKeySize);
+				keydata.LocalPrivateKey.Allocate(m_PrivateKeySize);
+
+				if (crypto_kem_mceliece8192128_keypair(reinterpret_cast<UChar*>(keydata.LocalPublicKey.GetBytes()),
+													   reinterpret_cast<UChar*>(keydata.LocalPrivateKey.GetBytes())) == 0)
 				{
-					randombytes_init(reinterpret_cast<UChar*>(bytes->GetBytes()), NULL, 256);
-
-					keydata.LocalPublicKey.Allocate(m_PublicKeySize);
-					keydata.LocalPrivateKey.Allocate(m_PrivateKeySize);
-
-					if (crypto_kem_mceliece8192128_keypair(reinterpret_cast<UChar*>(keydata.LocalPublicKey.GetBytes()),
-														   reinterpret_cast<UChar*>(keydata.LocalPrivateKey.GetBytes())) == 0)
-					{
-						return true;
-					}
+					return true;
 				}
 			}
 			catch (const std::exception& e)
