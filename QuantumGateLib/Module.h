@@ -5,6 +5,6 @@
 
 namespace QuantumGate
 {
-	Export void InitQuantumGateDLL() noexcept;
-	Export void DeInitQuantumGateDLL() noexcept;
+	Export void InitQuantumGateModule() noexcept;
+	Export void DeinitQuantumGateModule() noexcept;
 }

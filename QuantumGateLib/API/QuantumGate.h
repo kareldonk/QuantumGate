@@ -12,8 +12,8 @@
 // QuantumGate Types
 #include "..\Types.h"
 
-// QuantumGate DLL functions
-#include "..\dllmain.h"
+// QuantumGate module functions
+#include "..\Module.h"
 
 // QuantumGate Local
 #include "Local.h"

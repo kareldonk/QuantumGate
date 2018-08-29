@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "..\Result.h"
+#include "..\Common\Result.h"
 
 namespace QuantumGate
 {

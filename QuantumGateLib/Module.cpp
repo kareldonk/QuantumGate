@@ -2,9 +2,9 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "stdafx.h"
-#include "QuantumGate.h"
+#include "Module.h"
 
-#include "..\..\QuantumGateCryptoLib\QuantumGateCryptoLib.h"
+#include "..\QuantumGateCryptoLib\QuantumGateCryptoLib.h"
 
 #include <openssl/conf.h>
 #include <openssl/evp.h>
@@ -12,7 +12,7 @@
 
 namespace QuantumGate
 {
-	void InitOpenSSLDLL() noexcept
+	void InitOpenSSL() noexcept
 	{
 		// Load the human readable error strings for libcrypto
 		ERR_load_crypto_strings();
@@ -24,7 +24,7 @@ namespace QuantumGate
 		OPENSSL_config(NULL);
 	}
 
-	void DeInitOpenSSLDLL() noexcept
+	void DeinitOpenSSL() noexcept
 	{
 		// Removes all digests and ciphers
 		EVP_cleanup();
@@ -37,9 +37,9 @@ namespace QuantumGate
 		ERR_free_strings();
 	}
 
-	void InitQuantumGateDLL() noexcept
+	void InitQuantumGateModule() noexcept
 	{
-		Dbg(L"QuantumGate DLL initializing...");
+		Dbg(L"QuantumGate module initializing...");
 
 		if (QGCryptoInitRng() != 0)
 		{
@@ -47,14 +47,14 @@ namespace QuantumGate
 			abort();
 		}
 
-		InitOpenSSLDLL();
+		InitOpenSSL();
 	}
 
-	void DeInitQuantumGateDLL() noexcept
+	void DeinitQuantumGateModule() noexcept
 	{
-		Dbg(L"QuantumGate DLL deinitializing...");
+		Dbg(L"QuantumGate module deinitializing...");
 
-		DeInitOpenSSLDLL();
+		DeinitOpenSSL();
 
 		QGCryptoDeinitRng();
 	}

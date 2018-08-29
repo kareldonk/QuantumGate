@@ -2,7 +2,6 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "stdafx.h"
-#include "Module.h"
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) noexcept
 {
@@ -22,4 +21,3 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 
 	return TRUE;
 }
-

@@ -523,6 +523,7 @@
     <ClInclude Include="Common\Endian.h" />
     <ClInclude Include="Common\Hash.h" />
     <ClInclude Include="Common\Random.h" />
+    <ClInclude Include="Common\Result.h" />
     <ClInclude Include="Common\ScopeGuard.h" />
     <ClInclude Include="Common\Traits.h" />
     <ClInclude Include="Common\Util.h" />
@@ -583,7 +584,6 @@
     <ClInclude Include="Crypto\OpenSSL.h" />
     <ClInclude Include="Crypto\OpenSSLSign.h" />
     <ClInclude Include="Crypto\OpenSSLSymmetric.h" />
-    <ClInclude Include="dllmain.h" />
     <ClInclude Include="Memory\Allocator.h" />
     <ClInclude Include="Memory\Buffer.h" />
     <ClInclude Include="Memory\BufferIO.h" />
@@ -592,13 +592,13 @@
     <ClInclude Include="Memory\BufferWriter.h" />
     <ClInclude Include="Memory\PoolAllocator.h" />
     <ClInclude Include="Memory\ProtectedAllocator.h" />
+    <ClInclude Include="Module.h" />
     <ClInclude Include="Network\BinaryIPAddress.h" />
     <ClInclude Include="Network\IPAddress.h" />
     <ClInclude Include="Network\IPEndpoint.h" />
     <ClInclude Include="Network\Socket.h" />
     <ClInclude Include="Network\SocketBase.h" />
     <ClInclude Include="Network\SocketIOStatus.h" />
-    <ClInclude Include="Result.h" />
     <ClInclude Include="Settings.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="Types.h" />
@@ -612,10 +612,10 @@
     <ClCompile Include="API\Local.cpp" />
     <ClCompile Include="API\LocalEnvironment.cpp" />
     <ClCompile Include="API\PeerEvent.cpp" />
-    <ClCompile Include="API\QuantumGate.cpp" />
     <ClCompile Include="Common\Console.cpp" />
     <ClCompile Include="Common\Hash.cpp" />
     <ClCompile Include="Common\Random.cpp" />
+    <ClCompile Include="Common\Result.cpp" />
     <ClCompile Include="Common\Util.cpp" />
     <ClCompile Include="Common\UUID.cpp" />
     <ClCompile Include="Compression\Compression.cpp" />
@@ -681,11 +681,11 @@
     <ClCompile Include="Memory\BufferWriter.cpp" />
     <ClCompile Include="Memory\PoolAllocator.cpp" />
     <ClCompile Include="Memory\ProtectedAllocator.cpp" />
+    <ClCompile Include="Module.cpp" />
     <ClCompile Include="Network\BinaryIPAddress.cpp" />
     <ClCompile Include="Network\IPAddress.cpp" />
     <ClCompile Include="Network\IPEndpoint.cpp" />
     <ClCompile Include="Network\Socket.cpp" />
-    <ClCompile Include="Result.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|Win32'">Create</PrecompiledHeader>
