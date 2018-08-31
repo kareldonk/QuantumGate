@@ -2,7 +2,24 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "stdafx.h"
+
+// Include the QuantumGate main header with API definitions
 #include <QuantumGate.h>
+
+// Link with the QuantumGate library depending on architecture
+#if defined(_DEBUG)
+#if !defined(_WIN64)
+#pragma comment (lib, "QuantumGate32D.lib")
+#else
+#pragma comment (lib, "QuantumGate64D.lib")
+#endif
+#else
+#if !defined(_WIN64)
+#pragma comment (lib, "QuantumGate32.lib")
+#else
+#pragma comment (lib, "QuantumGate64.lib")
+#endif
+#endif
 
 #include <iostream>
 #include <thread>
@@ -39,7 +56,7 @@ int main()
 	auto enable_console = false;
 
 	std::wcout <<
-		L"You should start two separate instances of QuantumGateExtender.exe on the same PC."
+		L"You should start two separate instances of QuantumGateExtender.exe on the same PC.\r\n"
 		L"The second one will connect to the first one. Is this the first instance? (Y/N): ";
 
 	auto answer = GetInput();
@@ -158,6 +175,8 @@ int main()
 			// Connect to the first instance on the local host
 			params.PeerIPEndpoint = QuantumGate::IPEndpoint(QuantumGate::IPAddress(L"127.0.0.1"), 999);
 
+			// This version of the ConnectTo function will block until connection succeeds or fails;
+			// use a second parameter to supply a callback function (may be nullptr) for async connect
 			const auto connect_result = qg.ConnectTo(std::move(params));
 			if (connect_result.Failed())
 			{

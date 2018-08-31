@@ -118,5 +118,8 @@ const std::pair<bool, bool> MinimalExtender::OnPeerMessage(QuantumGate::PeerEven
 		success = true;
 	}
 
+	// If we return false for handled and success too often,
+	// QuantumGate will disconnect the misbehaving peer eventually
+	// as its reputation declines
 	return std::make_pair(handled, success);
 }

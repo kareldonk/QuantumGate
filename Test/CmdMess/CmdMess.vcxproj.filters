@@ -32,9 +32,6 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Dependencies\monocypher\src\monocypher.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CmdMess.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

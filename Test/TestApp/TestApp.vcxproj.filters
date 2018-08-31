@@ -167,9 +167,6 @@
     <ClCompile Include="CTestAppDlgTestExtenderTab.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Dependencies\monocypher\src\monocypher.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CSettingsDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

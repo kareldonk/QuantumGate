@@ -3,6 +3,7 @@
 
 #pragma once
 
+// Include the QuantumGate main header with API definitions
 #include <QuantumGate.h>
 
 #include <mutex>

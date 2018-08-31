@@ -4,6 +4,12 @@
 #include "stdafx.h"
 #include "TestExtender.h"
 
+extern "C"
+{
+#include <monocypher.h>
+#include <monocypher.c>
+}
+
 #include <cassert>
 #include <functional>
 

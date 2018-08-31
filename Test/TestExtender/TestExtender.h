@@ -3,14 +3,6 @@
 
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include "monocypher.h"
-#ifdef __cplusplus
-}
-#endif
-
 #include <unordered_map>
 #include <chrono>
 

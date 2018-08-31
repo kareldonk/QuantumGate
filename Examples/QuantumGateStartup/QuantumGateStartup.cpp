@@ -2,12 +2,11 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "stdafx.h"
+
+// Include the QuantumGate main header with API definitions
 #include <QuantumGate.h>
 
-#include <iostream>
-#include <thread>
-#include <chrono>
-
+// Link with the QuantumGate library depending on architecture
 #if defined(_DEBUG)
 #if !defined(_WIN64)
 #pragma comment (lib, "QuantumGate32D.lib")
@@ -21,6 +20,10 @@
 #pragma comment (lib, "QuantumGate64.lib")
 #endif
 #endif
+
+#include <iostream>
+#include <thread>
+#include <chrono>
 
 using namespace std::literals;
 
