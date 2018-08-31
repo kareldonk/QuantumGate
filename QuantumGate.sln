@@ -62,6 +62,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QuantumGateConsole", "Examp
 		{A6B8A4CE-ECAB-47D4-B9E8-651386DF5193} = {A6B8A4CE-ECAB-47D4-B9E8-651386DF5193}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QuantumGateExtenderHandshake", "Examples\QuantumGateExtenderHandshake\QuantumGateExtenderHandshake.vcxproj", "{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -202,6 +204,22 @@ Global
 		{03981773-134A-446A-A169-75FA46BA920D}.Release|x64.Build.0 = Release|x64
 		{03981773-134A-446A-A169-75FA46BA920D}.ReleaseUnitTests|Win32.ActiveCfg = Release|Win32
 		{03981773-134A-446A-A169-75FA46BA920D}.ReleaseUnitTests|x64.ActiveCfg = Release|x64
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.Debug|Win32.ActiveCfg = Debug|Win32
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.Debug|Win32.Build.0 = Debug|Win32
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.Debug|x64.ActiveCfg = Debug|x64
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.Debug|x64.Build.0 = Debug|x64
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.DebugUnitTests|Win32.ActiveCfg = Debug|Win32
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.DebugUnitTests|Win32.Build.0 = Debug|Win32
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.DebugUnitTests|x64.ActiveCfg = Debug|x64
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.DebugUnitTests|x64.Build.0 = Debug|x64
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.Release|Win32.ActiveCfg = Release|Win32
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.Release|Win32.Build.0 = Release|Win32
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.Release|x64.ActiveCfg = Release|x64
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.Release|x64.Build.0 = Release|x64
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.ReleaseUnitTests|Win32.ActiveCfg = Release|Win32
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.ReleaseUnitTests|Win32.Build.0 = Release|Win32
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.ReleaseUnitTests|x64.ActiveCfg = Release|x64
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.ReleaseUnitTests|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -215,6 +233,7 @@ Global
 		{D470337A-655C-4DE9-B951-FA6955039498} = {841410DA-E519-4F24-B217-771C32A4F5DD}
 		{824C5AA8-19B5-42AE-9AE9-3AD816725E4C} = {841410DA-E519-4F24-B217-771C32A4F5DD}
 		{03981773-134A-446A-A169-75FA46BA920D} = {841410DA-E519-4F24-B217-771C32A4F5DD}
+		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9} = {841410DA-E519-4F24-B217-771C32A4F5DD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {67930584-02C2-47E4-A702-B3F67535C8BD}
