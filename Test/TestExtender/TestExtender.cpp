@@ -299,7 +299,7 @@ namespace TestExtender
 
 		PostMessage(m_Window, WMQG_EXTENDER_INIT, 0, 0);
 
-		// Return true if initialization was succesful, otherwise return false and
+		// Return true if initialization was successful, otherwise return false and
 		// QuantumGate won't be sending this extender any notifications
 		return true;
 	}

@@ -1736,8 +1736,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 		else if (!result.second)
 		{
-			// Message was recognized but wasn't handled succesfully for some reason
-			LogWarn(L"Message from peer %s was not succesfully handled by extender with UUID %s",
+			// Message was recognized but wasn't handled successfully for some reason
+			LogWarn(L"Message from peer %s was not successfully handled by extender with UUID %s",
 					GetPeerName().c_str(), extuuid.GetString().c_str());
 
 			UpdateReputation(Access::IPReputationUpdate::DeteriorateMinimal);

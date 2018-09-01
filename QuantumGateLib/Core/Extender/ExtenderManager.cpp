@@ -522,7 +522,7 @@ namespace QuantumGate::Implementation::Core::Extender
 					}
 					else
 					{
-						// If the extender was not running, keep unsuccesfully handling messages
+						// If the extender was not running, keep unsuccessfully handling messages
 						// for a grace period so that the connection doesn't get closed. (Peers might still
 						// think the extender is running locally while an extender update message is in transit.)
 						if ((Util::GetCurrentSteadyTime() - extctrl.GetSteadyTimeRemoved()) <=

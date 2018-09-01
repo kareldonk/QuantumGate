@@ -55,7 +55,7 @@ const bool HandshakeExtender::OnStartup()
 		return false;
 	}
 
-	// Return true if initialization was succesful, otherwise return false and
+	// Return true if initialization was successful, otherwise return false and
 	// QuantumGate won't be sending this extender any notifications
 	return true;
 }

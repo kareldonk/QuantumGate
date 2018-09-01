@@ -34,7 +34,7 @@ const bool MinimalExtender::OnStartup()
 
 	std::wcout << L"MinimalExtender::OnStartup() called...\r\n";
 
-	// Return true if initialization was succesful, otherwise return false and
+	// Return true if initialization was successful, otherwise return false and
 	// QuantumGate won't be sending this extender any notifications
 	return true;
 }
