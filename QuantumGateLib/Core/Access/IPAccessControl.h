@@ -29,6 +29,7 @@ namespace QuantumGate::Implementation::Core::Access
 	public:
 		struct Reputation
 		{
+			static constexpr Int16 Minimum{ -1000 };
 			static constexpr Int16 Base{ 0 };
 			static constexpr Int16 Maximum{ 100 };
 		};

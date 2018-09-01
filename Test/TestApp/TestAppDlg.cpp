@@ -16,6 +16,7 @@
 #include "CEndpointDlg.h"
 #include "CIPFiltersDlg.h"
 #include "CIPSubnetLimitsDlg.h"
+#include "CIPReputationsDlg.h"
 #include "CSecurityDlg.h"
 #include "CAuthenticationDlg.h"
 #include "CUUIDDialog.h"
@@ -158,6 +159,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_UPDATE_COMMAND_UI(ID_STRESS_MULTIPLEINSTANCES, &CTestAppDlg::OnUpdateStressMultipleInstances)
 	ON_COMMAND(ID_BENCHMARKS_MEMORY, &CTestAppDlg::OnBenchmarksMemory)
 	ON_COMMAND(ID_UTILS_LOGPOOLALLOCATORSTATISTICS, &CTestAppDlg::OnUtilsLogPoolAllocatorStatistics)
+	ON_COMMAND(ID_LOCAL_IPREPUTATIONS, &CTestAppDlg::OnLocalIPReputations)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlg::OnInitDialog()
@@ -1391,4 +1393,11 @@ void CTestAppDlg::OnBenchmarksMemory()
 void CTestAppDlg::OnUtilsLogPoolAllocatorStatistics()
 {
 	QuantumGate::Implementation::Memory::PoolAllocator<void>::LogStatistics();
+}
+
+void CTestAppDlg::OnLocalIPReputations()
+{
+	CIPReputationsDlg dlg;
+	dlg.SetAccessManager(&m_QuantumGate.GetAccessManager());
+	dlg.DoModal();
 }

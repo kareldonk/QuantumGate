@@ -38,6 +38,8 @@ namespace QuantumGate::API
 
 		Result<std::vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
 
+		Result<std::vector<IPReputation>> GetAllIPReputations() const noexcept;
+
 		Result<bool> IsIPAllowed(const String& ip, const AccessCheck check) const noexcept;
 		Result<bool> IsIPAllowed(const IPAddress& ip, const AccessCheck check) const noexcept;
 

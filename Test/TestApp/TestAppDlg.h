@@ -121,6 +121,7 @@ protected:
 	afx_msg void OnUpdateStressMultipleInstances(CCmdUI* pCmdUI);
 	afx_msg void OnBenchmarksMemory();
 	afx_msg void OnUtilsLogPoolAllocatorStatistics();
+	afx_msg void OnLocalIPReputations();
 
 protected:
 	QuantumGate::StartupParameters m_StartupParameters;

@@ -32,7 +32,7 @@ namespace QuantumGate::Implementation
 		UInt64 Rng32Count{ 0 };
 		Rng64Alg Rng64{ Device() };
 		UInt64 Rng64Count{ 0 };
-		static constexpr UInt64 RngEngineReseedLimit{ 2147483648 }; // 2^31
+		static constexpr UInt64 RngEngineReseedLimit{ 2'147'483'648 }; // 2^31
 
 		ForceInline void CheckSeed32(const UInt64 num = 1) noexcept
 		{

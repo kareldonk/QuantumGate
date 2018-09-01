@@ -56,6 +56,11 @@ namespace QuantumGate::API
 		return m_AccessManager->GetAllIPSubnetLimits();
 	}
 
+	Result<std::vector<IPReputation>> AccessManager::GetAllIPReputations() const noexcept
+	{
+		return m_AccessManager->GetAllIPReputations();
+	}
+
 	Result<bool> AccessManager::IsIPAllowed(const String& ip, const AccessCheck check) const noexcept
 	{
 		return m_AccessManager->IsIPAllowed(ip, check);

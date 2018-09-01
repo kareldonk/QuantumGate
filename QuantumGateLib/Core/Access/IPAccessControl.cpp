@@ -59,6 +59,10 @@ namespace QuantumGate::Implementation::Core::Access
 		{
 			m_Reputation = Reputation::Maximum;
 		}
+		else if (m_Reputation < Reputation::Minimum)
+		{
+			m_Reputation = Reputation::Minimum;
+		}
 
 		return m_Reputation;
 	}
@@ -72,7 +76,11 @@ namespace QuantumGate::Implementation::Core::Access
 
 	const std::pair<Int16, Time> IPAccessDetails::GetReputation() const noexcept
 	{
-		return std::make_pair(m_Reputation, Util::ToTimeT(Util::GetCurrentSystemTime()));
+		// Elapsed time since last reputation update
+		const auto tlru = std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() -
+																				m_LastReputationImproveSteadyTime);
+		return std::make_pair(m_Reputation,
+							  Util::ToTimeT(Util::GetCurrentSystemTime() - tlru));
 	}
 
 	const bool IPAccessDetails::AddConnectionAttempt(ConnectionAttempts& attempts, const std::chrono::seconds interval,
@@ -160,7 +168,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 			for (const auto& it : m_IPAccessDetails)
 			{
-				const auto [reputation, time] = it.second.GetReputation();
+				const auto[reputation, time] = it.second.GetReputation();
 
 				auto& ipreputation = ipreputations.emplace_back();
 				ipreputation.Address = it.first;

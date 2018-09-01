@@ -18,6 +18,7 @@
 #define IDD_QGTESTAPP_DIALOG_TESTEXTENDER_TAB 150
 #define IDD_ALGORITHMS_DIALOG           152
 #define IDD_SETTINGS                    154
+#define IDD_IPREPUTATIONS_DIALOG        156
 #define IDC_INIT                        1000
 #define IDC_CONSOLE                     1001
 #define IDC_DEINIT                      1002
@@ -136,6 +137,7 @@
 #define IDC_CHECK4                      1065
 #define IDC_FILE_PATH                   1065
 #define IDC_CHECK5                      1066
+#define IDC_IPREPUTATIONS_LIST          1066
 #define IDC_CHECK6                      1067
 #define IDC_CHECK7                      1068
 #define IDC_CHECK8                      1069
@@ -226,14 +228,15 @@
 #define ID_STRESS_MULTIPLEINSTANCES     32841
 #define ID_BENCHMARKS_MEMORY            32842
 #define ID_UTILS_LOGPOOLALLOCATORSTATISTICS 32843
+#define ID_LOCAL_IPREPUTATIONS          32844
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        156
-#define _APS_NEXT_COMMAND_VALUE         32844
-#define _APS_NEXT_CONTROL_VALUE         1066
+#define _APS_NEXT_RESOURCE_VALUE        158
+#define _APS_NEXT_COMMAND_VALUE         32845
+#define _APS_NEXT_CONTROL_VALUE         1067
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

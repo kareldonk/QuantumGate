@@ -22,7 +22,7 @@ namespace QuantumGate::Implementation::Util
 
 		if (localtime_s(&time_tm, &time) == 0)
 		{
-			if (wcsftime(timestr, 100, format.c_str(), &time_tm) != 0) return timestr;
+			if (std::wcsftime(timestr, sizeof(timestr), format.c_str(), &time_tm) != 0) return timestr;
 		}
 
 		return L"";
