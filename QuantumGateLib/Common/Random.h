@@ -76,7 +76,6 @@ namespace QuantumGate::Implementation
 		}
 
 		static Buffer GetPseudoRandomBytes(const Size count);
-		static Buffer GetPseudoRandomBytes2(const Size count);
 
 	private:
 		ForceInline static RngEngine& GetRngEngine() noexcept

@@ -39,6 +39,6 @@ namespace QuantumGate::Implementation
 		
 		bytes.Resize(count);
 
-		return std::move(bytes);
+		return bytes;
 	}
 }
