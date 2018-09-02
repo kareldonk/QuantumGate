@@ -92,11 +92,14 @@
 #define IDC_KEYUPDATE_BYTES             1029
 #define IDC_ADDFILTER2                  1030
 #define IDC_REMOVEFILTER                1030
+#define IDC_RESET_ALL                   1030
 #define IDC_ADDFILTER3                  1031
 #define IDC_TEST_BUTTON                 1031
 #define IDC_CONNECT_TIMEOUT             1031
+#define IDC_RESET_SELECTED              1031
 #define IDC_IPFILTERS_LIST              1032
 #define IDC_KEYUPDATE_MAXDURATION       1032
+#define IDC_REFRESH                     1032
 #define IDC_IP_TEST_RESULT              1033
 #define IDC_MESSAGE_AGE_TOLERANCE       1034
 #define IDC_USERNAME                    1035
@@ -139,7 +142,9 @@
 #define IDC_CHECK5                      1066
 #define IDC_IPREPUTATIONS_LIST          1066
 #define IDC_CHECK6                      1067
+#define IDC_REPUTATION                  1067
 #define IDC_CHECK7                      1068
+#define IDC_SET_REPUTATION              1068
 #define IDC_CHECK8                      1069
 #define IDC_CHECK9                      1070
 #define IDC_CHECK10                     1071
@@ -236,7 +241,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        158
 #define _APS_NEXT_COMMAND_VALUE         32845
-#define _APS_NEXT_CONTROL_VALUE         1067
+#define _APS_NEXT_CONTROL_VALUE         1069
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

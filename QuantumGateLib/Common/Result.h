@@ -40,6 +40,7 @@ namespace QuantumGate::Implementation
 
 		AddressInvalid = 200,
 		AddressMaskInvalid = 201,
+		AddressNotFound = 202,
 
 		ExtenderNotFound = 300,
 		ExtenderAlreadyPresent = 301,
@@ -148,10 +149,10 @@ namespace QuantumGate::Implementation
 		}
 
 		template<typename U = T, typename = std::enable_if_t<has_value_type<U>>>
-		T& Value() noexcept { assert(m_Value); return m_Value.value(); }
+		T& GetValue() noexcept { assert(m_Value); return m_Value.value(); }
 
 		template<typename U = T, typename = std::enable_if_t<has_value_type<U>>>
-		const T& Value() const noexcept { assert(m_Value); return m_Value.value(); }
+		const T& GetValue() const noexcept { assert(m_Value); return m_Value.value(); }
 
 		template<typename U = T, typename = std::enable_if_t<has_value_type<U>>>
 		[[nodiscard]] constexpr const bool HasValue() const noexcept { return m_Value.has_value(); }

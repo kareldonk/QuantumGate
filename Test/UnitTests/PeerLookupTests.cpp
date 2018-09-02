@@ -273,7 +273,7 @@ namespace UnitTests
 
 				Assert::AreEqual(true, result.Succeeded());
 
-				const auto& excl_networks = result.Value();
+				const auto& excl_networks = result.GetValue();
 
 				// Should only have two entries
 				Assert::AreEqual(true, excl_networks.size() == 2);
@@ -289,35 +289,35 @@ namespace UnitTests
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"192.168.1.44").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(true, result2.Value());
+					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(true, result2.Value());
+					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"192.168.2.44").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(false, result2.Value());
+					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"172.217.7.238").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(false, result2.Value());
+					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(false, result2.Value());
+					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				// Bad CIDR values
@@ -358,7 +358,7 @@ namespace UnitTests
 
 				Assert::AreEqual(true, result.Succeeded());
 
-				const auto& excl_networks = result.Value();
+				const auto& excl_networks = result.GetValue();
 
 				// Should only have two entries
 				Assert::AreEqual(true, excl_networks.size() == 4);
@@ -374,49 +374,49 @@ namespace UnitTests
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"192.168.1.10").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(true, result2.Value());
+					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"192.168.1.44").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(true, result2.Value());
+					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(true, result2.Value());
+					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"192.169.2.44").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(false, result2.Value());
+					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"172.217.7.239").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(true, result2.Value());
+					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"172.218.7.238").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(false, result2.Value());
+					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
 					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::").GetBinary(),
 																   cidr_lbits4, cidr_lbits6, excl_networks);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(false, result2.Value());
+					Assert::AreEqual(false, result2.GetValue());
 				}
 			}
 		}
@@ -476,7 +476,7 @@ namespace UnitTests
 						Assert::AreEqual(true, result.Succeeded());
 
 						// Check that we got back one of the expected peers
-						const auto it = std::find(expected_peers.begin(), expected_peers.end(), result.Value());
+						const auto it = std::find(expected_peers.begin(), expected_peers.end(), result.GetValue());
 						Assert::AreEqual(true, it != expected_peers.end());
 					}
 				}
@@ -495,7 +495,7 @@ namespace UnitTests
 						Assert::AreEqual(true, result.Succeeded());
 
 						// Check that we got back one of the expected peers
-						const auto it = std::find(expected_peers.begin(), expected_peers.end(), result.Value());
+						const auto it = std::find(expected_peers.begin(), expected_peers.end(), result.GetValue());
 						Assert::AreEqual(true, it != expected_peers.end());
 					}
 				}
@@ -512,7 +512,7 @@ namespace UnitTests
 						Assert::AreEqual(true, result.Succeeded());
 
 						// Check that we got back one of the expected peers
-						const auto it = std::find(expected_peers.begin(), expected_peers.end(), result.Value());
+						const auto it = std::find(expected_peers.begin(), expected_peers.end(), result.GetValue());
 						Assert::AreEqual(true, it != expected_peers.end());
 					}
 				}
@@ -551,7 +551,7 @@ namespace UnitTests
 						Assert::AreEqual(true, result.Succeeded());
 
 						// Check that we got back one of the expected peers
-						const auto it = std::find(expected_peers.begin(), expected_peers.end(), result.Value());
+						const auto it = std::find(expected_peers.begin(), expected_peers.end(), result.GetValue());
 						Assert::AreEqual(true, it != expected_peers.end());
 					}
 				}
@@ -572,7 +572,7 @@ namespace UnitTests
 						Assert::AreEqual(true, result.Succeeded());
 
 						// Check that we got back one of the expected peers
-						const auto it = std::find(expected_peers.begin(), expected_peers.end(), result.Value());
+						const auto it = std::find(expected_peers.begin(), expected_peers.end(), result.GetValue());
 						Assert::AreEqual(true, it != expected_peers.end());
 					}
 				}
@@ -610,7 +610,7 @@ namespace UnitTests
 			{
 				const auto result = LookupMaps::AreIPsInSameNetwork(test.ip1, test.ip2, test.cidr4, test.cidr6);
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(test.result, result.Value());
+				Assert::AreEqual(test.result, result.GetValue());
 			}
 		}
 
@@ -646,8 +646,8 @@ namespace UnitTests
 				const auto result = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.Value().size() == 4);
-				Assert::AreEqual(true, CheckExpectedPeers(result.Value(),
+				Assert::AreEqual(true, result.GetValue().size() == 4);
+				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep2->WithSharedLock()->LUID,
@@ -663,8 +663,8 @@ namespace UnitTests
 				const auto result = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.Value().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result.Value(),
+				Assert::AreEqual(true, result.GetValue().size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep3->WithSharedLock()->LUID
@@ -674,8 +674,8 @@ namespace UnitTests
 				const auto result2 = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.Value().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.Value(),
+				Assert::AreEqual(true, result2.GetValue().size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
 														  {
 															  ep1->WithSharedLock()->LUID
 														  }));
@@ -688,8 +688,8 @@ namespace UnitTests
 				const auto result = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.Value().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result.Value(),
+				Assert::AreEqual(true, result.GetValue().size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep4->WithSharedLock()->LUID
@@ -699,8 +699,8 @@ namespace UnitTests
 				const auto result2 = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.Value().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.Value(),
+				Assert::AreEqual(true, result2.GetValue().size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
 														  {
 															  ep1->WithSharedLock()->LUID
 														  }));
@@ -713,8 +713,8 @@ namespace UnitTests
 				const auto result = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.Value().size() == 3);
-				Assert::AreEqual(true, CheckExpectedPeers(result.Value(),
+				Assert::AreEqual(true, result.GetValue().size() == 3);
+				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
 														  {
 															  ep2->WithSharedLock()->LUID,
 															  ep3->WithSharedLock()->LUID,
@@ -725,8 +725,8 @@ namespace UnitTests
 				const auto result2 = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.Value().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.Value(),
+				Assert::AreEqual(true, result2.GetValue().size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
 														  {
 															  ep3->WithSharedLock()->LUID
 														  }));
@@ -739,8 +739,8 @@ namespace UnitTests
 				const auto result = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.Value().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result.Value(),
+				Assert::AreEqual(true, result.GetValue().size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
 														  {
 															  ep1->WithSharedLock()->LUID
 														  }));
@@ -754,8 +754,8 @@ namespace UnitTests
 				const auto result = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.Value().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result.Value(),
+				Assert::AreEqual(true, result.GetValue().size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
 														  {
 															  ep2->WithSharedLock()->LUID,
 															  ep3->WithSharedLock()->LUID
@@ -765,8 +765,8 @@ namespace UnitTests
 				const auto result2 = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.Value().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.Value(),
+				Assert::AreEqual(true, result2.GetValue().size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
 														  {
 															  ep2->WithSharedLock()->LUID
 														  }));
@@ -780,8 +780,8 @@ namespace UnitTests
 				const auto result = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.Value().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result.Value(),
+				Assert::AreEqual(true, result.GetValue().size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep4->WithSharedLock()->LUID
@@ -791,8 +791,8 @@ namespace UnitTests
 				const auto result2 = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.Value().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.Value(),
+				Assert::AreEqual(true, result2.GetValue().size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
 														  {
 															  ep4->WithSharedLock()->LUID
 														  }));
@@ -801,8 +801,8 @@ namespace UnitTests
 				const auto result3 = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result3.Succeeded());
-				Assert::AreEqual(true, result3.Value().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result3.Value(),
+				Assert::AreEqual(true, result3.GetValue().size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(result3.GetValue(),
 														  {
 															  ep4->WithSharedLock()->LUID
 														  }));
@@ -811,7 +811,7 @@ namespace UnitTests
 				const auto result4 = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result4.Succeeded());
-				Assert::AreEqual(true, result4.Value().size() == 0);
+				Assert::AreEqual(true, result4.GetValue().size() == 0);
 			}
 
 			// Extenders OneOf
@@ -822,8 +822,8 @@ namespace UnitTests
 				const auto result = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.Value().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result.Value(),
+				Assert::AreEqual(true, result.GetValue().size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep4->WithSharedLock()->LUID
@@ -833,8 +833,8 @@ namespace UnitTests
 				const auto result2 = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.Value().size() == 3);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.Value(),
+				Assert::AreEqual(true, result2.GetValue().size() == 3);
+				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep3->WithSharedLock()->LUID,
@@ -845,8 +845,8 @@ namespace UnitTests
 				const auto result3 = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result3.Succeeded());
-				Assert::AreEqual(true, result3.Value().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result3.Value(),
+				Assert::AreEqual(true, result3.GetValue().size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(result3.GetValue(),
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep4->WithSharedLock()->LUID
@@ -856,8 +856,8 @@ namespace UnitTests
 				const auto result4 = lum.QueryPeers(params);
 
 				Assert::AreEqual(true, result4.Succeeded());
-				Assert::AreEqual(true, result4.Value().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result4.Value(),
+				Assert::AreEqual(true, result4.GetValue().size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(result4.GetValue(),
 														  {
 															  ep1->WithSharedLock()->LUID
 														  }));

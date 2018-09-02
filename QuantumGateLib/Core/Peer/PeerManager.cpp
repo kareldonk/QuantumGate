@@ -776,7 +776,7 @@ namespace QuantumGate::Implementation::Core::Peer
 																 excl_addr);
 					if (result.Succeeded())
 					{
-						if (!result.Value())
+						if (!result.GetValue())
 						{
 							if (params.Relay.ViaPeer)
 							{
@@ -827,7 +827,7 @@ namespace QuantumGate::Implementation::Core::Peer
 																		 excl_addr);
 							if (result.Succeeded())
 							{
-								if (!result.Value())
+								if (!result.GetValue())
 								{
 									out_peer = params.Relay.ViaPeer;
 								}
@@ -846,7 +846,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						const auto result = GetRelayPeer(excl_addr);
 						if (result.Succeeded())
 						{
-							out_peer = result.Value();
+							out_peer = result.GetValue();
 						}
 						else
 						{

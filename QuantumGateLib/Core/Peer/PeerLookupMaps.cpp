@@ -152,7 +152,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (const auto result = GetNetworks(excl_addr,
 												excl_network_cidr4, excl_network_cidr6); result.Succeeded())
 			{
-				const auto& excl_networks = result.Value();
+				const auto& excl_networks = result.GetValue();
 
 				auto tries = 0u;
 
@@ -167,7 +167,7 @@ namespace QuantumGate::Implementation::Core::Peer
 													   excl_network_cidr6, excl_networks);
 					if (result2.Failed()) return ResultCode::Failed;
 
-					if (!result2.Value() && !HasIP(it->first, excl_addr))
+					if (!result2.GetValue() && !HasIP(it->first, excl_addr))
 					{
 						const auto it2 = std::next(std::begin(it->second),
 												   static_cast<Size>(Random::GetPseudoRandomNumber(0, it->second.size() - 1)));
@@ -199,7 +199,7 @@ namespace QuantumGate::Implementation::Core::Peer
 													   excl_network_cidr6, excl_networks);
 					if (result2.Failed()) return ResultCode::Failed;
 
-					if (!result2.Value() && !HasIP(it.first, excl_addr))
+					if (!result2.GetValue() && !HasIP(it.first, excl_addr))
 					{
 						for (const auto& luid : it.second)
 						{
@@ -345,8 +345,8 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		if (const auto result = GetNetworks(addresses, cidr_lbits4, cidr_lbits6); result.Succeeded())
 		{
-			const auto result2 = IsIPInNetwork(ip, cidr_lbits4, cidr_lbits6, result.Value());
-			if (result2.Succeeded()) return result2.Value();
+			const auto result2 = IsIPInNetwork(ip, cidr_lbits4, cidr_lbits6, result.GetValue());
+			if (result2.Succeeded()) return result2.GetValue();
 		}
 
 		return ResultCode::Failed;

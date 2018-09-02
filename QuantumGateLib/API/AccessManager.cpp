@@ -56,6 +56,26 @@ namespace QuantumGate::API
 		return m_AccessManager->GetAllIPSubnetLimits();
 	}
 
+	Result<> AccessManager::SetIPReputation(const IPReputation& ip_rep) noexcept
+	{
+		return m_AccessManager->SetIPReputation(ip_rep);
+	}
+
+	Result<> AccessManager::ResetIPReputation(const String& ip) noexcept
+	{
+		return m_AccessManager->ResetIPReputation(ip);
+	}
+
+	Result<> AccessManager::ResetIPReputation(const IPAddress& ip) noexcept
+	{
+		return m_AccessManager->ResetIPReputation(ip);
+	}
+
+	void AccessManager::ResetAllIPReputations() noexcept
+	{
+		m_AccessManager->ResetAllIPReputations();
+	}
+
 	Result<std::vector<IPReputation>> AccessManager::GetAllIPReputations() const noexcept
 	{
 		return m_AccessManager->GetAllIPReputations();

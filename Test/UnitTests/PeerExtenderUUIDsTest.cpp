@@ -177,25 +177,25 @@ namespace UnitTests
 				const auto retval2 = extuuids.Update(std::move(uuids2));
 
 				Assert::AreEqual(true, retval2.Succeeded());
-				Assert::AreEqual(true, retval2.Value().first.size() == 1);
-				Assert::AreEqual(true, std::find(retval2.Value().first.begin(),
-												 retval2.Value().first.end(),
+				Assert::AreEqual(true, retval2.GetValue().first.size() == 1);
+				Assert::AreEqual(true, std::find(retval2.GetValue().first.begin(),
+												 retval2.GetValue().first.end(),
 												 QuantumGate::UUID(L"3651d05f-eacb-09ea-be11-e50bb1fce0e4")) !=
-								 retval2.Value().first.end());
+								 retval2.GetValue().first.end());
 
-				Assert::AreEqual(true, retval2.Value().second.size() == 3);
-				Assert::AreEqual(true, std::find(retval2.Value().second.begin(),
-												 retval2.Value().second.end(),
+				Assert::AreEqual(true, retval2.GetValue().second.size() == 3);
+				Assert::AreEqual(true, std::find(retval2.GetValue().second.begin(),
+												 retval2.GetValue().second.end(),
 												 QuantumGate::UUID(L"0db99db5-ed96-49ff-46d4-75dcf455b467")) !=
-								 retval2.Value().second.end());
-				Assert::AreEqual(true, std::find(retval2.Value().second.begin(),
-												 retval2.Value().second.end(),
+								 retval2.GetValue().second.end());
+				Assert::AreEqual(true, std::find(retval2.GetValue().second.begin(),
+												 retval2.GetValue().second.end(),
 												 QuantumGate::UUID(L"0e511a53-c886-a9b5-e63c-cd5552e45aa0")) !=
-								 retval2.Value().second.end());
-				Assert::AreEqual(true, std::find(retval2.Value().second.begin(),
-												 retval2.Value().second.end(),
+								 retval2.GetValue().second.end());
+				Assert::AreEqual(true, std::find(retval2.GetValue().second.begin(),
+												 retval2.GetValue().second.end(),
 												 QuantumGate::UUID(L"720d1977-c186-a981-4691-19ea9dcff055")) !=
-								 retval2.Value().second.end());
+								 retval2.GetValue().second.end());
 
 				Assert::AreEqual(true, extuuids.Current().size() == 3);
 				Assert::AreEqual(false, extuuids.HasExtender(QuantumGate::UUID(L"0db99db5-ed96-49ff-46d4-75dcf455b467")));

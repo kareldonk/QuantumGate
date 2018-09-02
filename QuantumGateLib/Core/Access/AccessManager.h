@@ -41,12 +41,14 @@ namespace QuantumGate::Implementation::Core::Access
 
 		Result<std::vector<IPFilter>> GetAllIPFilters() const noexcept;
 
-		Result<> SetIPReputation(const IPAddress& ip, const Int16 reputation,
+		Result<> SetIPReputation(const IPAddress& ip, const Int16 score,
 								 const std::optional<Time>& time = std::nullopt) noexcept;
-		Result<> SetIPReputation(const IPReputation& ipreputation) noexcept;
+		Result<> SetIPReputation(const IPReputation& ip_rep) noexcept;
+		Result<> ResetIPReputation(const String& ip) noexcept;
+		Result<> ResetIPReputation(const IPAddress& ip) noexcept;
+		void ResetAllIPReputations() noexcept;
 		Result<std::pair<Int16, bool>> UpdateIPReputation(const IPAddress& ip,
 														  const IPReputationUpdate rep_update) noexcept;
-		Result<std::pair<Int16, bool>> GetIPReputation(const IPAddress& ip) noexcept;
 		Result<std::vector<IPReputation>> GetAllIPReputations() const noexcept;
 
 		[[nodiscard]] const bool AddIPConnectionAttempt(const IPAddress& ip) noexcept;

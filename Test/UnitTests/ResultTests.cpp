@@ -89,7 +89,7 @@ namespace UnitTests
 				Assert::AreEqual(true, result1.Succeeded());
 				Assert::AreEqual(true, result1.operator bool());
 				Assert::AreEqual(false, result1.Failed());
-				Assert::AreEqual(2, result1.Value());
+				Assert::AreEqual(2, result1.GetValue());
 				Assert::AreEqual(2, *result1);
 			}
 
@@ -109,7 +109,7 @@ namespace UnitTests
 				Assert::AreEqual(true, result1.operator bool());
 				Assert::AreEqual(false, result1.Failed());
 				Assert::AreEqual(true, result1.HasValue());
-				Assert::AreEqual(2, result1.Value());
+				Assert::AreEqual(2, result1.GetValue());
 				Assert::AreEqual(2, *result1);
 			}
 
@@ -137,7 +137,7 @@ namespace UnitTests
 				Assert::AreEqual(false, result.Failed());
 				Assert::AreEqual(true, result.Succeeded());
 				Assert::AreEqual(true, result.HasValue());
-				Assert::AreEqual(2, result.Value());
+				Assert::AreEqual(2, result.GetValue());
 				Assert::AreEqual(2, *result);
 
 				result.Clear();

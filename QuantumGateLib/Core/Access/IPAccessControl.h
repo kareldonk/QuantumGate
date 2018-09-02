@@ -11,7 +11,7 @@ namespace QuantumGate::Implementation::Core::Access
 {
 	enum class IPReputationUpdate : Int16
 	{
-		Default = 0,
+		None = 0,
 		ImproveMinimal = 20,
 		DeteriorateMinimal = -20,
 		DeteriorateModerate = -50,
@@ -20,6 +20,12 @@ namespace QuantumGate::Implementation::Core::Access
 
 	class IPAccessDetails
 	{
+		struct Reputation
+		{
+			Int16 Score{ IPReputation::ScoreLimits::Maximum };
+			SteadyTime LastImproveSteadyTime;
+		};
+
 		struct ConnectionAttempts
 		{
 			Size Amount{ 0 };
@@ -27,13 +33,6 @@ namespace QuantumGate::Implementation::Core::Access
 		};
 
 	public:
-		struct Reputation
-		{
-			static constexpr Int16 Minimum{ -1000 };
-			static constexpr Int16 Base{ 0 };
-			static constexpr Int16 Maximum{ 100 };
-		};
-
 		IPAccessDetails() noexcept;
 		IPAccessDetails(const IPAccessDetails&) = delete;
 		IPAccessDetails(IPAccessDetails&&) = default;
@@ -41,8 +40,9 @@ namespace QuantumGate::Implementation::Core::Access
 		IPAccessDetails& operator=(const IPAccessDetails&) = delete;
 		IPAccessDetails& operator=(IPAccessDetails&&) = default;
 
-		[[nodiscard]] const bool SetReputation(const Int16 reputation,
+		[[nodiscard]] const bool SetReputation(const Int16 score,
 											   const std::optional<Time>& time = std::nullopt) noexcept;
+		void ResetReputation() noexcept;
 		const Int16 UpdateReputation(const std::chrono::seconds interval, const IPReputationUpdate rep_update) noexcept;
 		[[nodiscard]] const std::pair<Int16, Time> GetReputation() const noexcept;
 
@@ -52,15 +52,14 @@ namespace QuantumGate::Implementation::Core::Access
 		[[nodiscard]] const bool AddConnectionAttempt(ConnectionAttempts& attempts, const std::chrono::seconds interval,
 													  const Size max_attempts) noexcept;
 
-		[[nodiscard]] constexpr static const bool IsAcceptableReputation(const Int16 reputation) noexcept { return (reputation > Reputation::Base); }
+		[[nodiscard]] constexpr static const bool IsAcceptableReputation(const Int16 score) noexcept { return (score > IPReputation::ScoreLimits::Base); }
 
 	private:
 		void ImproveReputation(const std::chrono::seconds interval) noexcept;
 		const Int16 UpdateReputation(const IPReputationUpdate rep_update) noexcept;
 
 	private:
-		Int16 m_Reputation{ Reputation::Maximum };
-		SteadyTime m_LastReputationImproveSteadyTime;
+		Reputation m_Reputation;
 
 		ConnectionAttempts m_ConnectionAttempts;
 		ConnectionAttempts m_RelayConnectionAttempts;
@@ -79,8 +78,10 @@ namespace QuantumGate::Implementation::Core::Access
 		IPAccessControl& operator=(const IPAccessControl&) = delete;
 		IPAccessControl& operator=(IPAccessControl&&) = default;
 
-		Result<> SetReputation(const IPAddress& ip, const Int16 reputation,
+		Result<> SetReputation(const IPAddress& ip, const Int16 score,
 							   const std::optional<Time>& time = std::nullopt) noexcept;
+		Result<> ResetReputation(const IPAddress& ip) noexcept;
+		void ResetAllReputations() noexcept;
 		Result<std::pair<Int16, bool>> UpdateReputation(const IPAddress& ip,
 														const IPReputationUpdate rep_update) noexcept;
 		[[nodiscard]] const bool HasAcceptableReputation(const IPAddress& ip) noexcept;

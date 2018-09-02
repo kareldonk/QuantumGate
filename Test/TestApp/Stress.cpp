@@ -255,12 +255,12 @@ void Stress::MultiInstanceStressThreadProc()
 			{
 				PeerQueryParameters qparams;
 				const auto result = instances[x].QueryPeers(qparams);
-				if (result.Succeeded() && result.Value().size() > 0)
+				if (result.Succeeded() && result.GetValue().size() > 0)
 				{
 					const auto num_msg = Util::GetPseudoRandomNumber(1, 5);
 					for (auto y = 0; y < num_msg; y++)
 					{
-						extenders[x]->SendMessageW(result.Value()[0],
+						extenders[x]->SendMessageW(result.GetValue()[0],
 												   messages[static_cast<size_t>(Util::GetPseudoRandomNumber(0, messages.size() - 1))]);
 					}
 				}

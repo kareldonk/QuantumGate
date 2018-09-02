@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Core::Access
 {
 	IPAccessDetails::IPAccessDetails() noexcept
 	{
-		m_LastReputationImproveSteadyTime = Util::GetCurrentSteadyTime();
+		m_Reputation.LastImproveSteadyTime = Util::GetCurrentSteadyTime();
 		m_ConnectionAttempts.LastResetSteadyTime = Util::GetCurrentSteadyTime();
 		m_RelayConnectionAttempts.LastResetSteadyTime = Util::GetCurrentSteadyTime();
 	}
@@ -18,20 +18,21 @@ namespace QuantumGate::Implementation::Core::Access
 	void IPAccessDetails::ImproveReputation(const std::chrono::seconds interval) noexcept
 	{
 		auto seconds = std::chrono::duration_cast<std::chrono::seconds>(
-			Util::GetCurrentSteadyTime() - m_LastReputationImproveSteadyTime);
+			Util::GetCurrentSteadyTime() - m_Reputation.LastImproveSteadyTime);
 
 		if (seconds >= interval)
 		{
-			m_Reputation += static_cast<Int16>(IPReputationUpdate::ImproveMinimal) *
+			m_Reputation.Score += static_cast<Int16>(IPReputationUpdate::ImproveMinimal) *
 				static_cast<Int16>(seconds.count() / interval.count());
 
-			m_LastReputationImproveSteadyTime = Util::GetCurrentSteadyTime();
+			m_Reputation.LastImproveSteadyTime = Util::GetCurrentSteadyTime();
 		}
 	}
 
-	const bool IPAccessDetails::SetReputation(const Int16 reputation, const std::optional<Time>& time) noexcept
+	const bool IPAccessDetails::SetReputation(const Int16 score, const std::optional<Time>& time) noexcept
 	{
-		if (reputation > Reputation::Maximum) return false;
+		if (score < IPReputation::ScoreLimits::Minimum ||
+			score > IPReputation::ScoreLimits::Maximum) return false;
 
 		auto time_diff = 0ms;
 
@@ -46,25 +47,31 @@ namespace QuantumGate::Implementation::Core::Access
 			time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(ctime - lutime);
 		}
 
-		m_Reputation = reputation;
-		m_LastReputationImproveSteadyTime = Util::GetCurrentSteadyTime() - time_diff;
+		m_Reputation.Score = score;
+		m_Reputation.LastImproveSteadyTime = Util::GetCurrentSteadyTime() - time_diff;
 
 		return true;
 	}
 
+	void IPAccessDetails::ResetReputation() noexcept
+	{
+		m_Reputation.Score = IPReputation::ScoreLimits::Maximum;
+		m_Reputation.LastImproveSteadyTime = Util::GetCurrentSteadyTime();
+	}
+
 	const Int16 IPAccessDetails::UpdateReputation(const IPReputationUpdate rep_update) noexcept
 	{
-		m_Reputation += static_cast<Int16>(rep_update);
-		if (m_Reputation > Reputation::Maximum)
+		m_Reputation.Score += static_cast<Int16>(rep_update);
+		if (m_Reputation.Score > IPReputation::ScoreLimits::Maximum)
 		{
-			m_Reputation = Reputation::Maximum;
+			m_Reputation.Score = IPReputation::ScoreLimits::Maximum;
 		}
-		else if (m_Reputation < Reputation::Minimum)
+		else if (m_Reputation.Score < IPReputation::ScoreLimits::Minimum)
 		{
-			m_Reputation = Reputation::Minimum;
+			m_Reputation.Score = IPReputation::ScoreLimits::Minimum;
 		}
 
-		return m_Reputation;
+		return m_Reputation.Score;
 	}
 
 	const Int16 IPAccessDetails::UpdateReputation(const std::chrono::seconds interval,
@@ -78,8 +85,8 @@ namespace QuantumGate::Implementation::Core::Access
 	{
 		// Elapsed time since last reputation update
 		const auto tlru = std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() -
-																				m_LastReputationImproveSteadyTime);
-		return std::make_pair(m_Reputation,
+																				m_Reputation.LastImproveSteadyTime);
+		return std::make_pair(m_Reputation.Score,
 							  Util::ToTimeT(Util::GetCurrentSystemTime() - tlru));
 	}
 
@@ -118,19 +125,39 @@ namespace QuantumGate::Implementation::Core::Access
 		m_Settings(settings)
 	{}
 
-	Result<> IPAccessControl::SetReputation(const IPAddress& ip, const Int16 reputation,
+	Result<> IPAccessControl::SetReputation(const IPAddress& ip, const Int16 score,
 											const std::optional<Time>& time) noexcept
 	{
 		auto ipad = GetIPAccessDetails(ip);
 		if (ipad != nullptr)
 		{
-			if (ipad->SetReputation(reputation, time))
+			if (ipad->SetReputation(score, time))
 			{
 				return ResultCode::Succeeded;
 			}
 		}
 
 		return ResultCode::Failed;
+	}
+
+	Result<> IPAccessControl::ResetReputation(const IPAddress& ip) noexcept
+	{
+		auto ipad = GetIPAccessDetails(ip);
+		if (ipad != nullptr)
+		{
+			ipad->ResetReputation();
+			return ResultCode::Succeeded;
+		}
+
+		return ResultCode::AddressNotFound;
+	}
+
+	void IPAccessControl::ResetAllReputations() noexcept
+	{
+		for (auto& it : m_IPAccessDetails)
+		{
+			it.second.ResetReputation();
+		}
 	}
 
 	Result<std::pair<Int16, bool>> IPAccessControl::UpdateReputation(const IPAddress& ip,
@@ -151,7 +178,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 	const bool IPAccessControl::HasAcceptableReputation(const IPAddress& ip) noexcept
 	{
-		const auto result = UpdateReputation(ip, IPReputationUpdate::Default);
+		const auto result = UpdateReputation(ip, IPReputationUpdate::None);
 		if (result.Succeeded())
 		{
 			return result->second;
@@ -168,11 +195,11 @@ namespace QuantumGate::Implementation::Core::Access
 
 			for (const auto& it : m_IPAccessDetails)
 			{
-				const auto[reputation, time] = it.second.GetReputation();
+				const auto[score, time] = it.second.GetReputation();
 
 				auto& ipreputation = ipreputations.emplace_back();
 				ipreputation.Address = it.first;
-				ipreputation.Reputation = reputation;
+				ipreputation.Score = score;
 				ipreputation.LastUpdateTime = time;
 			}
 

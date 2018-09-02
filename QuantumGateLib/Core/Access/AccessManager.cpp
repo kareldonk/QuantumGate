@@ -57,10 +57,10 @@ namespace QuantumGate::Implementation::Core::Access
 		return m_IPFilters.WithSharedLock()->GetFilters();
 	}
 
-	Result<> Manager::SetIPReputation(const IPAddress& ip, const Int16 reputation,
+	Result<> Manager::SetIPReputation(const IPAddress& ip, const Int16 score,
 									  const std::optional<Time>& time) noexcept
 	{
-		auto result = m_IPAccessControl.WithUniqueLock()->SetReputation(ip, reputation, time);
+		auto result = m_IPAccessControl.WithUniqueLock()->SetReputation(ip, score, time);
 		if (result.Succeeded())
 		{
 			m_AccessUpdateCallbacks.WithSharedLock()();
@@ -69,17 +69,45 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	Result<> Manager::SetIPReputation(const IPReputation& ipreputation) noexcept
+	Result<> Manager::SetIPReputation(const IPReputation& ip_rep) noexcept
 	{
-		auto result = m_IPAccessControl.WithUniqueLock()->SetReputation(ipreputation.Address,
-																		ipreputation.Reputation,
-																		ipreputation.LastUpdateTime);
+		auto result = m_IPAccessControl.WithUniqueLock()->SetReputation(ip_rep.Address,
+																		ip_rep.Score,
+																		ip_rep.LastUpdateTime);
 		if (result.Succeeded())
 		{
 			m_AccessUpdateCallbacks.WithSharedLock()();
 		}
 
 		return result;
+	}
+
+	Result<> Manager::ResetIPReputation(const String& ip) noexcept
+	{
+		IPAddress ipaddr;
+		if (IPAddress::TryParse(ip, ipaddr))
+		{
+			return ResetIPReputation(ipaddr);
+		}
+
+		return ResultCode::AddressInvalid;
+	}
+
+	Result<> Manager::ResetIPReputation(const IPAddress& ip) noexcept
+	{
+		auto result = m_IPAccessControl.WithUniqueLock()->ResetReputation(ip);
+		if (result.Succeeded())
+		{
+			m_AccessUpdateCallbacks.WithSharedLock()();
+		}
+
+		return result;
+	}
+	
+	void Manager::ResetAllIPReputations() noexcept
+	{
+		m_IPAccessControl.WithUniqueLock()->ResetAllReputations();
+		m_AccessUpdateCallbacks.WithSharedLock()();
 	}
 
 	Result<std::pair<Int16, bool>> Manager::UpdateIPReputation(const IPAddress& ip,
@@ -92,11 +120,6 @@ namespace QuantumGate::Implementation::Core::Access
 		}
 
 		return result;
-	}
-
-	Result<std::pair<Int16, bool>> Manager::GetIPReputation(const IPAddress& ip) noexcept
-	{
-		return m_IPAccessControl.WithUniqueLock()->UpdateReputation(ip, IPReputationUpdate::Default);
 	}
 
 	Result<std::vector<IPReputation>> Manager::GetAllIPReputations() const noexcept

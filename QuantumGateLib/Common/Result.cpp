@@ -56,6 +56,8 @@ namespace QuantumGate::Implementation
 					return "Operation failed. The address wasn't recognized and may be invalid.";
 				case ResultCode::AddressMaskInvalid:
 					return "Operation failed. The address mask wasn't recognized and may be invalid.";
+				case ResultCode::AddressNotFound:
+					return "Operation failed. The address wasn't found.";
 				case ResultCode::ExtenderNotFound:
 					return "Operation failed. The extender was't found.";
 				case ResultCode::ExtenderAlreadyPresent:

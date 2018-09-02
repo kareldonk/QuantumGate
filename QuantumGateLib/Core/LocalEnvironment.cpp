@@ -12,16 +12,16 @@ namespace QuantumGate::Implementation::Core
 	const bool LocalEnvironment::Initialize() noexcept
 	{
 		if (auto result = GetHostname(); result.Failed()) return false;
-		else m_Hostname = std::move(result.Value());
+		else m_Hostname = std::move(result.GetValue());
 
 		if (auto result = GetUsername(); result.Failed()) return false;
-		else m_Username = std::move(result.Value());
+		else m_Username = std::move(result.GetValue());
 
 		if (auto result = GetEthernetInterfaces(); result.Failed()) return false;
-		else m_Interfaces = std::move(result.Value());
+		else m_Interfaces = std::move(result.GetValue());
 
 		if (auto result = GetIPAddresses(m_Interfaces); result.Failed()) return false;
-		else m_IPAddresses = std::move(result.Value());
+		else m_IPAddresses = std::move(result.GetValue());
 
 		m_Initialized = true;
 

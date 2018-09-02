@@ -906,7 +906,7 @@ namespace QuantumGate::Implementation::Core::Relay
 																	 excl_addr);
 				if (result.Succeeded())
 				{
-					if (!result.Value())
+					if (!result.GetValue())
 					{
 						// Connect to a specific endpoint for final hop 0
 						const auto result2 = m_Peers.ConnectTo({ connect_event.Endpoint }, nullptr);
@@ -957,7 +957,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				const auto result = m_Peers.GetRelayPeer(excl_addr);
 				if (result.Succeeded())
 				{
-					out_peer = result.Value();
+					out_peer = result.GetValue();
 				}
 				else
 				{

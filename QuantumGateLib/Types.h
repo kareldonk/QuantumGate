@@ -161,9 +161,16 @@ namespace QuantumGate
 
 	struct IPReputation
 	{
+		struct ScoreLimits
+		{
+			static constexpr const Int16 Minimum{ -1000 };
+			static constexpr const Int16 Base{ 0 };
+			static constexpr const Int16 Maximum{ 100 };
+		};
+
 		IPAddress Address;
-		Int16 Reputation{ 0 };
-		Time LastUpdateTime{ 0 };
+		Int16 Score{ ScoreLimits::Minimum };
+		std::optional<Time> LastUpdateTime;
 	};
 
 	enum class AccessCheck : UInt16
