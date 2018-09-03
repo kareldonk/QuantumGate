@@ -163,7 +163,7 @@ namespace QuantumGate
 	{
 		struct ScoreLimits
 		{
-			static constexpr const Int16 Minimum{ -1000 };
+			static constexpr const Int16 Minimum{ -3000 };
 			static constexpr const Int16 Base{ 0 };
 			static constexpr const Int16 Maximum{ 100 };
 		};

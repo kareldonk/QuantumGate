@@ -8,7 +8,7 @@
 namespace QuantumGate::Implementation
 {
 	std::atomic_bool Hash::m_NonPersistentKeyInit = false;
-	Concurrency::ThreadSafe<Memory::FreeBuffer> Hash::m_NonPersistentKey;
+	Concurrency::ThreadSafe<Memory::FreeBuffer, std::shared_mutex> Hash::m_NonPersistentKey;
 
 	void Hash::InitNonPersistentKey() noexcept
 	{

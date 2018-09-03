@@ -35,7 +35,7 @@ namespace QuantumGate::Implementation
 
 			UInt64 hash{ 0 };
 
-			m_NonPersistentKey.WithUniqueLock([&](auto& key)
+			m_NonPersistentKey.WithSharedLock([&](auto& key)
 			{
 				hash = GetHash(buffer, BufferView(key));
 			});
@@ -75,12 +75,12 @@ namespace QuantumGate::Implementation
 	private:
 		static constexpr UInt m_KeySize{ 16 };
 
-		static constexpr uint8_t m_PersistentKey[m_KeySize]{
+		static constexpr UInt8 m_PersistentKey[m_KeySize]{
 			33, 66, 99, 33, 66, 99, 33, 66, 99,
 			33, 66, 99, 33, 66, 99, 33
 		};
 
 		static std::atomic_bool m_NonPersistentKeyInit;
-		static Concurrency::ThreadSafe<Memory::FreeBuffer> m_NonPersistentKey;
+		static Concurrency::ThreadSafe<Memory::FreeBuffer, std::shared_mutex> m_NonPersistentKey;
 	};
 }

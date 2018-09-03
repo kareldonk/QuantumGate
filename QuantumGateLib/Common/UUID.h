@@ -199,12 +199,12 @@ namespace QuantumGate::Implementation
 		static constexpr UInt8 VariantMask{ 0b00000111 };
 		static constexpr UInt8 SignAlgorithmMask{ 0b00111000 };
 
-		static constexpr uint8_t HashKey1[16]{
+		static constexpr UInt8 HashKey1[16]{
 			33, 66, 99, 33, 66, 99, 33, 66, 99,
 			33, 66, 99, 33, 66, 99, 33
 		};
 
-		static constexpr uint8_t HashKey2[16]{
+		static constexpr UInt8 HashKey2[16]{
 			99, 66, 33, 99, 66, 33, 99, 66, 33,
 			99, 66, 33, 99, 66, 33, 99
 		};

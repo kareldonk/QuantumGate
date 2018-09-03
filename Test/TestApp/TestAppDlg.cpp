@@ -1327,7 +1327,11 @@ void CTestAppDlg::OnUpdateSettingsGeneral(CCmdUI* pCmdUI)
 
 void CTestAppDlg::OnBenchmarksConsole()
 {
-	Benchmarks::BenchmarkConsole();
+	const auto result = AfxMessageBox(L"If the terminal window is open, close it first or else this will take a long time. Do you want to continue?", MB_YESNO | MB_ICONQUESTION);
+	if (result == IDYES)
+	{
+		Benchmarks::BenchmarkConsole();
+	}
 }
 
 void CTestAppDlg::OnStressMultipleInstances()
