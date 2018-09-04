@@ -47,14 +47,15 @@ namespace QuantumGate::Implementation::Compression
 				{
 					// If we have an unused allocation, use it
 					it->IsUsed = true;
-					it->Buffer.Resize(items * size);
+					it->Buffer.Resize(static_cast<Size>(items) * static_cast<Size>(size));
 					return it->Buffer.GetBytes();
 				}
 				else
 				{
 					// Make another allocation
 					const auto nit = memallocs.insert(memallocs.end(),
-													  { Memory::FreeBuffer(items * size), true });
+													  { Memory::FreeBuffer(static_cast<Size>(items) *
+																		   static_cast<Size>(size)), true });
 					return nit->Buffer.GetBytes();
 				}
 			}

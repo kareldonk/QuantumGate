@@ -343,24 +343,24 @@ void Benchmarks::BenchmarkConsole()
 {
 	const auto maxtr = 50000u;
 
-	auto dur1 = DoBenchmark(std::wstring(L"Adding to console using AddMessage"), maxtr, [&]()
+	const auto dur1 = DoBenchmark(std::wstring(L"Adding to console using AddMessage"), maxtr, [&]()
 	{
 		LogInfo(L"This is a test message");
 	});
 
-	auto dur2 = DoBenchmark(std::wstring(L"Adding to console using Log"), maxtr, [&]()
+	const auto dur2 = DoBenchmark(std::wstring(L"Adding to console using Log"), maxtr, [&]()
 	{
 		SLogInfo(L"This is a test message");
 	});
 
-	auto number = 3000ull;
+	const auto number = 3000ull;
 
-	auto dur3 = DoBenchmark(std::wstring(L"Adding to console using AddMessage"), maxtr, [&]()
+	const auto dur3 = DoBenchmark(std::wstring(L"Adding to console using AddMessage"), maxtr, [&]()
 	{
 		LogInfo(L"This is a test message %llu", number);
 	});
 
-	auto dur4 = DoBenchmark(std::wstring(L"Adding to console using Log"), maxtr, [&]()
+	const auto dur4 = DoBenchmark(std::wstring(L"Adding to console using Log"), maxtr, [&]()
 	{
 		SLogInfo(L"This is a test message " << number);
 	});

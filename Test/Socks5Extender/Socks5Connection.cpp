@@ -553,7 +553,7 @@ namespace QuantumGate::Socks5Extender
 						}
 
 						// Remove what we already processed from the buffer
-						m_ReceiveBuffer.RemoveFirst(3 + usrlen + pwdlen);
+						m_ReceiveBuffer.RemoveFirst(3 + static_cast<Size>(usrlen) + static_cast<Size>(pwdlen));
 					}
 					else if (pwdlen == 0) success = false;
 				}

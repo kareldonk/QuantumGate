@@ -137,8 +137,10 @@ namespace QuantumGate::Implementation
 
 		constexpr bool operator<(const UUID& other) const noexcept
 		{
-			return ((m_Data1 + m_Data2 + m_Data3 + m_Data4.UInt64) <
-				(other.m_Data1 + other.m_Data2 + other.m_Data3 + other.m_Data4.UInt64));
+			return ((static_cast<UInt64>(m_Data1) + static_cast<UInt64>(m_Data2) +
+					 static_cast<UInt64>(m_Data3) + m_Data4.UInt64) <
+				(static_cast<UInt64>(other.m_Data1) + static_cast<UInt64>(other.m_Data2) +
+				 static_cast<UInt64>(other.m_Data3) + other.m_Data4.UInt64));
 		}
 
 		[[nodiscard]] static const bool TryParse(const String& str, UUID& uuid) noexcept;

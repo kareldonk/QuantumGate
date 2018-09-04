@@ -31,8 +31,8 @@ namespace QuantumGate::Implementation::Concurrency
 
 	private:
 		std::thread::id m_ExclusiveThreadID;
-		unsigned long long m_ExclusiveLockCount{ 0 };
-		unsigned long long m_SharedLockCount{ 0 };
+		unsigned long m_ExclusiveLockCount{ 0 };
+		unsigned long m_SharedLockCount{ 0 };
 
 		SpinMutex m_Mutex;
 	};

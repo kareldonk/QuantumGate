@@ -27,8 +27,8 @@ namespace QuantumGate::Implementation::Core::Peer
 					interval = std::chrono::duration_cast<std::chrono::seconds>(2 * settings.Local.MaxHandshakeDelay);
 
 					minmsg = 0;
-					maxmsg = static_cast<Size>((static_cast<float>(interval.count()) /
-												static_cast<float>(oint.count())) * static_cast<float>(maxmsg));
+					maxmsg = static_cast<Size>((static_cast<double>(interval.count()) /
+												static_cast<double>(oint.count())) * static_cast<double>(maxmsg));
 
 					// Guarantee possible maximum of 3 noise messages per second
 					const auto msgps = static_cast<Size>(interval.count() * 3);

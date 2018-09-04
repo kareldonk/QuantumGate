@@ -322,7 +322,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			if (IPAddress::TryParseMask(ip.AddressFamily, cidr_lbits, subnet_mask))
 			{
-				auto ipnetwork = ip & subnet_mask;
+				const auto ipnetwork = ip & subnet_mask;
 
 				if (std::find(networks.begin(), networks.end(), ipnetwork) != networks.end())
 				{

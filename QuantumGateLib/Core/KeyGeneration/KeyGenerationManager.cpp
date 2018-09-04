@@ -126,7 +126,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 	const bool Manager::StartupThreadPool() noexcept
 	{
 		const auto cth = std::thread::hardware_concurrency();
-		Size numthreadsperpool = (cth > 2) ? cth : 2;
+		const Size numthreadsperpool = (cth > 2) ? cth : 2;
 
 		// Must have at least two threads in pool 
 		// one of which will be the primary thread

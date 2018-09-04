@@ -144,7 +144,7 @@
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)32</TargetName>
     <IncludePath>$(SolutionDir)\Dependencies\json\single_include\nlohmann;$(SolutionDir)\QuantumGateLib\API;$(SolutionDir)\QuantumGateLib;$(SolutionDir)\Dependencies\GSL\include;$(SolutionDir)\Dependencies\monocypher\src;$(SolutionDir)\Dependencies\pcg-cpp\include;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>CppCoreCheckConstRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
   </PropertyGroup>
@@ -154,7 +154,7 @@
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)32</TargetName>
     <IncludePath>$(SolutionDir)\Dependencies\json\single_include\nlohmann;$(SolutionDir)\QuantumGateLib\API;$(SolutionDir)\QuantumGateLib;$(SolutionDir)\Dependencies\GSL\include;$(SolutionDir)\Dependencies\monocypher\src;$(SolutionDir)\Dependencies\pcg-cpp\include;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>CppCoreCheckConstRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
   </PropertyGroup>
@@ -164,7 +164,7 @@
     <TargetName>$(ProjectName)64</TargetName>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(SolutionDir)\Dependencies\json\single_include\nlohmann;$(SolutionDir)\QuantumGateLib\API;$(SolutionDir)\QuantumGateLib;$(SolutionDir)\Dependencies\GSL\include;$(SolutionDir)\Dependencies\monocypher\src;$(SolutionDir)\Dependencies\pcg-cpp\include;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>CppCoreCheckConstRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
   </PropertyGroup>
@@ -174,7 +174,7 @@
     <TargetName>$(ProjectName)64</TargetName>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(SolutionDir)\Dependencies\json\single_include\nlohmann;$(SolutionDir)\QuantumGateLib\API;$(SolutionDir)\QuantumGateLib;$(SolutionDir)\Dependencies\GSL\include;$(SolutionDir)\Dependencies\monocypher\src;$(SolutionDir)\Dependencies\pcg-cpp\include;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>CppCoreCheckConstRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
   </PropertyGroup>
@@ -184,7 +184,7 @@
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)32</TargetName>
     <IncludePath>$(SolutionDir)\Dependencies\json\single_include\nlohmann;$(SolutionDir)\QuantumGateLib\API;$(SolutionDir)\QuantumGateLib;$(SolutionDir)\Dependencies\GSL\include;$(SolutionDir)\Dependencies\monocypher\src;$(SolutionDir)\Dependencies\pcg-cpp\include;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>CppCoreCheckConstRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
   </PropertyGroup>
@@ -194,7 +194,7 @@
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)32</TargetName>
     <IncludePath>$(SolutionDir)\Dependencies\json\single_include\nlohmann;$(SolutionDir)\QuantumGateLib\API;$(SolutionDir)\QuantumGateLib;$(SolutionDir)\Dependencies\GSL\include;$(SolutionDir)\Dependencies\monocypher\src;$(SolutionDir)\Dependencies\pcg-cpp\include;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>CppCoreCheckConstRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
   </PropertyGroup>
@@ -204,7 +204,7 @@
     <TargetName>$(ProjectName)64</TargetName>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(SolutionDir)\Dependencies\json\single_include\nlohmann;$(SolutionDir)\QuantumGateLib\API;$(SolutionDir)\QuantumGateLib;$(SolutionDir)\Dependencies\GSL\include;$(SolutionDir)\Dependencies\monocypher\src;$(SolutionDir)\Dependencies\pcg-cpp\include;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>CppCoreCheckConstRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
   </PropertyGroup>
@@ -214,7 +214,7 @@
     <TargetName>$(ProjectName)64</TargetName>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(SolutionDir)\Dependencies\json\single_include\nlohmann;$(SolutionDir)\QuantumGateLib\API;$(SolutionDir)\QuantumGateLib;$(SolutionDir)\Dependencies\GSL\include;$(SolutionDir)\Dependencies\monocypher\src;$(SolutionDir)\Dependencies\pcg-cpp\include;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>CppCoreCheckConstRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
   </PropertyGroup>

@@ -21,7 +21,7 @@ namespace QuantumGate::Implementation::Core::Access
 			std::wsmatch m;
 			if (std::regex_search(cidr_lbits, m, r))
 			{
-				auto lbits = std::stoi(m[1].str());
+				const auto lbits = std::stoi(m[1].str());
 
 				return AddLimit(af, lbits, max_con);
 			}
@@ -104,7 +104,7 @@ namespace QuantumGate::Implementation::Core::Access
 			std::wsmatch m;
 			if (std::regex_search(cidr_lbits, m, r))
 			{
-				auto lbits = std::stoi(m[1].str());
+				const auto lbits = std::stoi(m[1].str());
 
 				return RemoveLimit(af, lbits);
 			}
@@ -492,10 +492,9 @@ namespace QuantumGate::Implementation::Core::Access
 			case IPAddressFamily::IPv6:
 				return &m_IPv6Subnets;
 			default:
+				assert(false);
 				break;
 		}
-
-		assert(false);
 
 		return nullptr;
 	}
@@ -509,10 +508,9 @@ namespace QuantumGate::Implementation::Core::Access
 			case IPAddressFamily::IPv6:
 				return &m_IPv6Subnets;
 			default:
+				assert(false);
 				break;
 		}
-
-		assert(false);
 
 		return nullptr;
 	}

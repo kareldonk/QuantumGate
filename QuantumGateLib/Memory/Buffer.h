@@ -17,6 +17,7 @@ namespace QuantumGate::Implementation::Memory
 	{
 	public:
 		using VectorType = std::vector<Byte, A>;
+		using SizeType = Size;
 
 		constexpr BufferImpl() noexcept {}
 		constexpr BufferImpl(const BufferImpl& other) { *this += other; }

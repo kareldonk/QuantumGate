@@ -539,7 +539,7 @@ namespace QuantumGate::Implementation::Crypto
 		if (buffer1.GetSize() != buffer2.GetSize()) return false;
 
 		UChar chksum{ 0 };
-		for (Size x = 0; x < buffer1.GetSize(); ++x)
+		for (BufferView::SizeType x = 0; x < buffer1.GetSize(); ++x)
 		{
 			chksum |= (static_cast<UChar>(buffer1[x])) ^ (static_cast<UChar>(buffer2[x]));
 		}
@@ -559,7 +559,7 @@ namespace QuantumGate::Implementation::Crypto
 		// Buffer bits should not be all on or off
 		UChar chksum1{ 0 };
 		UChar chksum2{ 0 };
-		for (Size x = 0; x < bsize; ++x)
+		for (BufferView::SizeType x = 0; x < bsize; ++x)
 		{
 			chksum1 |= *(cbuf + x);
 			chksum2 |= ~*(cbuf + x);

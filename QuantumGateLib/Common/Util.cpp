@@ -78,7 +78,7 @@ namespace QuantumGate::Implementation::Util
 			fmtptr = tmpstr.data();
 		}
 
-		const Size size = _vscwprintf(fmtptr, arglist) + 1; // include space for '\0'
+		const std::size_t size = static_cast<std::size_t>(_vscwprintf(fmtptr, arglist)) + 1; // include space for '\0'
 
 		String txt;
 		txt.resize(size - 1); // exclude space for '\0'

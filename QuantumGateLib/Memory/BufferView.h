@@ -8,6 +8,8 @@ namespace QuantumGate::Implementation::Memory
 	class BufferView
 	{
 	public:
+		using SizeType = Size;
+
 		constexpr BufferView() noexcept {}
 		constexpr BufferView(std::nullptr_t) noexcept {}
 

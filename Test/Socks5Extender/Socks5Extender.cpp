@@ -636,7 +636,10 @@ namespace QuantumGate::Socks5Extender
 			success = inserted;
 		});
 
-		if (!success) LogErr(GetName() + L": could not add new connection");
+		if (!success)
+		{
+			LogErr(GetName() + L": could not add new connection");
+		}
 
 		return success;
 	}

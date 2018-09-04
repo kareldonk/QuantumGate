@@ -135,7 +135,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			// If we have a symmetric key use it otherwise we'll generate one
 			// if allowed (an autogen key)
-			auto numkeys = static_cast<UInt32>(m_SymmetricKeyPairs.size());
+			const auto numkeys = static_cast<UInt32>(m_SymmetricKeyPairs.size());
 
 			if (numkeys > 0 && keynum < numkeys)
 			{
@@ -164,7 +164,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			return (GetNumBytesProcessedForLatestKeyPair(m_SymmetricKeyPairs) > max_num);
 		}
 
-		[[nodiscard]] static const bool GenerateSymmetricKeyPair(std::shared_ptr<SymmetricKeyPair>& keypair,
+		[[nodiscard]] static const bool GenerateSymmetricKeyPair(const std::shared_ptr<SymmetricKeyPair>& keypair,
 																 const ProtectedBuffer& sharedsecret,
 																 const ProtectedBuffer& global_sharedsecret,
 																 const Algorithms& pa,
@@ -296,7 +296,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] static const bool GetNonce(const UInt32 nonce_seed, Buffer& nonce, const Algorithm::Hash ha) noexcept
 		{
-			BufferView seedb(reinterpret_cast<const Byte*>(&nonce_seed), sizeof(UInt32));
+			const BufferView seedb(reinterpret_cast<const Byte*>(&nonce_seed), sizeof(UInt32));
 			if (Crypto::Hash(seedb, nonce, ha))
 			{
 				Dbg(L"Nonce: %u bytes - %s", nonce.GetSize(), Util::GetBase64(nonce)->c_str());
