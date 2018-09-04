@@ -351,7 +351,7 @@ namespace QuantumGate::Implementation::Core::Access
 				if ((it->second.CurrentConnections < limit.MaximumConnections) ||
 					(allow_overflow && it->second.CurrentConnections >= limit.MaximumConnections))
 				{
-					if (std::numeric_limits<Size>::max() - num > it->second.CurrentConnections)
+					if (std::numeric_limits<Size>::max() - num >= it->second.CurrentConnections)
 					{
 						it->second.CurrentConnections += num;
 					}
