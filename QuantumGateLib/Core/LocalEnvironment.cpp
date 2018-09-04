@@ -174,7 +174,7 @@ namespace QuantumGate::Implementation::Core
 						if (address->OperStatus == IfOperStatusUp) ifs.Operational = true;
 
 						// Get MAC address
-						for (auto i = 0u; i < address->PhysicalAddressLength; i++)
+						for (auto i = 0ul; i < address->PhysicalAddressLength; ++i)
 						{
 							ifs.MACAddress += Util::FormatString(L"%.2X", static_cast<int>(address->PhysicalAddress[i]));
 						}
@@ -205,7 +205,7 @@ namespace QuantumGate::Implementation::Core
 
 	Result<String> LocalEnvironment::GetUsername() noexcept
 	{
-		unsigned long nlen{ 256u };
+		unsigned long nlen{ 256 };
 		WChar name[256]{ 0 };
 
 		if (GetUserNameEx(EXTENDED_NAME_FORMAT::NameSamCompatible, reinterpret_cast<LPWSTR>(name), &nlen))

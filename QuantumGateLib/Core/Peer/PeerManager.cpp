@@ -75,8 +75,8 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		PreStartupThreadPools();
 
-		Size numthreadpools = 1u;
-		Size numthreadsperpool = 2u;
+		Size numthreadpools{ 1 };
+		Size numthreadsperpool{ 2 };
 
 		const auto& settings = GetSettings();
 
@@ -100,7 +100,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		auto error = false;
 
 		// Create the threadpools
-		for (auto i = 0u; i < numthreadpools; i++)
+		for (Size i = 0; i < numthreadpools; ++i)
 		{
 			try
 			{
@@ -110,7 +110,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				thpool->SetWorkerThreadsMaxSleep(settings.Local.WorkerThreadsMaxSleep);
 
 				// Create the worker threads
-				for (auto x = 0u; x < numthreadsperpool; x++)
+				for (Size x = 0; x < numthreadsperpool; ++x)
 				{
 					// First thread is primary worker thread
 					if (x == 0)
@@ -281,7 +281,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			thpdata.PeerCollection.Map.WithSharedLock([&](const PeerMap& peers)
 			{
-				for (auto it = peers.begin(); it != peers.end(); it++)
+				for (auto it = peers.begin(); it != peers.end(); ++it)
 				{
 					it->second->WithUniqueLock([&](Peer& peer)
 					{
@@ -293,7 +293,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		thpdata.PeerCollection.Map.WithSharedLock([&](const PeerMap& peers)
 		{
-			for (auto it = peers.begin(); it != peers.end() && !shutdown_event.IsSet(); it++)
+			for (auto it = peers.begin(); it != peers.end() && !shutdown_event.IsSet(); ++it)
 			{
 				auto& peerths = it->second;
 
@@ -493,12 +493,12 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 				catch (...) { return; }
 
-				m_AllPeers.Count++;
+				++m_AllPeers.Count;
 
 				auto sg = MakeScopeGuard([&]
 				{
 					m_AllPeers.Map.WithUniqueLock()->erase(apit);
-					m_AllPeers.Count--;
+					--m_AllPeers.Count;
 				});
 
 				// Get the threadpool with the least amount of peers so that the connections
@@ -530,7 +530,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 				catch (...) { return; }
 
-				thpit->second->Data().PeerCollection.Count++;
+				++thpit->second->Data().PeerCollection.Count;
 
 				sg.Deactivate();
 
@@ -550,14 +550,14 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		if (m_AllPeers.Map.WithUniqueLock()->erase(peer.GetLUID()) > 0)
 		{
-			m_AllPeers.Count--;
+			--m_AllPeers.Count;
 		}
 
 		const auto& thpool = m_ThreadPools[peer.GetThreadPoolKey()];
 
 		if (thpool->Data().PeerCollection.Map.WithUniqueLock()->erase(peer.GetLUID()) > 0)
 		{
-			thpool->Data().PeerCollection.Count--;
+			--thpool->Data().PeerCollection.Count;
 		}
 	}
 
@@ -1025,7 +1025,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		// Increment the update flag; the change is simply used
 		// as an indication that we need to check all peers
 		// again for access rights in the main worker threads.
-		m_AllPeers.AccessUpdateFlag++;
+		++m_AllPeers.AccessUpdateFlag;
 	}
 
 	void Manager::OnLocalExtenderUpdate(const std::vector<ExtenderUUID>& extuuids, const bool added)

@@ -105,7 +105,11 @@ namespace QuantumGate::Implementation::Core::Access
 			attempts.LastResetSteadyTime = Util::GetCurrentSteadyTime();
 		}
 
-		attempts.Amount++;
+		if (attempts.Amount < std::numeric_limits<Size>::max())
+		{
+			++attempts.Amount;
+		}
+		else return false;
 
 		// If connection attempts go above maximum, update the
 		// reputation for the IP address such that it will get

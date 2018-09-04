@@ -127,9 +127,9 @@ namespace QuantumGate::Implementation::Compression
 				auto sourcelen = inbuffer.GetSize();
 
 				zstream.next_in = (Bytef*)inbuffer.GetBytes();
-				zstream.avail_in = 0u;
+				zstream.avail_in = 0;
 				zstream.next_out = (Bytef*)outbuffer;
-				zstream.avail_out = 0u;
+				zstream.avail_out = 0;
 
 				do
 				{
@@ -193,9 +193,9 @@ namespace QuantumGate::Implementation::Compression
 				}
 
 				zstream.next_in = (Bytef*)inbuffer.GetBytes();
-				zstream.avail_in = 0u;
+				zstream.avail_in = 0;
 				zstream.next_out = (Bytef*)outbuffer;
-				zstream.avail_out = 0u;
+				zstream.avail_out = 0;
 
 				do
 				{

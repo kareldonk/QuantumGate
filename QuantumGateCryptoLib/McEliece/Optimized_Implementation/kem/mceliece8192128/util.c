@@ -72,7 +72,7 @@ int crypto_hash_32b(unsigned char * out, const unsigned char * in, unsigned int 
 			// Calculate hash
 			if (EVP_DigestUpdate(context, in, inlen))
 			{
-				auto hlen = 0u;
+				unsigned int hlen = 0;
 
 				// Finalize and get hash and final length back
 				if (EVP_DigestFinal_ex(context, out, &hlen))

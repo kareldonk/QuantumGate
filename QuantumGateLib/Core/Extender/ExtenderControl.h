@@ -22,10 +22,10 @@ namespace QuantumGate::Implementation::Core::Extender
 
 			Peer() = delete;
 
-			Peer(const UInt thpkey, std::atomic<UInt>& peercount, Status status) noexcept :
+			Peer(const UInt64 thpkey, std::atomic<Size>& peercount, Status status) noexcept :
 				Status(status), ThreadPoolKey(thpkey), ThreadPoolPeerCount(peercount)
 			{
-				ThreadPoolPeerCount++;
+				++ThreadPoolPeerCount;
 			}
 
 			Peer(const Peer&) = delete;
@@ -33,7 +33,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 			~Peer()
 			{
-				ThreadPoolPeerCount--;
+				--ThreadPoolPeerCount;
 			}
 
 			Peer& operator=(const Peer&) = delete;
@@ -44,8 +44,8 @@ namespace QuantumGate::Implementation::Core::Extender
 			Concurrency::Queue<Core::Peer::Event> MessageQueue;
 
 			bool IsInQueue{ false };
-			const UInt ThreadPoolKey{ 0 };
-			std::atomic<UInt>& ThreadPoolPeerCount;
+			const UInt64 ThreadPoolKey{ 0 };
+			std::atomic<Size>& ThreadPoolPeerCount;
 		};
 
 		using Peer_ThS = Concurrency::ThreadSafe<Peer, Concurrency::SpinMutex>;
@@ -65,11 +65,11 @@ namespace QuantumGate::Implementation::Core::Extender
 			Manager& ExtenderManager;
 			Extender& Extender;
 			Queue_ThS Queue;
-			std::atomic<UInt> PeerCount{ 0 };
+			std::atomic<Size> PeerCount{ 0 };
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
-		using ThreadPoolMap = std::unordered_map<UInt, std::unique_ptr<ThreadPool>>;
+		using ThreadPoolMap = std::unordered_map<UInt64, std::unique_ptr<ThreadPool>>;
 
 	public:
 		enum class Status { Startup, Running, Shutdown, Stopped };

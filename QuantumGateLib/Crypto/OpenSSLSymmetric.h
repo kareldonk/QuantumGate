@@ -97,7 +97,7 @@ namespace QuantumGate::Implementation::Crypto
 												  static_cast<int>(buffer.GetSize())) == 1)
 							{
 								encrlen = len;
-								len = 0u;
+								len = 0;
 
 								// Finalize the encryption
 								if (EVP_EncryptFinal_ex(ctx, reinterpret_cast<UChar*>(encrbuf.GetBytes()) + taglen + encrlen,
@@ -202,7 +202,7 @@ namespace QuantumGate::Implementation::Crypto
 								if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG,
 														static_cast<int>(taglen), const_cast<Byte*>(encrbuf.GetBytes())) == 1)
 								{
-									len = 0u;
+									len = 0;
 
 									// Finalize the decryption; a positive return value indicates success,
 									// anything else is a failure - the plaintext is not trustworthy

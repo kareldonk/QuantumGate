@@ -137,7 +137,7 @@ void CTestAppDlgMainTab::UpdatePeers()
 			}
 		}
 
-		for (int x = 0; x < lctrl->GetItemCount(); x++)
+		for (int x = 0; x < lctrl->GetItemCount(); ++x)
 		{
 			wchar_t* end = nullptr;
 			PeerLUID pluid = wcstoull(lctrl->GetItemText(x, 0), &end, 10);
@@ -145,7 +145,7 @@ void CTestAppDlgMainTab::UpdatePeers()
 			if (std::find(result->begin(), result->end(), pluid) == result->end())
 			{
 				lctrl->DeleteItem(x);
-				x--;
+				--x;
 			}
 		}
 	}
@@ -160,7 +160,7 @@ int CTestAppDlgMainTab::GetPeerIndex(const PeerLUID pluid)
 {
 	const auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
 
-	for (int x = 0; x < lctrl->GetItemCount(); x++)
+	for (int x = 0; x < lctrl->GetItemCount(); ++x)
 	{
 		wchar_t* end = nullptr;
 		PeerLUID id = wcstoull(lctrl->GetItemText(x, 0), &end, 10);

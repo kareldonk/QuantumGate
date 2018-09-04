@@ -62,7 +62,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 			// No problem if this wraps/overflows
 			// because what matters is the change
-			m_ValueUpdateFlag++;
+			++m_ValueUpdateFlag;
 		}
 
 	private:

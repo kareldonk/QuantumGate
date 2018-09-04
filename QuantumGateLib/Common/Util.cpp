@@ -81,7 +81,7 @@ namespace QuantumGate::Implementation::Util
 		const Size size = _vscwprintf(fmtptr, arglist) + 1; // include space for '\0'
 
 		String txt;
-		txt.resize(size - 1u); // exclude space for '\0'
+		txt.resize(size - 1); // exclude space for '\0'
 		std::vswprintf(txt.data(), size, fmtptr, arglist);
 
 		return txt;
@@ -93,17 +93,17 @@ namespace QuantumGate::Implementation::Util
 		static_assert(std::is_integral_v<T>, "Unsupported type.");
 
 		const auto numbits = CHAR_BIT * sizeof(T);
-		const auto numsep = sizeof(T) - 1u;
-		Char txt[numbits + numsep + 1u]{ 0 };
+		const auto numsep = sizeof(T) - 1;
+		Char txt[numbits + numsep + 1]{ 0 };
 
-		auto pos = 0u;
-		auto bitcount = 0u;
-		for (auto x = 0u; x < numbits; ++x)
+		auto pos = 0llu;
+		auto bitcount = 0llu;
+		for (auto x = 0llu; x < numbits; ++x)
 		{
 			if (bitcount == CHAR_BIT)
 			{
 				txt[sizeof(txt) - (pos + 2)] = '\'';
-				bitcount = 0u;
+				bitcount = 0;
 				++pos;
 			}
 

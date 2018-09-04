@@ -26,7 +26,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		struct PeerCollection
 		{
 			PeerMap_ThS Map;
-			std::atomic<UInt> Count{ 0 };
+			std::atomic<Size> Count{ 0 };
 			std::atomic<UInt> AccessUpdateFlag;
 		};
 
@@ -47,7 +47,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
-		using ThreadPoolMap = std::unordered_map<UInt, std::unique_ptr<ThreadPool>>;
+		using ThreadPoolMap = std::unordered_map<UInt64, std::unique_ptr<ThreadPool>>;
 
 	public:
 		Manager() = delete;

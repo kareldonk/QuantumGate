@@ -23,7 +23,6 @@ namespace QuantumGate::Implementation::Crypto
 		[[nodiscard]] static const bool GetRandomBytes(const UInt seed, Byte* buffer, const Size len) noexcept
 		{
 			assert(buffer != nullptr);
-			assert(len <= std::numeric_limits<Size>::max());
 
 			// Seed OpenSSL
 			RAND_seed(&seed, sizeof(seed));

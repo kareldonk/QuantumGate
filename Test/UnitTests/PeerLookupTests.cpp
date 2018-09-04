@@ -470,7 +470,7 @@ namespace UnitTests
 						ep7->WithSharedLock()->LUID
 					};
 
-					for (auto x = 0u; x < 100u; x++)
+					for (auto x = 0u; x < 100u; ++x)
 					{
 						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr, 32, 128);
 						Assert::AreEqual(true, result.Succeeded());
@@ -489,7 +489,7 @@ namespace UnitTests
 						ep6->WithSharedLock()->LUID
 					};
 
-					for (auto x = 0u; x < 100u; x++)
+					for (auto x = 0u; x < 100u; ++x)
 					{
 						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr, 24, 96);
 						Assert::AreEqual(true, result.Succeeded());
@@ -506,7 +506,7 @@ namespace UnitTests
 						ep6->WithSharedLock()->LUID
 					};
 
-					for (auto x = 0u; x < 100u; x++)
+					for (auto x = 0u; x < 100u; ++x)
 					{
 						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr, 16, 96);
 						Assert::AreEqual(true, result.Succeeded());
@@ -545,7 +545,7 @@ namespace UnitTests
 						ep6->WithSharedLock()->LUID
 					};
 
-					for (auto x = 0u; x < 100u; x++)
+					for (auto x = 0u; x < 100u; ++x)
 					{
 						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr, 32, 64);
 						Assert::AreEqual(true, result.Succeeded());
@@ -566,7 +566,7 @@ namespace UnitTests
 						ep5->WithSharedLock()->LUID
 					};
 
-					for (auto x = 0u; x < 100u; x++)
+					for (auto x = 0u; x < 100u; ++x)
 					{
 						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr, 24, 48);
 						Assert::AreEqual(true, result.Succeeded());

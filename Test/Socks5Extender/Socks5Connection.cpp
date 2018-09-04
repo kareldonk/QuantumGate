@@ -441,7 +441,7 @@ namespace QuantumGate::Socks5Extender
 					// we'll come back later
 					if (buffer.GetSize() >= msg.NumMethods)
 					{
-						for (auto x = 0u; x < msg.NumMethods; x++)
+						for (UInt8 x = 0; x < msg.NumMethods; ++x)
 						{
 							const auto method = static_cast<Socks5Protocol::AuthMethods>(buffer[x]);
 

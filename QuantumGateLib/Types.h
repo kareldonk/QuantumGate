@@ -370,7 +370,7 @@ namespace QuantumGate
 		bool IsUsingGlobalSharedSecret{ false };
 		IPEndpoint LocalIPEndpoint;
 		IPEndpoint PeerIPEndpoint;
-		std::pair<UInt8, UInt8> PeerProtocolVersion{ 0u, 0u };
+		std::pair<UInt8, UInt8> PeerProtocolVersion{ 0, 0 };
 		UInt64 LocalSessionID{ 0 };
 		UInt64 PeerSessionID{ 0 };
 		std::chrono::milliseconds ConnectedTime{ 0 };

@@ -135,7 +135,7 @@ namespace QuantumGate::Implementation::Core::Access
 					{
 						it2 = m_IPSubnetLimitDetails.erase(it2);
 					}
-					else it2++;
+					else ++it2;
 				}
 
 				// Remove limit
@@ -245,7 +245,7 @@ namespace QuantumGate::Implementation::Core::Access
 					return false;
 				}
 			}
-			else it->second.CurrentConnections++;
+			else ++it->second.CurrentConnections;
 
 			return true;
 		}
@@ -259,7 +259,7 @@ namespace QuantumGate::Implementation::Core::Access
 		const auto it = connections.find(ip.GetBinary());
 		if (it != connections.end())
 		{
-			it->second.CurrentConnections--;
+			--it->second.CurrentConnections;
 
 			// If we don't have any connections from that IP
 			// we can remove it
@@ -385,7 +385,7 @@ namespace QuantumGate::Implementation::Core::Access
 		{
 			if (it->second.CurrentConnections > 0)
 			{
-				it->second.CurrentConnections--;
+				--it->second.CurrentConnections;
 			}
 			else
 			{

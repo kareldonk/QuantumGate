@@ -239,7 +239,7 @@ namespace StressExtender
 
 		if (!SendBenchmarkStart(pluid)) return false;
 
-		for (int x = 0; x < 100'000; x++)
+		for (auto x = 0u; x < 100'000u; ++x)
 		{
 			if (!SendMessage(pluid, L"Hello world")) return false;
 		}

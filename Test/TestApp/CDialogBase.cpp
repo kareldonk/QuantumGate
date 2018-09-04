@@ -27,8 +27,7 @@ Int64 CDialogBase::GetInt64Value(const int id, const Int64 def) const noexcept
 		{
 			if (txt.GetLength() > 0) return std::stoull(Util::ToStringA((LPCWSTR)txt));
 		}
-		catch (...)
-		{}
+		catch (...) {}
 	}
 
 	return def;
@@ -43,8 +42,7 @@ UInt64 CDialogBase::GetUInt64Value(const int id, const UInt64 def) const noexcep
 		{
 			if (txt.GetLength() > 0) return std::stoull(Util::ToStringA((LPCWSTR)txt));
 		}
-		catch (...)
-		{}
+		catch (...) {}
 	}
 
 	return def;
@@ -174,7 +172,7 @@ void CDialogBase::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 		if (pParent != NULL && (hParentMenu = ::GetMenu(pParent->m_hWnd)) != NULL)
 		{
 			const int nIndexMax = ::GetMenuItemCount(hParentMenu);
-			for (int nIndex = 0; nIndex < nIndexMax; nIndex++)
+			for (int nIndex = 0; nIndex < nIndexMax; ++nIndex)
 			{
 				if (::GetSubMenu(hParentMenu, nIndex) == pPopupMenu->m_hMenu)
 				{
@@ -187,7 +185,7 @@ void CDialogBase::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 	}
 
 	state.m_nIndexMax = pPopupMenu->GetMenuItemCount();
-	for (state.m_nIndex = 0; state.m_nIndex < state.m_nIndexMax; state.m_nIndex++)
+	for (state.m_nIndex = 0; state.m_nIndex < state.m_nIndexMax; ++state.m_nIndex)
 	{
 		state.m_nID = pPopupMenu->GetMenuItemID(state.m_nIndex);
 		if (state.m_nID == 0)
@@ -234,7 +232,7 @@ void CDialogBase::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 			while (state.m_nIndex < nCount &&
 				   pPopupMenu->GetMenuItemID(state.m_nIndex) == state.m_nID)
 			{
-				state.m_nIndex++;
+				++state.m_nIndex;
 			}
 		}
 

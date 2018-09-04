@@ -101,7 +101,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			// Get the most recent key that's enabled;
 			// the most recent keys are in front
-			for (auto x = 0u; x < m_SymmetricKeyPairs.size(); x++)
+			for (std::size_t x = 0; x < m_SymmetricKeyPairs.size(); ++x)
 			{
 				if (m_SymmetricKeyPairs[x]->UseForEncryption &&
 					!m_SymmetricKeyPairs[x]->IsExpired())
@@ -229,7 +229,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		static Size GetNumBytesProcessedForLatestKeyPair(const SymmetricKeyPairCollection& keypairs) noexcept
 		{
-			for (auto x = 0u; x < keypairs.size(); x++)
+			for (std::size_t x = 0; x < keypairs.size(); ++x)
 			{
 				if (keypairs[x]->UseForEncryption && keypairs[x]->UseForDecryption)
 				{
@@ -310,9 +310,9 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		static void ExpireAllExceptLatestKeyPair(SymmetricKeyPairCollection& keypairs) noexcept
 		{
-			if (keypairs.size() <= 1u) return;
+			if (keypairs.size() <= 1) return;
 
-			for (auto x = 1u; x < keypairs.size(); x++)
+			for (std::size_t x = 1; x < keypairs.size(); ++x)
 			{
 				if (!keypairs[x]->ExpirationSteadyTime.has_value())
 				{

@@ -281,7 +281,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			// If handshake was delayed begin communication as soon
 			// as we received some data from the peer
-			if (IsFlagSet(Flags::HandshakeStartDelay) && GetBytesReceived() > 0u)
+			if (IsFlagSet(Flags::HandshakeStartDelay) && GetBytesReceived() > 0)
 			{
 				SetFlag(Flags::HandshakeStartDelay, false);
 				EnableSend();
@@ -680,9 +680,9 @@ namespace QuantumGate::Implementation::Core::Peer
 	const bool Peer::SendNoise(const Size maxnum, const Size minsize, const Size maxsize)
 	{
 		auto success = true;
-		const auto max = Random::GetPseudoRandomNumber(0, maxnum);
+		const auto max = static_cast<Size>(Random::GetPseudoRandomNumber(0, maxnum));
 
-		for (auto x = 0u; x < max; x++)
+		for (Size x = 0; x < max; ++x)
 		{
 			if (!SendNoise(minsize, maxsize))
 			{
@@ -784,7 +784,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		// If the send buffer is empty get more messages from the send queues
 		const auto& settings = GetSettings();
-		auto num = 0u;
+		Size num{ 0 };
 
 		Buffer sndbuf;
 
@@ -886,11 +886,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	const std::pair<bool, UInt> Peer::GetMessagesFromSendQueue(Buffer& buffer, const Crypto::SymmetricKeyData& symkey)
+	const std::pair<bool, Size> Peer::GetMessagesFromSendQueue(Buffer& buffer, const Crypto::SymmetricKeyData& symkey)
 	{
 		auto success = true;
-		auto num = 0u;
 		auto stop = false;
+		Size num{ 0 };
 
 		// We keep filling the message transport buffer as much as possible
 		// for efficiency when allowed; note that priority is given to
@@ -910,7 +910,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					buffer += tempbuf;
 					m_SendQueue.Pop();
 
-					num++;
+					++num;
 
 					// Only one message gets written if we shouldn't
 					// concatenate messages (yet)
@@ -949,7 +949,7 @@ namespace QuantumGate::Implementation::Core::Peer
 							buffer += tempbuf;
 							m_DelayedSendQueue.Pop();
 
-							num++;
+							++num;
 
 							// Only one message gets written if we shouldn't
 							// concatenate messages (yet)
@@ -984,7 +984,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			if (num > 1)
 			{
-				LogDbg(L"Sent %u messages in one transport", num);
+				LogDbg(L"Sent %llu messages in one transport", num);
 			}
 		});
 
@@ -1015,7 +1015,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		if (msgchk == MessageTransportCheck::CompleteMessage)
 		{
 			const auto& settings = GetSettings();
-			auto num = 0u;
+			Size num{ 0 };
 
 			Buffer msgbuf;
 
@@ -1068,7 +1068,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return success;
 	}
 
-	const std::tuple<bool, UInt, UInt16> Peer::ProcessMessage(const BufferView msgbuf, const Settings& settings)
+	const std::tuple<bool, Size, UInt16> Peer::ProcessMessage(const BufferView msgbuf, const Settings& settings)
 	{
 		const auto nonce_seed = MessageTransport::GetNonceSeedFromBuffer(msgbuf);
 		if (nonce_seed)
@@ -1084,7 +1084,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				// The next time we'll try the next
 				// key we have until we run out
-				keynum++;
+				++keynum;
 
 				if (symkey != nullptr)
 				{
@@ -1144,14 +1144,14 @@ namespace QuantumGate::Implementation::Core::Peer
 		// so the peer should get disconnected asap
 		UpdateReputation(Access::IPReputationUpdate::DeteriorateSevere);
 
-		return std::make_tuple(false, 0u, 0u);
+		return std::make_tuple(false, Size{ 0 }, UInt16{ 0 });
 	}
 
-	const std::pair<bool, UInt> Peer::ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey)
+	const std::pair<bool, Size> Peer::ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey)
 	{
 		auto success = true;
 		auto invalid_msg = false;
-		auto num = 0u;
+		Size num{ 0 };
 
 		// For as long as there are messages in the buffer
 		while (!buffer.IsEmpty())
@@ -1163,7 +1163,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (msg.Read(msgbuf, symkey) &&
 					msg.IsValid())
 				{
-					num++;
+					++num;
 
 					// Noise messages get dropped immediately
 					if (msg.GetMessageType() == MessageType::Noise)
@@ -1209,7 +1209,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			if (num > 1)
 			{
-				LogDbg(L"Processed %u messages from one transport", num);
+				LogDbg(L"Processed %llu messages from one transport", num);
 			}
 		});
 
@@ -1573,7 +1573,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		auto rval = m_LocalMessageCounter.value();
 		if (rval < std::numeric_limits<UInt8>::max())
 		{
-			rval++;
+			++rval;
 		}
 		else rval = 0;
 
@@ -1591,7 +1591,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			if (*m_LocalMessageCounter < std::numeric_limits<UInt8>::max())
 			{
-				(*m_LocalMessageCounter)++;
+				++(*m_LocalMessageCounter);
 			}
 			else m_LocalMessageCounter = 0;
 
@@ -1607,7 +1607,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			if (*m_PeerMessageCounter < std::numeric_limits<UInt8>::max())
 			{
-				(*m_PeerMessageCounter)++;
+				++(*m_PeerMessageCounter);
 			}
 			else m_PeerMessageCounter = 0;
 

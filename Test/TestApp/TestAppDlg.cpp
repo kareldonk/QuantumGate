@@ -374,7 +374,7 @@ void CTestAppDlg::LoadSettings()
 			if (it != j.end())
 			{
 				const auto& flts = it.value();
-				for (auto fit = flts.begin(); fit != flts.end(); fit++)
+				for (auto fit = flts.begin(); fit != flts.end(); ++fit)
 				{
 					auto error = false;
 					auto& flt = fit.value();
@@ -411,7 +411,7 @@ void CTestAppDlg::LoadSettings()
 			if (it != j.end())
 			{
 				const auto& limits = it.value();
-				for (auto lit = limits.begin(); lit != limits.end(); lit++)
+				for (auto lit = limits.begin(); lit != limits.end(); ++lit)
 				{
 					auto error = false;
 					auto& limit = lit.value();
@@ -453,7 +453,7 @@ void CTestAppDlg::LoadSettings()
 			if (it != j.end())
 			{
 				const auto& peers = it.value();
-				for (auto lit = peers.begin(); lit != peers.end(); lit++)
+				for (auto lit = peers.begin(); lit != peers.end(); ++lit)
 				{
 					auto success = false;
 					auto& peer = lit.value();

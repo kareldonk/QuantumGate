@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	class Manager
 	{
-		using ThreadKey = UInt;
+		using ThreadKey = UInt64;
 
 		using EventQueue = Concurrency::Queue<Event>;
 		using EventQueue_ThS = Concurrency::ThreadSafe<EventQueue, std::shared_mutex>;
@@ -30,9 +30,9 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		struct ThreadData
 		{
-			ThreadData(const UInt thread_key) noexcept : ThreadKey(thread_key) {}
+			ThreadData(const ThreadKey thread_key) noexcept : ThreadKey(thread_key) {}
 
-			UInt ThreadKey{ 0 };
+			ThreadKey ThreadKey{ 0 };
 		};
 
 		struct ThreadPoolData

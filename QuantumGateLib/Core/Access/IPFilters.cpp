@@ -209,7 +209,7 @@ namespace QuantumGate::Implementation::Core::Access
 					Dbg(L"Range end address:     %s", IPAddress(filter.EndAddress).GetString().c_str());
 
 					// For IPv4 we only check the first 4 bytes
-					for (auto x = 0u; x < 4u; x++)
+					for (auto x = 0u; x < 4u; ++x)
 					{
 						Dbg(L"%u, %u, %u", filter.StartAddress.Bytes[x], address.GetBinary().Bytes[x], filter.EndAddress.Bytes[x]);
 
@@ -239,7 +239,7 @@ namespace QuantumGate::Implementation::Core::Access
 					Dbg(L"Range end address:     %s", IPAddress(filter.EndAddress).GetString().c_str());
 
 					// For IPv6 we check all 8 unsigned shorts
-					for (auto x = 0u; x < 8u; x++)
+					for (auto x = 0u; x < 8u; ++x)
 					{
 						Dbg(L"%u, %u, %u", Endian::FromNetworkByteOrder(filter.StartAddress.UInt16s[x]),
 							Endian::FromNetworkByteOrder(address.GetBinary().UInt16s[x]),

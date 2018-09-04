@@ -394,12 +394,12 @@ namespace QuantumGate::Implementation::Crypto
 		assert(key1.HashAlgorithm == key2.HashAlgorithm &&
 			   key1.SymmetricAlgorithm == key2.SymmetricAlgorithm);
 
-		auto key_size{ 0u };
+		auto key_size = 0u;
 		switch (key1.SymmetricAlgorithm)
 		{
 			case Algorithm::Symmetric::AES256_GCM:
 			case Algorithm::Symmetric::CHACHA20_POLY1305:
-				key_size = 32u;
+				key_size = 32;
 				break;
 			default:
 				return false;
@@ -539,12 +539,12 @@ namespace QuantumGate::Implementation::Crypto
 		if (buffer1.GetSize() != buffer2.GetSize()) return false;
 
 		UChar chksum{ 0 };
-		for (auto x = 0u; x < buffer1.GetSize(); x++)
+		for (Size x = 0; x < buffer1.GetSize(); ++x)
 		{
 			chksum |= (static_cast<UChar>(buffer1[x])) ^ (static_cast<UChar>(buffer2[x]));
 		}
 
-		return (chksum == 0u);
+		return (chksum == 0);
 	}
 
 	const bool ValidateBuffer(const BufferView& buffer) noexcept
@@ -559,7 +559,7 @@ namespace QuantumGate::Implementation::Crypto
 		// Buffer bits should not be all on or off
 		UChar chksum1{ 0 };
 		UChar chksum2{ 0 };
-		for (auto x = 0u; x < bsize; x++)
+		for (Size x = 0; x < bsize; ++x)
 		{
 			chksum1 |= *(cbuf + x);
 			chksum2 |= ~*(cbuf + x);

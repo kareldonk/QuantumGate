@@ -72,6 +72,6 @@ namespace QuantumGate::Implementation::Concurrency
 
 	private:
 		std::atomic_bool m_ExclusiveLocked{ false };
-		std::atomic_int m_SharedCount{ 0 };
+		std::atomic_ullong m_SharedCount{ 0 };
 	};
 }

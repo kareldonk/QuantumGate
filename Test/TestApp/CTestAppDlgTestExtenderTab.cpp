@@ -178,7 +178,7 @@ void CTestAppDlgTestExtenderTab::UpdateFileTransfers(const TestExtender::FileTra
 		}
 	}
 
-	for (int x = 0; x < lctrl->GetItemCount(); x++)
+	for (int x = 0; x < lctrl->GetItemCount(); ++x)
 	{
 		wchar_t* end = nullptr;
 		TestExtender::FileTransferID id = wcstoull(lctrl->GetItemText(x, 0), &end, 10);
@@ -186,7 +186,7 @@ void CTestAppDlgTestExtenderTab::UpdateFileTransfers(const TestExtender::FileTra
 		if (filetransfers.find(id) == filetransfers.end())
 		{
 			lctrl->DeleteItem(x);
-			x--;
+			--x;
 		}
 	}
 }
@@ -195,7 +195,7 @@ const int CTestAppDlgTestExtenderTab::GetFileTransferIndex(const TestExtender::F
 {
 	const auto lctrl = (CListCtrl*)GetDlgItem(IDC_FILETRANSFER_LIST);
 
-	for (int x = 0; x < lctrl->GetItemCount(); x++)
+	for (int x = 0; x < lctrl->GetItemCount(); ++x)
 	{
 		wchar_t* end = nullptr;
 		TestExtender::FileTransferID fid = wcstoull(lctrl->GetItemText(x, 0), &end, 10);
@@ -448,7 +448,7 @@ void CTestAppDlgTestExtenderTab::OnBnClickedSendstress()
 
 	if (!m_TestExtender->SendBenchmarkStart(pluid)) return;
 
-	for (int x = 0u; x < nmess; x++)
+	for (int x = 0; x < nmess; ++x)
 	{
 		try
 		{

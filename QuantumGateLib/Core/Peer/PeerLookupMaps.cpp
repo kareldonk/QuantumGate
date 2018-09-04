@@ -188,7 +188,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						}
 					}
 
-					tries++;
+					++tries;
 				}
 
 				// Couldn't get a peer randomly; try linear search

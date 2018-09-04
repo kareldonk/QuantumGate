@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation::Memory
 	{
 		auto success = false;
 
-		UInt8 es = 0u;
+		UInt8 es{ 0 };
 		if (Read(es))
 		{
 			if (es < MaxSize::UInt8 - 2)
@@ -27,20 +27,20 @@ namespace QuantumGate::Implementation::Memory
 			}
 			else if (es == MaxSize::UInt8 - 2)
 			{
-				UInt16 is = 0u;
+				UInt16 is{ 0 };
 				success = Read(is);
 				size = is;
 			}
 			else if (es == MaxSize::UInt8 - 1)
 			{
-				UInt32 is = 0u;
+				UInt32 is{ 0 };
 				success = Read(is);
 				size = is;
 			}
 #ifdef _WIN64
 			else if (es == MaxSize::UInt8)
 			{
-				UInt64 is = 0u;
+				UInt64 is{ 0 };
 				success = Read(is);
 				size = is;
 			}
@@ -68,7 +68,7 @@ namespace QuantumGate::Implementation::Memory
 				// For endian conversion we read the bytes in reverse order
 				const Byte* bp = m_Buffer.GetBytes();
 
-				for (auto i = 0u; i < len; i++)
+				for (Size i = 0; i < len; ++i)
 				{
 					data[len - i - 1] = bp[m_Pointer + i];
 				}

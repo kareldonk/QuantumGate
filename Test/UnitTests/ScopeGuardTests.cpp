@@ -11,7 +11,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 int ScopeGuardTestNum{ 0 };
 void ScopeGuardTestFunc()
 {
-	ScopeGuardTestNum++;
+	++ScopeGuardTestNum;
 }
 
 namespace UnitTests
@@ -25,7 +25,7 @@ namespace UnitTests
 
 			{
 				// MakeScopeGuard function
-				auto sg1 = MakeScopeGuard([&] { num++; });
+				auto sg1 = MakeScopeGuard([&] { ++num; });
 				Assert::AreEqual(true, sg1.IsActive());
 
 				// Move constructor
@@ -53,7 +53,7 @@ namespace UnitTests
 				auto sg1 = MakeScopeGuard(&ScopeGuardTestFunc);
 				Assert::AreEqual(true, sg1.IsActive());
 
-				auto sg2 = MakeScopeGuard([&] { num++; });
+				auto sg2 = MakeScopeGuard([&] { ++num; });
 				Assert::AreEqual(true, sg2.IsActive());
 
 				sg2.Deactivate();

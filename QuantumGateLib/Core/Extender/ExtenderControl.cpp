@@ -51,8 +51,8 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		const auto extname = GetExtenderName();
 
-		Size numthreadpools = 1u;
-		Size numthreadsperpool = 1u;
+		Size numthreadpools{ 1 };
+		Size numthreadsperpool{ 1 };
 
 		const auto& settings = m_ExtenderManager.GetSettings();
 
@@ -75,7 +75,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		auto error = false;
 
 		// Create the threadpools
-		for (auto i = 0u; i < numthreadpools; i++)
+		for (Size i = 0; i < numthreadpools; ++i)
 		{
 			try
 			{
@@ -85,7 +85,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				thpool->SetWorkerThreadsMaxSleep(settings.Local.WorkerThreadsMaxSleep);
 
 				// Create the worker threads
-				for (auto x = 0u; x < numthreadsperpool; x++)
+				for (Size x = 0; x < numthreadsperpool; ++x)
 				{
 					if (!thpool->AddThread(extname + L" Thread", &Control::WorkerThreadProcessor,
 										   ThreadData(), &thpool->Data().Queue.WithUniqueLock()->Event()))
@@ -154,7 +154,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			// then move on to message events if the peer is still connected
 
 			const auto maxnum = thpdata.ExtenderManager.GetSettings().Local.WorkerThreadsMaxBurst;
-			auto num = 0u;
+			Size num{ 0 };
 
 			while (num < maxnum && !shutdown_event.IsSet())
 			{
@@ -166,7 +166,7 @@ namespace QuantumGate::Implementation::Core::Extender
 						event = std::move(peer.EventQueue.Front());
 						peer.EventQueue.Pop();
 
-						num++;
+						++num;
 					}
 				});
 
@@ -187,7 +187,7 @@ namespace QuantumGate::Implementation::Core::Extender
 						event = std::move(peer.MessageQueue.Front());
 						peer.MessageQueue.Pop();
 
-						num++;
+						++num;
 					}
 				});
 
@@ -290,7 +290,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			}
 
 			auto addtoqueue = false;
-			UInt thpoolkey = 0u;
+			UInt64 thpoolkey{ 0 };
 
 			peerctrl->WithUniqueLock([&](Peer& peer)
 			{

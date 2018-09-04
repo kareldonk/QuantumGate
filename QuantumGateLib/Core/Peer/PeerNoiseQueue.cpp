@@ -26,7 +26,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					const auto oint = interval.count() > 0 ? interval : std::chrono::seconds(1);
 					interval = std::chrono::duration_cast<std::chrono::seconds>(2 * settings.Local.MaxHandshakeDelay);
 
-					minmsg = 0u;
+					minmsg = 0;
 					maxmsg = static_cast<Size>((static_cast<float>(interval.count()) /
 												static_cast<float>(oint.count())) * static_cast<float>(maxmsg));
 
@@ -38,8 +38,8 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 
 				// Random amount of noise messages
-				const auto num = abs(Random::GetPseudoRandomNumber(minmsg, maxmsg));
-				for (auto x = 0u; x < num; x++)
+				const auto num = std::abs(Random::GetPseudoRandomNumber(minmsg, maxmsg));
+				for (auto x = 0ll; x < num; ++x)
 				{
 					m_NoiseQueue.Push(NoiseItem(interval,
 												settings.Noise.MinMessageSize,

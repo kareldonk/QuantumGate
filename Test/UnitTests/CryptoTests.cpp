@@ -384,7 +384,7 @@ namespace UnitTests
 			};
 
 			// Random bytes should be valid
-			for (auto x = 0u; x < 10; x++)
+			for (auto x = 0u; x < 10u; ++x)
 			{
 				auto bytes = Util::GetPseudoRandomBytes(10);
 				std::vector<UChar> buffer(bytes.GetSize());

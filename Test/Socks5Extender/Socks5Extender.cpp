@@ -758,7 +758,7 @@ namespace QuantumGate::Socks5Extender
 
 		thpdata.Extender.m_Connections.IfSharedLock([&](const Connections& connections)
 		{
-			for (auto it = connections.begin(); it != connections.end() && !shutdown_event.IsSet(); it++)
+			for (auto it = connections.begin(); it != connections.end() && !shutdown_event.IsSet(); ++it)
 			{
 				it->second->IfUniqueLock([&](Connection& connection)
 				{

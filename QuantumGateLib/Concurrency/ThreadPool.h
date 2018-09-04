@@ -154,7 +154,7 @@ namespace QuantumGate::Implementation::Concurrency
 			Util::SetCurrentThreadName(thctrl.ThreadName);
 
 			auto sleepms = std::chrono::milliseconds(1);
-			auto workburst = 0u;
+			Size workburst{ 0 };
 
 			while (true)
 			{
@@ -178,11 +178,11 @@ namespace QuantumGate::Implementation::Concurrency
 					if (ret.second)
 					{
 						sleepms = std::chrono::milliseconds(1);
-						workburst++;
+						++workburst;
 
 						if (workburst > thpool.m_WorkerThreadsMaxBurst)
 						{
-							workburst = 0u;
+							workburst = 0;
 						}
 					}
 					else
@@ -197,10 +197,10 @@ namespace QuantumGate::Implementation::Concurrency
 							}
 						}
 
-						workburst = 0u;
+						workburst = 0;
 					}
 
-					if (workburst == 0u)
+					if (workburst == 0)
 					{
 						if (thctrl.ThreadEvent)
 						{

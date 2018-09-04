@@ -145,7 +145,7 @@ namespace QuantumGate::Implementation::Network
 				auto i = 0u;
 				while (cidr_lbits > 0)
 				{
-					for (auto x = 0; x < cidr_lbits && x < 8; x++)
+					for (UInt8 x = 0; x < cidr_lbits && x < 8; ++x)
 					{
 						bin_ipaddr.Bytes[i] |= static_cast<Byte>(0b10000000 >> x);
 					}
@@ -153,7 +153,7 @@ namespace QuantumGate::Implementation::Network
 					if (cidr_lbits >= 8) cidr_lbits -= 8;
 					else cidr_lbits = 0;
 
-					i++;
+					++i;
 				}
 
 				bin_ipaddr.AddressFamily = af;

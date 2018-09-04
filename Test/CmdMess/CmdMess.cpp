@@ -167,7 +167,7 @@ bool Send(const shared_ptr<TestExtender::Extender>& extender, const wstring& plu
 	auto success = true;
 	auto begin = chrono::high_resolution_clock::now();
 
-	for (int x = 0; x < nmess; x++)
+	for (int x = 0; x < nmess; ++x)
 	{
 		String txt = msg;
 

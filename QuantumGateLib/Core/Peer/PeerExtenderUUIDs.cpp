@@ -72,11 +72,11 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	const bool ExtenderUUIDs::SortAndEnsureUnique(std::vector<ExtenderUUID>& uuids) const noexcept
 	{
-		if (uuids.size() <= 1u) return true;
+		if (uuids.size() <= 1) return true;
 
 		std::sort(uuids.begin(), uuids.end());
 
-		for (auto x = 1u; x < uuids.size(); x++)
+		for (std::size_t x = 1; x < uuids.size(); ++x)
 		{
 			// If we find at least one duplicate
 			if (uuids[x] == uuids[x - 1])

@@ -30,7 +30,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Size ExtendersBytesSent{ 0 };
 
 		std::pair<UInt8, UInt8> LocalProtocolVersion{ ProtocolVersion::Major, ProtocolVersion::Minor };
-		std::pair<UInt8, UInt8> PeerProtocolVersion{ 0u, 0u };
+		std::pair<UInt8, UInt8> PeerProtocolVersion{ 0, 0 };
 
 		UInt64 LocalSessionID{ 0 };
 		UInt64 PeerSessionID{ 0 };

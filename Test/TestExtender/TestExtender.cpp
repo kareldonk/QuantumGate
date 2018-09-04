@@ -210,9 +210,9 @@ namespace TestExtender
 
 	bool FileTransfer::CalcFileHash(Buffer& hashbuff) noexcept
 	{
-		const auto bufsize = 1024u * 1000u;
+		const Size bufsize{ 1024 * 1000 };
 		std::vector<Byte> buffer(bufsize);
-		auto bytesread = 0u;
+		Size bytesread{ 0 };
 
 		// Seek to start
 		if (fseek(m_File, 0, SEEK_SET) == 0)
@@ -262,7 +262,7 @@ namespace TestExtender
 
 		if (msecs.count() > 0)
 		{
-			kbsecs = (static_cast<double>(m_FileSize) / static_cast<double>(msecs.count() / 1000)) / 1024.0;
+			kbsecs = (static_cast<double>(m_FileSize) / (static_cast<double>(msecs.count()) / 1000.0)) / 1024.0;
 		}
 
 		SLogInfo(SLogFmt(FGBrightCyan) << L"Stats for filetransfer " <<
@@ -651,7 +651,7 @@ namespace TestExtender
 
 								fit = filetransfers.erase(fit);
 							}
-							else fit++;
+							else ++fit;
 						}
 					});
 				}
@@ -922,7 +922,7 @@ namespace TestExtender
 	const Size Extender::GetFileTransferDataSize() const noexcept
 	{
 		// 15 bytes for MessageType::FileTransferData message header
-		return (GetMaximumMessageDataSize() - 15u);
+		return (GetMaximumMessageDataSize() - 15);
 	}
 
 	const bool Extender::SendFileData(const PeerLUID pluid, FileTransfer& ft)

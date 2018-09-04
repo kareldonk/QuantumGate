@@ -89,7 +89,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	const bool Manager::StartupThreadPool() noexcept
 	{
-		Size numthreadsperpool = 2u;
+		Size numthreadsperpool{ 2 };
 
 		const auto& settings = GetSettings();
 
@@ -111,7 +111,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		auto error = false;
 
 		// Create the worker threads
-		for (auto x = 0u; x < numthreadsperpool; x++)
+		for (Size x = 0; x < numthreadsperpool; ++x)
 		{
 			// First thread is primary worker thread
 			if (x == 0)
@@ -259,7 +259,7 @@ namespace QuantumGate::Implementation::Core::Relay
 						{
 							if (const auto ltit = link_totals.find(*thkey); ltit != link_totals.end())
 							{
-								ltit->second++;
+								++ltit->second;
 								success = true;
 							}
 							else
@@ -294,7 +294,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				{
 					if (const auto ltit = link_totals.find(it->second); ltit != link_totals.end())
 					{
-						if (ltit->second > 0) ltit->second--;
+						if (ltit->second > 0) --ltit->second;
 						else
 						{
 							// Shouldn't get here
@@ -571,7 +571,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		thpdata.RelayManager.m_RelayLinks.WithSharedLock([&](const LinkMap& relays)
 		{
-			for (auto it = relays.begin(); it != relays.end() && !shutdown_event.IsSet(); it++)
+			for (auto it = relays.begin(); it != relays.end() && !shutdown_event.IsSet(); ++it)
 			{
 				it->second->IfUniqueLock([&](Link& rc)
 				{

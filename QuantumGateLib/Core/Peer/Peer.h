@@ -95,7 +95,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			assert(m_PeerData.WithSharedLock()->LUID != 0);
 			return m_PeerData.WithSharedLock()->LUID;
 		}
-		
+
 		static const PeerLUID MakeLUID(const IPEndpoint& endpoint) noexcept;
 
 		inline const PeerConnectionType GetConnectionType() const noexcept { return m_PeerData.WithSharedLock()->Type; }
@@ -172,10 +172,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		void AddDisconnectCallback(DisconnectCallback&& function) noexcept { m_DisconnectCallbacks.Add(std::move(function)); }
 
 		[[nodiscard]] inline const bool IsInQueue() const noexcept { return IsFlagSet(Flags::InQueue); }
-		inline void SetInQueue(bool flag) noexcept { SetFlag(Flags::InQueue, flag); }
+		inline void SetInQueue(const bool flag) noexcept { SetFlag(Flags::InQueue, flag); }
 
-		inline UInt GetThreadPoolKey() const noexcept { return m_ThreadPoolKey; }
-		inline void SetThreadPoolKey(UInt key) noexcept { m_ThreadPoolKey = key; }
+		inline const UInt64 GetThreadPoolKey() const noexcept { return m_ThreadPoolKey; }
+		inline void SetThreadPoolKey(const UInt64 key) noexcept { m_ThreadPoolKey = key; }
 
 		[[nodiscard]] inline const bool ShouldDisconnect() const noexcept { return (m_DisconnectCondition != DisconnectCondition::None); }
 		inline DisconnectCondition GetDisconnectCondition() const noexcept { return m_DisconnectCondition; }
@@ -234,13 +234,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		[[nodiscard]] const bool SendFromQueue();
-		[[nodiscard]] const std::pair<bool, UInt> GetMessagesFromSendQueue(Buffer& buffer,
+		[[nodiscard]] const std::pair<bool, Size> GetMessagesFromSendQueue(Buffer& buffer,
 																		   const Crypto::SymmetricKeyData& symkey);
 
 		[[nodiscard]] const bool ReceiveAndProcess();
-		[[nodiscard]] const std::tuple<bool, UInt, UInt16> ProcessMessage(const BufferView msgbuf,
+		[[nodiscard]] const std::tuple<bool, Size, UInt16> ProcessMessage(const BufferView msgbuf,
 																		  const Settings& settings);
-		[[nodiscard]] const std::pair<bool, UInt> ProcessMessages(BufferView buffer,
+		[[nodiscard]] const std::pair<bool, Size> ProcessMessages(BufferView buffer,
 																  const Crypto::SymmetricKeyData& symkey);
 
 		[[nodiscard]] const bool ProcessMessage(Message& msg);
@@ -274,7 +274,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Manager& m_PeerManager;
 
 		Data_ThS m_PeerData;
-	
+
 		SteadyTime m_LastStatusChangeSteadyTime;
 
 		std::bitset<8> m_Flags{ 0 };
@@ -284,12 +284,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		UInt16 m_NextLocalRandomDataPrefixLength{ 0 };
 		UInt16 m_NextPeerRandomDataPrefixLength{ 0 };
 
-		UInt m_ThreadPoolKey{ 0 };
+		UInt64 m_ThreadPoolKey{ 0 };
 
 		DisconnectCondition m_DisconnectCondition{ DisconnectCondition::None };
-	
+
 		ExtenderUUIDs m_PeerExtenderUUIDs;
-	
+
 		MessageQueue m_SendQueue;
 		DelayedMessageQueue m_DelayedSendQueue;
 

@@ -75,7 +75,7 @@ namespace QuantumGate::Implementation
 
 			if (GetLocalEndian() != EndianType::BigEndian)
 			{
-				for (auto i = 0u; i < len; i++)
+				for (Size i = 0; i < len; ++i)
 				{
 					// For endian conversion we copy the bytes in reverse order
 					outdata[i] = indata[len - 1 - i];

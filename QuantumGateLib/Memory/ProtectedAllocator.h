@@ -111,7 +111,7 @@ namespace QuantumGate::Implementation::Memory
 								}
 								else break;
 
-								retry++;
+								++retry;
 							} while (retry < 3);
 						}
 

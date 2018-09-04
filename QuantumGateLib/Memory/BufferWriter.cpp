@@ -74,7 +74,7 @@ namespace QuantumGate::Implementation::Memory
 			if (endian_convert && m_ConvertToNetworkByteOrder)
 			{
 				// For endian conversion we insert the bytes in reverse order
-				for (auto i = 0u; i < len; i++)
+				for (Size i = 0; i < len; ++i)
 				{
 					bp[i] = data[len - 1 - i];
 				}

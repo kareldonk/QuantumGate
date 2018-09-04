@@ -126,7 +126,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 	const bool Manager::StartupThreadPool() noexcept
 	{
 		const auto cth = std::thread::hardware_concurrency();
-		Size numthreadsperpool = (cth > 2u) ? cth : 2u;
+		Size numthreadsperpool = (cth > 2) ? cth : 2;
 
 		// Must have at least two threads in pool 
 		// one of which will be the primary thread
@@ -142,7 +142,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		auto error = false;
 
 		// Create the worker threads
-		for (auto x = 0u; x < numthreadsperpool; x++)
+		for (Size x = 0; x < numthreadsperpool; ++x)
 		{
 			// First thread is primary worker thread
 			if (x == 0)
@@ -225,7 +225,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			// and we need to fill the queue again
 			thpdata.KeyManager.m_ThreadPool.Data().PrimaryThreadEvent.Reset();
 
-			for (auto it = queues.begin(); it != queues.end() && !shutdown_event.IsSet(); it++)
+			for (auto it = queues.begin(); it != queues.end() && !shutdown_event.IsSet(); ++it)
 			{
 				auto active = false;
 				Size queue_size{ 0 };
@@ -251,7 +251,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 						while (numkeys > 0)
 						{
 							thpdata.KeyGenEventQueue.WithUniqueLock()->Push({ it->second.get() });
-							numkeys--;
+							--numkeys;
 						}
 
 						didwork = true;
@@ -268,7 +268,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		{
 			thpdata.KeyManager.m_KeyQueues.WithUniqueLock([&](KeyQueueMap& queues)
 			{
-				for (auto it = queues.begin(); it != queues.end() && !shutdown_event.IsSet(); it++)
+				for (auto it = queues.begin(); it != queues.end() && !shutdown_event.IsSet(); ++it)
 				{
 					auto active = false;
 					Size num_pending_events{ 0 };

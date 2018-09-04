@@ -47,7 +47,7 @@ namespace QuantumGate::Implementation::Memory
 
 		MemoryPoolMap.WithSharedLock([&](const MemoryPoolMap_T& mpdc)
 		{
-			for (auto it = mpdc.begin(); it != mpdc.end(); it++)
+			for (auto it = mpdc.begin(); it != mpdc.end(); ++it)
 			{
 				output += Util::FormatString(L"Allocation size: %llu bytes -> Pool size: %llu, Free: %llu\r\n",
 											 it->first, it->second->MemoryPool.WithSharedLock()->size(),

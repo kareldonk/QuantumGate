@@ -204,7 +204,7 @@ void Stress::MultiInstanceStressThreadProc()
 	std::vector<std::shared_ptr<StressExtender::Extender>> extenders;
 	std::vector<Local> instances;
 
-	for (auto x = 0u; x < 10u; x++)
+	for (auto x = 0u; x < 10u; ++x)
 	{
 		auto& local = instances.emplace_back();
 
@@ -251,14 +251,14 @@ void Stress::MultiInstanceStressThreadProc()
 				}
 			}
 
-			for (auto x = 0u; x < instances.size(); x++)
+			for (std::size_t x = 0; x < instances.size(); ++x)
 			{
 				PeerQueryParameters qparams;
 				const auto result = instances[x].QueryPeers(qparams);
 				if (result.Succeeded() && result.GetValue().size() > 0)
 				{
 					const auto num_msg = Util::GetPseudoRandomNumber(1, 5);
-					for (auto y = 0; y < num_msg; y++)
+					for (Int64 y = 0; y < num_msg; ++y)
 					{
 						extenders[x]->SendMessageW(result.GetValue()[0],
 												   messages[static_cast<size_t>(Util::GetPseudoRandomNumber(0, messages.size() - 1))]);

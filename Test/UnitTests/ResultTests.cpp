@@ -194,7 +194,7 @@ namespace UnitTests
 				SucceedTestFunction().Succeeded([&]() { x = 10u; });
 				SucceedTestFunction().Failed([&]() { x = 5u; });
 
-				Assert::AreEqual(true, x == 10u);
+				Assert::AreEqual(true, x == 10);
 			}
 
 			{
@@ -212,7 +212,7 @@ namespace UnitTests
 
 				SucceedTestFunction().Failed([&]() { x = 5u; });
 
-				Assert::AreEqual(true, x == 10u);
+				Assert::AreEqual(true, x == 10);
 			}
 
 			{
@@ -221,7 +221,7 @@ namespace UnitTests
 				FailTestFunction().Succeeded([&]() { x = 10u; });
 				FailTestFunction().Failed([&]() { x = 5u; });
 
-				Assert::AreEqual(true, x == 5u);
+				Assert::AreEqual(true, x == 5);
 			}
 
 			{
@@ -238,7 +238,7 @@ namespace UnitTests
 					x = 5u;
 				});
 
-				Assert::AreEqual(true, x == 5u);
+				Assert::AreEqual(true, x == 5);
 			}
 		}
 	};

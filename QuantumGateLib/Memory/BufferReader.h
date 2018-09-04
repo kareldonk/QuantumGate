@@ -57,7 +57,7 @@ namespace QuantumGate::Implementation::Memory
 			std::is_same_v<T, Byte> || std::is_enum_v<T> ||
 			std::is_same_v<T, SerializedUUID>, bool> ReadImpl(std::vector<T>& data)
 		{
-			for (auto x = 0u; x < data.size(); ++x)
+			for (std::size_t x = 0; x < data.size(); ++x)
 			{
 				if (!ReadImpl(data[x])) return false;
 			}
