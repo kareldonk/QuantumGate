@@ -245,7 +245,14 @@ namespace QuantumGate::Implementation::Core::Access
 					return false;
 				}
 			}
-			else ++it->second.CurrentConnections;
+			else
+			{
+				if (it->second.CurrentConnections < std::numeric_limits<Size>::max())
+				{
+					++it->second.CurrentConnections;
+				}
+				else return false;
+			}
 
 			return true;
 		}
@@ -344,7 +351,11 @@ namespace QuantumGate::Implementation::Core::Access
 				if ((it->second.CurrentConnections < limit.MaximumConnections) ||
 					(allow_overflow && it->second.CurrentConnections >= limit.MaximumConnections))
 				{
-					it->second.CurrentConnections += num;
+					if (std::numeric_limits<Size>::max() - num > it->second.CurrentConnections)
+					{
+						it->second.CurrentConnections += num;
+					}
+					else return false;
 				}
 				else
 				{

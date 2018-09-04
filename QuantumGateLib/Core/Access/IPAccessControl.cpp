@@ -22,9 +22,15 @@ namespace QuantumGate::Implementation::Core::Access
 
 		if (seconds >= interval)
 		{
-			m_Reputation.Score += static_cast<Int16>(IPReputationUpdate::ImproveMinimal) *
-				static_cast<Int16>(seconds.count() / interval.count());
+			Int64 new_score = static_cast<Int64>(m_Reputation.Score) +
+				(static_cast<Int64>(IPReputationUpdate::ImproveMinimal) * (seconds.count() / interval.count()));
 
+			if (new_score > IPReputation::ScoreLimits::Maximum)
+			{
+				new_score = IPReputation::ScoreLimits::Maximum;
+			}
+
+			m_Reputation.Score = static_cast<Int16>(new_score);
 			m_Reputation.LastImproveSteadyTime = Util::GetCurrentSteadyTime();
 		}
 	}
