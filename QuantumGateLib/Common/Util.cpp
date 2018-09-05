@@ -28,7 +28,7 @@ namespace QuantumGate::Implementation::Util
 			}
 		}
 
-		return L"";
+		return {};
 	}
 
 	Export SystemTime GetCurrentSystemTime() noexcept
@@ -93,7 +93,7 @@ namespace QuantumGate::Implementation::Util
 		}
 		catch (...) {}
 
-		return L"";
+		return {};
 	}
 
 	template<typename T>
@@ -150,7 +150,7 @@ namespace QuantumGate::Implementation::Util
 		}
 		catch (...) {}
 
-		return L"";
+		return {};
 	}
 
 	Export String ToStringW(const std::string& txt) noexcept
@@ -161,7 +161,7 @@ namespace QuantumGate::Implementation::Util
 		}
 		catch (...) {}
 
-		return L"";
+		return {};
 	}
 
 	Export std::string ToStringA(const String& txt) noexcept
@@ -172,7 +172,7 @@ namespace QuantumGate::Implementation::Util
 		}
 		catch (...) {}
 
-		return "";
+		return {};
 	}
 
 	Export std::optional<String> GetBase64(const BufferView& buffer) noexcept

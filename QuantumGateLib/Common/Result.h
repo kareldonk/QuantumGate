@@ -91,7 +91,6 @@ namespace QuantumGate::Implementation
 			{
 				if (!m_ErrorCode)
 				{
-					Clear();
 					throw std::invalid_argument("Result should contain a value upon successful completion.");
 				}
 			}
@@ -132,20 +131,38 @@ namespace QuantumGate::Implementation
 
 		[[nodiscard]] String GetErrorDescription() const noexcept
 		{
-			const auto msg = m_ErrorCode.message();
-			return String(msg.begin(), msg.end());
+			try
+			{
+				const auto msg = m_ErrorCode.message();
+				return String(msg.begin(), msg.end());
+			}
+			catch (...) {}
+
+			return {};
 		}
 
 		[[nodiscard]] String GetErrorCategory() const noexcept
 		{
-			const std::string name = m_ErrorCode.category().name();
-			return String(name.begin(), name.end());
+			try
+			{
+				const std::string name{ m_ErrorCode.category().name() };
+				return String(name.begin(), name.end());
+			}
+			catch (...) {}
+
+			return {};
 		}
 
 		[[nodiscard]] String GetErrorString() const noexcept
 		{
-			return GetErrorCategory() + L" : " + std::to_wstring(GetErrorValue()) +
-				L" : " + GetErrorDescription();
+			try
+			{
+				return GetErrorCategory() + L" : " + std::to_wstring(GetErrorValue()) +
+					L" : " + GetErrorDescription();
+			}
+			catch (...) {}
+
+			return {};
 		}
 
 		template<typename U = T, typename = std::enable_if_t<has_value_type<U>>>
@@ -188,7 +205,7 @@ namespace QuantumGate::Implementation
 		}
 
 		template<typename F>
-		void Succeeded(F&& function) const noexcept
+		void Succeeded(F&& function) const
 		{
 			if (Succeeded())
 			{
@@ -203,7 +220,7 @@ namespace QuantumGate::Implementation
 		[[nodiscard]] constexpr const bool Failed() const noexcept { return !Succeeded(); }
 
 		template<typename F>
-		void Failed(F&& function) const noexcept
+		void Failed(F&& function) const
 		{
 			if (Failed())
 			{
@@ -234,14 +251,14 @@ namespace QuantumGate::Implementation
 	};
 
 	template<typename E, E DefaultErrorCode, typename T = void>
-	class [[nodiscard]] ResultBase final : public ResultImpl<E, DefaultErrorCode, T>
+	class[[nodiscard]] ResultBase final : public ResultImpl<E, DefaultErrorCode, T>
 	{
 	public:
 		using ResultImpl<E, DefaultErrorCode, T>::ResultImpl;
 	};
 
 	template<typename E, E DefaultErrorCode>
-	class [[nodiscard]] ResultBase<E, DefaultErrorCode, void> final : public ResultImpl<E, DefaultErrorCode, NoResultValue>
+	class[[nodiscard]] ResultBase<E, DefaultErrorCode, void> final : public ResultImpl<E, DefaultErrorCode, NoResultValue>
 	{
 	public:
 		using ResultImpl<E, DefaultErrorCode, NoResultValue>::ResultImpl;

@@ -51,7 +51,7 @@ public:
 				break;
 		}
 
-		return L"";
+		return {};
 	}
 
 	// This function is called by QuantumGate whenever a message needs to be 

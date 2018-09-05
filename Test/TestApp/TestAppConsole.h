@@ -17,7 +17,10 @@ public:
 	inline void Unlock() { m_Mutex.unlock(); }
 
 	const QuantumGate::WChar* GetFormat(const QuantumGate::Console::MessageType type,
-						   const QuantumGate::Console::Format fmt) const noexcept override { return L""; }
+										const QuantumGate::Console::Format fmt) const noexcept override
+	{
+		return {};
+	}
 
 	void AddMessage(const QuantumGate::Console::MessageType type,
 					const QuantumGate::StringView message) override;
