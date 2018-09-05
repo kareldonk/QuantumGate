@@ -36,8 +36,17 @@ namespace QuantumGate::Implementation
 
 		ForceInline void CheckSeed32(const UInt64 num = 1) noexcept
 		{
-			Rng32Count += num;
-			if (Rng32Count > RngEngineReseedLimit)
+			if (std::numeric_limits<UInt64>::max() - num >= Rng32Count)
+			{
+				Rng32Count += num;
+
+				if (Rng32Count > RngEngineReseedLimit)
+				{
+					Rng32.seed(Device());
+					Rng32Count = 0;
+				}
+			}
+			else
 			{
 				Rng32.seed(Device());
 				Rng32Count = 0;
@@ -46,8 +55,17 @@ namespace QuantumGate::Implementation
 
 		ForceInline void CheckSeed64(const UInt64 num = 1) noexcept
 		{
-			Rng64Count += num;
-			if (Rng64Count > RngEngineReseedLimit)
+			if (std::numeric_limits<UInt64>::max() - num >= Rng64Count)
+			{
+				Rng64Count += num;
+
+				if (Rng64Count > RngEngineReseedLimit)
+				{
+					Rng64.seed(Device());
+					Rng64Count = 0;
+				}
+			}
+			else
 			{
 				Rng64.seed(Device());
 				Rng64Count = 0;

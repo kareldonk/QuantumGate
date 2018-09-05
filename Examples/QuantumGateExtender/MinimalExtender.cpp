@@ -84,7 +84,7 @@ void MinimalExtender::OnPeerEvent(QuantumGate::PeerEvent&& event)
 	if (event.GetType() == QuantumGate::PeerEventType::Connected)
 	{
 		const wchar_t msg[]{ L"Hello peer, welcome!" };
-		QuantumGate::Buffer msg_buf(reinterpret_cast<const QuantumGate::Byte*>(&msg), sizeof(msg) * sizeof(wchar_t));
+		QuantumGate::Buffer msg_buf(reinterpret_cast<const QuantumGate::Byte*>(&msg), sizeof(msg));
 
 		const auto result = SendMessageTo(event.GetPeerLUID(), std::move(msg_buf));
 		if (result.Succeeded())

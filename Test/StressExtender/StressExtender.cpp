@@ -107,7 +107,7 @@ namespace StressExtender
 						handled = true;
 
 						std::wstring str;
-						str.resize((msgdata->GetSize() - sizeof(UInt16)) / sizeof(wchar_t));
+						str.resize((msgdata->GetSize() - sizeof(UInt16)) / sizeof(std::wstring::value_type));
 
 						if (rdr.Read(str))
 						{

@@ -666,7 +666,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	const bool Peer::SendNoise(const Size minsize, const Size maxsize, const std::chrono::milliseconds delay)
 	{
-		const auto datasize = abs(Random::GetPseudoRandomNumber(minsize, maxsize));
+		const auto datasize = std::abs(Random::GetPseudoRandomNumber(minsize, maxsize));
 		auto data = Random::GetPseudoRandomBytes(static_cast<Size>(datasize));
 
 		Dbg(L"Sending %u byte noise message to peer %s", datasize, GetPeerName().c_str());

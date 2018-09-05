@@ -18,11 +18,14 @@ namespace QuantumGate::Implementation::Util
 	{
 		const Time time = std::time(nullptr);
 		tm time_tm{ 0 };
-		WChar timestr[100]{ 0 };
+		std::array<WChar, 100> timestr{ 0 };
 
 		if (localtime_s(&time_tm, &time) == 0)
 		{
-			if (std::wcsftime(timestr, sizeof(timestr), format.c_str(), &time_tm) != 0) return timestr;
+			if (std::wcsftime(timestr.data(), timestr.size(), format.c_str(), &time_tm) != 0)
+			{
+				return timestr.data();
+			}
 		}
 
 		return L"";
@@ -62,29 +65,35 @@ namespace QuantumGate::Implementation::Util
 
 	Export String FormatString(const StringView format, va_list arglist) noexcept
 	{
-		String tmpstr;
-		WChar tmp[1024]{ 0 };
-		WChar* fmtptr{ nullptr };
-
-		// Need to add '\0' to format
-		if (format.size() < sizeof(tmp))
+		try
 		{
-			memcpy(&tmp, format.data(), format.size() * sizeof(WChar));
-			fmtptr = tmp;
+			String tmpstr;
+			std::array<WChar, 1024> tmp{ 0 };
+			WChar* fmtptr{ nullptr };
+
+			// Need to add '\0' to format
+			if (format.size() < tmp.size())
+			{
+				memcpy(tmp.data(), format.data(), format.size() * sizeof(WChar));
+				fmtptr = tmp.data();
+			}
+			else
+			{
+				tmpstr = format;
+				fmtptr = tmpstr.data();
+			}
+
+			const std::size_t size = static_cast<std::size_t>(_vscwprintf(fmtptr, arglist)) + 1; // include space for '\0'
+
+			String txt;
+			txt.resize(size - 1); // exclude space for '\0'
+			std::vswprintf(txt.data(), size, fmtptr, arglist);
+
+			return txt;
 		}
-		else
-		{
-			tmpstr = format;
-			fmtptr = tmpstr.data();
-		}
+		catch (...) {}
 
-		const std::size_t size = static_cast<std::size_t>(_vscwprintf(fmtptr, arglist)) + 1; // include space for '\0'
-
-		String txt;
-		txt.resize(size - 1); // exclude space for '\0'
-		std::vswprintf(txt.data(), size, fmtptr, arglist);
-
-		return txt;
+		return L"";
 	}
 
 	template<typename T>
@@ -128,24 +137,42 @@ namespace QuantumGate::Implementation::Util
 
 	String ToBinaryString(const gsl::span<Byte> bytes) noexcept
 	{
-		String txt;
-		for (const auto byte : bytes)
+		try
 		{
-			if (!txt.empty()) txt += L"'";
-			txt += ToBinaryString(static_cast<UChar>(byte));
-		}
+			String txt;
+			for (const auto byte : bytes)
+			{
+				if (!txt.empty()) txt += L"'";
+				txt += ToBinaryString(static_cast<UChar>(byte));
+			}
 
-		return txt;
+			return txt;
+		}
+		catch (...) {}
+
+		return L"";
 	}
 
 	Export String ToStringW(const std::string& txt) noexcept
 	{
-		return String(txt.begin(), txt.end());
+		try
+		{
+			return String(txt.begin(), txt.end());
+		}
+		catch (...) {}
+
+		return L"";
 	}
 
 	Export std::string ToStringA(const String& txt) noexcept
 	{
-		return std::string(txt.begin(), txt.end());
+		try
+		{
+			return std::string(txt.begin(), txt.end());
+		}
+		catch (...) {}
+
+		return "";
 	}
 
 	Export std::optional<String> GetBase64(const BufferView& buffer) noexcept

@@ -402,6 +402,7 @@ namespace QuantumGate::Implementation::Crypto
 				key_size = 32;
 				break;
 			default:
+				assert(false);
 				return false;
 		}
 

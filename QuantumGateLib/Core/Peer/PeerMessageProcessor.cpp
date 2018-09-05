@@ -568,9 +568,10 @@ namespace QuantumGate::Implementation::Core::Peer
 				return false;
 		}
 
+		SerializedUUID suuid{ uuid };
 
 		ProtectedBuffer sigdata;
-		sigdata += BufferView(reinterpret_cast<const Byte*>(&uuid), sizeof(UUID));
+		sigdata += BufferView(reinterpret_cast<const Byte*>(&suuid), sizeof(SerializedUUID));
 		sigdata += BufferView(reinterpret_cast<const Byte*>(&sessionid), sizeof(sessionid));
 
 		if (!m_Peer.GetKeyExchange().AddKeyExchangeData(sigdata)) return false;
@@ -658,8 +659,10 @@ namespace QuantumGate::Implementation::Core::Peer
 				return false;
 		}
 
+		SerializedUUID suuid{ uuid };
+
 		ProtectedBuffer sigdata;
-		sigdata += BufferView(reinterpret_cast<const Byte*>(&uuid), sizeof(UUID));
+		sigdata += BufferView(reinterpret_cast<const Byte*>(&suuid), sizeof(SerializedUUID));
 		sigdata += BufferView(reinterpret_cast<const Byte*>(&sessionid), sizeof(sessionid));
 
 		if (!m_Peer.GetKeyExchange().AddKeyExchangeData(sigdata)) return false;
