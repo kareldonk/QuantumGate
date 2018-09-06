@@ -160,6 +160,10 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_COMMAND(ID_BENCHMARKS_MEMORY, &CTestAppDlg::OnBenchmarksMemory)
 	ON_COMMAND(ID_UTILS_LOGPOOLALLOCATORSTATISTICS, &CTestAppDlg::OnUtilsLogPoolAllocatorStatistics)
 	ON_COMMAND(ID_LOCAL_IPREPUTATIONS, &CTestAppDlg::OnLocalIPReputations)
+	ON_COMMAND(ID_ATTACKS_CONNECTANDDISCONNECT, &CTestAppDlg::OnAttacksConnectAndDisconnect)
+	ON_COMMAND(ID_ATTACKS_CONNECTANDWAIT, &CTestAppDlg::OnAttacksConnectAndWait)
+	ON_UPDATE_COMMAND_UI(ID_ATTACKS_CONNECTANDDISCONNECT, &CTestAppDlg::OnUpdateAttacksConnectAndDisconnect)
+	ON_UPDATE_COMMAND_UI(ID_ATTACKS_CONNECTANDWAIT, &CTestAppDlg::OnUpdateAttacksConnectAndWait)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlg::OnInitDialog()
@@ -672,6 +676,7 @@ void CTestAppDlg::OnClose()
 	if (m_QuantumGate.IsRunning()) OnLocalDeinitialize();
 
 	Attacks::StopConnectGarbageAttack();
+	Attacks::StopConnectAttack();
 
 	Stress::StopMultiInstanceStress();
 
@@ -877,6 +882,56 @@ void CTestAppDlg::OnAttacksConnectWithGarbage()
 void CTestAppDlg::OnUpdateAttacksConnectWithGarbage(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(Attacks::IsConnectGarbageAttackRunning());
+	pCmdUI->Enable(m_QuantumGate.IsRunning());
+}
+
+void CTestAppDlg::OnAttacksConnectAndDisconnect()
+{
+	if (!Attacks::IsConnectAttackRunning())
+	{
+		CEndpointDlg dlg;
+		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetPort(m_DefaultPort);
+
+		if (dlg.DoModal() == IDOK)
+		{
+			Attacks::StartConnectAttack(dlg.GetIPAddress().GetString().c_str(), dlg.GetPort());
+		}
+	}
+	else
+	{
+		Attacks::StopConnectAttack();
+	}
+}
+
+void CTestAppDlg::OnUpdateAttacksConnectAndDisconnect(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(Attacks::IsConnectAttackRunning());
+	pCmdUI->Enable(m_QuantumGate.IsRunning());
+}
+
+void CTestAppDlg::OnAttacksConnectAndWait()
+{
+	if (!Attacks::IsConnectWaitAttackRunning())
+	{
+		CEndpointDlg dlg;
+		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetPort(m_DefaultPort);
+
+		if (dlg.DoModal() == IDOK)
+		{
+			Attacks::StartConnectWaitAttack(dlg.GetIPAddress().GetString().c_str(), dlg.GetPort());
+		}
+	}
+	else
+	{
+		Attacks::StopConnectWaitAttack();
+	}
+}
+
+void CTestAppDlg::OnUpdateAttacksConnectAndWait(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(Attacks::IsConnectWaitAttackRunning());
 	pCmdUI->Enable(m_QuantumGate.IsRunning());
 }
 

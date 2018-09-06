@@ -122,6 +122,10 @@ protected:
 	afx_msg void OnBenchmarksMemory();
 	afx_msg void OnUtilsLogPoolAllocatorStatistics();
 	afx_msg void OnLocalIPReputations();
+	afx_msg void OnAttacksConnectAndDisconnect();
+	afx_msg void OnAttacksConnectAndWait();
+	afx_msg void OnUpdateAttacksConnectAndDisconnect(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateAttacksConnectAndWait(CCmdUI* pCmdUI);
 
 protected:
 	QuantumGate::StartupParameters m_StartupParameters;

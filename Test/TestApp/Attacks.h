@@ -21,7 +21,7 @@ public:
 
 class Attacks
 {
-	struct ConnectGarbageData
+	struct ThreadData
 	{
 		std::thread Thread;
 		std::atomic_bool Stop{ false };
@@ -35,10 +35,22 @@ public:
 	static void StopConnectGarbageAttack();
 	static bool IsConnectGarbageAttackRunning() noexcept;
 
-private:
-	static void ConnectGarbageThreadProc(const CString ip, const UInt16 port);
+	static const bool StartConnectAttack(const CString& ip, const UInt16 port);
+	static void StopConnectAttack();
+	static bool IsConnectAttackRunning() noexcept;
+
+	static const bool StartConnectWaitAttack(const CString& ip, const UInt16 port);
+	static void StopConnectWaitAttack();
+	static bool IsConnectWaitAttackRunning() noexcept;
 
 private:
-	static ConnectGarbageData m_ConnectGarbageData;
+	static void ConnectGarbageThreadProc(const CString ip, const UInt16 port);
+	static void ConnectThreadProc(const CString ip, const UInt16 port);
+	static void ConnectWaitThreadProc(const CString ip, const UInt16 port);
+
+private:
+	static ThreadData m_ConnectGarbageData;
+	static ThreadData m_ConnectData;
+	static ThreadData m_ConnectWaitData;
 };
 
