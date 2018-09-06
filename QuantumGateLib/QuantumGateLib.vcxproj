@@ -572,6 +572,7 @@
     <ClInclude Include="Core\Peer\PeerNoiseQueue.h" />
     <ClInclude Include="Core\Peer\PeerNoiseItem.h" />
     <ClInclude Include="Core\Peer\PeerManager.h" />
+    <ClInclude Include="Core\PublicIPAddresses.h" />
     <ClInclude Include="Core\Relay\RelayEvents.h" />
     <ClInclude Include="Core\Relay\RelayLink.h" />
     <ClInclude Include="Core\Relay\RelayManager.h" />

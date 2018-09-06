@@ -40,7 +40,7 @@ namespace QuantumGate::Implementation::Core
 		Result<> DisableRelays() noexcept;
 		const bool AreRelaysEnabled() const noexcept;
 
-		const LocalEnvironment& GetEnvironment() noexcept;
+		const LocalEnvironment_ThS& GetEnvironment() noexcept;
 
 		inline Access::Manager& GetAccessManager() noexcept { return m_AccessManager; }
 		inline KeyGeneration::Manager& GetKeyGenerationManager() noexcept { return m_KeyGenerationManager; }
@@ -97,7 +97,7 @@ namespace QuantumGate::Implementation::Core
 		Settings_CThS m_Settings;
 		SecurityLevel m_SecurityLevel{ SecurityLevel::One };
 
-		LocalEnvironment m_LocalEnvironment;
+		LocalEnvironment_ThS m_LocalEnvironment;
 
 		ExtenderModuleMap m_ExtenderModules;
 

@@ -30,8 +30,10 @@ namespace QuantumGate::Implementation::Concurrency
 			constexpr Value& operator=(Value&&) = default;
 
 			constexpr std::conditional_t<std::is_const_v<ThS>, const T*, T*> operator->() noexcept { assert(*this); return &m_ThS->m_Data; }
+			constexpr const T* operator->() const noexcept { assert(*this); return &m_ThS->m_Data; }
 
 			constexpr std::conditional_t<std::is_const_v<ThS>, const T&, T&> operator*() noexcept { assert(*this); return m_ThS->m_Data; }
+			constexpr const T& operator*() const noexcept { assert(*this); return m_ThS->m_Data; }
 
 			template<typename Arg>
 			constexpr auto& operator[](Arg&& arg) { assert(*this); return m_ThS->m_Data[std::forward<Arg>(arg)]; }
@@ -42,7 +44,8 @@ namespace QuantumGate::Implementation::Concurrency
 			constexpr T& operator=(const T& other) noexcept(noexcept(m_ThS->m_Data = other))
 			{
 				assert(*this);
-				m_ThS->m_Data = other; return m_ThS->m_Data;
+				m_ThS->m_Data = other;
+				return m_ThS->m_Data;
 			}
 
 			constexpr const bool operator==(const T& other) const noexcept

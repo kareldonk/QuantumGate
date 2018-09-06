@@ -94,13 +94,13 @@ namespace QuantumGate::Implementation
 	
 	Export std::ostream& operator<<(std::ostream& os, const ResultCode code)
 	{
-		os << Implementation::Util::ToStringA(Implementation::Util::FormatString(L"%lld", code));
+		os << Implementation::Util::ToStringA(Implementation::Util::FormatString(L"%d", static_cast<int>(code)));
 		return os;
 	}
 
 	Export std::wostream& operator<<(std::wostream& os, const ResultCode code)
 	{
-		os << Implementation::Util::FormatString(L"%lld", code);
+		os << Implementation::Util::FormatString(L"%d", static_cast<int>(code));
 		return os;
 	}
 

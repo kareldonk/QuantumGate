@@ -51,7 +51,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	public:
 		Manager() = delete;
-		Manager(const Settings_CThS& settings, const LocalEnvironment& environment,
+		Manager(const Settings_CThS& settings, const LocalEnvironment_ThS& environment,
 				KeyGeneration::Manager& keymgr, Access::Manager& accessmgr,
 				Extender::Manager& extenders) noexcept;
 		Manager(const Manager&) = delete;
@@ -147,7 +147,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	private:
 		std::atomic_bool m_Running{ false };
 		const Settings_CThS& m_Settings;
-		const LocalEnvironment& m_LocalEnvironment;
+		const LocalEnvironment_ThS& m_LocalEnvironment;
 		KeyGeneration::Manager& m_KeyGenerationManager;
 		Access::Manager& m_AccessManager;
 		Extender::Manager& m_ExtenderManager;

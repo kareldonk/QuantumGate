@@ -3,11 +3,6 @@
 
 #pragma once
 
-namespace QuantumGate::Implementation::Core
-{
-	class LocalEnvironment;
-}
-
 namespace QuantumGate::API
 {
 	class Export LocalEnvironment
@@ -24,12 +19,12 @@ namespace QuantumGate::API
 
 		Result<String> GetHostname() const noexcept;
 		Result<String> GetUsername() const noexcept;
-		Result<const std::vector<EthernetInterface>*> GetEthernetInterfaces() const noexcept;
+		Result<std::vector<EthernetInterface>> GetEthernetInterfaces() const noexcept;
 
 	private:
-		LocalEnvironment(const QuantumGate::Implementation::Core::LocalEnvironment* localenv) noexcept;
+		LocalEnvironment(const void* localenv) noexcept;
 
 	private:
-		const QuantumGate::Implementation::Core::LocalEnvironment* m_LocalEnvironment{ nullptr };
+		const void* m_LocalEnvironment{ nullptr };
 	};
 }

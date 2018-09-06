@@ -387,6 +387,9 @@
     <ClInclude Include="Common\Result.h">
       <Filter>Header Files\Common</Filter>
     </ClInclude>
+    <ClInclude Include="Core\PublicIPAddresses.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

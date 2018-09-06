@@ -404,7 +404,9 @@ namespace QuantumGate::Implementation::Core::Peer
 							Dbg(L"NumExt: %u", lsextlist.size());
 
 							BufferWriter wrt(true);
-							if (wrt.WriteWithPreallocation(counter, WithSize(lsextlist, MaxSize::UInt16)))
+							if (wrt.WriteWithPreallocation(counter,
+														   Network::SerializedIPEndpoint{ m_Peer.GetPeerEndpoint() },
+														   WithSize(lsextlist, MaxSize::UInt16)))
 							{
 								if (m_Peer.Send(MessageType::BeginSessionInit, wrt.MoveWrittenBytes()))
 								{
@@ -452,10 +454,11 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
 				UInt8 pcounter{ 0 };
+				Network::SerializedIPEndpoint pub_endp;
 				std::vector<SerializedUUID> psextlist;
 
 				BufferReader rdr(buffer, true);
-				if (rdr.Read(pcounter, WithSize(psextlist, MaxSize::UInt16)))
+				if (rdr.Read(pcounter, pub_endp, WithSize(psextlist, MaxSize::UInt16)))
 				{
 					m_Peer.SetPeerMessageCounter(pcounter);
 
@@ -473,7 +476,9 @@ namespace QuantumGate::Implementation::Core::Peer
 							const auto counter = m_Peer.SetLocalMessageCounter();
 
 							BufferWriter wrt(true);
-							if (wrt.WriteWithPreallocation(counter, WithSize(lsextlist, MaxSize::UInt16)))
+							if (wrt.WriteWithPreallocation(counter,
+														   Network::SerializedIPEndpoint{ m_Peer.GetPeerEndpoint() },
+														   WithSize(lsextlist, MaxSize::UInt16)))
 							{
 								if (m_Peer.Send(MessageType::EndSessionInit, wrt.MoveWrittenBytes()))
 								{
@@ -506,10 +511,11 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
 				UInt8 pcounter{ 0 };
+				Network::SerializedIPEndpoint pub_endp;
 				std::vector<SerializedUUID> psextlist;
 
 				BufferReader rdr(buffer, true);
-				if (rdr.Read(pcounter, WithSize(psextlist, MaxSize::UInt16)))
+				if (rdr.Read(pcounter, pub_endp, WithSize(psextlist, MaxSize::UInt16)))
 				{
 					m_Peer.SetPeerMessageCounter(pcounter);
 

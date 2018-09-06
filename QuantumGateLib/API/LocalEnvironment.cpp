@@ -5,9 +5,11 @@
 #include "LocalEnvironment.h"
 #include "..\Core\LocalEnvironment.h"
 
+using namespace QuantumGate::Implementation::Core;
+
 namespace QuantumGate::API
 {
-	LocalEnvironment::LocalEnvironment(const QuantumGate::Implementation::Core::LocalEnvironment* localenv) noexcept :
+	LocalEnvironment::LocalEnvironment(const void* localenv) noexcept :
 		m_LocalEnvironment(localenv)
 	{
 		assert(m_LocalEnvironment != nullptr);
@@ -17,7 +19,12 @@ namespace QuantumGate::API
 	{
 		assert(m_LocalEnvironment != nullptr);
 
-		if (m_LocalEnvironment->IsInitialized()) return m_LocalEnvironment->Hostname();
+		try
+		{
+			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			if (local_env->IsInitialized()) return local_env->GetHostname();
+		}
+		catch (...) {}
 
 		return ResultCode::Failed;
 	}
@@ -26,16 +33,26 @@ namespace QuantumGate::API
 	{
 		assert(m_LocalEnvironment != nullptr);
 
-		if (m_LocalEnvironment->IsInitialized()) return m_LocalEnvironment->Username();
+		try
+		{
+			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			if (local_env->IsInitialized()) return local_env->GetUsername();
+		}
+		catch (...) {}
 
 		return ResultCode::Failed;
 	}
 	
-	Result<const std::vector<EthernetInterface>*> LocalEnvironment::GetEthernetInterfaces() const noexcept
+	Result<std::vector<EthernetInterface>> LocalEnvironment::GetEthernetInterfaces() const noexcept
 	{
 		assert(m_LocalEnvironment != nullptr);
 
-		if (m_LocalEnvironment->IsInitialized()) return &m_LocalEnvironment->EthernetInterfaces();
+		try
+		{
+			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			if (local_env->IsInitialized()) return local_env->GetEthernetInterfaces();
+		}
+		catch (...) {}
 
 		return ResultCode::Failed;
 	}

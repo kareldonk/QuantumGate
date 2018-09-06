@@ -93,6 +93,11 @@ namespace QuantumGate::Implementation::Memory
 		return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));
 	}
 
+	template<> const bool BufferReader::ReadImpl(Network::SerializedIPEndpoint& data)
+	{
+		return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));
+	}
+
 	template<> const bool BufferReader::ReadImpl(SerializedUUID& data)
 	{
 		return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));

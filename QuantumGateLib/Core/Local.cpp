@@ -245,17 +245,22 @@ namespace QuantumGate::Implementation::Core
 			return ResultCode::Failed;
 		}
 
-		if (!m_LocalEnvironment.IsInitialized())
+		if (!m_LocalEnvironment.WithSharedLock()->IsInitialized())
 		{
-			if (!m_LocalEnvironment.Initialize())
+			if (!m_LocalEnvironment.WithUniqueLock()->Initialize())
 			{
 				LogErr(L"Couldn't initialize local environment");
 				return ResultCode::Failed;
 			}
 		}
 
-		LogSys(L"Localhost " + m_LocalEnvironment.Hostname() + L" (" + m_LocalEnvironment.GetIPAddressesString() + L")");
-		LogSys(L"Running as user " + m_LocalEnvironment.Username());
+		{
+			const auto local_env = m_LocalEnvironment.WithSharedLock();
+
+			LogSys(L"Localhost " + local_env->GetHostname() + L" (" + local_env->GetIPAddressesString() + L")");
+			LogSys(L"Running as user " + local_env->GetUsername());
+		}
+
 		LogSys(L"Local UUID " + m_Settings.GetCache().Local.UUID.GetString());
 
 		if (!m_Settings.GetCache().Local.RequireAuthentication)
@@ -288,10 +293,14 @@ namespace QuantumGate::Implementation::Core
 		// Upon failure shut down relay manager when we return
 		auto sg3 = MakeScopeGuard([&] { m_PeerManager.ShutdownRelays(); });
 
-		if (params.Listeners.Enable &&
-			!m_ListenerManager.Startup(m_LocalEnvironment.EthernetInterfaces()))
 		{
-			return ResultCode::FailedListenerManagerStartup;
+			const auto local_env = m_LocalEnvironment.WithSharedLock();
+
+			if (params.Listeners.Enable &&
+				!m_ListenerManager.Startup(local_env->GetEthernetInterfaces()))
+			{
+				return ResultCode::FailedListenerManagerStartup;
+			}
 		}
 
 		// Upon failure shut down listener manager when we return
@@ -343,7 +352,7 @@ namespace QuantumGate::Implementation::Core
 
 		m_KeyGenerationManager.Shutdown();
 
-		m_LocalEnvironment.Clear();
+		m_LocalEnvironment.WithUniqueLock()->Clear();
 
 		// Deinit Winsock
 		WSACleanup();
@@ -359,7 +368,9 @@ namespace QuantumGate::Implementation::Core
 		{
 			std::unique_lock<std::shared_mutex> lock(m_Mutex);
 
-			if (m_ListenerManager.Startup(m_LocalEnvironment.EthernetInterfaces()))
+			auto local_env = m_LocalEnvironment.WithSharedLock();
+
+			if (m_ListenerManager.Startup(local_env->GetEthernetInterfaces()))
 			{
 				return ResultCode::Succeeded;
 			}
@@ -475,11 +486,11 @@ namespace QuantumGate::Implementation::Core
 		return Util::FormatString(L"%u.%u", ProtocolVersion::Major, ProtocolVersion::Minor);
 	}
 
-	const LocalEnvironment& Local::GetEnvironment() noexcept
+	const LocalEnvironment_ThS& Local::GetEnvironment() noexcept
 	{
-		if (!m_LocalEnvironment.IsInitialized())
+		if (!m_LocalEnvironment.WithSharedLock()->IsInitialized())
 		{
-			if (!m_LocalEnvironment.Initialize())
+			if (!m_LocalEnvironment.WithUniqueLock()->Initialize())
 			{
 				LogErr(L"Couldn't initialize local environment");
 			}

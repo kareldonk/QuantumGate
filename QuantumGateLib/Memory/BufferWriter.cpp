@@ -97,6 +97,11 @@ namespace QuantumGate::Implementation::Memory
 		return WriteBytes(reinterpret_cast<const Byte*>(&data), GetDataSize(data));
 	}
 
+	template<> const bool BufferWriter::WriteImpl(const Network::SerializedIPEndpoint& data)
+	{
+		return WriteBytes(reinterpret_cast<const Byte*>(&data), GetDataSize(data));
+	}
+
 	template<> const bool BufferWriter::WriteImpl(const SerializedUUID& data)
 	{
 		return WriteBytes(reinterpret_cast<const Byte*>(&data), GetDataSize(data));

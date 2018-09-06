@@ -46,4 +46,37 @@ namespace QuantumGate::Implementation::Network
 		RelayPort m_RelayPort{ 0 };
 		RelayHop m_RelayHop{ 0 };
 	};
+
+#pragma pack(push, 1) // Disable padding bytes
+	struct SerializedIPEndpoint
+	{
+		SerializedBinaryIPAddress IPAddress;
+		UInt16 Port{ 0 };
+
+		constexpr SerializedIPEndpoint() noexcept {}
+		constexpr SerializedIPEndpoint(const IPEndpoint& endpoint) noexcept { *this = endpoint; }
+
+		constexpr SerializedIPEndpoint& operator=(const IPEndpoint& endpoint) noexcept
+		{
+			IPAddress = endpoint.GetIPAddress().GetBinary();
+			Port = endpoint.GetPort();
+			return *this;
+		}
+
+		operator IPEndpoint() const
+		{
+			return IPEndpoint({ IPAddress }, Port);
+		}
+
+		constexpr bool operator==(const SerializedIPEndpoint& other) const noexcept
+		{
+			return (IPAddress == other.IPAddress && Port == other.Port);
+		}
+
+		constexpr bool operator!=(const SerializedIPEndpoint& other) const noexcept
+		{
+			return !(*this == other);
+		}
+	};
+#pragma pack(pop)
 }

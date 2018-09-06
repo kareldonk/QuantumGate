@@ -12,7 +12,7 @@ using namespace std::literals;
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	Manager::Manager(const Settings_CThS& settings, const LocalEnvironment& environment,
+	Manager::Manager(const Settings_CThS& settings, const LocalEnvironment_ThS& environment,
 					 KeyGeneration::Manager& keymgr, Access::Manager& accessmgr,
 					 Extender::Manager& extenders) noexcept :
 		m_Settings(settings), m_LocalEnvironment(environment), m_KeyGenerationManager(keymgr),
@@ -953,7 +953,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	const std::vector<IPAddress>& Manager::GetLocalIPAddresses() const noexcept
 	{
 		// TODO: Need to also add public IP address(es)
-		return m_LocalEnvironment.IPAddresses();
+		return m_LocalEnvironment.WithSharedLock()->GetIPAddresses();
 	}
 
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,

@@ -102,6 +102,7 @@ namespace QuantumGate::Implementation::Memory
 	// Specializations
 	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(String& data);
 	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(Network::SerializedBinaryIPAddress& data);
+	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(Network::SerializedIPEndpoint& data);
 	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(SerializedUUID& data);
 	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(Buffer& data);
 	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(ProtectedBuffer& data);

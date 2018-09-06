@@ -19,20 +19,20 @@ namespace QuantumGate::Implementation::Core
 		inline const bool IsInitialized() const noexcept { return m_Initialized; }
 		void Clear() noexcept;
 
-		inline const String& Hostname() const noexcept { return m_Hostname; }
-		inline const String& Username() const noexcept { return m_Username; }
-		inline const std::vector<EthernetInterface>& EthernetInterfaces() const noexcept { return m_Interfaces; }
-		inline const std::vector<IPAddress>& IPAddresses() const noexcept { return m_IPAddresses; }
+		inline const String& GetHostname() const noexcept { return m_Hostname; }
+		inline const String& GetUsername() const noexcept { return m_Username; }
+		inline const std::vector<EthernetInterface>& GetEthernetInterfaces() const noexcept { return m_Interfaces; }
+		inline const std::vector<IPAddress>& GetIPAddresses() const noexcept { return m_IPAddresses; }
 
 		String GetIPAddressesString() const noexcept;
 		String GetMACAddressesString() const noexcept;
 	
 	protected:
-		static Result<std::vector<IPAddress>> GetIPAddresses(const String& hostname) noexcept;
-		static Result<std::vector<IPAddress>> GetIPAddresses(const std::vector<EthernetInterface>& eth_interfaces) noexcept;
-		static Result<std::vector<EthernetInterface>> GetEthernetInterfaces() noexcept;
-		static Result<String> GetHostname() noexcept;
-		static Result<String> GetUsername() noexcept;
+		static Result<std::vector<IPAddress>> InitializeIPAddresses(const String& hostname) noexcept;
+		static Result<std::vector<IPAddress>> InitializeIPAddresses(const std::vector<EthernetInterface>& eth_interfaces) noexcept;
+		static Result<std::vector<EthernetInterface>> InitializeEthernetInterfaces() noexcept;
+		static Result<String> InitializeHostname() noexcept;
+		static Result<String> InitializeUsername() noexcept;
 
 	private:
 		bool m_Initialized{ false };
@@ -41,4 +41,6 @@ namespace QuantumGate::Implementation::Core
 		std::vector<IPAddress> m_IPAddresses;
 		std::vector<EthernetInterface> m_Interfaces;
 	};
+
+	using LocalEnvironment_ThS = Concurrency::ThreadSafe<LocalEnvironment, std::shared_mutex>;
 }
