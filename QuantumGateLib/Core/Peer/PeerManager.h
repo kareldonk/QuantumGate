@@ -51,7 +51,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	public:
 		Manager() = delete;
-		Manager(const Settings_CThS& settings, const LocalEnvironment_ThS& environment,
+		Manager(const Settings_CThS& settings, LocalEnvironment_ThS& environment,
 				KeyGeneration::Manager& keymgr, Access::Manager& accessmgr,
 				Extender::Manager& extenders) noexcept;
 		Manager(const Manager&) = delete;
@@ -92,7 +92,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<> Broadcast(const MessageType msgtype, Buffer&& buffer);
 
-		const std::vector<IPAddress>& GetLocalIPAddresses() const noexcept;
+		const std::vector<BinaryIPAddress>* GetLocalIPAddresses() const noexcept;
 
 	private:
 		void PreStartupThreadPools() noexcept;
@@ -112,7 +112,10 @@ namespace QuantumGate::Implementation::Core::Peer
 										 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
 		inline Relay::Manager& GetRelayManager() noexcept { return m_RelayManager; }
-		Result<PeerLUID> GetRelayPeer(const std::vector<BinaryIPAddress>& excl_addr) const noexcept;
+		
+		Result<PeerLUID> GetRelayPeer(const std::vector<BinaryIPAddress>& excl_addr1,
+									  const std::vector<BinaryIPAddress>& excl_addr2) const noexcept;
+		
 		Result<bool> AreRelayIPsInSameNetwork(const BinaryIPAddress& ip1, const BinaryIPAddress& ip2) const noexcept;
 		Result<bool> AreRelayIPsInSameNetwork(const BinaryIPAddress& ip,
 											  const std::vector<BinaryIPAddress>& addresses) noexcept;
@@ -139,6 +142,9 @@ namespace QuantumGate::Implementation::Core::Peer
 										const std::pair<bool, bool>& result) noexcept;
 		void OnPeerEvent(const Peer& peer, const Event&& event) noexcept;
 
+		void AddReportedPublicIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,
+										 const PeerConnectionType rep_con_type, const bool trusted) noexcept;
+
 		static const std::pair<bool, bool> PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
 																  const Concurrency::EventCondition& shutdown_event);
 		static const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
@@ -147,7 +153,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	private:
 		std::atomic_bool m_Running{ false };
 		const Settings_CThS& m_Settings;
-		const LocalEnvironment_ThS& m_LocalEnvironment;
+		LocalEnvironment_ThS& m_LocalEnvironment;
 		KeyGeneration::Manager& m_KeyGenerationManager;
 		Access::Manager& m_AccessManager;
 		Extender::Manager& m_ExtenderManager;

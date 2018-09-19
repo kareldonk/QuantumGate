@@ -76,20 +76,26 @@ namespace QuantumGate::Implementation::Core::Access
 
 					if (!HasFilter(ipfilter.FilterID, type))
 					{
-						ipfilter.StartAddress = ipfilter.Address.GetBinary() & ipfilter.Mask.GetBinary();
-						ipfilter.EndAddress = ipfilter.Address.GetBinary() | ~ipfilter.Mask.GetBinary();
-
-						switch (ipfilter.Type)
+						const auto range = BinaryIPAddress::GetAddressRange(ipfilter.Address.GetBinary(),
+																			ipfilter.Mask.GetBinary());
+						if (range.has_value())
 						{
-							case IPFilterType::Allowed:
-								m_IPAllowFilters[ipfilter.FilterID] = ipfilter;
-								break;
-							case IPFilterType::Blocked:
-								m_IPBlockFilters[ipfilter.FilterID] = ipfilter;
-								break;
-						}
+							ipfilter.StartAddress = range->first;
+							ipfilter.EndAddress = range->second;
 
-						return ipfilter.FilterID;
+							switch (ipfilter.Type)
+							{
+								case IPFilterType::Allowed:
+									m_IPAllowFilters[ipfilter.FilterID] = ipfilter;
+									break;
+								case IPFilterType::Blocked:
+									m_IPBlockFilters[ipfilter.FilterID] = ipfilter;
+									break;
+							}
+
+							return ipfilter.FilterID;
+						}
+						else LogErr(L"Could not add IP filter: failed to get IP range");
 					}
 					else LogErr(L"Could not add IP filter: filter already exists");
 				}
@@ -192,80 +198,24 @@ namespace QuantumGate::Implementation::Core::Access
 
 	const bool IPFilters::IsIPInFilterMap(const IPAddress& address, const IPFilterMap& filtermap) const noexcept
 	{
-		auto inmap = false;
-
-		for (auto& fltpair : filtermap)
+		for (const auto& fltpair : filtermap)
 		{
-			auto& filter = fltpair.second;
+			const auto& filter = fltpair.second;
 
 			if (filter.Address.GetFamily() == address.GetFamily())
 			{
-				if (filter.Address.GetFamily() == IPAddressFamily::IPv4)
+				const auto[success, inrange] = BinaryIPAddress::IsInAddressRange(address.GetBinary(),
+																				 filter.StartAddress, filter.EndAddress);
+				if (success && inrange)
 				{
-					auto inrange = true;
-
-					Dbg(L"IPFilter check (IPv4): %s - %s", filter.Address.GetString().c_str(), filter.Mask.GetString().c_str());
-					Dbg(L"Range start address:   %s", IPAddress(filter.StartAddress).GetString().c_str());
-					Dbg(L"Range end address:     %s", IPAddress(filter.EndAddress).GetString().c_str());
-
-					// For IPv4 we only check the first 4 bytes
-					for (auto x = 0u; x < 4u; ++x)
-					{
-						Dbg(L"%u, %u, %u", filter.StartAddress.Bytes[x], address.GetBinary().Bytes[x], filter.EndAddress.Bytes[x]);
-
-						if (!((address.GetBinary().Bytes[x] >= filter.StartAddress.Bytes[x]) &&
-							(address.GetBinary().Bytes[x] <= filter.EndAddress.Bytes[x])))
-						{
-							// As soon as we have one mismatch we can stop immediately
-							inrange = false;
-							break;
-						}
-					}
-
-					if (inrange)
-					{
-						// If the IP address was within the filter range of at least one filter
-						// we can stop looking immediately
-						inmap = true;
-						break;
-					}
-				}
-				else if (filter.Address.GetFamily() == IPAddressFamily::IPv6)
-				{
-					auto inrange = true;
-
-					Dbg(L"IPFilter check (IPv6): %s - %s", filter.Address.GetString().c_str(), filter.Mask.GetString().c_str());
-					Dbg(L"Range start address:   %s", IPAddress(filter.StartAddress).GetString().c_str());
-					Dbg(L"Range end address:     %s", IPAddress(filter.EndAddress).GetString().c_str());
-
-					// For IPv6 we check all 8 unsigned shorts
-					for (auto x = 0u; x < 8u; ++x)
-					{
-						Dbg(L"%u, %u, %u", Endian::FromNetworkByteOrder(filter.StartAddress.UInt16s[x]),
-							Endian::FromNetworkByteOrder(address.GetBinary().UInt16s[x]),
-							Endian::FromNetworkByteOrder(filter.EndAddress.UInt16s[x]));
-
-						if (!((address.GetBinary().UInt16s[x] >= filter.StartAddress.UInt16s[x]) &&
-							(address.GetBinary().UInt16s[x] <= filter.EndAddress.UInt16s[x])))
-						{
-							// As soon as we have one mismatch we can stop immediately
-							inrange = false;
-							break;
-						}
-					}
-
-					if (inrange)
-					{
-						// If the IP address was within the filter range of
-						// at least one filter we can stop looking immediately
-						inmap = true;
-						break;
-					}
+					// If the IP address was within the filter range of at least one filter
+					// we can stop looking immediately
+					return true;
 				}
 			}
 		}
 
-		return inmap;
+		return false;
 	}
 
 	const IPFilterID IPFilters::GetFilterID(const IPAddress& ip, const IPAddress& mask) const noexcept

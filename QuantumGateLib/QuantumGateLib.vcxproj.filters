@@ -387,7 +387,7 @@
     <ClInclude Include="Common\Result.h">
       <Filter>Header Files\Common</Filter>
     </ClInclude>
-    <ClInclude Include="Core\PublicIPAddresses.h">
+    <ClInclude Include="Core\PublicIPEndpoints.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
@@ -556,6 +556,9 @@
     </ClCompile>
     <ClCompile Include="Common\Result.cpp">
       <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\PublicIPEndpoints.cpp">
+      <Filter>Source Files\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

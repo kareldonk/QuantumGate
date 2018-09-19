@@ -190,13 +190,27 @@ namespace QuantumGate
 		bool AccessAllowed{ false };
 	};
 
+	struct IPAddressDetails
+	{
+		IPAddress IPAddress;
+		bool BoundToLocalEthernetInterface{ false };
+
+		struct
+		{
+			bool Verified{ false };
+			bool ReportedByPeers{ false };
+			bool ReportedByTrustedPeers{ false };
+			Size NumReportingNetworks{ 0 };
+		} PublicDetails;
+	};
+
 	struct EthernetInterface
 	{
 		String Name;
 		String Description;
 		String MACAddress;
 		bool Operational{ false };
-		std::vector<IPAddress> IPAdresses;
+		std::vector<IPAddress> IPAddresses;
 	};
 
 	struct Algorithms
@@ -214,6 +228,7 @@ namespace QuantumGate
 		std::optional<PeerKeys> Keys;							// The private and public keys for the local peer
 		std::optional<ProtectedBuffer> GlobalSharedSecret;		// Global shared secret to use for all connections with peers (in addition to each individual secret key for every peer)
 		bool RequireAuthentication{ true };						// Whether authentication is required for connecting peers
+		
 		Algorithms SupportedAlgorithms;							// The supported algorithms
 		Size NumPreGeneratedKeysPerAlgorithm{ 5 };				// The number of pregenerated keys per supported algorithm
 

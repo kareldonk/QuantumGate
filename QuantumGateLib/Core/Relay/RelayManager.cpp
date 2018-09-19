@@ -93,9 +93,9 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		const auto& settings = GetSettings();
 
-		if (numthreadsperpool < settings.Local.MinThreadsPerPool)
+		if (numthreadsperpool < settings.Local.Concurrency.MinThreadsPerPool)
 		{
-			numthreadsperpool = settings.Local.MinThreadsPerPool;
+			numthreadsperpool = settings.Local.Concurrency.MinThreadsPerPool;
 		}
 
 		// Must have at least two threads in pool 
@@ -105,8 +105,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		LogSys(L"Creating relay threadpool with %u worker %s",
 			   numthreadsperpool, numthreadsperpool > 1 ? L"threads" : L"thread");
 
-		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.WorkerThreadsMaxBurst);
-		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.WorkerThreadsMaxSleep);
+		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
+		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 
 		auto error = false;
 
@@ -330,7 +330,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			assert(link_totals.size() > 0);
 
 			const auto it = std::min_element(link_totals.begin(), link_totals.end(),
-											 [](auto& a, auto& b)
+											 [](const auto& a, const auto& b)
 			{
 				return (a.second < b.second);
 			});
@@ -867,6 +867,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				connect_event.Port, connect_event.Hop);
 
 		std::optional<PeerLUID> out_peer;
+		auto reused = false;
 
 		if (connect_event.Hop == 0) // Final hop
 		{
@@ -892,47 +893,50 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			try
 			{
-				std::vector<BinaryIPAddress> excl_addr;
-				excl_addr.reserve(m_Peers.GetLocalIPAddresses().size() + 1);
-
-				excl_addr.emplace_back(connect_event.Origin.PeerEndpoint.GetIPAddress().GetBinary());	// Don't include origin address/network
-
-				for (const auto& ip : m_Peers.GetLocalIPAddresses())
+				const auto excl_addr1 = m_Peers.GetLocalIPAddresses();
+				if (excl_addr1 != nullptr)
 				{
-					excl_addr.emplace_back(ip.GetBinary()); // Don't include addresses/network of local instance
-				}
+					std::vector<BinaryIPAddress> excl_addr2{ connect_event.Origin.PeerEndpoint.GetIPAddress().GetBinary() };
 
-				const auto result = m_Peers.AreRelayIPsInSameNetwork(connect_event.Endpoint.GetIPAddress().GetBinary(),
-																	 excl_addr);
-				if (result.Succeeded())
-				{
-					if (!result.GetValue())
+					// Don't include addresses/network of local instance
+					const auto result1 = m_Peers.AreRelayIPsInSameNetwork(connect_event.Endpoint.GetIPAddress().GetBinary(),
+																		  *excl_addr1);
+					// Don't include origin address/network
+					const auto result2 = m_Peers.AreRelayIPsInSameNetwork(connect_event.Endpoint.GetIPAddress().GetBinary(),
+																		  excl_addr2);
+
+					if (result1.Succeeded() && result2.Succeeded())
 					{
-						// Connect to a specific endpoint for final hop 0
-						const auto result2 = m_Peers.ConnectTo({ connect_event.Endpoint }, nullptr);
-						if (result2.Succeeded())
+						if (!result1.GetValue() && !result2.GetValue())
 						{
-							out_peer = result2->first;
+							// Connect to a specific endpoint for final hop 0
+							const auto result2 = m_Peers.ConnectTo({ connect_event.Endpoint }, nullptr);
+							if (result2.Succeeded())
+							{
+								out_peer = result2->first;
+								reused = result2->second;
+							}
+							else
+							{
+								LogErr(L"Couldn't connect to final endpoint %s for relay port %llu",
+									   connect_event.Endpoint.GetString().c_str(), connect_event.Port);
+
+								if (result2 == ResultCode::NotAllowed)
+								{
+									rstatus = RelayStatusUpdate::ConnectionRefused;
+									error_details = L"connection to final endpoint is not allowed by access configuration";
+								}
+							}
 						}
 						else
 						{
-							LogErr(L"Couldn't connect to final endpoint %s for relay port %llu",
-								   connect_event.Endpoint.GetString().c_str(), connect_event.Port);
-
-							if (result2 == ResultCode::NotAllowed)
-							{
-								rstatus = RelayStatusUpdate::ConnectionRefused;
-								error_details = L"connection to final endpoint is not allowed by access configuration";
-							}
+							rstatus = RelayStatusUpdate::ConnectionRefused;
+							error_details = L"connection to final endpoint is not allowed because it's on the same network as the origin or local instance";
 						}
 					}
-					else
-					{
-						rstatus = RelayStatusUpdate::ConnectionRefused;
-						error_details = L"connection to final endpoint is not allowed because it's on the same network as the origin or local instance";
-					}
+					else error_details = L"couldn't check if endpoint is on excluded networks";
 				}
-				else error_details = L"couldn't check if endpoint is on excluded networks";
+				else error_details = L"couldn't get IP addresses of local instance";
 			}
 			catch (...)
 			{
@@ -943,34 +947,37 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			try
 			{
-				std::vector<BinaryIPAddress> excl_addr;
-				excl_addr.reserve(m_Peers.GetLocalIPAddresses().size() + 2);
-
-				excl_addr.emplace_back(connect_event.Origin.PeerEndpoint.GetIPAddress().GetBinary());	// Don't include origin address/network
-				excl_addr.emplace_back(connect_event.Endpoint.GetIPAddress().GetBinary());				// Don't include the final endpoint/network
-
-				for (const auto& ip : m_Peers.GetLocalIPAddresses())
+				// Don't include addresses/network of local instance
+				const auto excl_addr1 = m_Peers.GetLocalIPAddresses();
+				if (excl_addr1 != nullptr)
 				{
-					excl_addr.emplace_back(ip.GetBinary());	// Don't include addresses/network of local instance
-				}
-
-				const auto result = m_Peers.GetRelayPeer(excl_addr);
-				if (result.Succeeded())
-				{
-					out_peer = result.GetValue();
-				}
-				else
-				{
-					if (result == ResultCode::PeerNotFound)
+					std::vector<BinaryIPAddress> excl_addr2
 					{
-						rstatus = RelayStatusUpdate::NoPeersAvailable;
-						error_details = L"no peers available to create relay connection";
+						// Don't include origin address/network
+						connect_event.Origin.PeerEndpoint.GetIPAddress().GetBinary(),
+						// Don't include the final endpoint/network
+						connect_event.Endpoint.GetIPAddress().GetBinary()
+					};
+
+					const auto result = m_Peers.GetRelayPeer(*excl_addr1, excl_addr2);
+					if (result.Succeeded())
+					{
+						out_peer = result.GetValue();
 					}
 					else
 					{
-						error_details = L"failed to get a peer to create relay connection";
+						if (result == ResultCode::PeerNotFound)
+						{
+							rstatus = RelayStatusUpdate::NoPeersAvailable;
+							error_details = L"no peers available to create relay connection";
+						}
+						else
+						{
+							error_details = L"failed to get a peer to create relay connection";
+						}
 					}
 				}
+				else error_details = L"couldn't get IP addresses of local instance";
 			}
 			catch (...)
 			{
@@ -985,7 +992,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				// Failed to accept, so cancel connection
 				// we made for this relay link
 				if (connect_event.Hop == 0 ||
-					connect_event.Hop == 1)
+					(connect_event.Hop == 1 && !reused))
 				{
 					DiscardReturnValue(m_Peers.DisconnectFrom(*out_peer, nullptr));
 				}

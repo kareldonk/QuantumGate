@@ -62,8 +62,8 @@ void Benchmarks::BenchmarkThreadLocalCache()
 	{
 		const auto& settingsv = settings;
 
-		volatile const auto val = settings.Local.MinThreadPools;
-		volatile const auto val2 = settings.Local.WorkerThreadsMaxBurst;
+		volatile const auto val = settings.Local.Concurrency.MinThreadPools;
+		volatile const auto val2 = settings.Local.Concurrency.WorkerThreadsMaxBurst;
 		volatile auto val3 = val * val2;
 	});
 
@@ -73,8 +73,8 @@ void Benchmarks::BenchmarkThreadLocalCache()
 	{
 		const auto& settingstlv = settingstl.GetCache();
 
-		volatile const auto val = settingstlv.Local.MinThreadPools;
-		volatile const auto val2 = settingstlv.Local.WorkerThreadsMaxBurst;
+		volatile const auto val = settingstlv.Local.Concurrency.MinThreadPools;
+		volatile const auto val2 = settingstlv.Local.Concurrency.WorkerThreadsMaxBurst;
 		volatile auto val3 = val * val2;
 	});
 }

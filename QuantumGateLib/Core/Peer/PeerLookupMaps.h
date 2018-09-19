@@ -51,7 +51,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		Result<PeerLUID> GetRandomPeer(const std::vector<PeerLUID>& excl_pluids,
-									   const std::vector<BinaryIPAddress>& excl_addr,
+									   const std::vector<BinaryIPAddress>& excl_addr1,
+									   const std::vector<BinaryIPAddress>& excl_addr2,
 									   const UInt8 excl_network_cidr4, const UInt8 excl_network_cidr6) const noexcept;
 
 		Result<std::vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
@@ -60,19 +61,12 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		static const UInt64 GetIPPortHash(const IPEndpoint& endpoint) noexcept;
 
-		static Result<std::vector<BinaryIPAddress>> GetNetworks(const std::vector<BinaryIPAddress>& addresses,
-																const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept;
-
 		[[nodiscard]] static const bool HasLUID(const PeerLUID pluid, const std::vector<PeerLUID>& pluids) noexcept;
 		[[nodiscard]] static const bool HasIPPort(const UInt64 hash, const std::vector<IPEndpoint>& endpoints) noexcept;
 		[[nodiscard]] static const bool HasIP(const BinaryIPAddress& ip, const std::vector<BinaryIPAddress>& addresses) noexcept;
 
-		static Result<bool> IsIPInNetwork(const BinaryIPAddress& ip,
-										  const UInt8 cidr_lbits4, const UInt8 cidr_lbits6,
-										  const std::vector<BinaryIPAddress>& networks) noexcept;
-
-		static Result<bool> IsIPInNetwork(const BinaryIPAddress& ip, const std::vector<BinaryIPAddress>& addresses,
-										  const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept;
+		static Result<bool> AreIPsInSameNetwork(const BinaryIPAddress& ip, const std::vector<BinaryIPAddress>& addresses,
+												const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept;
 
 		static Result<bool> AreIPsInSameNetwork(const BinaryIPAddress& ip1, const BinaryIPAddress& ip2,
 												const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept;

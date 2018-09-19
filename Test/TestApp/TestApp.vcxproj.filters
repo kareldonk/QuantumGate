@@ -105,6 +105,9 @@
     <ClInclude Include="CIPReputationsDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CInformationDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -177,6 +180,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CIPReputationsDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CInformationDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -165,6 +165,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		void SetPeerMessageCounter(const UInt8 counter) noexcept;
 		std::optional<UInt8> GetNextPeerMessageCounter() noexcept;
 
+		Network::SerializedIPEndpoint GetPublicIPEndpointToReport() const noexcept;
+		[[nodiscard]] const bool AddReportedPublicIPEndpoint(const Network::SerializedIPEndpoint& pub_endpoint) noexcept;
+
 		const Extender::ActiveExtenderUUIDs& GetLocalExtenderUUIDs() noexcept;
 		inline ExtenderUUIDs& GetPeerExtenderUUIDs() noexcept { return m_PeerExtenderUUIDs; }
 

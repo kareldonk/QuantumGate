@@ -781,22 +781,23 @@ namespace QuantumGate::Socks5Extender
 
 		if (!m_ReceiveBuffer.IsEmpty())
 		{
-			// Bufsize = max possible message data size minus the header for the data relay message
-			const auto bufsize = m_Extender.GetMaximumMessageDataSize() - m_Extender.GetDataRelayHeaderSize();
+			const auto max_send_size = m_Extender.GetMaxDataRelayDataSize();
 			BufferView buffer(m_ReceiveBuffer);
 
 			while (!buffer.IsEmpty())
 			{
 				auto size = buffer.GetSize();
-				if (size > bufsize) size = bufsize;
+				if (size > max_send_size) size = max_send_size;
 
-				if (!m_Extender.SendDataRelay(GetPeerLUID(), GetID(), buffer))
+				if (m_Extender.SendDataRelay(GetPeerLUID(), GetID(), buffer.GetFirst(size)))
+				{
+					buffer.RemoveFirst(size);
+				}
+				else
 				{
 					success = false;
 					break;
 				}
-
-				buffer.RemoveFirst(size);
 			}
 
 			if (buffer.IsEmpty())

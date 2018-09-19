@@ -43,6 +43,23 @@ namespace QuantumGate::API
 		return ResultCode::Failed;
 	}
 	
+	Result<std::vector<IPAddressDetails>> LocalEnvironment::GetIPAddresses() const noexcept
+	{
+		assert(m_LocalEnvironment != nullptr);
+
+		try
+		{
+			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			if (local_env->IsInitialized())
+			{
+				return local_env->GetIPAddresses();
+			}
+		}
+		catch (...) {}
+
+		return ResultCode::Failed;
+	}
+
 	Result<std::vector<EthernetInterface>> LocalEnvironment::GetEthernetInterfaces() const noexcept
 	{
 		assert(m_LocalEnvironment != nullptr);
@@ -50,7 +67,11 @@ namespace QuantumGate::API
 		try
 		{
 			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
-			if (local_env->IsInitialized()) return local_env->GetEthernetInterfaces();
+			if (local_env->IsInitialized())
+			{
+				// This is making a copy
+				return local_env->GetEthernetInterfaces();
+			}
 		}
 		catch (...) {}
 

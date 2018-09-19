@@ -395,8 +395,6 @@ namespace QuantumGate::Implementation::Core
 		// Check if buffer has enough data for outer MessageTransport header
 		if (srcbuf.GetSize() < rndp_len + OHeader::GetSize()) return MessageTransportCheck::NotEnoughData;
 
-		static_assert(CHAR_BIT == 8, L"Code below assumes a byte has 8 bits");
-
 		const UInt32 mdsize = OHeader::DeObfuscateMessageDataSize(mds_settings,
 																  Endian::FromNetworkByteOrder(
 																	  *reinterpret_cast<const UInt32*>(

@@ -572,7 +572,7 @@
     <ClInclude Include="Core\Peer\PeerNoiseQueue.h" />
     <ClInclude Include="Core\Peer\PeerNoiseItem.h" />
     <ClInclude Include="Core\Peer\PeerManager.h" />
-    <ClInclude Include="Core\PublicIPAddresses.h" />
+    <ClInclude Include="Core\PublicIPEndpoints.h" />
     <ClInclude Include="Core\Relay\RelayEvents.h" />
     <ClInclude Include="Core\Relay\RelayLink.h" />
     <ClInclude Include="Core\Relay\RelayManager.h" />
@@ -647,6 +647,7 @@
     <ClCompile Include="Core\Peer\PeerNoiseQueue.cpp" />
     <ClCompile Include="Core\Peer\PeerNoiseItem.cpp" />
     <ClCompile Include="Core\Peer\PeerManager.cpp" />
+    <ClCompile Include="Core\PublicIPEndpoints.cpp" />
     <ClCompile Include="Core\Relay\RelayManager.cpp" />
     <ClCompile Include="Core\Relay\RelaySocket.cpp" />
     <ClCompile Include="Crypto\Crypto.cpp" />

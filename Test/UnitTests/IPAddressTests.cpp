@@ -18,14 +18,18 @@ namespace UnitTests
 		{
 			// Default construction
 			IPAddress ip1;
+			Assert::AreEqual(true, ip1.GetString() == L"0.0.0.0");
+			Assert::AreEqual(true, ip1.GetFamily() == IPAddressFamily::IPv4);
 
 			// Construction
 			IPAddress ip2(L"192.168.1.1");
 			Assert::AreEqual(true, ip2.GetString() == L"192.168.1.1");
+			Assert::AreEqual(true, ip2.GetFamily() == IPAddressFamily::IPv4);
 
 			// Copy construction
 			IPAddress ip3(ip2);
 			Assert::AreEqual(true, ip3.GetString() == L"192.168.1.1");
+			Assert::AreEqual(true, ip3.GetFamily() == IPAddressFamily::IPv4);
 
 			// Equal and not equal
 			Assert::AreEqual(true, ip2 == ip3);
@@ -64,6 +68,22 @@ namespace UnitTests
 			// GetFamily
 			Assert::AreEqual(true, ip1.GetFamily() == IPAddressFamily::IPv6);
 			Assert::AreEqual(true, ip3.GetFamily() == IPAddressFamily::IPv4);
+
+			const auto any_ip4 = IPAddress::AnyIPv4();
+			Assert::AreEqual(true, any_ip4.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, any_ip4.GetString() == L"0.0.0.0");
+
+			const auto any_ip6 = IPAddress::AnyIPv6();
+			Assert::AreEqual(true, any_ip6.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, any_ip6.GetString() == L"::");
+
+			const auto lb_ip4 = IPAddress::LoopbackIPv4();
+			Assert::AreEqual(true, lb_ip4.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, lb_ip4.GetString() == L"127.0.0.1");
+
+			const auto lb_ip6 = IPAddress::LoopbackIPv6();
+			Assert::AreEqual(true, lb_ip6.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, lb_ip6.GetString() == L"::1");
 		}
 
 		TEST_METHOD(Input)
@@ -119,6 +139,7 @@ namespace UnitTests
 			// Test invalid masks
 			IPAddress mask;
 			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L" ", mask));
 			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"/abcde", mask));
 			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"/12a", mask));
 			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"/", mask));
@@ -196,6 +217,350 @@ namespace UnitTests
 			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"ffff:ffff:ffff:ffff::", mask));
 			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"fff0::", mask));
 			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"ffff:ffff:ffff:8000::", mask));
+		}
+
+		TEST_METHOD(CreateMask)
+		{
+			IPAddress ipmask;
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 0, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"0.0.0.0"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 1, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"128.0.0.0"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 2, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"192.0.0.0"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 4, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"240.0.0.0"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 15, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"255.254.0.0"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 16, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"255.255.0.0"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 17, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"255.255.128.0"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 31, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"255.255.255.254"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 32, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"255.255.255.255"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 0, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"::"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 1, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"8000::"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 7, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"fe00::"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 63, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:fffe::"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 64, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:ffff::"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 65, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:ffff:8000::"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 67, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:ffff:e000::"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 127, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe"));
+
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 128, ipmask));
+			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
+		}
+
+		TEST_METHOD(GetNetwork)
+		{
+			struct IPTest
+			{
+				BinaryIPAddress ip;
+				BinaryIPAddress network;
+				UInt8 cidr{ 0 };
+				bool success{ false };
+			};
+
+			const std::vector<IPTest> iptests
+			{
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.0.0").GetBinary(), 16, true },
+			{ IPAddress(L"192.168.1.20").GetBinary(), IPAddress(L"192.168.0.0").GetBinary(), 16, true },
+			{ IPAddress(L"172.217.7.238").GetBinary(), IPAddress(L"172.217.0.0").GetBinary(), 16, true },
+			{ IPAddress(L"172.217.4.138").GetBinary(), IPAddress(L"172.217.0.0").GetBinary(), 16, true },
+			{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.117.0.0").GetBinary(), 16, true },
+			{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.117.0.0").GetBinary(), 35, false },
+			{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.117.4.138").GetBinary(), 32, true },
+			{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.0.0.0").GetBinary(), 8, true },
+			{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.1.128.0").GetBinary(), 17, true },
+			{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.0.0.0").GetBinary(), 10, true },
+			{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.0.0.0").GetBinary(), 14, true },
+			{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.1.157.0").GetBinary(), 25, true },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::").GetBinary(), IPAddress(L"fe80:c11a:3a9c::").GetBinary(), 48, true },
+			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e800::").GetBinary(), 8, true },
+			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:6200::").GetBinary(), 23, true },
+			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce::").GetBinary(), 48, true },
+			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce:c433:7c5d:e80::").GetBinary(), 90, true },
+			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), 128, true },
+			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce:c433:7c5d:e80::").GetBinary(), 129, false }
+			};
+
+			for (const auto& test : iptests)
+			{
+				BinaryIPAddress network;
+				const auto success = BinaryIPAddress::GetNetwork(test.ip, test.cidr, network);
+				Assert::AreEqual(test.success, success);
+				if (success)
+				{
+					Assert::AreEqual(true, test.network == network);
+				}
+			}
+		}
+
+		TEST_METHOD(AreInSameNetwork)
+		{
+			struct IPTest
+			{
+				BinaryIPAddress ip1;
+				BinaryIPAddress ip2;
+				UInt8 cidr{ 0 };
+				bool success{ false };
+				bool same_network{ false };
+			};
+
+			const std::vector<IPTest> iptests
+			{
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.1.20").GetBinary(), 32, true, false },
+			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.1.20").GetBinary(), 24, true, true },
+			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 24, true, false },
+			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 16, true, false },
+			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 8, true, false },
+			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 128, false, false },
+			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, true, true },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 128, true, false },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 48, true, false },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, true, false },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 130, false, false },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 128, true, false },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 64, true, false },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 48, true, true }
+			};
+
+			for (const auto& test : iptests)
+			{
+				const auto[success, same_network] = BinaryIPAddress::AreInSameNetwork(test.ip1, test.ip2, test.cidr);
+				Assert::AreEqual(test.success, success);
+				Assert::AreEqual(test.same_network, same_network);
+			}
+		}
+
+		TEST_METHOD(IsInAddressRange)
+		{
+			struct IPTest
+			{
+				IPAddress ip;
+				IPAddress netip;
+				UInt8 cidr{ 0 };
+				bool success{ false };
+				bool inrange{ false };
+			};
+
+			const std::vector<IPTest> iptests
+			{
+				{ IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193"), IPAddress(L"ff00::"), 8, true, false },
+			{ IPAddress(L"ff80:f4b2:3ff9:a074:d03a:d18e:760d:b193"), IPAddress(L"ff00::"), 8, true, true },
+			{ IPAddress(L"ffc0:f4b2:3ff9:a074:d03a:d18e:760d:b193"), IPAddress(L"ff00::"), 8, true, true },
+			{ IPAddress(L"::1"), IPAddress(L"::"), 127, true, true },
+			{ IPAddress(L"::"), IPAddress(L"::"), 127, true, true },
+			{ IPAddress(L"::2"), IPAddress(L"::"), 127, true, false },
+
+			{ IPAddress(L"192.168.1.1"), IPAddress(L"192.168.0.0"), 16, true, true },
+			{ IPAddress(L"192.168.100.30"), IPAddress(L"192.168.0.0"), 16, true, true },
+			{ IPAddress(L"192.167.1.1"), IPAddress(L"192.168.0.0"), 16, true, false },
+			{ IPAddress(L"192.169.1.1"), IPAddress(L"192.168.0.0"), 16, true, false },
+			{ IPAddress(L"192.172.1.1"), IPAddress(L"192.168.0.0"), 16, true, false },
+
+			{ IPAddress(L"172.16.1.1"), IPAddress(L"172.16.0.0"), 12, true, true },
+			{ IPAddress(L"172.16.100.53"), IPAddress(L"172.16.0.0"), 12, true, true },
+			{ IPAddress(L"172.24.2.5"), IPAddress(L"172.16.0.0"), 12, true, true },
+			{ IPAddress(L"172.40.10.50"), IPAddress(L"172.16.0.0"), 12, true, false },
+			{ IPAddress(L"172.15.10.50"), IPAddress(L"172.16.0.0"), 12, true, false },
+			{ IPAddress(L"172.17.10.50"), IPAddress(L"172.16.0.0"), 12, true, true },
+			{ IPAddress(L"172.16.0.0"), IPAddress(L"172.16.0.0"), 12, true, true },
+			{ IPAddress(L"172.31.255.255"), IPAddress(L"172.16.0.0"), 12, true, true }
+			};
+
+			for (const auto& test : iptests)
+			{
+				BinaryIPAddress mask;
+				if (BinaryIPAddress::CreateMask(test.netip.GetFamily(), test.cidr, mask))
+				{
+					const auto range = BinaryIPAddress::GetAddressRange(test.netip.GetBinary(), mask);
+					if (range)
+					{
+						const auto[success, inrange] = BinaryIPAddress::IsInAddressRange(test.ip.GetBinary(),
+																						 range->first, range->second);
+						Assert::AreEqual(test.success, success);
+						Assert::AreEqual(test.inrange, inrange);
+					}
+				}
+			}
+		}
+
+		TEST_METHOD(GetAddressRange)
+		{
+			struct IPTest
+			{
+				IPAddress netip;
+				UInt8 cidr{ 0 };
+				bool success{ false };
+				IPAddress start;
+				IPAddress end;
+			};
+
+			const std::vector<IPTest> iptests
+			{
+				{ IPAddress(L"172.16.0.0"), 12, true, IPAddress(L"172.16.0.0"), IPAddress(L"172.31.255.255") },
+			{ IPAddress(L"169.254.0.0"), 16, true, IPAddress(L"169.254.0.0"), IPAddress(L"169.254.255.255") },
+			{ IPAddress(L"169.254.0.0"), 33, false, IPAddress(L"169.254.0.0"), IPAddress(L"169.254.255.255") },
+			{ IPAddress(L"127.0.0.0"), 8, true, IPAddress(L"127.0.0.0"), IPAddress(L"127.255.255.255") },
+			{ IPAddress(L"192.168.0.0"), 16, true, IPAddress(L"192.168.0.0"), IPAddress(L"192.168.255.255") },
+			{ IPAddress(L"10.0.0.0"), 8, true, IPAddress(L"10.0.0.0"), IPAddress(L"10.255.255.255") },
+			{ IPAddress(L"0.0.0.0"), 8, true, IPAddress(L"0.0.0.0"), IPAddress(L"0.255.255.255") },
+
+			{ IPAddress(L"fc00::"), 7, true, IPAddress(L"fc00::"), IPAddress(L"fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") },
+			{ IPAddress(L"fd00::"), 8, true, IPAddress(L"fd00::"), IPAddress(L"fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") },
+			{ IPAddress(L"fe80::"), 10, true, IPAddress(L"fe80::"), IPAddress(L"febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff") },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 129, false, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:ef10:e796:0:ffff:ffff") },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 96, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:ef10:e796:0:ffff:ffff") },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 80, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:ef10:e796:ffff:ffff:ffff") },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 56, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:efff:ffff:ffff:ffff:ffff") },
+			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 1, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") }
+			};
+
+			for (const auto& test : iptests)
+			{
+				BinaryIPAddress mask;
+				if (BinaryIPAddress::CreateMask(test.netip.GetFamily(), test.cidr, mask))
+				{
+					const auto range = BinaryIPAddress::GetAddressRange(test.netip.GetBinary(), mask);
+					Assert::AreEqual(test.success, range.has_value());
+					if (range)
+					{
+						Assert::AreEqual(true, test.start == range->first);
+						Assert::AreEqual(true, test.end == range->second);
+					}
+				}
+			}
+		}
+
+		TEST_METHOD(IsMask)
+		{
+			Assert::AreEqual(true, IPAddress(L"0.0.0.0").IsMask());
+			Assert::AreEqual(true, IPAddress(L"128.0.0.0").IsMask());
+			Assert::AreEqual(true, IPAddress(L"192.0.0.0").IsMask());
+			Assert::AreEqual(true, IPAddress(L"255.255.255.255").IsMask());
+			Assert::AreEqual(true, IPAddress(L"255.255.255.0").IsMask());
+			Assert::AreEqual(true, IPAddress(L"255.255.254.0").IsMask());
+			Assert::AreEqual(true, IPAddress(L"255.255.0.0").IsMask());
+			Assert::AreEqual(true, IPAddress(L"255.0.0.0").IsMask());
+			Assert::AreEqual(true, IPAddress(L"255.192.0.0").IsMask());
+			Assert::AreEqual(true, IPAddress(L"255.254.0.0").IsMask());
+			Assert::AreEqual(false, IPAddress(L"255.254.254.0").IsMask());
+			Assert::AreEqual(false, IPAddress(L"255.254.111.0").IsMask());
+			Assert::AreEqual(false, IPAddress(L"255.255.255.232").IsMask());
+			Assert::AreEqual(false, IPAddress(L"0.0.255.255").IsMask());
+			Assert::AreEqual(false, IPAddress(L"0.111.255.255").IsMask());
+			Assert::AreEqual(false, IPAddress(L"232.0.0.0").IsMask());
+			Assert::AreEqual(false, IPAddress(L"254.255.255.255").IsMask());
+			Assert::AreEqual(false, IPAddress(L"0.0.0.1").IsMask());
+
+			Assert::AreEqual(true, IPAddress(L"::").IsMask());
+			Assert::AreEqual(true, IPAddress(L"8000::").IsMask());
+			Assert::AreEqual(true, IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff").IsMask());
+			Assert::AreEqual(true, IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff::").IsMask());
+			Assert::AreEqual(true, IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:fff8::").IsMask());
+			Assert::AreEqual(true, IPAddress(L"ffff:ffff:ffff:ffff:fffc::").IsMask());
+
+			Assert::AreEqual(false, IPAddress(L"ffff:ffff:ffff:ffff:fffd:ffff:ffff:ffff").IsMask());
+			Assert::AreEqual(false, IPAddress(L"0000:ffff:ffff:ffff:ffff:ffff:ffff:ffff").IsMask());
+			Assert::AreEqual(false, IPAddress(L"0001:ffff:ffff:ffff:ffff:ffff:ffff:ffff").IsMask());
+			Assert::AreEqual(false, IPAddress(L"ffff:ffff:ffff:8000:ffff:ffff:ffff:ffff").IsMask());
+			Assert::AreEqual(false, IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:fffd::").IsMask());
+			Assert::AreEqual(false, IPAddress(L"::ffff:ffff:ffff:ffff:ffff:ffff").IsMask());
+			Assert::AreEqual(false, IPAddress(L"::000f").IsMask());
+		}
+
+		TEST_METHOD(IsLocal)
+		{
+			Assert::AreEqual(true, IPAddress(L"127.0.0.1").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"127.10.0.1").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"0.20.110.14").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"169.254.10.114").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"192.168.110.214").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"10.167.110.214").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"172.16.110.214").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"172.17.110.214").IsLocal());
+
+			Assert::AreEqual(false, IPAddress(L"128.10.0.1").IsLocal());
+			Assert::AreEqual(false, IPAddress(L"1.20.110.14").IsLocal());
+			Assert::AreEqual(false, IPAddress(L"169.255.10.114").IsLocal());
+			Assert::AreEqual(false, IPAddress(L"192.167.110.214").IsLocal());
+			Assert::AreEqual(false, IPAddress(L"11.167.110.214").IsLocal());
+			Assert::AreEqual(false, IPAddress(L"172.50.110.214").IsLocal());
+			Assert::AreEqual(false, IPAddress(L"172.0.110.214").IsLocal());
+			Assert::AreEqual(false, IPAddress(L"171.16.110.214").IsLocal());
+
+			Assert::AreEqual(true, IPAddress(L"::").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"00f0::").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"fc00:3a9c:ef10:e796::").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"fc10:3a9c:ef10:e796::").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"fd00:3a9c:ef10:e796::").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"fd01:3a9c:ef10:e796::").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"fec0:3a9c:ef10:e796::").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"fe80:3a9c:ef10:e796::").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"feb0:3a9c:ef10:e796::").IsLocal());
+			Assert::AreEqual(true, IPAddress(L"::1").IsLocal());
+			Assert::AreEqual(false, IPAddress(L"01f0:3a9c:ef10:e796::").IsLocal());
+			Assert::AreEqual(false, IPAddress(L"fe00:3a9c:ef10:e796::").IsLocal());
+			Assert::AreEqual(false, IPAddress(L"ff00:3a9c:ef10:e796::").IsLocal());
+		}
+
+		TEST_METHOD(IsMulticast)
+		{
+			Assert::AreEqual(true, IPAddress(L"225.120.10.44").IsMulticast());
+			Assert::AreEqual(true, IPAddress(L"232.220.110.14").IsMulticast());
+			Assert::AreEqual(false, IPAddress(L"240.20.10.34").IsMulticast());
+			Assert::AreEqual(false, IPAddress(L"140.120.50.24").IsMulticast());
+			Assert::AreEqual(false, IPAddress(L"0.0.0.0").IsMulticast());
+			Assert::AreEqual(false, IPAddress(L"255.255.255.255").IsMulticast());
+
+			Assert::AreEqual(true, IPAddress(L"ff80:c11a:3a9c:ef10:e796::").IsMulticast());
+			Assert::AreEqual(true, IPAddress(L"ffc0:e11a:3a9c:ef10:e796::").IsMulticast());
+			Assert::AreEqual(true, IPAddress(L"ff70:c11a:3a9c:ef10:e796::").IsMulticast());
+			Assert::AreEqual(false, IPAddress(L"fd70:c11a:3a9c:ef10:e796::").IsMulticast());
+			Assert::AreEqual(false, IPAddress(L"fe90:c11a::").IsMulticast());
+			Assert::AreEqual(false, IPAddress(L"::").IsMulticast());
+			Assert::AreEqual(true, IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff").IsMulticast());
+		}
+
+		TEST_METHOD(IsReserved)
+		{
+			Assert::AreEqual(true, IPAddress(L"240.0.0.0").IsReserved());
+			Assert::AreEqual(true, IPAddress(L"240.10.20.30").IsReserved());
+			Assert::AreEqual(true, IPAddress(L"241.10.20.30").IsReserved());
+			Assert::AreEqual(true, IPAddress(L"248.10.20.30").IsReserved());
+			Assert::AreEqual(true, IPAddress(L"250.10.20.30").IsReserved());
+
+			Assert::AreEqual(false, IPAddress(L"224.10.20.30").IsReserved());
+			Assert::AreEqual(false, IPAddress(L"223.10.20.30").IsReserved());
+			Assert::AreEqual(false, IPAddress(L"208.10.20.30").IsReserved());
+			Assert::AreEqual(false, IPAddress(L"15.10.20.30").IsReserved());
 		}
 	};
 }

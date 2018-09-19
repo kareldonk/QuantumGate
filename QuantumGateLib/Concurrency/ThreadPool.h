@@ -232,8 +232,8 @@ namespace QuantumGate::Implementation::Concurrency
 	private:
 		EventCondition m_ShutdownEvent{ false };
 
-		Size m_WorkerThreadsMaxBurst{ 50 };
-		std::chrono::milliseconds m_WorkerThreadsMaxSleep{ 100 };
+		Size m_WorkerThreadsMaxBurst{ 64 };
+		std::chrono::milliseconds m_WorkerThreadsMaxSleep{ 1 };
 
 		ThPData m_Data;
 		std::vector<ThreadCtrl> m_Threads;

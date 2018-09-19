@@ -12,17 +12,16 @@ namespace QuantumGate::Implementation::Core
 {
 	const bool LocalEnvironment::Initialize() noexcept
 	{
-		if (auto result = InitializeHostname(); result.Failed()) return false;
+		if (auto result = OSGetHostname(); result.Failed()) return false;
 		else m_Hostname = std::move(result.GetValue());
 
-		if (auto result = InitializeUsername(); result.Failed()) return false;
+		if (auto result = OSGetUsername(); result.Failed()) return false;
 		else m_Username = std::move(result.GetValue());
 
-		if (auto result = InitializeEthernetInterfaces(); result.Failed()) return false;
-		else m_Interfaces = std::move(result.GetValue());
+		if (auto result = OSGetEthernetInterfaces(); result.Failed()) return false;
+		else m_EthernetInterfaces = std::move(result.GetValue());
 
-		if (auto result = InitializeIPAddresses(m_Interfaces); result.Failed()) return false;
-		else m_IPAddresses = std::move(result.GetValue());
+		if (!UpdateCachedIPAddresses()) return false;
 
 		m_Initialized = true;
 
@@ -33,10 +32,26 @@ namespace QuantumGate::Implementation::Core
 	{
 		m_Hostname.clear();
 		m_Username.clear();
-		m_Interfaces.clear();
-		m_IPAddresses.clear();
+		m_EthernetInterfaces.clear();
+		m_PublicIPEndpoints.Clear();
+
+		m_CachedIPAddresses.UpdateValue([](auto& addresses) noexcept
+		{
+			addresses.clear();
+		});
 
 		m_Initialized = false;
+	}
+
+	const std::vector<BinaryIPAddress>* LocalEnvironment::GetCachedIPAddresses() const noexcept
+	{
+		try
+		{
+			return &m_CachedIPAddresses.GetCache();
+		}
+		catch (...) {}
+
+		return nullptr;
 	}
 
 	String LocalEnvironment::GetIPAddressesString() const noexcept
@@ -44,11 +59,14 @@ namespace QuantumGate::Implementation::Core
 		try
 		{
 			String allips;
-			for (const auto& ip : m_IPAddresses)
+			for (const auto& ifs : m_EthernetInterfaces)
 			{
-				if (allips.length() > 0) allips += L", ";
+				for (const auto& ip : ifs.IPAddresses)
+				{
+					if (allips.length() > 0) allips += L", ";
 
-				allips += ip.GetString();
+					allips += ip.GetString();
+				}
 			}
 
 			return allips;
@@ -63,7 +81,7 @@ namespace QuantumGate::Implementation::Core
 		try
 		{
 			String alladdr;
-			for (const auto& ifs : m_Interfaces)
+			for (const auto& ifs : m_EthernetInterfaces)
 			{
 				if (alladdr.length() > 0) alladdr += L", ";
 
@@ -77,7 +95,7 @@ namespace QuantumGate::Implementation::Core
 		return {};
 	}
 
-	Result<String> LocalEnvironment::InitializeHostname() noexcept
+	Result<String> LocalEnvironment::OSGetHostname() noexcept
 	{
 		try
 		{
@@ -91,12 +109,12 @@ namespace QuantumGate::Implementation::Core
 		}
 		catch (...) {}
 
-		LogErr(L"Could not get the name of the local host");
+		LogErr(L"Could not get the name of the local host (" + Util::GetSystemErrorString(GetLastError()) + L")");
 
 		return ResultCode::Failed;
 	}
 
-	Result<std::vector<IPAddress>> LocalEnvironment::InitializeIPAddresses(const String& hostname) noexcept
+	Result<std::vector<BinaryIPAddress>> LocalEnvironment::OSGetIPAddresses(const String& hostname) noexcept
 	{
 		try
 		{
@@ -108,19 +126,20 @@ namespace QuantumGate::Implementation::Core
 				// Free resources when we return
 				auto sg = MakeScopeGuard([&] { FreeAddrInfoW(result); });
 
-				std::vector<IPAddress> alladdr;
+				std::vector<BinaryIPAddress> alladdr;
 
 				for (auto ptr = result; ptr != nullptr; ptr = ptr->ai_next)
 				{
 					if (ptr->ai_family == AF_INET || ptr->ai_family == AF_INET6)
 					{
-						alladdr.emplace_back(IPAddress(ptr->ai_addr));
+						alladdr.emplace_back(IPAddress(ptr->ai_addr).GetBinary());
 					}
 				}
 
 				return std::move(alladdr);
 			}
-			else LogErr(L"Could not get addresses for host %s", hostname.c_str());
+			else LogErr(L"Could not get addresses for host %s (" + Util::GetSystemErrorString(GetLastError()) + L")",
+						hostname.c_str());
 		}
 		catch (const std::exception& e)
 		{
@@ -132,33 +151,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	Result<std::vector<IPAddress>> LocalEnvironment::InitializeIPAddresses(const std::vector<EthernetInterface>& eth_interfaces) noexcept
-	{
-		try
-		{
-			std::vector<IPAddress> allips;
-
-			for (const auto& ifs : eth_interfaces)
-			{
-				for (const auto& ip : ifs.IPAdresses)
-				{
-					allips.emplace_back(ip);
-				}
-			}
-
-			return std::move(allips);
-		}
-		catch (const std::exception& e)
-		{
-			LogErr(L"Could not get IP addresses due to exception: %s",
-				   Util::ToStringW(e.what()).c_str());
-		}
-		catch (...) {}
-
-		return ResultCode::Failed;
-	}
-
-	Result<std::vector<EthernetInterface>> LocalEnvironment::InitializeEthernetInterfaces() noexcept
+	Result<std::vector<EthernetInterface>> LocalEnvironment::OSGetEthernetInterfaces() noexcept
 	{
 		try
 		{
@@ -203,7 +196,7 @@ namespace QuantumGate::Implementation::Core
 						for (auto pUnicast = address->FirstUnicastAddress;
 							 pUnicast != nullptr; pUnicast = pUnicast->Next)
 						{
-							ifs.IPAdresses.emplace_back(IPAddress(pUnicast->Address.lpSockaddr));
+							ifs.IPAddresses.emplace_back(IPAddress(pUnicast->Address.lpSockaddr));
 						}
 					}
 
@@ -212,7 +205,8 @@ namespace QuantumGate::Implementation::Core
 
 				return std::move(allifs);
 			}
-			else LogErr(L"Could not get addresses for local networking adapters");
+			else LogErr(L"Could not get addresses for local networking adapters (" +
+						Util::GetSystemErrorString(GetLastError()) + L")");
 		}
 		catch (const std::exception& e)
 		{
@@ -224,7 +218,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	Result<String> LocalEnvironment::InitializeUsername() noexcept
+	Result<String> LocalEnvironment::OSGetUsername() noexcept
 	{
 		try
 		{
@@ -238,7 +232,108 @@ namespace QuantumGate::Implementation::Core
 		}
 		catch (...) {}
 
-		LogErr(L"Could not get the username for the current user");
+		LogErr(L"Could not get the username for the current user (" + Util::GetSystemErrorString(GetLastError()) + L")");
+
+		return ResultCode::Failed;
+	}
+
+	const bool LocalEnvironment::AddPublicIPEndpoint(const IPEndpoint& pub_endpoint,
+													 const IPEndpoint& rep_peer,
+													 const PeerConnectionType rep_con_type,
+													 const bool trusted) noexcept
+	{
+		if (const auto result = m_PublicIPEndpoints.AddIPEndpoint(pub_endpoint, rep_peer,
+																		rep_con_type, trusted);
+			result.Succeeded())
+		{
+			if (result->first && result->second)
+			{
+				// New address was added; update cache
+				DiscardReturnValue(UpdateCachedIPAddresses());
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	const bool LocalEnvironment::UpdateCachedIPAddresses() noexcept
+	{
+		try
+		{
+			std::vector<BinaryIPAddress> allips;
+			
+			// First add the local IP addresses configured on the host
+			for (const auto& ifs : m_EthernetInterfaces)
+			{
+				for (const auto& ip : ifs.IPAddresses)
+				{
+					if (std::find(allips.begin(), allips.end(), ip.GetBinary()) == allips.end())
+					{
+						allips.emplace_back(ip.GetBinary());
+					}
+				}
+			}
+
+			// Add any public IP addresses if we have them
+			if (m_PublicIPEndpoints.AddIPAddresses(allips).Succeeded())
+			{
+				m_CachedIPAddresses.UpdateValue([&](auto& addresses) noexcept
+				{
+					addresses = std::move(allips);
+				});
+
+				return true;
+			}
+		}
+		catch (const std::exception& e)
+		{
+			LogErr(L"Could not update cached IP addresses due to exception: %s",
+				   Util::ToStringW(e.what()).c_str());
+		}
+		catch (...) {}
+
+		return false;
+	}
+
+	Result<std::vector<IPAddressDetails>> LocalEnvironment::GetIPAddresses() const noexcept
+	{
+		try
+		{
+			std::vector<IPAddressDetails> allips;
+
+			// First add the local IP addresses configured on the host
+			for (const auto& ifs : m_EthernetInterfaces)
+			{
+				for (const auto& ip : ifs.IPAddresses)
+				{
+					const auto it = std::find_if(allips.begin(), allips.end(), [&](const auto& ipd)
+					{
+						return (ipd.IPAddress == ip);
+					});
+
+					if (it == allips.end())
+					{
+						auto& ipdetails = allips.emplace_back();
+						ipdetails.IPAddress = ip;
+						ipdetails.BoundToLocalEthernetInterface = true;
+					}
+				}
+			}
+
+			// Add any public IP addresses if we have them
+			if (m_PublicIPEndpoints.AddIPAddresses(allips).Succeeded())
+			{
+				return std::move(allips);
+			}
+		}
+		catch (const std::exception& e)
+		{
+			LogErr(L"Could not get IP addresses due to exception: %s",
+				   Util::ToStringW(e.what()).c_str());
+		}
+		catch (...) {}
 
 		return ResultCode::Failed;
 	}

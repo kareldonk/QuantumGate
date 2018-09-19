@@ -339,11 +339,19 @@ namespace QuantumGate::Implementation::Util
 	Export String GetSystemErrorString(const int code) noexcept
 	{
 		const auto error = std::error_code(code, std::system_category());
+		auto errorstr = FormatString(L"%s : %d : %s",
+									 ToStringW(error.category().name()).c_str(),
+									 error.value(),
+									 ToStringW(error.message()).c_str());
+		
+		// Remove new line characters at the end
+		while (errorstr[errorstr.size() - 1] == L'\r' ||
+			   errorstr[errorstr.size() - 1] == L'\n')
+		{
+			errorstr.resize(errorstr.size() - 1);
+		}
 
-		return FormatString(L"%s : %d : %s",
-							ToStringW(error.category().name()).c_str(),
-							error.value(),
-							ToStringW(error.message()).c_str());
+		return errorstr;
 	}
 
 	Export void DisplayDebugMessage(const StringView message, ...) noexcept

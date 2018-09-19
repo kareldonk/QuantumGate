@@ -10,16 +10,65 @@ namespace QuantumGate::Implementation::Network
 	class Export IPEndpoint
 	{
 	public:
-		IPEndpoint() noexcept {}
-		IPEndpoint(const IPEndpoint& other) noexcept;
-		IPEndpoint(IPEndpoint&& other) noexcept;
-		IPEndpoint(const IPAddress& ipaddr, const UInt16 port) noexcept;
-		IPEndpoint(const IPAddress& ipaddr, const UInt16 port, const RelayPort rport, const RelayHop hop) noexcept;
-		IPEndpoint(const sockaddr_storage* addr);
-		virtual ~IPEndpoint() = default;
+		constexpr IPEndpoint() noexcept {}
+		constexpr IPEndpoint(const IPEndpoint& other) noexcept { *this = other; }
+		constexpr IPEndpoint(IPEndpoint&& other) noexcept { *this = std::move(other); }
 
-		IPEndpoint& operator=(const IPEndpoint& other) noexcept;
-		IPEndpoint& operator=(IPEndpoint&& other) noexcept;
+		constexpr IPEndpoint(const IPAddress& ipaddr, const UInt16 port) noexcept :
+			m_Address(ipaddr), m_Port(port)
+		{}
+
+		constexpr IPEndpoint(const IPAddress& ipaddr, const UInt16 port,
+							 const RelayPort rport, const RelayHop hop) noexcept :
+			m_Address(ipaddr), m_Port(port), m_RelayPort(rport), m_RelayHop(hop)
+		{}
+
+		constexpr IPEndpoint(const sockaddr_storage* addr)
+		{
+			assert(addr != nullptr);
+
+			m_Address = IPAddress(addr);
+
+			switch (addr->ss_family)
+			{
+				case AF_INET:
+					m_Port = reinterpret_cast<const sockaddr_in*>(addr)->sin_port;
+					break;
+				case AF_INET6:
+					m_Port = reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port;
+					break;
+				default:
+					// IPAddress should already have thrown an exception;
+					// this is just in case
+					assert(false);
+			}
+		}
+
+		constexpr IPEndpoint& operator=(const IPEndpoint& other) noexcept
+		{
+			// Check for same object
+			if (this == &other) return *this;
+
+			m_Address = other.m_Address;
+			m_Port = other.m_Port;
+			m_RelayPort = other.m_RelayPort;
+			m_RelayHop = other.m_RelayHop;
+
+			return *this;
+		}
+
+		constexpr IPEndpoint& operator=(IPEndpoint&& other) noexcept
+		{
+			// Check for same object
+			if (this == &other) return *this;
+
+			m_Address = std::move(other.m_Address);
+			m_Port = std::exchange(other.m_Port, 0);
+			m_RelayPort = std::exchange(other.m_RelayPort, 0);
+			m_RelayHop = std::exchange(other.m_RelayHop, 0);
+
+			return *this;
+		}
 
 		constexpr const bool operator==(const IPEndpoint& other) const noexcept
 		{

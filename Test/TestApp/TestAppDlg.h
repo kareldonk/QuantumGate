@@ -126,6 +126,7 @@ protected:
 	afx_msg void OnAttacksConnectAndWait();
 	afx_msg void OnUpdateAttacksConnectAndDisconnect(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateAttacksConnectAndWait(CCmdUI* pCmdUI);
+	afx_msg void OnLocalEnvironmentInfo();
 
 protected:
 	QuantumGate::StartupParameters m_StartupParameters;

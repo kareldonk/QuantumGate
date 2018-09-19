@@ -12,6 +12,15 @@ namespace QuantumGate::Implementation::Core
 {
 	Local::Local() noexcept
 	{
+		// Initialize Winsock
+		WSADATA wsaData{ 0 };
+		const auto result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+		if (result != 0)
+		{
+			LogErr(L"Couldn't initialize Windows Sockets; WSAStartup() failed");
+		}
+
+		// Initialize security settings
 		SetSecurityLevel(SecurityLevel::One, std::nullopt, true).Failed([&]()
 		{
 			LogErr(L"Couldn't set QuantumGate security level.");
@@ -27,6 +36,9 @@ namespace QuantumGate::Implementation::Core
 				LogErr(L"Couldn't shut down QuantumGate.");
 			}
 		}
+
+		// Deinit Winsock
+		WSACleanup();
 	}
 
 	const bool Local::ValidateInitParameters(const StartupParameters& params) const noexcept
@@ -236,15 +248,6 @@ namespace QuantumGate::Implementation::Core
 			return ResultCode::Failed;
 		}
 
-		// Initialize Winsock
-		WSADATA wsaData{ 0 };
-		const auto result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-		if (result != 0)
-		{
-			LogErr(L"Couldn't initialize Windows Sockets; WSAStartup failed");
-			return ResultCode::Failed;
-		}
-
 		if (!m_LocalEnvironment.WithSharedLock()->IsInitialized())
 		{
 			if (!m_LocalEnvironment.WithUniqueLock()->Initialize())
@@ -353,9 +356,6 @@ namespace QuantumGate::Implementation::Core
 		m_KeyGenerationManager.Shutdown();
 
 		m_LocalEnvironment.WithUniqueLock()->Clear();
-
-		// Deinit Winsock
-		WSACleanup();
 
 		LogSys(L"QuantumGate shut down");
 
@@ -889,7 +889,7 @@ namespace QuantumGate::Implementation::Core
 	{
 		auto result_code = ResultCode::Succeeded;
 
-		m_Settings.UpdateValue([&](Settings& settings)
+		m_Settings.UpdateValue([&](Settings& settings) noexcept
 		{
 			switch (level)
 			{

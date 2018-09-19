@@ -79,8 +79,8 @@ namespace QuantumGate::Implementation::Core::Listener
 			}
 		}
 
-		m_ListenerThreadPool.SetWorkerThreadsMaxBurst(settings.Local.WorkerThreadsMaxBurst);
-		m_ListenerThreadPool.SetWorkerThreadsMaxSleep(settings.Local.WorkerThreadsMaxSleep);
+		m_ListenerThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
+		m_ListenerThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 
 		if (m_ListenerThreadPool.Startup())
 		{
@@ -119,7 +119,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		{
 			if (ifs.Operational)
 			{
-				for (const auto& address : ifs.IPAdresses)
+				for (const auto& address : ifs.IPAddresses)
 				{
 					// Only for IPv4 and IPv6 addresses
 					if (address.GetFamily() == IPAddressFamily::IPv4 || address.GetFamily() == IPAddressFamily::IPv6)
@@ -157,8 +157,8 @@ namespace QuantumGate::Implementation::Core::Listener
 			}
 		}
 
-		m_ListenerThreadPool.SetWorkerThreadsMaxBurst(settings.Local.WorkerThreadsMaxBurst);
-		m_ListenerThreadPool.SetWorkerThreadsMaxSleep(settings.Local.WorkerThreadsMaxSleep);
+		m_ListenerThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
+		m_ListenerThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 
 		if (m_ListenerThreadPool.Startup())
 		{

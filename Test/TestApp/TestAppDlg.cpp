@@ -23,6 +23,7 @@
 #include "CPeerAccessDlg.h"
 #include "CAlgorithmsDlg.h"
 #include "CSettingsDlg.h"
+#include "CInformationDlg.h"
 
 using namespace nlohmann;
 using namespace QuantumGate::Implementation;
@@ -164,6 +165,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_COMMAND(ID_ATTACKS_CONNECTANDWAIT, &CTestAppDlg::OnAttacksConnectAndWait)
 	ON_UPDATE_COMMAND_UI(ID_ATTACKS_CONNECTANDDISCONNECT, &CTestAppDlg::OnUpdateAttacksConnectAndDisconnect)
 	ON_UPDATE_COMMAND_UI(ID_ATTACKS_CONNECTANDWAIT, &CTestAppDlg::OnUpdateAttacksConnectAndWait)
+	ON_COMMAND(ID_LOCAL_ENVIRONMENTINFO, &CTestAppDlg::OnLocalEnvironmentInfo)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlg::OnInitDialog()
@@ -548,8 +550,8 @@ void CTestAppDlg::SaveSettings()
 				for (const auto& flt : *result)
 				{
 					auto jflt = json::object();
-					jflt["Address"] = Util::ToStringA(flt.Address.GetCString());
-					jflt["Mask"] = Util::ToStringA(flt.Mask.GetCString());
+					jflt["Address"] = Util::ToStringA(flt.Address.GetString().c_str());
+					jflt["Mask"] = Util::ToStringA(flt.Mask.GetString().c_str());
 
 					auto allowed = true;
 					if (flt.Type == QuantumGate::IPFilterType::Blocked) allowed = false;
@@ -1458,5 +1460,94 @@ void CTestAppDlg::OnLocalIPReputations()
 {
 	CIPReputationsDlg dlg;
 	dlg.SetAccessManager(&m_QuantumGate.GetAccessManager());
+	dlg.DoModal();
+}
+
+void CTestAppDlg::OnLocalEnvironmentInfo()
+{
+	const auto env = m_QuantumGate.GetEnvironment();
+	String info;
+
+	if (const auto result = env.GetHostname(); result.Succeeded())
+	{
+		info += L"Hostname:\t" + *result + L"\r\n";
+	}
+	else AfxMessageBox(L"Failed to get hostname!", MB_ICONERROR);
+
+	if (const auto result = env.GetUsername(); result.Succeeded())
+	{
+		info += L"Username:\t" + *result + L"\r\n";
+	}
+	else AfxMessageBox(L"Failed to get username!", MB_ICONERROR);
+
+	if (const auto result = env.GetEthernetInterfaces(); result.Succeeded())
+	{
+		info += L"________________________________________________________\r\n\r\n";
+		info += L"Ethernet interfaces:";
+
+		for (const auto& eth : *result)
+		{
+			info += L"\r\n\r\nName:\t\t" + eth.Name + L"\r\n";
+			info += L"Description:\t" + eth.Description + L"\r\n";
+			info += L"MAC Address:\t" + eth.MACAddress + L"\r\n";
+
+			String ips;
+			for (const auto& ip : eth.IPAddresses)
+			{
+				if (!ips.empty()) ips += L", ";
+				ips += ip.GetString();
+			}
+
+			info += L"IP Addresses:\t" + ips + L"\r\n";
+			
+			info += L"Operational:\t";
+			if (eth.Operational) info += L"Yes";
+			else info += L"No";
+		}
+	}
+	else AfxMessageBox(L"Failed to get ethernet interfaces!", MB_ICONERROR);
+
+	if (const auto result = env.GetIPAddresses(); result.Succeeded())
+	{
+		info += L"\r\n________________________________________________________\r\n\r\n";
+		info += L"IP addresses:";
+
+		for (const auto& ipdetails : *result)
+		{
+			info += L"\r\n\r\nAddress:\t\t\t\t" + ipdetails.IPAddress.GetString() + L"\r\n";
+
+			info += L"On local interface:\t\t\t";
+			if (ipdetails.BoundToLocalEthernetInterface) info += L"Yes";
+			else info += L"No";
+
+			info += L"\r\n";
+
+			info += L"Reported by peers:\t\t\t";
+			if (ipdetails.PublicDetails.ReportedByPeers) info += L"Yes";
+			else info += L"No";
+
+			info += L"\r\n";
+
+			info += L"Reported by trusted peers:\t\t";
+			if (ipdetails.PublicDetails.ReportedByTrustedPeers) info += L"Yes";
+			else info += L"No";
+
+			info += L"\r\n";
+
+			info += L"Number of reporting networks:\t" + 
+				Util::FormatString(L"%llu", ipdetails.PublicDetails.NumReportingNetworks);
+
+			info += L"\r\n";
+
+			info += L"Verified:\t\t\t\t";
+			if (ipdetails.PublicDetails.Verified) info += L"Yes";
+			else info += L"No";
+		}
+	}
+	else AfxMessageBox(L"Failed to get IP addresses!", MB_ICONERROR);
+
+	CInformationDlg dlg;
+	dlg.SetWindowTitle(L"Local Environment Information");
+	dlg.SetInformationText(info.data());
 	dlg.DoModal();
 }

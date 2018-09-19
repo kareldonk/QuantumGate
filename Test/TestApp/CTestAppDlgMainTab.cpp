@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "TestApp.h"
 #include "CTestAppDlgMainTab.h"
+#include "CInformationDlg.h"
 
 #include "Console.h"
 #include "Common\Util.h"
@@ -128,11 +129,11 @@ void CTestAppDlgMainTab::UpdatePeers()
 				if (index != -1)
 				{
 					lctrl->SetItemText(index, 4,
-									   Util::FormatString(L"%.2f KB",
-														  static_cast<float>(retval->BytesSent) / 1024.0f).c_str());
+									   Util::FormatString(L"%.2lf KB",
+														  static_cast<double>(retval->BytesSent) / 1024.0).c_str());
 					lctrl->SetItemText(index, 5,
-									   Util::FormatString(L"%.2f KB",
-														  static_cast<float>(retval->BytesReceived) / 1024.0f).c_str());
+									   Util::FormatString(L"%.2lf KB",
+														  static_cast<double>(retval->BytesReceived) / 1024.0).c_str());
 				}
 			}
 		}
@@ -224,17 +225,15 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 	if (pluid > 0)
 	{
 		const auto retval = m_QuantumGate.GetPeerDetails(pluid);
-		const auto retval2 = m_QuantumGate.GetUUID();
-		if (retval.Succeeded() && retval2.Succeeded())
+		if (retval.Succeeded())
 		{
 			String pitxt;
-			pitxt += Util::FormatString(L"Information for peer LUID %llu, LUUID %s:\r\n\r\n", pluid, retval2->GetString().c_str());
-
+			pitxt += Util::FormatString(L"Peer LUID:\t\t%llu\r\n", pluid);
 			pitxt += Util::FormatString(L"Peer UUID:\t\t%s\r\n\r\n", retval->PeerUUID.GetString().c_str());
 
 			pitxt += Util::FormatString(L"Authenticated:\t\t%s\r\n",
 										retval->IsAuthenticated ? L"Yes" : L"No");
-			pitxt += Util::FormatString(L"Relayed:\t\t\t%s\r\n\r\n",
+			pitxt += Util::FormatString(L"Relayed:\t\t\t%s\r\n",
 										retval->IsRelayed ? L"Yes" : L"No");
 			pitxt += Util::FormatString(L"Global shared secret:\t%s\r\n\r\n",
 										retval->IsUsingGlobalSharedSecret ? L"Yes" : L"No");
@@ -249,31 +248,34 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 										retval->PeerProtocolVersion.first, retval->PeerProtocolVersion.second);
 			pitxt += Util::FormatString(L"Local session ID:\t\t%llu\r\n", retval->LocalSessionID);
 			pitxt += Util::FormatString(L"Peer session ID:\t\t%llu\r\n", retval->PeerSessionID);
-			pitxt += Util::FormatString(L"Connected time:\t\t%u seconds\r\n",
+			pitxt += Util::FormatString(L"Connected time:\t\t%llu seconds\r\n",
 										std::chrono::duration_cast<std::chrono::seconds>(retval->ConnectedTime).count());
-			pitxt += Util::FormatString(L"Bytes received:\t\t%u\r\n", retval->BytesReceived);
-			pitxt += Util::FormatString(L"Bytes sent:\t\t%u\r\n", retval->BytesSent);
-			pitxt += Util::FormatString(L"Extenders bytes received:\t%u\r\n", retval->ExtendersBytesReceived);
-			pitxt += Util::FormatString(L"Extenders bytes sent:\t%u\r\n", retval->ExtendersBytesSent);
+			pitxt += Util::FormatString(L"Bytes received:\t\t%llu\r\n", retval->BytesReceived);
+			pitxt += Util::FormatString(L"Bytes sent:\t\t%llu\r\n", retval->BytesSent);
+			pitxt += Util::FormatString(L"Extenders bytes received:\t%llu\r\n", retval->ExtendersBytesReceived);
+			pitxt += Util::FormatString(L"Extenders bytes sent:\t%llu\r\n", retval->ExtendersBytesSent);
 
-			auto roh = 0.0f;
+			auto roh = 0.0;
 			if (retval->BytesReceived > 0)
 			{
-				roh = (((float)retval->BytesReceived - (float)retval->ExtendersBytesReceived) /
-					(float)retval->BytesReceived) * 100.0f;
+				roh = (((double)retval->BytesReceived - (double)retval->ExtendersBytesReceived) /
+					(double)retval->BytesReceived) * 100.0;
 			}
 
-			auto soh = 0.0f;
+			auto soh = 0.0;
 			if (retval->BytesSent > 0)
 			{
-				soh = (((float)retval->BytesSent - (float)retval->ExtendersBytesSent) /
-					(float)retval->BytesSent) * 100.0f;
+				soh = (((double)retval->BytesSent - (double)retval->ExtendersBytesSent) /
+					(double)retval->BytesSent) * 100.0;
 			}
 
-			pitxt += Util::FormatString(L"Receive overhead:\t\t%.2f%%\r\n", roh);
-			pitxt += Util::FormatString(L"Send overhead:\t\t%.2f%%\r\n", soh);
+			pitxt += Util::FormatString(L"Receive overhead:\t\t%.2lf%%\r\n", roh);
+			pitxt += Util::FormatString(L"Send overhead:\t\t%.2lf%%\r\n", soh);
 
-			AfxMessageBox(pitxt.c_str(), MB_ICONINFORMATION | MB_OK);
+			CInformationDlg dlg;
+			dlg.SetWindowTitle(L"Peer Information");
+			dlg.SetInformationText(pitxt.c_str());
+			dlg.DoModal();
 		}
 	}
 }

@@ -878,7 +878,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				// Check if the processing limit has been reached; in that case break
 				// so that we'll return to continue processing later. This prevents 
 				// this peer from hoarding all the processing capacity.
-				if (num >= settings.Local.WorkerThreadsMaxBurst) break;
+				if (num >= settings.Local.Concurrency.WorkerThreadsMaxBurst) break;
 			}
 			else break;
 		}
@@ -1036,7 +1036,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						// Check if the processing limit has been reached; in that case break
 						// and set the event again so that we'll return to continue processing later.
 						// This prevents this socket from hoarding all the processing capacity.
-						if (num >= settings.Local.WorkerThreadsMaxBurst)
+						if (num >= settings.Local.Concurrency.WorkerThreadsMaxBurst)
 						{
 							if (!m_ReceiveBuffer.IsEmpty()) m_ReceiveBuffer.SetEvent();
 
@@ -1512,6 +1512,50 @@ namespace QuantumGate::Implementation::Core::Peer
 		m_Algorithms.Compression = ca;
 
 		return true;
+	}
+
+	Network::SerializedIPEndpoint Peer::GetPublicIPEndpointToReport() const noexcept
+	{
+		// Only for normal connections because the reported
+		// IPs might not be accurate for relays because there
+		// are other peers in between
+		if (!IsRelayed())
+		{
+			return Network::SerializedIPEndpoint{ GetPeerEndpoint() };
+		}
+
+		// For relays we send an empty endpoint (all zeroes)
+		return Network::SerializedIPEndpoint{};
+	}
+
+	const bool Peer::AddReportedPublicIPEndpoint(const Network::SerializedIPEndpoint& pub_endpoint) noexcept
+	{
+		// Only for normal connections because the reported
+		// IPs might not be accurate for relays because there
+		// are other peers in between
+		if (!IsRelayed())
+		{
+			IPAddress ip;
+			if (IPAddress::TryParse(pub_endpoint.IPAddress, ip))
+			{
+				// Public IP reported by peer should be the same
+				// family type as the address used for this connection
+				if (ip.GetFamily() == GetLocalIPAddress().GetFamily())
+				{
+					const auto trusted = IsUsingGlobalSharedSecret() || IsAuthenticated();
+					GetPeerManager().AddReportedPublicIPEndpoint(IPEndpoint(ip, pub_endpoint.Port), GetPeerEndpoint(),
+																 GetConnectionType(), trusted);
+					return true;
+				}
+			}
+		}
+		else
+		{
+			// Should be empty (all zeroes)
+			return (pub_endpoint == Network::SerializedIPEndpoint{});
+		}
+
+		return false;
 	}
 
 	const ProtectedBuffer& Peer::GetGlobalSharedSecret() const noexcept

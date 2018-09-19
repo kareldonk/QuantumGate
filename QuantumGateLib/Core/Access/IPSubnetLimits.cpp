@@ -55,7 +55,7 @@ namespace QuantumGate::Implementation::Core::Access
 						alimit.CIDRLeadingBits = cidr_lbits;
 						alimit.MaximumConnections = max_con;
 
-						if (IPAddress::TryParseMask(af, cidr_lbits, alimit.SubnetMask))
+						if (BinaryIPAddress::CreateMask(af, cidr_lbits, alimit.SubnetMask))
 						{
 							const auto[it, success] = subnets->Limits.insert({ cidr_lbits, alimit });
 							if (success)

@@ -12,7 +12,7 @@ using namespace std::literals;
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	Manager::Manager(const Settings_CThS& settings, const LocalEnvironment_ThS& environment,
+	Manager::Manager(const Settings_CThS& settings, LocalEnvironment_ThS& environment,
 					 KeyGeneration::Manager& keymgr, Access::Manager& accessmgr,
 					 Extender::Manager& extenders) noexcept :
 		m_Settings(settings), m_LocalEnvironment(environment), m_KeyGenerationManager(keymgr),
@@ -81,11 +81,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		const auto& settings = GetSettings();
 
 		const auto cth = std::thread::hardware_concurrency();
-		numthreadpools = (cth > settings.Local.MinThreadPools) ? cth : settings.Local.MinThreadPools;
+		numthreadpools = (cth > settings.Local.Concurrency.MinThreadPools) ?
+			cth : settings.Local.Concurrency.MinThreadPools;
 
-		if (numthreadsperpool < settings.Local.MinThreadsPerPool)
+		if (numthreadsperpool < settings.Local.Concurrency.MinThreadsPerPool)
 		{
-			numthreadsperpool = settings.Local.MinThreadsPerPool;
+			numthreadsperpool = settings.Local.Concurrency.MinThreadsPerPool;
 		}
 
 		// Must have at least one thread pool, and at least two threads per pool 
@@ -106,8 +107,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				auto thpool = std::make_unique<ThreadPool>(*this);
 
-				thpool->SetWorkerThreadsMaxBurst(settings.Local.WorkerThreadsMaxBurst);
-				thpool->SetWorkerThreadsMaxSleep(settings.Local.WorkerThreadsMaxSleep);
+				thpool->SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
+				thpool->SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 
 				// Create the worker threads
 				for (Size x = 0; x < numthreadsperpool; ++x)
@@ -399,10 +400,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		return rval;
 	}
 
-	Result<PeerLUID> Manager::GetRelayPeer(const std::vector<BinaryIPAddress>& excl_addr) const noexcept
+	Result<PeerLUID> Manager::GetRelayPeer(const std::vector<BinaryIPAddress>& excl_addr1,
+										   const std::vector<BinaryIPAddress>& excl_addr2) const noexcept
 	{
 		const auto& settings = GetSettings();
-		return m_LookupMaps.WithSharedLock()->GetRandomPeer({}, excl_addr,
+		return m_LookupMaps.WithSharedLock()->GetRandomPeer({}, excl_addr1, excl_addr2,
 															settings.Relay.IPv4ExcludedNetworksCIDRLeadingBits,
 															settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits);
 	}
@@ -419,7 +421,7 @@ namespace QuantumGate::Implementation::Core::Peer
 												   const std::vector<BinaryIPAddress>& addresses) noexcept
 	{
 		const auto& settings = GetSettings();
-		return LookupMaps::IsIPInNetwork(ip, addresses,
+		return LookupMaps::AreIPsInSameNetwork(ip, addresses,
 										 settings.Relay.IPv4ExcludedNetworksCIDRLeadingBits,
 										 settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits);
 	}
@@ -539,7 +541,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			else
 			{
 				LogErr(L"Couldn't add new peer with LUID %llu; IP address %s is not allowed",
-					   peer.GetLUID(), peer.GetPeerIPAddress().GetCString());
+					   peer.GetLUID(), peer.GetPeerIPAddress().GetString().c_str());
 			}
 		});
 
@@ -756,116 +758,111 @@ namespace QuantumGate::Implementation::Core::Peer
 		auto result_code = ResultCode::Failed;
 		String error_details;
 		std::optional<PeerLUID> out_peer;
+		auto out_reused = false;
 
 		const auto rport = m_RelayManager.MakeRelayPort();
 		if (rport)
 		{
-			if (params.Relay.Hops == 1)
+			try
 			{
-				try
+				if (params.Relay.Hops == 1)
 				{
-					std::vector<BinaryIPAddress> excl_addr;
-					excl_addr.reserve(GetLocalIPAddresses().size());
-
-					for (const auto& ip : GetLocalIPAddresses())
+					const auto excl_addr = GetLocalIPAddresses();
+					if (excl_addr != nullptr)
 					{
-						excl_addr.emplace_back(ip.GetBinary()); // Don't include addresses/network of local instance
-					}
-
-					const auto result = AreRelayIPsInSameNetwork(params.PeerIPEndpoint.GetIPAddress().GetBinary(),
-																 excl_addr);
-					if (result.Succeeded())
-					{
-						if (!result.GetValue())
-						{
-							if (params.Relay.ViaPeer)
-							{
-								LogWarn(L"Ignoring via_peer parameter (LUID %llu) for relay link to peer %s because of single hop",
-										params.Relay.ViaPeer.value(), params.PeerIPEndpoint.GetString().c_str());
-							}
-
-							// Connect to specific endpoint for final hop 0; if we're
-							// already connected we'll use the existing connection; note that we specify
-							// the same global shared secret since the destination is the same
-							const auto retval = ConnectTo({ params.PeerIPEndpoint, params.GlobalSharedSecret }, nullptr);
-							if (retval.Succeeded())
-							{
-								out_peer = retval->first;
-							}
-							else result_code = static_cast<ResultCode>(retval.GetErrorValue());
-						}
-						else error_details = L"the destination endpoint is on the same network as the local instance";
-					}
-					else error_details = L"couldn't check if the destination endpoint is on the same network as the local instance";
-				}
-				catch (...)
-				{
-					error_details = L"an exception was thrown";
-				}
-			}
-			else
-			{
-				try
-				{
-					std::vector<BinaryIPAddress> excl_addr;
-					excl_addr.reserve(GetLocalIPAddresses().size() + 1);
-
-					excl_addr.emplace_back(params.PeerIPEndpoint.GetIPAddress().GetBinary()); // Don't include the final endpoint/network
-
-					for (const auto& ip : GetLocalIPAddresses())
-					{
-						excl_addr.emplace_back(ip.GetBinary()); // Don't include addresses/network of local instance
-					}
-
-					if (params.Relay.ViaPeer)
-					{
-						if (const auto via_peerths = Get(*params.Relay.ViaPeer); via_peerths != nullptr)
-						{
-							auto vpeer = via_peerths->WithSharedLock();
-
-							const auto result = AreRelayIPsInSameNetwork(vpeer->GetPeerEndpoint().GetIPAddress().GetBinary(),
-																		 excl_addr);
-							if (result.Succeeded())
-							{
-								if (!result.GetValue())
-								{
-									out_peer = params.Relay.ViaPeer;
-								}
-								else error_details = Util::FormatString(L"cannot go through peer LUID %llu because it's on the same network as the local or destination endpoint",
-																		params.Relay.ViaPeer.value());
-							}
-							else error_details = Util::FormatString(L"couldn't check if peer LUID %llu is on the same network as the local or destination endpoint",
-																	params.Relay.ViaPeer.value());
-						}
-						else error_details = Util::FormatString(L"a peer with LUID %llu wasn't found", params.Relay.ViaPeer.value());
-					}
-					else
-					{
-						// Try to get a (random) peer for the hop in between
-						// and don't include endpoints on excluded networks
-						const auto result = GetRelayPeer(excl_addr);
+						// Don't include addresses/network of local instance
+						const auto result = AreRelayIPsInSameNetwork(params.PeerIPEndpoint.GetIPAddress().GetBinary(),
+																	 *excl_addr);
 						if (result.Succeeded())
 						{
-							out_peer = result.GetValue();
+							if (!result.GetValue())
+							{
+								if (params.Relay.ViaPeer)
+								{
+									LogWarn(L"Ignoring via_peer parameter (LUID %llu) for relay link to peer %s because of single hop",
+											params.Relay.ViaPeer.value(), params.PeerIPEndpoint.GetString().c_str());
+								}
+
+								// Connect to specific endpoint for final hop 0; if we're
+								// already connected we'll use the existing connection; note that we specify
+								// the same global shared secret since the destination is the same
+								const auto retval = ConnectTo({ params.PeerIPEndpoint, params.GlobalSharedSecret }, nullptr);
+								if (retval.Succeeded())
+								{
+									out_peer = retval->first;
+									out_reused = retval->second;
+								}
+								else result_code = static_cast<ResultCode>(retval.GetErrorValue());
+							}
+							else error_details = L"the destination endpoint is on the same network as the local instance";
+						}
+						else error_details = L"couldn't check if the destination endpoint is on the same network as the local instance";
+					}
+					else error_details = L"couldn't get IP addresses of local instance";
+				}
+				else
+				{
+					const auto excl_addr1 = GetLocalIPAddresses();
+					if (excl_addr1 != nullptr)
+					{
+						std::vector<BinaryIPAddress> excl_addr2{ params.PeerIPEndpoint.GetIPAddress().GetBinary() };
+
+						if (params.Relay.ViaPeer)
+						{
+							if (const auto via_peerths = Get(*params.Relay.ViaPeer); via_peerths != nullptr)
+							{
+								const auto via_peer_ip =
+									via_peerths->WithSharedLock()->GetPeerEndpoint().GetIPAddress().GetBinary();
+
+								// Don't include addresses/network of local instance
+								const auto result1 = AreRelayIPsInSameNetwork(via_peer_ip, *excl_addr1);
+
+								// Don't include the final endpoint/network
+								const auto result2 = AreRelayIPsInSameNetwork(via_peer_ip, excl_addr2);
+
+								if (result1.Succeeded() && result2.Succeeded())
+								{
+									if (!result1.GetValue() && !result2.GetValue())
+									{
+										out_peer = params.Relay.ViaPeer;
+									}
+									else error_details = Util::FormatString(L"cannot go through peer LUID %llu because it's on the same network as the local or destination endpoint",
+																			params.Relay.ViaPeer.value());
+								}
+								else error_details = Util::FormatString(L"couldn't check if peer LUID %llu is on the same network as the local or destination endpoint",
+																		params.Relay.ViaPeer.value());
+							}
+							else error_details = Util::FormatString(L"a peer with LUID %llu wasn't found", params.Relay.ViaPeer.value());
 						}
 						else
 						{
-							if (result == ResultCode::PeerNotFound)
+							// Try to get a (random) peer for the hop in between
+							// and don't include endpoints on excluded networks
+							const auto result = GetRelayPeer(*excl_addr1, excl_addr2);
+							if (result.Succeeded())
 							{
-								result_code = ResultCode::NoPeersForRelay;
-								error_details = L"no peers available to create relay link";
+								out_peer = result.GetValue();
 							}
 							else
 							{
-								error_details = L"failed to get a peer to create relay link";
+								if (result == ResultCode::PeerNotFound)
+								{
+									result_code = ResultCode::NoPeersForRelay;
+									error_details = L"no peers available to create relay link";
+								}
+								else
+								{
+									error_details = L"failed to get a peer to create relay link";
+								}
 							}
 						}
 					}
+					else error_details = L"couldn't get IP addresses of local instance";
 				}
-				catch (...)
-				{
-					error_details = L"an exception was thrown";
-				}
+			}
+			catch (...)
+			{
+				error_details = L"an exception was thrown";
 			}
 
 			if (out_peer)
@@ -894,6 +891,13 @@ namespace QuantumGate::Implementation::Core::Peer
 							if (result_code != ResultCode::Succeeded) in_peer.Close();
 						}
 					});
+				}
+
+				// If creating relay failed and we made a new connection specifically
+				// for this relay then we should close it since it's not needed
+				if (result_code != ResultCode::Succeeded && params.Relay.Hops == 1 && !out_reused)
+				{
+					DiscardReturnValue(DisconnectFrom(*out_peer, nullptr));
 				}
 			}
 		}
@@ -950,10 +954,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::Succeeded;
 	}
 
-	const std::vector<IPAddress>& Manager::GetLocalIPAddresses() const noexcept
+	const std::vector<BinaryIPAddress>* Manager::GetLocalIPAddresses() const noexcept
 	{
-		// TODO: Need to also add public IP address(es)
-		return m_LocalEnvironment.WithSharedLock()->GetIPAddresses();
+		return m_LocalEnvironment.WithSharedLock()->GetCachedIPAddresses();
 	}
 
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
@@ -1101,5 +1104,12 @@ namespace QuantumGate::Implementation::Core::Peer
 				break;
 			}
 		}
+	}
+
+	void Manager::AddReportedPublicIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,
+											  const PeerConnectionType rep_con_type, const bool trusted) noexcept
+	{
+		DiscardReturnValue(m_LocalEnvironment.WithUniqueLock()->AddPublicIPEndpoint(pub_endpoint, rep_peer,
+																					rep_con_type, trusted));
 	}
 }

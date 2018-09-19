@@ -263,71 +263,49 @@ namespace UnitTests
 					IPAddress(L"fe80:c11a:3a9c:ef10:e796::").GetBinary()
 				};
 
-				const std::vector<BinaryIPAddress> expected_networks
 				{
-					IPAddress(L"192.168.1.0").GetBinary(),
-					IPAddress(L"fe80:c11a:3a9c::").GetBinary()
-				};
-
-				const auto result = lum.GetNetworks(excl_addr, cidr_lbits4, cidr_lbits6);
-
-				Assert::AreEqual(true, result.Succeeded());
-
-				const auto& excl_networks = result.GetValue();
-
-				// Should only have two entries
-				Assert::AreEqual(true, excl_networks.size() == 2);
-
-				// Check that we got back the expected excluded networks
-				for (const auto& network : excl_networks)
-				{
-					const auto it = std::find(expected_networks.begin(), expected_networks.end(), network);
-					Assert::AreEqual(true, it != expected_networks.end());
-				}
-
-				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"192.168.1.44").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"192.168.1.44").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"192.168.2.44").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"192.168.2.44").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"172.217.7.238").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"172.217.7.238").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				// Bad CIDR values
 				{
-					auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"172.217.7.238").GetBinary(),
-															 40, 96, excl_networks);
+					auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"172.217.7.238").GetBinary(),
+																   excl_addr, 40, 96);
 					Assert::AreEqual(false, result2.Succeeded());
 
-					result2 = LookupMaps::IsIPInNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::").GetBinary(),
-														24, 130, excl_networks);
+					result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::").GetBinary(),
+															  excl_addr, 24, 130);
 					Assert::AreEqual(false, result2.Succeeded());
 				}
 			}
@@ -346,75 +324,51 @@ namespace UnitTests
 					IPAddress(L"fe80:c11a:3a9c:ef10:e796::").GetBinary()
 				};
 
-				std::vector<BinaryIPAddress> expected_networks
 				{
-					IPAddress(L"192.168.0.0").GetBinary(),
-					IPAddress(L"172.217.0.0").GetBinary(),
-					IPAddress(L"172.117.0.0").GetBinary(),
-					IPAddress(L"fe80:c11a:3a9c::").GetBinary()
-				};
-
-				const auto result = lum.GetNetworks(excl_addr, cidr_lbits4, cidr_lbits6);
-
-				Assert::AreEqual(true, result.Succeeded());
-
-				const auto& excl_networks = result.GetValue();
-
-				// Should only have two entries
-				Assert::AreEqual(true, excl_networks.size() == 4);
-
-				// Check that we got back the expected excluded networks
-				for (const auto& network : excl_networks)
-				{
-					const auto it = std::find(expected_networks.begin(), expected_networks.end(), network);
-					Assert::AreEqual(true, it != expected_networks.end());
-				}
-
-				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"192.168.1.10").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"192.168.1.10").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"192.168.1.44").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"192.168.1.44").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"192.169.2.44").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"192.169.2.44").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"172.217.7.239").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"172.217.7.239").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"172.218.7.238").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"172.218.7.238").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::IsIPInNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::").GetBinary(),
-																   cidr_lbits4, cidr_lbits6, excl_networks);
+					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::").GetBinary(),
+																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
 				}
@@ -450,21 +404,23 @@ namespace UnitTests
 
 				std::vector<PeerLUID> excl_pluids =
 				{
-					ep1->WithSharedLock()->LUID, 	// Don't loop back
-					Peer::MakeLUID(dest_ep)			// Don't include the final endpoint
+					ep3->WithSharedLock()->LUID,
+					ep4->WithSharedLock()->LUID
 				};
 
-				std::vector<BinaryIPAddress> excl_addr =
+				std::vector<BinaryIPAddress> excl_addr1 =
 				{
-					ep1->WithSharedLock()->Cached.PeerEndpoint.GetIPAddress().GetBinary(),	// Don't loop back
-					dest_ep.GetIPAddress().GetBinary()										// Don't include the final endpoint
+					ep1->WithSharedLock()->Cached.PeerEndpoint.GetIPAddress().GetBinary() // Don't loop back
+				};
+
+				std::vector<BinaryIPAddress> excl_addr2 =
+				{
+					dest_ep.GetIPAddress().GetBinary() // Don't include the final endpoint
 				};
 
 				{
 					std::vector<PeerLUID> expected_peers
 					{
-						ep3->WithSharedLock()->LUID,
-						ep4->WithSharedLock()->LUID,
 						ep5->WithSharedLock()->LUID,
 						ep6->WithSharedLock()->LUID,
 						ep7->WithSharedLock()->LUID
@@ -472,7 +428,7 @@ namespace UnitTests
 
 					for (auto x = 0u; x < 100u; ++x)
 					{
-						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr, 32, 128);
+						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr1, excl_addr2, 32, 128);
 						Assert::AreEqual(true, result.Succeeded());
 
 						// Check that we got back one of the expected peers
@@ -491,7 +447,7 @@ namespace UnitTests
 
 					for (auto x = 0u; x < 100u; ++x)
 					{
-						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr, 24, 96);
+						const auto result = lum.GetRandomPeer({}, excl_addr1, excl_addr2, 24, 96);
 						Assert::AreEqual(true, result.Succeeded());
 
 						// Check that we got back one of the expected peers
@@ -508,7 +464,7 @@ namespace UnitTests
 
 					for (auto x = 0u; x < 100u; ++x)
 					{
-						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr, 16, 96);
+						const auto result = lum.GetRandomPeer({}, excl_addr1, excl_addr2, 16, 96);
 						Assert::AreEqual(true, result.Succeeded());
 
 						// Check that we got back one of the expected peers
@@ -524,21 +480,23 @@ namespace UnitTests
 
 				const std::vector<PeerLUID> excl_pluids =
 				{
-					ep7->WithSharedLock()->LUID,	// Don't loop back
-					Peer::MakeLUID(dest_ep)			// Don't include the final endpoint
+					ep1->WithSharedLock()->LUID,
+					ep2->WithSharedLock()->LUID
 				};
 
-				const std::vector<BinaryIPAddress> excl_addr =
+				const std::vector<BinaryIPAddress> excl_addr1 =
 				{
-					ep7->WithSharedLock()->Cached.PeerEndpoint.GetIPAddress().GetBinary(),	// Don't loop back
-					dest_ep.GetIPAddress().GetBinary()										// Don't include the final endpoint
+					ep7->WithSharedLock()->Cached.PeerEndpoint.GetIPAddress().GetBinary() // Don't loop back
+				};
+
+				const std::vector<BinaryIPAddress> excl_addr2 =
+				{
+					dest_ep.GetIPAddress().GetBinary() // Don't include the final endpoint
 				};
 
 				{
 					const std::vector<PeerLUID> expected_peers
 					{
-						ep1->WithSharedLock()->LUID,
-						ep2->WithSharedLock()->LUID,
 						ep3->WithSharedLock()->LUID,
 						ep4->WithSharedLock()->LUID,
 						ep5->WithSharedLock()->LUID,
@@ -547,7 +505,7 @@ namespace UnitTests
 
 					for (auto x = 0u; x < 100u; ++x)
 					{
-						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr, 32, 64);
+						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr1, excl_addr2, 32, 64);
 						Assert::AreEqual(true, result.Succeeded());
 
 						// Check that we got back one of the expected peers
@@ -568,7 +526,7 @@ namespace UnitTests
 
 					for (auto x = 0u; x < 100u; ++x)
 					{
-						const auto result = lum.GetRandomPeer(excl_pluids, excl_addr, 24, 48);
+						const auto result = lum.GetRandomPeer({}, excl_addr1, excl_addr2, 24, 48);
 						Assert::AreEqual(true, result.Succeeded());
 
 						// Check that we got back one of the expected peers

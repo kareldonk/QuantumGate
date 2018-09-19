@@ -35,17 +35,17 @@ namespace QuantumGate::Implementation::Concurrency
 		ThreadLocalCache& operator=(const ThreadLocalCache&) = delete;
 		ThreadLocalCache& operator=(ThreadLocalCache&&) = delete;
 
-		constexpr const CacheType* operator->() const noexcept
+		constexpr const CacheType* operator->() const noexcept(noexcept(GetCache()))
 		{
 			return &GetCache();
 		}
 
-		constexpr const CacheType& operator*() const noexcept
+		constexpr const CacheType& operator*() const noexcept(noexcept(GetCache()))
 		{
 			return GetCache();
 		}
 
-		constexpr const CacheType& GetCache(const bool latest = true) const noexcept
+		constexpr const CacheType& GetCache(const bool latest = true) const noexcept(noexcept(UpdateCache()))
 		{
 			if (latest && IsCacheExpired()) UpdateCache();
 
@@ -53,9 +53,9 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 		template<typename F>
-		constexpr void UpdateValue(F&& function)
+		constexpr void UpdateValue(F&& function) noexcept(noexcept(m_Value.WithUniqueLock(function)))
 		{
-			m_Value.WithUniqueLock([&](T& value)
+			m_Value.WithUniqueLock([&](T& value) noexcept(noexcept(function(value)))
 			{
 				function(value);
 			});
@@ -80,18 +80,18 @@ namespace QuantumGate::Implementation::Concurrency
 			return m_CacheUpdateFlag;
 		}
 
-		ForceInline constexpr void UpdateCache() const
+		ForceInline constexpr void UpdateCache() const noexcept(std::is_nothrow_copy_assignable_v<T>)
 		{
-			m_Value.WithUniqueLock([&](const T& value)
+			m_Value.WithUniqueLock([&](const T& value) noexcept(std::is_nothrow_copy_assignable_v<T>)
 			{
 				Cache() = value;
 				CacheUpdateFlag() = m_ValueUpdateFlag.load();
 			});
 		}
 
-		constexpr bool TryUpdateCache() const
+		constexpr bool TryUpdateCache() const noexcept(std::is_nothrow_copy_assignable_v<T>)
 		{
-			return m_Value.IfUniqueLock([&](T& value)
+			return m_Value.IfUniqueLock([&](T& value) noexcept(std::is_nothrow_copy_assignable_v<T>)
 			{
 				Cache() = value;
 				CacheUpdateFlag() = m_ValueUpdateFlag.load();

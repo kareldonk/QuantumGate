@@ -375,6 +375,7 @@
     <ClCompile Include="PeerAccessControlTests.cpp" />
     <ClCompile Include="PeerExtenderUUIDsTest.cpp" />
     <ClCompile Include="PeerLookupTests.cpp" />
+    <ClCompile Include="PublicIPEndpointsTests.cpp" />
     <ClCompile Include="ResultTests.cpp" />
     <ClCompile Include="ScopeGuardTests.cpp" />
     <ClCompile Include="ThreadLocalCacheTests.cpp" />

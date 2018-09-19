@@ -71,10 +71,10 @@ void CIPFiltersDlg::UpdateIPFilterList() noexcept
 	{
 		for (auto& flt : *result)
 		{
-			const auto pos = flctrl->InsertItem(0, flt.Address.GetCString());
+			const auto pos = flctrl->InsertItem(0, flt.Address.GetString().c_str());
 			if (pos != -1)
 			{
-				flctrl->SetItemText(pos, 1, flt.Mask.GetCString());
+				flctrl->SetItemText(pos, 1, flt.Mask.GetString().c_str());
 
 				CString type = L"Allowed";
 				if (flt.Type == QuantumGate::IPFilterType::Blocked) type = L"Blocked";

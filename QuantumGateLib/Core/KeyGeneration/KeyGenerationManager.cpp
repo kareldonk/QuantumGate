@@ -136,8 +136,8 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			   numthreadsperpool, numthreadsperpool > 1 ? L"threads" : L"thread");
 
 		const auto& settings = GetSettings();
-		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.WorkerThreadsMaxBurst);
-		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.WorkerThreadsMaxSleep);
+		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
+		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 
 		auto error = false;
 

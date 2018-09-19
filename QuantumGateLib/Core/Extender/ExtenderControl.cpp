@@ -57,11 +57,11 @@ namespace QuantumGate::Implementation::Core::Extender
 		const auto& settings = m_ExtenderManager.GetSettings();
 
 		const auto cth = std::thread::hardware_concurrency();
-		numthreadpools = (cth > settings.Local.MinThreadPools) ? cth : settings.Local.MinThreadPools;
+		numthreadpools = (cth > settings.Local.Concurrency.MinThreadPools) ? cth : settings.Local.Concurrency.MinThreadPools;
 
-		if (numthreadsperpool < settings.Local.MinThreadsPerPool)
+		if (numthreadsperpool < settings.Local.Concurrency.MinThreadsPerPool)
 		{
-			numthreadsperpool = settings.Local.MinThreadsPerPool;
+			numthreadsperpool = settings.Local.Concurrency.MinThreadsPerPool;
 		}
 
 		// Must have at least one thread pool, and at least one thread per pool 
@@ -81,8 +81,8 @@ namespace QuantumGate::Implementation::Core::Extender
 			{
 				auto thpool = std::make_unique<ThreadPool>(m_ExtenderManager, GetExtender());
 
-				thpool->SetWorkerThreadsMaxBurst(settings.Local.WorkerThreadsMaxBurst);
-				thpool->SetWorkerThreadsMaxSleep(settings.Local.WorkerThreadsMaxSleep);
+				thpool->SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
+				thpool->SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 
 				// Create the worker threads
 				for (Size x = 0; x < numthreadsperpool; ++x)
@@ -153,7 +153,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			// Peer events have priority; process as many as we can from the queue,
 			// then move on to message events if the peer is still connected
 
-			const auto maxnum = thpdata.ExtenderManager.GetSettings().Local.WorkerThreadsMaxBurst;
+			const auto maxnum = thpdata.ExtenderManager.GetSettings().Local.Concurrency.WorkerThreadsMaxBurst;
 			Size num{ 0 };
 
 			while (num < maxnum && !shutdown_event.IsSet())

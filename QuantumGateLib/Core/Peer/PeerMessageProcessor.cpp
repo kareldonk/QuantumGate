@@ -405,7 +405,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 							BufferWriter wrt(true);
 							if (wrt.WriteWithPreallocation(counter,
-														   Network::SerializedIPEndpoint{ m_Peer.GetPeerEndpoint() },
+														   m_Peer.GetPublicIPEndpointToReport(),
 														   WithSize(lsextlist, MaxSize::UInt16)))
 							{
 								if (m_Peer.Send(MessageType::BeginSessionInit, wrt.MoveWrittenBytes()))
@@ -462,38 +462,43 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					m_Peer.SetPeerMessageCounter(pcounter);
 
-					if (auto pextlist = ValidateExtenderUUIDs(psextlist); pextlist.has_value())
+					if (m_Peer.AddReportedPublicIPEndpoint(pub_endp))
 					{
-						if (m_Peer.ProcessPeerExtenderUpdate(std::move(*pextlist)))
+						if (auto pextlist = ValidateExtenderUUIDs(psextlist); pextlist.has_value())
 						{
-							const auto& lsextlist = m_Peer.GetLocalExtenderUUIDs().SerializedUUIDs;
-
-							assert(lsextlist.size() <= Extender::Manager::MaximumNumberOfExtenders);
-
-							Dbg(L"NumExt: %u", lsextlist.size());
-
-							// From now on we start using the messagecounter
-							const auto counter = m_Peer.SetLocalMessageCounter();
-
-							BufferWriter wrt(true);
-							if (wrt.WriteWithPreallocation(counter,
-														   Network::SerializedIPEndpoint{ m_Peer.GetPeerEndpoint() },
-														   WithSize(lsextlist, MaxSize::UInt16)))
+							if (m_Peer.ProcessPeerExtenderUpdate(std::move(*pextlist)))
 							{
-								if (m_Peer.Send(MessageType::EndSessionInit, wrt.MoveWrittenBytes()))
+								const auto& lsextlist = m_Peer.GetLocalExtenderUUIDs().SerializedUUIDs;
+
+								assert(lsextlist.size() <= Extender::Manager::MaximumNumberOfExtenders);
+
+								Dbg(L"NumExt: %u", lsextlist.size());
+
+								// From now on we start using the messagecounter
+								const auto counter = m_Peer.SetLocalMessageCounter();
+
+								BufferWriter wrt(true);
+								if (wrt.WriteWithPreallocation(counter,
+															   m_Peer.GetPublicIPEndpointToReport(),
+															   WithSize(lsextlist, MaxSize::UInt16)))
 								{
-									success = m_Peer.SetStatus(Status::Ready);
+									if (m_Peer.Send(MessageType::EndSessionInit, wrt.MoveWrittenBytes()))
+									{
+										success = m_Peer.SetStatus(Status::Ready);
+									}
+								}
+
+								if (!success)
+								{
+									LogDbg(L"Couldn't send EndSessionInit message to peer %s",
+										   m_Peer.GetPeerName().c_str());
 								}
 							}
-
-							if (!success)
-							{
-								LogDbg(L"Couldn't send EndSessionInit message to peer %s",
-									   m_Peer.GetPeerName().c_str());
-							}
 						}
+						else LogDbg(L"Invalid BeginSessionInit message from peer %s; invalid extender UUID(s)",
+									m_Peer.GetPeerName().c_str());
 					}
-					else LogDbg(L"Invalid BeginSessionInit message from peer %s; invalid extender UUID(s)",
+					else LogDbg(L"Invalid BeginSessionInit message from peer %s; invalid public IP endpoint",
 								m_Peer.GetPeerName().c_str());
 				}
 				else LogDbg(L"Invalid BeginSessionInit message from peer %s; couldn't read message data",
@@ -519,14 +524,19 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					m_Peer.SetPeerMessageCounter(pcounter);
 
-					if (auto pextlist = ValidateExtenderUUIDs(psextlist); pextlist.has_value())
+					if (m_Peer.AddReportedPublicIPEndpoint(pub_endp))
 					{
-						if (m_Peer.ProcessPeerExtenderUpdate(std::move(*pextlist)))
+						if (auto pextlist = ValidateExtenderUUIDs(psextlist); pextlist.has_value())
 						{
-							success = m_Peer.SetStatus(Status::Ready);
+							if (m_Peer.ProcessPeerExtenderUpdate(std::move(*pextlist)))
+							{
+								success = m_Peer.SetStatus(Status::Ready);
+							}
 						}
+						else LogDbg(L"Invalid EndSessionInit message from peer %s; invalid extender UUID(s)",
+									m_Peer.GetPeerName().c_str());
 					}
-					else LogDbg(L"Invalid EndSessionInit message from peer %s; invalid extender UUID(s)",
+					else LogDbg(L"Invalid EndSessionInit message from peer %s; invalid public IP endpoint",
 								m_Peer.GetPeerName().c_str());
 				}
 				else LogDbg(L"Invalid EndSessionInit message from peer %s; couldn't read message data",

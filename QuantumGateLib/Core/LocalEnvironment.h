@@ -3,10 +3,15 @@
 
 #pragma once
 
+#include "PublicIPEndpoints.h"
+
 namespace QuantumGate::Implementation::Core
 {
 	class LocalEnvironment
 	{
+		using CachedIPAddresses_ThS =
+			Concurrency::ThreadLocalCache<std::vector<BinaryIPAddress>, Concurrency::SpinMutex, 369>;
+
 	public:
 		LocalEnvironment() = default;
 		LocalEnvironment(const LocalEnvironment&) = delete;
@@ -21,25 +26,36 @@ namespace QuantumGate::Implementation::Core
 
 		inline const String& GetHostname() const noexcept { return m_Hostname; }
 		inline const String& GetUsername() const noexcept { return m_Username; }
-		inline const std::vector<EthernetInterface>& GetEthernetInterfaces() const noexcept { return m_Interfaces; }
-		inline const std::vector<IPAddress>& GetIPAddresses() const noexcept { return m_IPAddresses; }
+		Result<std::vector<IPAddressDetails>> GetIPAddresses() const noexcept;
+		inline const std::vector<EthernetInterface>& GetEthernetInterfaces() const noexcept { return m_EthernetInterfaces; }
+
+		const std::vector<BinaryIPAddress>* GetCachedIPAddresses() const noexcept;
 
 		String GetIPAddressesString() const noexcept;
 		String GetMACAddressesString() const noexcept;
+
+		[[nodiscard]] const bool AddPublicIPEndpoint(const IPEndpoint& pub_endpoint,
+													 const IPEndpoint& rep_peer,
+													 const PeerConnectionType rep_con_type,
+													 const bool trusted) noexcept;
 	
-	protected:
-		static Result<std::vector<IPAddress>> InitializeIPAddresses(const String& hostname) noexcept;
-		static Result<std::vector<IPAddress>> InitializeIPAddresses(const std::vector<EthernetInterface>& eth_interfaces) noexcept;
-		static Result<std::vector<EthernetInterface>> InitializeEthernetInterfaces() noexcept;
-		static Result<String> InitializeHostname() noexcept;
-		static Result<String> InitializeUsername() noexcept;
+	private:
+		[[nodiscard]] const bool UpdateCachedIPAddresses() noexcept;
+
+		static Result<String> OSGetHostname() noexcept;
+		static Result<String> OSGetUsername() noexcept;
+		static Result<std::vector<EthernetInterface>> OSGetEthernetInterfaces() noexcept;
+		static Result<std::vector<BinaryIPAddress>> OSGetIPAddresses(const String& hostname) noexcept;
 
 	private:
 		bool m_Initialized{ false };
 		String m_Hostname;
 		String m_Username;
-		std::vector<IPAddress> m_IPAddresses;
-		std::vector<EthernetInterface> m_Interfaces;
+		std::vector<EthernetInterface> m_EthernetInterfaces;
+		
+		PublicIPEndpoints m_PublicIPEndpoints;
+
+		CachedIPAddresses_ThS m_CachedIPAddresses;
 	};
 
 	using LocalEnvironment_ThS = Concurrency::ThreadSafe<LocalEnvironment, std::shared_mutex>;

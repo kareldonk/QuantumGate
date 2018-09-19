@@ -7,70 +7,8 @@
 
 #include <regex>
 
-#include <ws2tcpip.h>
-#include <Mstcpip.h>
-
 namespace QuantumGate::Implementation::Network
 {
-	IPAddress::IPAddress() noexcept
-	{
-		// Defaults to IPv4 any address
-		SetAddress(L"0.0.0.0");
-	}
-
-	IPAddress::IPAddress(const IPAddress& other) noexcept
-	{
-		*this = other;
-	}
-
-	IPAddress::IPAddress(IPAddress&& other) noexcept
-	{
-		*this = std::move(other);
-	}
-
-	IPAddress::IPAddress(const String& ipaddr_str)
-	{
-		SetAddress(ipaddr_str);
-	}
-
-	IPAddress::IPAddress(const sockaddr_storage* saddr)
-	{
-		SetAddress(saddr);
-	}
-
-	IPAddress::IPAddress(const sockaddr* saddr)
-	{
-		SetAddress(reinterpret_cast<const sockaddr_storage*>(saddr));
-	}
-
-	IPAddress::IPAddress(const BinaryIPAddress& bin_ipaddr)
-	{
-		SetAddress(bin_ipaddr);
-	}
-
-	IPAddress& IPAddress::operator=(const IPAddress& other) noexcept
-	{
-		// Check for same object
-		if (this == &other) return *this;
-
-		m_AddressString = other.m_AddressString;
-		m_AddressBinary = other.m_AddressBinary;
-
-		return *this;
-	}
-
-	IPAddress& IPAddress::operator=(IPAddress&& other) noexcept
-	{
-		// Check for same object
-		if (this == &other) return *this;
-
-		*this = other;
-
-		other.Clear();
-
-		return *this;
-	}
-
 	const bool IPAddress::TryParse(const String& ipaddr_str, IPAddress& ipaddr) noexcept
 	{
 		try
@@ -84,29 +22,44 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool IPAddress::TryParseMask(const IPAddressFamily af, const String& mask, IPAddress& ipaddr) noexcept
+	const bool IPAddress::TryParse(const BinaryIPAddress& bin_ipaddr, IPAddress& ipaddr) noexcept
 	{
 		try
 		{
-			if (mask.size() <= IPAddress::MaxIPAddressStringLength)
+			IPAddress temp_ip(bin_ipaddr);
+			ipaddr = std::move(temp_ip);
+			return true;
+		}
+		catch (...) {}
+
+		return false;
+	}
+
+	const bool IPAddress::TryParseMask(const IPAddressFamily af, const String& mask_str, IPAddress& ipmask) noexcept
+	{
+		try
+		{
+			if (mask_str.size() <= IPAddress::MaxIPAddressStringLength)
 			{
 				// Looks for mask bits specified in the format
 				// "/999" in the mask string used in CIDR notations
 				// such as "192.168.0.0/16"
 				std::wregex r(LR"bits(^\s*\/(\d+)\s*$)bits");
 				std::wsmatch m;
-				if (std::regex_search(mask, m, r))
+				if (std::regex_search(mask_str, m, r))
 				{
 					auto cidr_lbits = std::stoi(m[1].str());
 
-					return TryParseMask(af, cidr_lbits, ipaddr);
+					return CreateMask(af, cidr_lbits, ipmask);
 				}
 				else
 				{
 					// Treats the mask string as an IP address mask
 					// e.g. "255.255.255.255"
-					if (TryParse(mask, ipaddr) && ipaddr.GetFamily() == af)
+					IPAddress temp_ip;
+					if (TryParse(mask_str, temp_ip) && temp_ip.GetFamily() == af && temp_ip.IsMask())
 					{
+						ipmask = std::move(temp_ip);
 						return true;
 					}
 				}
@@ -117,64 +70,16 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool IPAddress::TryParseMask(const IPAddressFamily af, UInt8 cidr_lbits, IPAddress& ipaddr) noexcept
+	const bool IPAddress::CreateMask(const IPAddressFamily af, UInt8 cidr_lbits, IPAddress& ipmask) noexcept
 	{
 		BinaryIPAddress mask;
-		if (TryParseMask(af, cidr_lbits, mask))
+		if (BinaryIPAddress::CreateMask(af, cidr_lbits, mask))
 		{
-			ipaddr.SetAddress(mask);
+			ipmask.SetAddress(mask);
 			return true;
 		}
 
 		return false;
-	}
-
-	const bool IPAddress::TryParseMask(const IPAddressFamily af, UInt8 cidr_lbits, BinaryIPAddress& bin_ipaddr) noexcept
-	{
-		switch (af)
-		{
-			case IPAddressFamily::IPv4:
-			{
-				if (cidr_lbits > 32) return false;
-				[[fallthrough]];
-			}
-			case IPAddressFamily::IPv6:
-			{
-				if (cidr_lbits > 128) return false;
-
-				auto i = 0u;
-				while (cidr_lbits > 0)
-				{
-					for (UInt8 x = 0; x < cidr_lbits && x < 8; ++x)
-					{
-						bin_ipaddr.Bytes[i] |= static_cast<Byte>(0b10000000 >> x);
-					}
-
-					if (cidr_lbits >= 8) cidr_lbits -= 8;
-					else cidr_lbits = 0;
-
-					++i;
-				}
-
-				bin_ipaddr.AddressFamily = af;
-
-				return true;
-			}
-			default:
-			{
-				break;
-			}
-		}
-
-		return false;
-	}
-
-	void IPAddress::Clear() noexcept
-	{
-		std::fill(m_AddressString.begin(), m_AddressString.end(), 0);
-		m_AddressBinary.AddressFamily = IPAddressFamily::Unknown;
-		m_AddressBinary.UInt64s[0] = 0;
-		m_AddressBinary.UInt64s[1] = 0;
 	}
 
 	void IPAddress::SetAddress(const String& ipaddr_str)
@@ -186,10 +91,6 @@ namespace QuantumGate::Implementation::Network
 			BinaryIPAddress baddr;
 			if (InetPton(AF_INET, ipaddr_str.c_str(), &baddr.Bytes) == 1)
 			{
-				assert(ipaddr_str.size() < m_AddressString.size());
-				std::fill(m_AddressString.begin(), m_AddressString.end(), 0);
-				std::copy(ipaddr_str.begin(), ipaddr_str.end(), m_AddressString.begin());
-
 				m_AddressBinary = baddr;
 				m_AddressBinary.AddressFamily = IPAddressFamily::IPv4;
 				return;
@@ -205,10 +106,6 @@ namespace QuantumGate::Implementation::Network
 
 				if (InetPton(AF_INET6, ipint.c_str(), &baddr.Bytes) == 1)
 				{
-					assert(ipint.size() < m_AddressString.size());
-					std::fill(m_AddressString.begin(), m_AddressString.end(), 0);
-					std::copy(ipint.begin(), ipint.end(), m_AddressString.begin());
-
 					m_AddressBinary = baddr;
 					m_AddressBinary.AddressFamily = IPAddressFamily::IPv6;
 					return;
@@ -221,103 +118,93 @@ namespace QuantumGate::Implementation::Network
 		return;
 	}
 
-	void IPAddress::SetAddress(const BinaryIPAddress& bin_ipaddr)
+	String IPAddress::GetString() const noexcept
 	{
-		static_assert(sizeof(bin_ipaddr.Bytes) >= sizeof(in6_addr), "IP Address length mismatch");
-
-		auto afws = AF_UNSPEC;
-		
-		switch (bin_ipaddr.AddressFamily)
+		try
 		{
-			case IPAddressFamily::IPv4:
-				afws = AF_INET;
-				break;
-			case IPAddressFamily::IPv6:
-				afws = AF_INET6;
-				break;
-			default:
-				throw std::invalid_argument("Unsupported internetwork address family");
-		}
+			auto afws = AF_UNSPEC;
 
-		std::array<WChar, IPAddress::MaxIPAddressStringLength> ipstr{ 0 };
-
-		const auto ip = InetNtop(afws, &bin_ipaddr.Bytes, reinterpret_cast<PWSTR>(ipstr.data()), ipstr.size());
-		if (ip != NULL)
-		{
-			m_AddressBinary = bin_ipaddr;
-			m_AddressString = ipstr;
-		}
-		else throw std::invalid_argument("Invalid IP address");
-
-		return;
-	}
-
-	void IPAddress::SetAddress(const sockaddr_storage* saddr)
-	{
-		assert(saddr != nullptr);
-
-		switch (saddr->ss_family)
-		{
-			case AF_INET:
+			switch (m_AddressBinary.AddressFamily)
 			{
-				BinaryIPAddress baddr;
-				baddr.AddressFamily = IPAddressFamily::IPv4;
-				auto ip4 = reinterpret_cast<const sockaddr_in*>(saddr);
-
-				static_assert(sizeof(baddr.Bytes) >= sizeof(in_addr), "IP Address length mismatch");
-
-				memcpy(&baddr.Bytes, &ip4->sin_addr, sizeof(ip4->sin_addr));
-
-				SetAddress(baddr);
-
-				break;
+				case IPAddressFamily::IPv4:
+					afws = AF_INET;
+					break;
+				case IPAddressFamily::IPv6:
+					afws = AF_INET6;
+					break;
+				default:
+					return {};
 			}
-			case AF_INET6:
+
+			std::array<WChar, IPAddress::MaxIPAddressStringLength> ipstr{ 0 };
+
+			const auto ip = InetNtop(afws, &m_AddressBinary.Bytes, reinterpret_cast<PWSTR>(ipstr.data()), ipstr.size());
+			if (ip != NULL)
 			{
-				BinaryIPAddress baddr;
-				baddr.AddressFamily = IPAddressFamily::IPv6;
-				auto ip6 = reinterpret_cast<const sockaddr_in6*>(saddr);
-
-				static_assert(sizeof(baddr.Bytes) >= sizeof(in6_addr), "IP Address length mismatch");
-
-				memcpy(&baddr.Bytes, &ip6->sin6_addr, sizeof(ip6->sin6_addr));
-
-				SetAddress(baddr);
-
-				break;
-			}
-			default:
-			{
-				throw std::invalid_argument("Unsupported internetwork address family");
+				return ipstr.data();
 			}
 		}
+		catch (...) {}
 
-		return;
-	}
-
-	const IPAddress IPAddress::AnyIPv4() noexcept
-	{
-		return IPAddress(L"0.0.0.0");
-	}
-	
-	const IPAddress IPAddress::AnyIPv6() noexcept
-	{
-		return IPAddress(L"::");
+		return {};
 	}
 
-	const IPAddress IPAddress::LoopbackIPv4() noexcept
+	const bool IPAddress::IsLocal(const BinaryIPAddress& bin_ipaddr) noexcept
 	{
-		return IPAddress(L"127.0.0.1");
+		const std::array<Block, 12> local =
+		{
+			Block{ { IPAddressFamily::IPv4, { Byte{ 0 } } }, 8 },					// 0.0.0.0/8 (Local system)
+			Block{ { IPAddressFamily::IPv4, { Byte{ 169 }, Byte{ 254 } } }, 16 },	// 169.254.0.0/16 (Link local)
+			Block{ { IPAddressFamily::IPv4, { Byte{ 127 } } }, 8 },					// 127.0.0.0/8 (Loopback)
+			Block{ { IPAddressFamily::IPv4, { Byte{ 192 }, Byte{ 168 } } }, 16 },	// 192.168.0.0/16 (Local LAN)
+			Block{ { IPAddressFamily::IPv4, { Byte{ 10 } } }, 8 },					// 10.0.0.0/8 (Local LAN)
+			Block{ { IPAddressFamily::IPv4, { Byte{ 172 }, Byte{ 16 } } }, 12 },	// 172.16.0.0/12 (Local LAN)
+
+			Block{ { IPAddressFamily::IPv6, { Byte{ 0 } } }, 8 },					// ::/8 (Local system)
+			Block{ { IPAddressFamily::IPv6, { Byte{ 0xfc } } }, 7 },				// fc00::/7 (Unique Local Addresses)
+			Block{ { IPAddressFamily::IPv6, { Byte{ 0xfd } } }, 8 },				// fd00::/8 (Unique Local Addresses)
+			Block{ { IPAddressFamily::IPv6, { Byte{ 0xfe }, Byte{ 0xc0 } } }, 10 },	// fec0::/10 (Site local)
+			Block{ { IPAddressFamily::IPv6, { Byte{ 0xfe }, Byte{ 0x80 } } }, 10 },	// fe80::/10 (Link local)
+			Block{ { IPAddressFamily::IPv6, { Byte{ 0 } } }, 127 }					// ::/127 (Inter-Router Links)
+		};
+
+		for (const auto& block : local)
+		{
+			if (IsInBlock(bin_ipaddr, block)) return true;
+		}
+
+		return false;
 	}
-	
-	const IPAddress IPAddress::LoopbackIPv6() noexcept
+
+	const bool IPAddress::IsMulticast(const BinaryIPAddress& bin_ipaddr) noexcept
 	{
-		return IPAddress(L"::1");
+		const std::array<Block, 2> multicast =
+		{
+			Block{ { IPAddressFamily::IPv4, { Byte{ 224 } } }, 4 },		// 224.0.0.0/4 Multicast
+			Block{ { IPAddressFamily::IPv6, { Byte{ 0xff } } }, 8 },	// ff00::/8 Multicast
+		};
+
+		for (const auto& block : multicast)
+		{
+			if (IsInBlock(bin_ipaddr, block)) return true;
+		}
+
+		return false;
 	}
-	
-	const IPAddress IPAddress::Broadcast() noexcept
+
+	const bool IPAddress::IsReserved(const BinaryIPAddress& bin_ipaddr) noexcept
 	{
-		return IPAddress(L"255.255.255.255");
+		return IsInBlock(bin_ipaddr,
+						 Block{ { IPAddressFamily::IPv4, { Byte{ 240 } } }, 4 }); // 240.0.0.0/4 Future use
+	}
+
+	const bool IPAddress::IsInBlock(const BinaryIPAddress& bin_ipaddr, const Block& block) noexcept
+	{
+		const auto[success, same_network] = BinaryIPAddress::AreInSameNetwork(bin_ipaddr, block.Address,
+																			  block.CIDRLeadingBits);
+		if (success && same_network) return true;
+
+		return false;
 	}
 
 	std::ostream& operator<<(std::ostream& stream, const IPAddress& ipaddr)

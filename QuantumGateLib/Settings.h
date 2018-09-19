@@ -47,19 +47,14 @@ namespace QuantumGate::Implementation
 		PeerUUID UUID;														// The UUID of the local peer
 		PeerKeys Keys;														// The private and public keys for the local peer
 		ProtectedBuffer GlobalSharedSecret;									// Global shared secret to use for all connections with peers (in addition to each individual secret key for every peer)
+		bool RequireAuthentication{ true };									// Whether authentication is required for connecting peers
+
 		Algorithms SupportedAlgorithms;										// The supported algorithms
 		Size NumPreGeneratedKeysPerAlgorithm{ 5 };							// The number of pregenerated keys per supported algorithm
 
-		std::set<UInt16> ListenerPorts{ 9000 };								// Which ports to listen on
+		std::set<UInt16> ListenerPorts{ 999 };								// Which ports to listen on
 		bool NATTraversal{ false };											// Whether NAT traversal is enabled
 		bool UseConditionalAcceptFunction{ true };							// Whether to use the conditional accept function before accepting connections
-
-		bool RequireAuthentication{ true };									// Whether authentication is required for connecting peers
-
-		Size MinThreadPools{ 1 };											// Minimum number of thread pools
-		Size MinThreadsPerPool{ 4 };										// Minimum number of worker threads per pool
-		std::chrono::milliseconds WorkerThreadsMaxSleep{ 64 };				// Maximum number of milliseconds to sleep when there's no work
-		Size WorkerThreadsMaxBurst{ 50 };									// Maximum number of work items to process in a single burst
 
 		std::chrono::seconds ConnectTimeout{ 60 };							// Maximum number of seconds to wait for a connection to be established
 		std::chrono::milliseconds MaxHandshakeDelay{ 0 };					// Maximum number of milliseconds to wait in between handshake messages
@@ -80,6 +75,14 @@ namespace QuantumGate::Implementation
 			std::chrono::seconds MaxDuration{ 240 };						// Maximum number of seconds that an encryption key update may last after initiation
 			Size RequireAfterNumProcessedBytes{ 4'200'000'000 };			// Number of bytes that may be encrypted and transfered using a single symmetric key after which to require a key update
 		} KeyUpdate;
+
+		struct
+		{
+			Size MinThreadPools{ 1 };										// Minimum number of thread pools
+			Size MinThreadsPerPool{ 4 };									// Minimum number of worker threads per pool
+			std::chrono::milliseconds WorkerThreadsMaxSleep{ 1 };			// Maximum number of milliseconds to sleep when there's no work
+			Size WorkerThreadsMaxBurst{ 64 };								// Maximum number of work items to process in a single burst
+		} Concurrency;
 	};
 
 	struct Settings

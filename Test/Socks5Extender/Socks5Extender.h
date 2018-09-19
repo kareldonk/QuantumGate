@@ -129,7 +129,18 @@ namespace QuantumGate::Socks5Extender
 								   const UInt16 port = 0) const;
 
 		const bool SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const;
-		constexpr Size GetDataRelayHeaderSize() { return sizeof(MessageType) + sizeof(ConnectionID); }
+
+		constexpr Size GetDataRelayHeaderSize() const noexcept
+		{
+			return sizeof(MessageType) +
+				sizeof(ConnectionID) +
+				9; // 9 bytes for encoded size of buffer
+		}
+
+		Size GetMaxDataRelayDataSize() const noexcept
+		{
+			return GetMaximumMessageDataSize() - GetDataRelayHeaderSize();
+		}
 
 		const bool HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
 												  const String& domain, const UInt16 port);

@@ -487,6 +487,7 @@
     <ClInclude Include="CAuthenticationDlg.h" />
     <ClInclude Include="CDialogBase.h" />
     <ClInclude Include="CEndpointDlg.h" />
+    <ClInclude Include="CInformationDlg.h" />
     <ClInclude Include="CIPFiltersDlg.h" />
     <ClInclude Include="CIPSubnetLimitsDlg.h" />
     <ClInclude Include="CPeerAccessDlg.h" />
@@ -515,6 +516,7 @@
     <ClCompile Include="CAuthenticationDlg.cpp" />
     <ClCompile Include="CDialogBase.cpp" />
     <ClCompile Include="CEndpointDlg.cpp" />
+    <ClCompile Include="CInformationDlg.cpp" />
     <ClCompile Include="CIPFiltersDlg.cpp" />
     <ClCompile Include="CIPSubnetLimitsDlg.cpp" />
     <ClCompile Include="CPeerAccessDlg.cpp" />

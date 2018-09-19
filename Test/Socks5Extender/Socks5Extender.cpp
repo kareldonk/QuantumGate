@@ -408,7 +408,7 @@ namespace QuantumGate::Socks5Extender
 						ConnectionID cid{ 0 };
 						Buffer data;
 
-						if (rdr.Read(cid, WithSize(data, GetMaximumMessageDataSize())))
+						if (rdr.Read(cid, WithSize(data, GetMaxDataRelayDataSize())))
 						{
 							auto con = GetConnection(event.GetPeerLUID(), cid);
 							if (con)
@@ -937,7 +937,7 @@ namespace QuantumGate::Socks5Extender
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::DataRelay);
 
 		BufferWriter writer(true);
-		if (writer.WriteWithPreallocation(msgtype, cid, WithSize(buffer, GetMaximumMessageDataSize())))
+		if (writer.WriteWithPreallocation(msgtype, cid, WithSize(buffer, GetMaxDataRelayDataSize())))
 		{
 			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
 			{
@@ -945,7 +945,8 @@ namespace QuantumGate::Socks5Extender
 			}
 			else LogErr(GetName() + L": could not send DataRelay message for connection %llu to peer %llu", cid, pluid);
 		}
-		else LogErr(GetName() + L": could not prepare DataRelay message for connection %llu", cid);
+		else LogErr(GetName() + L": could not prepare DataRelay message for connection %llu; buffer size is %llu and max. data size is %llu",
+					cid, buffer.GetSize(), GetMaxDataRelayDataSize());
 
 		return false;
 	}

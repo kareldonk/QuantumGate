@@ -143,37 +143,65 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	Result<PeerLUID> LookupMaps::GetRandomPeer(const std::vector<PeerLUID>& excl_pluids,
-											   const std::vector<BinaryIPAddress>& excl_addr,
-											   const UInt8 excl_network_cidr4, const UInt8 excl_network_cidr6) const noexcept
+											   const std::vector<BinaryIPAddress>& excl_addr1,
+											   const std::vector<BinaryIPAddress>& excl_addr2,
+											   const UInt8 excl_network_cidr4,
+											   const UInt8 excl_network_cidr6) const noexcept
 	{
 		auto& ipmap = m_IPMap;
 		if (!ipmap.empty())
 		{
-			if (const auto result = GetNetworks(excl_addr,
-												excl_network_cidr4, excl_network_cidr6); result.Succeeded())
+			auto tries = 0u;
+
+			// Try 3 times to get a random relay peer
+			while (tries < 3)
 			{
-				const auto& excl_networks = result.GetValue();
+				const auto it = std::next(std::begin(ipmap),
+										  static_cast<Size>(Random::GetPseudoRandomNumber(0, ipmap.size() - 1)));
 
-				auto tries = 0u;
+				// IP should not be in exclude lists
+				const auto result1 = AreIPsInSameNetwork(it->first, excl_addr1, excl_network_cidr4, excl_network_cidr6);
+				const auto result2 = AreIPsInSameNetwork(it->first, excl_addr2, excl_network_cidr4, excl_network_cidr6);
 
-				// Try 3 times to get a random relay peer
-				while (tries < 3)
+				if (result1.Failed() || result2.Failed()) return ResultCode::Failed;
+
+				if (!result1.GetValue() && !result2.GetValue())
 				{
-					const auto it = std::next(std::begin(ipmap),
-											  static_cast<Size>(Random::GetPseudoRandomNumber(0, ipmap.size() - 1)));
+					const auto it2 = std::next(std::begin(it->second),
+											   static_cast<Size>(Random::GetPseudoRandomNumber(0, it->second.size() - 1)));
 
-					// IP should not be in exclude lists
-					const auto result2 = IsIPInNetwork(it->first, excl_network_cidr4,
-													   excl_network_cidr6, excl_networks);
-					if (result2.Failed()) return ResultCode::Failed;
+					const auto& luid = *it2;
 
-					if (!result2.GetValue() && !HasIP(it->first, excl_addr))
+					// LUID should not be in the exclude list
+					if (!HasLUID(luid, excl_pluids))
 					{
-						const auto it2 = std::next(std::begin(it->second),
-												   static_cast<Size>(Random::GetPseudoRandomNumber(0, it->second.size() - 1)));
+						// Peer should be in the ready state
+						if (const auto peerths = GetPeerData(luid); peerths != nullptr)
+						{
+							if (peerths->WithSharedLock()->Status == Status::Ready)
+							{
+								return luid;
+							}
+						}
+					}
+				}
 
-						const auto& luid = *it2;
+				++tries;
+			}
 
+			// Couldn't get a peer randomly; try linear search
+			for (const auto& it : ipmap)
+			{
+				// IP should not be in exclude lists
+				const auto result1 = AreIPsInSameNetwork(it.first, excl_addr1, excl_network_cidr4, excl_network_cidr6);
+				const auto result2 = AreIPsInSameNetwork(it.first, excl_addr2, excl_network_cidr4, excl_network_cidr6);
+				
+				if (result1.Failed() || result2.Failed()) return ResultCode::Failed;
+
+				if (!result1.GetValue() && !result2.GetValue())
+				{
+					for (const auto& luid : it.second)
+					{
 						// LUID should not be in the exclude list
 						if (!HasLUID(luid, excl_pluids))
 						{
@@ -187,39 +215,8 @@ namespace QuantumGate::Implementation::Core::Peer
 							}
 						}
 					}
-
-					++tries;
-				}
-
-				// Couldn't get a peer randomly; try linear search
-				for (const auto& it : ipmap)
-				{
-					// IP should not be in exclude lists
-					const auto result2 = IsIPInNetwork(it.first, excl_network_cidr4,
-													   excl_network_cidr6, excl_networks);
-					if (result2.Failed()) return ResultCode::Failed;
-
-					if (!result2.GetValue() && !HasIP(it.first, excl_addr))
-					{
-						for (const auto& luid : it.second)
-						{
-							// LUID should not be in the exclude list
-							if (!HasLUID(luid, excl_pluids))
-							{
-								// Peer should be in the ready state
-								if (const auto peerths = GetPeerData(luid); peerths != nullptr)
-								{
-									if (peerths->WithSharedLock()->Status == Status::Ready)
-									{
-										return luid;
-									}
-								}
-							}
-						}
-					}
 				}
 			}
-			else return ResultCode::Failed;
 		}
 
 		return ResultCode::PeerNotFound;
@@ -309,53 +306,37 @@ namespace QuantumGate::Implementation::Core::Peer
 		return (std::find(addresses.begin(), addresses.end(), ip) != addresses.end());
 	}
 
-	Result<bool> LookupMaps::IsIPInNetwork(const BinaryIPAddress& ip,
-										   const UInt8 cidr_lbits4, const UInt8 cidr_lbits6,
-										   const std::vector<BinaryIPAddress>& networks) noexcept
+	Result<bool> LookupMaps::AreIPsInSameNetwork(const BinaryIPAddress& ip, const std::vector<BinaryIPAddress>& addresses,
+												 const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept
 	{
-		if (networks.size() > 0)
+		if (addresses.size() > 0)
 		{
-			auto cidr_lbits = cidr_lbits4;
-			if (ip.AddressFamily == IPAddressFamily::IPv6) cidr_lbits = cidr_lbits6;
-
-			BinaryIPAddress subnet_mask;
-
-			if (IPAddress::TryParseMask(ip.AddressFamily, cidr_lbits, subnet_mask))
+			for (const auto& address : addresses)
 			{
-				const auto ipnetwork = ip & subnet_mask;
-
-				if (std::find(networks.begin(), networks.end(), ipnetwork) != networks.end())
-				{
-					return true;
-				}
-			}
-			else
-			{
-				LogErr(L"IsIPInExcludedNetwork() couldn't parse subnet mask for IP address %s and CIDR %u",
-					   IPAddress(ip).GetCString(), cidr_lbits);
-				return ResultCode::Failed;
+				const auto result = AreIPsInSameNetwork(ip, address, cidr_lbits4, cidr_lbits6);
+				if (result.Succeeded() && result.GetValue()) return true;
+				else if (result.Failed()) return ResultCode::Failed;
 			}
 		}
 
 		return false;
 	}
 
-	Result<bool> LookupMaps::IsIPInNetwork(const BinaryIPAddress& ip, const std::vector<BinaryIPAddress>& addresses,
-										   const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept
-	{
-		if (const auto result = GetNetworks(addresses, cidr_lbits4, cidr_lbits6); result.Succeeded())
-		{
-			const auto result2 = IsIPInNetwork(ip, cidr_lbits4, cidr_lbits6, result.GetValue());
-			if (result2.Succeeded()) return result2.GetValue();
-		}
-
-		return ResultCode::Failed;
-	}
-
 	Result<bool> LookupMaps::AreIPsInSameNetwork(const BinaryIPAddress& ip1, const BinaryIPAddress& ip2,
 												 const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept
 	{
-		return IsIPInNetwork(ip1, { ip2 }, cidr_lbits4, cidr_lbits6);
+		const auto cidr_lbits = (ip1.AddressFamily == IPAddressFamily::IPv4) ? cidr_lbits4 : cidr_lbits6;
+
+		const auto[success, same_network] = BinaryIPAddress::AreInSameNetwork(ip1, ip2, cidr_lbits);
+		if (success && same_network) return true;
+		else if (!success)
+		{
+			LogErr(L"AreIPsInSameNetwork() couldn't compare IP addresses %s, %s and CIDR %u",
+				   IPAddress(ip1).GetString().c_str(), IPAddress(ip2).GetString().c_str(), cidr_lbits);
+			return ResultCode::Failed;
+		}
+
+		return false;
 	}
 
 	const UInt64 LookupMaps::GetIPPortHash(const IPEndpoint& endpoint) noexcept
@@ -471,43 +452,5 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		return false;
-	}
-
-	Result<std::vector<BinaryIPAddress>> LookupMaps::GetNetworks(const std::vector<BinaryIPAddress>& addresses,
-																 const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept
-	{
-		try
-		{
-			std::vector<BinaryIPAddress> excl_networks;
-
-			for (const auto& addr : addresses)
-			{
-				BinaryIPAddress subnet_mask;
-
-				auto cidr_lbits = cidr_lbits4;
-				if (addr.AddressFamily == IPAddressFamily::IPv6) cidr_lbits = cidr_lbits6;
-
-				if (IPAddress::TryParseMask(addr.AddressFamily, cidr_lbits, subnet_mask))
-				{
-					auto network = addr & subnet_mask;
-
-					if (std::find(excl_networks.begin(), excl_networks.end(), network) == excl_networks.end())
-					{
-						excl_networks.emplace_back(network);
-					}
-				}
-				else
-				{
-					LogErr(L"GetExcludedNetworks() couldn't parse subnet mask for IP address %s and CIDR %u",
-						   IPAddress(addr).GetCString(), cidr_lbits);
-					return ResultCode::Failed;
-				}
-			}
-
-			return excl_networks;
-		}
-		catch (...) {}
-
-		return ResultCode::Failed;
 	}
 }

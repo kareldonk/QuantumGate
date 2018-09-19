@@ -19,6 +19,7 @@
 #define IDD_ALGORITHMS_DIALOG           152
 #define IDD_SETTINGS                    154
 #define IDD_IPREPUTATIONS_DIALOG        156
+#define IDD_INFO_DIALOG                 158
 #define IDC_INIT                        1000
 #define IDC_CONSOLE                     1001
 #define IDC_DEINIT                      1002
@@ -146,6 +147,8 @@
 #define IDC_CHECK7                      1068
 #define IDC_SET_REPUTATION              1068
 #define IDC_CHECK8                      1069
+#define IDC_EDIT1                       1069
+#define IDC_INFO_TEXT                   1069
 #define IDC_CHECK9                      1070
 #define IDC_CHECK10                     1071
 #define IDC_CHECK11                     1072
@@ -236,14 +239,15 @@
 #define ID_LOCAL_IPREPUTATIONS          32844
 #define ID_ATTACKS_CONNECTANDDISCONNECT 32845
 #define ID_ATTACKS_CONNECTANDWAIT       32846
+#define ID_LOCAL_ENVIRONMENTINFO        32847
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        158
-#define _APS_NEXT_COMMAND_VALUE         32847
-#define _APS_NEXT_CONTROL_VALUE         1069
+#define _APS_NEXT_RESOURCE_VALUE        160
+#define _APS_NEXT_COMMAND_VALUE         32848
+#define _APS_NEXT_CONTROL_VALUE         1070
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

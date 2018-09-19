@@ -68,8 +68,8 @@ namespace UnitTests
 			auto result2 = ipfilters.AddFilter(L"192.168.0.1", L"255.255.255.0", IPFilterType::Allowed);
 			Assert::AreEqual(true, result2.Succeeded());
 
-			auto result3 = ipfilters.AddFilter(L"fe80::c11a:3a9c:ef10:e795",
-											   L"ffff::ffff:ffff:ffff:ffff", IPFilterType::Blocked);
+			auto result3 = ipfilters.AddFilter(L"fe80:c11a:3a9c:ef10:e795::",
+											   L"ffff:ffff:ffff:ffff:ffff::", IPFilterType::Blocked);
 			Assert::AreEqual(true, result3.Succeeded());
 
 			Assert::AreEqual(static_cast<size_t>(3), ipfilters.GetFilters().GetValue().size());
@@ -134,31 +134,25 @@ namespace UnitTests
 
 			Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.1.2").GetValue());
 
-			auto result3 = ipfilters.AddFilter(L"fe80::c11a:3a9c:ef10:e795",
-											   L"ffff::ffff:ffff:ffff:ffff", IPFilterType::Blocked);
+			auto result3 = ipfilters.AddFilter(L"fe80:c11a:3a9c:ef10:e795::",
+											   L"ffff:ffff:ffff:ffff:ffff::", IPFilterType::Blocked);
 			Assert::AreEqual(true, result3.Succeeded());
 
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef10:e795").GetValue());
+			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef10:e795::").GetValue());
 
 			Assert::AreEqual(true,
 							 ipfilters.RemoveFilter(*result3, IPFilterType::Blocked).Succeeded());
 
 			Assert::AreEqual(true,
-							 ipfilters.AddFilter(L"fe80::c11a:3a9c:ef11:e795",
-												 L"ffff::ffff:ffff:ffdc:ffff", IPFilterType::Blocked).Succeeded());
+							 ipfilters.AddFilter(L"fe80:c11a:3a9c:ef11:e795::",
+												 L"ffff:ffff:ffff:ff00::", IPFilterType::Blocked).Succeeded());
 
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80::c11a:3a9c:eeee:e795").GetValue());
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80::c11a:3a9c:eeef:e795").GetValue());
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef0f:e795").GetValue());
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef09:e795").GetValue());
-
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef10:e795").GetValue());
-
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef11:e795").GetValue());
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef12:e795").GetValue());
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef20:e795").GetValue());
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef33:e795").GetValue());
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef34:e795").GetValue());
+			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef80:e795::").GetValue());
+			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef81:e795::").GetValue());
+			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef91:e795::").GetValue());
+			
+			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80:c11a:3a9c:df11::").GetValue());
+			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ff11::").GetValue());
 
 			ipfilters.Clear();
 
@@ -184,17 +178,17 @@ namespace UnitTests
 			Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.0.100").GetValue());
 
 			// And now the same as above for IPv6
-			Assert::AreEqual(true, ipfilters.AddFilter(L"fe80::c11a:3a9c:ef11:e795",
-													   L"ffff::ffff:ffff:ffdc:ffff",
+			Assert::AreEqual(true, ipfilters.AddFilter(L"fe80:c11a:3a9c:ef11:e795::",
+													   L"/80",
 													   IPFilterType::Blocked).Succeeded());
 
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef12:e795").GetValue());
+			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef11:e795::f000").GetValue());
 
-			Assert::AreEqual(true, ipfilters.AddFilter(L"fe80::c11a:3a9c:ef12:e795",
-													   L"ffff::ffff:ffff:ffff:ffff",
+			Assert::AreEqual(true, ipfilters.AddFilter(L"fe80:c11a:3a9c:ef11:e795::f000",
+													   L"/128",
 													   IPFilterType::Allowed).Succeeded());
 
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef12:e795").GetValue());
+			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef11:e795::f000").GetValue());
 		}
 	};
 }
