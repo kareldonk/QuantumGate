@@ -102,10 +102,10 @@ namespace QuantumGate::Implementation::Network
 		SerializedBinaryIPAddress IPAddress;
 		UInt16 Port{ 0 };
 
-		constexpr SerializedIPEndpoint() noexcept {}
-		constexpr SerializedIPEndpoint(const IPEndpoint& endpoint) noexcept { *this = endpoint; }
+		SerializedIPEndpoint() noexcept {}
+		SerializedIPEndpoint(const IPEndpoint& endpoint) noexcept { *this = endpoint; }
 
-		constexpr SerializedIPEndpoint& operator=(const IPEndpoint& endpoint) noexcept
+		SerializedIPEndpoint& operator=(const IPEndpoint& endpoint) noexcept
 		{
 			IPAddress = endpoint.GetIPAddress().GetBinary();
 			Port = endpoint.GetPort();
@@ -117,12 +117,12 @@ namespace QuantumGate::Implementation::Network
 			return IPEndpoint({ IPAddress }, Port);
 		}
 
-		constexpr bool operator==(const SerializedIPEndpoint& other) const noexcept
+		bool operator==(const SerializedIPEndpoint& other) const noexcept
 		{
 			return (IPAddress == other.IPAddress && Port == other.Port);
 		}
 
-		constexpr bool operator!=(const SerializedIPEndpoint& other) const noexcept
+		bool operator!=(const SerializedIPEndpoint& other) const noexcept
 		{
 			return !(*this == other);
 		}

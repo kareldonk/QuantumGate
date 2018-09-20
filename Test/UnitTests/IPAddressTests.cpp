@@ -562,5 +562,39 @@ namespace UnitTests
 			Assert::AreEqual(false, IPAddress(L"208.10.20.30").IsReserved());
 			Assert::AreEqual(false, IPAddress(L"15.10.20.30").IsReserved());
 		}
+
+		TEST_METHOD(IsClassX)
+		{
+			Assert::AreEqual(true, IPAddress(L"0.1.1.1").IsClassA());
+			Assert::AreEqual(true, IPAddress(L"5.1.1.1").IsClassA());
+			Assert::AreEqual(true, IPAddress(L"45.25.1.1").IsClassA());
+			Assert::AreEqual(true, IPAddress(L"127.25.1.1").IsClassA());
+			Assert::AreEqual(false, IPAddress(L"128.25.1.1").IsClassA());
+			Assert::AreEqual(false, IPAddress(L"200.25.1.1").IsClassA());
+
+			Assert::AreEqual(true, IPAddress(L"160.1.1.1").IsClassB());
+			Assert::AreEqual(true, IPAddress(L"128.1.1.1").IsClassB());
+			Assert::AreEqual(false, IPAddress(L"45.25.1.1").IsClassB());
+			Assert::AreEqual(false, IPAddress(L"127.25.1.1").IsClassB());
+			Assert::AreEqual(false, IPAddress(L"0.25.1.1").IsClassB());
+
+			Assert::AreEqual(true, IPAddress(L"205.1.1.1").IsClassC());
+			Assert::AreEqual(true, IPAddress(L"208.1.1.1").IsClassC());
+			Assert::AreEqual(false, IPAddress(L"176.25.1.1").IsClassC());
+			Assert::AreEqual(false, IPAddress(L"127.25.1.1").IsClassC());
+			Assert::AreEqual(false, IPAddress(L"0.25.1.1").IsClassC());
+
+			Assert::AreEqual(true, IPAddress(L"224.1.1.1").IsClassD());
+			Assert::AreEqual(true, IPAddress(L"239.1.1.1").IsClassD());
+			Assert::AreEqual(false, IPAddress(L"255.25.1.1").IsClassD());
+			Assert::AreEqual(false, IPAddress(L"127.25.1.1").IsClassD());
+			Assert::AreEqual(false, IPAddress(L"0.25.1.1").IsClassD());
+
+			Assert::AreEqual(true, IPAddress(L"240.1.1.1").IsClassE());
+			Assert::AreEqual(true, IPAddress(L"255.1.1.1").IsClassE());
+			Assert::AreEqual(false, IPAddress(L"208.25.1.1").IsClassE());
+			Assert::AreEqual(false, IPAddress(L"127.25.1.1").IsClassE());
+			Assert::AreEqual(false, IPAddress(L"0.25.1.1").IsClassE());
+		}
 	};
 }

@@ -70,18 +70,6 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool IPAddress::CreateMask(const IPAddressFamily af, UInt8 cidr_lbits, IPAddress& ipmask) noexcept
-	{
-		BinaryIPAddress mask;
-		if (BinaryIPAddress::CreateMask(af, cidr_lbits, mask))
-		{
-			ipmask.SetAddress(mask);
-			return true;
-		}
-
-		return false;
-	}
-
 	void IPAddress::SetAddress(const String& ipaddr_str)
 	{
 		static_assert(sizeof(m_AddressBinary.Bytes) >= sizeof(in6_addr), "IP Address length mismatch");
@@ -147,64 +135,6 @@ namespace QuantumGate::Implementation::Network
 		catch (...) {}
 
 		return {};
-	}
-
-	const bool IPAddress::IsLocal(const BinaryIPAddress& bin_ipaddr) noexcept
-	{
-		const std::array<Block, 12> local =
-		{
-			Block{ { IPAddressFamily::IPv4, { Byte{ 0 } } }, 8 },					// 0.0.0.0/8 (Local system)
-			Block{ { IPAddressFamily::IPv4, { Byte{ 169 }, Byte{ 254 } } }, 16 },	// 169.254.0.0/16 (Link local)
-			Block{ { IPAddressFamily::IPv4, { Byte{ 127 } } }, 8 },					// 127.0.0.0/8 (Loopback)
-			Block{ { IPAddressFamily::IPv4, { Byte{ 192 }, Byte{ 168 } } }, 16 },	// 192.168.0.0/16 (Local LAN)
-			Block{ { IPAddressFamily::IPv4, { Byte{ 10 } } }, 8 },					// 10.0.0.0/8 (Local LAN)
-			Block{ { IPAddressFamily::IPv4, { Byte{ 172 }, Byte{ 16 } } }, 12 },	// 172.16.0.0/12 (Local LAN)
-
-			Block{ { IPAddressFamily::IPv6, { Byte{ 0 } } }, 8 },					// ::/8 (Local system)
-			Block{ { IPAddressFamily::IPv6, { Byte{ 0xfc } } }, 7 },				// fc00::/7 (Unique Local Addresses)
-			Block{ { IPAddressFamily::IPv6, { Byte{ 0xfd } } }, 8 },				// fd00::/8 (Unique Local Addresses)
-			Block{ { IPAddressFamily::IPv6, { Byte{ 0xfe }, Byte{ 0xc0 } } }, 10 },	// fec0::/10 (Site local)
-			Block{ { IPAddressFamily::IPv6, { Byte{ 0xfe }, Byte{ 0x80 } } }, 10 },	// fe80::/10 (Link local)
-			Block{ { IPAddressFamily::IPv6, { Byte{ 0 } } }, 127 }					// ::/127 (Inter-Router Links)
-		};
-
-		for (const auto& block : local)
-		{
-			if (IsInBlock(bin_ipaddr, block)) return true;
-		}
-
-		return false;
-	}
-
-	const bool IPAddress::IsMulticast(const BinaryIPAddress& bin_ipaddr) noexcept
-	{
-		const std::array<Block, 2> multicast =
-		{
-			Block{ { IPAddressFamily::IPv4, { Byte{ 224 } } }, 4 },		// 224.0.0.0/4 Multicast
-			Block{ { IPAddressFamily::IPv6, { Byte{ 0xff } } }, 8 },	// ff00::/8 Multicast
-		};
-
-		for (const auto& block : multicast)
-		{
-			if (IsInBlock(bin_ipaddr, block)) return true;
-		}
-
-		return false;
-	}
-
-	const bool IPAddress::IsReserved(const BinaryIPAddress& bin_ipaddr) noexcept
-	{
-		return IsInBlock(bin_ipaddr,
-						 Block{ { IPAddressFamily::IPv4, { Byte{ 240 } } }, 4 }); // 240.0.0.0/4 Future use
-	}
-
-	const bool IPAddress::IsInBlock(const BinaryIPAddress& bin_ipaddr, const Block& block) noexcept
-	{
-		const auto[success, same_network] = BinaryIPAddress::AreInSameNetwork(bin_ipaddr, block.Address,
-																			  block.CIDRLeadingBits);
-		if (success && same_network) return true;
-
-		return false;
 	}
 
 	std::ostream& operator<<(std::ostream& stream, const IPAddress& ipaddr)

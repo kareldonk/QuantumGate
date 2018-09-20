@@ -10,11 +10,28 @@ namespace QuantumGate::Implementation::Network
 		IPAddressFamily AddressFamily{ IPAddressFamily::Unknown };
 		union
 		{
-			Byte	Bytes[16];
-			UInt16	UInt16s[8];
-			UInt32	UInt32s[4];
-			UInt64	UInt64s[2]{ 0, 0 };
+			Byte Bytes[16]
+			{
+				Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
+				Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
+				Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
+				Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 }
+			};
+			UInt16 UInt16s[8];
+			UInt32 UInt32s[4];
+			UInt64 UInt64s[2];
 		};
+
+		constexpr BinaryIPAddress() noexcept {}
+
+		constexpr BinaryIPAddress(const IPAddressFamily af, const Byte b1 = Byte{ 0 }, const Byte b2 = Byte{ 0 },
+								  const Byte b3 = Byte{ 0 }, const Byte b4 = Byte{ 0 }, const Byte b5 = Byte{ 0 },
+								  const Byte b6 = Byte{ 0 }, const Byte b7 = Byte{ 0 }, const Byte b8 = Byte{ 0 },
+								  const Byte b9 = Byte{ 0 }, const Byte b10 = Byte{ 0 }, const Byte b11 = Byte{ 0 },
+								  const Byte b12 = Byte{ 0 }, const Byte b13 = Byte{ 0 }, const Byte b14 = Byte{ 0 },
+								  const Byte b15 = Byte{ 0 }, const Byte b16 = Byte{ 0 }) noexcept :
+			AddressFamily{ af }, Bytes{ b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16 }
+		{}
 
 		constexpr void Clear() noexcept
 		{
@@ -131,6 +148,17 @@ namespace QuantumGate::Implementation::Network
 
 		std::size_t GetHash() const noexcept;
 
+		static constexpr BinaryIPAddress CreateMask(const IPAddressFamily af, const UInt8 cidr_lbits)
+		{
+			BinaryIPAddress mask;
+			if (!CreateMask(af, cidr_lbits, mask))
+			{
+				throw std::invalid_argument("Couldn't create mask likely because of invalid arguments.");
+			}
+
+			return mask;
+		}
+
 		[[nodiscard]] static constexpr const bool CreateMask(const IPAddressFamily af,
 															 UInt8 cidr_lbits,
 															 BinaryIPAddress& bin_mask) noexcept
@@ -146,9 +174,7 @@ namespace QuantumGate::Implementation::Network
 				{
 					if (cidr_lbits > 128) return false;
 
-					bin_mask.Clear();
-
-					bin_mask.AddressFamily = af;
+					bin_mask = BinaryIPAddress(af);
 
 					const auto r = cidr_lbits % 8;
 					const auto n = (cidr_lbits - r) / 8;
@@ -198,19 +224,19 @@ namespace QuantumGate::Implementation::Network
 				{
 					if (on)
 					{
-						switch (bin_ipaddr.Bytes[x])
+						switch (static_cast<UChar>(bin_ipaddr.Bytes[x]))
 						{
-							case Byte{ 0b00000000 }:
-							case Byte{ 0b10000000 }:
-							case Byte{ 0b11000000 }:
-							case Byte{ 0b11100000 }:
-							case Byte{ 0b11110000 }:
-							case Byte{ 0b11111000 }:
-							case Byte{ 0b11111100 }:
-							case Byte{ 0b11111110 }:
+							case 0b00000000:
+							case 0b10000000:
+							case 0b11000000:
+							case 0b11100000:
+							case 0b11110000:
+							case 0b11111000:
+							case 0b11111100:
+							case 0b11111110:
 								on = false;
 								continue;
-							case Byte{ 0b11111111 }:
+							case 0b11111111:
 								continue;
 							default:
 								return false;
@@ -218,7 +244,7 @@ namespace QuantumGate::Implementation::Network
 					}
 					else
 					{
-						if (bin_ipaddr.Bytes[x] != Byte{ 0b00000000 }) return false;
+						if (static_cast<UChar>(bin_ipaddr.Bytes[x]) != 0b00000000) return false;
 					}
 				}
 
@@ -326,17 +352,20 @@ namespace QuantumGate::Implementation::Network
 					return 0u;
 				}();
 
-				for (auto x = 0u; x < numbytes; ++x)
+				if (numbytes > 0u)
 				{
-					if (!((bin_ipaddr.Bytes[x] >= bin_range_start.Bytes[x]) &&
-						(bin_ipaddr.Bytes[x] <= bin_range_end.Bytes[x])))
+					for (auto x = 0u; x < numbytes; ++x)
 					{
-						// As soon as we have one mismatch we can stop immediately
-						return std::make_pair(true, false);
+						if (!((bin_ipaddr.Bytes[x] >= bin_range_start.Bytes[x]) &&
+							(bin_ipaddr.Bytes[x] <= bin_range_end.Bytes[x])))
+						{
+							// As soon as we have one mismatch we can stop immediately
+							return std::make_pair(true, false);
+						}
 					}
-				}
 
-				return std::make_pair(true, true);
+					return std::make_pair(true, true);
+				}
 			}
 
 			return std::make_pair(false, false);
@@ -349,16 +378,22 @@ namespace QuantumGate::Implementation::Network
 		IPAddressFamily AddressFamily{ IPAddressFamily::Unknown };
 		union
 		{
-			Byte	Bytes[16];
-			UInt16	UInt16s[8];
-			UInt32	UInt32s[4];
-			UInt64	UInt64s[2]{ 0, 0 };
+			Byte Bytes[16]
+			{
+				Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
+				Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
+				Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
+				Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 }
+			};
+			UInt16 UInt16s[8];
+			UInt32 UInt32s[4];
+			UInt64 UInt64s[2];
 		};
 
-		constexpr SerializedBinaryIPAddress() noexcept {}
-		constexpr SerializedBinaryIPAddress(const BinaryIPAddress& addr) noexcept { *this = addr; }
+		SerializedBinaryIPAddress() noexcept {}
+		SerializedBinaryIPAddress(const BinaryIPAddress& addr) noexcept { *this = addr; }
 
-		constexpr SerializedBinaryIPAddress& operator=(const BinaryIPAddress& addr) noexcept
+		SerializedBinaryIPAddress& operator=(const BinaryIPAddress& addr) noexcept
 		{
 			AddressFamily = addr.AddressFamily;
 			UInt64s[0] = addr.UInt64s[0];
@@ -366,7 +401,7 @@ namespace QuantumGate::Implementation::Network
 			return *this;
 		}
 
-		constexpr operator BinaryIPAddress() const noexcept
+		operator BinaryIPAddress() const noexcept
 		{
 			BinaryIPAddress addr;
 			addr.AddressFamily = AddressFamily;
@@ -375,14 +410,14 @@ namespace QuantumGate::Implementation::Network
 			return addr;
 		}
 
-		constexpr bool operator==(const SerializedBinaryIPAddress& other) const noexcept
+		bool operator==(const SerializedBinaryIPAddress& other) const noexcept
 		{
 			return (AddressFamily == other.AddressFamily &&
 					UInt64s[0] == other.UInt64s[0] &&
 					UInt64s[1] == other.UInt64s[1]);
 		}
 
-		constexpr bool operator!=(const SerializedBinaryIPAddress& other) const noexcept
+		bool operator!=(const SerializedBinaryIPAddress& other) const noexcept
 		{
 			return !(*this == other);
 		}

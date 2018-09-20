@@ -224,10 +224,10 @@ namespace QuantumGate::Implementation
 			UInt64 UInt64{ 0 };
 		} Data4;
 
-		constexpr SerializedUUID() noexcept {}
-		constexpr SerializedUUID(const UUID& uuid) noexcept { *this = uuid; }
+		SerializedUUID() noexcept {}
+		SerializedUUID(const UUID& uuid) noexcept { *this = uuid; }
 
-		constexpr SerializedUUID& operator=(const UUID& uuid) noexcept
+		SerializedUUID& operator=(const UUID& uuid) noexcept
 		{
 			Data1 = uuid.m_Data1;
 			Data2 = uuid.m_Data2;
@@ -236,7 +236,7 @@ namespace QuantumGate::Implementation
 			return *this;
 		}
 
-		constexpr operator UUID() const noexcept
+		operator UUID() const noexcept
 		{
 			UUID uuid;
 			uuid.m_Data1 = Data1;
@@ -246,7 +246,7 @@ namespace QuantumGate::Implementation
 			return uuid;
 		}
 
-		constexpr const bool operator==(const SerializedUUID& other) const noexcept
+		const bool operator==(const SerializedUUID& other) const noexcept
 		{
 			return (Data1 == other.Data1 &&
 					Data2 == other.Data2 &&
@@ -254,7 +254,7 @@ namespace QuantumGate::Implementation
 					Data4.UInt64 == other.Data4.UInt64);
 		}
 
-		constexpr const bool operator!=(const SerializedUUID& other) const noexcept
+		const bool operator!=(const SerializedUUID& other) const noexcept
 		{
 			return !(*this == other);
 		}
