@@ -1520,28 +1520,31 @@ void CTestAppDlg::OnLocalEnvironmentInfo()
 			if (ipdetails.BoundToLocalEthernetInterface) info += L"Yes";
 			else info += L"No";
 
-			info += L"\r\n";
+			if (ipdetails.PublicDetails.has_value())
+			{
+				info += L"\r\n";
 
-			info += L"Reported by peers:\t\t\t";
-			if (ipdetails.PublicDetails.ReportedByPeers) info += L"Yes";
-			else info += L"No";
+				info += L"Reported by peers:\t\t\t";
+				if (ipdetails.PublicDetails->ReportedByPeers) info += L"Yes";
+				else info += L"No";
 
-			info += L"\r\n";
+				info += L"\r\n";
 
-			info += L"Reported by trusted peers:\t\t";
-			if (ipdetails.PublicDetails.ReportedByTrustedPeers) info += L"Yes";
-			else info += L"No";
+				info += L"Reported by trusted peers:\t\t";
+				if (ipdetails.PublicDetails->ReportedByTrustedPeers) info += L"Yes";
+				else info += L"No";
 
-			info += L"\r\n";
+				info += L"\r\n";
 
-			info += L"Number of reporting networks:\t" + 
-				Util::FormatString(L"%llu", ipdetails.PublicDetails.NumReportingNetworks);
+				info += L"Number of reporting networks:\t" +
+					Util::FormatString(L"%llu", ipdetails.PublicDetails->NumReportingNetworks);
 
-			info += L"\r\n";
+				info += L"\r\n";
 
-			info += L"Verified:\t\t\t\t";
-			if (ipdetails.PublicDetails.Verified) info += L"Yes";
-			else info += L"No";
+				info += L"Verified:\t\t\t\t";
+				if (ipdetails.PublicDetails->Verified) info += L"Yes";
+				else info += L"No";
+			}
 		}
 	}
 	else AfxMessageBox(L"Failed to get IP addresses!", MB_ICONERROR);

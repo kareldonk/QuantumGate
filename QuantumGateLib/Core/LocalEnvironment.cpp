@@ -243,7 +243,7 @@ namespace QuantumGate::Implementation::Core
 													 const bool trusted) noexcept
 	{
 		if (const auto result = m_PublicIPEndpoints.AddIPEndpoint(pub_endpoint, rep_peer,
-																		rep_con_type, trusted);
+																  rep_con_type, trusted);
 			result.Succeeded())
 		{
 			if (result->first && result->second)
@@ -263,7 +263,7 @@ namespace QuantumGate::Implementation::Core
 		try
 		{
 			std::vector<BinaryIPAddress> allips;
-			
+
 			// First add the local IP addresses configured on the host
 			for (const auto& ifs : m_EthernetInterfaces)
 			{

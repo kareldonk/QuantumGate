@@ -190,18 +190,19 @@ namespace QuantumGate
 		bool AccessAllowed{ false };
 	};
 
+	struct PublicIPAddressDetails
+	{
+		bool ReportedByPeers{ false };
+		bool ReportedByTrustedPeers{ false };
+		Size NumReportingNetworks{ 0 };
+		bool Verified{ false };
+	};
+
 	struct IPAddressDetails
 	{
 		IPAddress IPAddress;
 		bool BoundToLocalEthernetInterface{ false };
-
-		struct
-		{
-			bool Verified{ false };
-			bool ReportedByPeers{ false };
-			bool ReportedByTrustedPeers{ false };
-			Size NumReportingNetworks{ 0 };
-		} PublicDetails;
+		std::optional<PublicIPAddressDetails> PublicDetails;
 	};
 
 	struct EthernetInterface

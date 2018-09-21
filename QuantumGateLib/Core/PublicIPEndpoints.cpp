@@ -189,10 +189,25 @@ namespace QuantumGate::Implementation::Core
 					auto& ipdetails = ips.emplace_back();
 					ipdetails.IPAddress = it.first;
 					ipdetails.BoundToLocalEthernetInterface = false;
-					ipdetails.PublicDetails.ReportedByPeers = true;
-					ipdetails.PublicDetails.ReportedByTrustedPeers = it.second.Trusted;
-					ipdetails.PublicDetails.NumReportingNetworks = it.second.ReportingPeerNetworkHashes.size();
-					ipdetails.PublicDetails.Verified = it.second.Verified;
+
+					ipdetails.PublicDetails.emplace();
+					ipdetails.PublicDetails->ReportedByPeers = true;
+					ipdetails.PublicDetails->ReportedByTrustedPeers = it.second.Trusted;
+					ipdetails.PublicDetails->NumReportingNetworks = it.second.ReportingPeerNetworkHashes.size();
+					ipdetails.PublicDetails->Verified = it.second.Verified;
+				}
+				else
+				{
+					// May be a locally configured IP that's also
+					// publicly visible; add the public details 
+					if (!it2->PublicDetails.has_value())
+					{
+						it2->PublicDetails.emplace();
+						it2->PublicDetails->ReportedByPeers = true;
+						it2->PublicDetails->ReportedByTrustedPeers = it.second.Trusted;
+						it2->PublicDetails->NumReportingNetworks = it.second.ReportingPeerNetworkHashes.size();
+						it2->PublicDetails->Verified = it.second.Verified;
+					}
 				}
 			}
 

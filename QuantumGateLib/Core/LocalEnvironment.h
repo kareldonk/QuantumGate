@@ -38,7 +38,7 @@ namespace QuantumGate::Implementation::Core
 													 const IPEndpoint& rep_peer,
 													 const PeerConnectionType rep_con_type,
 													 const bool trusted) noexcept;
-	
+
 	private:
 		[[nodiscard]] const bool UpdateCachedIPAddresses() noexcept;
 
@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Core
 		String m_Hostname;
 		String m_Username;
 		std::vector<EthernetInterface> m_EthernetInterfaces;
-		
+
 		PublicIPEndpoints m_PublicIPEndpoints;
 
 		CachedIPAddresses_ThS m_CachedIPAddresses;

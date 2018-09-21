@@ -42,7 +42,7 @@ namespace QuantumGate::API
 
 		return ResultCode::Failed;
 	}
-	
+
 	Result<std::vector<IPAddressDetails>> LocalEnvironment::GetIPAddresses() const noexcept
 	{
 		assert(m_LocalEnvironment != nullptr);
