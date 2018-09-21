@@ -22,8 +22,8 @@ namespace QuantumGate::Implementation
 		GetRngEngine().CheckSeed64(count);
 
 		// How many 64bit integers do we need for the number of requested bytes?
-		const auto num = static_cast<UInt64>(std::ceil(static_cast<double>(count) /
-													   static_cast<double>(sizeof(UInt64))));
+		const auto num = static_cast<Size>(std::ceil(static_cast<double>(count) /
+													 static_cast<double>(sizeof(UInt64))));
 
 		assert(count <= (num * sizeof(UInt64)));
 

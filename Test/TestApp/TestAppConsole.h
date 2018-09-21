@@ -19,7 +19,7 @@ public:
 	const QuantumGate::WChar* GetFormat(const QuantumGate::Console::MessageType type,
 										const QuantumGate::Console::Format fmt) const noexcept override
 	{
-		return {};
+		return L"";
 	}
 
 	void AddMessage(const QuantumGate::Console::MessageType type,
