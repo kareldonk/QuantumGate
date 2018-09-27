@@ -186,11 +186,11 @@ namespace QuantumGate::Socks5Extender
 
 	const bool Extender::InitializeIPFilters()
 	{
-		bool success = true;
+		auto success = true;
 
 		// Block internal networks to prevent incoming connections
 		// from connecting to internal addresses
-		std::vector<String> internal_nets = {
+		const std::array<const WChar*, 15> internal_nets = {
 			L"0.0.0.0/8",		// Local system
 			L"169.254.0.0/16",	// Link local
 			L"127.0.0.0/8",		// Loopback
@@ -210,12 +210,12 @@ namespace QuantumGate::Socks5Extender
 
 		m_IPFilters.WithUniqueLock([&](Core::Access::IPFilters& filters)
 		{
-			for (auto net : internal_nets)
+			for (const auto net : internal_nets)
 			{
 				const auto result = filters.AddFilter(net, IPFilterType::Blocked);
 				if (result.Failed())
 				{
-					LogErr(GetName() + L": could not add %s to IP filters", net.c_str());
+					LogErr(GetName() + L": could not add %s to IP filters", net);
 					success = false;
 					break;
 				}

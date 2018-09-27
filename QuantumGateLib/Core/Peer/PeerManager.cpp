@@ -400,8 +400,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		return rval;
 	}
 
-	Result<PeerLUID> Manager::GetRelayPeer(const std::vector<BinaryIPAddress>& excl_addr1,
-										   const std::vector<BinaryIPAddress>& excl_addr2) const noexcept
+	Result<PeerLUID> Manager::GetRelayPeer(const Vector<BinaryIPAddress>& excl_addr1,
+										   const Vector<BinaryIPAddress>& excl_addr2) const noexcept
 	{
 		const auto& settings = GetSettings();
 		return m_LookupMaps.WithSharedLock()->GetRandomPeer({}, excl_addr1, excl_addr2,
@@ -418,7 +418,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	Result<bool> Manager::AreRelayIPsInSameNetwork(const BinaryIPAddress& ip,
-												   const std::vector<BinaryIPAddress>& addresses) noexcept
+												   const Vector<BinaryIPAddress>& addresses) noexcept
 	{
 		const auto& settings = GetSettings();
 		return LookupMaps::AreIPsInSameNetwork(ip, addresses,
@@ -805,7 +805,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					const auto excl_addr1 = GetLocalIPAddresses();
 					if (excl_addr1 != nullptr)
 					{
-						std::vector<BinaryIPAddress> excl_addr2{ params.PeerIPEndpoint.GetIPAddress().GetBinary() };
+						Vector<BinaryIPAddress> excl_addr2{ params.PeerIPEndpoint.GetIPAddress().GetBinary() };
 
 						if (params.Relay.ViaPeer)
 						{
@@ -916,7 +916,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result_code;
 	}
 
-	Result<std::vector<PeerLUID>> Manager::QueryPeers(const PeerQueryParameters& params) const noexcept
+	Result<Vector<PeerLUID>> Manager::QueryPeers(const PeerQueryParameters& params) const noexcept
 	{
 		return m_LookupMaps.WithSharedLock()->QueryPeers(params);
 	}
@@ -954,7 +954,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::Succeeded;
 	}
 
-	const std::vector<BinaryIPAddress>* Manager::GetLocalIPAddresses() const noexcept
+	const Vector<BinaryIPAddress>* Manager::GetLocalIPAddresses() const noexcept
 	{
 		return m_LocalEnvironment.WithSharedLock()->GetCachedIPAddresses();
 	}
@@ -1031,7 +1031,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		++m_AllPeers.AccessUpdateFlag;
 	}
 
-	void Manager::OnLocalExtenderUpdate(const std::vector<ExtenderUUID>& extuuids, const bool added)
+	void Manager::OnLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids, const bool added)
 	{
 		assert(m_Running);
 

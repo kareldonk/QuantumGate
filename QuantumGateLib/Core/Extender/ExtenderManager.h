@@ -14,8 +14,8 @@ namespace QuantumGate::Implementation::Core::Extender
 {
 	struct ActiveExtenderUUIDs
 	{
-		std::vector<ExtenderUUID> UUIDs;
-		std::vector<SerializedUUID> SerializedUUIDs;
+		Vector<ExtenderUUID> UUIDs;
+		Vector<SerializedUUID> SerializedUUIDs;
 	};
 
 	using CachedActiveExtenderUUIDs_ThS = Concurrency::ThreadLocalCache<ActiveExtenderUUIDs, Concurrency::SpinMutex, 369>;
@@ -28,7 +28,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		using ExtenderMap_ThS = Concurrency::ThreadSafe<ExtenderMap, std::shared_mutex>;
 
 	public:
-		using ExtenderUpdateCallbacks = Dispatcher<void(const std::vector<ExtenderUUID>&, const bool)>;
+		using ExtenderUpdateCallbacks = Dispatcher<void(const Vector<ExtenderUUID>&, const bool)>;
 		using ExtenderUpdateCallbackHandle = ExtenderUpdateCallbacks::FunctionHandle;
 		using ExtenderUpdateCallbacks_ThS = Concurrency::ThreadSafe<ExtenderUpdateCallbacks, std::shared_mutex>;
 
@@ -57,7 +57,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		const bool HasExtender(const ExtenderUUID& extuuid) const noexcept;
 		std::weak_ptr<QuantumGate::API::Extender> GetExtender(const ExtenderUUID& extuuid) const noexcept;
 
-		void OnPeerEvent(const std::vector<ExtenderUUID>& extuuids, Peer::Event&& event) noexcept;
+		void OnPeerEvent(const Vector<ExtenderUUID>& extuuids, Peer::Event&& event) noexcept;
 		const std::pair<bool, bool> OnPeerMessage(Peer::Event&& event) noexcept;
 
 		const ActiveExtenderUUIDs& GetActiveExtenderUUIDs() const noexcept;

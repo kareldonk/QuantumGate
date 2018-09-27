@@ -39,7 +39,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Result<> RemoveIPFilter(const IPFilterID filterid, const IPFilterType type) noexcept;
 		void RemoveAllIPFilters() noexcept;
 
-		Result<std::vector<IPFilter>> GetAllIPFilters() const noexcept;
+		Result<Vector<IPFilter>> GetAllIPFilters() const noexcept;
 
 		Result<> SetIPReputation(const IPAddress& ip, const Int16 score,
 								 const std::optional<Time>& time = std::nullopt) noexcept;
@@ -49,7 +49,7 @@ namespace QuantumGate::Implementation::Core::Access
 		void ResetAllIPReputations() noexcept;
 		Result<std::pair<Int16, bool>> UpdateIPReputation(const IPAddress& ip,
 														  const IPReputationUpdate rep_update) noexcept;
-		Result<std::vector<IPReputation>> GetAllIPReputations() const noexcept;
+		Result<Vector<IPReputation>> GetAllIPReputations() const noexcept;
 
 		[[nodiscard]] const bool AddIPConnectionAttempt(const IPAddress& ip) noexcept;
 		[[nodiscard]] const bool AddIPRelayConnectionAttempt(const IPAddress& ip) noexcept;
@@ -57,7 +57,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Result<> AddIPSubnetLimit(const IPAddressFamily af, const String& cidr_lbits, const Size max_con) noexcept;
 		Result<> RemoveIPSubnetLimit(const IPAddressFamily af, const String& cidr_lbits) noexcept;
 
-		Result<std::vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
+		Result<Vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
 
 		[[nodiscard]] const bool AddIPConnection(const IPAddress& ip) noexcept;
 		[[nodiscard]] const bool RemoveIPConnection(const IPAddress& ip) noexcept;
@@ -79,7 +79,7 @@ namespace QuantumGate::Implementation::Core::Access
 		void SetPeerAccessDefault(const PeerAccessDefault pad) noexcept;
 		[[nodiscard]] const PeerAccessDefault GetPeerAccessDefault() const noexcept;
 
-		Result<std::vector<PeerAccessSettings>> GetAllPeers() const noexcept;
+		Result<Vector<PeerAccessSettings>> GetAllPeers() const noexcept;
 
 		inline AccessUpdateCallbacks_ThS& GetAccessUpdateCallbacks() noexcept { return m_AccessUpdateCallbacks; }
 

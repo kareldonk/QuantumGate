@@ -117,7 +117,7 @@ namespace QuantumGate::Implementation::Core
 					SteadyTime LastUpdateSteadyTime;
 				};
 
-				std::vector<MinimalIPEndpointDetails> temp_endp;
+				Vector<MinimalIPEndpointDetails> temp_endp;
 
 				std::for_each(m_IPEndpoints.begin(), m_IPEndpoints.end(), [&](const auto& it)
 				{
@@ -149,7 +149,7 @@ namespace QuantumGate::Implementation::Core
 		return true;
 	}
 
-	Result<> PublicIPEndpoints::AddIPAddresses(std::vector<BinaryIPAddress>& ips) const noexcept
+	Result<> PublicIPEndpoints::AddIPAddresses(Vector<BinaryIPAddress>& ips) const noexcept
 	{
 		try
 		{
@@ -173,7 +173,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	Result<> PublicIPEndpoints::AddIPAddresses(std::vector<IPAddressDetails>& ips) const noexcept
+	Result<> PublicIPEndpoints::AddIPAddresses(Vector<IPAddressDetails>& ips) const noexcept
 	{
 		try
 		{

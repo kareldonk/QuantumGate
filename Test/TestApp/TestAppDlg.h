@@ -32,7 +32,7 @@ protected:
 	void LoadSocks5Extender();
 	void UnloadSocks5Extender();
 
-	std::set<UInt16> GetPorts(const CString ports);
+	Set<UInt16> GetPorts(const CString ports);
 
 	void UpdateControls();
 

@@ -119,9 +119,9 @@ namespace QuantumGate::Implementation::Core
 						Algorithm::Asymmetric::ECDH_SECP521R1,
 						Algorithm::Asymmetric::ECDH_X25519,
 						Algorithm::Asymmetric::ECDH_X448,
-						Algorithm::Asymmetric::KEM_CLASSIC_MCELIECE,
 						Algorithm::Asymmetric::KEM_NTRUPRIME,
-						Algorithm::Asymmetric::KEM_NEWHOPE }, paa))
+						Algorithm::Asymmetric::KEM_NEWHOPE,
+						Algorithm::Asymmetric::KEM_CLASSIC_MCELIECE }, paa))
 					{
 						LogErr(L"Unsupported primary asymmetric algorithm specified in the initialization parameters");
 						return false;
@@ -142,9 +142,9 @@ namespace QuantumGate::Implementation::Core
 						Algorithm::Asymmetric::ECDH_SECP521R1,
 						Algorithm::Asymmetric::ECDH_X25519,
 						Algorithm::Asymmetric::ECDH_X448,
-						Algorithm::Asymmetric::KEM_CLASSIC_MCELIECE,
 						Algorithm::Asymmetric::KEM_NTRUPRIME,
-						Algorithm::Asymmetric::KEM_NEWHOPE }, saa))
+						Algorithm::Asymmetric::KEM_NEWHOPE,
+						Algorithm::Asymmetric::KEM_CLASSIC_MCELIECE }, saa))
 					{
 						LogErr(L"Unsupported secondary asymmetric algorithm specified in the initialization parameters");
 						return false;
@@ -233,8 +233,16 @@ namespace QuantumGate::Implementation::Core
 				else settings.Local.GlobalSharedSecret.Clear();
 
 				settings.Local.RequireAuthentication = params.RequireAuthentication;
-				settings.Local.SupportedAlgorithms = params.SupportedAlgorithms;
-				settings.Local.ListenerPorts = params.Listeners.TCPPorts;
+
+				{
+					settings.Local.SupportedAlgorithms.PrimaryAsymmetric = Util::SetToVector(params.SupportedAlgorithms.PrimaryAsymmetric);
+					settings.Local.SupportedAlgorithms.SecondaryAsymmetric = Util::SetToVector(params.SupportedAlgorithms.SecondaryAsymmetric);
+					settings.Local.SupportedAlgorithms.Symmetric = Util::SetToVector(params.SupportedAlgorithms.Symmetric);
+					settings.Local.SupportedAlgorithms.Hash = Util::SetToVector(params.SupportedAlgorithms.Hash);
+					settings.Local.SupportedAlgorithms.Compression = Util::SetToVector(params.SupportedAlgorithms.Compression);
+				}
+
+				settings.Local.ListenerPorts = Util::SetToVector(params.Listeners.TCPPorts);
 				settings.Local.NATTraversal = params.Listeners.EnableNATTraversal;
 				settings.Local.NumPreGeneratedKeysPerAlgorithm = params.NumPreGeneratedKeysPerAlgorithm;
 				settings.Relay.IPv4ExcludedNetworksCIDRLeadingBits = params.Relays.IPv4ExcludedNetworksCIDRLeadingBits;
@@ -820,7 +828,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::NotRunning;
 	}
 
-	Result<std::vector<PeerLUID>> Local::QueryPeers(const PeerQueryParameters& params) const noexcept
+	Result<Vector<PeerLUID>> Local::QueryPeers(const PeerQueryParameters& params) const noexcept
 	{
 		if (IsRunning()) return m_PeerManager.QueryPeers(params);
 

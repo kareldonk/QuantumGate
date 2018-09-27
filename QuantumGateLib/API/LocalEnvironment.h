@@ -19,8 +19,8 @@ namespace QuantumGate::API
 
 		Result<String> GetHostname() const noexcept;
 		Result<String> GetUsername() const noexcept;
-		Result<std::vector<IPAddressDetails>> GetIPAddresses() const noexcept;
-		Result<std::vector<EthernetInterface>> GetEthernetInterfaces() const noexcept;
+		Result<Vector<IPAddressDetails>> GetIPAddresses() const noexcept;
+		Result<Vector<EthernetInterface>> GetEthernetInterfaces() const noexcept;
 
 	private:
 		LocalEnvironment(const void* localenv) noexcept;

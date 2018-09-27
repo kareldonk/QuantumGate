@@ -139,7 +139,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		std::chrono::milliseconds GetHandshakeDelayPerMessage() const noexcept;
 
-		const QuantumGate::Algorithms& GetSupportedAlgorithms() const noexcept;
+		const LocalAlgorithms& GetSupportedAlgorithms() const noexcept;
 
 		[[nodiscard]] const bool SetAlgorithms(const Algorithm::Hash ha, const Algorithm::Asymmetric paa,
 											   const Algorithm::Asymmetric saa, const Algorithm::Symmetric sa,
@@ -192,8 +192,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] const bool HasPendingEvents() noexcept;
 		[[nodiscard]] const bool ProcessEvents();
-		void ProcessLocalExtenderUpdate(const std::vector<ExtenderUUID>& extuuids);
-		[[nodiscard]] const bool ProcessPeerExtenderUpdate(std::vector<ExtenderUUID>&& uuids) noexcept;
+		void ProcessLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids);
+		[[nodiscard]] const bool ProcessPeerExtenderUpdate(Vector<ExtenderUUID>&& uuids) noexcept;
 
 		inline void SetAccessCheck() noexcept { SetFlag(Flags::NeedsAccessCheck, true); }
 		[[nodiscard]] inline const bool NeedsAccessCheck() const noexcept { return IsFlagSet(Flags::NeedsAccessCheck); }
@@ -250,7 +250,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] const std::pair<bool, bool> ProcessMessage(MessageDetails&& msg);
 
 		void ProcessEvent(const PeerEventType etype) noexcept;
-		void ProcessEvent(const std::vector<ExtenderUUID>& extuuids, const PeerEventType etype) noexcept;
+		void ProcessEvent(const Vector<ExtenderUUID>& extuuids, const PeerEventType etype) noexcept;
 
 		[[nodiscard]] const bool CheckAndProcessKeyUpdate() noexcept;
 

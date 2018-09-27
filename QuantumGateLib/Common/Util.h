@@ -18,7 +18,7 @@ namespace QuantumGate::Implementation::Util
 	Export String FormatString(const StringView format, va_list arglist) noexcept;
 
 	template<typename T>
-	String Export ToBinaryString(const T bytes) noexcept;
+	Export String ToBinaryString(const T bytes) noexcept;
 
 	String ToBinaryString(const gsl::span<Byte> bytes) noexcept;
 		
@@ -34,6 +34,20 @@ namespace QuantumGate::Implementation::Util
 
 	template<typename S, typename B>
 	const bool FromBase64(const S& b64, B& buffer) noexcept;
+
+	template<typename T>
+	Vector<T> SetToVector(const Set<T>& set)
+	{
+		Vector<T> vec;
+		vec.reserve(set.size());
+
+		for (const auto& itm : set)
+		{
+			vec.emplace_back(itm);
+		}
+
+		return vec;
+	}
 
 	Export UInt64 NonPersistentHash(const String& txt) noexcept;
 	Export UInt64 PersistentHash(const String& txt) noexcept;

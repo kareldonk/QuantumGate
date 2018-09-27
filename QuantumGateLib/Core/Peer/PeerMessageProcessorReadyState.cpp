@@ -110,7 +110,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 				{
-					std::vector<SerializedUUID> psextlist;
+					Vector<SerializedUUID> psextlist;
 
 					BufferReader rdr(buffer, true);
 					if (rdr.Read(WithSize(psextlist, MaxSize::_65KB)))

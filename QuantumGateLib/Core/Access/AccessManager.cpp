@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Core::Access
 		m_AccessUpdateCallbacks.WithSharedLock()();
 	}
 
-	Result<std::vector<IPFilter>> Manager::GetAllIPFilters() const noexcept
+	Result<Vector<IPFilter>> Manager::GetAllIPFilters() const noexcept
 	{
 		return m_IPFilters.WithSharedLock()->GetFilters();
 	}
@@ -122,7 +122,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	Result<std::vector<IPReputation>> Manager::GetAllIPReputations() const noexcept
+	Result<Vector<IPReputation>> Manager::GetAllIPReputations() const noexcept
 	{
 		return m_IPAccessControl.WithUniqueLock()->GetReputations();
 	}
@@ -182,7 +182,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	Result<std::vector<IPSubnetLimit>> Manager::GetAllIPSubnetLimits() const noexcept
+	Result<Vector<IPSubnetLimit>> Manager::GetAllIPSubnetLimits() const noexcept
 	{
 		return m_SubnetLimits.WithSharedLock()->GetLimits();
 	}
@@ -340,7 +340,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return m_PeerAccessControl.WithSharedLock()->GetAccessDefault();
 	}
 
-	Result<std::vector<PeerAccessSettings>> Manager::GetAllPeers() const noexcept
+	Result<Vector<PeerAccessSettings>> Manager::GetAllPeers() const noexcept
 	{
 		return m_PeerAccessControl.WithSharedLock()->GetPeers();
 	}

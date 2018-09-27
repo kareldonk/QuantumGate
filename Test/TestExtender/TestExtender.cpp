@@ -210,46 +210,50 @@ namespace TestExtender
 
 	bool FileTransfer::CalcFileHash(Buffer& hashbuff) noexcept
 	{
-		const Size bufsize{ 1024 * 1000 };
-		std::vector<Byte> buffer(bufsize);
-		Size bytesread{ 0 };
-
-		// Seek to start
-		if (fseek(m_File, 0, SEEK_SET) == 0)
+		try
 		{
-			LogInfo(L"Calculating hash for file %s", m_FileName.c_str());
+			const Size bufsize{ 1024 * 1000 };
+			Buffer buffer(bufsize);
+			Size bytesread{ 0 };
 
-			Buffer fhash(64);
-			crypto_blake2b_ctx ctx;
-			crypto_blake2b_init(&ctx);
-
-			while (true)
+			// Seek to start
+			if (fseek(m_File, 0, SEEK_SET) == 0)
 			{
-				const auto numread = fread(buffer.data(), sizeof(Byte), buffer.size(), m_File);
+				LogInfo(L"Calculating hash for file %s", m_FileName.c_str());
 
-				bytesread += static_cast<unsigned int>(numread);
+				Buffer fhash(64);
+				crypto_blake2b_ctx ctx;
+				crypto_blake2b_init(&ctx);
 
-				crypto_blake2b_update(&ctx, reinterpret_cast<const UChar*>(buffer.data()), numread);
-
-				if (numread < bufsize)
+				while (true)
 				{
-					if (bytesread != m_FileSize)
-					{
-						LogErr(L"Error reading file %s", m_FileName.c_str());
-					}
-					else
-					{
-						crypto_blake2b_final(&ctx, reinterpret_cast<UChar*>(fhash.GetBytes()));
+					const auto numread = fread(buffer.GetBytes(), sizeof(Byte), buffer.GetSize(), m_File);
 
-						hashbuff = std::move(fhash);
-						return true;
-					}
+					bytesread += static_cast<Size>(numread);
 
-					break;
+					crypto_blake2b_update(&ctx, reinterpret_cast<const UChar*>(buffer.GetBytes()), numread);
+
+					if (numread < bufsize)
+					{
+						if (bytesread != m_FileSize)
+						{
+							LogErr(L"Error reading file %s", m_FileName.c_str());
+						}
+						else
+						{
+							crypto_blake2b_final(&ctx, reinterpret_cast<UChar*>(fhash.GetBytes()));
+
+							hashbuff = std::move(fhash);
+							return true;
+						}
+
+						break;
+					}
 				}
 			}
+			else LogErr(L"Could not seek in file %s", m_FileName.c_str());
 		}
-		else LogErr(L"Could not seek in file %s", m_FileName.c_str());
+		catch (...) {}
 
 		return false;
 	}

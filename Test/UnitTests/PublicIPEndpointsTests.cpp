@@ -165,7 +165,7 @@ namespace UnitTests
 
 				// Check that we got back the expected IPs
 				{
-					std::vector<BinaryIPAddress> pub_ips;
+					Vector<BinaryIPAddress> pub_ips;
 					const auto result = pubendp.AddIPAddresses(pub_ips);
 					Assert::AreEqual(true, result.Succeeded());
 
@@ -292,7 +292,7 @@ namespace UnitTests
 			// Check that we got back the expected IPs
 			const auto CheckIPs = [](const PublicIPEndpoints& pubendp, const std::vector<BinaryIPAddress>& exp_ips)
 			{
-				std::vector<BinaryIPAddress> pub_ips;
+				Vector<BinaryIPAddress> pub_ips;
 				const auto result = pubendp.AddIPAddresses(pub_ips);
 				if (!result.Succeeded()) return false;
 

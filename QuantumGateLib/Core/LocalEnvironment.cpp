@@ -43,7 +43,7 @@ namespace QuantumGate::Implementation::Core
 		m_Initialized = false;
 	}
 
-	const std::vector<BinaryIPAddress>* LocalEnvironment::GetCachedIPAddresses() const noexcept
+	const Vector<BinaryIPAddress>* LocalEnvironment::GetCachedIPAddresses() const noexcept
 	{
 		try
 		{
@@ -114,7 +114,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	Result<std::vector<BinaryIPAddress>> LocalEnvironment::OSGetIPAddresses(const String& hostname) noexcept
+	Result<Vector<BinaryIPAddress>> LocalEnvironment::OSGetIPAddresses(const String& hostname) noexcept
 	{
 		try
 		{
@@ -126,7 +126,7 @@ namespace QuantumGate::Implementation::Core
 				// Free resources when we return
 				auto sg = MakeScopeGuard([&] { FreeAddrInfoW(result); });
 
-				std::vector<BinaryIPAddress> alladdr;
+				Vector<BinaryIPAddress> alladdr;
 
 				for (auto ptr = result; ptr != nullptr; ptr = ptr->ai_next)
 				{
@@ -151,7 +151,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	Result<std::vector<EthernetInterface>> LocalEnvironment::OSGetEthernetInterfaces() noexcept
+	Result<Vector<EthernetInterface>> LocalEnvironment::OSGetEthernetInterfaces() noexcept
 	{
 		try
 		{
@@ -172,7 +172,7 @@ namespace QuantumGate::Implementation::Core
 												  &buflen);
 			if (ret == NO_ERROR)
 			{
-				std::vector<EthernetInterface> allifs;
+				Vector<EthernetInterface> allifs;
 
 				auto address = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(addresses.get());
 
@@ -262,7 +262,7 @@ namespace QuantumGate::Implementation::Core
 	{
 		try
 		{
-			std::vector<BinaryIPAddress> allips;
+			Vector<BinaryIPAddress> allips;
 
 			// First add the local IP addresses configured on the host
 			for (const auto& ifs : m_EthernetInterfaces)
@@ -297,11 +297,11 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	Result<std::vector<IPAddressDetails>> LocalEnvironment::GetIPAddresses() const noexcept
+	Result<Vector<IPAddressDetails>> LocalEnvironment::GetIPAddresses() const noexcept
 	{
 		try
 		{
-			std::vector<IPAddressDetails> allips;
+			Vector<IPAddressDetails> allips;
 
 			// First add the local IP addresses configured on the host
 			for (const auto& ifs : m_EthernetInterfaces)

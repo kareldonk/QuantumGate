@@ -142,7 +142,7 @@ namespace QuantumGate::Implementation
 	const bool Console::TerminalOutput::InitConsole() noexcept
 	{
 		// Set output mode to handle virtual terminal sequences
-		std::vector<ULong> handles{ STD_OUTPUT_HANDLE, STD_ERROR_HANDLE };
+		std::array<ULong, 2> handles{ STD_OUTPUT_HANDLE, STD_ERROR_HANDLE };
 
 		for (auto& handle : handles)
 		{

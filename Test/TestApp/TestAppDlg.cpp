@@ -56,9 +56,9 @@ void CTestAppDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogBase::DoDataExchange(pDX);
 }
 
-std::set<UInt16> CTestAppDlg::GetPorts(const CString ports)
+Set<UInt16> CTestAppDlg::GetPorts(const CString ports)
 {
-	std::set<UInt16> portsv;
+	Set<UInt16> portsv;
 	int pos{ 0 };
 	int start{ 0 };
 

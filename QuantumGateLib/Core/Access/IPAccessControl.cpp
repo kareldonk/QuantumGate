@@ -197,11 +197,11 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	Result<std::vector<IPReputation>> IPAccessControl::GetReputations() const noexcept
+	Result<Vector<IPReputation>> IPAccessControl::GetReputations() const noexcept
 	{
 		try
 		{
-			std::vector<IPReputation> ipreputations;
+			Vector<IPReputation> ipreputations;
 
 			for (const auto& it : m_IPAccessDetails)
 			{

@@ -96,49 +96,26 @@ namespace QuantumGate::Implementation::Crypto
 	}
 
 	template<typename T>
-	std::vector<T> MakeAlgorithmVector(const std::set<T>& list)
-	{
-		std::vector<T> av;
-
-		for (const auto item : list)
-		{
-			av.emplace_back(item);
-		}
-
-		return av;
-	}
-
-	// Specific instantiations
-	template std::vector<Algorithm::Hash> MakeAlgorithmVector<Algorithm::Hash>(
-		const std::set<Algorithm::Hash>& list);
-
-	template std::vector<Algorithm::Asymmetric> MakeAlgorithmVector<Algorithm::Asymmetric>(
-		const std::set<Algorithm::Asymmetric>& list);
-
-	template std::vector<Algorithm::Symmetric> MakeAlgorithmVector<Algorithm::Symmetric>(
-		const std::set<Algorithm::Symmetric>& list);
-
-	template std::vector<Algorithm::Compression> MakeAlgorithmVector<Algorithm::Compression>(
-		const std::set<Algorithm::Compression>& list);
-
-	template<typename T>
-	void SortAlgorithms(std::vector<T>& list)
+	void SortAlgorithms(Vector<T>& list)
 	{
 		std::sort(list.begin(), list.end());
 	}
 
 	// Specific instantiations
-	template void SortAlgorithms<Algorithm::Hash>(std::vector<Algorithm::Hash>& list);
+	template void SortAlgorithms<Algorithm::Hash>(Vector<Algorithm::Hash>& list);
 
-	template void SortAlgorithms<Algorithm::Asymmetric>(std::vector<Algorithm::Asymmetric>& list);
+	template void SortAlgorithms<Algorithm::Asymmetric>(Vector<Algorithm::Asymmetric>& list);
 
-	template void SortAlgorithms<Algorithm::Symmetric>(std::vector<Algorithm::Symmetric>& list);
+	template void SortAlgorithms<Algorithm::Symmetric>(Vector<Algorithm::Symmetric>& list);
 
-	template void SortAlgorithms<Algorithm::Compression>(std::vector<Algorithm::Compression>& list);
+	template void SortAlgorithms<Algorithm::Compression>(Vector<Algorithm::Compression>& list);
 
 	template<typename T>
-	Export const bool HasAlgorithm(const std::set<T>& list, const T value)
+	Export const bool HasAlgorithm(const Vector<T>& list, const T value)
 	{
+		// Assuming list is sorted already
+		assert(std::is_sorted(list.begin(), list.end()));
+
 		// Reverse lookup, assuming that since the algorithm with the highest
 		// integer value is chosen it would exist at the back of the sorted list
 		// and be found sooner this way
@@ -147,25 +124,28 @@ namespace QuantumGate::Implementation::Crypto
 
 	// Specific instantiations
 	template Export const bool HasAlgorithm<Algorithm::Hash>(
-		const std::set<Algorithm::Hash>& list, const Algorithm::Hash value);
+		const Vector<Algorithm::Hash>& list, const Algorithm::Hash value);
 
 	template Export const bool HasAlgorithm<Algorithm::Asymmetric>(
-		const std::set<Algorithm::Asymmetric>& list, const Algorithm::Asymmetric value);
+		const Vector<Algorithm::Asymmetric>& list, const Algorithm::Asymmetric value);
 
 	template Export const bool HasAlgorithm<Algorithm::Symmetric>(
-		const std::set<Algorithm::Symmetric>& list, const Algorithm::Symmetric value);
+		const Vector<Algorithm::Symmetric>& list, const Algorithm::Symmetric value);
 
 	template Export const bool HasAlgorithm<Algorithm::Compression>(
-		const std::set<Algorithm::Compression>& list, const Algorithm::Compression value);
+		const Vector<Algorithm::Compression>& list, const Algorithm::Compression value);
 
 	template<typename T>
-	const T ChooseAlgorithm(const std::set<T>& list1, std::vector<T>& list2)
+	const T ChooseAlgorithm(const Vector<T>& list1, Vector<T>& list2)
 	{
-		// Sort list and make an intersection
+		// Assuming list1 is sorted already
+		assert(std::is_sorted(list1.begin(), list1.end()));
+
+		// Sort list2 and make an intersection
 		// of algorithms that exist in both lists
 		SortAlgorithms(list2);
 
-		std::vector<T> intersect;
+		Vector<T> intersect;
 		std::set_intersection(list1.begin(), list1.end(),
 							  list2.begin(), list2.end(),
 							  std::back_inserter(intersect));
@@ -179,16 +159,16 @@ namespace QuantumGate::Implementation::Crypto
 
 	// Specific instantiations
 	template const Algorithm::Hash ChooseAlgorithm<Algorithm::Hash>(
-		const std::set<Algorithm::Hash>& list1, std::vector<Algorithm::Hash>& list2);
+		const Vector<Algorithm::Hash>& list1, Vector<Algorithm::Hash>& list2);
 
 	template const Algorithm::Asymmetric ChooseAlgorithm<Algorithm::Asymmetric>(
-		const std::set<Algorithm::Asymmetric>& list1, std::vector<Algorithm::Asymmetric>& list2);
+		const Vector<Algorithm::Asymmetric>& list1, Vector<Algorithm::Asymmetric>& list2);
 
 	template const Algorithm::Symmetric ChooseAlgorithm<Algorithm::Symmetric>(
-		const std::set<Algorithm::Symmetric>& list1, std::vector<Algorithm::Symmetric>& list2);
+		const Vector<Algorithm::Symmetric>& list1, Vector<Algorithm::Symmetric>& list2);
 
 	template const Algorithm::Compression ChooseAlgorithm<Algorithm::Compression>(
-		const std::set<Algorithm::Compression>& list1, std::vector<Algorithm::Compression>& list2);
+		const Vector<Algorithm::Compression>& list1, Vector<Algorithm::Compression>& list2);
 
 	std::optional<UInt64> GetCryptoRandomNumber() noexcept
 	{

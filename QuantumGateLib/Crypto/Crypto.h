@@ -13,16 +13,13 @@ namespace QuantumGate::Implementation::Crypto
 	const WChar* GetAlgorithmName(const Algorithm::Compression alg) noexcept;
 
 	template<typename T>
-	std::vector<T> MakeAlgorithmVector(const std::set<T>& list);
+	void SortAlgorithms(Vector<T>& list);
 
 	template<typename T>
-	void SortAlgorithms(std::vector<T>& list);
+	Export const bool HasAlgorithm(const Vector<T>& list, const T value);
 
 	template<typename T>
-	Export const bool HasAlgorithm(const std::set<T>& list, const T value);
-
-	template<typename T>
-	const T ChooseAlgorithm(const std::set<T>& list1, std::vector<T>& list2);
+	const T ChooseAlgorithm(const Vector<T>& list1, Vector<T>& list2);
 
 	std::optional<UInt64> GetCryptoRandomNumber() noexcept;
 	std::optional<Buffer> GetCryptoRandomBytes(const Size size) noexcept;

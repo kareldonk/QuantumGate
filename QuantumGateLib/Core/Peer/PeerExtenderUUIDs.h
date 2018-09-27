@@ -19,17 +19,17 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] const bool HasExtender(const ExtenderUUID& uuid) const noexcept;
 
-		inline const std::vector<ExtenderUUID>& Current() const noexcept { return m_ExtenderUUIDs; }
+		inline const Vector<ExtenderUUID>& Current() const noexcept { return m_ExtenderUUIDs; }
 
-		[[nodiscard]] const bool Set(std::vector<ExtenderUUID>&& uuids) noexcept;
+		[[nodiscard]] const bool Set(Vector<ExtenderUUID>&& uuids) noexcept;
 		[[nodiscard]] const bool Copy(const ExtenderUUIDs& uuids) noexcept;
-		Result<std::pair<std::vector<ExtenderUUID>,
-			std::vector<ExtenderUUID>>> Update(std::vector<ExtenderUUID>&& update_uuids) noexcept;
+		Result<std::pair<Vector<ExtenderUUID>,
+			Vector<ExtenderUUID>>> Update(Vector<ExtenderUUID>&& update_uuids) noexcept;
 
 	private:
-		[[nodiscard]] const bool SortAndEnsureUnique(std::vector<ExtenderUUID>& uuids) const noexcept;
+		[[nodiscard]] const bool SortAndEnsureUnique(Vector<ExtenderUUID>& uuids) const noexcept;
 
 	private:
-		std::vector<ExtenderUUID> m_ExtenderUUIDs;
+		Vector<ExtenderUUID> m_ExtenderUUIDs;
 	};
 }

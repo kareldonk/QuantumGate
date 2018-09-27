@@ -115,11 +115,11 @@ namespace QuantumGate::Implementation::Core::Access
 		m_PeerAccessDetails.clear();
 	}
 
-	Result<std::vector<PeerAccessSettings>> PeerAccessControl::GetPeers() const noexcept
+	Result<Vector<PeerAccessSettings>> PeerAccessControl::GetPeers() const noexcept
 	{
 		try
 		{
-			std::vector<PeerAccessSettings> peers;
+			Vector<PeerAccessSettings> peers;
 
 			for (const auto& peer : m_PeerAccessDetails)
 			{

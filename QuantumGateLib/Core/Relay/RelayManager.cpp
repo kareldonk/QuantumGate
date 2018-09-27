@@ -896,7 +896,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				const auto excl_addr1 = m_Peers.GetLocalIPAddresses();
 				if (excl_addr1 != nullptr)
 				{
-					std::vector<BinaryIPAddress> excl_addr2{ connect_event.Origin.PeerEndpoint.GetIPAddress().GetBinary() };
+					Vector<BinaryIPAddress> excl_addr2{ connect_event.Origin.PeerEndpoint.GetIPAddress().GetBinary() };
 
 					// Don't include addresses/network of local instance
 					const auto result1 = m_Peers.AreRelayIPsInSameNetwork(connect_event.Endpoint.GetIPAddress().GetBinary(),
@@ -951,7 +951,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				const auto excl_addr1 = m_Peers.GetLocalIPAddresses();
 				if (excl_addr1 != nullptr)
 				{
-					std::vector<BinaryIPAddress> excl_addr2
+					Vector<BinaryIPAddress> excl_addr2
 					{
 						// Don't include origin address/network
 						connect_event.Origin.PeerEndpoint.GetIPAddress().GetBinary(),

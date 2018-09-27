@@ -43,7 +43,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 		[[nodiscard]] const bool HasFilter(const IPFilterID filterid, const IPFilterType type) const noexcept;
 
-		Result<std::vector<IPFilter>> GetFilters() const noexcept;
+		Result<Vector<IPFilter>> GetFilters() const noexcept;
 
 		Result<bool> IsAllowed(const String& ip) const noexcept;
 		Result<bool> IsAllowed(const IPAddress& ipaddr) const noexcept;

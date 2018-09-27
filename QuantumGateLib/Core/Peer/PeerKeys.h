@@ -44,7 +44,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		static const constexpr std::chrono::seconds ExpirationGracePeriod{ 120 };
 	};
 
-	using SymmetricKeyPairCollection = std::vector<std::shared_ptr<SymmetricKeyPair>>;
+	using SymmetricKeyPairCollection = Vector<std::shared_ptr<SymmetricKeyPair>>;
 
 	class SymmetricKeys final
 	{

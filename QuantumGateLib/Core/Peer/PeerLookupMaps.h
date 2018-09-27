@@ -14,7 +14,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	class LookupMaps
 	{
 	public:
-		using LUIDVector = std::vector<PeerLUID>;
+		using LUIDVector = Vector<PeerLUID>;
 
 		// One to one relationship between PeerData and PeerLUID
 		using PeerDataMap = std::unordered_map<PeerLUID, const Data_ThS&>;
@@ -50,22 +50,22 @@ namespace QuantumGate::Implementation::Core::Peer
 			m_PeerDataMap.clear();
 		}
 
-		Result<PeerLUID> GetRandomPeer(const std::vector<PeerLUID>& excl_pluids,
-									   const std::vector<BinaryIPAddress>& excl_addr1,
-									   const std::vector<BinaryIPAddress>& excl_addr2,
+		Result<PeerLUID> GetRandomPeer(const Vector<PeerLUID>& excl_pluids,
+									   const Vector<BinaryIPAddress>& excl_addr1,
+									   const Vector<BinaryIPAddress>& excl_addr2,
 									   const UInt8 excl_network_cidr4, const UInt8 excl_network_cidr6) const noexcept;
 
-		Result<std::vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
+		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
 
 		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
 
 		static const UInt64 GetIPPortHash(const IPEndpoint& endpoint) noexcept;
 
-		[[nodiscard]] static const bool HasLUID(const PeerLUID pluid, const std::vector<PeerLUID>& pluids) noexcept;
-		[[nodiscard]] static const bool HasIPPort(const UInt64 hash, const std::vector<IPEndpoint>& endpoints) noexcept;
-		[[nodiscard]] static const bool HasIP(const BinaryIPAddress& ip, const std::vector<BinaryIPAddress>& addresses) noexcept;
+		[[nodiscard]] static const bool HasLUID(const PeerLUID pluid, const Vector<PeerLUID>& pluids) noexcept;
+		[[nodiscard]] static const bool HasIPPort(const UInt64 hash, const Vector<IPEndpoint>& endpoints) noexcept;
+		[[nodiscard]] static const bool HasIP(const BinaryIPAddress& ip, const Vector<BinaryIPAddress>& addresses) noexcept;
 
-		static Result<bool> AreIPsInSameNetwork(const BinaryIPAddress& ip, const std::vector<BinaryIPAddress>& addresses,
+		static Result<bool> AreIPsInSameNetwork(const BinaryIPAddress& ip, const Vector<BinaryIPAddress>& addresses,
 												const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept;
 
 		static Result<bool> AreIPsInSameNetwork(const BinaryIPAddress& ip1, const BinaryIPAddress& ip2,

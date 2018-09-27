@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		Manager& operator=(Manager&&) = default;
 
 		const bool Startup() noexcept;
-		const bool Startup(const std::vector<EthernetInterface>& interfaces) noexcept;
+		const bool Startup(const Vector<EthernetInterface>& interfaces) noexcept;
 		void Shutdown() noexcept;
 		inline const bool IsRunning() const noexcept { return m_Running; }
 
@@ -60,9 +60,9 @@ namespace QuantumGate::Implementation::Core::Listener
 		void PreStartup() noexcept;
 		void ResetState() noexcept;
 
-		static const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata,
-																 ThreadData& thdata,
+		static const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
 																 const Concurrency::EventCondition& shutdown_event);
+
 		static void AcceptConnection(Manager& listeners, Network::Socket& listener_socket, const bool cond_accept) noexcept;
 
 		const bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;

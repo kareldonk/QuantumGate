@@ -72,7 +72,7 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 	private:
-		std::priority_queue<T, std::vector<T>, F> m_Queue;
+		std::priority_queue<T, Vector<T>, F> m_Queue;
 		Concurrency::EventCondition m_Event{ false };
 	};
 }

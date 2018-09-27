@@ -58,7 +58,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		const bool VerifySignature(const UUID& uuid, const UInt64 sessionid, const BufferView& pub_key,
 								   const Algorithm::Hash ha, const Buffer& psig) const;
 
-		std::optional<std::vector<ExtenderUUID>> ValidateExtenderUUIDs(const std::vector<SerializedUUID>& sextlist) const noexcept;
+		std::optional<Vector<ExtenderUUID>> ValidateExtenderUUIDs(const Vector<SerializedUUID>& sextlist) const noexcept;
 
 	private:
 		Peer& m_Peer;

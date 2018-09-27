@@ -54,7 +54,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		try
 		{
-			std::vector<ExtenderUUID> startupext_list;
+			Vector<ExtenderUUID> startupext_list;
 			startupext_list.reserve(m_Extenders.WithSharedLock()->size());
 
 			m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
@@ -119,7 +119,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		try
 		{
-			std::vector<ExtenderUUID> shutdownext_list;
+			Vector<ExtenderUUID> shutdownext_list;
 			shutdownext_list.reserve(m_Extenders.WithSharedLock()->size());
 
 			m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
@@ -280,7 +280,7 @@ namespace QuantumGate::Implementation::Core::Extender
 					UpdateActiveExtenderUUIDs(extenders);
 				});
 
-				const std::vector<ExtenderUUID> extuuids{ extctrl_ths.WithSharedLock()->GetExtender().GetUUID() };
+				const Vector<ExtenderUUID> extuuids{ extctrl_ths.WithSharedLock()->GetExtender().GetUUID() };
 
 				// Let connected peers know we have added an extender.
 				// We shouldn't hold locks to extenders or extender controls
@@ -398,7 +398,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		if (oldstatus != Control::Status::Stopped)
 		{
-			std::vector<ExtenderUUID> extuuids;
+			Vector<ExtenderUUID> extuuids;
 
 			// Now we actually shut down the extender
 			extctrl_ths.WithUniqueLock([&](Control& extctrl)
@@ -465,7 +465,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		return m_Settings.GetCache();
 	}
 
-	void Manager::OnPeerEvent(const std::vector<ExtenderUUID>& extuuids, Peer::Event&& event) noexcept
+	void Manager::OnPeerEvent(const Vector<ExtenderUUID>& extuuids, Peer::Event&& event) noexcept
 	{
 		assert(event.GetType() == PeerEventType::Connected ||
 			   event.GetType() == PeerEventType::Disconnected);

@@ -17,7 +17,7 @@ namespace UnitTests
 		{
 			// Empty vector
 			{
-				std::vector<ExtenderUUID> uuids;
+				Vector<ExtenderUUID> uuids;
 
 				ExtenderUUIDs extuuids;
 				const auto retval = extuuids.Set(std::move(uuids));
@@ -29,7 +29,7 @@ namespace UnitTests
 
 			// Single element
 			{
-				std::vector<ExtenderUUID> uuids
+				Vector<ExtenderUUID> uuids
 				{
 					QuantumGate::UUID(L"0db99db5-ed96-49ff-46d4-75dcf455b467")
 				};
@@ -44,7 +44,7 @@ namespace UnitTests
 
 			// Multiple elements
 			{
-				std::vector<ExtenderUUID> uuids
+				Vector<ExtenderUUID> uuids
 				{
 					QuantumGate::UUID(L"0db99db5-ed96-49ff-46d4-75dcf455b467"),
 					QuantumGate::UUID(L"0e511a53-c886-a9b5-e63c-cd5552e45aa0"),
@@ -65,7 +65,7 @@ namespace UnitTests
 				Assert::AreEqual(true, extuuids.HasExtender(QuantumGate::UUID(L"23043d05-c3d7-89b8-be93-04db663d1d42")));
 				Assert::AreEqual(true, extuuids.HasExtender(QuantumGate::UUID(L"d5375501-3b71-d9cc-0689-1aab49b4f524")));
 
-				std::vector<ExtenderUUID> uuids2
+				Vector<ExtenderUUID> uuids2
 				{
 					QuantumGate::UUID(L"23043d05-c3d7-89b8-be93-04db663d1d42"),
 					QuantumGate::UUID(L"d5375501-3b71-d9cc-0689-1aab49b4f524")
@@ -83,7 +83,7 @@ namespace UnitTests
 
 			// Duplicate elements
 			{
-				std::vector<ExtenderUUID> uuids
+				Vector<ExtenderUUID> uuids
 				{
 					QuantumGate::UUID(L"0db99db5-ed96-49ff-46d4-75dcf455b467"),
 					QuantumGate::UUID(L"0db99db5-ed96-49ff-46d4-75dcf455b467")
@@ -97,7 +97,7 @@ namespace UnitTests
 
 			// Duplicate elements
 			{
-				std::vector<ExtenderUUID> uuids
+				Vector<ExtenderUUID> uuids
 				{
 					QuantumGate::UUID(L"0db99db5-ed96-49ff-46d4-75dcf455b467"),
 					QuantumGate::UUID(L"0e511a53-c886-a9b5-e63c-cd5552e45aa0"),
@@ -118,7 +118,7 @@ namespace UnitTests
 		{
 			// Empty vector
 			{
-				std::vector<ExtenderUUID> uuids;
+				Vector<ExtenderUUID> uuids;
 
 				ExtenderUUIDs extuuids;
 				const auto retval = extuuids.Update(std::move(uuids));
@@ -130,7 +130,7 @@ namespace UnitTests
 
 			// Single element
 			{
-				std::vector<ExtenderUUID> uuids
+				Vector<ExtenderUUID> uuids
 				{
 					QuantumGate::UUID(L"0db99db5-ed96-49ff-46d4-75dcf455b467")
 				};
@@ -145,7 +145,7 @@ namespace UnitTests
 
 			// Multiple elements
 			{
-				std::vector<ExtenderUUID> uuids
+				Vector<ExtenderUUID> uuids
 				{
 					QuantumGate::UUID(L"0db99db5-ed96-49ff-46d4-75dcf455b467"),
 					QuantumGate::UUID(L"0e511a53-c886-a9b5-e63c-cd5552e45aa0"),
@@ -167,7 +167,7 @@ namespace UnitTests
 				Assert::AreEqual(true, extuuids.HasExtender(QuantumGate::UUID(L"d5375501-3b71-d9cc-0689-1aab49b4f524")));
 
 				// Remove 3 and add 1
-				std::vector<ExtenderUUID> uuids2
+				Vector<ExtenderUUID> uuids2
 				{
 					QuantumGate::UUID(L"23043d05-c3d7-89b8-be93-04db663d1d42"),
 					QuantumGate::UUID(L"d5375501-3b71-d9cc-0689-1aab49b4f524"),
@@ -206,7 +206,7 @@ namespace UnitTests
 
 			// Duplicate elements
 			{
-				std::vector<ExtenderUUID> uuids
+				Vector<ExtenderUUID> uuids
 				{
 					QuantumGate::UUID(L"0db99db5-ed96-49ff-46d4-75dcf455b467"),
 					QuantumGate::UUID(L"0e511a53-c886-a9b5-e63c-cd5552e45aa0"),
@@ -221,7 +221,7 @@ namespace UnitTests
 				Assert::AreEqual(true, retval.Succeeded());
 				Assert::AreEqual(true, extuuids.Current().size() == 5);
 
-				std::vector<ExtenderUUID> uuids2
+				Vector<ExtenderUUID> uuids2
 				{
 					QuantumGate::UUID(L"23043d05-c3d7-89b8-be93-04db663d1d42"),
 					QuantumGate::UUID(L"23043d05-c3d7-89b8-be93-04db663d1d42"),
@@ -231,7 +231,7 @@ namespace UnitTests
 
 				Assert::AreEqual(false, retval2.Succeeded());
 
-				std::vector<ExtenderUUID> uuids3
+				Vector<ExtenderUUID> uuids3
 				{
 					QuantumGate::UUID(L"23043d05-c3d7-89b8-be93-04db663d1d42"),
 					QuantumGate::UUID(L"d5375501-3b71-d9cc-0689-1aab49b4f524"),
@@ -247,7 +247,7 @@ namespace UnitTests
 
 		TEST_METHOD(Copy)
 		{
-			std::vector<ExtenderUUID> uuids
+			Vector<ExtenderUUID> uuids
 			{
 				QuantumGate::UUID(L"0db99db5-ed96-49ff-46d4-75dcf455b467"),
 				QuantumGate::UUID(L"0e511a53-c886-a9b5-e63c-cd5552e45aa0"),

@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Core
 	class LocalEnvironment
 	{
 		using CachedIPAddresses_ThS =
-			Concurrency::ThreadLocalCache<std::vector<BinaryIPAddress>, Concurrency::SpinMutex, 369>;
+			Concurrency::ThreadLocalCache<Vector<BinaryIPAddress>, Concurrency::SpinMutex, 369>;
 
 	public:
 		LocalEnvironment() = default;
@@ -26,10 +26,10 @@ namespace QuantumGate::Implementation::Core
 
 		inline const String& GetHostname() const noexcept { return m_Hostname; }
 		inline const String& GetUsername() const noexcept { return m_Username; }
-		Result<std::vector<IPAddressDetails>> GetIPAddresses() const noexcept;
-		inline const std::vector<EthernetInterface>& GetEthernetInterfaces() const noexcept { return m_EthernetInterfaces; }
+		Result<Vector<IPAddressDetails>> GetIPAddresses() const noexcept;
+		inline const Vector<EthernetInterface>& GetEthernetInterfaces() const noexcept { return m_EthernetInterfaces; }
 
-		const std::vector<BinaryIPAddress>* GetCachedIPAddresses() const noexcept;
+		const Vector<BinaryIPAddress>* GetCachedIPAddresses() const noexcept;
 
 		String GetIPAddressesString() const noexcept;
 		String GetMACAddressesString() const noexcept;
@@ -44,14 +44,14 @@ namespace QuantumGate::Implementation::Core
 
 		static Result<String> OSGetHostname() noexcept;
 		static Result<String> OSGetUsername() noexcept;
-		static Result<std::vector<EthernetInterface>> OSGetEthernetInterfaces() noexcept;
-		static Result<std::vector<BinaryIPAddress>> OSGetIPAddresses(const String& hostname) noexcept;
+		static Result<Vector<EthernetInterface>> OSGetEthernetInterfaces() noexcept;
+		static Result<Vector<BinaryIPAddress>> OSGetIPAddresses(const String& hostname) noexcept;
 
 	private:
 		bool m_Initialized{ false };
 		String m_Hostname;
 		String m_Username;
-		std::vector<EthernetInterface> m_EthernetInterfaces;
+		Vector<EthernetInterface> m_EthernetInterfaces;
 
 		PublicIPEndpoints m_PublicIPEndpoints;
 

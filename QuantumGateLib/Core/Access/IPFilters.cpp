@@ -170,12 +170,12 @@ namespace QuantumGate::Implementation::Core::Access
 		return (fltmap->find(filterid) != fltmap->end());
 	}
 
-	Result<std::vector<IPFilter>> IPFilters::GetFilters() const noexcept
+	Result<Vector<IPFilter>> IPFilters::GetFilters() const noexcept
 	{
 		try
 		{
-			const std::vector<const IPFilterMap*> ipfiltermaps{ &m_IPAllowFilters, &m_IPBlockFilters };
-			std::vector<IPFilter> ipfilters;
+			const std::array<const IPFilterMap*, 2> ipfiltermaps{ &m_IPAllowFilters, &m_IPBlockFilters };
+			Vector<IPFilter> ipfilters;
 
 			for (const auto& fltmap : ipfiltermaps)
 			{

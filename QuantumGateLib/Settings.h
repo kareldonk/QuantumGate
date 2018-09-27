@@ -42,6 +42,15 @@ namespace QuantumGate::Implementation
 		} IPConnectionAttempts;
 	};
 
+	struct LocalAlgorithms
+	{
+		Vector<Algorithm::Hash> Hash;
+		Vector<Algorithm::Asymmetric> PrimaryAsymmetric;
+		Vector<Algorithm::Asymmetric> SecondaryAsymmetric;
+		Vector<Algorithm::Symmetric> Symmetric;
+		Vector<Algorithm::Compression> Compression;
+	};
+
 	struct LocalSettings
 	{
 		PeerUUID UUID;														// The UUID of the local peer
@@ -49,10 +58,10 @@ namespace QuantumGate::Implementation
 		ProtectedBuffer GlobalSharedSecret;									// Global shared secret to use for all connections with peers (in addition to each individual secret key for every peer)
 		bool RequireAuthentication{ true };									// Whether authentication is required for connecting peers
 
-		Algorithms SupportedAlgorithms;										// The supported algorithms
+		LocalAlgorithms SupportedAlgorithms;								// The supported algorithms
 		Size NumPreGeneratedKeysPerAlgorithm{ 5 };							// The number of pregenerated keys per supported algorithm
 
-		std::set<UInt16> ListenerPorts{ 999 };								// Which ports to listen on
+		Vector<UInt16> ListenerPorts{ 999 };								// Which ports to listen on
 		bool NATTraversal{ false };											// Whether NAT traversal is enabled
 		bool UseConditionalAcceptFunction{ true };							// Whether to use the conditional accept function before accepting connections
 

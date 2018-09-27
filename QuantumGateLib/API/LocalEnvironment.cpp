@@ -43,7 +43,7 @@ namespace QuantumGate::API
 		return ResultCode::Failed;
 	}
 
-	Result<std::vector<IPAddressDetails>> LocalEnvironment::GetIPAddresses() const noexcept
+	Result<Vector<IPAddressDetails>> LocalEnvironment::GetIPAddresses() const noexcept
 	{
 		assert(m_LocalEnvironment != nullptr);
 
@@ -60,7 +60,7 @@ namespace QuantumGate::API
 		return ResultCode::Failed;
 	}
 
-	Result<std::vector<EthernetInterface>> LocalEnvironment::GetEthernetInterfaces() const noexcept
+	Result<Vector<EthernetInterface>> LocalEnvironment::GetEthernetInterfaces() const noexcept
 	{
 		assert(m_LocalEnvironment != nullptr);
 

@@ -264,7 +264,7 @@ void Benchmarks::BenchmarkCompression()
 	LogSys(L"---");
 	LogSys(L"Starting Compression benchmark for %u iterations", maxtr);
 
-	std::vector<String> comprbuf = {
+	std::array<std::wstring, 4> comprbuf = {
 		L"Hello world",
 		L"Hello world, Hello world",
 		L"Nothing is impossible, that is possible. Nothing is possible, that is impossible.",

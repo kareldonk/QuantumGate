@@ -72,7 +72,7 @@ namespace QuantumGate::Implementation::Memory
 		template<typename T>
 		[[nodiscard]] const std::enable_if_t<std::is_integral_v<T> ||
 			std::is_same_v<T, Byte> || std::is_enum_v<T> ||
-			std::is_same_v<T, SerializedUUID>, bool> WriteImpl(const std::vector<T>& data)
+			std::is_same_v<T, SerializedUUID>, bool> WriteImpl(const Vector<T>& data)
 		{
 			for (const auto& val : data)
 			{

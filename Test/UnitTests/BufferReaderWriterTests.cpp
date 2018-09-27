@@ -23,7 +23,7 @@ namespace UnitTests
 			// Write various types of data to a buffer and then try to read it back
 			// again in both little and big endian formats
 
-			std::vector<bool> endian{ false, true };
+			std::array<bool, 2> endian{ false, true };
 
 			for (auto nbo : endian)
 			{
@@ -37,10 +37,10 @@ namespace UnitTests
 				auto strte = String{ L"" };
 				auto strt = String{ L"A free people [claim] their rights as derived from the laws of nature, and \
 									not as the gift of their chief magistrate. - Thomas Jefferson" };
-				auto numvect = std::vector<UInt32>{ 11, 22, 33, 369 };
-				auto numvecte = std::vector<UInt32>{};
-				auto enumvect = std::vector<BufferReadWriteTest>{ BufferReadWriteTest::One, BufferReadWriteTest::Three };
-				auto uuidvect = std::vector<SerializedUUID>{
+				auto numvect = Vector<UInt32>{ 11, 22, 33, 369 };
+				auto numvecte = Vector<UInt32>{};
+				auto enumvect = Vector<BufferReadWriteTest>{ BufferReadWriteTest::One, BufferReadWriteTest::Three };
+				auto uuidvect = Vector<SerializedUUID>{
 					SerializedUUID{ QuantumGate::UUID(L"7a954ed4-ce2e-19e8-cb74-eae90dbdaac1") },
 					SerializedUUID{ QuantumGate::UUID(L"aaccc955-e4ac-2966-5e74-871fd705739a") },
 					SerializedUUID{ QuantumGate::UUID(L"8e7f4795-fe9b-f9b1-8bb3-9be6c1b305bc") }
@@ -72,10 +72,10 @@ namespace UnitTests
 				SerializedBinaryIPAddress iptr;
 				String strter;
 				String strtr;
-				std::vector<UInt32> numvectr;
-				std::vector<UInt32> numvecter;
-				std::vector<BufferReadWriteTest> enumvectr;
-				std::vector<SerializedUUID> uuidvectr;
+				Vector<UInt32> numvectr;
+				Vector<UInt32> numvecter;
+				Vector<BufferReadWriteTest> enumvectr;
+				Vector<SerializedUUID> uuidvectr;
 				Buffer bufr;
 				Buffer bufer;
 
@@ -125,7 +125,7 @@ namespace UnitTests
 			Buffer tbuf(20);
 			Assert::AreEqual(false, rdr2.Read(tbuf));
 			// Again
-			std::vector<UInt32> tvec(10);
+			Vector<UInt32> tvec(10);
 			Assert::AreEqual(false, rdr2.Read(tvec));
 			// And again
 			String tstr;

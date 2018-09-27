@@ -149,12 +149,12 @@ namespace QuantumGate::Implementation::Core::Access
 		return ResultCode::Failed;
 	}
 
-	Result<std::vector<IPSubnetLimit>> IPSubnetLimits::GetLimits() const noexcept
+	Result<Vector<IPSubnetLimit>> IPSubnetLimits::GetLimits() const noexcept
 	{
 		try
 		{
-			const std::vector<const IPSubnetAF*> iplimitmaps{ &m_IPv4Subnets, &m_IPv6Subnets };
-			std::vector<IPSubnetLimit> iplimits;
+			const std::array<const IPSubnetAF*, 2> iplimitmaps{ &m_IPv4Subnets, &m_IPv6Subnets };
+			Vector<IPSubnetLimit> iplimits;
 
 			for (const auto limitmap : iplimitmaps)
 			{
@@ -289,7 +289,7 @@ namespace QuantumGate::Implementation::Core::Access
 		{
 			auto success = true;
 
-			std::vector<const IPSubnetLimitImpl*> encr_limits(limits.size());
+			Vector<const IPSubnetLimitImpl*> encr_limits(limits.size());
 
 			for (const auto& limit : limits)
 			{

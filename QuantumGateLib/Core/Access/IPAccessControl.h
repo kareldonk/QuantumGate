@@ -86,7 +86,7 @@ namespace QuantumGate::Implementation::Core::Access
 														const IPReputationUpdate rep_update) noexcept;
 		[[nodiscard]] const bool HasAcceptableReputation(const IPAddress& ip) noexcept;
 
-		Result<std::vector<IPReputation>> GetReputations() const noexcept;
+		Result<Vector<IPReputation>> GetReputations() const noexcept;
 
 		[[nodiscard]] const bool AddConnectionAttempt(const IPAddress& ip) noexcept;
 		[[nodiscard]] const bool AddRelayConnectionAttempt(const IPAddress& ip) noexcept;

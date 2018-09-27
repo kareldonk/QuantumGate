@@ -28,14 +28,14 @@ namespace QuantumGate::Implementation::Core
 		PublicIPEndpoints& operator=(PublicIPEndpoints&&) = default;
 
 		Result<std::pair<bool, bool>> AddIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,
-														  const PeerConnectionType rep_con_type,
-														  const bool trusted) noexcept;
+													const PeerConnectionType rep_con_type,
+													const bool trusted) noexcept;
 		const bool RemoveLeastRecentIPEndpoints(Size num) noexcept;
 
 		inline const IPEndpointsMap& GetIPEndpoints() const noexcept { return m_IPEndpoints; }
 
-		Result<> AddIPAddresses(std::vector<BinaryIPAddress>& ips) const noexcept;
-		Result<> AddIPAddresses(std::vector<IPAddressDetails>& ips) const noexcept;
+		Result<> AddIPAddresses(Vector<BinaryIPAddress>& ips) const noexcept;
+		Result<> AddIPAddresses(Vector<IPAddressDetails>& ips) const noexcept;
 
 		void Clear() noexcept;
 

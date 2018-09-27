@@ -27,7 +27,7 @@ std::unique_ptr<Data_ThS> MakePeerData(const IPEndpoint& peer_endpoint, const Qu
 
 std::unique_ptr<Data_ThS> MakePeerData(const IPEndpoint& peer_endpoint, const QuantumGate::UUID uuid,
 									   const PeerConnectionType type, const bool relayed,
-									   const bool authenticated, std::vector<ExtenderUUID>&& extuuids)
+									   const bool authenticated, Vector<ExtenderUUID>&& extuuids)
 {
 	auto peer_data = std::make_unique<Data_ThS>();
 	peer_data->WithUniqueLock([&](Data& data)
@@ -47,7 +47,7 @@ std::unique_ptr<Data_ThS> MakePeerData(const IPEndpoint& peer_endpoint, const Qu
 	return peer_data;
 }
 
-const bool CheckExpectedPeers(const std::vector<PeerLUID>& peers, const std::vector<PeerLUID>& expected_peers)
+const bool CheckExpectedPeers(const Vector<PeerLUID>& peers, const Vector<PeerLUID>& expected_peers)
 {
 	for (const auto peer : peers)
 	{
@@ -255,7 +255,7 @@ namespace UnitTests
 				const UInt8 cidr_lbits4{ 24 };
 				const UInt8 cidr_lbits6{ 48 };
 
-				const std::vector<BinaryIPAddress> excl_addr
+				const Vector<BinaryIPAddress> excl_addr
 				{
 					IPAddress(L"192.168.1.10").GetBinary(),
 					IPAddress(L"192.168.1.20").GetBinary(),
@@ -314,7 +314,7 @@ namespace UnitTests
 				const UInt8 cidr_lbits4{ 16 };
 				const UInt8 cidr_lbits6{ 48 };
 
-				std::vector<BinaryIPAddress> excl_addr
+				Vector<BinaryIPAddress> excl_addr
 				{
 					IPAddress(L"192.168.1.10").GetBinary(),
 					IPAddress(L"192.168.1.20").GetBinary(),
@@ -402,24 +402,24 @@ namespace UnitTests
 			{
 				const auto dest_ep = IPEndpoint(IPAddress(L"200.168.5.40"), 9000);
 
-				std::vector<PeerLUID> excl_pluids =
+				const Vector<PeerLUID> excl_pluids =
 				{
 					ep3->WithSharedLock()->LUID,
 					ep4->WithSharedLock()->LUID
 				};
 
-				std::vector<BinaryIPAddress> excl_addr1 =
+				const Vector<BinaryIPAddress> excl_addr1 =
 				{
 					ep1->WithSharedLock()->Cached.PeerEndpoint.GetIPAddress().GetBinary() // Don't loop back
 				};
 
-				std::vector<BinaryIPAddress> excl_addr2 =
+				const Vector<BinaryIPAddress> excl_addr2 =
 				{
 					dest_ep.GetIPAddress().GetBinary() // Don't include the final endpoint
 				};
 
 				{
-					std::vector<PeerLUID> expected_peers
+					const Vector<PeerLUID> expected_peers
 					{
 						ep5->WithSharedLock()->LUID,
 						ep6->WithSharedLock()->LUID,
@@ -478,18 +478,18 @@ namespace UnitTests
 			{
 				const auto dest_ep = IPEndpoint(IPAddress(L"fe80:c11a:3a9c:ef10:e795::"), 9000);
 
-				const std::vector<PeerLUID> excl_pluids =
+				const Vector<PeerLUID> excl_pluids =
 				{
 					ep1->WithSharedLock()->LUID,
 					ep2->WithSharedLock()->LUID
 				};
 
-				const std::vector<BinaryIPAddress> excl_addr1 =
+				const Vector<BinaryIPAddress> excl_addr1 =
 				{
 					ep7->WithSharedLock()->Cached.PeerEndpoint.GetIPAddress().GetBinary() // Don't loop back
 				};
 
-				const std::vector<BinaryIPAddress> excl_addr2 =
+				const Vector<BinaryIPAddress> excl_addr2 =
 				{
 					dest_ep.GetIPAddress().GetBinary() // Don't include the final endpoint
 				};

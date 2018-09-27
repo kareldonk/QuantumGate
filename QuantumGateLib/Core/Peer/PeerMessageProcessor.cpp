@@ -20,18 +20,14 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			const auto& algorithms = m_Peer.GetSupportedAlgorithms();
 
-			// TODO: optimize this?
-			const auto lhal = Crypto::MakeAlgorithmVector(algorithms.Hash);
-			const auto lpaal = Crypto::MakeAlgorithmVector(algorithms.PrimaryAsymmetric);
-			const auto lsaal = Crypto::MakeAlgorithmVector(algorithms.SecondaryAsymmetric);
-			const auto lsal = Crypto::MakeAlgorithmVector(algorithms.Symmetric);
-			const auto lcal = Crypto::MakeAlgorithmVector(algorithms.Compression);
-
 			BufferWriter wrt(true);
-			if (wrt.WriteWithPreallocation(m_Peer.GetLocalProtocolVersion().first, m_Peer.GetLocalProtocolVersion().second,
-										   WithSize(lhal, MaxSize::_256B), WithSize(lpaal, MaxSize::_256B),
-										   WithSize(lsaal, MaxSize::_256B), WithSize(lsal, MaxSize::_256B),
-										   WithSize(lcal, MaxSize::_256B)))
+			if (wrt.WriteWithPreallocation(m_Peer.GetLocalProtocolVersion().first,
+										   m_Peer.GetLocalProtocolVersion().second,
+										   WithSize(algorithms.Hash, MaxSize::_256B),
+										   WithSize(algorithms.PrimaryAsymmetric, MaxSize::_256B),
+										   WithSize(algorithms.SecondaryAsymmetric, MaxSize::_256B),
+										   WithSize(algorithms.Symmetric, MaxSize::_256B),
+										   WithSize(algorithms.Compression, MaxSize::_256B)))
 			{
 				if (m_Peer.SendWithRandomDelay(MessageType::BeginMetaExchange, wrt.MoveWrittenBytes(),
 											   m_Peer.GetHandshakeDelayPerMessage()))
@@ -145,11 +141,11 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				UInt8 v1{ 0 };
 				UInt8 v2{ 0 };
-				std::vector<Algorithm::Hash> phal;
-				std::vector<Algorithm::Asymmetric> ppaal;
-				std::vector<Algorithm::Asymmetric> psaal;
-				std::vector<Algorithm::Symmetric> psal;
-				std::vector<Algorithm::Compression> pcal;
+				Vector<Algorithm::Hash> phal;
+				Vector<Algorithm::Asymmetric> ppaal;
+				Vector<Algorithm::Asymmetric> psaal;
+				Vector<Algorithm::Symmetric> psal;
+				Vector<Algorithm::Compression> pcal;
 
 				BufferReader rdr(buffer, true);
 				if (rdr.Read(v1, v2, WithSize(phal, MaxSize::_256B),
@@ -455,7 +451,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				UInt8 pcounter{ 0 };
 				Network::SerializedIPEndpoint pub_endp;
-				std::vector<SerializedUUID> psextlist;
+				Vector<SerializedUUID> psextlist;
 
 				BufferReader rdr(buffer, true);
 				if (rdr.Read(pcounter, pub_endp, WithSize(psextlist, MaxSize::UInt16)))
@@ -517,7 +513,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				UInt8 pcounter{ 0 };
 				Network::SerializedIPEndpoint pub_endp;
-				std::vector<SerializedUUID> psextlist;
+				Vector<SerializedUUID> psextlist;
 
 				BufferReader rdr(buffer, true);
 				if (rdr.Read(pcounter, pub_endp, WithSize(psextlist, MaxSize::UInt16)))
@@ -686,11 +682,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		return Crypto::HashAndVerify(sigdata, salg, pub_key, psig, ha);
 	}
 
-	std::optional<std::vector<ExtenderUUID>> MessageProcessor::ValidateExtenderUUIDs(const std::vector<SerializedUUID>& sextlist) const noexcept
+	std::optional<Vector<ExtenderUUID>> MessageProcessor::ValidateExtenderUUIDs(const Vector<SerializedUUID>& sextlist) const noexcept
 	{
 		try
 		{
-			std::vector<ExtenderUUID> extlist;
+			Vector<ExtenderUUID> extlist;
 
 			// Check if the UUIDs are valid
 			for (const auto& suuid : sextlist)

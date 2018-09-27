@@ -213,7 +213,7 @@ namespace QuantumGate::Implementation::Util
 					if (ptr != nullptr)
 					{
 						// Copy base64 data to new buffer, extra byte for null terminator
-						std::vector<Char> out(ptr->length + 1);
+						Vector<Char> out(ptr->length + 1);
 						memcpy(out.data(), ptr->data, ptr->length);
 
 						// Make sure string is null terminated

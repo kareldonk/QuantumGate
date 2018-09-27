@@ -236,6 +236,6 @@ namespace QuantumGate::Implementation::Concurrency
 		std::chrono::milliseconds m_WorkerThreadsMaxSleep{ 1 };
 
 		ThPData m_Data;
-		std::vector<ThreadCtrl> m_Threads;
+		Vector<ThreadCtrl> m_Threads;
 	};
 }

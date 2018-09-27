@@ -163,8 +163,8 @@ namespace QuantumGate::Implementation::Network
 		{
 			constexpr std::array<Block, 2> multicast =
 			{
-				Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 224 }), 4 },	// 224.0.0.0/4 Multicast
-				Block{ BinaryIPAddress(IPAddressFamily::IPv6, Byte{ 0xff }), 8 },	// ff00::/8 Multicast
+				Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 224 }), 4 },	// 224.0.0.0/4 (Multicast)
+				Block{ BinaryIPAddress(IPAddressFamily::IPv6, Byte{ 0xff }), 8 },	// ff00::/8 (Multicast)
 			};
 
 			for (const auto& block : multicast)
@@ -177,7 +177,7 @@ namespace QuantumGate::Implementation::Network
 
 		[[nodiscard]] static constexpr const bool IsReserved(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
-			constexpr auto block = Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 240 }), 4 }; // 240.0.0.0/4 Future use
+			constexpr auto block = Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 240 }), 4 }; // 240.0.0.0/4 (Future use)
 			return IsInBlock(bin_ipaddr, block);
 		}
 

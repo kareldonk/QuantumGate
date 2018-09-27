@@ -165,7 +165,7 @@ namespace QuantumGate::Implementation
 
 		ForceInline constexpr void Reset() noexcept
 		{
-			if (!m_Heap) memset(&m_FunctionStorage, 0, sizeof(m_FunctionStorage));
+			if (!m_Heap) std::memset(&m_FunctionStorage, 0, sizeof(m_FunctionStorage));
 
 			m_Function = nullptr;
 			m_Heap = false;
@@ -186,7 +186,8 @@ namespace QuantumGate::Implementation
 
 		template<typename F,
 			typename = std::enable_if_t<!std::is_base_of_v<CallbackImplBase, F>>>
-		constexpr Callback(F&& function) noexcept(noexcept(CallbackImpl<function_signature_rm_noexcept_t<Sig>, function_signature_is_noexcept<Sig>>(std::forward<F>(function)))) :
+		constexpr Callback(F&& function) noexcept(noexcept(CallbackImpl<function_signature_rm_noexcept_t<Sig>,
+														   function_signature_is_noexcept<Sig>>(std::forward<F>(function)))) :
 			CallbackImpl<function_signature_rm_noexcept_t<Sig>,
 			function_signature_is_noexcept<Sig>>(std::forward<F>(function))
 		{

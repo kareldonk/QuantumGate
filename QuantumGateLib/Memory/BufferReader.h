@@ -55,7 +55,7 @@ namespace QuantumGate::Implementation::Memory
 		template<typename T>
 		[[nodiscard]] const std::enable_if_t<std::is_integral_v<T> ||
 			std::is_same_v<T, Byte> || std::is_enum_v<T> ||
-			std::is_same_v<T, SerializedUUID>, bool> ReadImpl(std::vector<T>& data)
+			std::is_same_v<T, SerializedUUID>, bool> ReadImpl(Vector<T>& data)
 		{
 			for (std::size_t x = 0; x < data.size(); ++x)
 			{
@@ -73,7 +73,7 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		template<typename T>
-		[[nodiscard]] const bool ReadImpl(const SizeWrap<std::vector<T>>& data)
+		[[nodiscard]] const bool ReadImpl(const SizeWrap<Vector<T>>& data)
 		{
 			Size size{ 0 };
 			if (!ReadEncodedSize(size, data.MaxSize())) return false;

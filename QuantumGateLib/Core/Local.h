@@ -68,7 +68,7 @@ namespace QuantumGate::Implementation::Core
 
 		Result<PeerUUID> GetUUID() const noexcept;
 		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
-		Result<std::vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
+		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
 
 		Result<> SetSecurityLevel(const SecurityLevel level,
 								  const std::optional<SecurityParameters>& params = std::nullopt,

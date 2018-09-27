@@ -35,7 +35,7 @@ namespace QuantumGate::API
 		m_AccessManager->RemoveAllIPFilters();
 	}
 
-	Result<std::vector<IPFilter>> AccessManager::GetAllIPFilters() const noexcept
+	Result<Vector<IPFilter>> AccessManager::GetAllIPFilters() const noexcept
 	{
 		return m_AccessManager->GetAllIPFilters();
 	}
@@ -51,7 +51,7 @@ namespace QuantumGate::API
 		return m_AccessManager->RemoveIPSubnetLimit(af, cidr_lbits);
 	}
 
-	Result<std::vector<IPSubnetLimit>> AccessManager::GetAllIPSubnetLimits() const noexcept
+	Result<Vector<IPSubnetLimit>> AccessManager::GetAllIPSubnetLimits() const noexcept
 	{
 		return m_AccessManager->GetAllIPSubnetLimits();
 	}
@@ -76,7 +76,7 @@ namespace QuantumGate::API
 		m_AccessManager->ResetAllIPReputations();
 	}
 
-	Result<std::vector<IPReputation>> AccessManager::GetAllIPReputations() const noexcept
+	Result<Vector<IPReputation>> AccessManager::GetAllIPReputations() const noexcept
 	{
 		return m_AccessManager->GetAllIPReputations();
 	}
@@ -126,7 +126,7 @@ namespace QuantumGate::API
 		return m_AccessManager->GetPeerAccessDefault();
 	}
 
-	Result<std::vector<PeerAccessSettings>> AccessManager::GetAllPeers() const noexcept
+	Result<Vector<PeerAccessSettings>> AccessManager::GetAllPeers() const noexcept
 	{
 		return m_AccessManager->GetAllPeers();
 	}

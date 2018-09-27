@@ -84,7 +84,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			const auto& algs1 = settings.Local.SupportedAlgorithms.PrimaryAsymmetric;
 			const auto& algs2 = settings.Local.SupportedAlgorithms.SecondaryAsymmetric;
 
-			std::vector<Algorithm::Asymmetric> dstalgs;
+			Vector<Algorithm::Asymmetric> dstalgs;
 			std::set_union(algs1.begin(), algs1.end(),
 						   algs2.begin(), algs2.end(),
 						   std::back_inserter(dstalgs));

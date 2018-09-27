@@ -142,9 +142,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		return (success1 && success2);
 	}
 
-	Result<PeerLUID> LookupMaps::GetRandomPeer(const std::vector<PeerLUID>& excl_pluids,
-											   const std::vector<BinaryIPAddress>& excl_addr1,
-											   const std::vector<BinaryIPAddress>& excl_addr2,
+	Result<PeerLUID> LookupMaps::GetRandomPeer(const Vector<PeerLUID>& excl_pluids,
+											   const Vector<BinaryIPAddress>& excl_addr1,
+											   const Vector<BinaryIPAddress>& excl_addr2,
 											   const UInt8 excl_network_cidr4,
 											   const UInt8 excl_network_cidr6) const noexcept
 	{
@@ -222,11 +222,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::PeerNotFound;
 	}
 
-	Result<std::vector<PeerLUID>> LookupMaps::QueryPeers(const PeerQueryParameters& params) const noexcept
+	Result<Vector<PeerLUID>> LookupMaps::QueryPeers(const PeerQueryParameters& params) const noexcept
 	{
 		try
 		{
-			std::vector<PeerLUID> pluids;
+			Vector<PeerLUID> pluids;
 
 			for (const auto& it : GetPeerDataMap())
 			{
@@ -284,12 +284,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result_code;
 	}
 
-	const bool LookupMaps::HasLUID(const PeerLUID pluid, const std::vector<PeerLUID>& pluids) noexcept
+	const bool LookupMaps::HasLUID(const PeerLUID pluid, const Vector<PeerLUID>& pluids) noexcept
 	{
 		return (std::find(pluids.begin(), pluids.end(), pluid) != pluids.end());
 	}
 
-	const bool LookupMaps::HasIPPort(const UInt64 hash, const std::vector<IPEndpoint>& endpoints) noexcept
+	const bool LookupMaps::HasIPPort(const UInt64 hash, const Vector<IPEndpoint>& endpoints) noexcept
 	{
 		const auto it = std::find_if(endpoints.begin(), endpoints.end(),
 									 [&](const IPEndpoint& endpoint)
@@ -301,12 +301,12 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	const bool LookupMaps::HasIP(const BinaryIPAddress& ip,
-								 const std::vector<BinaryIPAddress>& addresses) noexcept
+								 const Vector<BinaryIPAddress>& addresses) noexcept
 	{
 		return (std::find(addresses.begin(), addresses.end(), ip) != addresses.end());
 	}
 
-	Result<bool> LookupMaps::AreIPsInSameNetwork(const BinaryIPAddress& ip, const std::vector<BinaryIPAddress>& addresses,
+	Result<bool> LookupMaps::AreIPsInSameNetwork(const BinaryIPAddress& ip, const Vector<BinaryIPAddress>& addresses,
 												 const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept
 	{
 		if (addresses.size() > 0)

@@ -72,7 +72,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Result<> RemoveLimit(const IPAddressFamily af, const String& cidr_lbits) noexcept;
 		Result<> RemoveLimit(const IPAddressFamily af, const UInt8 cidr_lbits) noexcept;
 
-		Result<std::vector<IPSubnetLimit>> GetLimits() const noexcept;
+		Result<Vector<IPSubnetLimit>> GetLimits() const noexcept;
 
 		void Clear() noexcept;
 

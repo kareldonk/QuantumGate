@@ -9,7 +9,7 @@ namespace QuantumGate::Implementation::Core::Extender
 {
 	using ExtenderModuleID = UInt64;
 	using ExtenderModuleHandle = HMODULE;
-	using ExtendersVector = std::vector<std::shared_ptr<QuantumGate::API::Extender>>;
+	using ExtendersVector = Vector<std::shared_ptr<QuantumGate::API::Extender>>;
 
 	class Module final
 	{

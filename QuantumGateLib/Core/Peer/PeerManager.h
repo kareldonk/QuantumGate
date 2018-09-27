@@ -71,7 +71,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		std::shared_ptr<Peer_ThS> Get(const PeerLUID pluid) const noexcept;
 
-		Result<std::vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
+		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
 		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
 
 		std::shared_ptr<Peer_ThS> Create(const PeerConnectionType pctype,
@@ -92,7 +92,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<> Broadcast(const MessageType msgtype, Buffer&& buffer);
 
-		const std::vector<BinaryIPAddress>* GetLocalIPAddresses() const noexcept;
+		const Vector<BinaryIPAddress>* GetLocalIPAddresses() const noexcept;
 
 	private:
 		void PreStartupThreadPools() noexcept;
@@ -113,12 +113,12 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		inline Relay::Manager& GetRelayManager() noexcept { return m_RelayManager; }
 		
-		Result<PeerLUID> GetRelayPeer(const std::vector<BinaryIPAddress>& excl_addr1,
-									  const std::vector<BinaryIPAddress>& excl_addr2) const noexcept;
+		Result<PeerLUID> GetRelayPeer(const Vector<BinaryIPAddress>& excl_addr1,
+									  const Vector<BinaryIPAddress>& excl_addr2) const noexcept;
 		
 		Result<bool> AreRelayIPsInSameNetwork(const BinaryIPAddress& ip1, const BinaryIPAddress& ip2) const noexcept;
 		Result<bool> AreRelayIPsInSameNetwork(const BinaryIPAddress& ip,
-											  const std::vector<BinaryIPAddress>& addresses) noexcept;
+											  const Vector<BinaryIPAddress>& addresses) noexcept;
 
 		const bool Add(std::shared_ptr<Peer_ThS>& peerths) noexcept;
 		void Remove(const Peer& peer) noexcept;
@@ -137,7 +137,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		const bool BroadcastExtenderUpdate();
 
 		void OnAccessUpdate() noexcept;
-		void OnLocalExtenderUpdate(const std::vector<ExtenderUUID>& extuuids, const bool added);
+		void OnLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids, const bool added);
 		void OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const PeerLUID pluid,
 										const std::pair<bool, bool>& result) noexcept;
 		void OnPeerEvent(const Peer& peer, const Event&& event) noexcept;

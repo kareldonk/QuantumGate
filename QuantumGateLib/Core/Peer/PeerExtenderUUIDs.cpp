@@ -8,7 +8,7 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	const bool ExtenderUUIDs::Set(std::vector<ExtenderUUID>&& uuids) noexcept
+	const bool ExtenderUUIDs::Set(Vector<ExtenderUUID>&& uuids) noexcept
 	{
 		if (SortAndEnsureUnique(uuids))
 		{
@@ -31,15 +31,15 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	Result<std::pair<std::vector<ExtenderUUID>,
-		std::vector<ExtenderUUID>>> ExtenderUUIDs::Update(std::vector<ExtenderUUID>&& update_uuids) noexcept
+	Result<std::pair<Vector<ExtenderUUID>,
+		Vector<ExtenderUUID>>> ExtenderUUIDs::Update(Vector<ExtenderUUID>&& update_uuids) noexcept
 	{
 		try
 		{
 			if (SortAndEnsureUnique(update_uuids))
 			{
 				// Get all extenders that were removed
-				std::vector<ExtenderUUID> removed;
+				Vector<ExtenderUUID> removed;
 				std::remove_copy_if(m_ExtenderUUIDs.begin(), m_ExtenderUUIDs.end(), std::back_inserter(removed),
 									[&](const ExtenderUUID& arg)
 				{
@@ -47,7 +47,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				});
 
 				// Get all extenders that were added
-				std::vector<ExtenderUUID> added;
+				Vector<ExtenderUUID> added;
 				std::remove_copy_if(update_uuids.begin(), update_uuids.end(), std::back_inserter(added),
 									[&](const ExtenderUUID& arg)
 				{
@@ -70,7 +70,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return (std::binary_search(m_ExtenderUUIDs.begin(), m_ExtenderUUIDs.end(), uuid));
 	}
 
-	const bool ExtenderUUIDs::SortAndEnsureUnique(std::vector<ExtenderUUID>& uuids) const noexcept
+	const bool ExtenderUUIDs::SortAndEnsureUnique(Vector<ExtenderUUID>& uuids) const noexcept
 	{
 		if (uuids.size() <= 1) return true;
 

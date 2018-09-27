@@ -107,7 +107,7 @@ namespace QuantumGate::Implementation::Memory
 		template<typename T>
 		const std::enable_if_t<std::is_integral_v<T> ||
 			std::is_same_v<T, Byte> || std::is_enum_v<T> ||
-			std::is_same_v<T, SerializedUUID>, Size> GetDataSize(const std::vector<T>& data) noexcept
+			std::is_same_v<T, SerializedUUID>, Size> GetDataSize(const Vector<T>& data) noexcept
 		{
 			return (data.size() * sizeof(T));
 		}

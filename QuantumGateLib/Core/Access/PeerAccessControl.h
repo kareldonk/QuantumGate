@@ -39,7 +39,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 		void Clear() noexcept;
 
-		Result<std::vector<PeerAccessSettings>> GetPeers() const noexcept;
+		Result<Vector<PeerAccessSettings>> GetPeers() const noexcept;
 
 	private:
 		const bool ValidatePeerAccessSettings(const PeerAccessSettings& pas) const noexcept;

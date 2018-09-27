@@ -71,6 +71,17 @@ namespace QuantumGate
 	using Buffer = Implementation::Memory::Buffer;
 	using ProtectedBuffer = Implementation::Memory::ProtectedBuffer;
 
+	using ProtectedString = std::basic_string<wchar_t, std::char_traits<wchar_t>,
+		Implementation::Memory::ProtectedAllocator<wchar_t>>;
+	using ProtectedStringA = std::basic_string<char, std::char_traits<char>,
+		Implementation::Memory::ProtectedAllocator<char>>;
+
+	template<typename T>
+	using Vector = std::vector<T>;
+
+	template<typename T>
+	using Set = std::set<T>;
+
 	struct PeerKeys
 	{
 		ProtectedBuffer PrivateKey;
@@ -82,11 +93,6 @@ namespace QuantumGate
 
 namespace QuantumGate
 {
-	using ProtectedString = std::basic_string<wchar_t, std::char_traits<wchar_t>,
-		Implementation::Memory::ProtectedAllocator<wchar_t>>;
-	using ProtectedStringA = std::basic_string<char, std::char_traits<char>,
-		Implementation::Memory::ProtectedAllocator<char>>;
-
 	struct ProtocolVersion
 	{
 		static constexpr const UInt8 Major{ 0 };
@@ -211,16 +217,16 @@ namespace QuantumGate
 		String Description;
 		String MACAddress;
 		bool Operational{ false };
-		std::vector<IPAddress> IPAddresses;
+		Vector<IPAddress> IPAddresses;
 	};
 
 	struct Algorithms
 	{
-		std::set<Algorithm::Hash> Hash;
-		std::set<Algorithm::Asymmetric> PrimaryAsymmetric;
-		std::set<Algorithm::Asymmetric> SecondaryAsymmetric;
-		std::set<Algorithm::Symmetric> Symmetric;
-		std::set<Algorithm::Compression> Compression;
+		Set<Algorithm::Hash> Hash;
+		Set<Algorithm::Asymmetric> PrimaryAsymmetric;
+		Set<Algorithm::Asymmetric> SecondaryAsymmetric;
+		Set<Algorithm::Symmetric> Symmetric;
+		Set<Algorithm::Compression> Compression;
 	};
 
 	struct StartupParameters
@@ -238,7 +244,7 @@ namespace QuantumGate
 		struct
 		{
 			bool Enable{ false };								// Enable listening for incoming connections on startup?
-			std::set<UInt16> TCPPorts{ 999 };					// Which ports to listen on
+			Set<UInt16> TCPPorts{ 999 };					// Which ports to listen on
 			bool EnableNATTraversal{ false };					// Whether NAT traversal is enabled
 		} Listeners;
 
@@ -372,7 +378,7 @@ namespace QuantumGate
 				NoneOf, AllOf, OneOf
 			};
 
-			std::set<ExtenderUUID> UUIDs;
+			Set<ExtenderUUID> UUIDs;
 			IncludeOption Include{ IncludeOption::NoneOf };
 		} Extenders;
 	};

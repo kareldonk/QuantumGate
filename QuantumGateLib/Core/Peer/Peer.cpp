@@ -166,7 +166,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return GetExtenderManager().GetActiveExtenderUUIDs();
 	}
 
-	void Peer::ProcessLocalExtenderUpdate(const std::vector<ExtenderUUID>& extuuids)
+	void Peer::ProcessLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids)
 	{
 		if (GetStatus() == Status::Ready)
 		{
@@ -180,7 +180,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	const bool Peer::ProcessPeerExtenderUpdate(std::vector<ExtenderUUID>&& uuids) noexcept
+	const bool Peer::ProcessPeerExtenderUpdate(Vector<ExtenderUUID>&& uuids) noexcept
 	{
 		auto success = false;
 
@@ -1372,7 +1372,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	const QuantumGate::Algorithms& Peer::GetSupportedAlgorithms() const noexcept
+	const LocalAlgorithms& Peer::GetSupportedAlgorithms() const noexcept
 	{
 		return GetSettings().Local.SupportedAlgorithms;
 	}
@@ -1670,7 +1670,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		ProcessEvent(GetPeerExtenderUUIDs().Current(), etype);
 	}
 
-	void Peer::ProcessEvent(const std::vector<ExtenderUUID>& extuuids, const PeerEventType etype) noexcept
+	void Peer::ProcessEvent(const Vector<ExtenderUUID>& extuuids, const PeerEventType etype) noexcept
 	{
 		GetExtenderManager().OnPeerEvent(extuuids, Event(etype, GetLUID(), GetLocalUUID()));
 	}
