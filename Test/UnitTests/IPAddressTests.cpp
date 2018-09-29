@@ -596,5 +596,33 @@ namespace UnitTests
 			Assert::AreEqual(false, IPAddress(L"127.25.1.1").IsClassE());
 			Assert::AreEqual(false, IPAddress(L"0.25.1.1").IsClassE());
 		}
+
+		TEST_METHOD(Constexpr)
+		{
+			constexpr auto bin_ip = BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 1 }, Byte{ 1 });
+			constexpr IPAddress ip(bin_ip);
+			constexpr BinaryIPAddress bin_ip2 = ip.GetBinary();
+			constexpr auto family = ip.GetFamily();
+
+			static_assert(family == IPAddressFamily::IPv4, "Should be equal");
+			static_assert(bin_ip2 == bin_ip, "Should be equal");
+
+			Assert::AreEqual(true, family == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, bin_ip2 == bin_ip);
+
+			constexpr auto ipa4 = IPAddress::AnyIPv4();
+			constexpr auto ipa6 = IPAddress::AnyIPv6();
+
+			constexpr auto iplb4 = IPAddress::LoopbackIPv4();
+			static_assert(iplb4.GetFamily() == IPAddressFamily::IPv4, "Should be equal");
+			
+			constexpr auto iplb6 = IPAddress::LoopbackIPv6();
+			static_assert(iplb6.GetFamily() == IPAddressFamily::IPv6, "Should be equal");
+
+			constexpr auto bin_ip3 = BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 127 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 });
+			constexpr IPAddress iplb42(bin_ip3);
+			static_assert(iplb4 == iplb42, "Should be equal");
+			Assert::AreEqual(true, iplb4 == iplb42);
+		}
 	};
 }

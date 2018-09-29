@@ -106,6 +106,43 @@ namespace QuantumGate::Implementation::Network
 		return;
 	}
 
+	void IPAddress::SetAddress(const sockaddr_storage* saddr)
+	{
+		assert(saddr != nullptr);
+
+		switch (saddr->ss_family)
+		{
+			case AF_INET:
+			{
+				static_assert(sizeof(m_AddressBinary.Bytes) >= sizeof(in_addr), "IP Address length mismatch");
+
+				m_AddressBinary.AddressFamily = IPAddressFamily::IPv4;
+
+				auto ip4 = reinterpret_cast<const sockaddr_in*>(saddr);
+				memcpy(&m_AddressBinary.Bytes, &ip4->sin_addr, sizeof(ip4->sin_addr));
+
+				break;
+			}
+			case AF_INET6:
+			{
+				static_assert(sizeof(m_AddressBinary.Bytes) >= sizeof(in6_addr), "IP Address length mismatch");
+
+				m_AddressBinary.AddressFamily = IPAddressFamily::IPv6;
+
+				auto ip6 = reinterpret_cast<const sockaddr_in6*>(saddr);
+				memcpy(&m_AddressBinary.Bytes, &ip6->sin6_addr, sizeof(ip6->sin6_addr));
+
+				break;
+			}
+			default:
+			{
+				throw std::invalid_argument("Unsupported internetwork address family");
+			}
+		}
+
+		return;
+	}
+
 	String IPAddress::GetString() const noexcept
 	{
 		try

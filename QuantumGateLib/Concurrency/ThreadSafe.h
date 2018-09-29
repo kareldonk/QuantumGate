@@ -19,57 +19,57 @@ namespace QuantumGate::Implementation::Concurrency
 		class Value
 		{
 		public:
-			constexpr Value() = default;
-			constexpr Value(ThS* ths) noexcept : m_ThS(ths), m_Lock(ths->m_Mutex) {}
-			constexpr Value(ThS* ths, std::adopt_lock_t t) noexcept : m_ThS(ths), m_Lock(ths->m_Mutex, t) {}
-			constexpr Value(ThS* ths, std::defer_lock_t t) noexcept : m_ThS(ths), m_Lock(ths->m_Mutex, t) {}
+			Value() = default;
+			Value(ThS* ths) noexcept : m_ThS(ths), m_Lock(ths->m_Mutex) {}
+			Value(ThS* ths, std::adopt_lock_t t) noexcept : m_ThS(ths), m_Lock(ths->m_Mutex, t) {}
+			Value(ThS* ths, std::defer_lock_t t) noexcept : m_ThS(ths), m_Lock(ths->m_Mutex, t) {}
 			Value(const Value&) = delete;
-			constexpr Value(Value&&) = default;
-			~Value() {}
+			Value(Value&&) = default;
+			~Value() = default;
 			Value& operator=(const Value&) = delete;
-			constexpr Value& operator=(Value&&) = default;
+			Value& operator=(Value&&) = default;
 
-			constexpr std::conditional_t<std::is_const_v<ThS>, const T*, T*> operator->() noexcept { assert(*this); return &m_ThS->m_Data; }
-			constexpr const T* operator->() const noexcept { assert(*this); return &m_ThS->m_Data; }
+			inline std::conditional_t<std::is_const_v<ThS>, const T*, T*> operator->() noexcept { assert(*this); return &m_ThS->m_Data; }
+			inline const T* operator->() const noexcept { assert(*this); return &m_ThS->m_Data; }
 
-			constexpr std::conditional_t<std::is_const_v<ThS>, const T&, T&> operator*() noexcept { assert(*this); return m_ThS->m_Data; }
-			constexpr const T& operator*() const noexcept { assert(*this); return m_ThS->m_Data; }
-
-			template<typename Arg>
-			constexpr auto& operator[](Arg&& arg) { assert(*this); return m_ThS->m_Data[std::forward<Arg>(arg)]; }
+			inline std::conditional_t<std::is_const_v<ThS>, const T&, T&> operator*() noexcept { assert(*this); return m_ThS->m_Data; }
+			inline const T& operator*() const noexcept { assert(*this); return m_ThS->m_Data; }
 
 			template<typename Arg>
-			constexpr const auto& operator[](Arg&& arg) const { assert(*this); return m_ThS->m_Data[std::forward<Arg>(arg)]; }
+			inline auto& operator[](Arg&& arg) { assert(*this); return m_ThS->m_Data[std::forward<Arg>(arg)]; }
 
-			constexpr T& operator=(const T& other) noexcept(noexcept(m_ThS->m_Data = other))
+			template<typename Arg>
+			inline const auto& operator[](Arg&& arg) const { assert(*this); return m_ThS->m_Data[std::forward<Arg>(arg)]; }
+
+			inline T& operator=(const T& other) noexcept(noexcept(m_ThS->m_Data = other))
 			{
 				assert(*this);
 				m_ThS->m_Data = other;
 				return m_ThS->m_Data;
 			}
 
-			constexpr const bool operator==(const T& other) const noexcept
+			inline const bool operator==(const T& other) const noexcept
 			{
 				assert(*this);
 				return (m_ThS->m_Data == other);
 			}
 
-			constexpr const bool operator!=(const T& other) const noexcept
+			inline const bool operator!=(const T& other) const noexcept
 			{
 				assert(*this);
 				return !(m_ThS->m_Data == other);
 			}
 
-			constexpr explicit operator bool() const noexcept { return (m_ThS != nullptr && m_Lock.owns_lock()); }
+			inline explicit operator bool() const noexcept { return (m_ThS != nullptr && m_Lock.owns_lock()); }
 
 			template<typename... Args>
-			constexpr void operator()(Args&&... args) const noexcept(noexcept(m_ThS->m_Data(std::forward<Args>(args)...)))
+			inline void operator()(Args&&... args) const noexcept(noexcept(m_ThS->m_Data(std::forward<Args>(args)...)))
 			{
 				assert(*this);
 				m_ThS->m_Data(std::forward<Args>(args)...);
 			}
 
-			constexpr void Reset() noexcept
+			inline void Reset() noexcept
 			{
 				m_ThS = nullptr; 
 				if (m_Lock.owns_lock()) m_Lock.unlock();
@@ -85,11 +85,11 @@ namespace QuantumGate::Implementation::Concurrency
 		using ConstUniqueLockedType = Value<const ThreadSafe, std::unique_lock<M>>;
 		using SharedLockedType = Value<const ThreadSafe, std::shared_lock<M>>;
 
-		constexpr ThreadSafe() noexcept {}
+		ThreadSafe() noexcept {}
 
 		template<typename... Args,
 			typename = std::enable_if_t<!are_same<ThreadSafe<T, M>, Args...>::value>>
-		constexpr ThreadSafe(Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>) :
+		ThreadSafe(Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>) :
 			m_Data(std::forward<Args>(args)...) {}
 
 		ThreadSafe(const ThreadSafe&) = delete;
@@ -98,24 +98,24 @@ namespace QuantumGate::Implementation::Concurrency
 		ThreadSafe& operator=(const ThreadSafe&) = delete;
 		ThreadSafe& operator=(ThreadSafe&&) = delete;
 
-		constexpr UniqueLockedType WithUniqueLock() noexcept(noexcept(m_Mutex.lock())) { return { this }; }
-		constexpr ConstUniqueLockedType WithUniqueLock() const noexcept(noexcept(m_Mutex.lock())) { return { this }; }
+		inline UniqueLockedType WithUniqueLock() noexcept(noexcept(m_Mutex.lock())) { return { this }; }
+		inline ConstUniqueLockedType WithUniqueLock() const noexcept(noexcept(m_Mutex.lock())) { return { this }; }
 		
 		template<typename F>
-		constexpr auto WithUniqueLock(F&& function) noexcept(noexcept(function(*WithUniqueLock())))
+		inline auto WithUniqueLock(F&& function) noexcept(noexcept(function(*WithUniqueLock())))
 		{
 			return function(*WithUniqueLock());
 		}
 
 		template<typename F>
-		constexpr auto WithUniqueLock(F&& function) const noexcept(noexcept(function(*WithUniqueLock())))
+		inline auto WithUniqueLock(F&& function) const noexcept(noexcept(function(*WithUniqueLock())))
 		{
 			return function(*WithUniqueLock());
 		}
 
 		template<typename F, typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock)>>>
-		constexpr const bool IfUniqueLock(F&& function) noexcept(noexcept(function(m_Data)))
+		inline const bool IfUniqueLock(F&& function) noexcept(noexcept(function(m_Data)))
 		{
 			if (m_Mutex.try_lock())
 			{
@@ -129,7 +129,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 		template<typename F, typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock)>>>
-		constexpr const bool IfUniqueLock(F&& function) const noexcept(noexcept(function(m_Data)))
+		inline const bool IfUniqueLock(F&& function) const noexcept(noexcept(function(m_Data)))
 		{
 			if (m_Mutex.try_lock())
 			{
@@ -143,7 +143,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 		template<typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock)>>>
-		constexpr const bool TryUniqueLock(UniqueLockedType& value) noexcept
+		inline const bool TryUniqueLock(UniqueLockedType& value) noexcept
 		{
 			if (m_Mutex.try_lock())
 			{
@@ -156,21 +156,21 @@ namespace QuantumGate::Implementation::Concurrency
 
 		template<typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::lock_shared)>>>
-		constexpr SharedLockedType WithSharedLock() const noexcept(noexcept(m_Mutex.lock_shared()))
+		inline SharedLockedType WithSharedLock() const noexcept(noexcept(m_Mutex.lock_shared()))
 		{
 			return { this }; 
 		}
 
 		template<typename F, typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::lock_shared)>>>
-		constexpr auto WithSharedLock(F&& function) const noexcept(noexcept(function(*WithSharedLock())))
+		inline auto WithSharedLock(F&& function) const noexcept(noexcept(function(*WithSharedLock())))
 		{
 			return function(*WithSharedLock());
 		}
 
 		template<typename F, typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock_shared)>>>
-		constexpr const bool IfSharedLock(F&& function) const noexcept(noexcept(function(m_Data)))
+		inline const bool IfSharedLock(F&& function) const noexcept(noexcept(function(m_Data)))
 		{
 			if (m_Mutex.try_lock_shared())
 			{

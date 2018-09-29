@@ -360,6 +360,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BinaryIPAddressTests.cpp" />
     <ClCompile Include="BufferReaderWriterTests.cpp" />
     <ClCompile Include="BufferTests.cpp" />
     <ClCompile Include="BufferViewTests.cpp" />

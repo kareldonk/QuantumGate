@@ -191,7 +191,7 @@ namespace QuantumGate::Implementation
 		class Export Log
 		{
 		public:
-			constexpr Log(const MessageType type) noexcept : m_MessageType(type) {}
+			Log(const MessageType type) noexcept : m_MessageType(type) {}
 			Log(const Log&) = delete;
 			Log(Log&&) = delete;
 

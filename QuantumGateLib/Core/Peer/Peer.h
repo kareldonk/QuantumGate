@@ -36,7 +36,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			NeedsAccessCheck,
 			ConcatenateMessages,
 			HandshakeStartDelay,
-			SendDisabled
+			SendDisabled,
+			NeedsExtenderUpdate
 		};
 
 		struct DelayedMessage
@@ -104,6 +105,11 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] const bool SetStatus(const Status status) noexcept;
 		inline const Status GetStatus() const noexcept { return m_PeerData.WithSharedLock()->Status; }
+
+		inline const bool IsReady() const noexcept { return (GetStatus() == Status::Ready); }
+		inline const bool IsInSessionInit() const noexcept { return (GetStatus() == Status::SessionInit); }
+		inline const bool IsInHandshake() const noexcept { return (GetStatus() > Status::Connected &&
+																   GetStatus() < Status::Ready); }
 
 		[[nodiscard]] inline const bool IsAuthenticated() const noexcept { return m_PeerData.WithSharedLock()->IsAuthenticated; }
 		void SetAuthenticated(const bool auth) noexcept;
@@ -195,9 +201,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		void ProcessLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids);
 		[[nodiscard]] const bool ProcessPeerExtenderUpdate(Vector<ExtenderUUID>&& uuids) noexcept;
 
-		inline void SetAccessCheck() noexcept { SetFlag(Flags::NeedsAccessCheck, true); }
+		inline void SetNeedsAccessCheck() noexcept { SetFlag(Flags::NeedsAccessCheck, true); }
 		[[nodiscard]] inline const bool NeedsAccessCheck() const noexcept { return IsFlagSet(Flags::NeedsAccessCheck); }
 		void CheckAccess();
+
+		inline void SetNeedsExtenderUpdate() noexcept { SetFlag(Flags::NeedsExtenderUpdate, true); }
+		[[nodiscard]] inline const bool NeedsExtenderUpdate() const noexcept { return IsFlagSet(Flags::NeedsExtenderUpdate); }
 
 		void OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const std::pair<bool, bool>& result) noexcept;
 

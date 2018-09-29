@@ -32,8 +32,8 @@ namespace QuantumGate::Implementation
 					// Compare all bits except for the version, type and signing algorithm
 					if ((m_Data1 == uuid.m_Data1) &&
 						(m_Data2 == uuid.m_Data2) &&
-						((m_Data3 & 0xFFF0) == (uuid.m_Data3 & 0xFFF0)) &&
-						((m_Data4.UInt64 >> 6) == (uuid.m_Data4.UInt64 >> 6)))
+						((m_Data3 & 0xfff0) == (uuid.m_Data3 & 0xfff0)) &&
+						((m_Data4 >> 6) == (uuid.m_Data4 >> 6)))
 					{
 						return true;
 					}
@@ -46,11 +46,12 @@ namespace QuantumGate::Implementation
 
 	String UUID::GetString() const noexcept
 	{
+		const auto data4_bytes = reinterpret_cast<const Byte*>(&m_Data4);
 		return Util::FormatString(L"%.8x-%.4x-%.4x-%.2x%.2x-%.2x%.2x%.2x%.2x%.2x%.2x",
 								  Endian::ToNetworkByteOrder(m_Data1), Endian::ToNetworkByteOrder(m_Data2),
-								  Endian::ToNetworkByteOrder(m_Data3), m_Data4.Bytes[0], m_Data4.Bytes[1],
-								  m_Data4.Bytes[2], m_Data4.Bytes[3], m_Data4.Bytes[4],
-								  m_Data4.Bytes[5], m_Data4.Bytes[6], m_Data4.Bytes[7]);
+								  Endian::ToNetworkByteOrder(m_Data3), data4_bytes[0], data4_bytes[1],
+								  data4_bytes[2], data4_bytes[3], data4_bytes[4],
+								  data4_bytes[5], data4_bytes[6], data4_bytes[7]);
 	}
 
 	std::size_t UUID::GetHash() const noexcept
@@ -204,7 +205,7 @@ namespace QuantumGate::Implementation
 								static_cast<UInt16>(std::wcstoull(m[3].str().c_str(), &end, 16)));
 							if (errno == 0)
 							{
-								m_Data4.UInt64 = Endian::FromNetworkByteOrder(
+								m_Data4 = Endian::FromNetworkByteOrder(
 									std::wcstoull(String(m[4].str() + m[5].str()).c_str(), &end, 16));
 								if (errno == 0 && IsValid())
 								{
@@ -218,8 +219,7 @@ namespace QuantumGate::Implementation
 		}
 		catch (...) {}
 
-		// Clear member variables
-		MemClear(this, sizeof(UUID));
+		Clear();
 
 		throw std::invalid_argument("Invalid UUID");
 	}

@@ -19,21 +19,21 @@ namespace QuantumGate::Implementation::Memory
 		using VectorType = std::vector<Byte, A>;
 		using SizeType = Size;
 
-		constexpr BufferImpl() noexcept {}
-		constexpr BufferImpl(const BufferImpl& other) { *this += other; }
-		constexpr BufferImpl(const BufferView& other) { *this += other; }
-		constexpr BufferImpl(BufferImpl&& other) noexcept { Swap(other.m_Buffer); }
-		constexpr BufferImpl(VectorType&& buffer) noexcept { Swap(buffer); }
-		constexpr BufferImpl(const Size size) { Allocate(size); }
-		constexpr BufferImpl(const Byte* data, const Size data_size) { Add(data, data_size); }
-		virtual ~BufferImpl() { Clear(); }
+		BufferImpl() noexcept {}
+		BufferImpl(const BufferImpl& other) { *this += other; }
+		BufferImpl(const BufferView& other) { *this += other; }
+		BufferImpl(BufferImpl&& other) noexcept { Swap(other.m_Buffer); }
+		BufferImpl(VectorType&& buffer) noexcept { Swap(buffer); }
+		BufferImpl(const Size size) { Allocate(size); }
+		BufferImpl(const Byte* data, const Size data_size) { Add(data, data_size); }
+		~BufferImpl() = default;
 
-		constexpr explicit operator bool() const noexcept { return !IsEmpty(); }
+		inline explicit operator bool() const noexcept { return !IsEmpty(); }
 
-		constexpr Byte& operator[](Size index) noexcept { return m_Buffer[index]; }
-		constexpr const Byte& operator[](Size index) const noexcept { return m_Buffer[index]; }
+		inline Byte& operator[](Size index) noexcept { return m_Buffer[index]; }
+		inline const Byte& operator[](Size index) const noexcept { return m_Buffer[index]; }
 
-		constexpr BufferImpl& operator=(const BufferImpl& other)
+		inline BufferImpl& operator=(const BufferImpl& other)
 		{
 			// Check for same object
 			if (this == &other) return *this;
@@ -44,7 +44,7 @@ namespace QuantumGate::Implementation::Memory
 			return *this;
 		}
 
-		constexpr BufferImpl& operator=(const BufferView& buffer)
+		inline BufferImpl& operator=(const BufferView& buffer)
 		{
 			Allocate(buffer.GetSize());
 			memcpy(GetBytes(), buffer.GetBytes(), buffer.GetSize());
@@ -52,12 +52,12 @@ namespace QuantumGate::Implementation::Memory
 			return *this;
 		}
 
-		constexpr BufferImpl& operator=(const VectorType& buffer)
+		inline BufferImpl& operator=(const VectorType& buffer)
 		{
 			return this->operator=(BufferView(buffer.data(), buffer.size()));
 		}
 
-		constexpr BufferImpl& operator=(BufferImpl&& other) noexcept
+		inline BufferImpl& operator=(BufferImpl&& other) noexcept
 		{
 			// Check for same object
 			if (this == &other) return *this;
@@ -68,68 +68,71 @@ namespace QuantumGate::Implementation::Memory
 			return *this;
 		}
 
-		constexpr BufferImpl& operator=(VectorType&& buffer) noexcept
+		inline BufferImpl& operator=(VectorType&& buffer) noexcept
 		{
+			// Check for same object
+			if (&m_Buffer == &buffer) return *this;
+
 			Clear();
 			Swap(buffer);
 			
 			return *this;
 		}
 
-		constexpr const bool operator==(const BufferImpl& other) const noexcept
+		inline const bool operator==(const BufferImpl& other) const noexcept
 		{
 			if (GetSize() != other.GetSize()) return false;
 
 			return (memcmp(GetBytes(), other.GetBytes(), GetSize()) == 0);
 		}
 
-		constexpr const bool operator!=(const BufferImpl& other) const noexcept
+		inline const bool operator!=(const BufferImpl& other) const noexcept
 		{
 			return !(*this == other);
 		}
 
-		constexpr operator BufferView() const noexcept { return { GetBytes(), GetSize() }; }
+		inline operator BufferView() const noexcept { return { GetBytes(), GetSize() }; }
 
-		constexpr BufferImpl& operator+=(const BufferImpl& other) { Add(other.GetBytes(), other.GetSize()); return *this; }
-		constexpr BufferImpl& operator+=(const BufferView& buffer) { Add(buffer.GetBytes(), buffer.GetSize()); return *this; }
-		constexpr BufferImpl& operator+=(const VectorType& buffer) { Add(buffer.data(), buffer.size()); return *this; }
+		inline BufferImpl& operator+=(const BufferImpl& other) { Add(other.GetBytes(), other.GetSize()); return *this; }
+		inline BufferImpl& operator+=(const BufferView& buffer) { Add(buffer.GetBytes(), buffer.GetSize()); return *this; }
+		inline BufferImpl& operator+=(const VectorType& buffer) { Add(buffer.data(), buffer.size()); return *this; }
 
-		constexpr VectorType& GetVector() noexcept { return m_Buffer; }
-		constexpr const VectorType& GetVector() const noexcept { return m_Buffer; }
+		inline VectorType& GetVector() noexcept { return m_Buffer; }
+		inline const VectorType& GetVector() const noexcept { return m_Buffer; }
 
-		[[nodiscard]] constexpr Byte* GetBytes() noexcept { return m_Buffer.data(); }
-		[[nodiscard]] constexpr const Byte* GetBytes() const noexcept { return m_Buffer.data(); }
+		[[nodiscard]] inline Byte* GetBytes() noexcept { return m_Buffer.data(); }
+		[[nodiscard]] inline const Byte* GetBytes() const noexcept { return m_Buffer.data(); }
 		
-		[[nodiscard]] constexpr Size GetSize() const noexcept { return m_Buffer.size(); }
+		[[nodiscard]] inline Size GetSize() const noexcept { return m_Buffer.size(); }
 		
-		[[nodiscard]] constexpr const bool IsEmpty() const noexcept { return m_Buffer.empty(); }
+		[[nodiscard]] inline const bool IsEmpty() const noexcept { return m_Buffer.empty(); }
 		
-		constexpr void Swap(VectorType& other) noexcept { m_Buffer.swap(other); }
-		constexpr void Swap(BufferImpl& other) noexcept { m_Buffer.swap(other.m_Buffer); }
+		inline void Swap(VectorType& other) noexcept { m_Buffer.swap(other); }
+		inline void Swap(BufferImpl& other) noexcept { m_Buffer.swap(other.m_Buffer); }
 
-		constexpr void Allocate(const Size size) { m_Buffer.resize(size, Byte{ 0 }); }
+		inline void Allocate(const Size size) { m_Buffer.resize(size, Byte{ 0 }); }
 
-		constexpr void Preallocate(const Size size) { m_Buffer.reserve(size); }
+		inline void Preallocate(const Size size) { m_Buffer.reserve(size); }
 
-		constexpr void FreeUnused() { m_Buffer.shrink_to_fit(); }
+		inline void FreeUnused() { m_Buffer.shrink_to_fit(); }
 
-		constexpr void Clear() noexcept { m_Buffer.clear(); }
+		inline void Clear() noexcept { m_Buffer.clear(); }
 
-		constexpr void RemoveFirst(const Size num) noexcept
+		inline void RemoveFirst(const Size num) noexcept
 		{
 			assert(GetSize() >= num);
 
 			m_Buffer.erase(m_Buffer.begin(), (m_Buffer.size() > num) ? m_Buffer.begin() + num : m_Buffer.end());
 		}
 
-		constexpr void RemoveLast(const Size num) noexcept
+		inline void RemoveLast(const Size num) noexcept
 		{
 			assert(GetSize() >= num);
 
 			m_Buffer.resize((m_Buffer.size() > num) ? m_Buffer.size() - num : 0);
 		}
 
-		constexpr void Resize(const Size new_size)
+		inline void Resize(const Size new_size)
 		{
 			if (new_size == GetSize()) return;
 
@@ -137,7 +140,7 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 	private:
-		constexpr void Add(const Byte* data, const Size size)
+		inline void Add(const Byte* data, const Size size)
 		{
 			if (data != nullptr && size > 0)
 			{

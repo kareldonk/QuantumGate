@@ -5,8 +5,6 @@
 
 #include "BinaryIPAddress.h"
 
-#include <array>
-
 #include <ws2tcpip.h>
 #include <Mstcpip.h>
 
@@ -33,9 +31,9 @@ namespace QuantumGate::Implementation::Network
 		constexpr IPAddress(IPAddress&& other) noexcept { *this = std::move(other); }
 
 		IPAddress(const String& ipaddr_str) { SetAddress(ipaddr_str); }
+		IPAddress(const sockaddr_storage* saddr) { SetAddress(saddr); }
+		IPAddress(const sockaddr* saddr) { SetAddress(reinterpret_cast<const sockaddr_storage*>(saddr)); }
 
-		constexpr IPAddress(const sockaddr_storage* saddr) { SetAddress(saddr); }
-		constexpr IPAddress(const sockaddr* saddr) { SetAddress(reinterpret_cast<const sockaddr_storage*>(saddr)); }
 		constexpr IPAddress(const BinaryIPAddress& bin_ipaddr) { SetAddress(bin_ipaddr); }
 
 		constexpr IPAddress& operator=(const IPAddress& other) noexcept
@@ -108,9 +106,11 @@ namespace QuantumGate::Implementation::Network
 
 		static constexpr const IPAddress LoopbackIPv6() noexcept
 		{
-			auto bin_ip = BinaryIPAddress(IPAddressFamily::IPv6);
-			bin_ip.Bytes[15] = Byte{ 1 };
-			return { bin_ip };
+			return { BinaryIPAddress(IPAddressFamily::IPv6,
+									 Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
+									 Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
+									 Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
+									 Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 }) };
 		}
 
 		[[nodiscard]] static const bool TryParse(const String& ipaddr_str, IPAddress& ipaddr) noexcept;
@@ -213,6 +213,7 @@ namespace QuantumGate::Implementation::Network
 
 	private:
 		void SetAddress(const String& ipaddr_str);
+		void SetAddress(const sockaddr_storage* saddr);
 
 		constexpr void SetAddress(const BinaryIPAddress& bin_ipaddr)
 		{
@@ -225,43 +226,6 @@ namespace QuantumGate::Implementation::Network
 					break;
 				default:
 					throw std::invalid_argument("Unsupported internetwork address family");
-			}
-
-			return;
-		}
-
-		constexpr void SetAddress(const sockaddr_storage* saddr)
-		{
-			assert(saddr != nullptr);
-
-			switch (saddr->ss_family)
-			{
-				case AF_INET:
-				{
-					static_assert(sizeof(m_AddressBinary.Bytes) >= sizeof(in_addr), "IP Address length mismatch");
-
-					m_AddressBinary.AddressFamily = IPAddressFamily::IPv4;
-
-					auto ip4 = reinterpret_cast<const sockaddr_in*>(saddr);
-					memcpy(&m_AddressBinary.Bytes, &ip4->sin_addr, sizeof(ip4->sin_addr));
-
-					break;
-				}
-				case AF_INET6:
-				{
-					static_assert(sizeof(m_AddressBinary.Bytes) >= sizeof(in6_addr), "IP Address length mismatch");
-
-					m_AddressBinary.AddressFamily = IPAddressFamily::IPv6;
-
-					auto ip6 = reinterpret_cast<const sockaddr_in6*>(saddr);
-					memcpy(&m_AddressBinary.Bytes, &ip6->sin6_addr, sizeof(ip6->sin6_addr));
-
-					break;
-				}
-				default:
-				{
-					throw std::invalid_argument("Unsupported internetwork address family");
-				}
 			}
 
 			return;

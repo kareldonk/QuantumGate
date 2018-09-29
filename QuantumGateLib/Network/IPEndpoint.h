@@ -23,7 +23,7 @@ namespace QuantumGate::Implementation::Network
 			m_Address(ipaddr), m_Port(port), m_RelayPort(rport), m_RelayHop(hop)
 		{}
 
-		constexpr IPEndpoint(const sockaddr_storage* addr)
+		IPEndpoint(const sockaddr_storage* addr)
 		{
 			assert(addr != nullptr);
 
@@ -41,6 +41,7 @@ namespace QuantumGate::Implementation::Network
 					// IPAddress should already have thrown an exception;
 					// this is just in case
 					assert(false);
+					break;
 			}
 		}
 
@@ -63,9 +64,13 @@ namespace QuantumGate::Implementation::Network
 			if (this == &other) return *this;
 
 			m_Address = std::move(other.m_Address);
-			m_Port = std::exchange(other.m_Port, 0);
-			m_RelayPort = std::exchange(other.m_RelayPort, 0);
-			m_RelayHop = std::exchange(other.m_RelayHop, 0);
+			m_Port = other.m_Port;
+			m_RelayPort = other.m_RelayPort;
+			m_RelayHop = other.m_RelayHop;
+
+			other.m_Port = 0;
+			other.m_RelayPort = 0;
+			other.m_RelayHop = 0;
 
 			return *this;
 		}

@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			return *this;
 		}
 
-		constexpr explicit operator bool() const noexcept { return (m_KeyQueue != nullptr); }
+		inline explicit operator bool() const noexcept { return (m_KeyQueue != nullptr); }
 
 		inline KeyQueue_ThS* GetQueue() noexcept { return m_KeyQueue; }
 

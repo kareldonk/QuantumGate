@@ -23,6 +23,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		using PeerQueue = Concurrency::Queue<std::shared_ptr<Peer_ThS>>;
 		using PeerQueue_ThS = Concurrency::ThreadSafe<PeerQueue, Concurrency::SpinMutex>;
 
+		enum class BroadcastResult { Succeeded, PeerNotReady, SendFailure };
+
+		using BroadcastCallback = Callback<void(Peer& peer, const BroadcastResult result)>;
+
 		struct PeerCollection
 		{
 			PeerMap_ThS Map;
@@ -90,7 +94,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
 						const PeerLUID pluid, Buffer&& buffer, const bool compress);
 
-		Result<> Broadcast(const MessageType msgtype, Buffer&& buffer);
+		Result<> Broadcast(const MessageType msgtype, const Buffer& buffer, BroadcastCallback&& callback);
 
 		const Vector<BinaryIPAddress>* GetLocalIPAddresses() const noexcept;
 
@@ -144,6 +148,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		void AddReportedPublicIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,
 										 const PeerConnectionType rep_con_type, const bool trusted) noexcept;
+
+		Result<Buffer> GetExtenderUpdateData() const noexcept;
 
 		static const std::pair<bool, bool> PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
 																  const Concurrency::EventCondition& shutdown_event);

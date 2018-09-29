@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Network::BinaryIPAddress SubnetMask;  // Network byte order (big endian)
 		Size MaximumConnections{ 0 };
 
-		constexpr static const bool Compare(const UInt8 key1, const UInt8 key2) noexcept
+		inline static const bool Compare(const UInt8 key1, const UInt8 key2) noexcept
 		{
 			return (key1 > key2);
 		}

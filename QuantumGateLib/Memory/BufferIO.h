@@ -14,7 +14,7 @@ namespace QuantumGate::Implementation::Memory
 	class MaxSize
 	{
 	public:
-		MaxSize(Size size) noexcept : m_Size(size) {}
+		constexpr MaxSize(Size size) noexcept : m_Size(size) {}
 
 		constexpr Size GetSize() const noexcept { return m_Size; }
 

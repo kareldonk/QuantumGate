@@ -168,9 +168,9 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	void Peer::ProcessLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids)
 	{
-		if (GetStatus() == Status::Ready)
+		if (IsReady())
 		{
-			for (auto& extuuid : extuuids)
+			for (const auto& extuuid : extuuids)
 			{
 				if (GetPeerExtenderUUIDs().HasExtender(extuuid))
 				{
@@ -385,6 +385,20 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				SetDisconnectCondition(DisconnectCondition::SendError);
 				return false;
+			}
+		}
+
+		if (NeedsExtenderUpdate() && IsReady())
+		{
+			if (auto result = m_PeerManager.GetExtenderUpdateData(); result.Succeeded())
+			{
+				SetFlag(Flags::NeedsExtenderUpdate, false);
+
+				if (!Send(MessageType::ExtenderUpdate, std::move(*result)))
+				{
+					SetDisconnectCondition(DisconnectCondition::SendError);
+					return false;
+				}
 			}
 		}
 
@@ -1092,8 +1106,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 					Dbg(L"Receive buffer: %d bytes - %s", msgbuf.GetSize(), Util::GetBase64(msgbuf)->c_str());
 
-					const auto&[retval2, retry] = msg.Read(msgbuf, *symkey, nonce);
-					if (retval2 && msg.IsValid())
+					const auto&[retval, retry] = msg.Read(msgbuf, *symkey, nonce);
+					if (retval && msg.IsValid())
 					{
 						// MessageTransport counter should match the expected message counter
 						// if we have one already; this is to protect against replay attacks
@@ -1119,8 +1133,8 @@ namespace QuantumGate::Implementation::Core::Peer
 						}
 						else
 						{
-							const auto retval3 = ProcessMessages(msg.GetMessageData(), *symkey);
-							return std::make_tuple(retval3.first, retval3.second, msg.GetNextRandomDataPrefixLength());
+							const auto retval2 = ProcessMessages(msg.GetMessageData(), *symkey);
+							return std::make_tuple(retval2.first, retval2.second, msg.GetNextRandomDataPrefixLength());
 						}
 					}
 					else if (!msg.IsValid() && !retry)
@@ -1390,7 +1404,8 @@ namespace QuantumGate::Implementation::Core::Peer
 	const bool Peer::HasPendingEvents() noexcept
 	{
 		if (HasReceiveEvents() || HasSendEvents() ||
-			m_NoiseQueue.IsQueuedNoiseReady() || m_KeyUpdate.HasEvents())
+			m_NoiseQueue.IsQueuedNoiseReady() || m_KeyUpdate.HasEvents() ||
+			(NeedsExtenderUpdate() && IsReady()))
 		{
 			return true;
 		}
@@ -1608,7 +1623,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	UInt8 Peer::SetLocalMessageCounter() noexcept
 	{
 		// Message counter begins with a pseudorandom value in the range 0-255
-		m_LocalMessageCounter = static_cast<UInt8>(abs(
+		m_LocalMessageCounter = static_cast<UInt8>(std::abs(
 			Random::GetPseudoRandomNumber(std::numeric_limits<UInt8>::min(),
 										  std::numeric_limits<UInt8>::max())
 		));
@@ -1677,7 +1692,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	const std::pair<bool, bool> Peer::ProcessMessage(MessageDetails&& msg)
 	{
-		if (GetStatus() == Status::Ready && msg.GetMessageType() == MessageType::ExtenderCommunication)
+		if (IsReady() && msg.GetMessageType() == MessageType::ExtenderCommunication)
 		{
 			// Does the peer actually have the extender? This check might be overkill
 			// since the peer probably has the extender otherwise we would not be
@@ -1687,8 +1702,8 @@ namespace QuantumGate::Implementation::Core::Peer
 				m_PeerData.WithUniqueLock()->ExtendersBytesReceived += msg.GetMessageData().GetSize();
 
 				// Allow extenders to process received message
-				auto retval = GetExtenderManager().OnPeerMessage(Event(PeerEventType::Message, GetLUID(),
-																	   GetLocalUUID(), std::move(msg)));
+				const auto retval = GetExtenderManager().OnPeerMessage(Event(PeerEventType::Message, GetLUID(),
+																			 GetLocalUUID(), std::move(msg)));
 				if (!retval.first)
 				{
 					// Peer sent a message for an extender that's not running locally or
@@ -1709,7 +1724,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 		else
 		{
-			auto retval = m_MessageProcessor.ProcessMessage(msg);
+			const auto retval = m_MessageProcessor.ProcessMessage(msg);
 			if (!retval.first)
 			{
 				// Unhandled message; the message may not have been recognized;

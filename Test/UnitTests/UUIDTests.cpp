@@ -66,11 +66,13 @@ namespace UnitTests
 			Assert::AreEqual(true, uuid2.GetType() == QuantumGate::UUID::Type::Peer);
 			Assert::AreEqual(true, uuid2.GetSignAlgorithm() == QuantumGate::UUID::SignAlgorithm::EDDSA_ED25519);
 
-			QuantumGate::UUID uuid2a(L"1a2015f1-812b-0927-4b61-73950597ca6d");
+			// Integer constructor
+			QuantumGate::UUID uuid2a(0x1a2015f1, 0x812b, 0x0927, 0x4b6173950597ca6d);
 			Assert::AreEqual(true, uuid2a.GetString() == L"1a2015f1-812b-0927-4b61-73950597ca6d");
 			Assert::AreEqual(true, uuid2a.GetType() == QuantumGate::UUID::Type::Peer);
 			Assert::AreEqual(true, uuid2a.GetSignAlgorithm() == QuantumGate::UUID::SignAlgorithm::EDDSA_ED25519);
 
+			// String constructor
 			QuantumGate::UUID uuid2b(L"af61a26e-be52-b98a-662f-4f620d9558e7");
 			Assert::AreEqual(true, uuid2b.GetString() == L"af61a26e-be52-b98a-662f-4f620d9558e7");
 			Assert::AreEqual(true, uuid2b.GetType() == QuantumGate::UUID::Type::Extender);
@@ -122,6 +124,40 @@ namespace UnitTests
 			Assert::AreEqual(false, keys.has_value());
 			Assert::AreEqual(true, uuid7.GetType() == QuantumGate::UUID::Type::Extender);
 			Assert::AreEqual(true, uuid7.GetSignAlgorithm() == QuantumGate::UUID::SignAlgorithm::None);
+		}
+
+		TEST_METHOD(Constexpr)
+		{
+			constexpr QuantumGate::UUID uuid(0x081c5330, 0x5b28, 0x9920, 0xcb1df24966b127da);
+			constexpr auto type = uuid.GetType();
+			constexpr auto algorithm = uuid.GetSignAlgorithm();
+			constexpr auto valid = uuid.IsValid();
+			Assert::AreEqual(true, uuid.GetString() == L"081c5330-5b28-9920-cb1d-f24966b127da");
+			Assert::AreEqual(false, type == QuantumGate::UUID::Type::Unknown);
+			Assert::AreEqual(false, type == QuantumGate::UUID::Type::Extender);
+			Assert::AreEqual(true, type == QuantumGate::UUID::Type::Peer);
+			Assert::AreEqual(true, uuid.GetType() == QuantumGate::UUID::Type::Peer);
+			Assert::AreEqual(true, algorithm == QuantumGate::UUID::SignAlgorithm::EDDSA_ED25519);
+			Assert::AreEqual(true, uuid.GetSignAlgorithm() == QuantumGate::UUID::SignAlgorithm::EDDSA_ED25519);
+			Assert::AreEqual(true, valid);
+
+			constexpr QuantumGate::UUID uuid2(0x1a2015f1, 0x812b, 0x0927, 0x4b6173950597ca6d);
+			Assert::AreEqual(true, uuid2.GetString() == L"1a2015f1-812b-0927-4b61-73950597ca6d");
+			Assert::AreEqual(true, uuid2.GetType() == QuantumGate::UUID::Type::Peer);
+			Assert::AreEqual(true, uuid2.GetSignAlgorithm() == QuantumGate::UUID::SignAlgorithm::EDDSA_ED25519);
+
+			constexpr QuantumGate::UUID uuid3(0xaf61a26e, 0xbe52, 0xb98a, 0x662f4f620d9558e7);
+			Assert::AreEqual(true, uuid3.GetString() == L"af61a26e-be52-b98a-662f-4f620d9558e7");
+			Assert::AreEqual(true, uuid3.GetType() == QuantumGate::UUID::Type::Extender);
+			Assert::AreEqual(true, uuid3.GetSignAlgorithm() == QuantumGate::UUID::SignAlgorithm::None);
+
+			static_assert(uuid != uuid2, "Should not be equal");
+			static_assert(!(uuid < uuid2), "Should not be smaller");
+			static_assert(uuid2 < uuid3, "Should be smaller");
+
+			Assert::AreEqual(true, uuid != uuid2);
+			Assert::AreEqual(false, uuid < uuid2);
+			Assert::AreEqual(true, uuid2 < uuid3);
 		}
 
 		TEST_METHOD(Verify)

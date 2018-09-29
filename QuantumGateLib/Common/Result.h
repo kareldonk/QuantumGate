@@ -81,7 +81,7 @@ namespace QuantumGate::Implementation
 	public:
 		using ValueType = std::conditional_t<has_value_type<T>, T, void>;
 
-		constexpr ResultImpl() noexcept {}
+		ResultImpl() noexcept {}
 
 		ResultImpl(const E code) noexcept(!has_value_type<T>) : ResultImpl(std::error_code(code)) {}
 
@@ -110,24 +110,24 @@ namespace QuantumGate::Implementation
 		ResultImpl& operator=(const ResultImpl&) = delete;
 		ResultImpl& operator=(ResultImpl&&) = default;
 
-		constexpr explicit operator bool() const noexcept
+		inline explicit operator bool() const noexcept
 		{
 			return Succeeded();
 		}
 
-		constexpr const bool operator==(const std::error_code& code) const noexcept
+		inline const bool operator==(const std::error_code& code) const noexcept
 		{
 			return (m_ErrorCode == code);
 		}
 
-		constexpr const bool operator!=(const std::error_code& code) const noexcept
+		inline const bool operator!=(const std::error_code& code) const noexcept
 		{
 			return (m_ErrorCode != code);
 		}
 
-		[[nodiscard]] const std::error_code& GetErrorCode() const noexcept { return m_ErrorCode; }
+		[[nodiscard]] inline const std::error_code& GetErrorCode() const noexcept { return m_ErrorCode; }
 
-		[[nodiscard]] constexpr int GetErrorValue() const noexcept { return m_ErrorCode.value(); }
+		[[nodiscard]] inline int GetErrorValue() const noexcept { return m_ErrorCode.value(); }
 
 		[[nodiscard]] String GetErrorDescription() const noexcept
 		{
@@ -166,25 +166,25 @@ namespace QuantumGate::Implementation
 		}
 
 		template<typename U = T, typename = std::enable_if_t<has_value_type<U>>>
-		T& GetValue() noexcept { assert(m_Value); return m_Value.value(); }
+		inline T& GetValue() noexcept { assert(m_Value); return m_Value.value(); }
 
 		template<typename U = T, typename = std::enable_if_t<has_value_type<U>>>
-		const T& GetValue() const noexcept { assert(m_Value); return m_Value.value(); }
+		inline const T& GetValue() const noexcept { assert(m_Value); return m_Value.value(); }
 
 		template<typename U = T, typename = std::enable_if_t<has_value_type<U>>>
-		[[nodiscard]] constexpr const bool HasValue() const noexcept { return m_Value.has_value(); }
+		[[nodiscard]] inline const bool HasValue() const noexcept { return m_Value.has_value(); }
 
 		template<typename U = T, typename = std::enable_if_t<has_value_type<U>>>
-		constexpr T* operator->() noexcept { assert(m_Value); return &m_Value.value(); }
+		inline T* operator->() noexcept { assert(m_Value); return &m_Value.value(); }
 
 		template<typename U = T, typename = std::enable_if_t<has_value_type<U>>>
-		constexpr const T* operator->() const noexcept { assert(m_Value); return &m_Value.value(); }
+		inline const T* operator->() const noexcept { assert(m_Value); return &m_Value.value(); }
 
 		template<typename U = T, typename = std::enable_if_t<has_value_type<U>>>
-		constexpr T& operator*() noexcept { assert(m_Value); return m_Value.value(); }
+		inline T& operator*() noexcept { assert(m_Value); return m_Value.value(); }
 
 		template<typename U = T, typename = std::enable_if_t<has_value_type<U>>>
-		constexpr const T& operator*() const noexcept { assert(m_Value); return m_Value.value(); }
+		inline const T& operator*() const noexcept { assert(m_Value); return m_Value.value(); }
 
 		void Clear() noexcept
 		{
@@ -192,7 +192,7 @@ namespace QuantumGate::Implementation
 			m_Value.reset();
 		}
 
-		[[nodiscard]] constexpr const bool Succeeded() const noexcept
+		[[nodiscard]] inline const bool Succeeded() const noexcept
 		{
 			if constexpr (!has_value_type<T>)
 			{
@@ -217,7 +217,7 @@ namespace QuantumGate::Implementation
 			}
 		}
 
-		[[nodiscard]] constexpr const bool Failed() const noexcept { return !Succeeded(); }
+		[[nodiscard]] inline const bool Failed() const noexcept { return !Succeeded(); }
 
 		template<typename F>
 		void Failed(F&& function) const
@@ -241,7 +241,8 @@ namespace QuantumGate::Implementation
 
 		friend std::wostream& operator<<(std::wostream& stream, const ResultImpl& result)
 		{
-			stream << result.GetErrorCategory() << L" : " << result.GetErrorValue() << L" : " << result.GetErrorDescription();
+			stream << result.GetErrorCategory() << L" : " << result.GetErrorValue() <<
+				L" : " << result.GetErrorDescription();
 			return stream;
 		}
 
@@ -251,14 +252,14 @@ namespace QuantumGate::Implementation
 	};
 
 	template<typename E, E DefaultErrorCode, typename T = void>
-	class[[nodiscard]] ResultBase final : public ResultImpl<E, DefaultErrorCode, T>
+	class [[nodiscard]] ResultBase final : public ResultImpl<E, DefaultErrorCode, T>
 	{
 	public:
 		using ResultImpl<E, DefaultErrorCode, T>::ResultImpl;
 	};
 
 	template<typename E, E DefaultErrorCode>
-	class[[nodiscard]] ResultBase<E, DefaultErrorCode, void> final : public ResultImpl<E, DefaultErrorCode, NoResultValue>
+	class [[nodiscard]] ResultBase<E, DefaultErrorCode, void> final : public ResultImpl<E, DefaultErrorCode, NoResultValue>
 	{
 	public:
 		using ResultImpl<E, DefaultErrorCode, NoResultValue>::ResultImpl;

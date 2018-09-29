@@ -51,7 +51,7 @@ namespace QuantumGate::Implementation::Core
 		class Header
 		{
 		public:
-			constexpr Header() noexcept {}
+			Header() noexcept {}
 			Header(const Header&) = default;
 			Header(Header&&) = default;
 			virtual ~Header() = default;

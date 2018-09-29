@@ -98,5 +98,8 @@
     <ClCompile Include="PublicIPEndpointsTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="BinaryIPAddressTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

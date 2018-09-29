@@ -251,11 +251,11 @@ namespace QuantumGate::Implementation::Core::Extender
 													  thpit->second->Data().PeerCount, Peer::Status::Connected);
 
 				// If this fails there was already a peer in the map; this should not happen
-				[[maybe_unused]] const auto[it, success] = m_Peers.insert({ event.GetPeerLUID(), peerctrl });
+				[[maybe_unused]] const auto[it, inserted] = m_Peers.insert({ event.GetPeerLUID(), peerctrl });
 
-				assert(success);
+				assert(inserted);
 
-				if (!success)
+				if (!inserted)
 				{
 					LogErr(L"Couldn't add peer to extender; a peer with LUID %llu already exists", event.GetPeerLUID());
 					return false;

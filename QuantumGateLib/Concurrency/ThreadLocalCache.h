@@ -35,17 +35,17 @@ namespace QuantumGate::Implementation::Concurrency
 		ThreadLocalCache& operator=(const ThreadLocalCache&) = delete;
 		ThreadLocalCache& operator=(ThreadLocalCache&&) = delete;
 
-		constexpr const CacheType* operator->() const noexcept(noexcept(GetCache()))
+		inline const CacheType* operator->() const noexcept(noexcept(GetCache()))
 		{
 			return &GetCache();
 		}
 
-		constexpr const CacheType& operator*() const noexcept(noexcept(GetCache()))
+		inline const CacheType& operator*() const noexcept(noexcept(GetCache()))
 		{
 			return GetCache();
 		}
 
-		constexpr const CacheType& GetCache(const bool latest = true) const noexcept(noexcept(UpdateCache()))
+		inline const CacheType& GetCache(const bool latest = true) const noexcept(noexcept(UpdateCache()))
 		{
 			if (latest && IsCacheExpired()) UpdateCache();
 
@@ -53,7 +53,7 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 		template<typename F>
-		constexpr void UpdateValue(F&& function) noexcept(noexcept(m_Value.WithUniqueLock(function)))
+		void UpdateValue(F&& function) noexcept(noexcept(m_Value.WithUniqueLock(function)))
 		{
 			m_Value.WithUniqueLock([&](T& value) noexcept(noexcept(function(value)))
 			{
@@ -80,7 +80,7 @@ namespace QuantumGate::Implementation::Concurrency
 			return m_CacheUpdateFlag;
 		}
 
-		ForceInline constexpr void UpdateCache() const noexcept(std::is_nothrow_copy_assignable_v<T>)
+		ForceInline void UpdateCache() const noexcept(std::is_nothrow_copy_assignable_v<T>)
 		{
 			m_Value.WithUniqueLock([&](const T& value) noexcept(std::is_nothrow_copy_assignable_v<T>)
 			{
@@ -89,7 +89,7 @@ namespace QuantumGate::Implementation::Concurrency
 			});
 		}
 
-		constexpr bool TryUpdateCache() const noexcept(std::is_nothrow_copy_assignable_v<T>)
+		bool TryUpdateCache() const noexcept(std::is_nothrow_copy_assignable_v<T>)
 		{
 			return m_Value.IfUniqueLock([&](T& value) noexcept(std::is_nothrow_copy_assignable_v<T>)
 			{
@@ -98,7 +98,7 @@ namespace QuantumGate::Implementation::Concurrency
 			});
 		}
 
-		ForceInline constexpr const bool IsCacheExpired() const noexcept
+		ForceInline const bool IsCacheExpired() const noexcept
 		{
 			return (m_ValueUpdateFlag.load() != CacheUpdateFlag());
 		}

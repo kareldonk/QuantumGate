@@ -78,5 +78,49 @@ namespace UnitTests
 				Assert::Fail(L"Exception thrown while creating IPEndpoints");
 			}
 		}
+
+		TEST_METHOD(Constexpr)
+		{
+			constexpr auto ip = BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 1 }, Byte{ 1 });
+			constexpr IPEndpoint ep(IPAddress(ip), 80, 9000, 1);
+			constexpr IPAddress ip2 = ep.GetIPAddress();
+			constexpr auto port = ep.GetPort();
+			constexpr auto rport = ep.GetRelayPort();
+			constexpr auto rhop = ep.GetRelayHop();
+
+			static_assert(port == 80, "Should be equal");
+			static_assert(rport == 9000, "Should be equal");
+			static_assert(rhop == 1, "Should be equal");
+
+			Assert::AreEqual(true, ip == ip2.GetBinary());
+			Assert::AreEqual(true, port == 80);
+			Assert::AreEqual(true, rport == 9000);
+			Assert::AreEqual(true, rhop == 1);
+
+			constexpr IPEndpoint ep2(IPAddress::LoopbackIPv4(), 80);
+			
+			constexpr IPEndpoint ep3(IPAddress::LoopbackIPv6(), 80);
+			
+			constexpr IPEndpoint ep4(std::move(ep));
+			static_assert(ep4.GetPort() == 80, "Should be equal");
+			static_assert(ep4.GetRelayPort() == 9000, "Should be equal");
+			static_assert(ep4.GetRelayHop() == 1, "Should be equal");
+			Assert::AreEqual(true, ep4.GetIPAddress() == ip2);
+			Assert::AreEqual(true, ep4.GetPort() == 80);
+			Assert::AreEqual(true, ep4.GetRelayPort() == 9000);
+			Assert::AreEqual(true, ep4.GetRelayHop() == 1);
+
+			constexpr IPEndpoint ep5 = std::move(ep4);
+			Assert::AreEqual(true, ep5.GetIPAddress() == ip2);
+			Assert::AreEqual(true, ep5.GetPort() == 80);
+			Assert::AreEqual(true, ep5.GetRelayPort() == 9000);
+			Assert::AreEqual(true, ep5.GetRelayHop() == 1);
+
+			constexpr auto ep6 = ep5;
+			Assert::AreEqual(true, ep6.GetIPAddress() == ip2);
+			Assert::AreEqual(true, ep6.GetPort() == 80);
+			Assert::AreEqual(true, ep6.GetRelayPort() == 9000);
+			Assert::AreEqual(true, ep6.GetRelayHop() == 1);
+		}
 	};
 }

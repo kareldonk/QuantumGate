@@ -286,7 +286,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					it->second->WithUniqueLock([&](Peer& peer)
 					{
-						peer.SetAccessCheck();
+						peer.SetNeedsAccessCheck();
 					});
 				}
 			});
@@ -926,26 +926,31 @@ namespace QuantumGate::Implementation::Core::Peer
 		return m_LookupMaps.WithSharedLock()->GetPeerDetails(pluid);
 	}
 
-	Result<> Manager::Broadcast(const MessageType msgtype, Buffer&& buffer)
+	Result<> Manager::Broadcast(const MessageType msgtype, const Buffer& buffer, BroadcastCallback&& callback)
 	{
 		// If there are connections
 		if (m_AllPeers.Count > 0)
 		{
 			m_AllPeers.Map.WithSharedLock([&](const PeerMap& peers)
 			{
-				for (auto& it : peers)
+				for (const auto it : peers)
 				{
 					it.second->WithUniqueLock([&](Peer& peer)
 					{
-						if (peer.GetStatus() == Status::Ready)
+						auto broadcast_result = BroadcastResult::Succeeded;
+
+						if (peer.IsReady())
 						{
 							// Note the copy
 							auto bbuffer = buffer;
 							if (!peer.Send(msgtype, std::move(bbuffer)))
 							{
-								// Do nothing here and continue with the rest
+								broadcast_result = BroadcastResult::SendFailure;
 							}
 						}
+						else broadcast_result = BroadcastResult::PeerNotReady;
+
+						if (callback) callback(peer, broadcast_result);
 					});
 				}
 			});
@@ -969,7 +974,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			peerths->WithUniqueLock([&](Peer& peer)
 			{
 				// Only if peer status is ready (handshake succeeded, etc.)
-				if (peer.GetStatus() == Status::Ready)
+				if (peer.IsReady())
 				{
 					// If peer has extender installed and active
 					if (peer.GetPeerExtenderUUIDs().HasExtender(extuuid))
@@ -995,25 +1000,54 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result_code;
 	}
 
-	const bool Manager::BroadcastExtenderUpdate()
+	Result<Buffer> Manager::GetExtenderUpdateData() const noexcept
 	{
-		// If there are no connections, don't bother
-		if (m_AllPeers.Count == 0) return true;
-
 		const auto& lsextlist = m_ExtenderManager.GetActiveExtenderUUIDs().SerializedUUIDs;
 
 		Memory::BufferWriter wrt(true);
 		if (wrt.WriteWithPreallocation(Memory::WithSize(lsextlist, Memory::MaxSize::_65KB)))
 		{
-			const auto result = Broadcast(MessageType::ExtenderUpdate, wrt.MoveWrittenBytes());
-			if (result.Succeeded())
+			return Buffer(wrt.MoveWrittenBytes());
+		}
+
+		return ResultCode::Failed;
+	}
+
+	const bool Manager::BroadcastExtenderUpdate()
+	{
+		// If there are no connections, don't bother
+		if (m_AllPeers.Count == 0) return true;
+
+		if (const auto result = GetExtenderUpdateData(); result.Succeeded())
+		{
+			const auto result2 = Broadcast(MessageType::ExtenderUpdate, *result,
+										  [](Peer& peer, const BroadcastResult broadcast_result)
+			{
+				switch (broadcast_result)
+				{
+					case BroadcastResult::PeerNotReady:
+						if (peer.IsInSessionInit())
+						{
+							// We'll need to send an extender update to the peer
+							// when it gets in the ready state
+							peer.SetNeedsExtenderUpdate();
+
+							LogDbg(L"Couldn't broadcast ExtenderUpdate message to peer LUID %llu; will send update when it gets in ready state", peer.GetLUID());
+						}
+						break;
+					default:
+						break;
+				}
+			});
+
+			if (result2.Succeeded())
 			{
 				LogInfo(L"Broadcasted ExtenderUpdate to peers");
 				return true;
 			}
-			else LogDbg(L"Couldn't broadcast ExtenderUpdate message to peers");
+			else LogErr(L"Couldn't broadcast ExtenderUpdate message to peers");
 		}
-		else LogDbg(L"Couldn't prepare ExtenderUpdate message for peers");
+		else LogErr(L"Couldn't prepare ExtenderUpdate message data for peers");
 
 		return false;
 	}
@@ -1040,7 +1074,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		if (added)
 		{
-			// If an extender was added, update it will all existing connections
+			// If an extender was added, update it with all existing connections
 			// in case the peers also support this extender
 			m_AllPeers.Map.WithSharedLock([&](const PeerMap& peers)
 			{
