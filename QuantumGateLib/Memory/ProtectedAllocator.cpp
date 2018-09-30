@@ -6,9 +6,9 @@
 
 namespace QuantumGate::Implementation::Memory
 {
-	Concurrency::SpinMutex& ProtectedAllocatorBase::GetProtectedAllocatorMutex() noexcept
+	std::mutex& ProtectedAllocatorBase::GetProtectedAllocatorMutex() noexcept
 	{
-		static Concurrency::SpinMutex mutex;
+		static std::mutex mutex;
 		return mutex;
 	}
 
@@ -22,12 +22,12 @@ namespace QuantumGate::Implementation::Memory
 			minsize = tminsize;
 			maxsize = tmaxsize;
 
-			LogDbg(L"Process memory working set size is %llu (min) / %llu (max)",
+			LogInfo(L"Process memory working set size is %llu (min) / %llu (max)",
 				   static_cast<UInt64>(minsize), static_cast<UInt64>(maxsize));
 
 			return true;
 		}
-		else LogDbg(L"Could not get process memory working set size");
+		else LogErr(L"Could not get process memory working set size");
 
 		return false;
 	}
@@ -36,11 +36,11 @@ namespace QuantumGate::Implementation::Memory
 	{
 		if (::SetProcessWorkingSetSize(::GetCurrentProcess(), minsize, maxsize))
 		{
-			LogDbg(L"Process memory working set size changed to %llu (min) / %llu (max)",
+			LogInfo(L"Process memory working set size changed to %llu (min) / %llu (max)",
 				   static_cast<UInt64>(minsize), static_cast<UInt64>(maxsize));
 			return true;
 		}
-		else LogDbg(L"Could not change process memory working set size to %llu (min) / %llu (max)",
+		else LogErr(L"Could not change process memory working set size to %llu (min) / %llu (max)",
 					static_cast<UInt64>(minsize), static_cast<UInt64>(maxsize));
 
 		return false;

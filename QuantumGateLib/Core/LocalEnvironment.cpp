@@ -61,11 +61,14 @@ namespace QuantumGate::Implementation::Core
 			String allips;
 			for (const auto& ifs : m_EthernetInterfaces)
 			{
-				for (const auto& ip : ifs.IPAddresses)
+				if (ifs.Operational)
 				{
-					if (allips.length() > 0) allips += L", ";
+					for (const auto& ip : ifs.IPAddresses)
+					{
+						if (allips.length() > 0) allips += L", ";
 
-					allips += ip.GetString();
+						allips += ip.GetString();
+					}
 				}
 			}
 
@@ -83,9 +86,12 @@ namespace QuantumGate::Implementation::Core
 			String alladdr;
 			for (const auto& ifs : m_EthernetInterfaces)
 			{
-				if (alladdr.length() > 0) alladdr += L", ";
+				if (ifs.Operational)
+				{
+					if (alladdr.length() > 0) alladdr += L", ";
 
-				alladdr += ifs.MACAddress;
+					alladdr += ifs.MACAddress;
+				}
 			}
 
 			return alladdr;
@@ -178,7 +184,9 @@ namespace QuantumGate::Implementation::Core
 
 				while (address != nullptr)
 				{
-					if (address->IfType == IF_TYPE_ETHERNET_CSMACD || address->IfType == IF_TYPE_SOFTWARE_LOOPBACK)
+					if (address->IfType == IF_TYPE_ETHERNET_CSMACD ||
+						address->IfType == IF_TYPE_IEEE80211 ||
+						address->IfType == IF_TYPE_SOFTWARE_LOOPBACK)
 					{
 						auto& ifs = allifs.emplace_back();
 						ifs.Name = Util::ToStringW(address->AdapterName);
@@ -267,11 +275,14 @@ namespace QuantumGate::Implementation::Core
 			// First add the local IP addresses configured on the host
 			for (const auto& ifs : m_EthernetInterfaces)
 			{
-				for (const auto& ip : ifs.IPAddresses)
+				if (ifs.Operational)
 				{
-					if (std::find(allips.begin(), allips.end(), ip.GetBinary()) == allips.end())
+					for (const auto& ip : ifs.IPAddresses)
 					{
-						allips.emplace_back(ip.GetBinary());
+						if (std::find(allips.begin(), allips.end(), ip.GetBinary()) == allips.end())
+						{
+							allips.emplace_back(ip.GetBinary());
+						}
 					}
 				}
 			}
@@ -306,18 +317,21 @@ namespace QuantumGate::Implementation::Core
 			// First add the local IP addresses configured on the host
 			for (const auto& ifs : m_EthernetInterfaces)
 			{
-				for (const auto& ip : ifs.IPAddresses)
+				if (ifs.Operational)
 				{
-					const auto it = std::find_if(allips.begin(), allips.end(), [&](const auto& ipd)
+					for (const auto& ip : ifs.IPAddresses)
 					{
-						return (ipd.IPAddress == ip);
-					});
+						const auto it = std::find_if(allips.begin(), allips.end(), [&](const auto& ipd)
+						{
+							return (ipd.IPAddress == ip);
+						});
 
-					if (it == allips.end())
-					{
-						auto& ipdetails = allips.emplace_back();
-						ipdetails.IPAddress = ip;
-						ipdetails.BoundToLocalEthernetInterface = true;
+						if (it == allips.end())
+						{
+							auto& ipdetails = allips.emplace_back();
+							ipdetails.IPAddress = ip;
+							ipdetails.BoundToLocalEthernetInterface = true;
+						}
 					}
 				}
 			}

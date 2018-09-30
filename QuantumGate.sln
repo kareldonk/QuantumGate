@@ -63,6 +63,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QuantumGateConsole", "Examp
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QuantumGateExtenderHandshake", "Examples\QuantumGateExtenderHandshake\QuantumGateExtenderHandshake.vcxproj", "{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A6B8A4CE-ECAB-47D4-B9E8-651386DF5193} = {A6B8A4CE-ECAB-47D4-B9E8-651386DF5193}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

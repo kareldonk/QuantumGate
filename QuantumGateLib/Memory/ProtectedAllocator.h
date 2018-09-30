@@ -5,7 +5,7 @@
 
 #include "Allocator.h"
 
-#include "..\Concurrency\SpinMutex.h"
+#include <mutex>
 
 namespace QuantumGate::Implementation::Memory
 {
@@ -18,7 +18,7 @@ namespace QuantumGate::Implementation::Memory
 	class Export ProtectedAllocatorBase
 	{
 	protected:
-		static Concurrency::SpinMutex& GetProtectedAllocatorMutex() noexcept;
+		static std::mutex& GetProtectedAllocatorMutex() noexcept;
 		[[nodiscard]] static const bool GetCurrentProcessWorkingSetSize(Size& minsize, Size& maxsize) noexcept;
 		[[nodiscard]] static const bool SetCurrentProcessWorkingSetSize(const Size minsize, const Size maxsize) noexcept;
 	};

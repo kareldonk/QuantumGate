@@ -205,3 +205,21 @@ const std::wstring& CTestAppApp::GetFolder() noexcept
 
 	return m_AppFolder;
 }
+
+int CTestAppApp::GetScaledWidth(const int width) const noexcept
+{
+	auto dc = GetDC(0);
+	auto dpix = GetDeviceCaps(dc, LOGPIXELSX);
+	ReleaseDC(0, dc);
+
+	return static_cast<int>((static_cast<double>(width) / 96.0) * static_cast<double>(dpix));
+}
+
+int CTestAppApp::GetScaledHeight(const int height) const noexcept
+{
+	auto dc = GetDC(0);
+	auto dpiy = GetDeviceCaps(dc, LOGPIXELSY);
+	ReleaseDC(0, dc);
+
+	return static_cast<int>((static_cast<double>(height) / 96.0) * static_cast<double>(dpiy));
+}

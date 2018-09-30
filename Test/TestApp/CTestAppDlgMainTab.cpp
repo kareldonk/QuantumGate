@@ -76,12 +76,12 @@ BOOL CTestAppDlgMainTab::OnInitDialog()
 
 	auto pctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
 	pctrl->SetExtendedStyle(LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);
-	pctrl->InsertColumn(0, _T("Peer LUID"), LVCFMT_LEFT, 150);
-	pctrl->InsertColumn(1, _T("Relayed"), LVCFMT_LEFT, 60);
-	pctrl->InsertColumn(2, _T("Auth."), LVCFMT_LEFT, 50);
-	pctrl->InsertColumn(3, _T("Peer endpoint"), LVCFMT_LEFT, 150);
-	pctrl->InsertColumn(4, _T("Sent"), LVCFMT_LEFT, 70);
-	pctrl->InsertColumn(5, _T("Received"), LVCFMT_LEFT, 70);
+	pctrl->InsertColumn(0, _T("Peer LUID"), LVCFMT_LEFT, GetApp()->GetScaledWidth(150));
+	pctrl->InsertColumn(1, _T("Relayed"), LVCFMT_LEFT, GetApp()->GetScaledWidth(60));
+	pctrl->InsertColumn(2, _T("Auth."), LVCFMT_LEFT, GetApp()->GetScaledWidth(50));
+	pctrl->InsertColumn(3, _T("Peer endpoint"), LVCFMT_LEFT, GetApp()->GetScaledWidth(150));
+	pctrl->InsertColumn(4, _T("Sent"), LVCFMT_LEFT, GetApp()->GetScaledWidth(70));
+	pctrl->InsertColumn(5, _T("Received"), LVCFMT_LEFT, GetApp()->GetScaledWidth(70));
 
 	LOGBRUSH br;
 	br.lbStyle = BS_SOLID;

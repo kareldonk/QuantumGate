@@ -93,9 +93,9 @@ BOOL CTestAppDlgTestExtenderTab::OnInitDialog()
 	auto lctrl = (CListCtrl*)GetDlgItem(IDC_FILETRANSFER_LIST);
 	lctrl->SetExtendedStyle(LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);
 	lctrl->InsertColumn(0, _T("ID"), LVCFMT_LEFT, 0);
-	lctrl->InsertColumn(1, _T("Filename"), LVCFMT_LEFT, 200);
-	lctrl->InsertColumn(2, _T("Progress"), LVCFMT_LEFT, 75);
-	lctrl->InsertColumn(3, _T("Status"), LVCFMT_LEFT, 100);
+	lctrl->InsertColumn(1, _T("Filename"), LVCFMT_LEFT, GetApp()->GetScaledWidth(200));
+	lctrl->InsertColumn(2, _T("Progress"), LVCFMT_LEFT, GetApp()->GetScaledWidth(75));
+	lctrl->InsertColumn(3, _T("Status"), LVCFMT_LEFT, GetApp()->GetScaledWidth(100));
 
 	m_PeerActivityTimer = SetTimer(EXTENDER_PEER_ACTIVITY_TIMER, 500, NULL);
 

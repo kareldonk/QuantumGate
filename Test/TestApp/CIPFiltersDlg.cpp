@@ -2,6 +2,7 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "stdafx.h"
+#include "TestApp.h"
 #include "CIPFiltersDlg.h"
 
 #include "Common\Util.h"
@@ -51,9 +52,9 @@ BOOL CIPFiltersDlg::OnInitDialog()
 	// Init filter list
 	auto flctrl = (CListCtrl*)GetDlgItem(IDC_IPFILTERS_LIST);
 	flctrl->SetExtendedStyle(LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);
-	flctrl->InsertColumn(0, _T("IP"), LVCFMT_LEFT, 125);
-	flctrl->InsertColumn(1, _T("Mask"), LVCFMT_LEFT, 125);
-	flctrl->InsertColumn(2, _T("Type"), LVCFMT_LEFT, 100);
+	flctrl->InsertColumn(0, _T("IP"), LVCFMT_LEFT, GetApp()->GetScaledWidth(125));
+	flctrl->InsertColumn(1, _T("Mask"), LVCFMT_LEFT, GetApp()->GetScaledWidth(125));
+	flctrl->InsertColumn(2, _T("Type"), LVCFMT_LEFT, GetApp()->GetScaledWidth(100));
 	flctrl->InsertColumn(3, _T("ID"), LVCFMT_LEFT, 0); // Hidden
 
 	UpdateIPFilterList();
