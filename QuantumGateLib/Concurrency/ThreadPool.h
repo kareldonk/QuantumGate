@@ -12,10 +12,43 @@
 
 namespace QuantumGate::Implementation::Concurrency
 {
-	template<typename ThPData, typename ThData>
+	struct NoThreadPoolData final {};
+	struct NoThreadData final {};
+
+	template<typename ThPData = NoThreadPoolData, typename ThData = NoThreadData>
 	class ThreadPool
 	{
-		using ThreadCallbackType = Callback<const std::pair<bool, bool>(ThPData&, ThData&, const EventCondition&)>;
+		template<typename U>
+		static constexpr bool has_threadpool_data = !std::is_same_v<std::remove_cv_t<std::decay_t<U>>, NoThreadPoolData>;
+
+		template<typename U>
+		static constexpr bool has_thread_data = !std::is_same_v<std::remove_cv_t<std::decay_t<U>>, NoThreadData>;
+
+		template<bool thpdata = has_threadpool_data<ThPData>, bool thdata = has_thread_data<ThData>>
+		struct thread_callback
+		{
+			using type = Callback<const std::pair<bool, bool>(const EventCondition&)>;
+		};
+
+		template<>
+		struct thread_callback<true, false>
+		{
+			using type = Callback<const std::pair<bool, bool>(ThPData&, const EventCondition&)>;
+		};
+
+		template<>
+		struct thread_callback<false, true>
+		{
+			using type = Callback<const std::pair<bool, bool>(ThData&, const EventCondition&)>;
+		};
+
+		template<>
+		struct thread_callback<true, true>
+		{
+			using type = Callback<const std::pair<bool, bool>(ThPData&, ThData&, const EventCondition&)>;
+		};
+
+		using ThreadCallbackType = typename thread_callback<>::type;
 
 		struct ThreadCtrl
 		{
@@ -63,20 +96,18 @@ namespace QuantumGate::Implementation::Concurrency
 			return false;
 		}
 
+		template<typename U = ThData, typename = std::enable_if_t<!has_thread_data<U>>>
+		[[nodiscard]] const bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
+										   EventCondition* thevent = nullptr) noexcept
+		{
+			return AddThreadImpl(thname, std::move(thcallback), NoThreadData{}, thevent);
+		}
+
+		template<typename U = ThData, typename = std::enable_if_t<has_thread_data<U>>>
 		[[nodiscard]] const bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
 										   ThData&& thdata, EventCondition* thevent = nullptr) noexcept
 		{
-			assert(thcallback);
-
-			try
-			{
-				m_Threads.emplace_back(thname, std::move(thcallback), std::move(thdata), thevent);
-
-				return true;
-			}
-			catch (...) {}
-
-			return false;
+			return AddThreadImpl(thname, std::move(thcallback), std::move(thdata), thevent);
 		}
 
 		void Clear() noexcept
@@ -142,10 +173,28 @@ namespace QuantumGate::Implementation::Concurrency
 			}
 		}
 
+		template<typename U = ThPData, typename = std::enable_if_t<has_threadpool_data<U>>>
 		inline ThPData& Data() noexcept { return m_Data; }
+
+		template<typename U = ThPData, typename = std::enable_if_t<has_threadpool_data<U>>>
 		inline const ThPData& Data() const noexcept { return m_Data; }
 
 	private:
+		[[nodiscard]] const bool AddThreadImpl(const String& thname, ThreadCallbackType&& thcallback,
+											   ThData&& thdata, EventCondition* thevent) noexcept
+		{
+			assert(thcallback);
+
+			try
+			{
+				m_Threads.emplace_back(thname, std::move(thcallback), std::move(thdata), thevent);
+				return true;
+			}
+			catch (...) {}
+
+			return false;
+		}
+
 		static void WorkerThreadLoop(ThreadPool& thpool, ThreadCtrl& thctrl,
 									 EventCondition& shutdown_event) noexcept
 		{
@@ -155,6 +204,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 			auto sleepms = std::chrono::milliseconds(1);
 			Size workburst{ 0 };
+			std::pair<bool, bool> result{ false, false };
 
 			while (true)
 			{
@@ -166,8 +216,22 @@ namespace QuantumGate::Implementation::Concurrency
 					// If the shutdown event is set exit the loop
 					if (shutdown_event.IsSet()) break;
 
-					const auto ret = thctrl.ThreadCallback(thpool.m_Data, thctrl.ThreadData, shutdown_event);
-					if (!ret.first)
+					// Execute thread function
+					if constexpr (has_threadpool_data<ThPData> && has_thread_data<ThData>)
+					{
+						result = thctrl.ThreadCallback(thpool.m_Data, thctrl.ThreadData, shutdown_event);
+					}
+					else if constexpr (has_threadpool_data<ThPData> && !has_thread_data<ThData>)
+					{
+						result = thctrl.ThreadCallback(thpool.m_Data, shutdown_event);
+					}
+					else if constexpr (!has_threadpool_data<ThPData> && has_thread_data<ThData>)
+					{
+						result = thctrl.ThreadCallback(thctrl.ThreadData, shutdown_event);
+					}
+					else result = thctrl.ThreadCallback(shutdown_event);
+
+					if (!result.first)
 					{
 						// An error occured; exit the thread
 						break;
@@ -175,7 +239,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 					// If we did work that means it's busy so sleep
 					// less, otherwise sleep increasingly longer
-					if (ret.second)
+					if (result.second)
 					{
 						sleepms = std::chrono::milliseconds(1);
 						++workburst;

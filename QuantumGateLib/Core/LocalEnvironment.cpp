@@ -16,7 +16,7 @@ namespace QuantumGate::Implementation::Core
 
 		if (!UpdateEnvironmentInformation()) return false;
 
-		if (!RegisterEthernetInterfaceChangeNotification()) return false;
+		if (!RegisterIPInterfaceChangeNotification()) return false;
 
 		if (callback) m_LocalEnvironmentChangedCallback.WithUniqueLock() = std::move(callback);
 
@@ -31,7 +31,7 @@ namespace QuantumGate::Implementation::Core
 
 		m_Initialized = false;
 
-		DeregisterEthernetInterfaceChangeNotification();
+		DeregisterIPInterfaceChangeNotification();
 
 		ClearEnvironmentInformation();
 	}
@@ -266,13 +266,13 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool LocalEnvironment::RegisterEthernetInterfaceChangeNotification() noexcept
+	const bool LocalEnvironment::RegisterIPInterfaceChangeNotification() noexcept
 	{
-		assert(m_EthernetInterfacesChangeNotificationHandle == NULL);
+		assert(m_IPInterfaceChangeNotificationHandle == NULL);
 
-		if (NotifyIpInterfaceChange(AF_UNSPEC, &EthernetInterfaceChangeNotificationCallback,
+		if (NotifyIpInterfaceChange(AF_UNSPEC, &IPInterfaceChangeNotificationCallback,
 									reinterpret_cast<PVOID>(this), FALSE,
-									&m_EthernetInterfacesChangeNotificationHandle) == NO_ERROR)
+									&m_IPInterfaceChangeNotificationHandle) == NO_ERROR)
 		{
 			return true;
 		}
@@ -284,13 +284,13 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	void LocalEnvironment::DeregisterEthernetInterfaceChangeNotification() noexcept
+	void LocalEnvironment::DeregisterIPInterfaceChangeNotification() noexcept
 	{
-		if (m_EthernetInterfacesChangeNotificationHandle != NULL)
+		if (m_IPInterfaceChangeNotificationHandle != NULL)
 		{
-			if (CancelMibChangeNotify2(m_EthernetInterfacesChangeNotificationHandle) == NO_ERROR)
+			if (CancelMibChangeNotify2(m_IPInterfaceChangeNotificationHandle) == NO_ERROR)
 			{
-				m_EthernetInterfacesChangeNotificationHandle = NULL;
+				m_IPInterfaceChangeNotificationHandle = NULL;
 			}
 			else
 			{
@@ -299,11 +299,13 @@ namespace QuantumGate::Implementation::Core
 		}
 	}
 
-	VOID LocalEnvironment::EthernetInterfaceChangeNotificationCallback(PVOID CallerContext,
-																	   PMIB_IPINTERFACE_ROW Row,
-																	   MIB_NOTIFICATION_TYPE NotificationType)
+	VOID LocalEnvironment::IPInterfaceChangeNotificationCallback(PVOID CallerContext,
+																 PMIB_IPINTERFACE_ROW Row,
+																 MIB_NOTIFICATION_TYPE NotificationType)
 	{
 		assert(CallerContext != NULL);
+
+		LogInfo(L"Received IP interface change notification from OS");
 
 		const auto le = reinterpret_cast<LocalEnvironment*>(CallerContext);
 		le->m_LocalEnvironmentChangedCallback.WithSharedLock([](const auto& callback)

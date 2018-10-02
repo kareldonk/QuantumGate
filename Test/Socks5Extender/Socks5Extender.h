@@ -49,17 +49,7 @@ namespace QuantumGate::Socks5Extender
 	{
 		friend Connection;
 
-		struct ThreadData
-		{};
-
-		struct ThreadPoolData
-		{
-			ThreadPoolData(Extender& extender) noexcept : Extender(extender) {}
-
-			Extender& Extender;
-		};
-
-		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
+		using ThreadPool = Concurrency::ThreadPool<>;
 
 	public:
 		Extender() noexcept;
@@ -94,8 +84,7 @@ namespace QuantumGate::Socks5Extender
 		void ShutdownThreadPool() noexcept;
 
 		static void ListenerThreadLoop(Extender* extender);
-		static const std::pair<bool, bool> MainWorkerThreadLoop(ThreadPoolData& thpdata, ThreadData& thdata,
-																const Concurrency::EventCondition& shutdown_event);
+		const std::pair<bool, bool> MainWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event);
 
 		std::optional<IPAddress> ResolveDomainIP(const String& domain) const noexcept;
 		const Socks5Protocol::Replies TranslateWSAErrorToSocks5(Int errorcode) const noexcept;
@@ -160,7 +149,7 @@ namespace QuantumGate::Socks5Extender
 		bool m_UseListener{ false };
 		Listener m_Listener;
 
-		ThreadPool m_ThreadPool{ *this };
+		ThreadPool m_ThreadPool;
 		Peers_ThS m_Peers;
 		Connections_ThS m_Connections;
 

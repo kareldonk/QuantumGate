@@ -17,19 +17,13 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		using EventQueue = Concurrency::Queue<Event>;
 		using EventQueue_ThS = Concurrency::ThreadSafe<EventQueue, Concurrency::SpinMutex>;
 
-		struct ThreadData
-		{};
-
 		struct ThreadPoolData
 		{
-			ThreadPoolData(Manager& mgr) noexcept : KeyManager(mgr) {}
-
-			Manager& KeyManager;
 			EventQueue_ThS KeyGenEventQueue;
 			Concurrency::EventCondition PrimaryThreadEvent;
 		};
 
-		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
+		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
 
 	public:
 		Manager(const Settings_CThS& settings) noexcept;
@@ -58,17 +52,17 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		const bool StartupThreadPool() noexcept;
 		void ShutdownThreadPool() noexcept;
 
-		static const std::pair<bool, bool> PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																  const Concurrency::EventCondition& shutdown_event);
+		const std::pair<bool, bool> PrimaryThreadProcessor(ThreadPoolData& thpdata,
+														   const Concurrency::EventCondition& shutdown_event);
 
-		static const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																 const Concurrency::EventCondition& shutdown_event);
+		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata,
+														  const Concurrency::EventCondition& shutdown_event);
 
 	private:
 		std::atomic_bool m_Running{ false };
 		const Settings_CThS& m_Settings;
 
 		KeyQueueMap_ThS m_KeyQueues;
-		ThreadPool m_ThreadPool{ *this };
+		ThreadPool m_ThreadPool;
 	};
 }

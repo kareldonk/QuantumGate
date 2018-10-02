@@ -79,7 +79,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		{
 			try
 			{
-				auto thpool = std::make_unique<ThreadPool>(m_ExtenderManager, GetExtender());
+				auto thpool = std::make_unique<ThreadPool>();
 
 				thpool->SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
 				thpool->SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
@@ -87,8 +87,8 @@ namespace QuantumGate::Implementation::Core::Extender
 				// Create the worker threads
 				for (Size x = 0; x < numthreadsperpool; ++x)
 				{
-					if (!thpool->AddThread(extname + L" Thread", &Control::WorkerThreadProcessor,
-										   ThreadData(), &thpool->Data().Queue.WithUniqueLock()->Event()))
+					if (!thpool->AddThread(extname + L" Thread", MakeCallback(this, &Control::WorkerThreadProcessor),
+										   &thpool->Data().Queue.WithUniqueLock()->Event()))
 					{
 						error = true;
 						break;
@@ -126,7 +126,6 @@ namespace QuantumGate::Implementation::Core::Extender
 	}
 
 	const std::pair<bool, bool> Control::WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   ThreadData& thdata,
 															   const Concurrency::EventCondition& shutdown_event)
 	{
 		auto didwork = false;
@@ -153,7 +152,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			// Peer events have priority; process as many as we can from the queue,
 			// then move on to message events if the peer is still connected
 
-			const auto maxnum = thpdata.ExtenderManager.GetSettings().Local.Concurrency.WorkerThreadsMaxBurst;
+			const auto maxnum = m_ExtenderManager.GetSettings().Local.Concurrency.WorkerThreadsMaxBurst;
 			Size num{ 0 };
 
 			while (num < maxnum && !shutdown_event.IsSet())
@@ -172,7 +171,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 				if (event)
 				{
-					thpdata.Extender.OnPeerEvent(QuantumGate::API::PeerEvent(std::move(event)));
+					GetExtender().OnPeerEvent(QuantumGate::API::PeerEvent(std::move(event)));
 				}
 				else break;
 			}
@@ -194,12 +193,12 @@ namespace QuantumGate::Implementation::Core::Extender
 				if (event)
 				{
 					const auto pluid = event.GetPeerLUID();
-					const auto retval = thpdata.Extender.OnPeerMessage(QuantumGate::API::PeerEvent(std::move(event)));
+					const auto retval = GetExtender().OnPeerMessage(QuantumGate::API::PeerEvent(std::move(event)));
 					if ((!retval.first || !retval.second) &&
-						!thpdata.Extender.HadException())
+						!GetExtender().HadException())
 					{
-						thpdata.ExtenderManager.m_UnhandledExtenderMessageCallbacks.WithSharedLock()(thpdata.Extender.GetUUID(),
-																									 pluid, retval);
+						m_ExtenderManager.m_UnhandledExtenderMessageCallbacks.WithSharedLock()(GetExtender().GetUUID(),
+																							   pluid, retval);
 						break;
 					}
 				}

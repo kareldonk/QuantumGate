@@ -391,7 +391,7 @@ namespace QuantumGate::Implementation::Core
 		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 
 		if (m_ThreadPool.AddThread(L"QuantumGate Local Worker Thread",
-								   &Local::WorkerThreadProcessor, ThreadData(),
+								   MakeCallback(this, &Local::WorkerThreadProcessor),
 								   &m_ThreadPool.Data().EventQueue.WithUniqueLock()->Event()))
 		{
 			if (m_ThreadPool.Startup())
@@ -409,14 +409,14 @@ namespace QuantumGate::Implementation::Core
 		m_ThreadPool.Clear();
 	}
 
-	const std::pair<bool, bool> Local::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+	const std::pair<bool, bool> Local::WorkerThreadProcessor(ThreadPoolData& thpdata,
 															 const Concurrency::EventCondition& shutdown_event)
 	{
 		auto didwork = false;
 
 		std::optional<Event> event;
 
-		thpdata.Local.m_ThreadPool.Data().EventQueue.IfUniqueLock([&](auto& queue)
+		m_ThreadPool.Data().EventQueue.IfUniqueLock([&](auto& queue)
 		{
 			if (!queue.Empty())
 			{
@@ -431,37 +431,45 @@ namespace QuantumGate::Implementation::Core
 
 		if (event.has_value())
 		{
-			if (std::holds_alternative<EventTypes::LocalEnvironmentChange>(*event))
+			if (std::holds_alternative<Events::LocalEnvironmentChange>(*event))
 			{
-				if (thpdata.Local.m_LocalEnvironment.WithUniqueLock()->Update())
-				{
-					if (thpdata.Local.IsRunning())
-					{
-						std::unique_lock<std::shared_mutex> lock(thpdata.Local.m_Mutex);
-
-						if (thpdata.Local.m_ListenerManager.IsRunning())
-						{
-							LogInfo(L"Restarting Listenermanager because of local environment change");
-
-							thpdata.Local.m_ListenerManager.Shutdown();
-
-							auto local_env = thpdata.Local.m_LocalEnvironment.WithSharedLock();
-							if (!thpdata.Local.m_ListenerManager.Startup(local_env->GetEthernetInterfaces()))
-							{
-								LogErr(L"Failed to restart Listenermanager after local environment change");
-							}
-						}
-					}
-				}
-				else
-				{
-					LogErr(L"Failed to update local environment information after ethernet interfaces change notification");
-				}
+				ProcessEvent(std::get<Events::LocalEnvironmentChange>(*event));
 			}
 			else assert(false);
 		}
 
 		return std::make_pair(true, didwork);
+	}
+
+	void Local::ProcessEvent(const Events::LocalEnvironmentChange& event) noexcept
+	{
+		if (m_LocalEnvironment.WithUniqueLock()->Update())
+		{
+			if (IsRunning())
+			{
+				std::unique_lock<std::shared_mutex> lock(m_Mutex);
+
+				// If the local environment changed that means it's possible
+				// that IP addresses changed; the listeners may need to
+				// be updated
+				if (m_ListenerManager.IsRunning())
+				{
+					LogInfo(L"Restarting Listenermanager because of local environment change");
+
+					m_ListenerManager.Shutdown();
+
+					auto local_env = m_LocalEnvironment.WithSharedLock();
+					if (!m_ListenerManager.Startup(local_env->GetEthernetInterfaces()))
+					{
+						LogErr(L"Failed to restart Listenermanager after local environment change");
+					}
+				}
+			}
+		}
+		else
+		{
+			LogErr(L"Failed to update local environment information after change notification");
+		}
 	}
 
 	Result<> Local::EnableListeners() noexcept
@@ -605,7 +613,7 @@ namespace QuantumGate::Implementation::Core
 	{
 		m_ThreadPool.Data().EventQueue.WithUniqueLock([&](EventQueue& queue)
 		{
-			queue.Push(EventTypes::LocalEnvironmentChange());
+			queue.Push(Events::LocalEnvironmentChange());
 		});
 	}
 

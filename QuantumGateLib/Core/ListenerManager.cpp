@@ -69,7 +69,8 @@ namespace QuantumGate::Implementation::Core::Listener
 						LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
 
 						if (!m_ListenerThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
-															&Manager::WorkerThreadProcessor, std::move(ltd)))
+															MakeCallback(this, &Manager::WorkerThreadProcessor),
+															std::move(ltd)))
 						{
 							LogErr(L"Could not add listener thread");
 						}
@@ -143,7 +144,8 @@ namespace QuantumGate::Implementation::Core::Listener
 									LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
 
 									if (!m_ListenerThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
-																		&Manager::WorkerThreadProcessor, std::move(ltd)))
+																		MakeCallback(this, &Manager::WorkerThreadProcessor),
+																		std::move(ltd)))
 									{
 										LogErr(L"Could not add listener thread");
 									}
@@ -196,8 +198,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		m_ListenerThreadPool.Clear();
 	}
 
-	const std::pair<bool, bool> Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   ThreadData& thdata,
+	const std::pair<bool, bool> Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
 															   const Concurrency::EventCondition& shutdown_event)
 	{
 		auto success = true;
@@ -212,7 +213,7 @@ namespace QuantumGate::Implementation::Core::Listener
 				LogInfo(L"Accepting new connection on endpoint %s",
 						thdata.Socket->GetLocalEndpoint().GetString().c_str());
 
-				AcceptConnection(thpdata.ListenerManager, *thdata.Socket, thdata.UseConditionalAcceptFunction);
+				AcceptConnection(*thdata.Socket, thdata.UseConditionalAcceptFunction);
 
 				didwork = true;
 			}
@@ -236,9 +237,9 @@ namespace QuantumGate::Implementation::Core::Listener
 		return std::make_pair(success, didwork);
 	}
 
-	void Manager::AcceptConnection(Manager& listeners, Network::Socket& listener_socket, const bool cond_accept) noexcept
+	void Manager::AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept
 	{
-		auto peerths = listeners.m_PeerManager.Create(PeerConnectionType::Inbound, std::nullopt);
+		auto peerths = m_PeerManager.Create(PeerConnectionType::Inbound, std::nullopt);
 		if (peerths != nullptr)
 		{
 			peerths->WithUniqueLock([&](Peer::Peer& peer)
@@ -247,7 +248,7 @@ namespace QuantumGate::Implementation::Core::Listener
 				{
 					if (!listener_socket.Accept(peer.GetSocket<Network::Socket>(), true,
 												&Manager::AcceptConditionFunction,
-												&listeners))
+												this))
 					{
 						// Couldn't accept for some reason
 						return;
@@ -258,7 +259,7 @@ namespace QuantumGate::Implementation::Core::Listener
 					if (listener_socket.Accept(peer.GetSocket<Network::Socket>(), false, nullptr, nullptr))
 					{
 						// Check if the IP address is allowed
-						if (!listeners.CanAcceptConnection(peer.GetPeerIPAddress()))
+						if (!CanAcceptConnection(peer.GetPeerIPAddress()))
 						{
 							peer.Close();
 							LogWarn(L"Incoming connection from peer %s was rejected", peer.GetPeerName().c_str());
@@ -268,7 +269,7 @@ namespace QuantumGate::Implementation::Core::Listener
 					}
 				}
 
-				if (listeners.m_PeerManager.Accept(peerths))
+				if (m_PeerManager.Accept(peerths))
 				{
 					LogInfo(L"Connection accepted from peer %s", peer.GetPeerName().c_str());
 				}

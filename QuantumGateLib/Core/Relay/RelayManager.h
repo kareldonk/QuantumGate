@@ -37,9 +37,6 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		struct ThreadPoolData
 		{
-			ThreadPoolData(Manager& mgr) noexcept : RelayManager(mgr) {}
-
-			Manager& RelayManager;
 			RelayPortToThreadKeyMap_ThS RelayPortToThreadKeys;
 			ThreadKeyToLinkTotalMap_ThS ThreadKeyToLinkTotals;
 			EventQueueMap RelayEventQueues;
@@ -102,11 +99,11 @@ namespace QuantumGate::Implementation::Core::Relay
 		const Link_ThS* Get(const RelayPort rport) const noexcept;
 		Link_ThS* Get(const RelayPort rport) noexcept;
 
-		static const std::pair<bool, bool> PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																  const Concurrency::EventCondition& shutdown_event);
+		const std::pair<bool, bool> PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+														   const Concurrency::EventCondition& shutdown_event);
 
-		static const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																 const Concurrency::EventCondition& shutdown_event);
+		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+														  const Concurrency::EventCondition& shutdown_event);
 
 		const bool ProcessRelayConnect(Link& rc,
 									   Peer::Peer_ThS::UniqueLockedType& in_peer,
@@ -129,6 +126,6 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		LinkMap_ThS m_RelayLinks;
 
-		ThreadPool m_ThreadPool{ *this };
+		ThreadPool m_ThreadPool;
 	};
 }

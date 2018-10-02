@@ -276,7 +276,7 @@ namespace QuantumGate::Socks5Extender
 		m_ThreadPool.SetWorkerThreadsMaxSleep(64ms);
 
 		if (m_ThreadPool.AddThread(GetName() + L" Main Worker Thread",
-								   &Extender::MainWorkerThreadLoop, ThreadData()))
+								   MakeCallback(this, &Extender::MainWorkerThreadLoop)))
 		{
 			if (m_ThreadPool.Startup())
 			{
@@ -752,14 +752,12 @@ namespace QuantumGate::Socks5Extender
 		LogDbg(extname + L": listener thread %u exiting", std::this_thread::get_id());
 	}
 
-	const std::pair<bool, bool> Extender::MainWorkerThreadLoop(ThreadPoolData& thpdata,
-															   ThreadData& thdata,
-															   const Concurrency::EventCondition& shutdown_event)
+	const std::pair<bool, bool> Extender::MainWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event)
 	{
 		auto didwork = false;
 		std::vector<UInt64> rlist;
 
-		thpdata.Extender.m_Connections.IfSharedLock([&](const Connections& connections)
+		m_Connections.IfSharedLock([&](const Connections& connections)
 		{
 			for (auto it = connections.begin(); it != connections.end() && !shutdown_event.IsSet(); ++it)
 			{
@@ -771,7 +769,7 @@ namespace QuantumGate::Socks5Extender
 
 						if (connection.IsTimedOut())
 						{
-							LogDbg(thpdata.Extender.GetName() + L": connection %llu timed out", connection.GetID());
+							LogDbg(GetName() + L": connection %llu timed out", connection.GetID());
 
 							connection.SetDisconnectCondition();
 						}
@@ -779,7 +777,7 @@ namespace QuantumGate::Socks5Extender
 					else if (connection.IsDisconnected() ||
 						(connection.IsDisconnecting() && connection.IsTimedOut()))
 					{
-						LogDbg(thpdata.Extender.GetName() + L": removing connection %llu", connection.GetID());
+						LogDbg(GetName() + L": removing connection %llu", connection.GetID());
 
 						rlist.emplace_back(connection.GetKey());
 					}
@@ -789,7 +787,7 @@ namespace QuantumGate::Socks5Extender
 
 		if (!rlist.empty())
 		{
-			thpdata.Extender.m_Connections.IfUniqueLock([&](Connections& connections)
+			m_Connections.IfUniqueLock([&](Connections& connections)
 			{
 				for (auto key : rlist)
 				{

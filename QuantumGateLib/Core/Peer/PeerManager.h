@@ -34,23 +34,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			std::atomic<UInt> AccessUpdateFlag;
 		};
 
-		struct ThreadData
-		{
-			ThreadData(const bool primary) noexcept : IsPrimary(primary) {}
-
-			const bool IsPrimary{ false };
-		};
-
 		struct ThreadPoolData
 		{
-			ThreadPoolData(Manager& mgr) noexcept : PeerManager(mgr) {}
-
-			Manager& PeerManager;
 			PeerCollection PeerCollection;
 			PeerQueue_ThS Queue;
 		};
 
-		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
+		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
 		using ThreadPoolMap = std::unordered_map<UInt64, std::unique_ptr<ThreadPool>>;
 
 	public:
@@ -116,10 +106,10 @@ namespace QuantumGate::Implementation::Core::Peer
 										 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
 		inline Relay::Manager& GetRelayManager() noexcept { return m_RelayManager; }
-		
+
 		Result<PeerLUID> GetRelayPeer(const Vector<BinaryIPAddress>& excl_addr1,
 									  const Vector<BinaryIPAddress>& excl_addr2) const noexcept;
-		
+
 		Result<bool> AreRelayIPsInSameNetwork(const BinaryIPAddress& ip1, const BinaryIPAddress& ip2) const noexcept;
 		Result<bool> AreRelayIPsInSameNetwork(const BinaryIPAddress& ip,
 											  const Vector<BinaryIPAddress>& addresses) noexcept;
@@ -151,10 +141,10 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<Buffer> GetExtenderUpdateData() const noexcept;
 
-		static const std::pair<bool, bool> PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																  const Concurrency::EventCondition& shutdown_event);
-		static const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																 const Concurrency::EventCondition& shutdown_event);
+		const std::pair<bool, bool> PrimaryThreadProcessor(ThreadPoolData& thpdata,
+														   const Concurrency::EventCondition& shutdown_event);
+		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata,
+														  const Concurrency::EventCondition& shutdown_event);
 
 	private:
 		std::atomic_bool m_Running{ false };

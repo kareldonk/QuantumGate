@@ -47,11 +47,11 @@ namespace QuantumGate::Implementation::Core
 													 const bool trusted) noexcept;
 
 	private:
-		[[nodiscard]] const bool RegisterEthernetInterfaceChangeNotification() noexcept;
-		void DeregisterEthernetInterfaceChangeNotification() noexcept;
+		[[nodiscard]] const bool RegisterIPInterfaceChangeNotification() noexcept;
+		void DeregisterIPInterfaceChangeNotification() noexcept;
 
-		static VOID EthernetInterfaceChangeNotificationCallback(PVOID CallerContext, PMIB_IPINTERFACE_ROW Row,
-																MIB_NOTIFICATION_TYPE NotificationType);
+		static VOID IPInterfaceChangeNotificationCallback(PVOID CallerContext, PMIB_IPINTERFACE_ROW Row,
+														  MIB_NOTIFICATION_TYPE NotificationType);
 
 		[[nodiscard]] const bool UpdateEnvironmentInformation() noexcept;
 		void ClearEnvironmentInformation() noexcept;
@@ -68,7 +68,7 @@ namespace QuantumGate::Implementation::Core
 
 		LocalEnvironmentChangedCallback_ThS m_LocalEnvironmentChangedCallback;
 
-		HANDLE m_EthernetInterfacesChangeNotificationHandle{ NULL };
+		HANDLE m_IPInterfaceChangeNotificationHandle{ NULL };
 
 		String m_Hostname;
 		String m_Username;

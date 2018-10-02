@@ -105,7 +105,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			try
 			{
-				auto thpool = std::make_unique<ThreadPool>(*this);
+				auto thpool = std::make_unique<ThreadPool>();
 
 				thpool->SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
 				thpool->SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
@@ -116,16 +116,17 @@ namespace QuantumGate::Implementation::Core::Peer
 					// First thread is primary worker thread
 					if (x == 0)
 					{
-						if (!thpool->AddThread(L"QuantumGate Peers Thread (Main)", &Manager::PrimaryThreadProcessor,
-											   ThreadData(true)))
+						if (!thpool->AddThread(L"QuantumGate Peers Thread (Main)",
+											   MakeCallback(this, &Manager::PrimaryThreadProcessor)))
 						{
 							error = true;
 						}
 					}
 					else
 					{
-						if (!thpool->AddThread(L"QuantumGate Peers Thread", &Manager::WorkerThreadProcessor,
-											   ThreadData(false), &thpool->Data().Queue.WithUniqueLock()->Event()))
+						if (!thpool->AddThread(L"QuantumGate Peers Thread",
+											   MakeCallback(this, &Manager::WorkerThreadProcessor),
+											   &thpool->Data().Queue.WithUniqueLock()->Event()))
 						{
 							error = true;
 						}
@@ -263,19 +264,19 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	const std::pair<bool, bool> Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+	const std::pair<bool, bool> Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata,
 																const Concurrency::EventCondition& shutdown_event)
 	{
 		auto didwork = false;
 		std::list<std::shared_ptr<Peer_ThS>> remove_list;
 
-		const auto& settings = thpdata.PeerManager.GetSettings();
+		const auto& settings = GetSettings();
 		const auto noise_enabled = settings.Noise.Enabled;
 		const auto max_handshake_duration = settings.Local.MaxHandshakeDuration;
 		const auto max_connect_duration = settings.Local.ConnectTimeout;
 
 		// Access check required?
-		const auto luv = thpdata.PeerManager.m_AllPeers.AccessUpdateFlag.load();
+		const auto luv = m_AllPeers.AccessUpdateFlag.load();
 		if (thpdata.PeerCollection.AccessUpdateFlag != luv)
 		{
 			thpdata.PeerCollection.AccessUpdateFlag = luv;
@@ -322,7 +323,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					// If we should disconnect for some reason
 					if (peer.ShouldDisconnect())
 					{
-						thpdata.PeerManager.Disconnect(peer, false);
+						Disconnect(peer, false);
 
 						// Collect the peer for removal
 						remove_list.emplace_back(peerths);
@@ -335,7 +336,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		if (!remove_list.empty())
 		{
 			LogDbg(L"Removing peers");
-			thpdata.PeerManager.Remove(remove_list);
+			Remove(remove_list);
 
 			remove_list.clear();
 			didwork = true;
@@ -344,7 +345,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::make_pair(true, didwork);
 	}
 
-	const std::pair<bool, bool> Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+	const std::pair<bool, bool> Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
 															   const Concurrency::EventCondition& shutdown_event)
 	{
 		auto didwork = false;
@@ -422,8 +423,8 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		const auto& settings = GetSettings();
 		return LookupMaps::AreIPsInSameNetwork(ip, addresses,
-										 settings.Relay.IPv4ExcludedNetworksCIDRLeadingBits,
-										 settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits);
+											   settings.Relay.IPv4ExcludedNetworksCIDRLeadingBits,
+											   settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits);
 	}
 
 	std::shared_ptr<Peer_ThS> Manager::Create(const PeerConnectionType pctype,
@@ -1021,7 +1022,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		if (const auto result = GetExtenderUpdateData(); result.Succeeded())
 		{
 			const auto result2 = Broadcast(MessageType::ExtenderUpdate, *result,
-										  [](Peer& peer, const BroadcastResult broadcast_result)
+										   [](Peer& peer, const BroadcastResult broadcast_result)
 			{
 				switch (broadcast_result)
 				{

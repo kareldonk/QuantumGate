@@ -8,35 +8,28 @@
 
 namespace QuantumGate::Implementation::Core
 {
+	namespace Events
+	{
+		struct LocalEnvironmentChange
+		{};
+	}
+
 	class Local
 	{
 		friend class Extender::Extender;
 
 		using ExtenderModuleMap = std::unordered_map<Extender::ExtenderModuleID, Extender::Module>;
 
-		struct EventTypes
-		{
-			struct LocalEnvironmentChange
-			{};
-		};
-
-		using Event = std::variant<EventTypes::LocalEnvironmentChange>;
-
+		using Event = std::variant<Events::LocalEnvironmentChange>;
 		using EventQueue = Concurrency::Queue<Event>;
 		using EventQueue_ThS = Concurrency::ThreadSafe<EventQueue, std::shared_mutex>;
 
-		struct ThreadData
-		{};
-
 		struct ThreadPoolData
 		{
-			ThreadPoolData(Local& local) noexcept : Local(local) {}
-
-			Local& Local;
 			EventQueue_ThS EventQueue;
 		};
 
-		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
+		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
 
 	public:
 		Local() noexcept;
@@ -119,8 +112,10 @@ namespace QuantumGate::Implementation::Core
 		Result<> SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running,
 						const PeerLUID id, Buffer&& buffer, const bool compress);
 
-		static const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																 const Concurrency::EventCondition& shutdown_event);
+		void ProcessEvent(const Events::LocalEnvironmentChange& event) noexcept;
+
+		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata,
+														  const Concurrency::EventCondition& shutdown_event);
 
 	private:
 		std::atomic_bool m_Running{ false };
@@ -142,6 +137,6 @@ namespace QuantumGate::Implementation::Core
 
 		std::shared_mutex m_Mutex;
 
-		ThreadPool m_ThreadPool{ *this };
+		ThreadPool m_ThreadPool;
 	};
 }

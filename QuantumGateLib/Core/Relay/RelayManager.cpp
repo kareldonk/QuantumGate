@@ -117,7 +117,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			if (x == 0)
 			{
 				if (!m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Main)",
-											&Manager::PrimaryThreadProcessor, ThreadData(x)))
+											MakeCallback(this, &Manager::PrimaryThreadProcessor), ThreadData(x)))
 				{
 					error = true;
 				}
@@ -129,7 +129,7 @@ namespace QuantumGate::Implementation::Core::Relay
 					m_ThreadPool.Data().RelayEventQueues[x] = std::make_unique<EventQueue_ThS>();
 
 					if (m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Event Processor)",
-											   &Manager::WorkerThreadProcessor, ThreadData(x),
+											   MakeCallback(this, &Manager::WorkerThreadProcessor), ThreadData(x),
 											   &m_ThreadPool.Data().RelayEventQueues[x]->WithUniqueLock()->Event()))
 					{
 						// Add entry for the total number of relay links this thread is handling
@@ -566,10 +566,10 @@ namespace QuantumGate::Implementation::Core::Relay
 		auto didwork = false;
 		std::list<RelayPort> remove_list;
 
-		const auto max_connect_duration = thpdata.RelayManager.GetSettings().Relay.ConnectTimeout;
-		const auto closed_grace_period = thpdata.RelayManager.GetSettings().Relay.GracePeriod;
+		const auto max_connect_duration = GetSettings().Relay.ConnectTimeout;
+		const auto closed_grace_period = GetSettings().Relay.GracePeriod;
 
-		thpdata.RelayManager.m_RelayLinks.WithSharedLock([&](const LinkMap& relays)
+		m_RelayLinks.WithSharedLock([&](const LinkMap& relays)
 		{
 			for (auto it = relays.begin(); it != relays.end() && !shutdown_event.IsSet(); ++it)
 			{
@@ -581,8 +581,8 @@ namespace QuantumGate::Implementation::Core::Relay
 						Peer::Peer_ThS::UniqueLockedType out_peer;
 
 						// Get the peers and lock them
-						thpdata.RelayManager.GetUniqueLocks(rc.GetIncomingPeer(), in_peer,
-															rc.GetOutgoingPeer(), out_peer);
+						GetUniqueLocks(rc.GetIncomingPeer(), in_peer,
+									   rc.GetOutgoingPeer(), out_peer);
 
 						if (!in_peer)
 						{
@@ -647,7 +647,7 @@ namespace QuantumGate::Implementation::Core::Relay
 								}
 								else
 								{
-									thpdata.RelayManager.ProcessRelayConnect(rc, in_peer, out_peer);
+									ProcessRelayConnect(rc, in_peer, out_peer);
 									didwork = true;
 								}
 							}
@@ -655,7 +655,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 						if (rc.GetStatus() == Status::Disconnected || rc.GetStatus() == Status::Exception)
 						{
-							thpdata.RelayManager.ProcessRelayDisconnect(rc, in_peer, out_peer);
+							ProcessRelayDisconnect(rc, in_peer, out_peer);
 							didwork = true;
 						}
 					}
@@ -673,7 +673,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		if (!remove_list.empty())
 		{
 			LogDbg(L"Removing relays");
-			thpdata.RelayManager.Remove(remove_list);
+			Remove(remove_list);
 
 			remove_list.clear();
 			didwork = true;
@@ -690,7 +690,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		std::optional<Event> event;
 
-		thpdata.RelayManager.m_ThreadPool.Data().RelayEventQueues[thdata.ThreadKey]->IfUniqueLock([&](auto& queue)
+		m_ThreadPool.Data().RelayEventQueues[thdata.ThreadKey]->IfUniqueLock([&](auto& queue)
 		{
 			if (!queue.Empty())
 			{
@@ -707,15 +707,15 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			if (std::holds_alternative<Events::Connect>(*event))
 			{
-				thpdata.RelayManager.ProcessRelayEvent(std::get<Events::Connect>(*event));
+				ProcessRelayEvent(std::get<Events::Connect>(*event));
 			}
 			else if (std::holds_alternative<Events::StatusUpdate>(*event))
 			{
-				thpdata.RelayManager.ProcessRelayEvent(std::get<Events::StatusUpdate>(*event));
+				ProcessRelayEvent(std::get<Events::StatusUpdate>(*event));
 			}
 			else if (std::holds_alternative<Events::RelayData>(*event))
 			{
-				thpdata.RelayManager.ProcessRelayEvent(std::get<Events::RelayData>(*event));
+				ProcessRelayEvent(std::get<Events::RelayData>(*event));
 			}
 			else assert(false);
 		}

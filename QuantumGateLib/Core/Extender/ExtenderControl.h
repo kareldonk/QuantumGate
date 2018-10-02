@@ -55,20 +55,13 @@ namespace QuantumGate::Implementation::Core::Extender
 		using Queue = Concurrency::Queue<std::shared_ptr<Peer_ThS>>;
 		using Queue_ThS = Concurrency::ThreadSafe<Queue, Concurrency::SpinMutex>;
 
-		struct ThreadData {};
-
 		struct ThreadPoolData
 		{
-			ThreadPoolData(Manager& mgr, Extender& extender) noexcept :
-				ExtenderManager(mgr), Extender(extender) {}
-
-			Manager& ExtenderManager;
-			Extender& Extender;
 			Queue_ThS Queue;
 			std::atomic<Size> PeerCount{ 0 };
 		};
 
-		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
+		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
 		using ThreadPoolMap = std::unordered_map<UInt64, std::unique_ptr<ThreadPool>>;
 
 	public:
@@ -127,12 +120,11 @@ namespace QuantumGate::Implementation::Core::Extender
 		void PreStartupExtenderThreadPools() noexcept;
 		void ResetState() noexcept;
 
-		static const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata,
-																 ThreadData& thdata,
-																 const Concurrency::EventCondition& shutdown_event);
+		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata,
+														  const Concurrency::EventCondition& shutdown_event);
 
 	private:
-		Manager & m_ExtenderManager;
+		Manager& m_ExtenderManager;
 
 		Status m_Status{ Status::Stopped };
 		std::shared_ptr<QuantumGate::API::Extender> m_Extender;

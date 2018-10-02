@@ -16,7 +16,7 @@ namespace QuantumGate::Implementation::Core::Listener
 			ThreadData() = default;
 			ThreadData(const ThreadData&) = delete;
 			ThreadData(ThreadData&&) = default;
-			
+
 			~ThreadData()
 			{
 				if (Socket)
@@ -34,11 +34,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		};
 
 		struct ThreadPoolData
-		{
-			ThreadPoolData(Manager& mgr) noexcept : ListenerManager(mgr) {}
-
-			Manager& ListenerManager;
-		};
+		{};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
 
@@ -60,10 +56,10 @@ namespace QuantumGate::Implementation::Core::Listener
 		void PreStartup() noexcept;
 		void ResetState() noexcept;
 
-		static const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																 const Concurrency::EventCondition& shutdown_event);
+		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+														  const Concurrency::EventCondition& shutdown_event);
 
-		static void AcceptConnection(Manager& listeners, Network::Socket& listener_socket, const bool cond_accept) noexcept;
+		void AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept;
 
 		const bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
 
@@ -76,7 +72,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		const Settings_CThS& m_Settings;
 		Access::Manager& m_AccessManager;
 		Peer::Manager& m_PeerManager;
-		
-		ThreadPool m_ListenerThreadPool{ *this };
+
+		ThreadPool m_ListenerThreadPool;
 	};
 }

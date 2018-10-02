@@ -148,7 +148,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			if (x == 0)
 			{
 				if (!m_ThreadPool.AddThread(L"QuantumGate KeyManager Thread (Main)",
-											&Manager::PrimaryThreadProcessor, ThreadData(),
+											MakeCallback(this, &Manager::PrimaryThreadProcessor),
 											&m_ThreadPool.Data().PrimaryThreadEvent))
 				{
 					error = true;
@@ -158,7 +158,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			else
 			{
 				if (!m_ThreadPool.AddThread(L"QuantumGate KeyManager Thread",
-											&Manager::WorkerThreadProcessor, ThreadData(),
+											MakeCallback(this, &Manager::WorkerThreadProcessor),
 											&m_ThreadPool.Data().KeyGenEventQueue.WithUniqueLock()->Event()))
 				{
 					error = true;
@@ -212,18 +212,18 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		return keydata;
 	}
 
-	const std::pair<bool, bool> Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+	const std::pair<bool, bool> Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata,
 																const Concurrency::EventCondition& shutdown_event)
 	{
 		auto didwork = false;
 		auto has_inactive = false;
 
-		thpdata.KeyManager.m_KeyQueues.WithSharedLock([&](const KeyQueueMap& queues)
+		m_KeyQueues.WithSharedLock([&](const KeyQueueMap& queues)
 		{
 			// Reset event; after we check and generate the keys below
 			// this event will be set again when a key gets removed from the queues
 			// and we need to fill the queue again
-			thpdata.KeyManager.m_ThreadPool.Data().PrimaryThreadEvent.Reset();
+			m_ThreadPool.Data().PrimaryThreadEvent.Reset();
 
 			for (auto it = queues.begin(); it != queues.end() && !shutdown_event.IsSet(); ++it)
 			{
@@ -240,7 +240,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 
 				if (active)
 				{
-					auto numkeys = thpdata.KeyManager.GetSettings().Local.NumPreGeneratedKeysPerAlgorithm -
+					auto numkeys = GetSettings().Local.NumPreGeneratedKeysPerAlgorithm -
 						(queue_size + num_pending_events);
 
 					if (numkeys > 0)
@@ -266,7 +266,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 
 		if (has_inactive)
 		{
-			thpdata.KeyManager.m_KeyQueues.WithUniqueLock([&](KeyQueueMap& queues)
+			m_KeyQueues.WithUniqueLock([&](KeyQueueMap& queues)
 			{
 				for (auto it = queues.begin(); it != queues.end() && !shutdown_event.IsSet(); ++it)
 				{
@@ -289,13 +289,13 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		return std::make_pair(true, didwork);
 	}
 
-	const std::pair<bool, bool> Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+	const std::pair<bool, bool> Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
 															   const Concurrency::EventCondition& shutdown_event)
 	{
 		auto didwork = false;
 
 		Event event;
-		thpdata.KeyManager.m_ThreadPool.Data().KeyGenEventQueue.IfUniqueLock([&](auto& queue)
+		m_ThreadPool.Data().KeyGenEventQueue.IfUniqueLock([&](auto& queue)
 		{
 			if (!queue.Empty())
 			{
