@@ -10,37 +10,37 @@
 
 namespace QuantumGate::Implementation::Core
 {
-	const bool LocalEnvironment::Initialize() noexcept
+	const bool LocalEnvironment::Initialize(LocalEnvironmentChangedCallback&& callback) noexcept
 	{
-		if (auto result = OSGetHostname(); result.Failed()) return false;
-		else m_Hostname = std::move(result.GetValue());
+		assert(!IsInitialized());
 
-		if (auto result = OSGetUsername(); result.Failed()) return false;
-		else m_Username = std::move(result.GetValue());
+		if (!UpdateEnvironmentInformation()) return false;
 
-		if (auto result = OSGetEthernetInterfaces(); result.Failed()) return false;
-		else m_EthernetInterfaces = std::move(result.GetValue());
+		if (!RegisterEthernetInterfaceChangeNotification()) return false;
 
-		if (!UpdateCachedIPAddresses()) return false;
+		if (callback) m_LocalEnvironmentChangedCallback.WithUniqueLock() = std::move(callback);
 
 		m_Initialized = true;
 
 		return true;
 	}
 
-	void LocalEnvironment::Clear() noexcept
+	void LocalEnvironment::Deinitialize() noexcept
 	{
-		m_Hostname.clear();
-		m_Username.clear();
-		m_EthernetInterfaces.clear();
-		m_PublicIPEndpoints.Clear();
-
-		m_CachedIPAddresses.UpdateValue([](auto& addresses) noexcept
-		{
-			addresses.clear();
-		});
+		assert(IsInitialized());
 
 		m_Initialized = false;
+
+		DeregisterEthernetInterfaceChangeNotification();
+
+		ClearEnvironmentInformation();
+	}
+
+	const bool LocalEnvironment::Update() noexcept
+	{
+		assert(IsInitialized());
+
+		return UpdateEnvironmentInformation();
 	}
 
 	const Vector<BinaryIPAddress>* LocalEnvironment::GetCachedIPAddresses() const noexcept
@@ -264,6 +264,83 @@ namespace QuantumGate::Implementation::Core
 		}
 
 		return false;
+	}
+
+	const bool LocalEnvironment::RegisterEthernetInterfaceChangeNotification() noexcept
+	{
+		assert(m_EthernetInterfacesChangeNotificationHandle == NULL);
+
+		if (NotifyIpInterfaceChange(AF_UNSPEC, &EthernetInterfaceChangeNotificationCallback,
+									reinterpret_cast<PVOID>(this), FALSE,
+									&m_EthernetInterfacesChangeNotificationHandle) == NO_ERROR)
+		{
+			return true;
+		}
+		else
+		{
+			LogErr(L"Failed to register ethernet interfaces change notification");
+		}
+
+		return false;
+	}
+
+	void LocalEnvironment::DeregisterEthernetInterfaceChangeNotification() noexcept
+	{
+		if (m_EthernetInterfacesChangeNotificationHandle != NULL)
+		{
+			if (CancelMibChangeNotify2(m_EthernetInterfacesChangeNotificationHandle) == NO_ERROR)
+			{
+				m_EthernetInterfacesChangeNotificationHandle = NULL;
+			}
+			else
+			{
+				LogErr(L"Failed to cancel ethernet interfaces change notification");
+			}
+		}
+	}
+
+	VOID LocalEnvironment::EthernetInterfaceChangeNotificationCallback(PVOID CallerContext,
+																	   PMIB_IPINTERFACE_ROW Row,
+																	   MIB_NOTIFICATION_TYPE NotificationType)
+	{
+		assert(CallerContext != NULL);
+
+		const auto le = reinterpret_cast<LocalEnvironment*>(CallerContext);
+		le->m_LocalEnvironmentChangedCallback.WithSharedLock([](const auto& callback)
+		{
+			if (callback) callback();
+		});
+	}
+
+	const bool LocalEnvironment::UpdateEnvironmentInformation() noexcept
+	{
+		if (auto result = OSGetHostname(); result.Failed()) return false;
+		else m_Hostname = std::move(result.GetValue());
+
+		if (auto result = OSGetUsername(); result.Failed()) return false;
+		else m_Username = std::move(result.GetValue());
+
+		if (auto result = OSGetEthernetInterfaces(); result.Failed()) return false;
+		else m_EthernetInterfaces = std::move(result.GetValue());
+
+		if (!UpdateCachedIPAddresses()) return false;
+
+		return true;
+	}
+
+	void LocalEnvironment::ClearEnvironmentInformation() noexcept
+	{
+		m_Hostname.clear();
+		m_Username.clear();
+		m_EthernetInterfaces.clear();
+		m_PublicIPEndpoints.Clear();
+
+		m_CachedIPAddresses.UpdateValue([](auto& addresses) noexcept
+		{
+			addresses.clear();
+		});
+
+		return;
 	}
 
 	const bool LocalEnvironment::UpdateCachedIPAddresses() noexcept

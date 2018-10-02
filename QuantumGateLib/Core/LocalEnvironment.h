@@ -5,8 +5,13 @@
 
 #include "PublicIPEndpoints.h"
 
+#include <Iphlpapi.h>
+
 namespace QuantumGate::Implementation::Core
 {
+	using LocalEnvironmentChangedCallback = Callback<void() noexcept>;
+	using LocalEnvironmentChangedCallback_ThS = Concurrency::ThreadSafe<LocalEnvironmentChangedCallback, std::shared_mutex>;
+
 	class LocalEnvironment
 	{
 		using CachedIPAddresses_ThS =
@@ -16,13 +21,15 @@ namespace QuantumGate::Implementation::Core
 		LocalEnvironment() = default;
 		LocalEnvironment(const LocalEnvironment&) = delete;
 		LocalEnvironment(LocalEnvironment&&) = default;
-		virtual ~LocalEnvironment() = default;
+		virtual ~LocalEnvironment() { if (IsInitialized()) Deinitialize(); }
 		LocalEnvironment& operator=(const LocalEnvironment&) = delete;
 		LocalEnvironment& operator=(LocalEnvironment&&) = default;
 
-		[[nodiscard]] const bool Initialize() noexcept;
+		[[nodiscard]] const bool Initialize(LocalEnvironmentChangedCallback&& callback) noexcept;
 		inline const bool IsInitialized() const noexcept { return m_Initialized; }
-		void Clear() noexcept;
+		void Deinitialize() noexcept;
+
+		[[nodiscard]] const bool Update() noexcept;
 
 		inline const String& GetHostname() const noexcept { return m_Hostname; }
 		inline const String& GetUsername() const noexcept { return m_Username; }
@@ -40,6 +47,15 @@ namespace QuantumGate::Implementation::Core
 													 const bool trusted) noexcept;
 
 	private:
+		[[nodiscard]] const bool RegisterEthernetInterfaceChangeNotification() noexcept;
+		void DeregisterEthernetInterfaceChangeNotification() noexcept;
+
+		static VOID EthernetInterfaceChangeNotificationCallback(PVOID CallerContext, PMIB_IPINTERFACE_ROW Row,
+																MIB_NOTIFICATION_TYPE NotificationType);
+
+		[[nodiscard]] const bool UpdateEnvironmentInformation() noexcept;
+		void ClearEnvironmentInformation() noexcept;
+
 		[[nodiscard]] const bool UpdateCachedIPAddresses() noexcept;
 
 		static Result<String> OSGetHostname() noexcept;
@@ -49,6 +65,11 @@ namespace QuantumGate::Implementation::Core
 
 	private:
 		bool m_Initialized{ false };
+
+		LocalEnvironmentChangedCallback_ThS m_LocalEnvironmentChangedCallback;
+
+		HANDLE m_EthernetInterfacesChangeNotificationHandle{ NULL };
+
 		String m_Hostname;
 		String m_Username;
 		Vector<EthernetInterface> m_EthernetInterfaces;

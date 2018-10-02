@@ -6,6 +6,8 @@
 // Include the QuantumGate main header with API definitions
 #include <QuantumGate.h>
 
+#include <atomic>
+
 class HandshakeExtender final : public QuantumGate::Extender
 {
 	enum class MessageType : std::uint16_t { Unknown, PublicKey, Ready, Chat };

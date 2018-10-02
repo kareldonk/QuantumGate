@@ -41,11 +41,18 @@ namespace QuantumGate::Implementation::Concurrency
 			template<typename Arg>
 			inline const auto& operator[](Arg&& arg) const { assert(*this); return m_ThS->m_Data[std::forward<Arg>(arg)]; }
 
-			inline T& operator=(const T& other) noexcept(noexcept(m_ThS->m_Data = other))
+			inline Value& operator=(const T& other) noexcept(noexcept(m_ThS->m_Data = other))
 			{
 				assert(*this);
 				m_ThS->m_Data = other;
-				return m_ThS->m_Data;
+				return *this;
+			}
+
+			inline Value& operator=(T&& other) noexcept(noexcept(m_ThS->m_Data = std::move(other)))
+			{
+				assert(*this);
+				m_ThS->m_Data = std::move(other);
+				return *this;
 			}
 
 			inline const bool operator==(const T& other) const noexcept

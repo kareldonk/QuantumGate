@@ -14,6 +14,30 @@ namespace QuantumGate::Implementation::Core
 
 		using ExtenderModuleMap = std::unordered_map<Extender::ExtenderModuleID, Extender::Module>;
 
+		struct EventTypes
+		{
+			struct LocalEnvironmentChange
+			{};
+		};
+
+		using Event = std::variant<EventTypes::LocalEnvironmentChange>;
+
+		using EventQueue = Concurrency::Queue<Event>;
+		using EventQueue_ThS = Concurrency::ThreadSafe<EventQueue, std::shared_mutex>;
+
+		struct ThreadData
+		{};
+
+		struct ThreadPoolData
+		{
+			ThreadPoolData(Local& local) noexcept : Local(local) {}
+
+			Local& Local;
+			EventQueue_ThS EventQueue;
+		};
+
+		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
+
 	public:
 		Local() noexcept;
 		Local(const Local&) = delete;
@@ -78,6 +102,11 @@ namespace QuantumGate::Implementation::Core
 		void SetDefaultSecuritySettings(Settings& settings) noexcept;
 
 	private:
+		[[nodiscard]] const bool StartupThreadPool() noexcept;
+		void ShutdownThreadPool() noexcept;
+
+		void LocalEnvironmentChangedCallback() noexcept;
+
 		Result<bool> AddExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
 									 const Extender::ExtenderModuleID moduleid = 0) noexcept;
 		Result<> RemoveExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
@@ -89,6 +118,9 @@ namespace QuantumGate::Implementation::Core
 
 		Result<> SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running,
 						const PeerLUID id, Buffer&& buffer, const bool compress);
+
+		static const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+																 const Concurrency::EventCondition& shutdown_event);
 
 	private:
 		std::atomic_bool m_Running{ false };
@@ -109,5 +141,7 @@ namespace QuantumGate::Implementation::Core
 		Listener::Manager m_ListenerManager{ m_Settings, m_AccessManager, m_PeerManager };
 
 		std::shared_mutex m_Mutex;
+
+		ThreadPool m_ThreadPool{ *this };
 	};
 }

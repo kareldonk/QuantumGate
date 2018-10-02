@@ -258,7 +258,8 @@ namespace QuantumGate::Implementation::Core
 
 		if (!m_LocalEnvironment.WithSharedLock()->IsInitialized())
 		{
-			if (!m_LocalEnvironment.WithUniqueLock()->Initialize())
+			if (!m_LocalEnvironment.WithUniqueLock()->Initialize(MakeCallback(this,
+																			  &Local::LocalEnvironmentChangedCallback)))
 			{
 				LogErr(L"Couldn't initialize local environment");
 				return ResultCode::Failed;
@@ -278,6 +279,14 @@ namespace QuantumGate::Implementation::Core
 		{
 			LogWarn(L"QuantumGate is configured to not require peer authentication");
 		}
+
+		if (!StartupThreadPool())
+		{
+			return ResultCode::Failed;
+		}
+
+		// Upon failure shut down threadpool when we return
+		auto sg0 = MakeScopeGuard([&] { ShutdownThreadPool(); });
 
 		if (params.NumPreGeneratedKeysPerAlgorithm > 0 &&
 			!m_KeyGenerationManager.Startup())
@@ -328,6 +337,7 @@ namespace QuantumGate::Implementation::Core
 			return ResultCode::FailedExtenderManagerStartup;
 		}
 
+		sg0.Deactivate();
 		sg1.Deactivate();
 		sg2.Deactivate();
 		sg3.Deactivate();
@@ -363,11 +373,95 @@ namespace QuantumGate::Implementation::Core
 
 		m_KeyGenerationManager.Shutdown();
 
-		m_LocalEnvironment.WithUniqueLock()->Clear();
+		m_LocalEnvironment.WithUniqueLock()->Deinitialize();
+
+		ShutdownThreadPool();
 
 		LogSys(L"QuantumGate shut down");
 
 		return ResultCode::Succeeded;
+	}
+
+	const bool Local::StartupThreadPool() noexcept
+	{
+		LogSys(L"Creating local threadpool with 1 worker thread");
+
+		const auto& settings = GetSettings().GetCache();
+		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
+		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
+
+		if (m_ThreadPool.AddThread(L"QuantumGate Local Worker Thread",
+								   &Local::WorkerThreadProcessor, ThreadData(),
+								   &m_ThreadPool.Data().EventQueue.WithUniqueLock()->Event()))
+		{
+			if (m_ThreadPool.Startup())
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void Local::ShutdownThreadPool() noexcept
+	{
+		m_ThreadPool.Shutdown();
+		m_ThreadPool.Clear();
+	}
+
+	const std::pair<bool, bool> Local::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+															 const Concurrency::EventCondition& shutdown_event)
+	{
+		auto didwork = false;
+
+		std::optional<Event> event;
+
+		thpdata.Local.m_ThreadPool.Data().EventQueue.IfUniqueLock([&](auto& queue)
+		{
+			if (!queue.Empty())
+			{
+				event = std::move(queue.Front());
+				queue.Pop();
+
+				// We had events in the queue
+				// so we did work
+				didwork = true;
+			}
+		});
+
+		if (event.has_value())
+		{
+			if (std::holds_alternative<EventTypes::LocalEnvironmentChange>(*event))
+			{
+				if (thpdata.Local.m_LocalEnvironment.WithUniqueLock()->Update())
+				{
+					if (thpdata.Local.IsRunning())
+					{
+						std::unique_lock<std::shared_mutex> lock(thpdata.Local.m_Mutex);
+
+						if (thpdata.Local.m_ListenerManager.IsRunning())
+						{
+							LogInfo(L"Restarting Listenermanager because of local environment change");
+
+							thpdata.Local.m_ListenerManager.Shutdown();
+
+							auto local_env = thpdata.Local.m_LocalEnvironment.WithSharedLock();
+							if (!thpdata.Local.m_ListenerManager.Startup(local_env->GetEthernetInterfaces()))
+							{
+								LogErr(L"Failed to restart Listenermanager after local environment change");
+							}
+						}
+					}
+				}
+				else
+				{
+					LogErr(L"Failed to update local environment information after ethernet interfaces change notification");
+				}
+			}
+			else assert(false);
+		}
+
+		return std::make_pair(true, didwork);
 	}
 
 	Result<> Local::EnableListeners() noexcept
@@ -498,13 +592,21 @@ namespace QuantumGate::Implementation::Core
 	{
 		if (!m_LocalEnvironment.WithSharedLock()->IsInitialized())
 		{
-			if (!m_LocalEnvironment.WithUniqueLock()->Initialize())
+			if (!m_LocalEnvironment.WithUniqueLock()->Initialize(MakeCallback(this, &Local::LocalEnvironmentChangedCallback)))
 			{
 				LogErr(L"Couldn't initialize local environment");
 			}
 		}
 
 		return m_LocalEnvironment;
+	}
+
+	void Local::LocalEnvironmentChangedCallback() noexcept
+	{
+		m_ThreadPool.Data().EventQueue.WithUniqueLock([&](EventQueue& queue)
+		{
+			queue.Push(EventTypes::LocalEnvironmentChange());
+		});
 	}
 
 	Result<bool> Local::AddExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
