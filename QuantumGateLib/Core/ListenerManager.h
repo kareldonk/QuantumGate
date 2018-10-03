@@ -19,17 +19,13 @@ namespace QuantumGate::Implementation::Core::Listener
 
 			~ThreadData()
 			{
-				if (Socket)
-				{
-					if (Socket->GetIOStatus().IsOpen()) Socket->Close();
-					Socket.reset();
-				}
+				if (Socket.GetIOStatus().IsOpen()) Socket.Close();
 			}
 
 			ThreadData& operator=(const ThreadData&) = delete;
 			ThreadData& operator=(ThreadData&&) = default;
 
-			std::unique_ptr<Network::Socket> Socket{ nullptr };
+			Network::Socket Socket;
 			bool UseConditionalAcceptFunction{ true };
 		};
 

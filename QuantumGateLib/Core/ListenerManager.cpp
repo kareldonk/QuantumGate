@@ -61,10 +61,9 @@ namespace QuantumGate::Implementation::Core::Listener
 					ltd.UseConditionalAcceptFunction = cond_accept;
 
 					// Create and start the listenersocket
-					ltd.Socket = std::make_unique<Network::Socket>(endpoint.GetIPAddress().GetFamily(),
-																   SOCK_STREAM, IPPROTO_TCP);
+					ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), SOCK_STREAM, IPPROTO_TCP);
 
-					if (ltd.Socket->Listen(endpoint, true, nat_traversal))
+					if (ltd.Socket.Listen(endpoint, true, nat_traversal))
 					{
 						LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
 
@@ -136,10 +135,9 @@ namespace QuantumGate::Implementation::Core::Listener
 								ltd.UseConditionalAcceptFunction = cond_accept;
 
 								// Create and start the listenersocket
-								ltd.Socket = std::make_unique<Network::Socket>(endpoint.GetIPAddress().GetFamily(),
-																			   SOCK_STREAM, IPPROTO_TCP);
+								ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), SOCK_STREAM, IPPROTO_TCP);
 
-								if (ltd.Socket->Listen(endpoint, true, nat_traversal))
+								if (ltd.Socket.Listen(endpoint, true, nat_traversal))
 								{
 									LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
 
@@ -205,23 +203,23 @@ namespace QuantumGate::Implementation::Core::Listener
 		auto didwork = false;
 
 		// Check if we have a read event waiting for us
-		if (thdata.Socket->UpdateIOStatus(0ms))
+		if (thdata.Socket.UpdateIOStatus(0ms))
 		{
-			if (thdata.Socket->GetIOStatus().CanRead())
+			if (thdata.Socket.GetIOStatus().CanRead())
 			{
 				// Probably have a connection waiting to accept
 				LogInfo(L"Accepting new connection on endpoint %s",
-						thdata.Socket->GetLocalEndpoint().GetString().c_str());
+						thdata.Socket.GetLocalEndpoint().GetString().c_str());
 
-				AcceptConnection(*thdata.Socket, thdata.UseConditionalAcceptFunction);
+				AcceptConnection(thdata.Socket, thdata.UseConditionalAcceptFunction);
 
 				didwork = true;
 			}
-			else if (thdata.Socket->GetIOStatus().HasException())
+			else if (thdata.Socket.GetIOStatus().HasException())
 			{
 				LogErr(L"Exception on listener socket for endpoint %s (%s)",
-					   thdata.Socket->GetLocalEndpoint().GetString().c_str(),
-					   GetSysErrorString(thdata.Socket->GetIOStatus().GetErrorCode()).c_str());
+					   thdata.Socket.GetLocalEndpoint().GetString().c_str(),
+					   GetSysErrorString(thdata.Socket.GetIOStatus().GetErrorCode()).c_str());
 
 				success = false;
 			}
@@ -229,7 +227,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		else
 		{
 			LogErr(L"Could not get status of listener socket for endpoint %s",
-				   thdata.Socket->GetLocalEndpoint().GetString().c_str());
+				   thdata.Socket.GetLocalEndpoint().GetString().c_str());
 
 			success = false;
 		}

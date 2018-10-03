@@ -50,21 +50,43 @@ namespace QuantumGate::Implementation::Concurrency
 
 		using ThreadCallbackType = typename thread_callback<>::type;
 
-		struct ThreadCtrl
+		struct ThreadCtrl final
 		{
 			ThreadCtrl(const String& thname, ThreadCallbackType&& thcallback,
 					   ThData&& thdata, EventCondition* thevent = nullptr) :
-				ThreadName(thname), ThreadCallback(std::move(thcallback)),
-				ThreadData(std::move(thdata)), ThreadEvent(thevent) {}
+				ThreadName(thname),
+				ThreadCallback(std::move(thcallback)),
+				ThreadData(std::move(thdata)),
+				ThreadEvent(thevent),
+				ShutdownEvent(std::make_unique<EventCondition>())
+			{}
 
 			String ThreadName;
 			ThreadCallbackType ThreadCallback;
 			ThData ThreadData;
 			EventCondition* ThreadEvent{ nullptr };
+			std::unique_ptr<EventCondition> ShutdownEvent{ nullptr };
 			std::thread Thread;
 		};
 
 	public:
+		class Thread final
+		{
+		public:
+			Thread() = delete;
+			Thread(ThreadCtrl& threadctrl) noexcept : m_ThreadCtrl(threadctrl) {}
+
+			const std::thread::id GetID() const noexcept { return m_ThreadCtrl.Thread.get_id(); }
+			const String& GetName() const noexcept { return m_ThreadCtrl.ThreadName; }
+			[[nodiscard]] const bool IsRunning() const noexcept { return m_ThreadCtrl.Thread.joinable(); }
+
+			template<typename U = ThData, typename = std::enable_if_t<has_thread_data<U>>>
+			ThData& GetData() noexcept { return m_ThreadCtrl.ThreadData; }
+
+		private:
+			ThreadCtrl& m_ThreadCtrl;
+		};
+
 		template<typename... Args>
 		ThreadPool(Args&&... args) noexcept : m_Data(std::forward<Args>(args)...) {}
 
@@ -110,6 +132,14 @@ namespace QuantumGate::Implementation::Concurrency
 			return AddThreadImpl(thname, std::move(thcallback), std::move(thdata), thevent);
 		}
 
+		Size GetSize() const noexcept { return m_Threads.size(); }
+
+		Thread GetThread(const UInt index) noexcept
+		{
+			assert(index < m_Threads.size());
+			return Thread(m_Threads[index]);
+		}
+
 		void Clear() noexcept
 		{
 			assert(!IsRunning());
@@ -121,21 +151,10 @@ namespace QuantumGate::Implementation::Concurrency
 		{
 			assert(!IsRunning());
 
-			m_ShutdownEvent.Reset();
-
 			// Start all threads
 			for (auto& threadctrl : m_Threads)
 			{
-				try
-				{
-					threadctrl.Thread = std::thread(&ThreadPool::WorkerThreadLoop, std::ref(*this), std::ref(threadctrl),
-													std::ref(m_ShutdownEvent));
-				}
-				catch (const std::exception& e)
-				{
-					LogErr(L"Unable to start worker thread \"%s\" due to exception: %s",
-						   threadctrl.ThreadName.c_str(), Util::ToStringW(e.what()).c_str());
-				}
+				StartThread(threadctrl);
 			}
 
 			return IsRunning();
@@ -147,29 +166,15 @@ namespace QuantumGate::Implementation::Concurrency
 
 			// Set the shutdown event to notify threads
 			// that we're shutting down
-			m_ShutdownEvent.Set();
-
-			// Wait for all threads to shut down
 			for (auto& threadctrl : m_Threads)
 			{
-				if (threadctrl.Thread.joinable())
-				{
-					try
-					{
-						if (threadctrl.ThreadEvent != nullptr)
-						{
-							// Set event to wake up worker thread
-							threadctrl.ThreadEvent->Set();
-						}
+				threadctrl.ShutdownEvent->Set();
+			}
 
-						threadctrl.Thread.join();
-					}
-					catch (const std::exception& e)
-					{
-						LogErr(L"Unable to stop worker thread \"%s\" due to exception: %s",
-							   threadctrl.ThreadName.c_str(), Util::ToStringW(e.what()).c_str());
-					}
-				}
+			// Stop all threads
+			for (auto& threadctrl : m_Threads)
+			{
+				StopThread(threadctrl);
 			}
 		}
 
@@ -187,16 +192,70 @@ namespace QuantumGate::Implementation::Concurrency
 
 			try
 			{
-				m_Threads.emplace_back(thname, std::move(thcallback), std::move(thdata), thevent);
-				return true;
+				auto& threadctrl = m_Threads.emplace_back(thname, std::move(thcallback), std::move(thdata), thevent);
+				if (IsRunning())
+				{
+					return StartThread(threadctrl);
+				}
+				else return true;
+			}
+			catch (const std::exception& e)
+			{
+				LogErr(L"Unable to add worker thread \"%s\" due to exception: %s",
+					   thname.c_str(), Util::ToStringW(e.what()).c_str());
 			}
 			catch (...) {}
 
 			return false;
 		}
 
-		static void WorkerThreadLoop(ThreadPool& thpool, ThreadCtrl& thctrl,
-									 EventCondition& shutdown_event) noexcept
+		const bool StartThread(ThreadCtrl& threadctrl) noexcept
+		{
+			try
+			{
+				threadctrl.ShutdownEvent->Reset();
+				threadctrl.Thread = std::thread(&ThreadPool::WorkerThreadLoop, std::ref(*this), std::ref(threadctrl));
+				return true;
+			}
+			catch (const std::exception& e)
+			{
+				LogErr(L"Unable to start worker thread \"%s\" due to exception: %s",
+					   threadctrl.ThreadName.c_str(), Util::ToStringW(e.what()).c_str());
+			}
+			catch (...) {}
+
+			return false;
+		}
+
+		void StopThread(ThreadCtrl& threadctrl) noexcept
+		{
+			if (threadctrl.Thread.joinable())
+			{
+				try
+				{
+					// Set the shutdown event to notify thread
+					// that we're shutting down
+					threadctrl.ShutdownEvent->Set();
+
+					if (threadctrl.ThreadEvent != nullptr)
+					{
+						// Set event to wake up thread
+						threadctrl.ThreadEvent->Set();
+					}
+
+					// Wait for thread to exit
+					threadctrl.Thread.join();
+				}
+				catch (const std::exception& e)
+				{
+					LogErr(L"Unable to stop worker thread \"%s\" due to exception: %s",
+						   threadctrl.ThreadName.c_str(), Util::ToStringW(e.what()).c_str());
+				}
+				catch (...) {}
+			}
+		}
+
+		static void WorkerThreadLoop(ThreadPool& thpool, ThreadCtrl& thctrl) noexcept
 		{
 			LogDbg(L"Worker thread \"%s\" (%u) starting", thctrl.ThreadName.c_str(), std::this_thread::get_id());
 
@@ -211,25 +270,25 @@ namespace QuantumGate::Implementation::Concurrency
 				try
 				{
 					// Thread with event to wait for work
-					if (thctrl.ThreadEvent) thctrl.ThreadEvent->Wait();
+					if (thctrl.ThreadEvent != nullptr) thctrl.ThreadEvent->Wait();
 
 					// If the shutdown event is set exit the loop
-					if (shutdown_event.IsSet()) break;
+					if (thctrl.ShutdownEvent->IsSet()) break;
 
 					// Execute thread function
 					if constexpr (has_threadpool_data<ThPData> && has_thread_data<ThData>)
 					{
-						result = thctrl.ThreadCallback(thpool.m_Data, thctrl.ThreadData, shutdown_event);
+						result = thctrl.ThreadCallback(thpool.m_Data, thctrl.ThreadData, *thctrl.ShutdownEvent);
 					}
 					else if constexpr (has_threadpool_data<ThPData> && !has_thread_data<ThData>)
 					{
-						result = thctrl.ThreadCallback(thpool.m_Data, shutdown_event);
+						result = thctrl.ThreadCallback(thpool.m_Data, *thctrl.ShutdownEvent);
 					}
 					else if constexpr (!has_threadpool_data<ThPData> && has_thread_data<ThData>)
 					{
-						result = thctrl.ThreadCallback(thctrl.ThreadData, shutdown_event);
+						result = thctrl.ThreadCallback(thctrl.ThreadData, *thctrl.ShutdownEvent);
 					}
-					else result = thctrl.ThreadCallback(shutdown_event);
+					else result = thctrl.ThreadCallback(*thctrl.ShutdownEvent);
 
 					if (!result.first)
 					{
@@ -274,7 +333,7 @@ namespace QuantumGate::Implementation::Concurrency
 						else
 						{
 							// Sleep for a while, while waiting for shutdown event
-							if (shutdown_event.Wait(sleepms)) break;
+							if (thctrl.ShutdownEvent->Wait(sleepms)) break;
 						}
 					}
 				}
@@ -294,8 +353,6 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 	private:
-		EventCondition m_ShutdownEvent{ false };
-
 		Size m_WorkerThreadsMaxBurst{ 64 };
 		std::chrono::milliseconds m_WorkerThreadsMaxSleep{ 1 };
 

@@ -305,7 +305,7 @@ namespace QuantumGate::Implementation::Core
 	{
 		assert(CallerContext != NULL);
 
-		LogInfo(L"Received IP interface change notification from OS");
+		LogInfo(L"Received IP interface change notification (%d) from OS", NotificationType);
 
 		const auto le = reinterpret_cast<LocalEnvironment*>(CallerContext);
 		le->m_LocalEnvironmentChangedCallback.WithSharedLock([](const auto& callback)

@@ -452,6 +452,8 @@ namespace QuantumGate::Implementation::Core
 				// If the local environment changed that means it's possible
 				// that IP addresses changed; the listeners may need to
 				// be updated
+				// TODO: Need to wait a few seconds before updating listeners
+				// and need to check if update is needed (if IPs changed)
 				if (m_ListenerManager.IsRunning())
 				{
 					LogInfo(L"Restarting Listenermanager because of local environment change");
