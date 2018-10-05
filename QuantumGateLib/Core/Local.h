@@ -46,6 +46,7 @@ namespace QuantumGate::Implementation::Core
 		inline const bool IsRunning() const noexcept { return (m_Running && !m_ShutdownEvent.IsSet()); }
 
 		Result<> EnableListeners() noexcept;
+		Result<> UpdateListeners() noexcept;
 		Result<> DisableListeners() noexcept;
 		const bool AreListenersEnabled() const noexcept;
 

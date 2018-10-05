@@ -37,45 +37,27 @@ namespace QuantumGate::Implementation::Core::Listener
 
 		for (const auto& af : afs)
 		{
-			// Separate listener for every port
-			for (const auto port : listener_ports)
+			const std::optional<IPAddress> address = std::invoke([&]() -> std::optional<IPAddress>
 			{
-				try
+				switch (af)
 				{
-					IPEndpoint endpoint;
-					ThreadData ltd;
-
-					switch (af)
-					{
-						case IPAddressFamily::IPv4:
-							endpoint = IPEndpoint(IPAddress::AnyIPv4(), port);
-							break;
-						case IPAddressFamily::IPv6:
-							endpoint = IPEndpoint(IPAddress::AnyIPv6(), port);
-							break;
-						default:
-							assert(false);
-							break;
-					}
-
-					ltd.UseConditionalAcceptFunction = cond_accept;
-
-					// Create and start the listenersocket
-					ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), SOCK_STREAM, IPPROTO_TCP);
-
-					if (ltd.Socket.Listen(endpoint, true, nat_traversal))
-					{
-						LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
-
-						if (!m_ListenerThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
-															MakeCallback(this, &Manager::WorkerThreadProcessor),
-															std::move(ltd)))
-						{
-							LogErr(L"Could not add listener thread");
-						}
-					}
+					case IPAddressFamily::IPv4:
+						return IPAddress::AnyIPv4();
+						break;
+					case IPAddressFamily::IPv6:
+						return IPAddress::AnyIPv6();
+						break;
+					default:
+						assert(false);
+						break;
 				}
-				catch (...) {}
+
+				return std::nullopt;
+			});
+
+			if (address.has_value())
+			{
+				DiscardReturnValue(AddListenerThreads(*address, listener_ports, cond_accept, nat_traversal));
 			}
 		}
 
@@ -85,6 +67,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		if (m_ListenerThreadPool.Startup())
 		{
 			m_Running = true;
+			m_ListeningOnAnyAddresses = true;
 
 			LogSys(L"Listenermanager startup successful");
 		}
@@ -124,33 +107,7 @@ namespace QuantumGate::Implementation::Core::Listener
 					// Only for IPv4 and IPv6 addresses
 					if (address.GetFamily() == IPAddressFamily::IPv4 || address.GetFamily() == IPAddressFamily::IPv6)
 					{
-						// Separate listener for every port
-						for (const auto port : listener_ports)
-						{
-							try
-							{
-								const auto endpoint = IPEndpoint(address, port);
-
-								ThreadData ltd;
-								ltd.UseConditionalAcceptFunction = cond_accept;
-
-								// Create and start the listenersocket
-								ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), SOCK_STREAM, IPPROTO_TCP);
-
-								if (ltd.Socket.Listen(endpoint, true, nat_traversal))
-								{
-									LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
-
-									if (!m_ListenerThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
-																		MakeCallback(this, &Manager::WorkerThreadProcessor),
-																		std::move(ltd)))
-									{
-										LogErr(L"Could not add listener thread");
-									}
-								}
-							}
-							catch (...) {}
-						}
+						DiscardReturnValue(AddListenerThreads(address, listener_ports, cond_accept, nat_traversal));
 					}
 					else assert(false);
 				}
@@ -163,12 +120,151 @@ namespace QuantumGate::Implementation::Core::Listener
 		if (m_ListenerThreadPool.Startup())
 		{
 			m_Running = true;
+			m_ListeningOnAnyAddresses = false;
 
 			LogSys(L"Listenermanager startup successful");
 		}
 		else LogErr(L"Listenermanager startup failed");
 
 		return m_Running;
+	}
+
+	const bool Manager::AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
+										   const bool cond_accept, const bool nat_traversal) noexcept
+	{
+		// Separate listener for every port
+		for (const auto port : ports)
+		{
+			try
+			{
+				const auto endpoint = IPEndpoint(address, port);
+
+				ThreadData ltd;
+				ltd.UseConditionalAcceptFunction = cond_accept;
+
+				// Create and start the listenersocket
+				ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), SOCK_STREAM, IPPROTO_TCP);
+
+				if (ltd.Socket.Listen(endpoint, true, nat_traversal))
+				{
+					if (m_ListenerThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
+													   MakeCallback(this, &Manager::WorkerThreadProcessor),
+													   std::move(ltd)))
+					{
+						LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
+					}
+					else
+					{
+						LogErr(L"Could not add listener thread for endpoint %s", endpoint.GetString().c_str());
+					}
+				}
+			}
+			catch (const std::exception& e)
+			{
+				LogErr(L"Could not add listener thread for IP %s due to exception: %s",
+					   address.GetString().c_str(), Util::ToStringW(e.what()).c_str());
+			}
+			catch (...) {}
+		}
+
+		return true;
+	}
+
+	std::optional<Manager::ThreadPool::Thread> Manager::RemoveListenerThread(Manager::ThreadPool::Thread&& thread) noexcept
+	{
+		IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
+
+		auto[success, next_thread] = m_ListenerThreadPool.RemoveThread(std::move(thread));
+		if (success)
+		{
+			LogSys(L"Stopped listening on endpoint %s", endpoint.GetString().c_str());
+		}
+		else
+		{
+			LogErr(L"Could not remove listener thread for endpoint %s", endpoint.GetString().c_str());
+		}
+
+		return next_thread;
+	}
+
+	const bool Manager::Update(const Vector<EthernetInterface>& interfaces) noexcept
+	{
+		if (!m_Running) return false;
+
+		// No need to update in this case
+		if (m_ListeningOnAnyAddresses) return true;
+
+		LogSys(L"Updating Listenermanager...");
+
+		const auto& settings = m_Settings.GetCache();
+		const auto& listener_ports = settings.Local.ListenerPorts;
+		const auto nat_traversal = settings.Local.NATTraversal;
+		const auto cond_accept = settings.Local.UseConditionalAcceptFunction;
+
+		// Check for interfaces/IP addresses that were added for which
+		// there are no listeners; we add listeners for those
+		for (const auto& ifs : interfaces)
+		{
+			if (ifs.Operational)
+			{
+				for (const auto& address : ifs.IPAddresses)
+				{
+					// Only for IPv4 and IPv6 addresses
+					if (address.GetFamily() == IPAddressFamily::IPv4 || address.GetFamily() == IPAddressFamily::IPv6)
+					{
+						auto found = false;
+
+						auto thread = m_ListenerThreadPool.GetFirstThread();
+
+						while (thread.has_value())
+						{
+							if (thread->GetData().Socket.GetLocalIPAddress() == address)
+							{
+								found = true;
+								break;
+							}
+							else thread = m_ListenerThreadPool.GetNextThread(*thread);
+						}
+
+						if (!found)
+						{
+							DiscardReturnValue(AddListenerThreads(address, listener_ports, cond_accept, nat_traversal));
+						}
+					}
+				}
+			}
+		}
+
+		// Check for interfaces/IP addresses that were removed for which
+		// there are still listeners; we remove listeners for those
+		auto thread = m_ListenerThreadPool.GetFirstThread();
+
+		while (thread.has_value())
+		{
+			auto found = false;
+
+			for (const auto& ifs : interfaces)
+			{
+				if (ifs.Operational)
+				{
+					for (const auto& address : ifs.IPAddresses)
+					{
+						if (thread->GetData().Socket.GetLocalIPAddress() == address)
+						{
+							found = true;
+						}
+					}
+				}
+			}
+
+			if (!found)
+			{
+				thread = RemoveListenerThread(std::move(*thread));
+			}
+			else thread = m_ListenerThreadPool.GetNextThread(*thread);
+		}
+
+		return true;
 	}
 
 	void Manager::Shutdown() noexcept
@@ -193,6 +289,7 @@ namespace QuantumGate::Implementation::Core::Listener
 
 	void Manager::ResetState() noexcept
 	{
+		m_ListeningOnAnyAddresses = false;
 		m_ListenerThreadPool.Clear();
 	}
 

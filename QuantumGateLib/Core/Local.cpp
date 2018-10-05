@@ -445,26 +445,13 @@ namespace QuantumGate::Implementation::Core
 	{
 		if (m_LocalEnvironment.WithUniqueLock()->Update())
 		{
-			if (IsRunning())
+			if (IsRunning() && m_ListenerManager.IsRunning())
 			{
-				std::unique_lock<std::shared_mutex> lock(m_Mutex);
+				LogDbg(L"Updating Listenermanager because of local environment change");
 
-				// If the local environment changed that means it's possible
-				// that IP addresses changed; the listeners may need to
-				// be updated
-				// TODO: Need to wait a few seconds before updating listeners
-				// and need to check if update is needed (if IPs changed)
-				if (m_ListenerManager.IsRunning())
+				if (UpdateListeners().Failed())
 				{
-					LogInfo(L"Restarting Listenermanager because of local environment change");
-
-					m_ListenerManager.Shutdown();
-
-					auto local_env = m_LocalEnvironment.WithSharedLock();
-					if (!m_ListenerManager.Startup(local_env->GetEthernetInterfaces()))
-					{
-						LogErr(L"Failed to restart Listenermanager after local environment change");
-					}
+					LogErr(L"Failed to update Listenermanager after local environment change");
 				}
 			}
 		}
@@ -487,6 +474,25 @@ namespace QuantumGate::Implementation::Core
 				return ResultCode::Succeeded;
 			}
 			else return ResultCode::Failed;
+		}
+
+		return ResultCode::NotRunning;
+	}
+
+	Result<> Local::UpdateListeners() noexcept
+	{
+		if (IsRunning() && m_ListenerManager.IsRunning())
+		{
+			std::unique_lock<std::shared_mutex> lock(m_Mutex);
+
+			auto local_env = m_LocalEnvironment.WithSharedLock();
+
+			if (m_ListenerManager.Update(local_env->GetEthernetInterfaces()))
+			{
+				return ResultCode::Succeeded;
+			}
+				
+			return ResultCode::Failed;
 		}
 
 		return ResultCode::NotRunning;

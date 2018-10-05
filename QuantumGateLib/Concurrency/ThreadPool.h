@@ -7,7 +7,7 @@
 #include "..\Common\Console.h"
 #include "..\Common\Callback.h"
 
-#include <vector>
+#include <list>
 #include <thread>
 
 namespace QuantumGate::Implementation::Concurrency
@@ -69,22 +69,27 @@ namespace QuantumGate::Implementation::Concurrency
 			std::thread Thread;
 		};
 
+		using ThreadList = std::list<ThreadCtrl>;
+		using ThreadIterator = typename std::list<ThreadCtrl>::iterator;
+
 	public:
 		class Thread final
 		{
+			friend class ThreadPool;
+
 		public:
 			Thread() = delete;
-			Thread(ThreadCtrl& threadctrl) noexcept : m_ThreadCtrl(threadctrl) {}
+			Thread(const ThreadIterator it) noexcept : m_ThreadIterator(it) {}
 
-			const std::thread::id GetID() const noexcept { return m_ThreadCtrl.Thread.get_id(); }
-			const String& GetName() const noexcept { return m_ThreadCtrl.ThreadName; }
-			[[nodiscard]] const bool IsRunning() const noexcept { return m_ThreadCtrl.Thread.joinable(); }
+			const std::thread::id GetID() const noexcept { return m_ThreadIterator->Thread.get_id(); }
+			const String& GetName() const noexcept { return m_ThreadIterator->ThreadName; }
+			[[nodiscard]] const bool IsRunning() const noexcept { return m_ThreadIterator->Thread.joinable(); }
 
 			template<typename U = ThData, typename = std::enable_if_t<has_thread_data<U>>>
-			ThData& GetData() noexcept { return m_ThreadCtrl.ThreadData; }
+			ThData& GetData() noexcept { return m_ThreadIterator->ThreadData; }
 
 		private:
-			ThreadCtrl& m_ThreadCtrl;
+			ThreadIterator m_ThreadIterator;
 		};
 
 		template<typename... Args>
@@ -119,28 +124,53 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 		template<typename U = ThData, typename = std::enable_if_t<!has_thread_data<U>>>
-		[[nodiscard]] const bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
-										   EventCondition* thevent = nullptr) noexcept
+		[[nodiscard]] inline const bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
+												  EventCondition* thevent = nullptr) noexcept
 		{
 			return AddThreadImpl(thname, std::move(thcallback), NoThreadData{}, thevent);
 		}
 
 		template<typename U = ThData, typename = std::enable_if_t<has_thread_data<U>>>
-		[[nodiscard]] const bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
-										   ThData&& thdata, EventCondition* thevent = nullptr) noexcept
+		[[nodiscard]] inline const bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
+												  ThData&& thdata, EventCondition* thevent = nullptr) noexcept
 		{
 			return AddThreadImpl(thname, std::move(thcallback), std::move(thdata), thevent);
 		}
 
-		Size GetSize() const noexcept { return m_Threads.size(); }
-
-		Thread GetThread(const UInt index) noexcept
+		[[nodiscard]] inline std::pair<bool, std::optional<Thread>> RemoveThread(Thread&& thread) noexcept
 		{
-			assert(index < m_Threads.size());
-			return Thread(m_Threads[index]);
+			if (thread.IsRunning())
+			{
+				StopThread(*(thread.m_ThreadIterator));
+			}
+
+			auto next_it = m_Threads.erase(thread.m_ThreadIterator);
+			if (next_it != m_Threads.end()) return std::make_pair(true, Thread(next_it));
+
+			return std::make_pair(true, std::nullopt);
 		}
 
-		void Clear() noexcept
+		inline Size GetSize() const noexcept { return m_Threads.size(); }
+
+		inline std::optional<Thread> GetFirstThread() noexcept
+		{
+			if (m_Threads.size() > 0)
+			{
+				return Thread(m_Threads.begin());
+			}
+
+			return std::nullopt;
+		}
+
+		inline std::optional<Thread> GetNextThread(const Thread& thread) noexcept
+		{
+			auto it = std::next(thread.m_ThreadIterator, 1);
+			if (it != m_Threads.end()) return Thread(it);
+
+			return std::nullopt;
+		}
+
+		inline void Clear() noexcept
 		{
 			assert(!IsRunning());
 
@@ -357,6 +387,6 @@ namespace QuantumGate::Implementation::Concurrency
 		std::chrono::milliseconds m_WorkerThreadsMaxSleep{ 1 };
 
 		ThPData m_Data;
-		Vector<ThreadCtrl> m_Threads;
+		ThreadList m_Threads;
 	};
 }
