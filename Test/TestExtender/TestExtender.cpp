@@ -486,8 +486,13 @@ namespace TestExtender
 											{
 												if (!m_AutoFileTransferPath.empty())
 												{
+													// Random temporary filename because the file
+													// will get deleted after completion anyway and
+													// to reduce conflicts with multiple transfers
+													const auto rndfname = Util::FormatString(L"%llu.tmp",
+																							 Util::GetPseudoRandomNumber());
 													if (!AcceptFile(event.GetPeerLUID(),
-																	m_AutoFileTransferPath + L"\\" + fname,
+																	m_AutoFileTransferPath + rndfname,
 																	*retval.first->second))
 													{
 														error = true;
