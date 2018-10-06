@@ -16,7 +16,7 @@ namespace UnitTests
 		TEST_METHOD(Constexpr)
 		{
 			// Byte constructor
-			constexpr BinaryIPAddress ip1(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 0 }, Byte{ 0 });
+			constexpr BinaryIPAddress ip1(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 10 }, Byte{ 12 });
 
 			// UInt32 constructor
 			constexpr BinaryIPAddress ip2(0xffff0000); // 255.255.0.0
@@ -64,7 +64,7 @@ namespace UnitTests
 
 			// IsInAddressRange
 			{
-				constexpr BinaryIPAddress iprt(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 10 }, Byte{ 10 });
+				constexpr BinaryIPAddress iprt(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 10 }, Byte{ 13 });
 
 				constexpr auto result = BinaryIPAddress::IsInAddressRange(iprt, range->first, range->second);
 				static_assert(result.first, "Should succeed");
@@ -90,6 +90,42 @@ namespace UnitTests
 			static_assert(!BinaryIPAddress::IsMask(BinaryIPAddress(0xffff0001)), "Should not be a mask");
 			static_assert(!BinaryIPAddress::IsMask(BinaryIPAddress(0xffef0000)), "Should not be a mask");
 			static_assert(!BinaryIPAddress::IsMask(BinaryIPAddress(0xffffffffffff0010, 0x0)), "Should not be a mask");
+
+			// GetNetwork
+			constexpr BinaryIPAddress network1 = [](const BinaryIPAddress& bin_ipaddr,
+												   const BinaryIPAddress& bin_mask) constexpr
+			{
+				BinaryIPAddress network;
+				if (BinaryIPAddress::GetNetwork(bin_ipaddr, bin_mask, network)) return network;
+				return BinaryIPAddress{};
+			}(ip1, mask4);
+			
+			static_assert(network1 == BinaryIPAddress(0xc0a80000), "Should succeed");
+
+			constexpr BinaryIPAddress network2 = [](const BinaryIPAddress& bin_ipaddr,
+													const UInt8 cidr_lbits) constexpr
+			{
+				BinaryIPAddress network;
+				if (BinaryIPAddress::GetNetwork(bin_ipaddr, cidr_lbits, network)) return network;
+				return BinaryIPAddress{};
+			}(ip1, 8);
+
+			static_assert(network2 == BinaryIPAddress(0xc0000000), "Should succeed");
+
+			// AreInSameNetwork
+			{
+				constexpr auto aisnres = BinaryIPAddress::AreInSameNetwork(ip1,
+																			BinaryIPAddress(0xc0a80000), 16);
+				static_assert(aisnres.first, "Should succeed");
+				static_assert(aisnres.second, "Should be in same network");
+			}
+
+			{
+				constexpr auto aisnres = BinaryIPAddress::AreInSameNetwork(ip1,
+																		   BinaryIPAddress(0xc0180000), 16);
+				static_assert(aisnres.first, "Should succeed");
+				static_assert(!aisnres.second, "Should not be in same network");
+			}
 		}
 
 		TEST_METHOD(GetAddressByte)
