@@ -400,6 +400,8 @@ namespace QuantumGate::Implementation::Core
 			}
 		}
 
+		LogErr(L"Couldn't start local threadpool");
+
 		return false;
 	}
 

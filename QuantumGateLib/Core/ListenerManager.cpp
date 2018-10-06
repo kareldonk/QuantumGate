@@ -33,7 +33,7 @@ namespace QuantumGate::Implementation::Core::Listener
 			return false;
 		}
 
-		std::array<IPAddressFamily, 2> afs{ IPAddressFamily::IPv4, IPAddressFamily::IPv6 };
+		const std::array<IPAddressFamily, 2> afs{ IPAddressFamily::IPv4, IPAddressFamily::IPv6 };
 
 		for (const auto& af : afs)
 		{
