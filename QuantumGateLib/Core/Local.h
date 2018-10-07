@@ -12,6 +12,11 @@ namespace QuantumGate::Implementation::Core
 	{
 		struct LocalEnvironmentChange
 		{};
+
+		struct UnhandledExtenderException
+		{
+			ExtenderUUID UUID;
+		};
 	}
 
 	class Local
@@ -20,7 +25,7 @@ namespace QuantumGate::Implementation::Core
 
 		using ExtenderModuleMap = std::unordered_map<Extender::ExtenderModuleID, Extender::Module>;
 
-		using Event = std::variant<Events::LocalEnvironmentChange>;
+		using Event = std::variant<Events::LocalEnvironmentChange, Events::UnhandledExtenderException>;
 		using EventQueue = Concurrency::Queue<Event>;
 		using EventQueue_ThS = Concurrency::ThreadSafe<EventQueue, std::shared_mutex>;
 
@@ -99,7 +104,8 @@ namespace QuantumGate::Implementation::Core
 		[[nodiscard]] const bool StartupThreadPool() noexcept;
 		void ShutdownThreadPool() noexcept;
 
-		void LocalEnvironmentChangedCallback() noexcept;
+		void OnLocalEnvironmentChanged() noexcept;
+		void OnUnhandledExtenderException(const ExtenderUUID extuuid) noexcept;
 
 		Result<bool> AddExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
 									 const Extender::ExtenderModuleID moduleid = 0) noexcept;
@@ -114,6 +120,7 @@ namespace QuantumGate::Implementation::Core
 						const PeerLUID id, Buffer&& buffer, const bool compress);
 
 		void ProcessEvent(const Events::LocalEnvironmentChange& event) noexcept;
+		void ProcessEvent(const Events::UnhandledExtenderException& event) noexcept;
 
 		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata,
 														  const Concurrency::EventCondition& shutdown_event);

@@ -259,7 +259,7 @@ namespace QuantumGate::Implementation::Core
 		if (!m_LocalEnvironment.WithSharedLock()->IsInitialized())
 		{
 			if (!m_LocalEnvironment.WithUniqueLock()->Initialize(MakeCallback(this,
-																			  &Local::LocalEnvironmentChangedCallback)))
+																			  &Local::OnLocalEnvironmentChanged)))
 			{
 				LogErr(L"Couldn't initialize local environment");
 				return ResultCode::Failed;
@@ -437,6 +437,10 @@ namespace QuantumGate::Implementation::Core
 			{
 				ProcessEvent(std::get<Events::LocalEnvironmentChange>(*event));
 			}
+			else if (std::holds_alternative<Events::UnhandledExtenderException>(*event))
+			{
+				ProcessEvent(std::get<Events::UnhandledExtenderException>(*event));
+			}
 			else assert(false);
 		}
 
@@ -460,6 +464,23 @@ namespace QuantumGate::Implementation::Core
 		else
 		{
 			LogErr(L"Failed to update local environment information after change notification");
+		}
+	}
+
+	void Local::ProcessEvent(const Events::UnhandledExtenderException& event) noexcept
+	{
+		if (IsRunning())
+		{
+			std::unique_lock<std::shared_mutex> lock(m_Mutex);
+
+			const auto extender = GetExtender(event.UUID).lock();
+			if (extender && extender->IsRunning())
+			{
+				LogWarn(L"Attempting to shut down extender with UUID %s due to unhandled exception",
+						event.UUID.GetString().c_str());
+
+				DiscardReturnValue(m_ExtenderManager.ShutdownExtender(event.UUID));
+			}
 		}
 	}
 
@@ -493,7 +514,7 @@ namespace QuantumGate::Implementation::Core
 			{
 				return ResultCode::Succeeded;
 			}
-				
+
 			return ResultCode::Failed;
 		}
 
@@ -610,7 +631,7 @@ namespace QuantumGate::Implementation::Core
 	{
 		if (!m_LocalEnvironment.WithSharedLock()->IsInitialized())
 		{
-			if (!m_LocalEnvironment.WithUniqueLock()->Initialize(MakeCallback(this, &Local::LocalEnvironmentChangedCallback)))
+			if (!m_LocalEnvironment.WithUniqueLock()->Initialize(MakeCallback(this, &Local::OnLocalEnvironmentChanged)))
 			{
 				LogErr(L"Couldn't initialize local environment");
 			}
@@ -619,11 +640,19 @@ namespace QuantumGate::Implementation::Core
 		return m_LocalEnvironment;
 	}
 
-	void Local::LocalEnvironmentChangedCallback() noexcept
+	void Local::OnLocalEnvironmentChanged() noexcept
 	{
 		m_ThreadPool.Data().EventQueue.WithUniqueLock([&](EventQueue& queue)
 		{
-			queue.Push(Events::LocalEnvironmentChange());
+			queue.Push(Events::LocalEnvironmentChange{});
+		});
+	}
+
+	void Local::OnUnhandledExtenderException(const ExtenderUUID extuuid) noexcept
+	{
+		m_ThreadPool.Data().EventQueue.WithUniqueLock([&](EventQueue& queue)
+		{
+			queue.Push(Events::UnhandledExtenderException{ extuuid });
 		});
 	}
 

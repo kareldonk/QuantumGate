@@ -139,8 +139,8 @@ namespace QuantumGate::Implementation::Core::Extender
 
 					if (shutdown)
 					{
-						ShutdownExtender(*e.second, false);
-
+						DiscardReturnValue(ShutdownExtender(*e.second, false));
+						
 						shutdownext_list.emplace_back(e.second->WithSharedLock()->GetExtender().GetUUID());
 					}
 				}
@@ -164,12 +164,49 @@ namespace QuantumGate::Implementation::Core::Extender
 		}
 	}
 
+	Result<Control_ThS*> Manager::GetExtenderControl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
+													 const std::optional<ExtenderModuleID> moduleid) const noexcept
+	{
+		auto result_code = ResultCode::Failed;
+		Control_ThS* extctrl_ths{ nullptr };
+
+		m_Extenders.WithUniqueLock([&](const ExtenderMap& extenders)
+		{
+			if (const auto it = extenders.find(extender->GetUUID()); it != extenders.end())
+			{
+				extctrl_ths = it->second.get();
+				extctrl_ths->WithUniqueLock([&](Control& extctrl)
+				{
+					if (extctrl.HasExtender())
+					{
+						if (moduleid.has_value())
+						{
+							// Should be same object
+							if (extctrl.IsSameExtender(extender, *moduleid))
+							{
+								result_code = ResultCode::Succeeded;
+							}
+							else result_code = ResultCode::ExtenderObjectDifferent;
+						}
+						else result_code = ResultCode::Succeeded;
+					}
+					else result_code = ResultCode::ExtenderAlreadyRemoved;
+				});
+			}
+			else result_code = ResultCode::ExtenderNotFound;
+		});
+
+		if (result_code == ResultCode::Succeeded) return extctrl_ths;
+
+		return result_code;
+	}
+
 	Result<bool> Manager::AddExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender,
 									  const ExtenderModuleID moduleid) noexcept
 	{
 		assert(extender != nullptr);
 
-		if (extender == nullptr) return ResultCode::Failed;
+		if (extender == nullptr) return ResultCode::InvalidArgument;
 
 		auto result_code = ResultCode::Failed;
 		const auto extname = Control::GetExtenderName(*extender->m_Extender);
@@ -243,11 +280,13 @@ namespace QuantumGate::Implementation::Core::Extender
 
 	const bool Manager::StartExtender(Control_ThS& extctrl_ths, const bool update_active)
 	{
-		auto success = true;
+		auto success = false;
 		const auto extname = Control::GetExtenderName(extctrl_ths.WithSharedLock()->GetExtender());
 
 		extctrl_ths.WithUniqueLock([&](Control& extctrl)
 		{
+			if (extctrl.GetStatus() != Control::Status::Stopped) return;
+
 			LogSys(L"Extender %s starting...", extname.c_str());
 
 			if (extctrl.GetExtender().OnBeginStartup())
@@ -257,6 +296,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				if (extctrl.StartupExtenderThreadPools())
 				{
 					extctrl.SetStatus(Control::Status::Running);
+					success = true;
 				}
 				else
 				{
@@ -264,10 +304,8 @@ namespace QuantumGate::Implementation::Core::Extender
 					extctrl.ShutdownExtenderThreadPools();
 					extctrl.GetExtender().OnEndShutdown();
 					extctrl.SetStatus(Control::Status::Stopped);
-					success = false;
 				}
 			}
-			else success = false;
 		});
 
 		if (success)
@@ -303,7 +341,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		assert(extender != nullptr);
 
-		if (extender == nullptr) return ResultCode::Failed;
+		if (extender == nullptr) return ResultCode::InvalidArgument;
 
 		auto result_code = ResultCode::Failed;
 		const auto extname = Control::GetExtenderName(*extender->m_Extender);
@@ -312,50 +350,35 @@ namespace QuantumGate::Implementation::Core::Extender
 		{
 			LogDbg(L"Removing extender %s", extname.c_str());
 
-			Control_ThS* extctrl_ths{ nullptr };
-
-			m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
+			const auto result = GetExtenderControl(extender, moduleid);
+			if (result.Succeeded())
 			{
-				if (const auto it = extenders.find(extender->GetUUID()); it != extenders.end())
-				{
-					extctrl_ths = it->second.get();
-					extctrl_ths->WithUniqueLock([&](Control& extctrl)
-					{
-						if (extctrl.HasExtender())
-						{
-							// Should be same object
-							if (extctrl.IsSameExtender(extender, moduleid))
-							{
-								result_code = ResultCode::Succeeded;
-							}
-							else
-							{
-								LogErr(L"Could not remove extender %s; extender object is different", extname.c_str());
-								result_code = ResultCode::ExtenderObjectDifferent;
-							}
-						}
-						else
-						{
-							LogErr(L"Could not remove extender %s; extender already removed", extname.c_str());
-							result_code = ResultCode::ExtenderAlreadyRemoved;
-						}
-					});
-				}
-				else
-				{
-					LogErr(L"Could not remove extender %s; extender not found", extname.c_str());
-					result_code = ResultCode::ExtenderNotFound;
-				}
-			});
-
-			if (result_code == ResultCode::Succeeded)
-			{
-				assert(extctrl_ths != nullptr);
-
 				// First shut down extender if it's running
-				ShutdownExtender(*extctrl_ths, true);
+				DiscardReturnValue(ShutdownExtender(*(result.GetValue()), true));
 
-				extctrl_ths->WithUniqueLock()->ReleaseExtender();
+				result.GetValue()->WithUniqueLock()->ReleaseExtender();
+
+				result_code = ResultCode::Succeeded;
+			}
+			else
+			{
+				result_code = static_cast<ResultCode>(result.GetErrorValue());
+
+				switch (result_code)
+				{
+					case ResultCode::ExtenderObjectDifferent:
+						LogErr(L"Could not remove extender %s; extender object is different", extname.c_str());
+						break;
+					case ResultCode::ExtenderAlreadyRemoved:
+						LogErr(L"Could not remove extender %s; extender already removed", extname.c_str());
+						break;
+					case ResultCode::ExtenderNotFound:
+						LogErr(L"Could not remove extender %s; extender not found", extname.c_str());
+						break;
+					default:
+						assert(false);
+						break;
+				}
 			}
 		}
 		catch (const std::exception& e)
@@ -367,43 +390,45 @@ namespace QuantumGate::Implementation::Core::Extender
 		return result_code;
 	}
 
-	void Manager::ShutdownExtender(Control_ThS& extctrl_ths, const bool update_active)
+	const bool Manager::ShutdownExtender(Control_ThS& extctrl_ths, const bool update_active)
 	{
-		auto oldstatus = Control::Status::Stopped;
+		auto success = false;
 		const auto extname = Control::GetExtenderName(extctrl_ths.WithSharedLock()->GetExtender());
 
 		extctrl_ths.WithUniqueLock([&](Control& extctrl)
 		{
-			// Save current status
-			oldstatus = extctrl.GetStatus();
-
-			// Set status so that extender stops getting used;
-			// we'll actually shut it down safely later below
-			if (oldstatus != Control::Status::Stopped)
+			if (extctrl.GetStatus() != Control::Status::Stopped)
 			{
 				LogSys(L"Extender %s shutting down...", extname.c_str());
 
+				// Set status so that extender stops getting used;
+				// we'll actually shut it down safely later below
 				extctrl.SetStatus(Control::Status::Shutdown);
+
+				success = true;
 			}
 		});
 
-		if (update_active)
+		if (success)
 		{
-			m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
+			if (update_active)
 			{
-				// Needs to be done before calling update callbacks
-				UpdateActiveExtenderUUIDs(extenders);
-			});
-		}
+				m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
+				{
+					// Needs to be done before calling update callbacks
+					UpdateActiveExtenderUUIDs(extenders);
+				});
+			}
 
-		if (oldstatus != Control::Status::Stopped)
-		{
 			Vector<ExtenderUUID> extuuids;
 
 			// Now we actually shut down the extender
 			extctrl_ths.WithUniqueLock([&](Control& extctrl)
 			{
-				extuuids.emplace_back(extctrl.GetExtender().GetUUID());
+				if (update_active)
+				{
+					extuuids.emplace_back(extctrl.GetExtender().GetUUID());
+				}
 
 				extctrl.GetExtender().OnBeginShutdown();
 				extctrl.ShutdownExtenderThreadPools();
@@ -421,6 +446,112 @@ namespace QuantumGate::Implementation::Core::Extender
 				m_ExtenderUpdateCallbacks.WithSharedLock()(extuuids, false);
 			}
 		}
+
+		return success;
+	}
+
+	Result<> Manager::StartExtender(const ExtenderUUID& extuuid) noexcept
+	{
+		auto result_code = ResultCode::Failed;
+
+		const auto extender = GetExtender(extuuid).lock();
+		if (extender)
+		{
+			const auto extname = Control::GetExtenderName(*extender->m_Extender);
+
+			const auto result = GetExtenderControl(extender);
+			if (result.Succeeded())
+			{
+				try
+				{
+					if (StartExtender(*(result.GetValue()), true))
+					{
+						result_code = ResultCode::Succeeded;
+					}
+				}
+				catch (const std::exception& e)
+				{
+					LogErr(L"Extendermanager encountered an exception while starting extender %s - %s",
+							extname.c_str(), Util::ToStringW(e.what()).c_str());
+				}
+			}
+			else
+			{
+				result_code = static_cast<ResultCode>(result.GetErrorValue());
+
+				switch (result_code)
+				{
+					case ResultCode::ExtenderAlreadyRemoved:
+						LogErr(L"Could not start extender %s; extender already removed", extname.c_str());
+						break;
+					case ResultCode::ExtenderNotFound:
+						LogErr(L"Could not start extender %s; extender not found", extname.c_str());
+						break;
+					default:
+						assert(false);
+						break;
+				}
+			}
+		}
+		else
+		{
+			result_code = ResultCode::ExtenderNotFound;
+			LogErr(L"Could not start extender with UUID %s; extender not found", extuuid.GetString().c_str());
+		}
+
+		return result_code;
+	}
+
+	Result<> Manager::ShutdownExtender(const ExtenderUUID& extuuid) noexcept
+	{
+		auto result_code = ResultCode::Failed;
+
+		const auto extender = GetExtender(extuuid).lock();
+		if (extender)
+		{
+			const auto extname = Control::GetExtenderName(*extender->m_Extender);
+
+			const auto result = GetExtenderControl(extender);
+			if (result.Succeeded())
+			{
+				try
+				{
+					if (ShutdownExtender(*(result.GetValue()), true))
+					{
+						result_code = ResultCode::Succeeded;
+					}
+				}
+				catch (const std::exception& e)
+				{
+					LogErr(L"Extendermanager encountered an exception while shutting down extender %s - %s",
+							extname.c_str(), Util::ToStringW(e.what()).c_str());
+				}
+			}
+			else
+			{
+				result_code = static_cast<ResultCode>(result.GetErrorValue());
+
+				switch (result_code)
+				{
+					case ResultCode::ExtenderAlreadyRemoved:
+						LogErr(L"Could not shut down extender %s; extender already removed", extname.c_str());
+						break;
+					case ResultCode::ExtenderNotFound:
+						LogErr(L"Could not shut down extender %s; extender not found", extname.c_str());
+						break;
+					default:
+						assert(false);
+						break;
+				}
+			}
+		}
+		else
+		{
+			result_code = ResultCode::ExtenderNotFound;
+			LogErr(L"Could not shut down extender with UUID %s; extender not found", extuuid.GetString().c_str());
+		}
+
+		return result_code;
 	}
 
 	const bool Manager::HasExtender(const ExtenderUUID& extuuid) const noexcept

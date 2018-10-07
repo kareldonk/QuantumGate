@@ -65,16 +65,26 @@ namespace QuantumGate::Implementation::Core::Extender
 
 	void Extender::OnException() noexcept
 	{
-		m_Exception = true;
 		LogErr(L"Unknown exception in extender '%s' (UUID: %s)",
 			   GetName().c_str(), GetUUID().GetString().c_str());
+
+		if (!m_Exception)
+		{
+			m_Exception = true;
+			m_Local.load()->OnUnhandledExtenderException(GetUUID());
+		}
 	}
 
 	void Extender::OnException(const std::exception& e) noexcept
 	{
-		m_Exception = true;
 		LogErr(L"Exception in extender '%s' (UUID: %s) - %s",
 			   GetName().c_str(), GetUUID().GetString().c_str(), Util::ToStringW(e.what()).c_str());
+
+		if (!m_Exception)
+		{
+			m_Exception = true;
+			m_Local.load()->OnUnhandledExtenderException(GetUUID());
+		}
 	}
 
 	Result<PeerUUID> Extender::GetLocalUUID() const noexcept
