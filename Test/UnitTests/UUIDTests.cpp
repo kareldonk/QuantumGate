@@ -105,14 +105,12 @@ namespace UnitTests
 
 			// Move constructor
 			QuantumGate::UUID uuid5(std::move(uuid2));
-			Assert::AreEqual(false, uuid2.IsValid());
 			Assert::AreEqual(true, uuid5 == uuid3);
 			Assert::AreEqual(true, uuid5.GetString() == L"081c5330-5b28-9920-cb1d-f24966b127da");
 
 			// Move assignment
 			QuantumGate::UUID uuid6;
 			uuid6 = std::move(uuid5);
-			Assert::AreEqual(false, uuid5.IsValid());
 			Assert::AreEqual(true, uuid6 == uuid3);
 			Assert::AreEqual(true, uuid6.GetString() == L"081c5330-5b28-9920-cb1d-f24966b127da");
 

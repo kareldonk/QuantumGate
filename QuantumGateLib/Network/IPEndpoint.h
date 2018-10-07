@@ -11,8 +11,16 @@ namespace QuantumGate::Implementation::Network
 	{
 	public:
 		constexpr IPEndpoint() noexcept {}
-		constexpr IPEndpoint(const IPEndpoint& other) noexcept { *this = other; }
-		constexpr IPEndpoint(IPEndpoint&& other) noexcept { *this = std::move(other); }
+
+		constexpr IPEndpoint(const IPEndpoint& other) noexcept :
+			m_Address(other.m_Address), m_Port(other.m_Port),
+			m_RelayPort(other.m_RelayPort), m_RelayHop(other.m_RelayHop)
+		{}
+
+		constexpr IPEndpoint(IPEndpoint&& other) noexcept :
+			m_Address(std::move(other.m_Address)), m_Port(other.m_Port),
+			m_RelayPort(other.m_RelayPort), m_RelayHop(other.m_RelayHop)
+		{}
 
 		constexpr IPEndpoint(const IPAddress& ipaddr, const UInt16 port) noexcept :
 			m_Address(ipaddr), m_Port(port)
@@ -67,10 +75,6 @@ namespace QuantumGate::Implementation::Network
 			m_Port = other.m_Port;
 			m_RelayPort = other.m_RelayPort;
 			m_RelayHop = other.m_RelayHop;
-
-			other.m_Port = 0;
-			other.m_RelayPort = 0;
-			other.m_RelayHop = 0;
 
 			return *this;
 		}

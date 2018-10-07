@@ -27,8 +27,8 @@ namespace QuantumGate::Implementation::Network
 			m_AddressBinary(BinaryIPAddress{ IPAddressFamily::IPv4 }) // Defaults to IPv4 any address
 		{}
 
-		constexpr IPAddress(const IPAddress& other) noexcept { *this = other; }
-		constexpr IPAddress(IPAddress&& other) noexcept { *this = std::move(other); }
+		constexpr IPAddress(const IPAddress& other) noexcept : m_AddressBinary(other.m_AddressBinary) {}
+		constexpr IPAddress(IPAddress&& other) noexcept : m_AddressBinary(std::move(other.m_AddressBinary)) {}
 
 		IPAddress(const String& ipaddr_str) { SetAddress(ipaddr_str); }
 		IPAddress(const sockaddr_storage* saddr) { SetAddress(saddr); }
@@ -52,8 +52,6 @@ namespace QuantumGate::Implementation::Network
 			if (this == &other) return *this;
 
 			*this = other;
-
-			other.Clear();
 
 			return *this;
 		}

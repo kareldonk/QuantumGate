@@ -70,7 +70,7 @@ namespace UnitTests
 
 			std::mutex mtx, mtx2;
 			std::condition_variable cv1, cv2;
-			int stage1{ 0 }, stage2{ 0 };
+			std::atomic<int> stage1{ 0 }, stage2{ 0 };
 
 			auto thread1 = std::thread([&]()
 			{
@@ -163,19 +163,7 @@ namespace UnitTests
 
 			cv1.notify_one();
 			cv2.notify_one();
-
-			{
-				tlc1.UpdateValue([](TLTest& tlt)
-				{
-					tlt.Value = 369369;
-				});
-
-				tlc2.UpdateValue([](TLTest& tlt)
-				{
-					tlt.Value = 22;
-				});
-			}
-			
+		
 			{
 				auto lock = std::unique_lock<std::mutex>(mtx);
 				while (stage1 != 2)
@@ -188,6 +176,18 @@ namespace UnitTests
 				{
 					cv2.wait_for(lock2, 100ms, [&]() { return (stage2 == 2); });
 				}
+			}
+
+			{
+				tlc1.UpdateValue([](TLTest& tlt)
+				{
+					tlt.Value = 369369;
+				});
+
+				tlc2.UpdateValue([](TLTest& tlt)
+				{
+					tlt.Value = 22;
+				});
 			}
 
 			cv1.notify_one();

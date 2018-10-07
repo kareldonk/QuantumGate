@@ -96,8 +96,6 @@ namespace QuantumGate::Implementation::Network
 
 			*this = other;
 			
-			other.Clear();
-			
 			return *this;
 		}
 

@@ -33,15 +33,13 @@ namespace QuantumGate::Implementation
 
 		~UUID() = default;
 
-		constexpr UUID(const UUID& other) noexcept
-		{
-			*this = other;
-		}
+		constexpr UUID(const UUID& other) noexcept :
+			m_Data1(other.m_Data1), m_Data2(other.m_Data2), m_Data3(other.m_Data3), m_Data4(other.m_Data4)
+		{}
 
-		constexpr UUID(UUID&& other) noexcept
-		{
-			*this = std::move(other);
-		}
+		constexpr UUID(UUID&& other) noexcept :
+			m_Data1(other.m_Data1), m_Data2(other.m_Data2), m_Data3(other.m_Data3), m_Data4(other.m_Data4)
+		{}
 
 		constexpr UUID& operator=(const UUID& other) noexcept
 		{
@@ -62,8 +60,6 @@ namespace QuantumGate::Implementation
 			if (this == &other) return *this;
 
 			*this = other;
-
-			other.Clear();
 
 			return *this;
 		}
