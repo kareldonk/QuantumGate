@@ -50,8 +50,8 @@ namespace QuantumGate::Implementation::Core
 		[[nodiscard]] const bool RegisterIPInterfaceChangeNotification() noexcept;
 		void DeregisterIPInterfaceChangeNotification() noexcept;
 
-		static VOID IPInterfaceChangeNotificationCallback(PVOID CallerContext, PMIB_IPINTERFACE_ROW Row,
-														  MIB_NOTIFICATION_TYPE NotificationType);
+		static VOID NETIOAPI_API_ IPInterfaceChangeNotificationCallback(PVOID CallerContext, PMIB_IPINTERFACE_ROW Row,
+																		MIB_NOTIFICATION_TYPE NotificationType);
 
 		[[nodiscard]] const bool UpdateEnvironmentInformation() noexcept;
 		void ClearEnvironmentInformation() noexcept;

@@ -269,7 +269,7 @@ namespace QuantumGate::Implementation::Core
 	const bool LocalEnvironment::RegisterIPInterfaceChangeNotification() noexcept
 	{
 		assert(m_IPInterfaceChangeNotificationHandle == NULL);
-
+		
 		if (NotifyIpInterfaceChange(AF_UNSPEC, &IPInterfaceChangeNotificationCallback,
 									reinterpret_cast<PVOID>(this), FALSE,
 									&m_IPInterfaceChangeNotificationHandle) == NO_ERROR)
