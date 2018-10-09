@@ -14,11 +14,26 @@ namespace QuantumGate::Implementation::Core
 	{
 		assert(!IsInitialized());
 
+		if (!m_PublicIPEndpoints.Initialize()) return false;
+
+		// Upon failure deinit public IP endpoints when we return
+		auto sg0 = MakeScopeGuard([&] { m_PublicIPEndpoints.Deinitialize(); });
+
 		if (!UpdateEnvironmentInformation()) return false;
+
+		// Upon failure clear environment info when we return
+		auto sg1 = MakeScopeGuard([&] { ClearEnvironmentInformation(); });
+
+		if (callback) m_LocalEnvironmentChangedCallback.WithUniqueLock() = std::move(callback);
+
+		// Upon failure clear callback when we return
+		auto sg2 = MakeScopeGuard([&] { m_LocalEnvironmentChangedCallback.WithUniqueLock()->Clear(); });
 
 		if (!RegisterIPInterfaceChangeNotification()) return false;
 
-		if (callback) m_LocalEnvironmentChangedCallback.WithUniqueLock() = std::move(callback);
+		sg0.Deactivate();
+		sg1.Deactivate();
+		sg2.Deactivate();
 
 		m_Initialized = true;
 
@@ -34,6 +49,8 @@ namespace QuantumGate::Implementation::Core
 		DeregisterIPInterfaceChangeNotification();
 
 		ClearEnvironmentInformation();
+
+		m_PublicIPEndpoints.Deinitialize();
 	}
 
 	const bool LocalEnvironment::Update() noexcept
@@ -335,7 +352,6 @@ namespace QuantumGate::Implementation::Core
 		m_Hostname.clear();
 		m_Username.clear();
 		m_EthernetInterfaces.clear();
-		m_PublicIPEndpoints.Clear();
 
 		m_CachedIPAddresses.UpdateValue([](auto& addresses) noexcept
 		{

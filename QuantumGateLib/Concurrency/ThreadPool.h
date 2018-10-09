@@ -125,16 +125,17 @@ namespace QuantumGate::Implementation::Concurrency
 
 		template<typename U = ThData, typename = std::enable_if_t<!has_thread_data<U>>>
 		[[nodiscard]] inline const bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
-												  EventCondition* thevent = nullptr) noexcept
+												  EventCondition* thevent = nullptr, const bool event_reset = true) noexcept
 		{
-			return AddThreadImpl(thname, std::move(thcallback), NoThreadData{}, thevent);
+			return AddThreadImpl(thname, std::move(thcallback), NoThreadData{}, thevent, event_reset);
 		}
 
 		template<typename U = ThData, typename = std::enable_if_t<has_thread_data<U>>>
 		[[nodiscard]] inline const bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
-												  ThData&& thdata, EventCondition* thevent = nullptr) noexcept
+												  ThData&& thdata, EventCondition* thevent = nullptr,
+												  const bool event_reset = true) noexcept
 		{
-			return AddThreadImpl(thname, std::move(thcallback), std::move(thdata), thevent);
+			return AddThreadImpl(thname, std::move(thcallback), std::move(thdata), thevent, event_reset);
 		}
 
 		[[nodiscard]] inline std::pair<bool, std::optional<Thread>> RemoveThread(Thread&& thread) noexcept
@@ -216,7 +217,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 	private:
 		[[nodiscard]] const bool AddThreadImpl(const String& thname, ThreadCallbackType&& thcallback,
-											   ThData&& thdata, EventCondition* thevent) noexcept
+											   ThData&& thdata, EventCondition* thevent, const bool event_reset) noexcept
 		{
 			assert(thcallback);
 
@@ -225,7 +226,7 @@ namespace QuantumGate::Implementation::Concurrency
 				auto& threadctrl = m_Threads.emplace_back(thname, std::move(thcallback), std::move(thdata), thevent);
 				if (IsRunning())
 				{
-					return StartThread(threadctrl);
+					return StartThread(threadctrl, event_reset);
 				}
 				else return true;
 			}
@@ -239,11 +240,17 @@ namespace QuantumGate::Implementation::Concurrency
 			return false;
 		}
 
-		const bool StartThread(ThreadCtrl& threadctrl) noexcept
+		const bool StartThread(ThreadCtrl& threadctrl, const bool event_reset = true) noexcept
 		{
 			try
 			{
 				threadctrl.ShutdownEvent->Reset();
+				
+				if (threadctrl.ThreadEvent != nullptr && event_reset)
+				{
+					threadctrl.ThreadEvent->Reset();
+				}
+
 				threadctrl.Thread = std::thread(&ThreadPool::WorkerThreadLoop, std::ref(*this), std::ref(threadctrl));
 				return true;
 			}
@@ -340,7 +347,7 @@ namespace QuantumGate::Implementation::Concurrency
 					}
 					else
 					{
-						if (sleepms < thpool.m_WorkerThreadsMaxSleep)
+						if (!thctrl.ThreadEvent && sleepms < thpool.m_WorkerThreadsMaxSleep)
 						{
 							sleepms *= 2;
 

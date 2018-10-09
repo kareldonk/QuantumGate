@@ -11,13 +11,15 @@ namespace QuantumGate::Implementation::Network
 	{
 	public:
 		Socket() noexcept;
-		Socket(SOCKET s) noexcept;
+		Socket(const SOCKET s) noexcept;
 		Socket(const IPAddressFamily af, const Int32 type, const Int32 protocol) noexcept;
 		Socket(const Socket&) = delete;
 		Socket(Socket&& other) noexcept;
 		virtual ~Socket();
 		Socket& operator=(const Socket&) = delete;
 		Socket& operator=(Socket&& other) noexcept;
+
+		[[nodiscard]] const bool Bind(const IPEndpoint& endpoint, const bool nat_traversal) noexcept;
 
 		[[nodiscard]] const bool Listen(const IPEndpoint& endpoint, const bool cond_accept,
 										const bool nat_traversal) noexcept;
@@ -29,7 +31,9 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] const bool CompleteConnect() noexcept override;
 
 		[[nodiscard]] const bool Send(Buffer& buffer) noexcept override;
+		[[nodiscard]] const bool SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept;
 		[[nodiscard]] const bool Receive(Buffer& buffer) noexcept override;
+		[[nodiscard]] const bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept;
 
 		void Close(const bool linger = false) noexcept override;
 
@@ -97,10 +101,12 @@ namespace QuantumGate::Implementation::Network
 
 		Buffer& GetReceiveBuffer() const noexcept;
 
-		const bool SockOptSetBlockingMode(const bool blocking) noexcept;
-		const bool SockOptSetExclusiveAddressUse(const bool exclusive) noexcept;
-		const bool SockOptSetReuseAddress(const bool reuse) noexcept;
-		const bool SockOptSetLinger(const std::chrono::seconds& seconds) noexcept;
+		[[nodiscard]] const bool SockOptSetBlockingMode(const bool blocking) noexcept;
+		[[nodiscard]] const bool SockOptSetExclusiveAddressUse(const bool exclusive) noexcept;
+		[[nodiscard]] const bool SockOptSetReuseAddress(const bool reuse) noexcept;
+		[[nodiscard]] const bool SockOptSetLinger(const std::chrono::seconds& seconds) noexcept;
+		[[nodiscard]] const bool SockOptSetNATTraversal(const bool nat_traversal) noexcept;
+		[[nodiscard]] const bool SockOptSetConditionalAccept(const bool cond_accept) noexcept;
 
 	private:
 		SOCKET m_Socket{ INVALID_SOCKET };

@@ -14,17 +14,24 @@ namespace QuantumGate::Implementation::Network
 	Socket::Socket() noexcept
 	{}
 
-	Socket::Socket(const IPAddressFamily af, const Int32 type, const Int32 protocol) noexcept : Socket()
+	Socket::Socket(const IPAddressFamily af, const Int32 type, const Int32 protocol) noexcept
 	{
 		auto saf = AF_UNSPEC;
-		if (af == IPAddressFamily::IPv4) saf = AF_INET;
-		else if (af == IPAddressFamily::IPv6) saf = AF_INET6;
-		else
+
+		switch (af)
 		{
-			LogErr(L"Couldn't create socket - Unsupported address family %d", af);
-			return;
+			case IPAddressFamily::IPv4:
+				saf = AF_INET;
+				break;
+			case IPAddressFamily::IPv6:
+				saf = AF_INET6;
+				break;
+			default:
+				LogErr(L"Couldn't create socket - Unsupported address family %d", af);
+				assert(false);
+				return;
 		}
-		
+
 		const auto s = socket(saf, type, protocol);
 		if (s != INVALID_SOCKET)
 		{
@@ -36,7 +43,7 @@ namespace QuantumGate::Implementation::Network
 		}
 	}
 
-	Socket::Socket(SOCKET s) noexcept : Socket()
+	Socket::Socket(const SOCKET s) noexcept
 	{
 		if (SetSocket(s)) UpdateSocketInfo();
 	}
@@ -73,7 +80,7 @@ namespace QuantumGate::Implementation::Network
 
 		return *this;
 	}
-	
+
 	const bool Socket::SetSocket(const SOCKET s, const bool excl_addr_use, const bool blocking) noexcept
 	{
 		if (s != INVALID_SOCKET)
@@ -85,10 +92,13 @@ namespace QuantumGate::Implementation::Network
 			{
 				// Enable exclusive address use for added security to prevent port hijacking
 				// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/ms740621(v=vs.85).aspx
-				SockOptSetExclusiveAddressUse(true);
+				if (!SockOptSetExclusiveAddressUse(true)) return false;
 			}
 
-			if (!blocking) SockOptSetBlockingMode(false);
+			if (!blocking)
+			{
+				if (!SockOptSetBlockingMode(false)) return false;
+			}
 
 			return true;
 		}
@@ -101,10 +111,13 @@ namespace QuantumGate::Implementation::Network
 	{
 		m_OnCloseCallback();
 
-		// If we're supposed to abort the connection, set the linger value on the socket to 0,
-		// else keep connection alive for a few seconds to give time for shutdown
-		if (linger) SockOptSetLinger(Socket::LingerTime);
-		else SockOptSetLinger(0s);
+		if (m_Protocol == IPPROTO_TCP)
+		{
+			// If we're supposed to abort the connection, set the linger value on the socket to 0,
+			// else keep connection alive for a few seconds to give time for shutdown
+			if (linger) DiscardReturnValue(SockOptSetLinger(Socket::LingerTime));
+			else DiscardReturnValue(SockOptSetLinger(0s));
+		}
 
 		closesocket(m_Socket);
 
@@ -223,42 +236,83 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::Listen(const IPEndpoint& endpoint, const bool cond_accept,
-							  const bool nat_traversal) noexcept
+	const bool Socket::SockOptSetNATTraversal(const bool nat_traversal) noexcept
+	{
+		// Enable NAT traversal (in order to accept connections from the Internet on a LAN)
+		// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/aa832668(v=vs.85).aspx
+		const int pl = nat_traversal ? PROTECTION_LEVEL_UNRESTRICTED : PROTECTION_LEVEL_RESTRICTED;
+
+		const auto ret = setsockopt(m_Socket, IPPROTO_IPV6, IPV6_PROTECTION_LEVEL,
+									reinterpret_cast<const char*>(&pl), sizeof(pl));
+		if (ret == SOCKET_ERROR)
+		{
+			LogErr(L"Could not set IPV6 protection level for endpoint %s (%s)",
+				   GetLocalName().c_str(), GetLastSysErrorString().c_str());
+
+			return false;
+		}
+
+		return true;
+	}
+
+	const bool Socket::SockOptSetConditionalAccept(const bool cond_accept) noexcept
 	{
 		// Enable conditional accept (in order to check IP access settings before allowing connection)
 		// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/dd264794(v=vs.85).aspx
 		if (cond_accept)
 		{
-			const DWORD ca = 1;
+			const DWORD ca = cond_accept ? 1 : 0;
 
-			const auto ret = setsockopt(m_Socket, SOL_SOCKET, SO_CONDITIONAL_ACCEPT, 
+			const auto ret = setsockopt(m_Socket, SOL_SOCKET, SO_CONDITIONAL_ACCEPT,
 										reinterpret_cast<const char*>(&ca), sizeof(ca));
 			if (ret == SOCKET_ERROR)
 			{
-				LogErr(L"Could not set conditional accept socket option for endpoint %s (%s)", 
-					   endpoint.GetString().c_str(), GetLastSysErrorString().c_str());
+				LogErr(L"Could not set conditional accept socket option for endpoint %s (%s)",
+					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
 
 				return false;
 			}
 		}
 
-		// Enable NAT traversal (in order to accept connections from the Internet on a LAN)
-		// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/aa832668(v=vs.85).aspx
-		if (nat_traversal)
+		return true;
+	}
+
+	const bool Socket::Bind(const IPEndpoint& endpoint, const bool nat_traversal) noexcept
+	{
+		if (!SockOptSetNATTraversal(nat_traversal)) return false;
+
+		sockaddr_storage saddr{ 0 };
+
+		if (SockAddrFill(saddr, endpoint))
 		{
-			const int pl = PROTECTION_LEVEL_UNRESTRICTED;
-
-			const auto ret = setsockopt(m_Socket, IPPROTO_IPV6, IPV6_PROTECTION_LEVEL,
-										reinterpret_cast<const char*>(&pl), sizeof(pl));
-			if (ret == SOCKET_ERROR)
+			// Bind our name to the socket
+			auto ret = bind(m_Socket, reinterpret_cast<sockaddr*>(&saddr), sizeof(sockaddr_storage));
+			if (ret != SOCKET_ERROR)
 			{
-				LogErr(L"Could not set IPV6 protection level for endpoint %s (%s)", 
+				UpdateSocketInfo();
+				return true;
+			}
+			else
+			{
+				LogErr(L"bind() error for endpoint %s (%s)",
 					   endpoint.GetString().c_str(), GetLastSysErrorString().c_str());
-
-				return false;
 			}
 		}
+		else
+		{
+			LogErr(L"Endpoint %s not supported or not correct (%s)",
+				   endpoint.GetString().c_str(), GetLastSysErrorString().c_str());
+		}
+
+		return false;
+	}
+
+	const bool Socket::Listen(const IPEndpoint& endpoint, const bool cond_accept,
+							  const bool nat_traversal) noexcept
+	{
+		if (!SockOptSetConditionalAccept(cond_accept)) return false;
+
+		if (!SockOptSetNATTraversal(nat_traversal)) return false;
 
 		sockaddr_storage saddr{ 0 };
 
@@ -383,13 +437,9 @@ namespace QuantumGate::Implementation::Network
 	{
 		auto success = false;
 
-		auto len = buffer.GetSize();
+		const auto bytessent = send(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()),
+									static_cast<int>(buffer.GetSize()), 0);
 
-		// Number of bytes to be sent must not exceed the maximum allowable size supported by socket
-		if (m_Type == SOCK_DGRAM && len > m_MaxDGramMsgSize) len = m_MaxDGramMsgSize;
-
-		const auto bytessent = send(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()), static_cast<int>(len), 0);
-		
 		Dbg(L"%d bytes sent", bytessent);
 
 		if (bytessent > 0)
@@ -416,7 +466,66 @@ namespace QuantumGate::Implementation::Network
 				// Send buffer is full or temporarily unavailable, we'll try again later
 				LogDbg(L"Send buffer full/unavailable for endpoint %s (%s)",
 					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
-				
+
+				success = true;
+			}
+			else
+			{
+				LogDbg(L"Send error for endpoint %s (%s)",
+					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+			}
+		}
+
+		return success;
+	}
+
+	const bool Socket::SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept
+	{
+		auto success = false;
+
+		sockaddr_storage sock_addr{ 0 };
+		if (!SockAddrFill(sock_addr, endpoint))
+		{
+			LogDbg(L"Send error for endpoint %s - SockAddrFill() failed for endpoint %s",
+				   GetPeerName().c_str(), endpoint.GetString().c_str());
+			return false;
+		}
+
+		auto len = buffer.GetSize();
+
+		// Number of bytes to be sent must not exceed the maximum allowable size supported by socket
+		if (m_Type == SOCK_DGRAM && len > m_MaxDGramMsgSize) return false;
+
+		const auto bytessent = sendto(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()), static_cast<int>(len), 0,
+									  reinterpret_cast<sockaddr*>(&sock_addr), sizeof(sock_addr));
+
+		Dbg(L"%d bytes sent", bytessent);
+
+		if (bytessent > 0)
+		{
+			try
+			{
+				buffer.RemoveFirst(bytessent);
+
+				// Update the total amount of bytes sent
+				m_BytesSent += bytessent;
+
+				success = true;
+			}
+			catch (const std::exception& e)
+			{
+				LogErr(L"Send exception for endpoint %s: %s", GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
+			}
+		}
+		else if (bytessent == SOCKET_ERROR)
+		{
+			const auto error = WSAGetLastError();
+			if (error == WSAENOBUFS || error == WSAEWOULDBLOCK)
+			{
+				// Send buffer is full or temporarily unavailable, we'll try again later
+				LogDbg(L"Send buffer full/unavailable for endpoint %s (%s)",
+					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+
 				success = true;
 			}
 			else
@@ -437,7 +546,7 @@ namespace QuantumGate::Implementation::Network
 
 		const auto bytesrcv = recv(m_Socket, reinterpret_cast<char*>(rcvbuf.GetBytes()),
 								   static_cast<int>(rcvbuf.GetSize()), 0);
-		
+
 		Dbg(L"%d bytes received", bytesrcv);
 
 		if (bytesrcv > 0)
@@ -466,7 +575,71 @@ namespace QuantumGate::Implementation::Network
 			if (error == WSAENOBUFS || error == WSAEWOULDBLOCK)
 			{
 				// Buffer is temporarily unavailable, we'll try again later
-				LogDbg(L"Receive buffer unavailable for endpoint %s (%s)", 
+				LogDbg(L"Receive buffer unavailable for endpoint %s (%s)",
+					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+
+				success = true;
+			}
+			else
+			{
+				LogDbg(L"Receive error for endpoint %s (%s)",
+					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+			}
+		}
+
+		return success;
+	}
+
+	const bool Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept
+	{
+		auto success = false;
+
+		auto& rcvbuf = GetReceiveBuffer();
+
+		sockaddr_storage sock_addr;
+		int sock_addr_len{ sizeof(sock_addr) };
+
+		const auto bytesrcv = recvfrom(m_Socket, reinterpret_cast<char*>(rcvbuf.GetBytes()),
+									   static_cast<int>(rcvbuf.GetSize()), 0,
+									   reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len);
+
+		Dbg(L"%d bytes received", bytesrcv);
+
+		if (bytesrcv > 0)
+		{
+			try
+			{
+				if (SockAddrGetIPEndpoint(&sock_addr, endpoint))
+				{
+					buffer += BufferView(rcvbuf.GetBytes(), bytesrcv);
+
+					// Update the total amount of bytes received
+					m_BytesReceived += bytesrcv;
+
+					success = true;
+				}
+				else
+				{
+					LogDbg(L"Receive error for endpoint %s - SockAddrGetIPEndpoint() failed",
+						   GetPeerName().c_str());
+				}
+			}
+			catch (const std::exception& e)
+			{
+				LogErr(L"Receive exception for endpoint %s: %s", GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
+			}
+		}
+		else if (bytesrcv == 0)
+		{
+			LogDbg(L"Connection closed for endpoint %s", GetPeerName().c_str());
+		}
+		else if (bytesrcv == SOCKET_ERROR)
+		{
+			const auto error = WSAGetLastError();
+			if (error == WSAENOBUFS || error == WSAEWOULDBLOCK)
+			{
+				// Buffer is temporarily unavailable, we'll try again later
+				LogDbg(L"Receive buffer unavailable for endpoint %s (%s)",
 					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
 
 				success = true;
@@ -539,51 +712,59 @@ namespace QuantumGate::Implementation::Network
 	{
 		assert(addr != nullptr);
 
-		auto success = false;
-
-		IPAddress ip(addr);
-		if (ip.GetFamily() == IPAddressFamily::IPv4)
+		try
 		{
-			endpoint = IPEndpoint(ip, ntohs(reinterpret_cast<const sockaddr_in*>(addr)->sin_port));
-
-			success = true;
+			IPAddress ip(addr);
+			switch (ip.GetFamily())
+			{
+				case IPAddressFamily::IPv4:
+					endpoint = IPEndpoint(ip, ntohs(reinterpret_cast<const sockaddr_in*>(addr)->sin_port));
+					return true;
+				case IPAddressFamily::IPv6:
+					endpoint = IPEndpoint(ip, ntohs(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port));
+					return true;
+				default:
+					assert(false);
+					break;
+			}
 		}
-		else if (ip.GetFamily() == IPAddressFamily::IPv6)
-		{
-			endpoint = IPEndpoint(ip, ntohs(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port));
+		catch (...) {}
 
-			success = true;
-		}
-		else assert(false);
-
-		return success;
+		return false;
 	}
 
 	const bool Socket::SockAddrFill(sockaddr_storage& addr, const IPEndpoint& endpoint) noexcept
 	{
-		if (endpoint.GetIPAddress().GetFamily() == IPAddressFamily::IPv4)
+		switch (endpoint.GetIPAddress().GetFamily())
 		{
-			auto* saddr = reinterpret_cast<sockaddr_in*>(&addr);
-			saddr->sin_port = htons(static_cast<UShort>(endpoint.GetPort()));
-			saddr->sin_family = AF_INET;
-			saddr->sin_addr.s_addr = endpoint.GetIPAddress().GetBinary().UInt32s[0];
-			return true;
-		}
-		else if (endpoint.GetIPAddress().GetFamily() == IPAddressFamily::IPv6)
-		{
-			auto* saddr = reinterpret_cast<sockaddr_in6*>(&addr);
-			saddr->sin6_port = htons(static_cast<UShort>(endpoint.GetPort()));
-			saddr->sin6_family = AF_INET6;
-			saddr->sin6_flowinfo = 0;
-			saddr->sin6_scope_id = 0;
+			case IPAddressFamily::IPv4:
+			{
+				auto* saddr = reinterpret_cast<sockaddr_in*>(&addr);
+				saddr->sin_port = htons(static_cast<UShort>(endpoint.GetPort()));
+				saddr->sin_family = AF_INET;
+				saddr->sin_addr.s_addr = endpoint.GetIPAddress().GetBinary().UInt32s[0];
+				return true;
+			}
+			case IPAddressFamily::IPv6:
+			{
+				auto* saddr = reinterpret_cast<sockaddr_in6*>(&addr);
+				saddr->sin6_port = htons(static_cast<UShort>(endpoint.GetPort()));
+				saddr->sin6_family = AF_INET6;
+				saddr->sin6_flowinfo = 0;
+				saddr->sin6_scope_id = 0;
 
-			static_assert(sizeof(endpoint.GetIPAddress().GetBinary().Bytes) >= sizeof(in6_addr),
-						  "IP Address length mismatch");
+				static_assert(sizeof(endpoint.GetIPAddress().GetBinary().Bytes) >= sizeof(in6_addr),
+							  "IP Address length mismatch");
 
-			memcpy(&saddr->sin6_addr, &endpoint.GetIPAddress().GetBinary().Bytes, sizeof(in6_addr));
-			return true;
+				memcpy(&saddr->sin6_addr, &endpoint.GetIPAddress().GetBinary().Bytes, sizeof(in6_addr));
+				return true;
+			}
+			default:
+			{
+				assert(false);
+				break;
+			}
 		}
-		else LogErr(L"Unsupported IP address family %d", endpoint.GetIPAddress().GetFamily());
 
 		return false;
 	}
