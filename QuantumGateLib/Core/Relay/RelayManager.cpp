@@ -80,9 +80,9 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	void Manager::ResetState() noexcept
 	{
-		m_ThreadPool.Data().RelayEventQueues.clear();
-		m_ThreadPool.Data().RelayPortToThreadKeys.WithUniqueLock()->clear();
-		m_ThreadPool.Data().ThreadKeyToLinkTotals.WithUniqueLock()->clear();
+		m_ThreadPool.GetData().RelayEventQueues.clear();
+		m_ThreadPool.GetData().RelayPortToThreadKeys.WithUniqueLock()->clear();
+		m_ThreadPool.GetData().ThreadKeyToLinkTotals.WithUniqueLock()->clear();
 
 		m_RelayLinks.WithUniqueLock()->clear();
 	}
@@ -126,14 +126,14 @@ namespace QuantumGate::Implementation::Core::Relay
 			{
 				try
 				{
-					m_ThreadPool.Data().RelayEventQueues[x] = std::make_unique<EventQueue_ThS>();
+					m_ThreadPool.GetData().RelayEventQueues[x] = std::make_unique<EventQueue_ThS>();
 
 					if (m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Event Processor)",
 											   MakeCallback(this, &Manager::WorkerThreadProcessor), ThreadData(x),
-											   &m_ThreadPool.Data().RelayEventQueues[x]->WithUniqueLock()->Event()))
+											   &m_ThreadPool.GetData().RelayEventQueues[x]->WithUniqueLock()->Event()))
 					{
 						// Add entry for the total number of relay links this thread is handling
-						m_ThreadPool.Data().ThreadKeyToLinkTotals.WithUniqueLock([&](ThreadKeyToLinkTotalMap& link_totals)
+						m_ThreadPool.GetData().ThreadKeyToLinkTotals.WithUniqueLock([&](ThreadKeyToLinkTotalMap& link_totals)
 						{
 							[[maybe_unused]] const auto[it, inserted] = link_totals.insert({ x, 0 });
 							if (!inserted)
@@ -227,7 +227,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	const std::optional<Manager::ThreadKey> Manager::GetThreadKey(const RelayPort rport) const noexcept
 	{
 		std::optional<Manager::ThreadKey> thkey;
-		m_ThreadPool.Data().RelayPortToThreadKeys.WithSharedLock([&](const RelayPortToThreadKeyMap& ports)
+		m_ThreadPool.GetData().RelayPortToThreadKeys.WithSharedLock([&](const RelayPortToThreadKeyMap& ports)
 		{
 			if (const auto it = ports.find(rport); it != ports.end())
 			{
@@ -247,14 +247,14 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			try
 			{
-				m_ThreadPool.Data().RelayPortToThreadKeys.WithUniqueLock([&](RelayPortToThreadKeyMap& ports)
+				m_ThreadPool.GetData().RelayPortToThreadKeys.WithUniqueLock([&](RelayPortToThreadKeyMap& ports)
 				{
 					// Add a relationship between RelayPort and ThreadKey so we can
 					// lookup which thread handles events for a certain port
 					if (const auto ret_pair = ports.insert({ rport, *thkey }); ret_pair.second)
 					{
 						// Update the total amount of relay links the thread is handling
-						m_ThreadPool.Data().ThreadKeyToLinkTotals.WithUniqueLock(
+						m_ThreadPool.GetData().ThreadKeyToLinkTotals.WithUniqueLock(
 							[&](ThreadKeyToLinkTotalMap& link_totals)
 						{
 							if (const auto ltit = link_totals.find(*thkey); ltit != link_totals.end())
@@ -286,11 +286,11 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	void Manager::UnMapRelayPortFromThreadKey(const RelayPort rport) noexcept
 	{
-		m_ThreadPool.Data().RelayPortToThreadKeys.WithUniqueLock([&](RelayPortToThreadKeyMap& ports)
+		m_ThreadPool.GetData().RelayPortToThreadKeys.WithUniqueLock([&](RelayPortToThreadKeyMap& ports)
 		{
 			if (const auto it = ports.find(rport); it != ports.end())
 			{
-				m_ThreadPool.Data().ThreadKeyToLinkTotals.WithUniqueLock([&](ThreadKeyToLinkTotalMap& link_totals)
+				m_ThreadPool.GetData().ThreadKeyToLinkTotals.WithUniqueLock([&](ThreadKeyToLinkTotalMap& link_totals)
 				{
 					if (const auto ltit = link_totals.find(it->second); ltit != link_totals.end())
 					{
@@ -323,7 +323,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		std::optional<ThreadKey> thkey;
 
 		// Get the threadpool with the least amount of relay links
-		m_ThreadPool.Data().ThreadKeyToLinkTotals.WithSharedLock([&](const ThreadKeyToLinkTotalMap& link_totals)
+		m_ThreadPool.GetData().ThreadKeyToLinkTotals.WithSharedLock([&](const ThreadKeyToLinkTotalMap& link_totals)
 		{
 			// Should have at least one item (at least
 			// one event worker thread running)
@@ -366,7 +366,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 			if (thkey)
 			{
-				m_ThreadPool.Data().RelayEventQueues[*thkey]->WithUniqueLock([&](EventQueue& queue)
+				m_ThreadPool.GetData().RelayEventQueues[*thkey]->WithUniqueLock([&](EventQueue& queue)
 				{
 					queue.Push(std::move(event));
 				});
@@ -690,7 +690,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		std::optional<Event> event;
 
-		m_ThreadPool.Data().RelayEventQueues[thdata.ThreadKey]->IfUniqueLock([&](auto& queue)
+		m_ThreadPool.GetData().RelayEventQueues[thdata.ThreadKey]->IfUniqueLock([&](auto& queue)
 		{
 			if (!queue.Empty())
 			{

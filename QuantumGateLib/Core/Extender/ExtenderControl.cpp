@@ -88,7 +88,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				for (Size x = 0; x < numthreadsperpool; ++x)
 				{
 					if (!thpool->AddThread(extname + L" Thread", MakeCallback(this, &Control::WorkerThreadProcessor),
-										   &thpool->Data().Queue.WithUniqueLock()->Event()))
+										   &thpool->GetData().Queue.WithUniqueLock()->Event()))
 					{
 						error = true;
 						break;
@@ -119,7 +119,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		{
 			thpool.second->Shutdown();
 			thpool.second->Clear();
-			thpool.second->Data().Queue.WithUniqueLock()->Clear();
+			thpool.second->GetData().Queue.WithUniqueLock()->Clear();
 		}
 
 		ResetState();
@@ -241,13 +241,13 @@ namespace QuantumGate::Implementation::Core::Extender
 				const auto thpit = std::min_element(m_ThreadPools.begin(), m_ThreadPools.end(),
 													[](const auto& a, const auto& b)
 				{
-					return (a.second->Data().PeerCount < b.second->Data().PeerCount);
+					return (a.second->GetData().PeerCount < b.second->GetData().PeerCount);
 				});
 
 				assert(thpit != m_ThreadPools.end());
 
 				peerctrl = std::make_shared<Peer_ThS>(thpit->first,
-													  thpit->second->Data().PeerCount, Peer::Status::Connected);
+													  thpit->second->GetData().PeerCount, Peer::Status::Connected);
 
 				// If this fails there was already a peer in the map; this should not happen
 				[[maybe_unused]] const auto[it, inserted] = m_Peers.insert({ event.GetPeerLUID(), peerctrl });
@@ -308,7 +308,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				}
 			});
 
-			if (addtoqueue) m_ThreadPools[thpoolkey]->Data().Queue.WithUniqueLock()->Push(peerctrl);
+			if (addtoqueue) m_ThreadPools[thpoolkey]->GetData().Queue.WithUniqueLock()->Push(peerctrl);
 
 			return true;
 		}

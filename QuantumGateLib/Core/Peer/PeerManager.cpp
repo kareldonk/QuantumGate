@@ -126,7 +126,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						if (!thpool->AddThread(L"QuantumGate Peers Thread",
 											   MakeCallback(this, &Manager::WorkerThreadProcessor),
-											   &thpool->Data().Queue.WithUniqueLock()->Event()))
+											   &thpool->GetData().Queue.WithUniqueLock()->Event()))
 						{
 							error = true;
 						}
@@ -159,7 +159,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			thpool.second->Shutdown();
 			thpool.second->Clear();
-			thpool.second->Data().Queue.WithUniqueLock()->Clear();
+			thpool.second->GetData().Queue.WithUniqueLock()->Clear();
 		}
 
 		// Disconnect and remove all peers
@@ -171,7 +171,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			// are cleared the peercount should be zero
 			for (const auto& thpool : m_ThreadPools)
 			{
-				assert(thpool.second->Data().PeerCollection.Count == 0);
+				assert(thpool.second->GetData().PeerCollection.Count == 0);
 			}
 		});
 
@@ -509,8 +509,8 @@ namespace QuantumGate::Implementation::Core::Peer
 				const auto thpit = std::min_element(m_ThreadPools.begin(), m_ThreadPools.end(),
 													[](const auto& a, const auto& b)
 				{
-					return (a.second->Data().PeerCollection.Count <
-							b.second->Data().PeerCollection.Count);
+					return (a.second->GetData().PeerCollection.Count <
+							b.second->GetData().PeerCollection.Count);
 				});
 
 				assert(thpit != m_ThreadPools.end());
@@ -522,7 +522,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					// If this fails there was already a peer in the map (this should not happen)
 					[[maybe_unused]] const auto[it, inserted] =
-						thpit->second->Data().PeerCollection.Map.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
+						thpit->second->GetData().PeerCollection.Map.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
 
 					assert(inserted);
 					if (!inserted)
@@ -533,7 +533,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 				catch (...) { return; }
 
-				++thpit->second->Data().PeerCollection.Count;
+				++thpit->second->GetData().PeerCollection.Count;
 
 				sg.Deactivate();
 
@@ -558,9 +558,9 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		const auto& thpool = m_ThreadPools[peer.GetThreadPoolKey()];
 
-		if (thpool->Data().PeerCollection.Map.WithUniqueLock()->erase(peer.GetLUID()) > 0)
+		if (thpool->GetData().PeerCollection.Map.WithUniqueLock()->erase(peer.GetLUID()) > 0)
 		{
-			--thpool->Data().PeerCollection.Count;
+			--thpool->GetData().PeerCollection.Count;
 		}
 	}
 
@@ -582,8 +582,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		for (const auto& thpool : m_ThreadPools)
 		{
-			thpool.second->Data().PeerCollection.Map.WithUniqueLock()->clear();
-			thpool.second->Data().PeerCollection.Count = 0;
+			thpool.second->GetData().PeerCollection.Map.WithUniqueLock()->clear();
+			thpool.second->GetData().PeerCollection.Count = 0;
 		}
 	}
 

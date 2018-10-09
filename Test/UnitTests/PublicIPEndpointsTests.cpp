@@ -188,12 +188,12 @@ namespace UnitTests
 
 				// Check that the IPEndpoint details are what we expect
 				{
-					const auto pub_endp = pubendp.GetIPEndpoints();
+					auto endpoints = pubendp.GetIPEndpoints().WithSharedLock();
 
 					for (const auto& exp_details : expected_ips)
 					{
-						const auto it2 = pub_endp.find(exp_details.IPAddress);
-						Assert::AreEqual(true, it2 != pub_endp.end());
+						const auto it2 = endpoints->find(exp_details.IPAddress);
+						Assert::AreEqual(true, it2 != endpoints->end());
 
 						Assert::AreEqual(true, it2->second.Trusted == exp_details.Trusted);
 						Assert::AreEqual(true, it2->second.ReportingPeerNetworkHashes.size() ==
@@ -328,21 +328,30 @@ namespace UnitTests
 				return false;
 			};
 
-			pubendp.RemoveLeastRecentIPEndpoints(1);
+			auto endpoints = pubendp.GetIPEndpoints().WithUniqueLock();
+
+			pubendp.RemoveLeastRecentIPEndpoints(1, *endpoints);
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"200.168.5.51").GetBinary()));
+			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
 			
-			pubendp.RemoveLeastRecentIPEndpoints(2);
+			endpoints.Lock();
+			pubendp.RemoveLeastRecentIPEndpoints(2, *endpoints);
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193").GetBinary()));
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"160.16.5.51").GetBinary()));
+			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
 
-			pubendp.RemoveLeastRecentIPEndpoints(1);
+			endpoints.Lock();
+			pubendp.RemoveLeastRecentIPEndpoints(1, *endpoints);
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de").GetBinary()));
+			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
 
-			pubendp.RemoveLeastRecentIPEndpoints(1);
+			endpoints.Lock();
+			pubendp.RemoveLeastRecentIPEndpoints(1, *endpoints);
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"199.111.110.30").GetBinary()));
+			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
 		}
 	};

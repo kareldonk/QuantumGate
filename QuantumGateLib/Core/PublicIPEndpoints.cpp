@@ -16,7 +16,11 @@ namespace QuantumGate::Implementation::Core
 
 		PreInitialize();
 
-		if (!InitializeSockets()) return false;
+		if (!InitializeSockets())
+		{
+			LogErr(L"PublicIPEndpoints verification sockets initialization failed");
+			return false;
+		}
 
 		// Upon failure deinitialize sockets
 		auto sg = MakeScopeGuard([&] { DeinitializeSockets(); });
@@ -24,7 +28,7 @@ namespace QuantumGate::Implementation::Core
 		if (!m_ThreadPool.AddThread(L"QuantumGate PublicIPEndpoints Thread",
 									MakeCallback(this, &PublicIPEndpoints::WorkerThreadProcessor)))
 		{
-			LogErr(L"Could add PublicIPEndpoints thread");
+			LogErr(L"Could not add PublicIPEndpoints thread");
 			return false;
 		}
 
@@ -65,6 +69,7 @@ namespace QuantumGate::Implementation::Core
 	void PublicIPEndpoints::ResetState() noexcept
 	{
 		m_ThreadPool.Clear();
+		m_IPAddressVerification.WithUniqueLock()->clear();
 		m_IPEndpoints.WithUniqueLock()->clear();
 		m_ReportingNetworks.clear();
 	}
@@ -77,29 +82,45 @@ namespace QuantumGate::Implementation::Core
 		// Upon failure deinitialize sockets
 		auto sg = MakeScopeGuard([&] { DeinitializeSockets(); });
 
-		m_ThreadPool.Data().IPv4UDPSocket.WithUniqueLock([&](Network::Socket& socket)
+		m_ThreadPool.GetData().IPv4UDPSocket.WithUniqueLock([&](Network::Socket& socket)
 		{
-			constexpr auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), 9001);
-			socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), SOCK_DGRAM, IPPROTO_UDP);
+			auto tries = 0u;
 
-			if (!socket.Bind(endpoint, nat_traversal))
+			do
 			{
-				success = false;
-				LogErr(L"Could not bind socket to endpoint %s", endpoint.GetString().c_str());
+				// Choose port randomly from dynamic port range
+				m_ThreadPool.GetData().Port = static_cast<UInt16>(Util::GetPseudoRandomNumber(49152, 65535));
+
+				auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), m_ThreadPool.GetData().Port);
+				socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), SOCK_DGRAM, IPPROTO_UDP);
+
+				if (socket.Bind(endpoint, nat_traversal))
+				{
+					success = true;
+					break;
+				}
+				else
+				{
+					success = false;
+					LogWarn(L"Could not bind public IP address verification socket to endpoint %s", endpoint.GetString().c_str());
+				}
+
+				++tries;
 			}
+			while (tries < 3);
 		});
 
 		if (!success) return false;
 
-		m_ThreadPool.Data().IPv6UDPSocket.WithUniqueLock([&](Network::Socket& socket)
+		m_ThreadPool.GetData().IPv6UDPSocket.WithUniqueLock([&](Network::Socket& socket)
 		{
-			constexpr auto endpoint = IPEndpoint(IPAddress::AnyIPv6(), 9001);
+			auto endpoint = IPEndpoint(IPAddress::AnyIPv6(), m_ThreadPool.GetData().Port);
 			socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), SOCK_DGRAM, IPPROTO_UDP);
 
 			if (!socket.Bind(endpoint, nat_traversal))
 			{
 				success = false;
-				LogErr(L"Could not bind socket to endpoint %s", endpoint.GetString().c_str());
+				LogWarn(L"Could not bind public IP address verification socket to endpoint %s", endpoint.GetString().c_str());
 			}
 		});
 
@@ -112,12 +133,12 @@ namespace QuantumGate::Implementation::Core
 
 	void PublicIPEndpoints::DeinitializeSockets() noexcept
 	{
-		m_ThreadPool.Data().IPv4UDPSocket.WithUniqueLock([](Network::Socket& socket)
+		m_ThreadPool.GetData().IPv4UDPSocket.WithUniqueLock([](Network::Socket& socket)
 		{
 			if (socket.GetIOStatus().IsOpen()) socket.Close();
 		});
 
-		m_ThreadPool.Data().IPv6UDPSocket.WithUniqueLock([](Network::Socket& socket)
+		m_ThreadPool.GetData().IPv6UDPSocket.WithUniqueLock([](Network::Socket& socket)
 		{
 			if (socket.GetIOStatus().IsOpen()) socket.Close();
 		});
@@ -126,13 +147,14 @@ namespace QuantumGate::Implementation::Core
 	const std::pair<bool, bool> PublicIPEndpoints::WorkerThreadProcessor(ThreadPoolData& thpdata,
 																		 const Concurrency::EventCondition& shutdown_event)
 	{
-		auto success = true;
 		auto didwork = false;
 
 		const std::array<ThreadPoolData::Socket_ThS*, 2> sockets{ &thpdata.IPv4UDPSocket, &thpdata.IPv6UDPSocket };
 
 		for (auto socket_ths : sockets)
 		{
+			auto socket_error = false;
+
 			// Check if we have a read event waiting for us
 			if (socket_ths->WithUniqueLock()->UpdateIOStatus(0ms))
 			{
@@ -143,15 +165,19 @@ namespace QuantumGate::Implementation::Core
 
 					socket_ths->WithUniqueLock([&](Network::Socket& socket)
 					{
-						LogInfo(L"Receiving on endpoint %s", socket.GetLocalEndpoint().GetString().c_str());
-
 						Buffer buffer;
 
 						if (socket.ReceiveFrom(sender_endpoint, buffer))
 						{
 							num = *reinterpret_cast<UInt64*>(buffer.GetBytes());
 
-							LogInfo(L"Received %llu from endpoint %s", num.value(), sender_endpoint.GetString().c_str());
+							LogInfo(L"Received public IP address verification (%llu) for endpoint %s",
+									num.value(), sender_endpoint.GetString().c_str());
+						}
+						else
+						{
+							LogWarn(L"Failed to receive public IP address verification for endpoint %s; the port may not be open",
+									sender_endpoint.GetString().c_str());
 						}
 					});
 
@@ -172,7 +198,7 @@ namespace QuantumGate::Implementation::Core
 									}
 									else
 									{
-										LogErr(L"Couldn't verify IP address %s",
+										LogErr(L"Couldn't verify IP address %s; IP address not found in public endpoints",
 											   IPAddress(it->second.IPAddress).GetString().c_str());
 									}
 								});
@@ -181,7 +207,8 @@ namespace QuantumGate::Implementation::Core
 							}
 							else
 							{
-								LogErr(L"Received invalid %llu from endpoint %s", num, sender_endpoint.GetString().c_str());
+								LogErr(L"Received unknown public IP address verification (%llu) from endpoint %s",
+									   num, sender_endpoint.GetString().c_str());
 							}
 						});
 					}
@@ -190,23 +217,81 @@ namespace QuantumGate::Implementation::Core
 				}
 				else if (socket_ths->WithSharedLock()->GetIOStatus().HasException())
 				{
-					LogErr(L"Exception on listener socket for endpoint %s (%s)",
+					LogErr(L"Exception on public IP address verification socket for endpoint %s (%s)",
 						   socket_ths->WithSharedLock()->GetLocalEndpoint().GetString().c_str(),
 						   GetSysErrorString(socket_ths->WithSharedLock()->GetIOStatus().GetErrorCode()).c_str());
 
-					success = false;
+					socket_error = true;
 				}
 			}
 			else
 			{
-				LogErr(L"Could not get status of listener socket for endpoint %s",
+				LogErr(L"Failed to get status of public IP address verification socket for endpoint %s",
 					   socket_ths->WithSharedLock()->GetLocalEndpoint().GetString().c_str());
 
-				success = false;
+				socket_error = true;
+			}
+
+			if (socket_error)
+			{
+				// Do stuff
 			}
 		}
 
-		return std::make_pair(success, didwork);
+		m_IPAddressVerification.WithUniqueLock([&](auto& verification_map)
+		{
+			auto it = verification_map.begin();
+
+			while (it != verification_map.end())
+			{
+				auto remove = false;
+
+				switch (it->second.Status)
+				{
+					case IPAddressVerification::Status::Registered:
+					{
+						if (SendIPAddressVerification(it->first, it->second))
+						{
+							didwork = true;
+						}
+						else remove = true;
+						break;
+					}
+					case IPAddressVerification::Status::VerificationSent:
+					{
+						if (Util::GetCurrentSteadyTime() - it->second.LastUpdateSteadyTime >= IPAddressVerification::TimeoutPeriod)
+						{
+							if (it->second.NumVerificationTries < IPAddressVerification::MaxVerificationTries)
+							{
+								// Retry verification
+								if (SendIPAddressVerification(it->first, it->second))
+								{
+									didwork = true;
+								}
+								else remove = true;
+							}
+							else
+							{
+								LogErr(L"IP address verification for %s timed out",
+									   IPAddress(it->second.IPAddress).GetString().c_str());
+
+								remove = true;
+							}
+						}
+						break;
+					}
+					default:
+					{
+						break;
+					}
+				}
+
+				if (remove) it = verification_map.erase(it);
+				else ++it;
+			}
+		});
+
+		return std::make_pair(true, didwork);
 	}
 
 	const bool PublicIPEndpoints::AddIPAddressVerification(const BinaryIPAddress& ip) noexcept
@@ -218,41 +303,74 @@ namespace QuantumGate::Implementation::Core
 			{
 				auto verification_map = m_IPAddressVerification.WithUniqueLock();
 
-				[[maybe_unused]] const auto[it, inserted] = verification_map->emplace(
+				const auto[it, inserted] = verification_map->emplace(
 					std::make_pair(*num, IPAddressVerification{ IPAddressVerification::Status::Registered,
 								   ip, Util::GetCurrentSteadyTime() }));
 				if (inserted)
 				{
-					if (SendIPAddressVerification(ip, *num))
+					// If this fails we'll try again in the worker thread
+					if (SendIPAddressVerification(it->first, it->second))
 					{
-						it->second.Status = IPAddressVerification::Status::VerificationSent;
-						it->second.LastUpdate = Util::GetCurrentSteadyTime();
 						return true;
 					}
+				}
+				else
+				{
+					// A verification record already existed
+					// and is probably being worked on
+					return true;
 				}
 			}
 		}
 		catch (const std::exception& e)
 		{
-			LogErr(L"Could not add public IP address verification due to exception: %s",
+			LogErr(L"Failed to add public IP address verification due to exception: %s",
 				   Util::ToStringW(e.what()).c_str());
 		}
-		catch (...) {}
+		catch (...)
+		{
+			LogErr(L"Failed to add public IP address verification due to unknown exception");
+		}
 
 		return false;
 	}
 
-	const bool PublicIPEndpoints::SendIPAddressVerification(const BinaryIPAddress& ip, const UInt64 num) noexcept
+	const bool PublicIPEndpoints::SendIPAddressVerification(const UInt64 num, IPAddressVerification& ip_verification) noexcept
 	{
-		ThreadPoolData::Socket_ThS* socket_ths = (ip.AddressFamily == IPAddressFamily::IPv4) ?
-			&m_ThreadPool.Data().IPv4UDPSocket : &m_ThreadPool.Data().IPv6UDPSocket;
+		assert(ip_verification.Status == IPAddressVerification::Status::Registered);
 
-		LogInfo(L"Send %llu on endpoint", num);
-
-		Buffer snd_buf(reinterpret_cast<const Byte*>(&num), sizeof(num));
-		if (socket_ths->WithUniqueLock()->SendTo(IPEndpoint(ip, 9001), snd_buf))
+		try
 		{
-			if (snd_buf.IsEmpty()) return true;
+			ThreadPoolData::Socket_ThS* socket_ths = (ip_verification.IPAddress.AddressFamily == IPAddressFamily::IPv4) ?
+				&m_ThreadPool.GetData().IPv4UDPSocket : &m_ThreadPool.GetData().IPv6UDPSocket;
+
+			IPEndpoint endpoint(ip_verification.IPAddress, m_ThreadPool.GetData().Port);
+
+			LogInfo(L"Sending IP address verification (%llu) to endpoint %s", num, endpoint.GetString().c_str());
+
+			Buffer snd_buf(reinterpret_cast<const Byte*>(&num), sizeof(num));
+
+			if (socket_ths->WithUniqueLock()->SendTo(endpoint, snd_buf))
+			{
+				if (snd_buf.IsEmpty())
+				{
+					ip_verification.Status = IPAddressVerification::Status::VerificationSent;
+					ip_verification.LastUpdateSteadyTime = Util::GetCurrentSteadyTime();
+					++ip_verification.NumVerificationTries;
+					return true;
+				}
+			}
+
+			LogErr(L"Failed to send IP address verification to endpoint %s", endpoint.GetString().c_str());
+		}
+		catch (const std::exception& e)
+		{
+			LogErr(L"Failed to send IP address verification due to exception: %s",
+				   Util::ToStringW(e.what()).c_str());
+		}
+		catch (...)
+		{
+			LogErr(L"Failed to send IP address verification due to unknown exception");
 		}
 
 		return false;
@@ -266,8 +384,6 @@ namespace QuantumGate::Implementation::Core
 		if (rep_con_type != PeerConnectionType::Unknown &&
 			pub_endpoint.GetIPAddress().GetFamily() == rep_peer.GetIPAddress().GetFamily())
 		{
-			AddIPAddressVerification(pub_endpoint.GetIPAddress().GetBinary());
-
 			// Should be in public network address range
 			if (!pub_endpoint.GetIPAddress().IsLocal() &&
 				!pub_endpoint.GetIPAddress().IsMulticast() &&
@@ -310,6 +426,11 @@ namespace QuantumGate::Implementation::Core
 								if (pub_ipd->ReportingPeerNetworkHashes.size() < MaxReportingPeerNetworks)
 								{
 									pub_ipd->ReportingPeerNetworkHashes.emplace(network.GetHash());
+								}
+
+								if (!pub_ipd->Verified)
+								{
+									DiscardReturnValue(AddIPAddressVerification(pub_endpoint.GetIPAddress().GetBinary()));
 								}
 
 								return std::make_pair(true, new_insert);
@@ -368,6 +489,7 @@ namespace QuantumGate::Implementation::Core
 				struct MinimalIPEndpointDetails
 				{
 					BinaryIPAddress IPAddress;
+					bool Verified{ false };
 					bool Trusted{ false };
 					SteadyTime LastUpdateSteadyTime;
 				};
@@ -376,13 +498,20 @@ namespace QuantumGate::Implementation::Core
 
 				std::for_each(ipendpoints.begin(), ipendpoints.end(), [&](const auto& it)
 				{
-					temp_endp.emplace_back(MinimalIPEndpointDetails{ it.first, it.second.Trusted,
-										   it.second.LastUpdateSteadyTime });
+					temp_endp.emplace_back(
+						MinimalIPEndpointDetails{
+						it.first,
+						it.second.Verified,
+						it.second.Trusted,
+						it.second.LastUpdateSteadyTime });
 				});
 
 				// Sort by least trusted and least recent
 				std::sort(temp_endp.begin(), temp_endp.end(), [](const auto& a, const auto& b) noexcept
 				{
+					if (!a.Verified && b.Verified) return true;
+					if (a.Verified && !b.Verified) return false;
+
 					if (!a.Trusted && b.Trusted) return true;
 					if (a.Trusted && !b.Trusted) return false;
 

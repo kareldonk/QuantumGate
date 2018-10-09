@@ -39,7 +39,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		LogSys(L"Keymanager startup successful");
 
 		// Set event so that initial keys get generated
-		m_ThreadPool.Data().PrimaryThreadEvent.Set();
+		m_ThreadPool.GetData().PrimaryThreadEvent.Set();
 
 		return true;
 	}
@@ -68,7 +68,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 	{
 		// Events need to be cleared first because
 		// they contain pointers to the key queues
-		m_ThreadPool.Data().KeyGenEventQueue.WithUniqueLock()->Clear();
+		m_ThreadPool.GetData().KeyGenEventQueue.WithUniqueLock()->Clear();
 
 		ClearKeyQueues();
 	}
@@ -149,7 +149,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			{
 				if (!m_ThreadPool.AddThread(L"QuantumGate KeyManager Thread (Main)",
 											MakeCallback(this, &Manager::PrimaryThreadProcessor),
-											&m_ThreadPool.Data().PrimaryThreadEvent))
+											&m_ThreadPool.GetData().PrimaryThreadEvent))
 				{
 					error = true;
 					break;
@@ -159,7 +159,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			{
 				if (!m_ThreadPool.AddThread(L"QuantumGate KeyManager Thread",
 											MakeCallback(this, &Manager::WorkerThreadProcessor),
-											&m_ThreadPool.Data().KeyGenEventQueue.WithUniqueLock()->Event()))
+											&m_ThreadPool.GetData().KeyGenEventQueue.WithUniqueLock()->Event()))
 				{
 					error = true;
 					break;
@@ -203,7 +203,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 
 						// Set event to generate more keys and
 						// fill the queue again
-						m_ThreadPool.Data().PrimaryThreadEvent.Set();
+						m_ThreadPool.GetData().PrimaryThreadEvent.Set();
 					}
 				});
 			}
@@ -223,7 +223,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			// Reset event; after we check and generate the keys below
 			// this event will be set again when a key gets removed from the queues
 			// and we need to fill the queue again
-			m_ThreadPool.Data().PrimaryThreadEvent.Reset();
+			m_ThreadPool.GetData().PrimaryThreadEvent.Reset();
 
 			for (auto it = queues.begin(); it != queues.end() && !shutdown_event.IsSet(); ++it)
 			{
@@ -295,7 +295,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		auto didwork = false;
 
 		Event event;
-		m_ThreadPool.Data().KeyGenEventQueue.IfUniqueLock([&](auto& queue)
+		m_ThreadPool.GetData().KeyGenEventQueue.IfUniqueLock([&](auto& queue)
 		{
 			if (!queue.Empty())
 			{

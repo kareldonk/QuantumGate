@@ -486,8 +486,8 @@ namespace QuantumGate::Implementation::Network
 		sockaddr_storage sock_addr{ 0 };
 		if (!SockAddrFill(sock_addr, endpoint))
 		{
-			LogDbg(L"Send error for endpoint %s - SockAddrFill() failed for endpoint %s",
-				   GetPeerName().c_str(), endpoint.GetString().c_str());
+			LogDbg(L"Send error on endpoint %s - SockAddrFill() failed for endpoint %s",
+				   GetLocalName().c_str(), endpoint.GetString().c_str());
 			return false;
 		}
 
@@ -514,7 +514,7 @@ namespace QuantumGate::Implementation::Network
 			}
 			catch (const std::exception& e)
 			{
-				LogErr(L"Send exception for endpoint %s: %s", GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
+				LogErr(L"Send exception on endpoint %s: %s", GetLocalName().c_str(), Util::ToStringW(e.what()).c_str());
 			}
 		}
 		else if (bytessent == SOCKET_ERROR)
@@ -523,15 +523,15 @@ namespace QuantumGate::Implementation::Network
 			if (error == WSAENOBUFS || error == WSAEWOULDBLOCK)
 			{
 				// Send buffer is full or temporarily unavailable, we'll try again later
-				LogDbg(L"Send buffer full/unavailable for endpoint %s (%s)",
-					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+				LogDbg(L"Send buffer full/unavailable on endpoint %s (%s)",
+					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
 
 				success = true;
 			}
 			else
 			{
-				LogDbg(L"Send error for endpoint %s (%s)",
-					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+				LogDbg(L"Send error on endpoint %s (%s)",
+					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
 			}
 		}
 
@@ -596,7 +596,7 @@ namespace QuantumGate::Implementation::Network
 
 		auto& rcvbuf = GetReceiveBuffer();
 
-		sockaddr_storage sock_addr;
+		sockaddr_storage sock_addr{ 0 };
 		int sock_addr_len{ sizeof(sock_addr) };
 
 		const auto bytesrcv = recvfrom(m_Socket, reinterpret_cast<char*>(rcvbuf.GetBytes()),
@@ -605,33 +605,31 @@ namespace QuantumGate::Implementation::Network
 
 		Dbg(L"%d bytes received", bytesrcv);
 
+		if (sock_addr.ss_family != 0)
+		{
+			if (!SockAddrGetIPEndpoint(&sock_addr, endpoint))
+			{
+				LogDbg(L"Receive error on endpoint %s - SockAddrGetIPEndpoint() failed",
+					   GetLocalName().c_str());
+				return false;
+			}
+		}
+
 		if (bytesrcv > 0)
 		{
 			try
 			{
-				if (SockAddrGetIPEndpoint(&sock_addr, endpoint))
-				{
-					buffer += BufferView(rcvbuf.GetBytes(), bytesrcv);
+				buffer += BufferView(rcvbuf.GetBytes(), bytesrcv);
 
-					// Update the total amount of bytes received
-					m_BytesReceived += bytesrcv;
+				// Update the total amount of bytes received
+				m_BytesReceived += bytesrcv;
 
-					success = true;
-				}
-				else
-				{
-					LogDbg(L"Receive error for endpoint %s - SockAddrGetIPEndpoint() failed",
-						   GetPeerName().c_str());
-				}
+				success = true;
 			}
 			catch (const std::exception& e)
 			{
-				LogErr(L"Receive exception for endpoint %s: %s", GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
+				LogErr(L"Receive exception on endpoint %s: %s", GetLocalName().c_str(), Util::ToStringW(e.what()).c_str());
 			}
-		}
-		else if (bytesrcv == 0)
-		{
-			LogDbg(L"Connection closed for endpoint %s", GetPeerName().c_str());
 		}
 		else if (bytesrcv == SOCKET_ERROR)
 		{
@@ -639,15 +637,19 @@ namespace QuantumGate::Implementation::Network
 			if (error == WSAENOBUFS || error == WSAEWOULDBLOCK)
 			{
 				// Buffer is temporarily unavailable, we'll try again later
-				LogDbg(L"Receive buffer unavailable for endpoint %s (%s)",
-					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+				LogDbg(L"Receive buffer unavailable on endpoint %s (%s)",
+					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
 
 				success = true;
 			}
+			else if (error == WSAECONNRESET)
+			{
+				LogDbg(L"Port unreachable for endpoint %s", endpoint.GetString().c_str());
+			}
 			else
 			{
-				LogDbg(L"Receive error for endpoint %s (%s)",
-					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+				LogDbg(L"Receive error on endpoint %s (%s)",
+					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
 			}
 		}
 

@@ -29,7 +29,11 @@ namespace QuantumGate::Implementation::Core
 
 			Status Status{ Status::Registered };
 			BinaryIPAddress IPAddress;
-			SteadyTime LastUpdate;
+			SteadyTime LastUpdateSteadyTime;
+			UInt8 NumVerificationTries{ 0 };
+
+			static constexpr std::chrono::seconds TimeoutPeriod{ 30 };
+			static constexpr UInt8 MaxVerificationTries{ 3 };
 		};
 
 		using IPAddressVerificationMap = std::unordered_map<UInt64, IPAddressVerification>;
@@ -46,6 +50,7 @@ namespace QuantumGate::Implementation::Core
 
 			Socket_ThS IPv4UDPSocket;
 			Socket_ThS IPv6UDPSocket;
+			std::atomic<UInt16> Port{ 0 };
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
@@ -67,7 +72,7 @@ namespace QuantumGate::Implementation::Core
 													const bool trusted) noexcept;
 		const bool RemoveLeastRecentIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept;
 
-		inline const IPEndpointsMap_ThS& GetIPEndpoints() const noexcept { return m_IPEndpoints; }
+		inline IPEndpointsMap_ThS& GetIPEndpoints() noexcept { return m_IPEndpoints; }
 
 		Result<> AddIPAddresses(Vector<BinaryIPAddress>& ips) const noexcept;
 		Result<> AddIPAddresses(Vector<IPAddressDetails>& ips) const noexcept;
@@ -80,7 +85,7 @@ namespace QuantumGate::Implementation::Core
 		void ResetState() noexcept;
 
 		[[nodiscard]] const bool AddIPAddressVerification(const BinaryIPAddress& ip) noexcept;
-		[[nodiscard]] const bool SendIPAddressVerification(const BinaryIPAddress& ip, const UInt64 num) noexcept;
+		[[nodiscard]] const bool SendIPAddressVerification(const UInt64 num, IPAddressVerification& ip_verification) noexcept;
 
 		[[nodiscard]] const bool IsNewReportingNetwork(const BinaryIPAddress& network) const noexcept;
 		[[nodiscard]] const bool AddReportingNetwork(const BinaryIPAddress& network, const bool trusted) noexcept;

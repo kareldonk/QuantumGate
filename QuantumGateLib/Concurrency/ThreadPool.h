@@ -210,10 +210,10 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 		template<typename U = ThPData, typename = std::enable_if_t<has_threadpool_data<U>>>
-		inline ThPData& Data() noexcept { return m_Data; }
+		inline ThPData& GetData() noexcept { return m_Data; }
 
 		template<typename U = ThPData, typename = std::enable_if_t<has_threadpool_data<U>>>
-		inline const ThPData& Data() const noexcept { return m_Data; }
+		inline const ThPData& GetData() const noexcept { return m_Data; }
 
 	private:
 		[[nodiscard]] const bool AddThreadImpl(const String& thname, ThreadCallbackType&& thcallback,

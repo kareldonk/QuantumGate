@@ -76,6 +76,38 @@ namespace QuantumGate::Implementation::Concurrency
 				m_ThS->m_Data(std::forward<Args>(args)...);
 			}
 
+			template<typename Lck2 = Lck,
+				typename = std::enable_if_t<std::is_same_v<Lck2, std::unique_lock<M>>>>
+			inline void Lock() noexcept(noexcept(m_Lock.lock()))
+			{
+				assert(!m_Lock.owns_lock());
+				m_Lock.lock();
+			}
+
+			template<typename Lck2 = Lck,
+				typename = std::enable_if_t<std::is_same_v<Lck2, std::unique_lock<M>>>>
+			inline void Unlock() noexcept(noexcept(m_Lock.unlock()))
+			{
+				assert(m_Lock.owns_lock());
+				m_Lock.unlock();
+			}
+
+			template<typename Lck2 = Lck,
+				typename = std::enable_if_t<std::is_same_v<Lck2, std::shared_lock<M>>>>
+			inline void LockShared() noexcept(noexcept(m_Lock.lock()))
+			{
+				assert(!m_Lock.owns_lock());
+				m_Lock.lock();
+			}
+
+			template<typename Lck2 = Lck,
+				typename = std::enable_if_t<std::is_same_v<Lck2, std::shared_lock<M>>>>
+			inline void UnlockShared() noexcept(noexcept(m_Lock.unlock()))
+			{
+				assert(m_Lock.owns_lock());
+				m_Lock.unlock();
+			}
+
 			inline void Reset() noexcept
 			{
 				m_ThS = nullptr; 

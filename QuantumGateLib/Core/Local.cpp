@@ -392,7 +392,7 @@ namespace QuantumGate::Implementation::Core
 
 		if (m_ThreadPool.AddThread(L"QuantumGate Local Worker Thread",
 								   MakeCallback(this, &Local::WorkerThreadProcessor),
-								   &m_ThreadPool.Data().EventQueue.WithUniqueLock()->Event()))
+								   &m_ThreadPool.GetData().EventQueue.WithUniqueLock()->Event()))
 		{
 			if (m_ThreadPool.Startup())
 			{
@@ -418,7 +418,7 @@ namespace QuantumGate::Implementation::Core
 
 		std::optional<Event> event;
 
-		m_ThreadPool.Data().EventQueue.IfUniqueLock([&](auto& queue)
+		m_ThreadPool.GetData().EventQueue.IfUniqueLock([&](auto& queue)
 		{
 			if (!queue.Empty())
 			{
@@ -642,7 +642,7 @@ namespace QuantumGate::Implementation::Core
 
 	void Local::OnLocalEnvironmentChanged() noexcept
 	{
-		m_ThreadPool.Data().EventQueue.WithUniqueLock([&](EventQueue& queue)
+		m_ThreadPool.GetData().EventQueue.WithUniqueLock([&](EventQueue& queue)
 		{
 			queue.Push(Events::LocalEnvironmentChange{});
 		});
@@ -650,7 +650,7 @@ namespace QuantumGate::Implementation::Core
 
 	void Local::OnUnhandledExtenderException(const ExtenderUUID extuuid) noexcept
 	{
-		m_ThreadPool.Data().EventQueue.WithUniqueLock([&](EventQueue& queue)
+		m_ThreadPool.GetData().EventQueue.WithUniqueLock([&](EventQueue& queue)
 		{
 			queue.Push(Events::UnhandledExtenderException{ extuuid });
 		});
