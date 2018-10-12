@@ -38,7 +38,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	Gate::Gate(const IPAddressFamily af, const Int32 type, const Int32 protocol) noexcept
+	Gate::Gate(const IPAddressFamily af, const Network::Socket::Type type, const Network::Socket::Protocol protocol) noexcept
 	{
 		static_assert(sizeof(Network::Socket) <= sizeof(m_SocketStorage),
 					  "Type is too large for SocketStorage variable; increase size.");
@@ -61,9 +61,9 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		assert(m_Socket != nullptr);
 
-		m_Socket->SetOnConnectingCallback(MakeCallback(this, &Gate::OnConnecting));
-		m_Socket->SetOnAcceptCallback(MakeCallback(this, &Gate::OnAccept));
-		m_Socket->SetOnConnectCallback(MakeCallback(this, &Gate::OnConnect));
-		m_Socket->SetOnCloseCallback(MakeCallback(this, &Gate::OnClose));
+		m_Socket->SetConnectingCallback(MakeCallback(this, &Gate::OnConnecting));
+		m_Socket->SetAcceptCallback(MakeCallback(this, &Gate::OnAccept));
+		m_Socket->SetConnectCallback(MakeCallback(this, &Gate::OnConnect));
+		m_Socket->SetCloseCallback(MakeCallback(this, &Gate::OnClose));
 	}
 }

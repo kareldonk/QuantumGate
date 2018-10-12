@@ -14,9 +14,11 @@ namespace QuantumGate::Implementation::Network
 	Socket::Socket() noexcept
 	{}
 
-	Socket::Socket(const IPAddressFamily af, const Int32 type, const Int32 protocol) noexcept
+	Socket::Socket(const IPAddressFamily af, const Type type, const Protocol protocol) noexcept
 	{
-		auto saf = AF_UNSPEC;
+		int saf{ 0 };
+		int stype{ 0 };
+		int sprotocol{ 0 };
 
 		switch (af)
 		{
@@ -32,7 +34,41 @@ namespace QuantumGate::Implementation::Network
 				return;
 		}
 
-		const auto s = socket(saf, type, protocol);
+		switch (type)
+		{
+			case Type::Stream:
+				stype = SOCK_STREAM;
+				break;
+			case Type::Datagram:
+				stype = SOCK_DGRAM;
+				break;
+			case Type::RAW:
+				stype = SOCK_RAW;
+				break;
+			default:
+				LogErr(L"Couldn't create socket - Unsupported socket type %d", type);
+				assert(false);
+				return;
+		}
+
+		switch (protocol)
+		{
+			case Protocol::TCP:
+				sprotocol = IPPROTO_TCP;
+				break;
+			case Protocol::UDP:
+				sprotocol = IPPROTO_UDP;
+				break;
+			case Protocol::ICMP:
+				sprotocol = IPPROTO_ICMP;
+				break;
+			default:
+				LogErr(L"Couldn't create socket - Unsupported protocol %d", protocol);
+				assert(false);
+				return;
+		}
+
+		const auto s = socket(saf, stype, sprotocol);
 		if (s != INVALID_SOCKET)
 		{
 			if (SetSocket(s)) UpdateSocketInfo();
@@ -71,10 +107,6 @@ namespace QuantumGate::Implementation::Network
 
 		m_LocalEndpoint = std::move(other.m_LocalEndpoint);
 		m_PeerEndpoint = std::move(other.m_PeerEndpoint);
-		m_AddressFamily = std::exchange(other.m_AddressFamily, IPAddressFamily::Unknown);
-		m_Protocol = std::exchange(other.m_Protocol, 0);
-		m_Type = std::exchange(other.m_Type, 0);
-		m_MaxDGramMsgSize = std::exchange(other.m_MaxDGramMsgSize, 0);
 
 		m_ConnectedSteadyTime = std::exchange(other.m_ConnectedSteadyTime, SteadyTime{});
 
@@ -92,12 +124,12 @@ namespace QuantumGate::Implementation::Network
 			{
 				// Enable exclusive address use for added security to prevent port hijacking
 				// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/ms740621(v=vs.85).aspx
-				if (!SockOptSetExclusiveAddressUse(true)) return false;
+				if (!SetExclusiveAddressUse(true)) return false;
 			}
 
 			if (!blocking)
 			{
-				if (!SockOptSetBlockingMode(false)) return false;
+				if (!SetBlockingMode(false)) return false;
 			}
 
 			return true;
@@ -109,14 +141,16 @@ namespace QuantumGate::Implementation::Network
 
 	void Socket::Close(const bool linger) noexcept
 	{
-		m_OnCloseCallback();
+		assert(m_Socket != INVALID_SOCKET);
 
-		if (m_Protocol == IPPROTO_TCP)
+		m_CloseCallback();
+
+		if (GetProtocol() == Protocol::TCP)
 		{
 			// If we're supposed to abort the connection, set the linger value on the socket to 0,
 			// else keep connection alive for a few seconds to give time for shutdown
-			if (linger) DiscardReturnValue(SockOptSetLinger(Socket::LingerTime));
-			else DiscardReturnValue(SockOptSetLinger(0s));
+			if (linger) DiscardReturnValue(SetLinger(Socket::DefaultLingerTime));
+			else DiscardReturnValue(SetLinger(0s));
 		}
 
 		closesocket(m_Socket);
@@ -127,11 +161,6 @@ namespace QuantumGate::Implementation::Network
 	void Socket::UpdateSocketInfo() noexcept
 	{
 		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
-
-		m_AddressFamily = SockOptGetAddressFamily(m_Socket);
-		m_Protocol = SockOptGetProtocol(m_Socket);
-		m_Type = SockOptGetType(m_Socket);
-		m_MaxDGramMsgSize = SockOptGetMaxDGramMsgSize(m_Socket);
 
 		sockaddr_storage addr{ 0 };
 		int nlen = sizeof(sockaddr_storage);
@@ -162,8 +191,10 @@ namespace QuantumGate::Implementation::Network
 		return rcvbuf;
 	}
 
-	const bool Socket::SockOptSetBlockingMode(const bool blocking) noexcept
+	const bool Socket::SetBlockingMode(const bool blocking) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		ULong mode = blocking ? 0 : 1;
 
 		const auto ret = ioctlsocket(m_Socket, FIONBIO, &mode);
@@ -178,8 +209,10 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SockOptSetExclusiveAddressUse(const bool exclusive) noexcept
+	const bool Socket::SetExclusiveAddressUse(const bool exclusive) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		const int optval = exclusive ? 1 : 0;
 
 		const auto ret = setsockopt(m_Socket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
@@ -193,8 +226,49 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SockOptSetReuseAddress(const bool reuse) noexcept
+	const bool Socket::GetExclusiveAddressUse() const noexcept
 	{
+		return GetSockOptInt(SO_EXCLUSIVEADDRUSE) ? true : false;
+	}
+
+	const bool Socket::SetSendTimeout(const std::chrono::milliseconds& milliseconds) noexcept
+	{
+		assert(m_Socket != INVALID_SOCKET);
+
+		const DWORD optval = static_cast<DWORD>(milliseconds.count());
+
+		const auto ret = setsockopt(m_Socket, SOL_SOCKET, SO_SNDTIMEO,
+									reinterpret_cast<const char*>(&optval), sizeof(optval));
+		if (ret == SOCKET_ERROR)
+		{
+			LogErr(L"Could not set send timeout socket option for socket (%s)", GetLastSysErrorString().c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	const bool Socket::SetReceiveTimeout(const std::chrono::milliseconds& milliseconds) noexcept
+	{
+		assert(m_Socket != INVALID_SOCKET);
+
+		const DWORD optval = static_cast<DWORD>(milliseconds.count());
+
+		const auto ret = setsockopt(m_Socket, SOL_SOCKET, SO_RCVTIMEO,
+									reinterpret_cast<const char*>(&optval), sizeof(optval));
+		if (ret == SOCKET_ERROR)
+		{
+			LogErr(L"Could not set receive timeout socket option for socket (%s)", GetLastSysErrorString().c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	const bool Socket::SetReuseAddress(const bool reuse) noexcept
+	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		const int optval = reuse ? 1 : 0;
 
 		const auto ret = setsockopt(m_Socket, SOL_SOCKET, SO_REUSEADDR,
@@ -208,8 +282,10 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SockOptSetLinger(const std::chrono::seconds& seconds) noexcept
+	const bool Socket::SetLinger(const std::chrono::seconds& seconds) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		LINGER lstruct{ 0 };
 
 		if (seconds == 0s)
@@ -236,8 +312,10 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SockOptSetNATTraversal(const bool nat_traversal) noexcept
+	const bool Socket::SetNATTraversal(const bool nat_traversal) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		// Enable NAT traversal (in order to accept connections from the Internet on a LAN)
 		// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/aa832668(v=vs.85).aspx
 		const int pl = nat_traversal ? PROTECTION_LEVEL_UNRESTRICTED : PROTECTION_LEVEL_RESTRICTED;
@@ -255,8 +333,10 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SockOptSetConditionalAccept(const bool cond_accept) noexcept
+	const bool Socket::SetConditionalAccept(const bool cond_accept) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		// Enable conditional accept (in order to check IP access settings before allowing connection)
 		// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/dd264794(v=vs.85).aspx
 		if (cond_accept)
@@ -279,11 +359,13 @@ namespace QuantumGate::Implementation::Network
 
 	const bool Socket::Bind(const IPEndpoint& endpoint, const bool nat_traversal) noexcept
 	{
-		if (!SockOptSetNATTraversal(nat_traversal)) return false;
+		assert(m_Socket != INVALID_SOCKET);
+
+		if (!SetNATTraversal(nat_traversal)) return false;
 
 		sockaddr_storage saddr{ 0 };
 
-		if (SockAddrFill(saddr, endpoint))
+		if (SockAddrSetEndpoint(saddr, endpoint))
 		{
 			// Bind our name to the socket
 			auto ret = bind(m_Socket, reinterpret_cast<sockaddr*>(&saddr), sizeof(sockaddr_storage));
@@ -310,13 +392,15 @@ namespace QuantumGate::Implementation::Network
 	const bool Socket::Listen(const IPEndpoint& endpoint, const bool cond_accept,
 							  const bool nat_traversal) noexcept
 	{
-		if (!SockOptSetConditionalAccept(cond_accept)) return false;
+		assert(m_Socket != INVALID_SOCKET);
 
-		if (!SockOptSetNATTraversal(nat_traversal)) return false;
+		if (!SetConditionalAccept(cond_accept)) return false;
+
+		if (!SetNATTraversal(nat_traversal)) return false;
 
 		sockaddr_storage saddr{ 0 };
 
-		if (SockAddrFill(saddr, endpoint))
+		if (SockAddrSetEndpoint(saddr, endpoint))
 		{
 			// Bind our name to the socket
 			auto ret = bind(m_Socket, reinterpret_cast<sockaddr*>(&saddr), sizeof(sockaddr_storage));
@@ -353,6 +437,8 @@ namespace QuantumGate::Implementation::Network
 
 	const bool Socket::Accept(Socket& s, const bool cond_accept, const LPCONDITIONPROC cond_func, void* cbdata) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		sockaddr_storage addr{ 0 };
 		int addrlen = sizeof(sockaddr_storage);
 		SOCKET as{ INVALID_SOCKET };
@@ -377,9 +463,9 @@ namespace QuantumGate::Implementation::Network
 
 				s.UpdateSocketInfo();
 
-				s.m_OnAcceptCallback();
+				s.m_AcceptCallback();
 
-				return s.m_OnConnectCallback();
+				return s.m_ConnectCallback();
 			}
 		}
 		else
@@ -393,11 +479,13 @@ namespace QuantumGate::Implementation::Network
 
 	const bool Socket::BeginConnect(const IPEndpoint& endpoint) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		m_IOStatus.SetConnecting(false);
 
 		sockaddr_storage saddr{ 0 };
 
-		if (SockAddrFill(saddr, endpoint))
+		if (SockAddrSetEndpoint(saddr, endpoint))
 		{
 			const auto ret = connect(m_Socket, reinterpret_cast<sockaddr*>(&saddr), sizeof(sockaddr_storage));
 			if (ret == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)
@@ -416,7 +504,7 @@ namespace QuantumGate::Implementation::Network
 
 				UpdateSocketInfo();
 
-				m_OnConnectingCallback();
+				m_ConnectingCallback();
 			}
 		}
 
@@ -425,16 +513,20 @@ namespace QuantumGate::Implementation::Network
 
 	const bool Socket::CompleteConnect() noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		m_IOStatus.SetConnecting(false);
 		m_IOStatus.SetConnected(true);
 
 		UpdateSocketInfo();
 
-		return m_OnConnectCallback();
+		return m_ConnectCallback();
 	}
 
 	const bool Socket::Send(Buffer& buffer) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		auto success = false;
 
 		const auto bytessent = send(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()),
@@ -481,10 +573,12 @@ namespace QuantumGate::Implementation::Network
 
 	const bool Socket::SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		auto success = false;
 
 		sockaddr_storage sock_addr{ 0 };
-		if (!SockAddrFill(sock_addr, endpoint))
+		if (!SockAddrSetEndpoint(sock_addr, endpoint))
 		{
 			LogDbg(L"Send error on endpoint %s - SockAddrFill() failed for endpoint %s",
 				   GetLocalName().c_str(), endpoint.GetString().c_str());
@@ -494,7 +588,7 @@ namespace QuantumGate::Implementation::Network
 		auto len = buffer.GetSize();
 
 		// Number of bytes to be sent must not exceed the maximum allowable size supported by socket
-		if (m_Type == SOCK_DGRAM && len > m_MaxDGramMsgSize) return false;
+		if (GetType() == Type::Datagram && len > GetMaxDatagramMessageSize()) return false;
 
 		const auto bytessent = sendto(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()), static_cast<int>(len), 0,
 									  reinterpret_cast<sockaddr*>(&sock_addr), sizeof(sock_addr));
@@ -540,6 +634,8 @@ namespace QuantumGate::Implementation::Network
 
 	const bool Socket::Receive(Buffer& buffer) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		auto success = false;
 
 		auto& rcvbuf = GetReceiveBuffer();
@@ -592,6 +688,8 @@ namespace QuantumGate::Implementation::Network
 
 	const bool Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		auto success = false;
 
 		auto& rcvbuf = GetReceiveBuffer();
@@ -656,45 +754,63 @@ namespace QuantumGate::Implementation::Network
 		return success;
 	}
 
-	const bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
+	const bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds, const UInt8 ioupdate) noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		auto success = false;
 
 		fd_set rset{ 0 }, wset{ 0 }, eset{ 0 };
+		fd_set* rset_ptr{ nullptr };
+		fd_set* wset_ptr{ nullptr };
+		fd_set* eset_ptr{ nullptr };
 
-		FD_ZERO(&rset);
-		FD_ZERO(&wset);
-		FD_ZERO(&eset);
+		if (ioupdate & IOStatusUpdate::Read)
+		{
+			FD_ZERO(&rset);
+			FD_SET(m_Socket, &rset);
+			rset_ptr = &rset;
+		}
 
-		FD_SET(m_Socket, &rset);
-		FD_SET(m_Socket, &wset);
-		FD_SET(m_Socket, &eset);
+		if (ioupdate & IOStatusUpdate::Write)
+		{
+			FD_ZERO(&wset);
+			FD_SET(m_Socket, &wset);
+			wset_ptr = &wset;
+		}
+
+		if (ioupdate & IOStatusUpdate::Exception)
+		{
+			FD_ZERO(&eset);
+			FD_SET(m_Socket, &eset);
+			eset_ptr = &eset;
+		}
 
 		TIMEVAL tval;
 		tval.tv_sec = 0;
-		tval.tv_usec = static_cast<long>(mseconds.count());
+		tval.tv_usec = static_cast<long>(std::chrono::duration_cast<std::chrono::microseconds>(mseconds).count());
 
 		// Get socket status
-		const auto ret = select(0, &rset, &wset, &eset, &tval);
+		const auto ret = select(0, rset_ptr, wset_ptr, eset_ptr, &tval);
 		if (ret == 0)
 		{
 			// Select timed out,
 			// no events on socket
-			m_IOStatus.SetRead(false);
-			m_IOStatus.SetWrite(false);
-			m_IOStatus.SetException(false);
+			if (ioupdate & IOStatusUpdate::Read) m_IOStatus.SetRead(false);
+			if (ioupdate & IOStatusUpdate::Write) m_IOStatus.SetWrite(false);
+			if (ioupdate & IOStatusUpdate::Exception) m_IOStatus.SetException(false);
 
 			success = true;
 		}
 		else if (ret != SOCKET_ERROR)
 		{
-			m_IOStatus.SetRead(FD_ISSET(m_Socket, &rset));
-			m_IOStatus.SetWrite(FD_ISSET(m_Socket, &wset));
+			if (ioupdate & IOStatusUpdate::Read) m_IOStatus.SetRead(FD_ISSET(m_Socket, &rset));
+			if (ioupdate & IOStatusUpdate::Write) m_IOStatus.SetWrite(FD_ISSET(m_Socket, &wset));
 
-			if (FD_ISSET(m_Socket, &eset))
+			if (ioupdate & IOStatusUpdate::Exception && FD_ISSET(m_Socket, &eset))
 			{
 				m_IOStatus.SetException(true);
-				m_IOStatus.SetErrorCode(SockOptGetError(m_Socket));
+				m_IOStatus.SetErrorCode(GetError());
 			}
 
 			success = true;
@@ -735,7 +851,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Socket::SockAddrFill(sockaddr_storage& addr, const IPEndpoint& endpoint) noexcept
+	const bool Socket::SockAddrSetEndpoint(sockaddr_storage& addr, const IPEndpoint& endpoint) noexcept
 	{
 		switch (endpoint.GetIPAddress().GetFamily())
 		{
@@ -771,71 +887,108 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	IPAddressFamily Socket::SockOptGetAddressFamily(const SOCKET s) noexcept
+	IPAddressFamily Socket::GetAddressFamily() const noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		WSAPROTOCOL_INFO info{ 0 };
 		int len = sizeof(WSAPROTOCOL_INFO);
 
-		if (getsockopt(s, SOL_SOCKET, SO_PROTOCOL_INFO, reinterpret_cast<char*>(&info), &len) != SOCKET_ERROR)
+		if (getsockopt(m_Socket, SOL_SOCKET, SO_PROTOCOL_INFO, reinterpret_cast<char*>(&info), &len) != SOCKET_ERROR)
 		{
-			if (info.iAddressFamily == AF_INET) return IPAddressFamily::IPv4;
-			else if (info.iAddressFamily == AF_INET6) return IPAddressFamily::IPv6;
+			switch (info.iAddressFamily)
+			{
+				case AF_INET:
+					return IPAddressFamily::IPv4;
+				case AF_INET6:
+					return IPAddressFamily::IPv6;
+				default:
+					assert(false);
+					break;
+			}
 		}
-		else LogDbg(L"SockOptGetAddressFamily failed (%s)", GetLastSysErrorString().c_str());
+		else LogDbg(L"getsockopt failed for option %d (%s)", SO_PROTOCOL_INFO, GetLastSysErrorString().c_str());
 
 		return IPAddressFamily::Unknown;
 	}
 
-	const int Socket::SockOptGetProtocol(const SOCKET s) noexcept
+	Socket::Protocol Socket::GetProtocol() const noexcept
 	{
+		assert(m_Socket != INVALID_SOCKET);
+
 		WSAPROTOCOL_INFO info{ 0 };
 		int len = sizeof(WSAPROTOCOL_INFO);
 
-		if (getsockopt(s, SOL_SOCKET, SO_PROTOCOL_INFO, reinterpret_cast<char*>(&info), &len) != SOCKET_ERROR)
+		if (getsockopt(m_Socket, SOL_SOCKET, SO_PROTOCOL_INFO, reinterpret_cast<char*>(&info), &len) != SOCKET_ERROR)
 		{
-			return info.iProtocol;
+			switch (info.iProtocol)
+			{
+				case IPPROTO_TCP:
+					return Protocol::TCP;
+				case IPPROTO_UDP:
+					return Protocol::UDP;
+				case IPPROTO_ICMP:
+					return Protocol::ICMP;
+				case 0:
+					break;
+				default:
+					assert(false);
+					break;
+			}
 		}
-		else LogDbg(L"SockOptGetProtocol failed (%s)", GetLastSysErrorString().c_str());
+		else LogDbg(L"getsockopt failed for option %d (%s)", SO_PROTOCOL_INFO, GetLastSysErrorString().c_str());
 
-		return SOCKET_ERROR;
+		return Protocol::Unknown;
 	}
 
-	const int Socket::SockOptGetType(const SOCKET s) noexcept
+	Socket::Type Socket::GetType() const noexcept
 	{
-		return SockOptGetInt(s, SO_TYPE);
+		assert(m_Socket != INVALID_SOCKET);
+
+		switch (GetSockOptInt(SO_TYPE))
+		{
+			case SOCK_STREAM:
+				return Type::Stream;
+			case SOCK_DGRAM:
+				return Type::Datagram;
+			case SOCK_RAW:
+				return Type::RAW;
+			default:
+				assert(false);
+				break;
+		}
+
+		return Type::Unknown;
 	}
 
-	const int Socket::SockOptGetMaxDGramMsgSize(const SOCKET s) noexcept
+	Size Socket::GetMaxDatagramMessageSize() const noexcept
 	{
-		return SockOptGetInt(s, SO_MAX_MSG_SIZE);
+		return GetSockOptInt(SO_MAX_MSG_SIZE);
 	}
 
-	const int Socket::SockOptGetSendBufferSize(const SOCKET s) noexcept
+	Size Socket::GetSendBufferSize() const noexcept
 	{
-		return SockOptGetInt(s, SO_SNDBUF);
+		return GetSockOptInt(SO_SNDBUF);
 	}
 
-	const int Socket::SockOptGetReceiveBufferSize(const SOCKET s) noexcept
+	Size Socket::GetReceiveBufferSize() const noexcept
 	{
-		return SockOptGetInt(s, SO_RCVBUF);
+		return GetSockOptInt(SO_RCVBUF);
 	}
 
-	const int Socket::SockOptGetExclusiveAddressUse(const SOCKET s) noexcept
+	int Socket::GetError() const noexcept
 	{
-		return SockOptGetInt(s, SO_EXCLUSIVEADDRUSE);
+		return GetSockOptInt(SO_ERROR);
 	}
 
-	const int Socket::SockOptGetError(const SOCKET s) noexcept
+	int Socket::GetSockOptInt(const int optname) const noexcept
 	{
-		return SockOptGetInt(s, SO_ERROR);
-	}
+		assert(m_Socket != INVALID_SOCKET);
 
-	const int Socket::SockOptGetInt(const SOCKET s, const int optname) noexcept
-	{
 		int error = 0;
 		int len = sizeof(int);
 
-		if (getsockopt(s, SOL_SOCKET, optname, reinterpret_cast<char*>(&error), &len) != SOCKET_ERROR)
+		if (getsockopt(m_Socket, SOL_SOCKET, optname, reinterpret_cast<char*>(&error), &len) != SOCKET_ERROR)
 		{
 			return error;
 		}

@@ -595,8 +595,10 @@
     <ClInclude Include="Memory\ProtectedAllocator.h" />
     <ClInclude Include="Module.h" />
     <ClInclude Include="Network\BinaryIPAddress.h" />
+    <ClInclude Include="Network\IP.h" />
     <ClInclude Include="Network\IPAddress.h" />
     <ClInclude Include="Network\IPEndpoint.h" />
+    <ClInclude Include="Network\Ping.h" />
     <ClInclude Include="Network\Socket.h" />
     <ClInclude Include="Network\SocketBase.h" />
     <ClInclude Include="Network\SocketIOStatus.h" />
@@ -687,6 +689,7 @@
     <ClCompile Include="Network\BinaryIPAddress.cpp" />
     <ClCompile Include="Network\IPAddress.cpp" />
     <ClCompile Include="Network\IPEndpoint.cpp" />
+    <ClCompile Include="Network\Ping.cpp" />
     <ClCompile Include="Network\Socket.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

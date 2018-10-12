@@ -33,8 +33,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	Peer::Peer(Manager& peers, const IPAddressFamily af, const Int32 type,
-			   const Int32 protocol, const PeerConnectionType pctype,
+	Peer::Peer(Manager& peers, const IPAddressFamily af, const Network::Socket::Type type,
+			   const Network::Socket::Protocol protocol, const PeerConnectionType pctype,
 			   std::optional<ProtectedBuffer>&& shared_secret) :
 		Gate(af, type, protocol), m_PeerManager(peers)
 	{

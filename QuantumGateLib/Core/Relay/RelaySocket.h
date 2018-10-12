@@ -38,7 +38,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		void Close(const bool linger = false) noexcept override;
 
 		inline const Network::SocketIOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
-		[[nodiscard]] const bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept override;
+		[[nodiscard]] const bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
+												const UInt8 ioupdate = IOStatusUpdate::All) noexcept override;
 
 		const SystemTime GetConnectedTime() const noexcept override;
 		inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
@@ -55,24 +56,24 @@ namespace QuantumGate::Implementation::Core::Relay
 		inline const UInt32 GetPeerPort() const noexcept override { return m_PeerEndpoint.GetPort(); }
 		inline const String GetPeerName() const noexcept override { return m_PeerEndpoint.GetString(); }
 
-		inline void SetOnConnectingCallback(Network::SocketOnConnectingCallback&& callback) noexcept override
+		inline void SetConnectingCallback(Network::SocketConnectingCallback&& callback) noexcept override
 		{
-			m_OnConnectingCallback = std::move(callback);
+			m_ConnectingCallback = std::move(callback);
 		}
 
-		inline void SetOnAcceptCallback(Network::SocketOnAcceptCallback&& callback) noexcept override
+		inline void SetAcceptCallback(Network::SocketAcceptCallback&& callback) noexcept override
 		{
-			m_OnAcceptCallback = std::move(callback);
+			m_AcceptCallback = std::move(callback);
 		}
 
-		inline void SetOnConnectCallback(Network::SocketOnConnectCallback&& callback) noexcept override
+		inline void SetConnectCallback(Network::SocketConnectCallback&& callback) noexcept override
 		{
-			m_OnConnectCallback = std::move(callback);
+			m_ConnectCallback = std::move(callback);
 		}
 
-		inline void SetOnCloseCallback(Network::SocketOnCloseCallback&& callback) noexcept override
+		inline void SetCloseCallback(Network::SocketCloseCallback&& callback) noexcept override
 		{
-			m_OnCloseCallback = std::move(callback);
+			m_CloseCallback = std::move(callback);
 		}
 
 	private:
@@ -105,9 +106,9 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		RelayDataQueue m_ReceiveQueue;
 
-		Network::SocketOnConnectingCallback m_OnConnectingCallback{ []() noexcept {} };
-		Network::SocketOnAcceptCallback m_OnAcceptCallback{ []() noexcept {} };
-		Network::SocketOnConnectCallback m_OnConnectCallback{ []() noexcept -> const bool { return true; } };
-		Network::SocketOnCloseCallback m_OnCloseCallback{ []() noexcept {} };
+		Network::SocketConnectingCallback m_ConnectingCallback{ []() noexcept {} };
+		Network::SocketAcceptCallback m_AcceptCallback{ []() noexcept {} };
+		Network::SocketConnectCallback m_ConnectCallback{ []() noexcept -> const bool { return true; } };
+		Network::SocketCloseCallback m_CloseCallback{ []() noexcept {} };
 	};
 }

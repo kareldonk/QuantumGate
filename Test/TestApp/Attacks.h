@@ -11,7 +11,8 @@ using namespace QuantumGate;
 class AttackSocket : public QuantumGate::Implementation::Network::Socket
 {
 public:
-	AttackSocket(const IPAddressFamily af, const Int32 type, const Int32 protocol) noexcept :
+	AttackSocket(const IPAddressFamily af, const Type type,
+				 const Protocol protocol) noexcept :
 		Socket(af, type, protocol)
 	{}
 

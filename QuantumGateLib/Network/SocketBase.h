@@ -9,14 +9,22 @@
 
 namespace QuantumGate::Implementation::Network
 {
-	using SocketOnConnectingCallback = Callback<void(void) noexcept>;
-	using SocketOnAcceptCallback = Callback<void(void) noexcept>;
-	using SocketOnConnectCallback = Callback<const bool(void) noexcept>;
-	using SocketOnCloseCallback = Callback<void(void) noexcept>;
+	using SocketConnectingCallback = Callback<void(void) noexcept>;
+	using SocketAcceptCallback = Callback<void(void) noexcept>;
+	using SocketConnectCallback = Callback<const bool(void) noexcept>;
+	using SocketCloseCallback = Callback<void(void) noexcept>;
 
 	class Export SocketBase
 	{
 	public:
+		struct IOStatusUpdate
+		{
+			static constexpr UInt8 Read{ 0b00000001 };
+			static constexpr UInt8 Write{ 0b00000010 };
+			static constexpr UInt8 Exception{ 0b00000100 };
+			static constexpr UInt8 All{ 0b11111111 };
+		};
+
 		SocketBase() = default;
 		SocketBase(const SocketBase&) = default;
 		SocketBase(SocketBase&&) = default;
@@ -33,7 +41,8 @@ namespace QuantumGate::Implementation::Network
 		virtual void Close(const bool linger = false) noexcept = 0;
 
 		virtual const SocketIOStatus& GetIOStatus() const noexcept = 0;
-		virtual const bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept = 0;
+		virtual const bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
+										  const UInt8 ioupdate = IOStatusUpdate::All) noexcept = 0;
 
 		virtual const SystemTime GetConnectedTime() const noexcept = 0;
 		virtual const SteadyTime& GetConnectedSteadyTime() const noexcept = 0;
@@ -50,9 +59,9 @@ namespace QuantumGate::Implementation::Network
 		virtual const UInt32 GetPeerPort() const noexcept = 0;
 		virtual const String GetPeerName() const noexcept = 0;
 
-		virtual void SetOnConnectingCallback(SocketOnConnectingCallback&& callback) noexcept = 0;
-		virtual void SetOnAcceptCallback(SocketOnAcceptCallback&& callback) noexcept = 0;
-		virtual void SetOnConnectCallback(SocketOnConnectCallback&& callback) noexcept = 0;
-		virtual void SetOnCloseCallback(SocketOnCloseCallback&& callback) noexcept = 0;
+		virtual void SetConnectingCallback(SocketConnectingCallback&& callback) noexcept = 0;
+		virtual void SetAcceptCallback(SocketAcceptCallback&& callback) noexcept = 0;
+		virtual void SetConnectCallback(SocketConnectCallback&& callback) noexcept = 0;
+		virtual void SetCloseCallback(SocketCloseCallback&& callback) noexcept = 0;
 	};
 }

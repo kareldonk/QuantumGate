@@ -5,6 +5,7 @@
 #include "PublicIPEndpoints.h"
 #include "..\Common\ScopeGuard.h"
 #include "..\Crypto\Crypto.h"
+#include "..\Common\Endian.h"
 
 using namespace std::literals;
 
@@ -92,7 +93,9 @@ namespace QuantumGate::Implementation::Core
 				m_ThreadPool.GetData().Port = static_cast<UInt16>(Util::GetPseudoRandomNumber(49152, 65535));
 
 				auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), m_ThreadPool.GetData().Port);
-				socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), SOCK_DGRAM, IPPROTO_UDP);
+				socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
+										 Network::Socket::Type::Datagram,
+										 Network::Socket::Protocol::UDP);
 
 				if (socket.Bind(endpoint, nat_traversal))
 				{
@@ -115,7 +118,9 @@ namespace QuantumGate::Implementation::Core
 		m_ThreadPool.GetData().IPv6UDPSocket.WithUniqueLock([&](Network::Socket& socket)
 		{
 			auto endpoint = IPEndpoint(IPAddress::AnyIPv6(), m_ThreadPool.GetData().Port);
-			socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), SOCK_DGRAM, IPPROTO_UDP);
+			socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
+									 Network::Socket::Type::Datagram,
+									 Network::Socket::Protocol::UDP);
 
 			if (!socket.Bind(endpoint, nat_traversal))
 			{
@@ -169,14 +174,23 @@ namespace QuantumGate::Implementation::Core
 
 						if (socket.ReceiveFrom(sender_endpoint, buffer))
 						{
-							num = *reinterpret_cast<UInt64*>(buffer.GetBytes());
+							// Message should only contain a 64-bit number (8 bytes)
+							if (buffer.GetSize() == sizeof(UInt64))
+							{
+								num = Endian::FromNetworkByteOrder(*reinterpret_cast<UInt64*>(buffer.GetBytes()));
 
-							LogInfo(L"Received public IP address verification (%llu) for endpoint %s",
-									num.value(), sender_endpoint.GetString().c_str());
+								LogInfo(L"Received public IP address verification (%llu) from endpoint %s",
+										num.value(), sender_endpoint.GetString().c_str());
+							}
+							else
+							{
+								LogWarn(L"Received invalid public IP address verification from endpoint %s",
+										sender_endpoint.GetString().c_str());
+							}
 						}
 						else
 						{
-							LogWarn(L"Failed to receive public IP address verification for endpoint %s; the port may not be open",
+							LogWarn(L"Failed to receive public IP address verification from endpoint %s; the port may not be open",
 									sender_endpoint.GetString().c_str());
 						}
 					});
@@ -198,7 +212,7 @@ namespace QuantumGate::Implementation::Core
 									}
 									else
 									{
-										LogErr(L"Couldn't verify IP address %s; IP address not found in public endpoints",
+										LogErr(L"Failed to verify IP address %s; IP address not found in public endpoints",
 											   IPAddress(it->second.IPAddress).GetString().c_str());
 									}
 								});
@@ -348,7 +362,8 @@ namespace QuantumGate::Implementation::Core
 
 			LogInfo(L"Sending IP address verification (%llu) to endpoint %s", num, endpoint.GetString().c_str());
 
-			Buffer snd_buf(reinterpret_cast<const Byte*>(&num), sizeof(num));
+			const UInt64 num_nbo = Endian::ToNetworkByteOrder(num);
+			Buffer snd_buf(reinterpret_cast<const Byte*>(&num_nbo), sizeof(num_nbo));
 
 			if (socket_ths->WithUniqueLock()->SendTo(endpoint, snd_buf))
 			{
@@ -385,9 +400,9 @@ namespace QuantumGate::Implementation::Core
 			pub_endpoint.GetIPAddress().GetFamily() == rep_peer.GetIPAddress().GetFamily())
 		{
 			// Should be in public network address range
-			if (!pub_endpoint.GetIPAddress().IsLocal() &&
-				!pub_endpoint.GetIPAddress().IsMulticast() &&
-				!pub_endpoint.GetIPAddress().IsReserved())
+			//if (!pub_endpoint.GetIPAddress().IsLocal() &&
+			//	!pub_endpoint.GetIPAddress().IsMulticast() &&
+			//	!pub_endpoint.GetIPAddress().IsReserved())
 			{
 				BinaryIPAddress network;
 				const auto cidr = (rep_peer.GetIPAddress().GetFamily() == IPAddressFamily::IPv4) ?

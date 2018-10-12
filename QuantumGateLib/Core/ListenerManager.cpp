@@ -143,7 +143,9 @@ namespace QuantumGate::Implementation::Core::Listener
 				ltd.UseConditionalAcceptFunction = cond_accept;
 
 				// Create and start the listenersocket
-				ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), SOCK_STREAM, IPPROTO_TCP);
+				ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
+											 Network::Socket::Type::Stream,
+											 Network::Socket::Protocol::TCP);
 
 				if (ltd.Socket.Listen(endpoint, true, nat_traversal))
 				{

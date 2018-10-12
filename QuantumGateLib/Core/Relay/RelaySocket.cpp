@@ -28,7 +28,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		m_PeerEndpoint = IPEndpoint(pendpoint.GetIPAddress(),
 									pendpoint.GetPort(), rport, hop);
 
-		m_OnAcceptCallback();
+		m_AcceptCallback();
 
 		return true;
 	}
@@ -42,7 +42,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
 
-		return m_OnConnectCallback();
+		return m_ConnectCallback();
 	}
 
 	const bool Socket::BeginConnect(const IPEndpoint& endpoint) noexcept
@@ -55,7 +55,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		// a connection has been established
 		m_PeerEndpoint = endpoint;
 
-		m_OnConnectingCallback();
+		m_ConnectingCallback();
 
 		return true;
 	}
@@ -69,7 +69,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
 
-		return m_OnConnectCallback();
+		return m_ConnectCallback();
 	}
 
 	void Socket::SetLocalEndpoint(const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept
@@ -159,12 +159,12 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		assert(m_IOStatus.IsOpen());
 
-		m_OnCloseCallback();
+		m_CloseCallback();
 
 		m_IOStatus.Reset();
 	}
 
-	const bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
+	const bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds, const UInt8 ioupdate) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
 

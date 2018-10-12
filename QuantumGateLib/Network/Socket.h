@@ -10,9 +10,25 @@ namespace QuantumGate::Implementation::Network
 	class Export Socket : public SocketBase
 	{
 	public:
+		enum class Type
+		{
+			Unknown,
+			Stream,
+			Datagram,
+			RAW
+		};
+
+		enum class Protocol
+		{
+			Unknown,
+			TCP,
+			UDP,
+			ICMP
+		};
+
 		Socket() noexcept;
 		Socket(const SOCKET s) noexcept;
-		Socket(const IPAddressFamily af, const Int32 type, const Int32 protocol) noexcept;
+		Socket(const IPAddressFamily af, const Type type, const Protocol protocol) noexcept;
 		Socket(const Socket&) = delete;
 		Socket(Socket&& other) noexcept;
 		virtual ~Socket();
@@ -38,7 +54,8 @@ namespace QuantumGate::Implementation::Network
 		void Close(const bool linger = false) noexcept override;
 
 		inline const SocketIOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
-		[[nodiscard]] const bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept override;
+		[[nodiscard]] const bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
+												const UInt8 ioupdate = IOStatusUpdate::All) noexcept override;
 
 		const SystemTime GetConnectedTime() const noexcept override;
 		inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
@@ -55,40 +72,52 @@ namespace QuantumGate::Implementation::Network
 		inline const UInt32 GetPeerPort() const noexcept override { return m_PeerEndpoint.GetPort(); }
 		inline const String GetPeerName() const noexcept override { return m_PeerEndpoint.GetString(); }
 
-		inline void SetOnConnectingCallback(SocketOnConnectingCallback&& callback) noexcept override
+
+		[[nodiscard]] const bool SetBlockingMode(const bool blocking) noexcept;
+
+		[[nodiscard]] const bool SetExclusiveAddressUse(const bool exclusive) noexcept;
+		[[nodiscard]] const bool GetExclusiveAddressUse() const noexcept;
+
+		[[nodiscard]] const bool SetSendTimeout(const std::chrono::milliseconds& milliseconds) noexcept;
+		[[nodiscard]] const bool SetReceiveTimeout(const std::chrono::milliseconds& milliseconds) noexcept;
+
+		[[nodiscard]] const bool SetReuseAddress(const bool reuse) noexcept;
+		[[nodiscard]] const bool SetLinger(const std::chrono::seconds& seconds) noexcept;
+		[[nodiscard]] const bool SetNATTraversal(const bool nat_traversal) noexcept;
+		[[nodiscard]] const bool SetConditionalAccept(const bool cond_accept) noexcept;
+
+		IPAddressFamily GetAddressFamily() const noexcept;
+		Type GetType() const noexcept;
+		Protocol GetProtocol() const noexcept;
+
+		Size GetMaxDatagramMessageSize() const noexcept;
+		Size GetSendBufferSize() const noexcept;
+		Size GetReceiveBufferSize() const noexcept;
+		
+		inline void SetConnectingCallback(SocketConnectingCallback&& callback) noexcept override
 		{
-			m_OnConnectingCallback = std::move(callback);
+			m_ConnectingCallback = std::move(callback);
 		}
 
-		inline void SetOnAcceptCallback(SocketOnAcceptCallback&& callback) noexcept override
+		inline void SetAcceptCallback(SocketAcceptCallback&& callback) noexcept override
 		{
-			m_OnAcceptCallback = std::move(callback);
+			m_AcceptCallback = std::move(callback);
 		}
 
-		inline void SetOnConnectCallback(SocketOnConnectCallback&& callback) noexcept override
+		inline void SetConnectCallback(SocketConnectCallback&& callback) noexcept override
 		{
-			m_OnConnectCallback = std::move(callback);
+			m_ConnectCallback = std::move(callback);
 		}
 
-		inline void SetOnCloseCallback(SocketOnCloseCallback&& callback) noexcept override
+		inline void SetCloseCallback(SocketCloseCallback&& callback) noexcept override
 		{
-			m_OnCloseCallback = std::move(callback);
+			m_CloseCallback = std::move(callback);
 		}
 
-		[[nodiscard]] static const bool SockAddrFill(sockaddr_storage& addr, const IPEndpoint& endpoint) noexcept;
+		[[nodiscard]] static const bool SockAddrSetEndpoint(sockaddr_storage& addr, const IPEndpoint& endpoint) noexcept;
 		[[nodiscard]] static const bool SockAddrGetIPEndpoint(const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept;
 
-		static IPAddressFamily SockOptGetAddressFamily(const SOCKET s) noexcept;
-		static const int SockOptGetProtocol(const SOCKET s) noexcept;
-		static const int SockOptGetType(const SOCKET s) noexcept;
-		static const int SockOptGetMaxDGramMsgSize(const SOCKET s) noexcept;
-		static const int SockOptGetSendBufferSize(const SOCKET s) noexcept;
-		static const int SockOptGetReceiveBufferSize(const SOCKET s) noexcept;
-		static const int SockOptGetExclusiveAddressUse(const SOCKET s) noexcept;
-		static const int SockOptGetError(const SOCKET s) noexcept;
-		static const int SockOptGetInt(const SOCKET s, const int optname) noexcept;
-
-		static constexpr std::chrono::seconds LingerTime{ 10 };
+		static constexpr std::chrono::seconds DefaultLingerTime{ 10 };
 		static constexpr Size ReadWriteBufferSize{ 65'535 }; //64Kb
 
 	protected:
@@ -101,12 +130,8 @@ namespace QuantumGate::Implementation::Network
 
 		Buffer& GetReceiveBuffer() const noexcept;
 
-		[[nodiscard]] const bool SockOptSetBlockingMode(const bool blocking) noexcept;
-		[[nodiscard]] const bool SockOptSetExclusiveAddressUse(const bool exclusive) noexcept;
-		[[nodiscard]] const bool SockOptSetReuseAddress(const bool reuse) noexcept;
-		[[nodiscard]] const bool SockOptSetLinger(const std::chrono::seconds& seconds) noexcept;
-		[[nodiscard]] const bool SockOptSetNATTraversal(const bool nat_traversal) noexcept;
-		[[nodiscard]] const bool SockOptSetConditionalAccept(const bool cond_accept) noexcept;
+		int GetError() const noexcept;
+		int GetSockOptInt(const int optname) const noexcept;
 
 	private:
 		SOCKET m_Socket{ INVALID_SOCKET };
@@ -117,16 +142,12 @@ namespace QuantumGate::Implementation::Network
 
 		IPEndpoint m_LocalEndpoint;
 		IPEndpoint m_PeerEndpoint;
-		IPAddressFamily m_AddressFamily{ IPAddressFamily::Unknown };
-		Int32 m_Protocol{ 0 };
-		Int32 m_Type{ 0 };
-		Size m_MaxDGramMsgSize{ 0 };
 
 		SteadyTime m_ConnectedSteadyTime;
 
-		SocketOnConnectingCallback m_OnConnectingCallback{ []() noexcept {} };
-		SocketOnAcceptCallback m_OnAcceptCallback{ []() noexcept {} };
-		SocketOnConnectCallback m_OnConnectCallback{ []() noexcept -> const bool { return true; } };
-		SocketOnCloseCallback m_OnCloseCallback{ []() noexcept {} };
+		SocketConnectingCallback m_ConnectingCallback{ []() noexcept {} };
+		SocketAcceptCallback m_AcceptCallback{ []() noexcept {} };
+		SocketConnectCallback m_ConnectCallback{ []() noexcept -> const bool { return true; } };
+		SocketCloseCallback m_CloseCallback{ []() noexcept {} };
 	};
 }

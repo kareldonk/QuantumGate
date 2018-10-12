@@ -242,7 +242,8 @@ namespace QuantumGate::Socks5Extender
 
 		auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), 9090);
 		m_Listener.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
-											SOCK_STREAM, IPPROTO_TCP);
+											Network::Socket::Type::Stream,
+											Network::Socket::Protocol::TCP);
 		if (m_Listener.Socket.Listen(endpoint, false, false))
 		{
 			LogInfo(GetName() + L": listening on endpoint %s", endpoint.GetString().c_str());

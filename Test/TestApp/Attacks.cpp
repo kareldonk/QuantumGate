@@ -45,7 +45,7 @@ void Attacks::ConnectGarbageThreadProc(const CString ip, const UInt16 port)
 	while (!m_ConnectGarbageData.Stop)
 	{
 		IPEndpoint endpoint(IPAddress((LPCWSTR)ip), port);
-		AttackSocket socket(endpoint.GetIPAddress().GetFamily(), SOCK_STREAM, IPPROTO_TCP);
+		AttackSocket socket(endpoint.GetIPAddress().GetFamily(), AttackSocket::Type::Stream, AttackSocket::Protocol::TCP);
 
 		if (socket.BeginConnect(endpoint))
 		{
@@ -137,7 +137,7 @@ void Attacks::ConnectThreadProc(const CString ip, const UInt16 port)
 	while (!m_ConnectData.Stop)
 	{
 		IPEndpoint endpoint(IPAddress((LPCWSTR)ip), port);
-		AttackSocket socket(endpoint.GetIPAddress().GetFamily(), SOCK_STREAM, IPPROTO_TCP);
+		AttackSocket socket(endpoint.GetIPAddress().GetFamily(), AttackSocket::Type::Stream, AttackSocket::Protocol::TCP);
 
 		if (socket.BeginConnect(endpoint))
 		{
@@ -215,7 +215,7 @@ void Attacks::ConnectWaitThreadProc(const CString ip, const UInt16 port)
 	while (!m_ConnectWaitData.Stop)
 	{
 		IPEndpoint endpoint(IPAddress((LPCWSTR)ip), port);
-		AttackSocket socket(endpoint.GetIPAddress().GetFamily(), SOCK_STREAM, IPPROTO_TCP);
+		AttackSocket socket(endpoint.GetIPAddress().GetFamily(), AttackSocket::Type::Stream, AttackSocket::Protocol::TCP);
 
 		if (socket.BeginConnect(endpoint))
 		{

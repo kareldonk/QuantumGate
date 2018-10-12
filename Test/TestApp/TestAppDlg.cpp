@@ -8,6 +8,7 @@
 #include "Common\Util.h"
 #include "Crypto\Crypto.h"
 #include "Common\Endian.h"
+#include "Network\Ping.h"
 
 #include "Benchmarks.h"
 #include "Attacks.h"
@@ -166,6 +167,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_UPDATE_COMMAND_UI(ID_ATTACKS_CONNECTANDDISCONNECT, &CTestAppDlg::OnUpdateAttacksConnectAndDisconnect)
 	ON_UPDATE_COMMAND_UI(ID_ATTACKS_CONNECTANDWAIT, &CTestAppDlg::OnUpdateAttacksConnectAndWait)
 	ON_COMMAND(ID_LOCAL_ENVIRONMENTINFO, &CTestAppDlg::OnLocalEnvironmentInfo)
+	ON_COMMAND(ID_UTILS_PING, &CTestAppDlg::OnUtilsPing)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlg::OnInitDialog()
@@ -1553,4 +1555,10 @@ void CTestAppDlg::OnLocalEnvironmentInfo()
 	dlg.SetWindowTitle(L"Local Environment Information");
 	dlg.SetInformationText(info.data());
 	dlg.DoModal();
+}
+
+void CTestAppDlg::OnUtilsPing()
+{
+	Network::Ping ping(IPAddress(L"192.168.1.111"), 3);
+	ping.Process();
 }

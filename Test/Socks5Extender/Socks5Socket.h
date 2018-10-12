@@ -13,7 +13,9 @@ namespace QuantumGate::Socks5Extender
 		Socket() noexcept : QuantumGate::Implementation::Network::Socket() {}
 
 		Socket(const IPAddressFamily af) noexcept :
-			QuantumGate::Implementation::Network::Socket(af, SOCK_STREAM, IPPROTO_TCP)
+			QuantumGate::Implementation::Network::Socket(af,
+														 QuantumGate::Implementation::Network::Socket::Type::Stream,
+														 QuantumGate::Implementation::Network::Socket::Protocol::TCP)
 		{}
 
 		using QuantumGate::Implementation::Network::Socket::Send;
