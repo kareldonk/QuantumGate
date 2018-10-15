@@ -120,13 +120,6 @@ namespace QuantumGate
 	using PeerUUID = UUID;
 	using ExtenderUUID = UUID;
 
-	enum class IPAddressFamily : UInt8
-	{
-		Unknown = 0,
-		IPv4 = 1,
-		IPv6 = 2
-	};
-
 	using RelayPort = UInt64;
 	using RelayHop = UInt8;
 }
@@ -141,6 +134,7 @@ namespace QuantumGate
 {
 	using IPAddress = Implementation::Network::IPAddress;
 	using BinaryIPAddress = Implementation::Network::BinaryIPAddress;
+
 	using IPEndpoint = Implementation::Network::IPEndpoint;
 
 	using IPFilterID = UInt64;
@@ -160,7 +154,7 @@ namespace QuantumGate
 
 	struct IPSubnetLimit
 	{
-		IPAddressFamily AddressFamily{ IPAddressFamily::Unknown };
+		IPAddress::Family AddressFamily{ IPAddress::Family::Unspecified };
 		String CIDRLeadingBits;
 		Size MaximumConnections{ 0 };
 	};

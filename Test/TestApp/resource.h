@@ -20,6 +20,7 @@
 #define IDD_SETTINGS                    154
 #define IDD_IPREPUTATIONS_DIALOG        156
 #define IDD_INFO_DIALOG                 158
+#define IDD_PING_DIALOG                 160
 #define IDC_INIT                        1000
 #define IDC_CONSOLE                     1001
 #define IDC_DEINIT                      1002
@@ -106,7 +107,9 @@
 #define IDC_USERNAME                    1035
 #define IDC_PASSWORD                    1036
 #define IDC_IPSUBNETLIMIT_LIST          1037
+#define IDC_TTL                         1037
 #define IDC_REMOVELIMIT                 1038
+#define IDC_TIMEOUT                     1038
 #define IDC_MAX_CONNECTIONS             1039
 #define IDC_ADDLIMIT                    1040
 #define IDC_CIDR                        1041
@@ -150,6 +153,7 @@
 #define IDC_EDIT1                       1069
 #define IDC_INFO_TEXT                   1069
 #define IDC_CHECK9                      1070
+#define IDC_BUFFER_SIZE                 1070
 #define IDC_CHECK10                     1071
 #define IDC_CHECK11                     1072
 #define IDC_CHECK12                     1073
@@ -246,9 +250,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        160
+#define _APS_NEXT_RESOURCE_VALUE        162
 #define _APS_NEXT_COMMAND_VALUE         32849
-#define _APS_NEXT_CONTROL_VALUE         1070
+#define _APS_NEXT_CONTROL_VALUE         1071
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

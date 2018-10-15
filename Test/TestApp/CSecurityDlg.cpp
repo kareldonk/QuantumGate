@@ -12,16 +12,16 @@ CSecurityDlg::~CSecurityDlg()
 
 void CSecurityDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialogEx::DoDataExchange(pDX);
+	CDialogBase::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CSecurityDlg, CDialogEx)
+BEGIN_MESSAGE_MAP(CSecurityDlg, CDialogBase)
 	ON_BN_CLICKED(IDOK, &CSecurityDlg::OnBnClickedOk)
 END_MESSAGE_MAP()
 
 BOOL CSecurityDlg::OnInitDialog()
 {
-	CDialogEx::OnInitDialog();
+	CDialogBase::OnInitDialog();
 
 	assert(m_QuantumGate != nullptr);
 
@@ -109,5 +109,5 @@ void CSecurityDlg::OnBnClickedOk()
 		return;
 	}
 
-	CDialogEx::OnOK();
+	CDialogBase::OnOK();
 }

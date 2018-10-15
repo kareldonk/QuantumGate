@@ -245,7 +245,7 @@ namespace QuantumGate::Implementation::Concurrency
 			try
 			{
 				threadctrl.ShutdownEvent->Reset();
-				
+
 				if (threadctrl.ThreadEvent != nullptr && event_reset)
 				{
 					threadctrl.ThreadEvent->Reset();

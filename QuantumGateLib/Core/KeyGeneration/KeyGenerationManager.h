@@ -29,7 +29,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		Manager(const Settings_CThS& settings) noexcept;
 		Manager(const Manager&) = delete;
 		Manager(Manager&&) = default;
-		~Manager() = default;
+		~Manager() { if (IsRunning()) Shutdown(); }
 		Manager& operator=(const Manager&) = delete;
 		Manager& operator=(Manager&&) = default;
 

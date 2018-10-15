@@ -13,7 +13,7 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	class Manager
+	class Manager final
 	{
 		friend class Peer;
 		friend class Relay::Manager;
@@ -50,7 +50,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				Extender::Manager& extenders) noexcept;
 		Manager(const Manager&) = delete;
 		Manager(Manager&&) = default;
-		virtual ~Manager() = default;
+		~Manager() { if (IsRunning()) Shutdown(); }
 		Manager& operator=(const Manager&) = delete;
 		Manager& operator=(Manager&&) = default;
 
@@ -58,10 +58,11 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		const bool Startup() noexcept;
 		void Shutdown() noexcept;
+		[[nodiscard]] inline const bool IsRunning() const noexcept { return m_Running; }
 
 		const bool StartupRelays() noexcept;
 		const void ShutdownRelays() noexcept;
-		const bool AreRelaysRunning() const noexcept { return m_RelayManager.IsRunning(); }
+		[[nodiscard]] inline const bool AreRelaysRunning() const noexcept { return m_RelayManager.IsRunning(); }
 
 		std::shared_ptr<Peer_ThS> Get(const PeerLUID pluid) const noexcept;
 
@@ -101,8 +102,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		inline KeyGeneration::Manager& GetKeyGenerationManager() const noexcept { return m_KeyGenerationManager; }
 		inline Extender::Manager& GetExtenderManager() const noexcept { return m_ExtenderManager; }
 
-		std::shared_ptr<Peer_ThS> Create(const IPAddressFamily af, const Network::Socket::Type type,
-										 const Network::Socket::Protocol protocol, const PeerConnectionType pctype,
+		std::shared_ptr<Peer_ThS> Create(const IP::AddressFamily af, const Socket::Type type,
+										 const IP::Protocol protocol, const PeerConnectionType pctype,
 										 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
 		inline Relay::Manager& GetRelayManager() noexcept { return m_RelayManager; }

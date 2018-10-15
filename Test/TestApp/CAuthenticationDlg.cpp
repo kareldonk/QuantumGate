@@ -13,16 +13,16 @@ CAuthenticationDlg::~CAuthenticationDlg()
 
 void CAuthenticationDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialogEx::DoDataExchange(pDX);
+	CDialogBase::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CAuthenticationDlg, CDialogEx)
+BEGIN_MESSAGE_MAP(CAuthenticationDlg, CDialogBase)
 	ON_BN_CLICKED(IDOK, &CAuthenticationDlg::OnBnClickedOk)
 END_MESSAGE_MAP()
 
 BOOL CAuthenticationDlg::OnInitDialog()
 {
-	CDialogEx::OnInitDialog();
+	CDialogBase::OnInitDialog();
 
 	SetValue(IDC_USERNAME, m_Username);
 	SetValue(IDC_PASSWORD, m_Password);
@@ -35,5 +35,5 @@ void CAuthenticationDlg::OnBnClickedOk()
 	m_Username = GetTextValue(IDC_USERNAME);
 	m_Password = GetTextValue(IDC_PASSWORD);
 
-	CDialogEx::OnOK();
+	CDialogBase::OnOK();
 }

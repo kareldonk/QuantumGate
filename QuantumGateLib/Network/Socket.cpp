@@ -14,7 +14,7 @@ namespace QuantumGate::Implementation::Network
 	Socket::Socket() noexcept
 	{}
 
-	Socket::Socket(const IPAddressFamily af, const Type type, const Protocol protocol) noexcept
+	Socket::Socket(const IP::AddressFamily af, const Type type, const IP::Protocol protocol)
 	{
 		int saf{ 0 };
 		int stype{ 0 };
@@ -22,14 +22,14 @@ namespace QuantumGate::Implementation::Network
 
 		switch (af)
 		{
-			case IPAddressFamily::IPv4:
+			case IP::AddressFamily::IPv4:
 				saf = AF_INET;
 				break;
-			case IPAddressFamily::IPv6:
+			case IP::AddressFamily::IPv6:
 				saf = AF_INET6;
 				break;
 			default:
-				LogErr(L"Couldn't create socket - Unsupported address family %d", af);
+				throw SocketException("Unsupported address family");
 				assert(false);
 				return;
 		}
@@ -46,24 +46,27 @@ namespace QuantumGate::Implementation::Network
 				stype = SOCK_RAW;
 				break;
 			default:
-				LogErr(L"Couldn't create socket - Unsupported socket type %d", type);
+				throw SocketException("Unsupported socket type");
 				assert(false);
 				return;
 		}
 
 		switch (protocol)
 		{
-			case Protocol::TCP:
+			case IP::Protocol::TCP:
 				sprotocol = IPPROTO_TCP;
 				break;
-			case Protocol::UDP:
+			case IP::Protocol::UDP:
 				sprotocol = IPPROTO_UDP;
 				break;
-			case Protocol::ICMP:
+			case IP::Protocol::ICMP:
 				sprotocol = IPPROTO_ICMP;
 				break;
+			case IP::Protocol::IP:
+				sprotocol = IPPROTO_IP;
+				break;
 			default:
-				LogErr(L"Couldn't create socket - Unsupported protocol %d", protocol);
+				throw SocketException("Unsupported IP protocol");
 				assert(false);
 				return;
 		}
@@ -71,17 +74,29 @@ namespace QuantumGate::Implementation::Network
 		const auto s = socket(saf, stype, sprotocol);
 		if (s != INVALID_SOCKET)
 		{
-			if (SetSocket(s)) UpdateSocketInfo();
+			if (SetSocket(s))
+			{
+				UpdateSocketInfo();
+				return;
+			}
 		}
-		else
-		{
-			LogErr(L"Couldn't create socket (%s)", GetLastSysErrorString().c_str());
-		}
+
+		throw SocketException(Util::ToStringA(
+			Util::FormatString(L"Failed to create socket (%s)", GetLastSysErrorString().c_str())).c_str());
 	}
 
-	Socket::Socket(const SOCKET s) noexcept
+	Socket::Socket(const SOCKET s)
 	{
-		if (SetSocket(s)) UpdateSocketInfo();
+		if (s != INVALID_SOCKET)
+		{
+			if (SetSocket(s))
+			{
+				UpdateSocketInfo();
+				return;
+			}
+			else throw SocketException("Failed to set socket");
+		}
+		else throw SocketException("Invalid argument");
 	}
 
 	Socket::~Socket()
@@ -100,7 +115,7 @@ namespace QuantumGate::Implementation::Network
 		if (this == &other) return *this;
 
 		m_Socket = std::exchange(other.m_Socket, INVALID_SOCKET);
-		m_IOStatus = std::exchange(other.m_IOStatus, SocketIOStatus());
+		m_IOStatus = std::exchange(other.m_IOStatus, IOStatus());
 
 		m_BytesReceived = std::exchange(other.m_BytesReceived, 0);
 		m_BytesSent = std::exchange(other.m_BytesSent, 0);
@@ -115,28 +130,24 @@ namespace QuantumGate::Implementation::Network
 
 	const bool Socket::SetSocket(const SOCKET s, const bool excl_addr_use, const bool blocking) noexcept
 	{
-		if (s != INVALID_SOCKET)
+		assert(s != INVALID_SOCKET);
+
+		m_Socket = s;
+		m_IOStatus.SetOpen(true);
+
+		if (excl_addr_use)
 		{
-			m_Socket = s;
-			m_IOStatus.SetOpen(true);
-
-			if (excl_addr_use)
-			{
-				// Enable exclusive address use for added security to prevent port hijacking
-				// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/ms740621(v=vs.85).aspx
-				if (!SetExclusiveAddressUse(true)) return false;
-			}
-
-			if (!blocking)
-			{
-				if (!SetBlockingMode(false)) return false;
-			}
-
-			return true;
+			// Enable exclusive address use for added security to prevent port hijacking
+			// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/ms740621(v=vs.85).aspx
+			if (!SetExclusiveAddressUse(true)) return false;
 		}
-		else m_IOStatus.SetOpen(false);
 
-		return false;
+		if (!blocking)
+		{
+			if (!SetBlockingMode(false)) return false;
+		}
+
+		return true;
 	}
 
 	void Socket::Close(const bool linger) noexcept
@@ -145,7 +156,7 @@ namespace QuantumGate::Implementation::Network
 
 		m_CloseCallback();
 
-		if (GetProtocol() == Protocol::TCP)
+		if (GetProtocol() == IP::Protocol::TCP)
 		{
 			// If we're supposed to abort the connection, set the linger value on the socket to 0,
 			// else keep connection alive for a few seconds to give time for shutdown
@@ -259,6 +270,33 @@ namespace QuantumGate::Implementation::Network
 		if (ret == SOCKET_ERROR)
 		{
 			LogErr(L"Could not set receive timeout socket option for socket (%s)", GetLastSysErrorString().c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	const bool Socket::SetIPTimeToLive(const std::chrono::seconds& seconds) noexcept
+	{
+		assert(m_Socket != INVALID_SOCKET);
+
+		const DWORD optval = static_cast<DWORD>(seconds.count());
+
+		const auto ret = setsockopt(m_Socket, IPPROTO_IP, IP_TTL,
+									reinterpret_cast<const char*>(&optval), sizeof(optval));
+		if (ret == SOCKET_ERROR)
+		{
+			LogErr(L"Could not set TTL socket option for socket (%s)", GetLastSysErrorString().c_str());
+			return false;
+		}
+
+		const BOOL optval2 = TRUE;
+
+		const auto ret2 = setsockopt(m_Socket, SOL_SOCKET, SO_BROADCAST,
+									 reinterpret_cast<const char*>(&optval2), sizeof(optval2));
+		if (ret2 == SOCKET_ERROR)
+		{
+			LogErr(L"Could not set reuse address socket option for socket (%s)", GetLastSysErrorString().c_str());
 			return false;
 		}
 
@@ -754,32 +792,31 @@ namespace QuantumGate::Implementation::Network
 		return success;
 	}
 
-	const bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds, const UInt8 ioupdate) noexcept
+	template<bool read, bool write, bool exception>
+	const bool Socket::UpdateIOStatusImpl(const std::chrono::milliseconds& mseconds) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-
-		auto success = false;
 
 		fd_set rset{ 0 }, wset{ 0 }, eset{ 0 };
 		fd_set* rset_ptr{ nullptr };
 		fd_set* wset_ptr{ nullptr };
 		fd_set* eset_ptr{ nullptr };
 
-		if (ioupdate & IOStatusUpdate::Read)
+		if constexpr (read)
 		{
 			FD_ZERO(&rset);
 			FD_SET(m_Socket, &rset);
 			rset_ptr = &rset;
 		}
 
-		if (ioupdate & IOStatusUpdate::Write)
+		if constexpr (write)
 		{
 			FD_ZERO(&wset);
 			FD_SET(m_Socket, &wset);
 			wset_ptr = &wset;
 		}
 
-		if (ioupdate & IOStatusUpdate::Exception)
+		if constexpr (exception)
 		{
 			FD_ZERO(&eset);
 			FD_SET(m_Socket, &eset);
@@ -796,27 +833,68 @@ namespace QuantumGate::Implementation::Network
 		{
 			// Select timed out,
 			// no events on socket
-			if (ioupdate & IOStatusUpdate::Read) m_IOStatus.SetRead(false);
-			if (ioupdate & IOStatusUpdate::Write) m_IOStatus.SetWrite(false);
-			if (ioupdate & IOStatusUpdate::Exception) m_IOStatus.SetException(false);
+			if constexpr (read) m_IOStatus.SetRead(false);
+			if constexpr (write) m_IOStatus.SetWrite(false);
+			if constexpr (exception) m_IOStatus.SetException(false);
 
-			success = true;
+			return true;
 		}
 		else if (ret != SOCKET_ERROR)
 		{
-			if (ioupdate & IOStatusUpdate::Read) m_IOStatus.SetRead(FD_ISSET(m_Socket, &rset));
-			if (ioupdate & IOStatusUpdate::Write) m_IOStatus.SetWrite(FD_ISSET(m_Socket, &wset));
+			if constexpr (read) m_IOStatus.SetRead(FD_ISSET(m_Socket, &rset));
+			if constexpr (write) m_IOStatus.SetWrite(FD_ISSET(m_Socket, &wset));
 
-			if (ioupdate & IOStatusUpdate::Exception && FD_ISSET(m_Socket, &eset))
+			if constexpr (exception)
 			{
-				m_IOStatus.SetException(true);
-				m_IOStatus.SetErrorCode(GetError());
+				if (FD_ISSET(m_Socket, &eset))
+				{
+					m_IOStatus.SetException(true);
+					m_IOStatus.SetErrorCode(GetError());
+				}
 			}
 
-			success = true;
+			return true;
 		}
 
-		return success;
+		return false;
+	}
+
+	const bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds, const IOStatus::Update ioupdate) noexcept
+	{
+		if (!(ioupdate & IOStatus::Update::All))
+		{
+			return UpdateIOStatusImpl<true, true, true>(mseconds);
+		}
+		else if ((ioupdate & IOStatus::Update::Read) &&
+			(ioupdate & IOStatus::Update::Write))
+		{
+			return UpdateIOStatusImpl<true, true, false>(mseconds);
+		}
+		else if ((ioupdate & IOStatus::Update::Read) &&
+			(ioupdate & IOStatus::Update::Exception))
+		{
+			return UpdateIOStatusImpl<true, false, true>(mseconds);
+		}
+		else if ((ioupdate & IOStatus::Update::Write) &&
+			(ioupdate & IOStatus::Update::Exception))
+		{
+			return UpdateIOStatusImpl<false, true, true>(mseconds);
+		}
+		else if (ioupdate & IOStatus::Update::Read)
+		{
+			return UpdateIOStatusImpl<true, false, false>(mseconds);
+		}
+		else if (ioupdate & IOStatus::Update::Write)
+		{
+			return UpdateIOStatusImpl<false, true, false>(mseconds);
+		}
+		else if (ioupdate & IOStatus::Update::Exception)
+		{
+			return UpdateIOStatusImpl<false, false, true>(mseconds);
+		}
+		else assert(false);
+
+		return false;
 	}
 
 	const SystemTime Socket::GetConnectedTime() const noexcept
@@ -835,10 +913,10 @@ namespace QuantumGate::Implementation::Network
 			IPAddress ip(addr);
 			switch (ip.GetFamily())
 			{
-				case IPAddressFamily::IPv4:
+				case IPAddress::Family::IPv4:
 					endpoint = IPEndpoint(ip, ntohs(reinterpret_cast<const sockaddr_in*>(addr)->sin_port));
 					return true;
-				case IPAddressFamily::IPv6:
+				case IPAddress::Family::IPv6:
 					endpoint = IPEndpoint(ip, ntohs(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port));
 					return true;
 				default:
@@ -855,7 +933,7 @@ namespace QuantumGate::Implementation::Network
 	{
 		switch (endpoint.GetIPAddress().GetFamily())
 		{
-			case IPAddressFamily::IPv4:
+			case IPAddress::Family::IPv4:
 			{
 				auto* saddr = reinterpret_cast<sockaddr_in*>(&addr);
 				saddr->sin_port = htons(static_cast<UShort>(endpoint.GetPort()));
@@ -863,7 +941,7 @@ namespace QuantumGate::Implementation::Network
 				saddr->sin_addr.s_addr = endpoint.GetIPAddress().GetBinary().UInt32s[0];
 				return true;
 			}
-			case IPAddressFamily::IPv6:
+			case IPAddress::Family::IPv6:
 			{
 				auto* saddr = reinterpret_cast<sockaddr_in6*>(&addr);
 				saddr->sin6_port = htons(static_cast<UShort>(endpoint.GetPort()));
@@ -887,7 +965,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	IPAddressFamily Socket::GetAddressFamily() const noexcept
+	IP::AddressFamily Socket::GetAddressFamily() const noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -899,9 +977,9 @@ namespace QuantumGate::Implementation::Network
 			switch (info.iAddressFamily)
 			{
 				case AF_INET:
-					return IPAddressFamily::IPv4;
+					return IP::AddressFamily::IPv4;
 				case AF_INET6:
-					return IPAddressFamily::IPv6;
+					return IP::AddressFamily::IPv6;
 				default:
 					assert(false);
 					break;
@@ -909,10 +987,10 @@ namespace QuantumGate::Implementation::Network
 		}
 		else LogDbg(L"getsockopt failed for option %d (%s)", SO_PROTOCOL_INFO, GetLastSysErrorString().c_str());
 
-		return IPAddressFamily::Unknown;
+		return IP::AddressFamily::Unspecified;
 	}
 
-	Socket::Protocol Socket::GetProtocol() const noexcept
+	IP::Protocol Socket::GetProtocol() const noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -924,13 +1002,13 @@ namespace QuantumGate::Implementation::Network
 			switch (info.iProtocol)
 			{
 				case IPPROTO_TCP:
-					return Protocol::TCP;
+					return IP::Protocol::TCP;
 				case IPPROTO_UDP:
-					return Protocol::UDP;
+					return IP::Protocol::UDP;
 				case IPPROTO_ICMP:
-					return Protocol::ICMP;
-				case 0:
-					break;
+					return IP::Protocol::ICMP;
+				case IPPROTO_IP:
+					return IP::Protocol::IP;
 				default:
 					assert(false);
 					break;
@@ -938,7 +1016,7 @@ namespace QuantumGate::Implementation::Network
 		}
 		else LogDbg(L"getsockopt failed for option %d (%s)", SO_PROTOCOL_INFO, GetLastSysErrorString().c_str());
 
-		return Protocol::Unknown;
+		return IP::Protocol::IP;
 	}
 
 	Socket::Type Socket::GetType() const noexcept

@@ -81,7 +81,7 @@ namespace UnitTests
 
 		TEST_METHOD(Constexpr)
 		{
-			constexpr auto ip = BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 1 }, Byte{ 1 });
+			constexpr auto ip = BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 1 }, Byte{ 1 });
 			constexpr IPEndpoint ep(IPAddress(ip), 80, 9000, 1);
 			constexpr IPAddress ip2 = ep.GetIPAddress();
 			constexpr auto port = ep.GetPort();

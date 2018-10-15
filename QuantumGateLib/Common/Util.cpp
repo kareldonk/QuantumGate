@@ -343,7 +343,7 @@ namespace QuantumGate::Implementation::Util
 									 ToStringW(error.category().name()).c_str(),
 									 error.value(),
 									 ToStringW(error.message()).c_str());
-		
+
 		// Remove new line characters at the end
 		while (errorstr[errorstr.size() - 1] == L'\r' ||
 			   errorstr[errorstr.size() - 1] == L'\n')

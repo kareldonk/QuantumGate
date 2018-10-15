@@ -48,7 +48,7 @@ namespace QuantumGate::Implementation::Memory
 		class SizeWrap
 		{
 		public:
-			SizeWrap(T& data, const Size maxsize) noexcept : 
+			SizeWrap(T& data, const Size maxsize) noexcept :
 				m_Data(data), m_MaxSize(maxsize) {}
 
 			const Size MaxSize() const noexcept { return m_MaxSize; }
@@ -111,7 +111,7 @@ namespace QuantumGate::Implementation::Memory
 		{
 			return (data.size() * sizeof(T));
 		}
-		
+
 		template<typename T>
 		const Size GetDataSize(const SizeWrap<T>& data) noexcept
 		{

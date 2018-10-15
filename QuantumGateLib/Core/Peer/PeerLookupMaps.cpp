@@ -195,7 +195,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				// IP should not be in exclude lists
 				const auto result1 = AreIPsInSameNetwork(it.first, excl_addr1, excl_network_cidr4, excl_network_cidr6);
 				const auto result2 = AreIPsInSameNetwork(it.first, excl_addr2, excl_network_cidr4, excl_network_cidr6);
-				
+
 				if (result1.Failed() || result2.Failed()) return ResultCode::Failed;
 
 				if (!result1.GetValue() && !result2.GetValue())
@@ -325,7 +325,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	Result<bool> LookupMaps::AreIPsInSameNetwork(const BinaryIPAddress& ip1, const BinaryIPAddress& ip2,
 												 const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept
 	{
-		const auto cidr_lbits = (ip1.AddressFamily == IPAddressFamily::IPv4) ? cidr_lbits4 : cidr_lbits6;
+		const auto cidr_lbits = (ip1.AddressFamily == BinaryIPAddress::Family::IPv4) ? cidr_lbits4 : cidr_lbits6;
 
 		const auto[success, same_network] = BinaryIPAddress::AreInSameNetwork(ip1, ip2, cidr_lbits);
 		if (success && same_network) return true;

@@ -18,10 +18,10 @@ CIPFiltersDlg::~CIPFiltersDlg()
 
 void CIPFiltersDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialogEx::DoDataExchange(pDX);
+	CDialogBase::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CIPFiltersDlg, CDialogEx)
+BEGIN_MESSAGE_MAP(CIPFiltersDlg, CDialogBase)
 	ON_BN_CLICKED(IDC_REMOVEFILTER, &CIPFiltersDlg::OnBnClickedRemovefilter)
 	ON_EN_CHANGE(IDC_IP, &CIPFiltersDlg::OnEnChangeIp)
 	ON_EN_CHANGE(IDC_MASK, &CIPFiltersDlg::OnEnChangeMask)
@@ -40,7 +40,7 @@ void CIPFiltersDlg::SetAccessManager(QuantumGate::AccessManager* am) noexcept
 
 BOOL CIPFiltersDlg::OnInitDialog()
 {
-	CDialogEx::OnInitDialog();
+	CDialogBase::OnInitDialog();
 
 	// Init filter type combo
 	auto tcombo = (CComboBox*)GetDlgItem(IDC_TYPECOMBO);

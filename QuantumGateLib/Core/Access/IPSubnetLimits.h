@@ -10,9 +10,11 @@
 
 namespace QuantumGate::Implementation::Core::Access
 {
+	using namespace QuantumGate::Implementation::Network;
+
 	struct IPSubnetLimitImpl
 	{
-		IPAddressFamily AddressFamily{ IPAddressFamily::Unknown };
+		IPAddress::Family AddressFamily{ IPAddress::Family::Unspecified };
 		UInt8 CIDRLeadingBits{ 0 };
 		Network::BinaryIPAddress SubnetMask;  // Network byte order (big endian)
 		Size MaximumConnections{ 0 };
@@ -27,10 +29,10 @@ namespace QuantumGate::Implementation::Core::Access
 
 	struct IPSubnetLimitDetail
 	{
-		IPSubnetLimitDetail(const IPAddressFamily af, const UInt8 cidr_lbits) noexcept :
+		IPSubnetLimitDetail(const IPAddress::Family af, const UInt8 cidr_lbits) noexcept :
 			AddressFamily(af), CIDRLeadingBits(cidr_lbits) {}
 
-		IPAddressFamily AddressFamily{ IPAddressFamily::Unknown };
+		IPAddress::Family AddressFamily{ IPAddress::Family::Unspecified };
 		UInt8 CIDRLeadingBits{ 0 };
 		Size CurrentConnections{ 0 };
 	};
@@ -67,16 +69,16 @@ namespace QuantumGate::Implementation::Core::Access
 		IPSubnetLimits& operator=(const IPSubnetLimits&) = delete;
 		IPSubnetLimits& operator=(IPSubnetLimits&&) = default;
 
-		Result<> AddLimit(const IPAddressFamily af, const String& cidr_lbits, const Size max_con) noexcept;
-		Result<> AddLimit(const IPAddressFamily af, const UInt8 cidr_lbits, const Size max_con) noexcept;
-		Result<> RemoveLimit(const IPAddressFamily af, const String& cidr_lbits) noexcept;
-		Result<> RemoveLimit(const IPAddressFamily af, const UInt8 cidr_lbits) noexcept;
+		Result<> AddLimit(const IPAddress::Family af, const String& cidr_lbits, const Size max_con) noexcept;
+		Result<> AddLimit(const IPAddress::Family af, const UInt8 cidr_lbits, const Size max_con) noexcept;
+		Result<> RemoveLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept;
+		Result<> RemoveLimit(const IPAddress::Family af, const UInt8 cidr_lbits) noexcept;
 
 		Result<Vector<IPSubnetLimit>> GetLimits() const noexcept;
 
 		void Clear() noexcept;
 
-		[[nodiscard]] const bool HasLimit(const IPAddressFamily af, const UInt8 cidr_lbits) const noexcept;
+		[[nodiscard]] const bool HasLimit(const IPAddress::Family af, const UInt8 cidr_lbits) const noexcept;
 
 		[[nodiscard]] const bool AddConnection(const IPAddress& ip) noexcept;
 		[[nodiscard]] const bool RemoveConnection(const IPAddress& ip) noexcept;
@@ -85,8 +87,8 @@ namespace QuantumGate::Implementation::Core::Access
 		[[nodiscard]] const bool CanAcceptConnection(const IPAddress& ip) const noexcept;
 
 	private:
-		IPSubnetAF* GetSubnets(const IPAddressFamily af) noexcept;
-		const IPSubnetAF* GetSubnets(const IPAddressFamily af) const noexcept;
+		IPSubnetAF* GetSubnets(const IPAddress::Family af) noexcept;
+		const IPSubnetAF* GetSubnets(const IPAddress::Family af) const noexcept;
 
 		[[nodiscard]] const bool AddSubnetConnection(IPSubnetConnectionMap& connections, const IPAddress& ip) noexcept;
 		[[nodiscard]] const bool RemoveSubnetConnection(IPSubnetConnectionMap& connections, const IPAddress& ip) noexcept;

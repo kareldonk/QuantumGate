@@ -76,5 +76,6 @@
 
 #include <json.hpp>
 #include <afxcontrolbars.h>
+#include <afxcontrolbars.h>
 
 

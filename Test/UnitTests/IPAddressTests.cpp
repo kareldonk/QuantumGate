@@ -19,17 +19,17 @@ namespace UnitTests
 			// Default construction
 			IPAddress ip1;
 			Assert::AreEqual(true, ip1.GetString() == L"0.0.0.0");
-			Assert::AreEqual(true, ip1.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, ip1.GetFamily() == IPAddress::Family::IPv4);
 
 			// Construction
 			IPAddress ip2(L"192.168.1.1");
 			Assert::AreEqual(true, ip2.GetString() == L"192.168.1.1");
-			Assert::AreEqual(true, ip2.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, ip2.GetFamily() == IPAddress::Family::IPv4);
 
 			// Copy construction
 			IPAddress ip3(ip2);
 			Assert::AreEqual(true, ip3.GetString() == L"192.168.1.1");
-			Assert::AreEqual(true, ip3.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, ip3.GetFamily() == IPAddress::Family::IPv4);
 
 			// Equal and not equal
 			Assert::AreEqual(true, ip2 == ip3);
@@ -66,23 +66,23 @@ namespace UnitTests
 				 ip3.GetBinary().UInt32s[3] == 0));
 
 			// GetFamily
-			Assert::AreEqual(true, ip1.GetFamily() == IPAddressFamily::IPv6);
-			Assert::AreEqual(true, ip3.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, ip1.GetFamily() == IPAddress::Family::IPv6);
+			Assert::AreEqual(true, ip3.GetFamily() == IPAddress::Family::IPv4);
 
 			const auto any_ip4 = IPAddress::AnyIPv4();
-			Assert::AreEqual(true, any_ip4.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, any_ip4.GetFamily() == IPAddress::Family::IPv4);
 			Assert::AreEqual(true, any_ip4.GetString() == L"0.0.0.0");
 
 			const auto any_ip6 = IPAddress::AnyIPv6();
-			Assert::AreEqual(true, any_ip6.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, any_ip6.GetFamily() == IPAddress::Family::IPv6);
 			Assert::AreEqual(true, any_ip6.GetString() == L"::");
 
 			const auto lb_ip4 = IPAddress::LoopbackIPv4();
-			Assert::AreEqual(true, lb_ip4.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, lb_ip4.GetFamily() == IPAddress::Family::IPv4);
 			Assert::AreEqual(true, lb_ip4.GetString() == L"127.0.0.1");
 
 			const auto lb_ip6 = IPAddress::LoopbackIPv6();
-			Assert::AreEqual(true, lb_ip6.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, lb_ip6.GetFamily() == IPAddress::Family::IPv6);
 			Assert::AreEqual(true, lb_ip6.GetString() == L"::1");
 		}
 
@@ -115,165 +115,165 @@ namespace UnitTests
 			// Test valid addresses
 			Assert::AreEqual(true, IPAddress::TryParse(L"0.0.0.0", address));
 			Assert::AreEqual(true, address.GetString() == L"0.0.0.0");
-			Assert::AreEqual(true, address.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv4);
 			Assert::AreEqual(true, IPAddress::TryParse(L"255.255.0.0", address));
-			Assert::AreEqual(true, address.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv4);
 			Assert::AreEqual(true, IPAddress::TryParse(L"192.168.1.1", address));
 			Assert::AreEqual(true, address.GetString() == L"192.168.1.1");
-			Assert::AreEqual(true, address.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv4);
 			Assert::AreEqual(true, IPAddress::TryParse(L"::", address));
-			Assert::AreEqual(true, address.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv6);
 			Assert::AreEqual(true, IPAddress::TryParse(L"fd12:3456:789a:1::1", address));
 			Assert::AreEqual(true, address.GetString() == L"fd12:3456:789a:1::1");
-			Assert::AreEqual(true, address.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv6);
 			Assert::AreEqual(true, IPAddress::TryParse(L"fe80::c11a:3a9c:ef10:e795", address));
 			Assert::AreEqual(true, address.GetString() == L"fe80::c11a:3a9c:ef10:e795");
-			Assert::AreEqual(true, address.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv6);
 			Assert::AreEqual(true, IPAddress::TryParse(L"fd00::", address));
 			Assert::AreEqual(true, address.GetString() == L"fd00::");
-			Assert::AreEqual(true, address.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv6);
 		}
 
 		TEST_METHOD(Mask)
 		{
 			// Test invalid masks
 			IPAddress mask;
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"", mask));
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L" ", mask));
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"/abcde", mask));
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"/12a", mask));
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"/", mask));
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"//", mask));
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"/ 12", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv4, L" ", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"/abcde", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"/12a", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"/", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"//", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"/ 12", mask));
 
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"/33", mask));
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"/129", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"/33", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"/129", mask));
 
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"a.0.0.0", mask));
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"256.255.255.255", mask));
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"255.255.0.019", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"a.0.0.0", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"256.255.255.255", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"255.255.0.019", mask));
 
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"abcz:ffff:ffff:ffff::", mask));
-			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"ffff.ffff: ffff:8000::", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"abcz:ffff:ffff:ffff::", mask));
+			Assert::AreEqual(false, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"ffff.ffff: ffff:8000::", mask));
 
 			// Test valid masks
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"/0", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"/0", mask));
 			Assert::AreEqual(L"0.0.0.0", mask.GetString().c_str());
-			Assert::AreEqual(true, mask.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, mask.GetFamily() == IPAddress::Family::IPv4);
 			Assert::AreEqual(true, (mask.GetBinary() == IPAddress(L"0.0.0.0").GetBinary()));
 
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"/32", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"/32", mask));
 			Assert::AreEqual(L"255.255.255.255", mask.GetString().c_str());
-			Assert::AreEqual(true, mask.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, mask.GetFamily() == IPAddress::Family::IPv4);
 			Assert::AreEqual(true, (mask.GetBinary() == IPAddress(L"255.255.255.255").GetBinary()));
 
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"/16", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"/16", mask));
 			Assert::AreEqual(L"255.255.0.0", mask.GetString().c_str());
-			Assert::AreEqual(true, mask.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, mask.GetFamily() == IPAddress::Family::IPv4);
 			Assert::AreEqual(true, (mask.GetBinary() == IPAddress(L"255.255.0.0").GetBinary()));
 
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"/12", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"/12", mask));
 			Assert::AreEqual(L"255.240.0.0", mask.GetString().c_str());
-			Assert::AreEqual(true, mask.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, mask.GetFamily() == IPAddress::Family::IPv4);
 			Assert::AreEqual(true, (mask.GetBinary() == IPAddress(L"255.240.0.0").GetBinary()));
 
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"/8", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"/8", mask));
 			Assert::AreEqual(L"255.0.0.0", mask.GetString().c_str());
-			Assert::AreEqual(true, mask.GetFamily() == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, mask.GetFamily() == IPAddress::Family::IPv4);
 			Assert::AreEqual(true, (mask.GetBinary() == IPAddress(L"255.0.0.0").GetBinary()));
 
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"/0", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"/0", mask));
 			Assert::AreEqual(L"::", mask.GetString().c_str());
-			Assert::AreEqual(true, mask.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, mask.GetFamily() == IPAddress::Family::IPv6);
 			Assert::AreEqual(true, (mask.GetBinary() == IPAddress(L"::").GetBinary()));
 
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"/128", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"/128", mask));
 			Assert::AreEqual(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", mask.GetString().c_str());
-			Assert::AreEqual(true, mask.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, mask.GetFamily() == IPAddress::Family::IPv6);
 			Assert::AreEqual(true, (mask.GetBinary() == IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff").GetBinary()));
 
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"/64", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"/64", mask));
 			Assert::AreEqual(L"ffff:ffff:ffff:ffff::", mask.GetString().c_str());
-			Assert::AreEqual(true, mask.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, mask.GetFamily() == IPAddress::Family::IPv6);
 			Assert::AreEqual(true, (mask.GetBinary() == IPAddress(L"ffff:ffff:ffff:ffff::").GetBinary()));
 
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"/12", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"/12", mask));
 			Assert::AreEqual(L"fff0::", mask.GetString().c_str());
 			Assert::AreEqual(true, (mask.GetBinary() == IPAddress(L"fff0::").GetBinary()));
 
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"/49", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"/49", mask));
 			Assert::AreEqual(L"ffff:ffff:ffff:8000::", mask.GetString().c_str());
-			Assert::AreEqual(true, mask.GetFamily() == IPAddressFamily::IPv6);
+			Assert::AreEqual(true, mask.GetFamily() == IPAddress::Family::IPv6);
 			Assert::AreEqual(true, (mask.GetBinary() == IPAddress(L"ffff:ffff:ffff:8000::").GetBinary()));
 
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"0.0.0.0", mask));
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"255.255.255.255", mask));
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"255.255.0.0", mask));
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"255.240.0.0", mask));
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv4, L"255.0.0.0", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"0.0.0.0", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"255.255.255.255", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"255.255.0.0", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"255.240.0.0", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv4, L"255.0.0.0", mask));
 
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"::", mask));
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", mask));
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"ffff:ffff:ffff:ffff::", mask));
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"fff0::", mask));
-			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddressFamily::IPv6, L"ffff:ffff:ffff:8000::", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"::", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"ffff:ffff:ffff:ffff::", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"fff0::", mask));
+			Assert::AreEqual(true, IPAddress::TryParseMask(IPAddress::Family::IPv6, L"ffff:ffff:ffff:8000::", mask));
 		}
 
 		TEST_METHOD(CreateMask)
 		{
 			IPAddress ipmask;
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 0, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv4, 0, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"0.0.0.0"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 1, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv4, 1, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"128.0.0.0"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 2, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv4, 2, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"192.0.0.0"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 4, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv4, 4, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"240.0.0.0"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 15, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv4, 15, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"255.254.0.0"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 16, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv4, 16, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"255.255.0.0"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 17, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv4, 17, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"255.255.128.0"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 31, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv4, 31, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"255.255.255.254"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv4, 32, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv4, 32, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"255.255.255.255"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 0, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv6, 0, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"::"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 1, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv6, 1, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"8000::"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 7, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv6, 7, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"fe00::"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 63, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv6, 63, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:fffe::"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 64, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv6, 64, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:ffff::"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 65, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv6, 65, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:ffff:8000::"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 67, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv6, 67, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:ffff:e000::"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 127, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv6, 127, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe"));
 
-			Assert::AreEqual(true, IPAddress::CreateMask(IPAddressFamily::IPv6, 128, ipmask));
+			Assert::AreEqual(true, IPAddress::CreateMask(IPAddress::Family::IPv6, 128, ipmask));
 			Assert::AreEqual(true, ipmask == IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
 		}
 
@@ -599,27 +599,27 @@ namespace UnitTests
 
 		TEST_METHOD(Constexpr)
 		{
-			constexpr auto bin_ip = BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 1 }, Byte{ 1 });
+			constexpr auto bin_ip = BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 1 }, Byte{ 1 });
 			constexpr IPAddress ip(bin_ip);
 			constexpr BinaryIPAddress bin_ip2 = ip.GetBinary();
 			constexpr auto family = ip.GetFamily();
 
-			static_assert(family == IPAddressFamily::IPv4, "Should be equal");
+			static_assert(family == IPAddress::Family::IPv4, "Should be equal");
 			static_assert(bin_ip2 == bin_ip, "Should be equal");
 
-			Assert::AreEqual(true, family == IPAddressFamily::IPv4);
+			Assert::AreEqual(true, family == IPAddress::Family::IPv4);
 			Assert::AreEqual(true, bin_ip2 == bin_ip);
 
 			constexpr auto ipa4 = IPAddress::AnyIPv4();
 			constexpr auto ipa6 = IPAddress::AnyIPv6();
 
 			constexpr auto iplb4 = IPAddress::LoopbackIPv4();
-			static_assert(iplb4.GetFamily() == IPAddressFamily::IPv4, "Should be equal");
+			static_assert(iplb4.GetFamily() == IPAddress::Family::IPv4, "Should be equal");
 			
 			constexpr auto iplb6 = IPAddress::LoopbackIPv6();
-			static_assert(iplb6.GetFamily() == IPAddressFamily::IPv6, "Should be equal");
+			static_assert(iplb6.GetFamily() == IPAddress::Family::IPv6, "Should be equal");
 
-			constexpr auto bin_ip3 = BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 127 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 });
+			constexpr auto bin_ip3 = BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 127 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 });
 			constexpr IPAddress iplb42(bin_ip3);
 			static_assert(iplb4 == iplb42, "Should be equal");
 			Assert::AreEqual(true, iplb4 == iplb42);

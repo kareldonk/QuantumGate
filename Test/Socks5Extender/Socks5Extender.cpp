@@ -19,6 +19,7 @@
 
 using namespace QuantumGate::Implementation;
 using namespace QuantumGate::Implementation::Memory;
+using namespace QuantumGate::Implementation::Network;
 using namespace std::literals;
 
 namespace QuantumGate::Socks5Extender
@@ -238,20 +239,26 @@ namespace QuantumGate::Socks5Extender
 
 		LogInfo(GetName() + L": listener starting...");
 
-		m_Listener.ShutdownEvent.Reset();
-
-		auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), 9090);
-		m_Listener.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
-											Network::Socket::Type::Stream,
-											Network::Socket::Protocol::TCP);
-		if (m_Listener.Socket.Listen(endpoint, false, false))
+		try
 		{
-			LogInfo(GetName() + L": listening on endpoint %s", endpoint.GetString().c_str());
+			m_Listener.ShutdownEvent.Reset();
 
-			m_Listener.Thread = std::thread(Extender::ListenerThreadLoop, this);
+			auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), 9090);
+			m_Listener.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
+												Network::Socket::Type::Stream,
+												IP::Protocol::TCP);
+			if (m_Listener.Socket.Listen(endpoint, false, false))
+			{
+				LogInfo(GetName() + L": listening on endpoint %s", endpoint.GetString().c_str());
 
-			return true;
+				m_Listener.Thread = std::thread(Extender::ListenerThreadLoop, this);
+
+				return true;
+			}
 		}
+		catch (...) {}
+
+		LogErr(GetName() + L": listener startup failed");
 
 		return false;
 	}
@@ -370,7 +377,7 @@ namespace QuantumGate::Socks5Extender
 						handled = true;
 
 						ConnectionID cid{ 0 };
-						Network::SerializedBinaryIPAddress ip;
+						SerializedBinaryIPAddress ip;
 						UInt16 port{ 0 };
 
 						if (rdr.Read(cid, ip, port))
@@ -388,14 +395,14 @@ namespace QuantumGate::Socks5Extender
 						ConnectionID cid{ 0 };
 						Socks5Protocol::Replies reply{ Socks5Protocol::Replies::GeneralFailure };
 						Socks5Protocol::AddressTypes atype{ Socks5Protocol::AddressTypes::Unknown };
-						Network::SerializedBinaryIPAddress ip;
+						SerializedBinaryIPAddress ip;
 						UInt16 port{ 0 };
 
 						if (rdr.Read(cid, reply, atype, ip, port))
 						{
 							success = HandleSocks5ReplyRelayPeerMessage(event.GetPeerLUID(), cid, reply, atype,
 																		BufferView(reinterpret_cast<Byte*>(&ip.Bytes),
-																				   sizeof(Network::SerializedBinaryIPAddress::Bytes)), port);
+																				   sizeof(SerializedBinaryIPAddress::Bytes)), port);
 						}
 						else LogErr(GetName() + L": could not read Socks5ReplyRelay message from peer %llu",
 									event.GetPeerLUID());
@@ -534,9 +541,10 @@ namespace QuantumGate::Socks5Extender
 	}
 
 	const bool Extender::HandleConnectIPPeerMessage(const PeerLUID pluid, const ConnectionID cid,
-													const Network::BinaryIPAddress& ip, const UInt16 port)
+													const BinaryIPAddress& ip, const UInt16 port)
 	{
-		if ((ip.AddressFamily == IPAddressFamily::IPv4 || ip.AddressFamily == IPAddressFamily::IPv6) && port != 0)
+		if ((ip.AddressFamily == BinaryIPAddress::Family::IPv4 ||
+			 ip.AddressFamily == BinaryIPAddress::Family::IPv6) && port != 0)
 		{
 			LogDbg(GetName() + L": received ConnectIP from peer %llu for connection %llu", pluid, cid);
 
@@ -853,14 +861,14 @@ namespace QuantumGate::Socks5Extender
 	}
 
 	const bool Extender::SendConnectIP(const PeerLUID pluid, const ConnectionID cid,
-									   const Network::BinaryIPAddress& ip, const UInt16 port) const
+									   const BinaryIPAddress& ip, const UInt16 port) const
 	{
-		assert(ip.AddressFamily != IPAddressFamily::Unknown);
+		assert(ip.AddressFamily != BinaryIPAddress::Family::Unspecified);
 
 		const UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectIP);
 
 		BufferWriter writer(true);
-		if (writer.WriteWithPreallocation(msgtype, cid, Network::SerializedBinaryIPAddress{ ip }, port))
+		if (writer.WriteWithPreallocation(msgtype, cid, SerializedBinaryIPAddress{ ip }, port))
 		{
 			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
 			{
@@ -912,12 +920,12 @@ namespace QuantumGate::Socks5Extender
 	const bool Extender::SendSocks5Reply(const PeerLUID pluid, const ConnectionID cid,
 										 const Socks5Protocol::Replies reply,
 										 const Socks5Protocol::AddressTypes atype,
-										 const Network::BinaryIPAddress ip, const UInt16 port) const
+										 const BinaryIPAddress ip, const UInt16 port) const
 	{
 		const UInt16 msgtype = static_cast<const UInt16>(MessageType::Socks5ReplyRelay);
 
 		BufferWriter writer(true);
-		if (writer.WriteWithPreallocation(msgtype, cid, reply, atype, Network::SerializedBinaryIPAddress{ ip }, port))
+		if (writer.WriteWithPreallocation(msgtype, cid, reply, atype, SerializedBinaryIPAddress{ ip }, port))
 		{
 			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
 			{

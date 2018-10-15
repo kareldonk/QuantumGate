@@ -56,7 +56,7 @@ namespace TestExtender
 		}
 
 		if (((m_Status != FileTransferStatus::Succeeded || IsAuto()) &&
-			m_Type == FileTransferType::Incoming) &&
+			 m_Type == FileTransferType::Incoming) &&
 			!m_FileName.empty())
 		{
 			DeleteFile(m_FileName.c_str());

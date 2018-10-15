@@ -440,8 +440,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		return nullptr;
 	}
 
-	std::shared_ptr<Peer_ThS> Manager::Create(const IPAddressFamily af, const Network::Socket::Type type,
-											  const Network::Socket::Protocol protocol, const PeerConnectionType pctype,
+	std::shared_ptr<Peer_ThS> Manager::Create(const IP::AddressFamily af, const Socket::Type type,
+											  const IP::Protocol protocol, const PeerConnectionType pctype,
 											  std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		try
@@ -722,8 +722,8 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		auto success = false;
 
-		auto peerths = Create(params.PeerIPEndpoint.GetIPAddress().GetFamily(), Network::Socket::Type::Stream,
-							  Network::Socket::Protocol::TCP, PeerConnectionType::Outbound,
+		auto peerths = Create(params.PeerIPEndpoint.GetIPAddress().GetFamily(), Socket::Type::Stream,
+							  IP::Protocol::TCP, PeerConnectionType::Outbound,
 							  std::move(params.GlobalSharedSecret));
 		if (peerths != nullptr)
 		{

@@ -35,7 +35,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool IPAddress::TryParseMask(const IPAddressFamily af, const String& mask_str, IPAddress& ipmask) noexcept
+	const bool IPAddress::TryParseMask(const BinaryIPAddress::Family af, const String& mask_str, IPAddress& ipmask) noexcept
 	{
 		try
 		{
@@ -72,15 +72,15 @@ namespace QuantumGate::Implementation::Network
 
 	void IPAddress::SetAddress(const String& ipaddr_str)
 	{
-		static_assert(sizeof(m_AddressBinary.Bytes) >= sizeof(in6_addr), "IP Address length mismatch");
+		static_assert(sizeof(m_BinaryAddress.Bytes) >= sizeof(in6_addr), "IP Address length mismatch");
 
 		if (ipaddr_str.size() <= IPAddress::MaxIPAddressStringLength)
 		{
 			BinaryIPAddress baddr;
 			if (InetPton(AF_INET, ipaddr_str.c_str(), &baddr.Bytes) == 1)
 			{
-				m_AddressBinary = baddr;
-				m_AddressBinary.AddressFamily = IPAddressFamily::IPv4;
+				m_BinaryAddress = baddr;
+				m_BinaryAddress.AddressFamily = BinaryIPAddress::Family::IPv4;
 				return;
 			}
 			else
@@ -94,8 +94,8 @@ namespace QuantumGate::Implementation::Network
 
 				if (InetPton(AF_INET6, ipint.c_str(), &baddr.Bytes) == 1)
 				{
-					m_AddressBinary = baddr;
-					m_AddressBinary.AddressFamily = IPAddressFamily::IPv6;
+					m_BinaryAddress = baddr;
+					m_BinaryAddress.AddressFamily = BinaryIPAddress::Family::IPv6;
 					return;
 				}
 			}
@@ -114,23 +114,23 @@ namespace QuantumGate::Implementation::Network
 		{
 			case AF_INET:
 			{
-				static_assert(sizeof(m_AddressBinary.Bytes) >= sizeof(in_addr), "IP Address length mismatch");
+				static_assert(sizeof(m_BinaryAddress.Bytes) >= sizeof(in_addr), "IP Address length mismatch");
 
-				m_AddressBinary.AddressFamily = IPAddressFamily::IPv4;
+				m_BinaryAddress.AddressFamily = BinaryIPAddress::Family::IPv4;
 
 				auto ip4 = reinterpret_cast<const sockaddr_in*>(saddr);
-				memcpy(&m_AddressBinary.Bytes, &ip4->sin_addr, sizeof(ip4->sin_addr));
+				memcpy(&m_BinaryAddress.Bytes, &ip4->sin_addr, sizeof(ip4->sin_addr));
 
 				break;
 			}
 			case AF_INET6:
 			{
-				static_assert(sizeof(m_AddressBinary.Bytes) >= sizeof(in6_addr), "IP Address length mismatch");
+				static_assert(sizeof(m_BinaryAddress.Bytes) >= sizeof(in6_addr), "IP Address length mismatch");
 
-				m_AddressBinary.AddressFamily = IPAddressFamily::IPv6;
+				m_BinaryAddress.AddressFamily = BinaryIPAddress::Family::IPv6;
 
 				auto ip6 = reinterpret_cast<const sockaddr_in6*>(saddr);
-				memcpy(&m_AddressBinary.Bytes, &ip6->sin6_addr, sizeof(ip6->sin6_addr));
+				memcpy(&m_BinaryAddress.Bytes, &ip6->sin6_addr, sizeof(ip6->sin6_addr));
 
 				break;
 			}
@@ -149,12 +149,12 @@ namespace QuantumGate::Implementation::Network
 		{
 			auto afws = AF_UNSPEC;
 
-			switch (m_AddressBinary.AddressFamily)
+			switch (m_BinaryAddress.AddressFamily)
 			{
-				case IPAddressFamily::IPv4:
+				case BinaryIPAddress::Family::IPv4:
 					afws = AF_INET;
 					break;
-				case IPAddressFamily::IPv6:
+				case BinaryIPAddress::Family::IPv6:
 					afws = AF_INET6;
 					break;
 				default:
@@ -163,7 +163,7 @@ namespace QuantumGate::Implementation::Network
 
 			std::array<WChar, IPAddress::MaxIPAddressStringLength> ipstr{ 0 };
 
-			const auto ip = InetNtop(afws, &m_AddressBinary.Bytes, reinterpret_cast<PWSTR>(ipstr.data()), ipstr.size());
+			const auto ip = InetNtop(afws, &m_BinaryAddress.Bytes, reinterpret_cast<PWSTR>(ipstr.data()), ipstr.size());
 			if (ip != NULL)
 			{
 				return ipstr.data();

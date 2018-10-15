@@ -7,12 +7,12 @@
 #include "Network\Socket.h"
 
 using namespace QuantumGate;
+using namespace QuantumGate::Implementation::Network;
 
 class AttackSocket : public QuantumGate::Implementation::Network::Socket
 {
 public:
-	AttackSocket(const IPAddressFamily af, const Type type,
-				 const Protocol protocol) noexcept :
+	AttackSocket(const IP::AddressFamily af, const Type type, const IP::Protocol protocol) :
 		Socket(af, type, protocol)
 	{}
 

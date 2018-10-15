@@ -5,6 +5,7 @@
 #include "ListenerManager.h"
 
 using namespace std::literals;
+using namespace QuantumGate::Implementation::Network;
 
 namespace QuantumGate::Implementation::Core::Listener
 {
@@ -33,7 +34,7 @@ namespace QuantumGate::Implementation::Core::Listener
 			return false;
 		}
 
-		const std::array<IPAddressFamily, 2> afs{ IPAddressFamily::IPv4, IPAddressFamily::IPv6 };
+		const std::array<IPAddress::Family, 2> afs{ IPAddress::Family::IPv4, IPAddress::Family::IPv6 };
 
 		for (const auto& af : afs)
 		{
@@ -41,10 +42,10 @@ namespace QuantumGate::Implementation::Core::Listener
 			{
 				switch (af)
 				{
-					case IPAddressFamily::IPv4:
+					case IPAddress::Family::IPv4:
 						return IPAddress::AnyIPv4();
 						break;
-					case IPAddressFamily::IPv6:
+					case IPAddress::Family::IPv6:
 						return IPAddress::AnyIPv6();
 						break;
 					default:
@@ -105,7 +106,7 @@ namespace QuantumGate::Implementation::Core::Listener
 				for (const auto& address : ifs.IPAddresses)
 				{
 					// Only for IPv4 and IPv6 addresses
-					if (address.GetFamily() == IPAddressFamily::IPv4 || address.GetFamily() == IPAddressFamily::IPv6)
+					if (address.GetFamily() == IPAddress::Family::IPv4 || address.GetFamily() == IPAddress::Family::IPv6)
 					{
 						DiscardReturnValue(AddListenerThreads(address, listener_ports, cond_accept, nat_traversal));
 					}
@@ -145,7 +146,7 @@ namespace QuantumGate::Implementation::Core::Listener
 				// Create and start the listenersocket
 				ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
 											 Network::Socket::Type::Stream,
-											 Network::Socket::Protocol::TCP);
+											 Network::IP::Protocol::TCP);
 
 				if (ltd.Socket.Listen(endpoint, true, nat_traversal))
 				{
@@ -212,7 +213,7 @@ namespace QuantumGate::Implementation::Core::Listener
 				for (const auto& address : ifs.IPAddresses)
 				{
 					// Only for IPv4 and IPv6 addresses
-					if (address.GetFamily() == IPAddressFamily::IPv4 || address.GetFamily() == IPAddressFamily::IPv6)
+					if (address.GetFamily() == IP::AddressFamily::IPv4 || address.GetFamily() == IP::AddressFamily::IPv6)
 					{
 						auto found = false;
 

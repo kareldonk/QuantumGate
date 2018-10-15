@@ -103,7 +103,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 		return result;
 	}
-	
+
 	void Manager::ResetAllIPReputations() noexcept
 	{
 		m_IPAccessControl.WithUniqueLock()->ResetAllReputations();
@@ -159,7 +159,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return true;
 	}
 
-	Result<> Manager::AddIPSubnetLimit(const IPAddressFamily af, const String& cidr_lbits,
+	Result<> Manager::AddIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits,
 									   const Size max_con) noexcept
 	{
 		auto result = m_SubnetLimits.WithUniqueLock()->AddLimit(af, cidr_lbits, max_con);
@@ -171,7 +171,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	Result<> Manager::RemoveIPSubnetLimit(const IPAddressFamily af, const String& cidr_lbits) noexcept
+	Result<> Manager::RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept
 	{
 		auto result = m_SubnetLimits.WithUniqueLock()->RemoveLimit(af, cidr_lbits);
 		if (result.Succeeded())

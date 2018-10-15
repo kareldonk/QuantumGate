@@ -63,7 +63,7 @@ namespace QuantumGate::Implementation
 			m_ConsoleErrOutput = nullptr;
 		}
 
-		FreeConsole();	
+		FreeConsole();
 	}
 
 	template<bool Check>
@@ -76,7 +76,7 @@ namespace QuantumGate::Implementation
 				m_StringStream << output->GetFormat(m_MessageType, fmt);
 			}
 		});
-		
+
 		return *this;
 	}
 
@@ -152,7 +152,7 @@ namespace QuantumGate::Implementation
 				DWORD mode = 0;
 				if (GetConsoleMode(stdhandle, &mode))
 				{
-					mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_ECHO_INPUT | 
+					mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_ECHO_INPUT |
 						ENABLE_LINE_INPUT | ENABLE_LVB_GRID_WORLDWIDE;
 
 					if (!SetConsoleMode(stdhandle, mode)) return false;

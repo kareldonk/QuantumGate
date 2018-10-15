@@ -14,7 +14,7 @@ namespace QuantumGate::Implementation::Network
 		String rph;
 		if (m_RelayPort != 0) rph = Util::FormatString(L":%llu:%u", m_RelayPort, m_RelayHop);
 
-		if (m_Address.GetFamily() == IPAddressFamily::IPv6)
+		if (m_Address.GetFamily() == IPAddress::Family::IPv6)
 		{
 			// IPv6 address should be in brackets according to RFC 3986
 			// to separate it from the port

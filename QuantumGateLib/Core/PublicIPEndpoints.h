@@ -8,7 +8,7 @@
 
 namespace QuantumGate::Implementation::Core
 {
-	struct PublicIPEndpointDetails
+	struct PublicIPEndpointDetails final
 	{
 		std::set<UInt16> Ports;
 		bool Trusted{ false };
@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation::Core
 		SteadyTime LastUpdateSteadyTime;
 	};
 
-	class PublicIPEndpoints
+	class PublicIPEndpoints final
 	{
 		struct IPAddressVerification
 		{
@@ -59,7 +59,7 @@ namespace QuantumGate::Implementation::Core
 		PublicIPEndpoints() = default;
 		PublicIPEndpoints(const PublicIPEndpoints&) = delete;
 		PublicIPEndpoints(PublicIPEndpoints&&) = default;
-		virtual ~PublicIPEndpoints() = default;
+		~PublicIPEndpoints() { if (IsInitialized()) Deinitialize(); }
 		PublicIPEndpoints& operator=(const PublicIPEndpoints&) = delete;
 		PublicIPEndpoints& operator=(PublicIPEndpoints&&) = default;
 

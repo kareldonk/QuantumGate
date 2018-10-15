@@ -9,7 +9,7 @@
 
 namespace QuantumGate::Implementation::Core::Access
 {
-	Result<> IPSubnetLimits::AddLimit(const IPAddressFamily af, const String& cidr_lbits, const Size max_con) noexcept
+	Result<> IPSubnetLimits::AddLimit(const IPAddress::Family af, const String& cidr_lbits, const Size max_con) noexcept
 	{
 		auto result_code = ResultCode::Failed;
 
@@ -36,7 +36,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return result_code;
 	}
 
-	Result<> IPSubnetLimits::AddLimit(const IPAddressFamily af, const UInt8 cidr_lbits, const Size max_con) noexcept
+	Result<> IPSubnetLimits::AddLimit(const IPAddress::Family af, const UInt8 cidr_lbits, const Size max_con) noexcept
 	{
 		auto result_code = ResultCode::Failed;
 
@@ -45,8 +45,8 @@ namespace QuantumGate::Implementation::Core::Access
 			auto subnets = GetSubnets(af);
 			if (subnets != nullptr)
 			{
-				if ((af == IPAddressFamily::IPv4 && cidr_lbits <= 32) ||
-					(af == IPAddressFamily::IPv6 && cidr_lbits <= 128))
+				if ((af == IPAddress::Family::IPv4 && cidr_lbits <= 32) ||
+					(af == IPAddress::Family::IPv6 && cidr_lbits <= 128))
 				{
 					if (!HasLimit(af, cidr_lbits))
 					{
@@ -92,7 +92,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return result_code;
 	}
 
-	Result<> IPSubnetLimits::RemoveLimit(const IPAddressFamily af, const String& cidr_lbits) noexcept
+	Result<> IPSubnetLimits::RemoveLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept
 	{
 		auto result_code = ResultCode::Failed;
 
@@ -119,7 +119,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return result_code;
 	}
 
-	Result<> IPSubnetLimits::RemoveLimit(const IPAddressFamily af, const UInt8 cidr_lbits) noexcept
+	Result<> IPSubnetLimits::RemoveLimit(const IPAddress::Family af, const UInt8 cidr_lbits) noexcept
 	{
 		auto subnets = GetSubnets(af);
 		if (subnets != nullptr)
@@ -181,7 +181,7 @@ namespace QuantumGate::Implementation::Core::Access
 		m_IPSubnetLimitDetails.clear();
 	}
 
-	const bool IPSubnetLimits::HasLimit(const IPAddressFamily af, const UInt8 cidr_lbits) const noexcept
+	const bool IPSubnetLimits::HasLimit(const IPAddress::Family af, const UInt8 cidr_lbits) const noexcept
 	{
 		auto subnets = GetSubnets(af);
 		if (subnets != nullptr) return (subnets->Limits.find(cidr_lbits) != subnets->Limits.end());
@@ -494,13 +494,13 @@ namespace QuantumGate::Implementation::Core::Access
 		return success;
 	}
 
-	IPSubnetAF* IPSubnetLimits::GetSubnets(const IPAddressFamily af) noexcept
+	IPSubnetAF* IPSubnetLimits::GetSubnets(const IPAddress::Family af) noexcept
 	{
 		switch (af)
 		{
-			case IPAddressFamily::IPv4:
+			case IPAddress::Family::IPv4:
 				return &m_IPv4Subnets;
-			case IPAddressFamily::IPv6:
+			case IPAddress::Family::IPv6:
 				return &m_IPv6Subnets;
 			default:
 				assert(false);
@@ -510,13 +510,13 @@ namespace QuantumGate::Implementation::Core::Access
 		return nullptr;
 	}
 
-	const IPSubnetAF* IPSubnetLimits::GetSubnets(const IPAddressFamily af) const noexcept
+	const IPSubnetAF* IPSubnetLimits::GetSubnets(const IPAddress::Family af) const noexcept
 	{
 		switch (af)
 		{
-			case IPAddressFamily::IPv4:
+			case IPAddress::Family::IPv4:
 				return &m_IPv4Subnets;
-			case IPAddressFamily::IPv6:
+			case IPAddress::Family::IPv6:
 				return &m_IPv6Subnets;
 			default:
 				assert(false);

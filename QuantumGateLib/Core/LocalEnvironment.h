@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation::Core
 	using LocalEnvironmentChangedCallback = Callback<void() noexcept>;
 	using LocalEnvironmentChangedCallback_ThS = Concurrency::ThreadSafe<LocalEnvironmentChangedCallback, std::shared_mutex>;
 
-	class LocalEnvironment
+	class LocalEnvironment final
 	{
 		using CachedIPAddresses_ThS =
 			Concurrency::ThreadLocalCache<Vector<BinaryIPAddress>, Concurrency::SpinMutex, 369>;
@@ -21,7 +21,7 @@ namespace QuantumGate::Implementation::Core
 		LocalEnvironment() = default;
 		LocalEnvironment(const LocalEnvironment&) = delete;
 		LocalEnvironment(LocalEnvironment&&) = default;
-		virtual ~LocalEnvironment() { if (IsInitialized()) Deinitialize(); }
+		~LocalEnvironment() { if (IsInitialized()) Deinitialize(); }
 		LocalEnvironment& operator=(const LocalEnvironment&) = delete;
 		LocalEnvironment& operator=(LocalEnvironment&&) = default;
 

@@ -11,7 +11,7 @@ namespace QuantumGate::Implementation::Core::Relay
 {
 	using Event = std::variant<Events::Connect, Events::StatusUpdate, Events::RelayData>;
 
-	class Manager
+	class Manager final
 	{
 		using ThreadKey = UInt64;
 
@@ -48,7 +48,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		Manager(Peer::Manager& peers) noexcept : m_Peers(peers) {}
 		Manager(const Manager&) = delete;
 		Manager(Manager&&) = default;
-		~Manager() = default;
+		~Manager() { if (IsRunning()) Shutdown(); }
 		Manager& operator=(const Manager&) = delete;
 		Manager& operator=(Manager&&) = default;
 
@@ -58,8 +58,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		[[nodiscard]] const bool Startup() noexcept;
 		void Shutdown() noexcept;
-
-		inline const bool IsRunning() const noexcept { return m_Running; }
+		[[nodiscard]] inline const bool IsRunning() const noexcept { return m_Running; }
 
 		std::optional<RelayPort> MakeRelayPort() const noexcept;
 

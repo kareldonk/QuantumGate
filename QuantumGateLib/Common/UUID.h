@@ -23,7 +23,7 @@ namespace QuantumGate::Implementation
 		};
 
 		constexpr UUID() noexcept {}
-		
+
 		constexpr UUID(const UInt32 data1, const UInt16 data2, const UInt16 data3, const UInt64 data4)
 		{
 			Set(data1, data2, data3, data4);

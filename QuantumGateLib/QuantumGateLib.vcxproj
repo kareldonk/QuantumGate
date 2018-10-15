@@ -601,7 +601,6 @@
     <ClInclude Include="Network\Ping.h" />
     <ClInclude Include="Network\Socket.h" />
     <ClInclude Include="Network\SocketBase.h" />
-    <ClInclude Include="Network\SocketIOStatus.h" />
     <ClInclude Include="Settings.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="Types.h" />
@@ -687,6 +686,7 @@
     <ClCompile Include="Memory\ProtectedAllocator.cpp" />
     <ClCompile Include="Module.cpp" />
     <ClCompile Include="Network\BinaryIPAddress.cpp" />
+    <ClCompile Include="Network\IP.cpp" />
     <ClCompile Include="Network\IPAddress.cpp" />
     <ClCompile Include="Network\IPEndpoint.cpp" />
     <ClCompile Include="Network\Ping.cpp" />

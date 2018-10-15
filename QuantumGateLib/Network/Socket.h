@@ -18,17 +18,9 @@ namespace QuantumGate::Implementation::Network
 			RAW
 		};
 
-		enum class Protocol
-		{
-			Unknown,
-			TCP,
-			UDP,
-			ICMP
-		};
-
 		Socket() noexcept;
-		Socket(const SOCKET s) noexcept;
-		Socket(const IPAddressFamily af, const Type type, const Protocol protocol) noexcept;
+		Socket(const SOCKET s);
+		Socket(const IP::AddressFamily af, const Type type, const IP::Protocol protocol);
 		Socket(const Socket&) = delete;
 		Socket(Socket&& other) noexcept;
 		virtual ~Socket();
@@ -53,9 +45,9 @@ namespace QuantumGate::Implementation::Network
 
 		void Close(const bool linger = false) noexcept override;
 
-		inline const SocketIOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
+		inline const IOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
 		[[nodiscard]] const bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
-												const UInt8 ioupdate = IOStatusUpdate::All) noexcept override;
+												const IOStatus::Update ioupdate = IOStatus::Update::All) noexcept override;
 
 		const SystemTime GetConnectedTime() const noexcept override;
 		inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
@@ -81,35 +73,37 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] const bool SetSendTimeout(const std::chrono::milliseconds& milliseconds) noexcept;
 		[[nodiscard]] const bool SetReceiveTimeout(const std::chrono::milliseconds& milliseconds) noexcept;
 
+		[[nodiscard]] const bool SetIPTimeToLive(const std::chrono::seconds& seconds) noexcept;
+
 		[[nodiscard]] const bool SetReuseAddress(const bool reuse) noexcept;
 		[[nodiscard]] const bool SetLinger(const std::chrono::seconds& seconds) noexcept;
 		[[nodiscard]] const bool SetNATTraversal(const bool nat_traversal) noexcept;
 		[[nodiscard]] const bool SetConditionalAccept(const bool cond_accept) noexcept;
 
-		IPAddressFamily GetAddressFamily() const noexcept;
+		IP::AddressFamily GetAddressFamily() const noexcept;
 		Type GetType() const noexcept;
-		Protocol GetProtocol() const noexcept;
+		IP::Protocol GetProtocol() const noexcept;
 
 		Size GetMaxDatagramMessageSize() const noexcept;
 		Size GetSendBufferSize() const noexcept;
 		Size GetReceiveBufferSize() const noexcept;
-		
-		inline void SetConnectingCallback(SocketConnectingCallback&& callback) noexcept override
+
+		inline void SetConnectingCallback(ConnectingCallback&& callback) noexcept override
 		{
 			m_ConnectingCallback = std::move(callback);
 		}
 
-		inline void SetAcceptCallback(SocketAcceptCallback&& callback) noexcept override
+		inline void SetAcceptCallback(AcceptCallback&& callback) noexcept override
 		{
 			m_AcceptCallback = std::move(callback);
 		}
 
-		inline void SetConnectCallback(SocketConnectCallback&& callback) noexcept override
+		inline void SetConnectCallback(ConnectCallback&& callback) noexcept override
 		{
 			m_ConnectCallback = std::move(callback);
 		}
 
-		inline void SetCloseCallback(SocketCloseCallback&& callback) noexcept override
+		inline void SetCloseCallback(CloseCallback&& callback) noexcept override
 		{
 			m_CloseCallback = std::move(callback);
 		}
@@ -133,9 +127,12 @@ namespace QuantumGate::Implementation::Network
 		int GetError() const noexcept;
 		int GetSockOptInt(const int optname) const noexcept;
 
+		template<bool read, bool write, bool exception>
+		[[nodiscard]] const bool UpdateIOStatusImpl(const std::chrono::milliseconds& mseconds) noexcept;
+
 	private:
 		SOCKET m_Socket{ INVALID_SOCKET };
-		SocketIOStatus m_IOStatus;
+		IOStatus m_IOStatus;
 
 		Size m_BytesReceived{ 0 };
 		Size m_BytesSent{ 0 };
@@ -145,9 +142,9 @@ namespace QuantumGate::Implementation::Network
 
 		SteadyTime m_ConnectedSteadyTime;
 
-		SocketConnectingCallback m_ConnectingCallback{ []() noexcept {} };
-		SocketAcceptCallback m_AcceptCallback{ []() noexcept {} };
-		SocketConnectCallback m_ConnectCallback{ []() noexcept -> const bool { return true; } };
-		SocketCloseCallback m_CloseCallback{ []() noexcept {} };
+		ConnectingCallback m_ConnectingCallback{ []() noexcept {} };
+		AcceptCallback m_AcceptCallback{ []() noexcept {} };
+		ConnectCallback m_ConnectCallback{ []() noexcept -> const bool { return true; } };
+		CloseCallback m_CloseCallback{ []() noexcept {} };
 	};
 }

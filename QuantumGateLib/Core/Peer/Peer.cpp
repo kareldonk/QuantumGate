@@ -33,8 +33,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	Peer::Peer(Manager& peers, const IPAddressFamily af, const Network::Socket::Type type,
-			   const Network::Socket::Protocol protocol, const PeerConnectionType pctype,
+	Peer::Peer(Manager& peers, const IP::AddressFamily af, const Socket::Type type,
+			   const IP::Protocol protocol, const PeerConnectionType pctype,
 			   std::optional<ProtectedBuffer>&& shared_secret) :
 		Gate(af, type, protocol), m_PeerManager(peers)
 	{
@@ -1529,21 +1529,21 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	Network::SerializedIPEndpoint Peer::GetPublicIPEndpointToReport() const noexcept
+	SerializedIPEndpoint Peer::GetPublicIPEndpointToReport() const noexcept
 	{
 		// Only for normal connections because the reported
 		// IPs might not be accurate for relays because there
 		// are other peers in between
 		if (!IsRelayed())
 		{
-			return Network::SerializedIPEndpoint{ GetPeerEndpoint() };
+			return SerializedIPEndpoint{ GetPeerEndpoint() };
 		}
 
 		// For relays we send an empty endpoint (all zeroes)
-		return Network::SerializedIPEndpoint{};
+		return SerializedIPEndpoint{};
 	}
 
-	const bool Peer::AddReportedPublicIPEndpoint(const Network::SerializedIPEndpoint& pub_endpoint) noexcept
+	const bool Peer::AddReportedPublicIPEndpoint(const SerializedIPEndpoint& pub_endpoint) noexcept
 	{
 		// Only for normal connections because the reported
 		// IPs might not be accurate for relays because there
@@ -1567,7 +1567,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		else
 		{
 			// Should be empty (all zeroes)
-			return (pub_endpoint == Network::SerializedIPEndpoint{});
+			return (pub_endpoint == SerializedIPEndpoint{});
 		}
 
 		return false;

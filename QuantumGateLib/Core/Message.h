@@ -15,10 +15,10 @@ namespace QuantumGate::Implementation::Core
 
 	enum class MessageFlag : UInt8
 	{
-		PartialBegin =	0b00000001,
-		Partial =		0b00000010,
-		PartialEnd =	0b00000100,
-		Compressed =	0b00001000,
+		PartialBegin = 0b00000001,
+		Partial = 0b00000010,
+		PartialEnd = 0b00000100,
+		Compressed = 0b00001000,
 	};
 
 	struct MessageOptions
@@ -92,7 +92,7 @@ namespace QuantumGate::Implementation::Core
 			inline const Size GetMessageDataSize() const noexcept { return m_MessageDataSize; }
 
 			inline const MessageType GetMessageType() const noexcept { return m_MessageType; }
-			
+
 			inline const MessageFragmentType GetMessageFragmentType() const noexcept
 			{
 				if (!(m_MessageFlags & 0x07)) return MessageFragmentType::Complete;
@@ -105,7 +105,7 @@ namespace QuantumGate::Implementation::Core
 
 				return MessageFragmentType::Unknown;
 			}
-			
+
 			inline const ExtenderUUID& GetExtenderUUID() const noexcept { return m_ExtenderUUID; }
 
 		private:

@@ -3,13 +3,17 @@
 
 #pragma once
 
+#include "IP.h"
+
 #include <array>
 
 namespace QuantumGate::Implementation::Network
 {
 	struct Export BinaryIPAddress
 	{
-		IPAddressFamily AddressFamily{ IPAddressFamily::Unknown };
+		using Family = IP::AddressFamily;
+
+		Family AddressFamily{ Family::Unspecified };
 		union
 		{
 			Byte Bytes[16];
@@ -20,7 +24,7 @@ namespace QuantumGate::Implementation::Network
 
 		constexpr BinaryIPAddress() noexcept {}
 
-		constexpr BinaryIPAddress(const IPAddressFamily af, const Byte b1 = Byte{ 0 }, const Byte b2 = Byte{ 0 },
+		constexpr BinaryIPAddress(const Family af, const Byte b1 = Byte{ 0 }, const Byte b2 = Byte{ 0 },
 								  const Byte b3 = Byte{ 0 }, const Byte b4 = Byte{ 0 }, const Byte b5 = Byte{ 0 },
 								  const Byte b6 = Byte{ 0 }, const Byte b7 = Byte{ 0 }, const Byte b8 = Byte{ 0 },
 								  const Byte b9 = Byte{ 0 }, const Byte b10 = Byte{ 0 }, const Byte b11 = Byte{ 0 },
@@ -35,14 +39,14 @@ namespace QuantumGate::Implementation::Network
 			(static_cast<UInt64>(b15) << 48) | (static_cast<UInt64>(b16) << 56) }
 		{}
 
-		constexpr BinaryIPAddress(const IPAddressFamily af, const std::array<Byte, 16>& bytes) :
+		constexpr BinaryIPAddress(const Family af, const std::array<Byte, 16>& bytes) :
 			BinaryIPAddress(af, bytes[0], bytes[1], bytes[2], bytes[3], bytes[4],
 							bytes[5], bytes[6], bytes[7], bytes[8], bytes[9], bytes[10],
 							bytes[11], bytes[12], bytes[13], bytes[14], bytes[15])
 		{}
 
 		constexpr BinaryIPAddress(const UInt32 u32) noexcept :
-			AddressFamily(IPAddressFamily::IPv4),
+			AddressFamily(Family::IPv4),
 			UInt64s{ (static_cast<UInt64>(u32) >> 24) |
 			((static_cast<UInt64>(u32) >> 8) & 0x00000000'0000ff00) |
 			((static_cast<UInt64>(u32) << 8) & 0x00000000'00ff0000) |
@@ -50,7 +54,7 @@ namespace QuantumGate::Implementation::Network
 		{}
 
 		constexpr BinaryIPAddress(const UInt64 u64_1, const UInt64 u64_2) noexcept :
-			AddressFamily(IPAddressFamily::IPv6),
+			AddressFamily(Family::IPv6),
 			UInt64s{ (u64_1 >> 56) |
 			((u64_1 >> 40) & 0x00000000'0000ff00) |
 			((u64_1 >> 24) & 0x00000000'00ff0000) |
@@ -95,13 +99,13 @@ namespace QuantumGate::Implementation::Network
 			if (this == &other) return *this;
 
 			*this = other;
-			
+
 			return *this;
 		}
 
 		constexpr void Clear() noexcept
 		{
-			AddressFamily = IPAddressFamily::Unknown;
+			AddressFamily = Family::Unspecified;
 			UInt64s[0] = 0;
 			UInt64s[1] = 0;
 		}
@@ -111,10 +115,10 @@ namespace QuantumGate::Implementation::Network
 			BinaryIPAddress addr(*this);
 			switch (AddressFamily)
 			{
-				case IPAddressFamily::IPv4:
+				case Family::IPv4:
 					addr.UInt64s[0] = ~UInt64s[0] & 0x00000000ffffffff;
 					break;
-				case IPAddressFamily::IPv6:
+				case Family::IPv6:
 					addr.UInt64s[0] = ~UInt64s[0];
 					addr.UInt64s[1] = ~UInt64s[1];
 					break;
@@ -132,10 +136,10 @@ namespace QuantumGate::Implementation::Network
 			BinaryIPAddress addr(*this);
 			switch (AddressFamily)
 			{
-				case IPAddressFamily::IPv4:
+				case Family::IPv4:
 					addr.UInt64s[0] = UInt64s[0] ^ other.UInt64s[0];
 					break;
-				case IPAddressFamily::IPv6:
+				case Family::IPv6:
 					addr.UInt64s[0] = UInt64s[0] ^ other.UInt64s[0];
 					addr.UInt64s[1] = UInt64s[1] ^ other.UInt64s[1];
 					break;
@@ -159,10 +163,10 @@ namespace QuantumGate::Implementation::Network
 			BinaryIPAddress addr(*this);
 			switch (AddressFamily)
 			{
-				case IPAddressFamily::IPv4:
+				case Family::IPv4:
 					addr.UInt64s[0] = UInt64s[0] | other.UInt64s[0];
 					break;
-				case IPAddressFamily::IPv6:
+				case Family::IPv6:
 					addr.UInt64s[0] = UInt64s[0] | other.UInt64s[0];
 					addr.UInt64s[1] = UInt64s[1] | other.UInt64s[1];
 					break;
@@ -186,10 +190,10 @@ namespace QuantumGate::Implementation::Network
 			BinaryIPAddress addr(*this);
 			switch (AddressFamily)
 			{
-				case IPAddressFamily::IPv4:
+				case Family::IPv4:
 					addr.UInt64s[0] = UInt64s[0] & other.UInt64s[0];
 					break;
-				case IPAddressFamily::IPv6:
+				case Family::IPv6:
 					addr.UInt64s[0] = UInt64s[0] & other.UInt64s[0];
 					addr.UInt64s[1] = UInt64s[1] & other.UInt64s[1];
 					break;
@@ -234,7 +238,7 @@ namespace QuantumGate::Implementation::Network
 			return static_cast<Byte>(UInt64s[idx] >> (bshift * 8));
 		}
 
-		static constexpr BinaryIPAddress CreateMask(const IPAddressFamily af, const UInt8 cidr_lbits)
+		static constexpr BinaryIPAddress CreateMask(const Family af, const UInt8 cidr_lbits)
 		{
 			BinaryIPAddress mask;
 			if (!CreateMask(af, cidr_lbits, mask))
@@ -245,18 +249,18 @@ namespace QuantumGate::Implementation::Network
 			return mask;
 		}
 
-		[[nodiscard]] static constexpr const bool CreateMask(const IPAddressFamily af,
+		[[nodiscard]] static constexpr const bool CreateMask(const Family af,
 															 UInt8 cidr_lbits,
 															 BinaryIPAddress& bin_mask) noexcept
 		{
 			switch (af)
 			{
-				case IPAddressFamily::IPv4:
+				case Family::IPv4:
 				{
 					if (cidr_lbits > 32) return false;
 					[[fallthrough]];
 				}
-				case IPAddressFamily::IPv6:
+				case Family::IPv6:
 				{
 					if (cidr_lbits > 128) return false;
 
@@ -436,13 +440,13 @@ namespace QuantumGate::Implementation::Network
 			return std::make_pair(false, false);
 		}
 
-		static constexpr UInt GetNumAddressBytes(const IPAddressFamily af) noexcept
+		static constexpr UInt GetNumAddressBytes(const Family af) noexcept
 		{
 			switch (af)
 			{
-				case IPAddressFamily::IPv4:
+				case Family::IPv4:
 					return 4u;
-				case IPAddressFamily::IPv6:
+				case Family::IPv6:
 					return 16u;
 				default:
 					assert(false);
@@ -456,7 +460,9 @@ namespace QuantumGate::Implementation::Network
 #pragma pack(push, 1) // Disable padding bytes
 	struct SerializedBinaryIPAddress
 	{
-		IPAddressFamily AddressFamily{ IPAddressFamily::Unknown };
+		using Family = IP::AddressFamily;
+
+		Family AddressFamily{ Family::Unspecified };
 		union
 		{
 			Byte Bytes[16];

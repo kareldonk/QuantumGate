@@ -12,6 +12,8 @@ namespace QuantumGate::Implementation::Core::Access
 
 namespace QuantumGate::API
 {
+	using namespace QuantumGate::Implementation::Network;
+
 	class Export AccessManager
 	{
 	public:
@@ -33,8 +35,8 @@ namespace QuantumGate::API
 
 		Result<Vector<IPFilter>> GetAllIPFilters() const noexcept;
 
-		Result<> AddIPSubnetLimit(const IPAddressFamily af, const String& cidr_lbits, const Size max_con) noexcept;
-		Result<> RemoveIPSubnetLimit(const IPAddressFamily af, const String& cidr_lbits) noexcept;
+		Result<> AddIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits, const Size max_con) noexcept;
+		Result<> RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept;
 
 		Result<Vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
 

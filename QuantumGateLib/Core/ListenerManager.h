@@ -9,7 +9,7 @@
 
 namespace QuantumGate::Implementation::Core::Listener
 {
-	class Manager
+	class Manager final
 	{
 		struct ThreadData
 		{
@@ -39,18 +39,19 @@ namespace QuantumGate::Implementation::Core::Listener
 		Manager(const Settings_CThS& settings, Access::Manager& accessmgr, Peer::Manager& peers) noexcept;
 		Manager(const Manager&) = delete;
 		Manager(Manager&&) = default;
-		virtual ~Manager() = default;
+		~Manager() { if (IsRunning()) Shutdown(); }
 		Manager& operator=(const Manager&) = delete;
 		Manager& operator=(Manager&&) = default;
 
 		[[nodiscard]] const bool Startup() noexcept;
 		[[nodiscard]] const bool Startup(const Vector<EthernetInterface>& interfaces) noexcept;
 		void Shutdown() noexcept;
+		[[nodiscard]] inline const bool IsRunning() const noexcept { return m_Running; }
+
 		[[nodiscard]] const bool AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
 													const bool cond_accept, const bool nat_traversal) noexcept;
 		std::optional<ThreadPool::Thread> RemoveListenerThread(ThreadPool::Thread&& thread) noexcept;
 		[[nodiscard]] const bool Update(const Vector<EthernetInterface>& interfaces) noexcept;
-		[[nodiscard]] inline const bool IsRunning() const noexcept { return m_Running; }
 
 	private:
 		void PreStartup() noexcept;

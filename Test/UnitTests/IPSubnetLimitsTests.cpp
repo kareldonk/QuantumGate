@@ -21,46 +21,46 @@ namespace UnitTests
 			{
 				// IPv4
 				{
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 0, 0).Succeeded());
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, L"/8", 0).Succeeded());
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 16, 0).Succeeded());
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, L"/32", 0).Succeeded());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 0, 0).Succeeded());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, L"/8", 0).Succeeded());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 16, 0).Succeeded());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, L"/32", 0).Succeeded());
 
 					// Duplicate should fail
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 32, 0).Failed());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 32, 0).Failed());
 
 					// CIDR leading bits too large
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 33, 0) == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, L"/34", 0) == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 50, 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 33, 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, L"/34", 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 50, 0) == ResultCode::InvalidArgument);
 
 					// Bad CIDR
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, L"34", 0) == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, L"/1 2", 0) == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, L"/aw12", 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, L"34", 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, L"/1 2", 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, L"/aw12", 0) == ResultCode::InvalidArgument);
 				}
 
 				// IPv6
 				{
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 0, 0).Succeeded());
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 8, 0).Succeeded());
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, L"/16", 0).Succeeded());
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 32, 0).Succeeded());
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 48, 0).Succeeded());
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, L"/128", 0).Succeeded());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 0, 0).Succeeded());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 8, 0).Succeeded());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, L"/16", 0).Succeeded());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 32, 0).Succeeded());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 48, 0).Succeeded());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, L"/128", 0).Succeeded());
 
 					// Duplicate should fail
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 32, 0).Failed());
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 32, 0).Failed());
 
 					// CIDR leading bits too large
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 129, 0) == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, L"/134", 0) == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 200, 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 129, 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, L"/134", 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 200, 0) == ResultCode::InvalidArgument);
 
 					// Bad CIDR
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, L"3 4", 0) == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, L"/1 2", 0) == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, L"/ 12", 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, L"3 4", 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, L"/1 2", 0) == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, L"/ 12", 0) == ResultCode::InvalidArgument);
 				}
 			}
 
@@ -68,42 +68,42 @@ namespace UnitTests
 			{
 				// IPv4
 				{
-					Assert::AreEqual(true, limits.HasLimit(IPAddressFamily::IPv4, 0));
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv4, 0).Succeeded());
-					Assert::AreEqual(false, limits.HasLimit(IPAddressFamily::IPv4, 0));
+					Assert::AreEqual(true, limits.HasLimit(IPAddress::Family::IPv4, 0));
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv4, 0).Succeeded());
+					Assert::AreEqual(false, limits.HasLimit(IPAddress::Family::IPv4, 0));
 
-					Assert::AreEqual(true, limits.HasLimit(IPAddressFamily::IPv4, 16));
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv4, L"/16").Succeeded());
-					Assert::AreEqual(false, limits.HasLimit(IPAddressFamily::IPv4, 16));
+					Assert::AreEqual(true, limits.HasLimit(IPAddress::Family::IPv4, 16));
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv4, L"/16").Succeeded());
+					Assert::AreEqual(false, limits.HasLimit(IPAddress::Family::IPv4, 16));
 
 					// Removing again should fail
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv4, 0).Failed());
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv4, 16).Failed());
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv4, 0).Failed());
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv4, 16).Failed());
 
 					// Bad CIDR
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv4, L"34") == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv4, L"/1 2") == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv4, L"/aw12") == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv4, L"34") == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv4, L"/1 2") == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv4, L"/aw12") == ResultCode::InvalidArgument);
 				}
 
 				// IPv6
 				{
-					Assert::AreEqual(true, limits.HasLimit(IPAddressFamily::IPv6, 0));
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv6, 0).Succeeded());
-					Assert::AreEqual(false, limits.HasLimit(IPAddressFamily::IPv6, 0));
+					Assert::AreEqual(true, limits.HasLimit(IPAddress::Family::IPv6, 0));
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv6, 0).Succeeded());
+					Assert::AreEqual(false, limits.HasLimit(IPAddress::Family::IPv6, 0));
 
-					Assert::AreEqual(true, limits.HasLimit(IPAddressFamily::IPv6, 16));
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv6, 16).Succeeded());
-					Assert::AreEqual(false, limits.HasLimit(IPAddressFamily::IPv6, 16));
+					Assert::AreEqual(true, limits.HasLimit(IPAddress::Family::IPv6, 16));
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv6, 16).Succeeded());
+					Assert::AreEqual(false, limits.HasLimit(IPAddress::Family::IPv6, 16));
 
 					// Removing again should fail
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv6, 0).Failed());
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv6, 16).Failed());
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv6, 0).Failed());
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv6, 16).Failed());
 
 					// Bad CIDR
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv6, L"3 4") == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv6, L"/1 2") == ResultCode::InvalidArgument);
-					Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv6, L"/ 12") == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv6, L"3 4") == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv6, L"/1 2") == ResultCode::InvalidArgument);
+					Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv6, L"/ 12") == ResultCode::InvalidArgument);
 				}
 			}
 		}
@@ -111,10 +111,10 @@ namespace UnitTests
 		TEST_METHOD(AddRemoveConnections)
 		{
 			IPSubnetLimits limits;
-			Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 8, 6).Succeeded());
-			Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 16, 2).Succeeded());
-			Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 16, 6).Succeeded());
-			Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 64, 2).Succeeded());
+			Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 8, 6).Succeeded());
+			Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 16, 2).Succeeded());
+			Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 16, 6).Succeeded());
+			Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 64, 2).Succeeded());
 
 			// IPv4
 			{
@@ -243,7 +243,7 @@ namespace UnitTests
 
 			// IPv4
 			{
-				Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 0, 10).Succeeded());
+				Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 0, 10).Succeeded());
 
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"194.120.10.10")));
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"194.120.10.20")));
@@ -251,7 +251,7 @@ namespace UnitTests
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"194.120.10.30")));
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"194.120.10.50")));
 
-				Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 24, 2).Succeeded());
+				Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 24, 2).Succeeded());
 
 				// We should now have a /24 limit with 3 connections too much
 				Assert::AreEqual(true, limits.HasConnectionOverflow(IPAddress(L"194.120.10.50")));
@@ -284,7 +284,7 @@ namespace UnitTests
 
 			// IPv6
 			{
-				Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 0, 10).Succeeded());
+				Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 0, 10).Succeeded());
 
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"fe80:c11a:3a9c:ef10:e795::")));
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"fe80:c11a:3a9c:ef10:e796::")));
@@ -292,7 +292,7 @@ namespace UnitTests
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"fe80:c11a:3a9c:ef10:e797::")));
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"fe80:c11a:3a9c:ef10:e799::")));
 
-				Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 64, 2).Succeeded());
+				Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 64, 2).Succeeded());
 
 				// We should now have a /64 limit with 3 connections too much
 				Assert::AreEqual(true, limits.HasConnectionOverflow(IPAddress(L"fe80:c11a:3a9c:ef10:e799::")));
@@ -330,13 +330,13 @@ namespace UnitTests
 
 			// IPv4
 			{
-				Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 0, 3).Succeeded());
+				Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 0, 3).Succeeded());
 
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"194.120.10.10")));
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"194.120.10.20")));
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"194.120.10.20")));
 
-				Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 24, 1).Succeeded());
+				Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 24, 1).Succeeded());
 
 				// We should now have a /24 limit with 3 connections too much
 				Assert::AreEqual(true, limits.HasConnectionOverflow(IPAddress(L"194.120.10.30")));
@@ -351,7 +351,7 @@ namespace UnitTests
 				Assert::AreEqual(false, limits.CanAcceptConnection(IPAddress(L"194.120.10.30")));
 				Assert::AreEqual(false, limits.AddConnection(IPAddress(L"194.120.10.30")));
 
-				Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv4, 24).Succeeded());
+				Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv4, 24).Succeeded());
 
 				// Can accept two more now
 				Assert::AreEqual(true, limits.CanAcceptConnection(IPAddress(L"194.120.10.30")));
@@ -373,13 +373,13 @@ namespace UnitTests
 
 			// IPv6
 			{
-				Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 0, 3).Succeeded());
+				Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 0, 3).Succeeded());
 
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"fe80:c11a:3a9c:ef10:e795::")));
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"fe80:c11a:3a9c:ef10:e796::")));
 				Assert::AreEqual(true, limits.AddConnection(IPAddress(L"fe80:c11a:3a9c:ef10:e796::")));
 
-				Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv6, 24, 1).Succeeded());
+				Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv6, 24, 1).Succeeded());
 
 				// We should now have a /24 limit with 3 connections too much
 				Assert::AreEqual(true, limits.HasConnectionOverflow(IPAddress(L"fe80:c11a:3a9c:ef10:e797::")));
@@ -394,7 +394,7 @@ namespace UnitTests
 				Assert::AreEqual(false, limits.CanAcceptConnection(IPAddress(L"fe80:c11a:3a9c:ef10:e797::")));
 				Assert::AreEqual(false, limits.AddConnection(IPAddress(L"fe80:c11a:3a9c:ef10:e797::")));
 
-				Assert::AreEqual(true, limits.RemoveLimit(IPAddressFamily::IPv6, 24).Succeeded());
+				Assert::AreEqual(true, limits.RemoveLimit(IPAddress::Family::IPv6, 24).Succeeded());
 
 				// Can accept two more now
 				Assert::AreEqual(true, limits.CanAcceptConnection(IPAddress(L"fe80:c11a:3a9c:ef10:e797::")));
@@ -418,9 +418,9 @@ namespace UnitTests
 		TEST_METHOD(CanAccept)
 		{
 			IPSubnetLimits limits;
-			Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 0, 3).Succeeded());
-			Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 8, 2).Succeeded());
-			Assert::AreEqual(true, limits.AddLimit(IPAddressFamily::IPv4, 16, 1).Succeeded());
+			Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 0, 3).Succeeded());
+			Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 8, 2).Succeeded());
+			Assert::AreEqual(true, limits.AddLimit(IPAddress::Family::IPv4, 16, 1).Succeeded());
 
 			Assert::AreEqual(true, limits.CanAcceptConnection(IPAddress(L"192.168.10.10")));
 			Assert::AreEqual(true, limits.AddConnection(IPAddress(L"192.168.10.10")));

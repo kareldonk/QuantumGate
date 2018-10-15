@@ -10,6 +10,8 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
+	using namespace QuantumGate::Implementation::Network;
+
 	enum class GateType
 	{
 		Unknown, Socket, RelaySocket
@@ -18,8 +20,8 @@ namespace QuantumGate::Implementation::Core::Peer
 	class Gate
 	{
 	public:
-		Gate(const GateType type) noexcept;
-		Gate(const IPAddressFamily af, const Network::Socket::Type type, const Network::Socket::Protocol protocol) noexcept;
+		Gate(const GateType type);
+		Gate(const IP::AddressFamily af, const Socket::Type type, const IP::Protocol protocol);
 		Gate(const Gate&) = delete;
 		Gate(Gate&&) = default;
 		virtual ~Gate();
@@ -43,7 +45,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		void Close(const bool linger = false) noexcept { assert(m_Socket); return m_Socket->Close(linger); }
 
-		const Network::SocketIOStatus& GetIOStatus() const noexcept { assert(m_Socket); return m_Socket->GetIOStatus(); }
+		const Socket::IOStatus& GetIOStatus() const noexcept { assert(m_Socket); return m_Socket->GetIOStatus(); }
 
 		const bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
 		{
@@ -80,8 +82,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		void SetCallbacks() noexcept;
 
 	private:
-		Network::SocketBase* m_Socket{ nullptr };
-		typename std::aligned_storage<std::max(sizeof(Network::Socket), sizeof(Relay::Socket))>::type m_SocketStorage{ 0 };
+		SocketBase* m_Socket{ nullptr };
+		typename std::aligned_storage<std::max(sizeof(Socket), sizeof(Relay::Socket))>::type m_SocketStorage{ 0 };
 		GateType m_Type{ GateType::Unknown };
 	};
 }

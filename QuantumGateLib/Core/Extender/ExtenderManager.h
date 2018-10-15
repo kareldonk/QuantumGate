@@ -41,7 +41,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		Manager(const Settings_CThS& settings) noexcept;
 		Manager(const Manager&) = delete;
 		Manager(Manager&&) = delete;
-		virtual ~Manager() = default;
+		~Manager() { if (IsRunning()) Shutdown(); }
 		Manager& operator=(const Manager&) = delete;
 		Manager& operator=(Manager&&) = delete;
 

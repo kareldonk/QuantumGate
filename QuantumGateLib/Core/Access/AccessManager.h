@@ -54,8 +54,8 @@ namespace QuantumGate::Implementation::Core::Access
 		[[nodiscard]] const bool AddIPConnectionAttempt(const IPAddress& ip) noexcept;
 		[[nodiscard]] const bool AddIPRelayConnectionAttempt(const IPAddress& ip) noexcept;
 
-		Result<> AddIPSubnetLimit(const IPAddressFamily af, const String& cidr_lbits, const Size max_con) noexcept;
-		Result<> RemoveIPSubnetLimit(const IPAddressFamily af, const String& cidr_lbits) noexcept;
+		Result<> AddIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits, const Size max_con) noexcept;
+		Result<> RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept;
 
 		Result<Vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
 

@@ -6,16 +6,16 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	Gate::Gate(const GateType type) noexcept
+	Gate::Gate(const GateType type)
 	{
 		switch (type)
 		{
 			case GateType::Socket:
 			{
-				static_assert(sizeof(Network::Socket) <= sizeof(m_SocketStorage),
+				static_assert(sizeof(Socket) <= sizeof(m_SocketStorage),
 							  "Type is too large for SocketStorage variable; increase size.");
 
-				m_Socket = new (&m_SocketStorage) Network::Socket();
+				m_Socket = new (&m_SocketStorage) Socket();
 				m_Type = GateType::Socket;
 				SetCallbacks();
 				break;
@@ -38,12 +38,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	Gate::Gate(const IPAddressFamily af, const Network::Socket::Type type, const Network::Socket::Protocol protocol) noexcept
+	Gate::Gate(const IP::AddressFamily af, const Socket::Type type, const IP::Protocol protocol)
 	{
-		static_assert(sizeof(Network::Socket) <= sizeof(m_SocketStorage),
+		static_assert(sizeof(Socket) <= sizeof(m_SocketStorage),
 					  "Type is too large for SocketStorage variable; increase size.");
 
-		m_Socket = new (&m_SocketStorage) Network::Socket(af, type, protocol);
+		m_Socket = new (&m_SocketStorage) Socket(af, type, protocol);
 		m_Type = GateType::Socket;
 		SetCallbacks();
 	}

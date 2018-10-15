@@ -16,7 +16,7 @@ namespace UnitTests
 		TEST_METHOD(Constexpr)
 		{
 			// Byte constructor
-			constexpr BinaryIPAddress ip1(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 10 }, Byte{ 12 });
+			constexpr BinaryIPAddress ip1(BinaryIPAddress::Family::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 10 }, Byte{ 12 });
 
 			// UInt32 constructor
 			constexpr BinaryIPAddress ip2(0xffff0000); // 255.255.0.0
@@ -64,13 +64,13 @@ namespace UnitTests
 
 			// IsInAddressRange
 			{
-				constexpr BinaryIPAddress iprt(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 10 }, Byte{ 13 });
+				constexpr BinaryIPAddress iprt(BinaryIPAddress::Family::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 10 }, Byte{ 13 });
 
 				constexpr auto result = BinaryIPAddress::IsInAddressRange(iprt, range->first, range->second);
 				static_assert(result.first, "Should succeed");
 				static_assert(result.second, "Should be in range");
 
-				constexpr BinaryIPAddress iprt2(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 167 }, Byte{ 10 }, Byte{ 10 });
+				constexpr BinaryIPAddress iprt2(BinaryIPAddress::Family::IPv4, Byte{ 192 }, Byte{ 167 }, Byte{ 10 }, Byte{ 10 });
 
 				constexpr auto result2 = BinaryIPAddress::IsInAddressRange(iprt2, range->first, range->second);
 				static_assert(result2.first, "Should succeed");
@@ -78,10 +78,10 @@ namespace UnitTests
 			}
 
 			// CreateMask
-			constexpr auto mask4 = BinaryIPAddress::CreateMask(IPAddressFamily::IPv4, 16);
+			constexpr auto mask4 = BinaryIPAddress::CreateMask(BinaryIPAddress::Family::IPv4, 16);
 			static_assert(mask4 == ip2, "Should match");
 
-			constexpr auto mask6 = BinaryIPAddress::CreateMask(IPAddressFamily::IPv6, 48);
+			constexpr auto mask6 = BinaryIPAddress::CreateMask(BinaryIPAddress::Family::IPv6, 48);
 			static_assert(mask6 == BinaryIPAddress(0xffffffffffff0000, 0x0), "Should match");
 
 			// IsMask
@@ -137,15 +137,15 @@ namespace UnitTests
 
 			const std::vector<IPTest> iptests
 			{
-				{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 172 }, Byte{ 16 }, Byte{ 0 }, Byte{ 0 }) },
-				{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 1 }, Byte{ 20 }) },
-				{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 240 }, Byte{ 1 }, Byte{ 1 }, Byte{ 1 }) },
-				{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 127 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 }) },
-				{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 223 }, Byte{ 10 }, Byte{ 20 }, Byte{ 30 }) },
-				{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 }) },
-				{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 0 }, Byte{ 0 }, Byte{ 253 }, Byte{ 255 }) },
-				{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 255 }, Byte{ 255 }, Byte{ 255 }, Byte{ 255 }) },
-				{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 255 }, Byte{ 254 }, Byte{ 254 }, Byte{ 0 }) },
+				{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 172 }, Byte{ 16 }, Byte{ 0 }, Byte{ 0 }) },
+				{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 192 }, Byte{ 168 }, Byte{ 1 }, Byte{ 20 }) },
+				{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 240 }, Byte{ 1 }, Byte{ 1 }, Byte{ 1 }) },
+				{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 127 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 }) },
+				{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 223 }, Byte{ 10 }, Byte{ 20 }, Byte{ 30 }) },
+				{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 }) },
+				{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 0 }, Byte{ 0 }, Byte{ 253 }, Byte{ 255 }) },
+				{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 255 }, Byte{ 255 }, Byte{ 255 }, Byte{ 255 }) },
+				{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 255 }, Byte{ 254 }, Byte{ 254 }, Byte{ 0 }) },
 				{ BinaryIPAddress(0xfe80c11a3a9cef10, 0xe796000000000000) },
 				{ BinaryIPAddress(0xdeadbeeffeedface, 0xcafebabebaadc0de) },
 				{ BinaryIPAddress(0xe835625f48cec433, 0x7c5dea376c3ca00) },

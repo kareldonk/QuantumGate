@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Core
 		};
 	}
 
-	class Local
+	class Local final
 	{
 		friend class Extender::Extender;
 
@@ -40,7 +40,7 @@ namespace QuantumGate::Implementation::Core
 		Local() noexcept;
 		Local(const Local&) = delete;
 		Local(Local&&) = default;
-		virtual ~Local();
+		~Local();
 		Local& operator=(const Local&) = delete;
 		Local& operator=(Local&&) = default;
 

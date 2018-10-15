@@ -20,6 +20,23 @@ namespace QuantumGate::Implementation::Network::IP
 		UInt32 DestinationAddress{ 0 };
 	};
 #pragma pack(pop)
+
+	static_assert(sizeof(Header) == 20, "Size of IP header should be 20 bytes");
+
+	enum class AddressFamily : UInt8
+	{
+		Unspecified = 0,
+		IPv4 = 2,
+		IPv6 = 23
+	};
+
+	enum class Protocol : UInt8
+	{
+		IP = 0,
+		ICMP = 1,
+		TCP = 6,
+		UDP = 17
+	};
 }
 
 namespace QuantumGate::Implementation::Network::ICMP
@@ -40,45 +57,54 @@ namespace QuantumGate::Implementation::Network::ICMP
 	};
 
 #pragma pack(push, 1) // Disable padding bytes
-	struct EchoMessageHeader
+	struct Header
 	{
 		UInt8 Type{ 0 };
 		UInt8 Code{ 0 };
 		UInt16 Checksum{ 0 };
+	};
+#pragma pack(pop)
+
+	static_assert(sizeof(Header) == 4, "Size of ICMP header should be 4 bytes");
+
+#pragma pack(push, 1) // Disable padding bytes
+	struct EchoMessage
+	{
+		Header Header;
 		UInt16 Identifier{ 0 };
 		UInt16 SequenceNumber{ 0 };
 	};
 #pragma pack(pop)
 
+	static_assert(sizeof(EchoMessage) == 8, "Size of EchoMessage should be 8 bytes");
 
-	[[nodiscard]] UInt16 CalculateChecksum(const BufferView buffer) noexcept
+#pragma pack(push, 1) // Disable padding bytes
+	struct DestinationUnreachableMessage
 	{
-		UInt32 chksum{ 0 };
+		Header Header;
+		UInt32 Unused{ 0 };
+	};
+#pragma pack(pop)
 
-		auto data = reinterpret_cast<const UInt16*>(buffer.GetBytes());
-		auto size = buffer.GetSize();
+	static_assert(sizeof(DestinationUnreachableMessage) == 8, "Size of DestinationUnreachableMessage should be 8 bytes");
 
-		while (size > 1)
-		{
-			chksum += *data++;
+	enum class DestinationUnreachableCode : UInt8
+	{
+		NetUnreachable = 0,
+		HostUnreachable = 1,
+		ProtocolUnreachable = 2,
+		PortUnreachable = 3,
+		FragmentationNeeded = 4,
+		SourceRouteFailed = 5
+	};
 
-			if (size >= sizeof(UInt16))
-			{
-				size -= sizeof(UInt16);
-			}
-			else break;
-		}
+	using TimeExceededMessage = DestinationUnreachableMessage;
 
-		assert(size == 0 || size == 1);
+	enum class TimeExceededCode : UInt8
+	{
+		TTLExceeded = 0,
+		FragmentReassemblyTimeExceeded = 1
+	};
 
-		if (size == 1)
-		{
-			chksum += *reinterpret_cast<const UInt8*>(data);
-		}
-
-		chksum = (chksum >> 16) + (chksum & 0xffff);
-		chksum += (chksum >> 16);
-
-		return static_cast<UInt16>(~chksum);
-	}
+	[[nodiscard]] UInt16 CalculateChecksum(const BufferView buffer) noexcept;
 }

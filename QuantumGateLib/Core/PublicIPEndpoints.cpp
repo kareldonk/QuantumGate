@@ -8,6 +8,7 @@
 #include "..\Common\Endian.h"
 
 using namespace std::literals;
+using namespace QuantumGate::Implementation::Network;
 
 namespace QuantumGate::Implementation::Core
 {
@@ -89,24 +90,28 @@ namespace QuantumGate::Implementation::Core
 
 			do
 			{
-				// Choose port randomly from dynamic port range
-				m_ThreadPool.GetData().Port = static_cast<UInt16>(Util::GetPseudoRandomNumber(49152, 65535));
-
-				auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), m_ThreadPool.GetData().Port);
-				socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
-										 Network::Socket::Type::Datagram,
-										 Network::Socket::Protocol::UDP);
-
-				if (socket.Bind(endpoint, nat_traversal))
+				try
 				{
-					success = true;
-					break;
+					// Choose port randomly from dynamic port range
+					m_ThreadPool.GetData().Port = static_cast<UInt16>(Util::GetPseudoRandomNumber(49152, 65535));
+
+					auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), m_ThreadPool.GetData().Port);
+					socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
+											 Network::Socket::Type::Datagram,
+											 Network::IP::Protocol::UDP);
+
+					if (socket.Bind(endpoint, nat_traversal))
+					{
+						success = true;
+						break;
+					}
+					else
+					{
+						success = false;
+						LogWarn(L"Could not bind public IP address verification socket to endpoint %s", endpoint.GetString().c_str());
+					}
 				}
-				else
-				{
-					success = false;
-					LogWarn(L"Could not bind public IP address verification socket to endpoint %s", endpoint.GetString().c_str());
-				}
+				catch (...) { success = false; }
 
 				++tries;
 			}
@@ -117,16 +122,20 @@ namespace QuantumGate::Implementation::Core
 
 		m_ThreadPool.GetData().IPv6UDPSocket.WithUniqueLock([&](Network::Socket& socket)
 		{
-			auto endpoint = IPEndpoint(IPAddress::AnyIPv6(), m_ThreadPool.GetData().Port);
-			socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
-									 Network::Socket::Type::Datagram,
-									 Network::Socket::Protocol::UDP);
-
-			if (!socket.Bind(endpoint, nat_traversal))
+			try
 			{
-				success = false;
-				LogWarn(L"Could not bind public IP address verification socket to endpoint %s", endpoint.GetString().c_str());
+				auto endpoint = IPEndpoint(IPAddress::AnyIPv6(), m_ThreadPool.GetData().Port);
+				socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
+										 Network::Socket::Type::Datagram,
+										 Network::IP::Protocol::UDP);
+
+				if (!socket.Bind(endpoint, nat_traversal))
+				{
+					success = false;
+					LogWarn(L"Could not bind public IP address verification socket to endpoint %s", endpoint.GetString().c_str());
+				}
 			}
+			catch (...) { success = false; }
 		});
 
 		if (!success) return false;
@@ -355,7 +364,7 @@ namespace QuantumGate::Implementation::Core
 
 		try
 		{
-			ThreadPoolData::Socket_ThS* socket_ths = (ip_verification.IPAddress.AddressFamily == IPAddressFamily::IPv4) ?
+			ThreadPoolData::Socket_ThS* socket_ths = (ip_verification.IPAddress.AddressFamily == BinaryIPAddress::Family::IPv4) ?
 				&m_ThreadPool.GetData().IPv4UDPSocket : &m_ThreadPool.GetData().IPv6UDPSocket;
 
 			IPEndpoint endpoint(ip_verification.IPAddress, m_ThreadPool.GetData().Port);
@@ -400,12 +409,12 @@ namespace QuantumGate::Implementation::Core
 			pub_endpoint.GetIPAddress().GetFamily() == rep_peer.GetIPAddress().GetFamily())
 		{
 			// Should be in public network address range
-			//if (!pub_endpoint.GetIPAddress().IsLocal() &&
-			//	!pub_endpoint.GetIPAddress().IsMulticast() &&
-			//	!pub_endpoint.GetIPAddress().IsReserved())
+			if (!pub_endpoint.GetIPAddress().IsLocal() &&
+				!pub_endpoint.GetIPAddress().IsMulticast() &&
+				!pub_endpoint.GetIPAddress().IsReserved())
 			{
 				BinaryIPAddress network;
-				const auto cidr = (rep_peer.GetIPAddress().GetFamily() == IPAddressFamily::IPv4) ?
+				const auto cidr = (rep_peer.GetIPAddress().GetFamily() == BinaryIPAddress::Family::IPv4) ?
 					ReportingPeerNetworkIPv4CIDR : ReportingPeerNetworkIPv6CIDR;
 
 				if (BinaryIPAddress::GetNetwork(rep_peer.GetIPAddress().GetBinary(), cidr, network))

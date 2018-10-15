@@ -25,24 +25,24 @@
 #include "CAlgorithmsDlg.h"
 #include "CSettingsDlg.h"
 #include "CInformationDlg.h"
+#include "CPingDlg.h"
 
 using namespace nlohmann;
 using namespace QuantumGate::Implementation;
 
 // CTestAppDlg dialog
 
-CTestAppDlg::CTestAppDlg(CWnd* pParent /*=NULL*/)
-	: CDialogBase(CTestAppDlg::IDD, pParent)
+CTestAppDlg::CTestAppDlg(CWnd* pParent) : CDialogBase(CTestAppDlg::IDD, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
 	m_StartupParameters.SupportedAlgorithms.Hash = { Algorithm::Hash::BLAKE2S256,
 		Algorithm::Hash::BLAKE2B512, Algorithm::Hash::SHA256, Algorithm::Hash::SHA512, };
 
-	m_StartupParameters.SupportedAlgorithms.PrimaryAsymmetric = { 
+	m_StartupParameters.SupportedAlgorithms.PrimaryAsymmetric = {
 		Algorithm::Asymmetric::ECDH_X25519, Algorithm::Asymmetric::ECDH_SECP521R1 };
 
-	m_StartupParameters.SupportedAlgorithms.SecondaryAsymmetric = { 
+	m_StartupParameters.SupportedAlgorithms.SecondaryAsymmetric = {
 		Algorithm::Asymmetric::KEM_NEWHOPE, Algorithm::Asymmetric::KEM_NTRUPRIME };
 
 	m_StartupParameters.SupportedAlgorithms.Symmetric = { Algorithm::Symmetric::CHACHA20_POLY1305,
@@ -428,11 +428,11 @@ void CTestAppDlg::LoadSettings()
 						limit.find("CIDR") != limit.end() &&
 						limit.find("MaxConnections") != limit.end())
 					{
-						auto ftype = QuantumGate::IPAddressFamily::Unknown;
-						if (limit["AddressFamily"].get<std::string>() == "IPv4") ftype = QuantumGate::IPAddressFamily::IPv4;
-						else if (limit["AddressFamily"].get<std::string>() == "IPv6") ftype = QuantumGate::IPAddressFamily::IPv6;
+						auto ftype = QuantumGate::IPAddress::Family::Unspecified;
+						if (limit["AddressFamily"].get<std::string>() == "IPv4") ftype = QuantumGate::IPAddress::Family::IPv4;
+						else if (limit["AddressFamily"].get<std::string>() == "IPv6") ftype = QuantumGate::IPAddress::Family::IPv6;
 
-						if (ftype != QuantumGate::IPAddressFamily::Unknown)
+						if (ftype != QuantumGate::IPAddress::Family::Unspecified)
 						{
 							const auto result = m_QuantumGate.GetAccessManager().AddIPSubnetLimit(ftype,
 																								  Util::ToStringW(limit["CIDR"].get<std::string>()),
@@ -580,7 +580,7 @@ void CTestAppDlg::SaveSettings()
 					auto jflt = json::object();
 
 					auto type = "IPv4";
-					if (limit.AddressFamily == QuantumGate::IPAddressFamily::IPv6) type = "IPv6";
+					if (limit.AddressFamily == QuantumGate::IPAddress::Family::IPv6) type = "IPv6";
 
 					jflt["AddressFamily"] = type;
 					jflt["CIDR"] = Util::ToStringA(limit.CIDRLeadingBits);
@@ -1411,7 +1411,7 @@ void CTestAppDlg::OnStressMultipleInstances()
 		if (dlg.DoModal() == IDOK)
 		{
 			StartupParameters params(m_StartupParameters);
-			
+
 			if (!QuantumGate::UUID::TryParse(luuid.GetString(), params.UUID))
 			{
 				AfxMessageBox(L"Invalid UUID specified for the local instance.", MB_ICONERROR);
@@ -1501,7 +1501,7 @@ void CTestAppDlg::OnLocalEnvironmentInfo()
 			}
 
 			info += L"IP Addresses:\t" + ips + L"\r\n";
-			
+
 			info += L"Operational:\t";
 			if (eth.Operational) info += L"Yes";
 			else info += L"No";
@@ -1559,6 +1559,14 @@ void CTestAppDlg::OnLocalEnvironmentInfo()
 
 void CTestAppDlg::OnUtilsPing()
 {
-	Network::Ping ping(IPAddress(L"192.168.1.111"), 3);
-	ping.Process();
+	CPingDlg dlg;
+	if (dlg.DoModal() == IDOK)
+	{
+		Network::Ping ping(dlg.GetIPAddress().GetBinary(), dlg.GetTimeout(),
+						   dlg.GetBufferSize(), dlg.GetTTL());
+		if (ping.Execute())
+		{
+			SLogInfo(ping);
+		}
+	}
 }

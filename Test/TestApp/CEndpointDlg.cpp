@@ -12,10 +12,10 @@ CEndpointDlg::~CEndpointDlg()
 
 void CEndpointDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialogEx::DoDataExchange(pDX);
+	CDialogBase::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CEndpointDlg, CDialogEx)
+BEGIN_MESSAGE_MAP(CEndpointDlg, CDialogBase)
 	ON_BN_CLICKED(IDOK, &CEndpointDlg::OnBnClickedOk)
 END_MESSAGE_MAP()
 
@@ -26,7 +26,7 @@ void CEndpointDlg::SetIPAddress(const String & ip) noexcept
 
 BOOL CEndpointDlg::OnInitDialog()
 {
-	CDialogEx::OnInitDialog();
+	CDialogBase::OnInitDialog();
 
 	SetValue(IDC_IP, m_IPAddress.GetString());
 	SetValue(IDC_PORT, m_Port);
@@ -55,7 +55,7 @@ void CEndpointDlg::OnBnClickedOk()
 		auto id = GetUInt64Value(IDC_RELAY_PEER);
 		if (id != 0) m_RelayPeer = id;
 
-		CDialogEx::OnOK();
+		CDialogBase::OnOK();
 	}
 	else
 	{

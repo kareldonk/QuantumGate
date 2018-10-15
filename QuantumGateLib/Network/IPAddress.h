@@ -23,12 +23,14 @@ namespace QuantumGate::Implementation::Network
 		};
 
 	public:
+		using Family = BinaryIPAddress::Family;
+
 		constexpr IPAddress() noexcept :
-			m_AddressBinary(BinaryIPAddress{ IPAddressFamily::IPv4 }) // Defaults to IPv4 any address
+			m_BinaryAddress(BinaryIPAddress{ BinaryIPAddress::Family::IPv4 }) // Defaults to IPv4 any address
 		{}
 
-		constexpr IPAddress(const IPAddress& other) noexcept : m_AddressBinary(other.m_AddressBinary) {}
-		constexpr IPAddress(IPAddress&& other) noexcept : m_AddressBinary(std::move(other.m_AddressBinary)) {}
+		constexpr IPAddress(const IPAddress& other) noexcept : m_BinaryAddress(other.m_BinaryAddress) {}
+		constexpr IPAddress(IPAddress&& other) noexcept : m_BinaryAddress(std::move(other.m_BinaryAddress)) {}
 
 		IPAddress(const String& ipaddr_str) { SetAddress(ipaddr_str); }
 		IPAddress(const sockaddr_storage* saddr) { SetAddress(saddr); }
@@ -41,7 +43,7 @@ namespace QuantumGate::Implementation::Network
 			// Check for same object
 			if (this == &other) return *this;
 
-			m_AddressBinary = other.m_AddressBinary;
+			m_BinaryAddress = other.m_BinaryAddress;
 
 			return *this;
 		}
@@ -58,7 +60,7 @@ namespace QuantumGate::Implementation::Network
 
 		constexpr const bool operator==(const IPAddress& other) const noexcept
 		{
-			return (m_AddressBinary == other.m_AddressBinary);
+			return (m_BinaryAddress == other.m_BinaryAddress);
 		}
 
 		constexpr const bool operator!=(const IPAddress& other) const noexcept
@@ -68,7 +70,7 @@ namespace QuantumGate::Implementation::Network
 
 		constexpr const bool operator==(const BinaryIPAddress& other) const noexcept
 		{
-			return (m_AddressBinary == other);
+			return (m_BinaryAddress == other);
 		}
 
 		constexpr const bool operator!=(const BinaryIPAddress& other) const noexcept
@@ -77,34 +79,34 @@ namespace QuantumGate::Implementation::Network
 		}
 
 		String GetString() const noexcept;
-		constexpr const BinaryIPAddress& GetBinary() const noexcept { return m_AddressBinary; }
-		constexpr const IPAddressFamily GetFamily() const noexcept { return m_AddressBinary.AddressFamily; }
+		constexpr const BinaryIPAddress& GetBinary() const noexcept { return m_BinaryAddress; }
+		constexpr const Family GetFamily() const noexcept { return m_BinaryAddress.AddressFamily; }
 
-		[[nodiscard]] constexpr const bool IsMask() const noexcept { return BinaryIPAddress::IsMask(m_AddressBinary); }
-		[[nodiscard]] constexpr const bool IsLocal() const noexcept { return IsLocal(m_AddressBinary); }
-		[[nodiscard]] constexpr const bool IsMulticast() const noexcept { return IsMulticast(m_AddressBinary); }
-		[[nodiscard]] constexpr const bool IsReserved() const noexcept { return IsReserved(m_AddressBinary); }
-		[[nodiscard]] constexpr const bool IsClassA() const noexcept { return IsClassA(m_AddressBinary); }
-		[[nodiscard]] constexpr const bool IsClassB() const noexcept { return IsClassB(m_AddressBinary); }
-		[[nodiscard]] constexpr const bool IsClassC() const noexcept { return IsClassC(m_AddressBinary); }
-		[[nodiscard]] constexpr const bool IsClassD() const noexcept { return IsClassD(m_AddressBinary); }
-		[[nodiscard]] constexpr const bool IsClassE() const noexcept { return IsClassE(m_AddressBinary); }
+		[[nodiscard]] constexpr const bool IsMask() const noexcept { return BinaryIPAddress::IsMask(m_BinaryAddress); }
+		[[nodiscard]] constexpr const bool IsLocal() const noexcept { return IsLocal(m_BinaryAddress); }
+		[[nodiscard]] constexpr const bool IsMulticast() const noexcept { return IsMulticast(m_BinaryAddress); }
+		[[nodiscard]] constexpr const bool IsReserved() const noexcept { return IsReserved(m_BinaryAddress); }
+		[[nodiscard]] constexpr const bool IsClassA() const noexcept { return IsClassA(m_BinaryAddress); }
+		[[nodiscard]] constexpr const bool IsClassB() const noexcept { return IsClassB(m_BinaryAddress); }
+		[[nodiscard]] constexpr const bool IsClassC() const noexcept { return IsClassC(m_BinaryAddress); }
+		[[nodiscard]] constexpr const bool IsClassD() const noexcept { return IsClassD(m_BinaryAddress); }
+		[[nodiscard]] constexpr const bool IsClassE() const noexcept { return IsClassE(m_BinaryAddress); }
 
 		friend Export std::ostream& operator<<(std::ostream& stream, const IPAddress& ipaddr);
 		friend Export std::wostream& operator<<(std::wostream& stream, const IPAddress& ipaddr);
 
-		static constexpr const IPAddress AnyIPv4() noexcept { return { BinaryIPAddress(IPAddressFamily::IPv4) }; }
+		static constexpr const IPAddress AnyIPv4() noexcept { return { BinaryIPAddress(BinaryIPAddress::Family::IPv4) }; }
 
-		static constexpr const IPAddress AnyIPv6() noexcept { return { BinaryIPAddress(IPAddressFamily::IPv6) }; }
+		static constexpr const IPAddress AnyIPv6() noexcept { return { BinaryIPAddress(BinaryIPAddress::Family::IPv6) }; }
 
 		static constexpr const IPAddress LoopbackIPv4() noexcept
 		{
-			return { BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 127 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 }) };
+			return { BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 127 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 }) };
 		}
 
 		static constexpr const IPAddress LoopbackIPv6() noexcept
 		{
-			return { BinaryIPAddress(IPAddressFamily::IPv6,
+			return { BinaryIPAddress(BinaryIPAddress::Family::IPv6,
 									 Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
 									 Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
 									 Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
@@ -114,16 +116,16 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] static const bool TryParse(const String& ipaddr_str, IPAddress& ipaddr) noexcept;
 		[[nodiscard]] static const bool TryParse(const BinaryIPAddress& bin_ipaddr, IPAddress& ipaddr) noexcept;
 
-		[[nodiscard]] static const bool TryParseMask(const IPAddressFamily af,
+		[[nodiscard]] static const bool TryParseMask(const BinaryIPAddress::Family af,
 													 const String& mask_str, IPAddress& ipmask) noexcept;
 
-		[[nodiscard]] static constexpr const bool CreateMask(const IPAddressFamily af, UInt8 cidr_lbits,
+		[[nodiscard]] static constexpr const bool CreateMask(const BinaryIPAddress::Family af, UInt8 cidr_lbits,
 															 IPAddress& ipmask) noexcept
 		{
 			BinaryIPAddress mask;
 			if (BinaryIPAddress::CreateMask(af, cidr_lbits, mask))
 			{
-				ipmask.m_AddressBinary = mask;
+				ipmask.m_BinaryAddress = mask;
 				return true;
 			}
 
@@ -134,19 +136,19 @@ namespace QuantumGate::Implementation::Network
 		{
 			constexpr std::array<Block, 12> local =
 			{
-				Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 0 }), 8},						// 0.0.0.0/8 (Local system)
-				Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 169 }, Byte{ 254 }), 16 },		// 169.254.0.0/16 (Link local)
-				Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 127 }), 8 },					// 127.0.0.0/8 (Loopback)
-				Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 192 }, Byte{ 168 }), 16 },		// 192.168.0.0/16 (Local LAN)
-				Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 10 }), 8 },						// 10.0.0.0/8 (Local LAN)
-				Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 172 }, Byte{ 16 }), 12 },		// 172.16.0.0/12 (Local LAN)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 0 }), 8},						// 0.0.0.0/8 (Local system)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 169 }, Byte{ 254 }), 16 },		// 169.254.0.0/16 (Link local)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 127 }), 8 },					// 127.0.0.0/8 (Loopback)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 192 }, Byte{ 168 }), 16 },		// 192.168.0.0/16 (Local LAN)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 10 }), 8 },						// 10.0.0.0/8 (Local LAN)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 172 }, Byte{ 16 }), 12 },		// 172.16.0.0/12 (Local LAN)
 
-				Block{ BinaryIPAddress(IPAddressFamily::IPv6, Byte{ 0 }), 8 },						// ::/8 (Local system)
-				Block{ BinaryIPAddress(IPAddressFamily::IPv6, Byte{ 0xfc }), 7 },					// fc00::/7 (Unique Local Addresses)
-				Block{ BinaryIPAddress(IPAddressFamily::IPv6, Byte{ 0xfd }), 8 },					// fd00::/8 (Unique Local Addresses)
-				Block{ BinaryIPAddress(IPAddressFamily::IPv6, Byte{ 0xfe }, Byte{ 0xc0 }), 10 },	// fec0::/10 (Site local)
-				Block{ BinaryIPAddress(IPAddressFamily::IPv6, Byte{ 0xfe }, Byte{ 0x80 }), 10 },	// fe80::/10 (Link local)
-				Block{ BinaryIPAddress(IPAddressFamily::IPv6, Byte{ 0 }), 127 }						// ::/127 (Inter-Router Links)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv6, Byte{ 0 }), 8 },						// ::/8 (Local system)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv6, Byte{ 0xfc }), 7 },					// fc00::/7 (Unique Local Addresses)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv6, Byte{ 0xfd }), 8 },					// fd00::/8 (Unique Local Addresses)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv6, Byte{ 0xfe }, Byte{ 0xc0 }), 10 },	// fec0::/10 (Site local)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv6, Byte{ 0xfe }, Byte{ 0x80 }), 10 },	// fe80::/10 (Link local)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv6, Byte{ 0 }), 127 }						// ::/127 (Inter-Router Links)
 			};
 
 			for (const auto& block : local)
@@ -161,8 +163,8 @@ namespace QuantumGate::Implementation::Network
 		{
 			constexpr std::array<Block, 2> multicast =
 			{
-				Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 224 }), 4 },	// 224.0.0.0/4 (Multicast)
-				Block{ BinaryIPAddress(IPAddressFamily::IPv6, Byte{ 0xff }), 8 },	// ff00::/8 (Multicast)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 224 }), 4 },	// 224.0.0.0/4 (Multicast)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv6, Byte{ 0xff }), 8 },	// ff00::/8 (Multicast)
 			};
 
 			for (const auto& block : multicast)
@@ -175,37 +177,37 @@ namespace QuantumGate::Implementation::Network
 
 		[[nodiscard]] static constexpr const bool IsReserved(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
-			constexpr auto block = Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 240 }), 4 }; // 240.0.0.0/4 (Future use)
+			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 240 }), 4 }; // 240.0.0.0/4 (Future use)
 			return IsInBlock(bin_ipaddr, block);
 		}
 
 		[[nodiscard]] static constexpr const bool IsClassA(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
-			constexpr auto block = Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 0 }), 1 }; // 0.0.0.0/1
+			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 0 }), 1 }; // 0.0.0.0/1
 			return IsInBlock(bin_ipaddr, block);
 		}
 
 		[[nodiscard]] static constexpr const bool IsClassB(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
-			constexpr auto block = Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 128 }), 2 }; // 128.0.0.0/2
+			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 128 }), 2 }; // 128.0.0.0/2
 			return IsInBlock(bin_ipaddr, block);
 		}
 
 		[[nodiscard]] static constexpr const bool IsClassC(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
-			constexpr auto block = Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 192 }), 3 }; // 192.0.0.0/3
+			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 192 }), 3 }; // 192.0.0.0/3
 			return IsInBlock(bin_ipaddr, block);
 		}
 
 		[[nodiscard]] static constexpr const bool IsClassD(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
-			constexpr auto block = Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 224 }), 4 }; // 224.0.0.0/4
+			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 224 }), 4 }; // 224.0.0.0/4
 			return IsInBlock(bin_ipaddr, block);
 		}
 
 		[[nodiscard]] static constexpr const bool IsClassE(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
-			constexpr auto block = Block{ BinaryIPAddress(IPAddressFamily::IPv4, Byte{ 240 }), 4 }; // 240.0.0.0/4
+			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 240 }), 4 }; // 240.0.0.0/4
 			return IsInBlock(bin_ipaddr, block);
 		}
 
@@ -217,10 +219,9 @@ namespace QuantumGate::Implementation::Network
 		{
 			switch (bin_ipaddr.AddressFamily)
 			{
-				case IPAddressFamily::IPv4:
-					[[fallthrough]];
-				case IPAddressFamily::IPv6:
-					m_AddressBinary = bin_ipaddr;
+				case BinaryIPAddress::Family::IPv4:
+				case BinaryIPAddress::Family::IPv6:
+					m_BinaryAddress = bin_ipaddr;
 					break;
 				default:
 					throw std::invalid_argument("Unsupported internetwork address family");
@@ -229,7 +230,7 @@ namespace QuantumGate::Implementation::Network
 			return;
 		}
 
-		constexpr void Clear() noexcept { m_AddressBinary.Clear(); }
+		constexpr void Clear() noexcept { m_BinaryAddress.Clear(); }
 
 		[[nodiscard]] static constexpr const bool IsInBlock(const BinaryIPAddress& bin_ipaddr, const Block& block) noexcept
 		{
@@ -243,6 +244,6 @@ namespace QuantumGate::Implementation::Network
 	private:
 		static constexpr UInt8 MaxIPAddressStringLength{ 46 }; // Maximum length of IPv6 address
 
-		BinaryIPAddress m_AddressBinary; // In network byte order (big endian)
+		BinaryIPAddress m_BinaryAddress; // In network byte order (big endian)
 	};
 }

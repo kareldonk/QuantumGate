@@ -491,6 +491,7 @@
     <ClInclude Include="CIPFiltersDlg.h" />
     <ClInclude Include="CIPSubnetLimitsDlg.h" />
     <ClInclude Include="CPeerAccessDlg.h" />
+    <ClInclude Include="CPingDlg.h" />
     <ClInclude Include="CSettingsDlg.h" />
     <ClInclude Include="CTestAppDlgMainTab.h" />
     <ClInclude Include="CTestAppDlgTestExtenderTab.h" />
@@ -520,6 +521,7 @@
     <ClCompile Include="CIPFiltersDlg.cpp" />
     <ClCompile Include="CIPSubnetLimitsDlg.cpp" />
     <ClCompile Include="CPeerAccessDlg.cpp" />
+    <ClCompile Include="CPingDlg.cpp" />
     <ClCompile Include="CSettingsDlg.cpp" />
     <ClCompile Include="CTestAppDlgMainTab.cpp" />
     <ClCompile Include="CTestAppDlgTestExtenderTab.cpp" />

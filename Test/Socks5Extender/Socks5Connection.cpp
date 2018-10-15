@@ -10,6 +10,7 @@
 #include "Common\Endian.h"
 
 using namespace QuantumGate::Implementation;
+using namespace QuantumGate::Implementation::Network;
 using namespace std::literals;
 
 namespace QuantumGate::Socks5Extender
@@ -309,7 +310,7 @@ namespace QuantumGate::Socks5Extender
 									m_Socket.GetPeerName().c_str(), GetID());
 
 							Socks5Protocol::AddressTypes atype{ Socks5Protocol::AddressTypes::IPv4 };
-							if (m_Socket.GetLocalEndpoint().GetIPAddress().GetFamily() == IPAddressFamily::IPv6)
+							if (m_Socket.GetLocalEndpoint().GetIPAddress().GetFamily() == IPAddress::Family::IPv6)
 							{
 								atype = Socks5Protocol::AddressTypes::IPv6;
 							}
@@ -706,8 +707,8 @@ namespace QuantumGate::Socks5Extender
 		if (buffer.GetSize() >= 6)
 		{
 			// Read IPv4 address (4 bytes)
-			Network::BinaryIPAddress ip;
-			ip.AddressFamily = IPAddressFamily::IPv4;
+			BinaryIPAddress ip;
+			ip.AddressFamily = BinaryIPAddress::Family::IPv4;
 			memcpy(&ip.Bytes, buffer.GetBytes(), 4);
 
 			buffer.RemoveFirst(4);
@@ -744,8 +745,8 @@ namespace QuantumGate::Socks5Extender
 		if (buffer.GetSize() >= 18)
 		{
 			// Read IPv6 address (16 bytes)
-			Network::BinaryIPAddress ip;
-			ip.AddressFamily = IPAddressFamily::IPv6;
+			BinaryIPAddress ip;
+			ip.AddressFamily = BinaryIPAddress::Family::IPv6;
 			memcpy(&ip.Bytes, buffer.GetBytes(), 16);
 
 			buffer.RemoveFirst(16);

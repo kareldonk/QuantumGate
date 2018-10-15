@@ -40,13 +40,13 @@ namespace QuantumGate::API
 		return m_AccessManager->GetAllIPFilters();
 	}
 
-	Result<> AccessManager::AddIPSubnetLimit(const IPAddressFamily af, const String& cidr_lbits,
+	Result<> AccessManager::AddIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits,
 											 const Size max_con) noexcept
 	{
 		return m_AccessManager->AddIPSubnetLimit(af, cidr_lbits, max_con);
 	}
 
-	Result<> AccessManager::RemoveIPSubnetLimit(const IPAddressFamily af, const String& cidr_lbits) noexcept
+	Result<> AccessManager::RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept
 	{
 		return m_AccessManager->RemoveIPSubnetLimit(af, cidr_lbits);
 	}

@@ -74,8 +74,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		Peer() = delete;
 		Peer(Manager& peers, const GateType pgtype, const PeerConnectionType pctype,
 			 std::optional<ProtectedBuffer>&& shared_secret);
-		Peer(Manager& peers, const IPAddressFamily af, const Network::Socket::Type type,
-			 const Network::Socket::Protocol protocol, const PeerConnectionType pctype,
+		Peer(Manager& peers, const IP::AddressFamily af, const Socket::Type type,
+			 const IP::Protocol protocol, const PeerConnectionType pctype,
 			 std::optional<ProtectedBuffer>&& shared_secret);
 		Peer(const Peer&) = delete;
 		Peer(Peer&&) = default;
@@ -108,8 +108,11 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		inline const bool IsReady() const noexcept { return (GetStatus() == Status::Ready); }
 		inline const bool IsInSessionInit() const noexcept { return (GetStatus() == Status::SessionInit); }
-		inline const bool IsInHandshake() const noexcept { return (GetStatus() > Status::Connected &&
-																   GetStatus() < Status::Ready); }
+
+		inline const bool IsInHandshake() const noexcept
+		{
+			return (GetStatus() > Status::Connected && GetStatus() < Status::Ready);
+		}
 
 		[[nodiscard]] inline const bool IsAuthenticated() const noexcept { return m_PeerData.WithSharedLock()->IsAuthenticated; }
 		void SetAuthenticated(const bool auth) noexcept;
@@ -171,8 +174,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		void SetPeerMessageCounter(const UInt8 counter) noexcept;
 		std::optional<UInt8> GetNextPeerMessageCounter() noexcept;
 
-		Network::SerializedIPEndpoint GetPublicIPEndpointToReport() const noexcept;
-		[[nodiscard]] const bool AddReportedPublicIPEndpoint(const Network::SerializedIPEndpoint& pub_endpoint) noexcept;
+		SerializedIPEndpoint GetPublicIPEndpointToReport() const noexcept;
+		[[nodiscard]] const bool AddReportedPublicIPEndpoint(const SerializedIPEndpoint& pub_endpoint) noexcept;
 
 		const Extender::ActiveExtenderUUIDs& GetLocalExtenderUUIDs() noexcept;
 		inline ExtenderUUIDs& GetPeerExtenderUUIDs() noexcept { return m_PeerExtenderUUIDs; }
