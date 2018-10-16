@@ -10,7 +10,7 @@
 
 namespace QuantumGate::Implementation::Core
 {
-	const bool LocalEnvironment::Initialize(LocalEnvironmentChangedCallback&& callback) noexcept
+	const bool LocalEnvironment::Initialize(ChangedCallback&& callback) noexcept
 	{
 		assert(!IsInitialized());
 
@@ -24,10 +24,10 @@ namespace QuantumGate::Implementation::Core
 		// Upon failure clear environment info when we return
 		auto sg1 = MakeScopeGuard([&] { ClearEnvironmentInformation(); });
 
-		if (callback) m_LocalEnvironmentChangedCallback.WithUniqueLock() = std::move(callback);
+		if (callback) m_ChangedCallback.WithUniqueLock() = std::move(callback);
 
 		// Upon failure clear callback when we return
-		auto sg2 = MakeScopeGuard([&] { m_LocalEnvironmentChangedCallback.WithUniqueLock()->Clear(); });
+		auto sg2 = MakeScopeGuard([&] { m_ChangedCallback.WithUniqueLock()->Clear(); });
 
 		if (!RegisterIPInterfaceChangeNotification()) return false;
 
@@ -286,7 +286,7 @@ namespace QuantumGate::Implementation::Core
 	const bool LocalEnvironment::RegisterIPInterfaceChangeNotification() noexcept
 	{
 		assert(m_IPInterfaceChangeNotificationHandle == NULL);
-		
+
 		if (NotifyIpInterfaceChange(AF_UNSPEC, &IPInterfaceChangeNotificationCallback,
 									reinterpret_cast<PVOID>(this), FALSE,
 									&m_IPInterfaceChangeNotificationHandle) == NO_ERROR)
@@ -325,7 +325,7 @@ namespace QuantumGate::Implementation::Core
 		LogDbg(L"Received IP interface change notification (%d) from OS", NotificationType);
 
 		const auto le = reinterpret_cast<LocalEnvironment*>(CallerContext);
-		le->m_LocalEnvironmentChangedCallback.WithSharedLock([](const auto& callback)
+		le->m_ChangedCallback.WithSharedLock([](const auto& callback)
 		{
 			if (callback) callback();
 		});
@@ -382,8 +382,8 @@ namespace QuantumGate::Implementation::Core
 				}
 			}
 
-			// Add any public IP addresses if we have them
-			if (m_PublicIPEndpoints.AddIPAddresses(allips).Succeeded())
+			// Add any verified public IP addresses if we have them
+			if (m_PublicIPEndpoints.AddIPAddresses(allips, true).Succeeded())
 			{
 				m_CachedIPAddresses.UpdateValue([&](auto& addresses) noexcept
 				{

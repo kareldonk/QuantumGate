@@ -9,15 +9,15 @@
 
 namespace QuantumGate::Implementation::Core
 {
-	using LocalEnvironmentChangedCallback = Callback<void() noexcept>;
-	using LocalEnvironmentChangedCallback_ThS = Concurrency::ThreadSafe<LocalEnvironmentChangedCallback, std::shared_mutex>;
-
 	class LocalEnvironment final
 	{
 		using CachedIPAddresses_ThS =
 			Concurrency::ThreadLocalCache<Vector<BinaryIPAddress>, Concurrency::SpinMutex, 369>;
 
 	public:
+		using ChangedCallback = Callback<void() noexcept>;
+		using ChangedCallback_ThS = Concurrency::ThreadSafe<ChangedCallback, std::shared_mutex>;
+
 		LocalEnvironment() = default;
 		LocalEnvironment(const LocalEnvironment&) = delete;
 		LocalEnvironment(LocalEnvironment&&) = default;
@@ -25,7 +25,7 @@ namespace QuantumGate::Implementation::Core
 		LocalEnvironment& operator=(const LocalEnvironment&) = delete;
 		LocalEnvironment& operator=(LocalEnvironment&&) = default;
 
-		[[nodiscard]] const bool Initialize(LocalEnvironmentChangedCallback&& callback) noexcept;
+		[[nodiscard]] const bool Initialize(ChangedCallback&& callback) noexcept;
 		inline const bool IsInitialized() const noexcept { return m_Initialized; }
 		void Deinitialize() noexcept;
 
@@ -66,7 +66,7 @@ namespace QuantumGate::Implementation::Core
 	private:
 		bool m_Initialized{ false };
 
-		LocalEnvironmentChangedCallback_ThS m_LocalEnvironmentChangedCallback;
+		ChangedCallback_ThS m_ChangedCallback;
 
 		HANDLE m_IPInterfaceChangeNotificationHandle{ NULL };
 

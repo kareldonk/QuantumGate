@@ -4,7 +4,10 @@
 #pragma once
 
 #include "..\Concurrency\ThreadPool.h"
+#include "..\Concurrency\Queue.h"
 #include "..\Network\Socket.h"
+
+#include <unordered_set>
 
 namespace QuantumGate::Implementation::Core
 {
@@ -12,14 +15,36 @@ namespace QuantumGate::Implementation::Core
 	{
 		std::set<UInt16> Ports;
 		bool Trusted{ false };
-		bool Verified{ false };
+		bool DataVerified{ false };
+		bool HopVerified{ false };
 		std::set<std::size_t> ReportingPeerNetworkHashes;
 		SteadyTime LastUpdateSteadyTime;
+
+		[[nodiscard]] inline const bool IsTrusted() const noexcept { return Trusted; }
+		[[nodiscard]] inline const bool IsVerified() const noexcept { return (DataVerified && HopVerified); }
 	};
 
 	class PublicIPEndpoints final
 	{
-		struct IPAddressVerification
+		struct HopVerification final
+		{
+			BinaryIPAddress IPAddress;
+
+			static constexpr std::chrono::seconds TimeoutPeriod{ 5 };
+			static constexpr UInt8 MaxHops{ 2 };
+		};
+
+		using HopVerificationQueue = Concurrency::Queue<HopVerification>;
+
+		struct HopVerificationData final
+		{
+			std::unordered_set<BinaryIPAddress> Set;
+			HopVerificationQueue Queue;
+		};
+
+		using HopVerificationData_ThS = Concurrency::ThreadSafe<HopVerificationData, std::shared_mutex>;
+
+		struct DataVerification final
 		{
 			enum class Status
 			{
@@ -36,15 +61,10 @@ namespace QuantumGate::Implementation::Core
 			static constexpr UInt8 MaxVerificationTries{ 3 };
 		};
 
-		using IPAddressVerificationMap = std::unordered_map<UInt64, IPAddressVerification>;
-		using IPAddressVerificationMap_ThS = Concurrency::ThreadSafe<IPAddressVerificationMap, std::shared_mutex>;
+		using DataVerificationMap = std::unordered_map<UInt64, DataVerification>;
+		using DataVerificationMap_ThS = Concurrency::ThreadSafe<DataVerificationMap, std::shared_mutex>;
 
-		using IPEndpointsMap = std::unordered_map<BinaryIPAddress, PublicIPEndpointDetails>;
-		using IPEndpointsMap_ThS = Concurrency::ThreadSafe<IPEndpointsMap, std::shared_mutex>;
-
-		using ReportingNetworkMap = std::unordered_map<BinaryIPAddress, SteadyTime>;
-
-		struct ThreadPoolData
+		struct DataVerificationSockets final
 		{
 			using Socket_ThS = Concurrency::ThreadSafe<Network::Socket, std::shared_mutex>;
 
@@ -53,7 +73,12 @@ namespace QuantumGate::Implementation::Core
 			std::atomic<UInt16> Port{ 0 };
 		};
 
-		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
+		using IPEndpointsMap = std::unordered_map<BinaryIPAddress, PublicIPEndpointDetails>;
+		using IPEndpointsMap_ThS = Concurrency::ThreadSafe<IPEndpointsMap, std::shared_mutex>;
+
+		using ReportingNetworkMap = std::unordered_map<BinaryIPAddress, SteadyTime>;
+
+		using ThreadPool = Concurrency::ThreadPool<>;
 
 	public:
 		PublicIPEndpoints() = default;
@@ -69,12 +94,12 @@ namespace QuantumGate::Implementation::Core
 
 		Result<std::pair<bool, bool>> AddIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,
 													const PeerConnectionType rep_con_type,
-													const bool trusted) noexcept;
+													const bool trusted, const bool verified = false) noexcept;
 		const bool RemoveLeastRecentIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept;
 
 		inline IPEndpointsMap_ThS& GetIPEndpoints() noexcept { return m_IPEndpoints; }
 
-		Result<> AddIPAddresses(Vector<BinaryIPAddress>& ips) const noexcept;
+		Result<> AddIPAddresses(Vector<BinaryIPAddress>& ips, const bool only_trusted_verified) const noexcept;
 		Result<> AddIPAddresses(Vector<IPAddressDetails>& ips) const noexcept;
 
 	private:
@@ -84,8 +109,10 @@ namespace QuantumGate::Implementation::Core
 		void PreInitialize() noexcept;
 		void ResetState() noexcept;
 
-		[[nodiscard]] const bool AddIPAddressVerification(const BinaryIPAddress& ip) noexcept;
-		[[nodiscard]] const bool SendIPAddressVerification(const UInt64 num, IPAddressVerification& ip_verification) noexcept;
+		[[nodiscard]] const bool AddIPAddressDataVerification(const BinaryIPAddress& ip) noexcept;
+		[[nodiscard]] const bool SendIPAddressVerification(const UInt64 num, DataVerification& ip_verification) noexcept;
+
+		[[nodiscard]] const bool AddIPAddressHopVerification(const BinaryIPAddress& ip) noexcept;
 
 		[[nodiscard]] const bool IsNewReportingNetwork(const BinaryIPAddress& network) const noexcept;
 		[[nodiscard]] const bool AddReportingNetwork(const BinaryIPAddress& network, const bool trusted) noexcept;
@@ -94,8 +121,8 @@ namespace QuantumGate::Implementation::Core
 		std::pair<PublicIPEndpointDetails*, bool>
 			GetIPEndpointDetails(const BinaryIPAddress& pub_ip, IPEndpointsMap& ipendpoints) noexcept;
 
-		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata,
-														  const Concurrency::EventCondition& shutdown_event);
+		const std::pair<bool, bool> DataVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event);
+		const std::pair<bool, bool> HopVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event);
 
 	private:
 		static constexpr const UInt8 MaxReportingPeerNetworks{ 32 };
@@ -108,7 +135,11 @@ namespace QuantumGate::Implementation::Core
 	private:
 		std::atomic_bool m_Initialized{ false };
 
-		IPAddressVerificationMap_ThS m_IPAddressVerification;
+		DataVerificationMap_ThS m_DataVerification;
+		DataVerificationSockets m_DataVerificationSockets;
+
+		HopVerificationData_ThS m_HopVerification;
+
 		IPEndpointsMap_ThS m_IPEndpoints;
 		ReportingNetworkMap m_ReportingNetworks;
 
