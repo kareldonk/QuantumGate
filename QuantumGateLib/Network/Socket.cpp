@@ -290,16 +290,6 @@ namespace QuantumGate::Implementation::Network
 			return false;
 		}
 
-		const BOOL optval2 = TRUE;
-
-		const auto ret2 = setsockopt(m_Socket, SOL_SOCKET, SO_BROADCAST,
-									 reinterpret_cast<const char*>(&optval2), sizeof(optval2));
-		if (ret2 == SOCKET_ERROR)
-		{
-			LogErr(L"Could not set reuse address socket option for socket (%s)", GetLastSysErrorString().c_str());
-			return false;
-		}
-
 		return true;
 	}
 
