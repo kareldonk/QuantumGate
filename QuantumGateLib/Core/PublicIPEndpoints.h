@@ -103,8 +103,8 @@ namespace QuantumGate::Implementation::Core
 		Result<> AddIPAddresses(Vector<IPAddressDetails>& ips) const noexcept;
 
 	private:
-		[[nodiscard]] const bool InitializeSockets() noexcept;
-		void DeinitializeSockets() noexcept;
+		[[nodiscard]] const bool InitializeDataVerificationSockets() noexcept;
+		void DeinitializeDataVerificationSockets() noexcept;
 
 		void PreInitialize() noexcept;
 		void ResetState() noexcept;

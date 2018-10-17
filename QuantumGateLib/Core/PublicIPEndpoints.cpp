@@ -19,14 +19,14 @@ namespace QuantumGate::Implementation::Core
 
 		PreInitialize();
 
-		if (!InitializeSockets())
+		if (!InitializeDataVerificationSockets())
 		{
-			LogErr(L"PublicIPEndpoints verification sockets initialization failed");
+			LogErr(L"PublicIPEndpoints data verification sockets failed initialization");
 			return false;
 		}
 
 		// Upon failure deinitialize sockets
-		auto sg = MakeScopeGuard([&] { DeinitializeSockets(); });
+		auto sg = MakeScopeGuard([&] { DeinitializeDataVerificationSockets(); });
 
 		if (!m_ThreadPool.AddThread(L"QuantumGate PublicIPEndpoints DataVerification Thread",
 									MakeCallback(this, &PublicIPEndpoints::DataVerificationWorkerThread)))
@@ -65,7 +65,7 @@ namespace QuantumGate::Implementation::Core
 
 		m_ThreadPool.Shutdown();
 
-		DeinitializeSockets();
+		DeinitializeDataVerificationSockets();
 
 		ResetState();
 
@@ -85,13 +85,13 @@ namespace QuantumGate::Implementation::Core
 		m_ReportingNetworks.clear();
 	}
 
-	[[nodiscard]] const bool PublicIPEndpoints::InitializeSockets() noexcept
+	[[nodiscard]] const bool PublicIPEndpoints::InitializeDataVerificationSockets() noexcept
 	{
 		auto success = true;
 		auto nat_traversal = true;
 
 		// Upon failure deinitialize sockets
-		auto sg = MakeScopeGuard([&] { DeinitializeSockets(); });
+		auto sg = MakeScopeGuard([&] { DeinitializeDataVerificationSockets(); });
 
 		m_DataVerificationSockets.IPv4UDPSocket.WithUniqueLock([&](Network::Socket& socket)
 		{
@@ -156,7 +156,7 @@ namespace QuantumGate::Implementation::Core
 		return true;
 	}
 
-	void PublicIPEndpoints::DeinitializeSockets() noexcept
+	void PublicIPEndpoints::DeinitializeDataVerificationSockets() noexcept
 	{
 		m_DataVerificationSockets.IPv4UDPSocket.WithUniqueLock([](Network::Socket& socket)
 		{
@@ -173,7 +173,9 @@ namespace QuantumGate::Implementation::Core
 
 	const std::pair<bool, bool> PublicIPEndpoints::DataVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event)
 	{
+		auto success = true;
 		auto didwork = false;
+		auto socket_error = false;
 
 		const std::array<DataVerificationSockets::Socket_ThS*, 2> sockets
 		{
@@ -183,8 +185,6 @@ namespace QuantumGate::Implementation::Core
 
 		for (auto socket_ths : sockets)
 		{
-			auto socket_error = false;
-
 			// Check if we have a read event waiting for us
 			if (socket_ths->WithUniqueLock()->UpdateIOStatus(0ms,
 															 Socket::IOStatus::Update::Read |
@@ -285,11 +285,6 @@ namespace QuantumGate::Implementation::Core
 
 				socket_error = true;
 			}
-
-			if (socket_error)
-			{
-				// Do stuff
-			}
 		}
 
 		m_DataVerification.WithUniqueLock([&](auto& verification_map)
@@ -327,7 +322,7 @@ namespace QuantumGate::Implementation::Core
 							}
 							else
 							{
-								LogErr(L"Public IP address data verification for %s timed out",
+								LogErr(L"Public IP address data verification for %s timed out; this could be due to a firewall blocking incoming UDP traffic",
 									   IPAddress(it->second.IPAddress).GetString().c_str());
 
 								remove = true;
@@ -346,7 +341,23 @@ namespace QuantumGate::Implementation::Core
 			}
 		});
 
-		return std::make_pair(true, didwork);
+		// If we had an error on a socket, try to
+		// restart them, and if this doesn't succeed
+		// we'll exit the thread
+		if (socket_error)
+		{
+			LogWarn(L"Attempting to restart PublicIPEndpoints data verification sockets due to errors");
+
+			DeinitializeDataVerificationSockets();
+
+			if (!InitializeDataVerificationSockets())
+			{
+				LogErr(L"PublicIPEndpoints data verification sockets failed initialization; will exit data verification thread");
+				success = false;
+			}
+		}
+
+		return std::make_pair(success, didwork);
 	}
 
 	const std::pair<bool, bool> PublicIPEndpoints::HopVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event)

@@ -1570,6 +1570,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			return (pub_endpoint == SerializedIPEndpoint{});
 		}
 
+		LogErr(L"Couldn't add public IP endpoint reported by peer %s", GetPeerName().c_str());
+
 		return false;
 	}
 

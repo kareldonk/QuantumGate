@@ -303,7 +303,9 @@ namespace QuantumGate::Implementation::Core::Listener
 		auto didwork = false;
 
 		// Check if we have a read event waiting for us
-		if (thdata.Socket.UpdateIOStatus(0ms))
+		if (thdata.Socket.UpdateIOStatus(0ms,
+										 Socket::IOStatus::Update::Read |
+										 Socket::IOStatus::Update::Exception))
 		{
 			if (thdata.Socket.GetIOStatus().CanRead())
 			{

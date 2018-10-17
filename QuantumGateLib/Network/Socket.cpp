@@ -356,7 +356,7 @@ namespace QuantumGate::Implementation::Network
 
 		// Enable NAT traversal (in order to accept connections from the Internet on a LAN)
 		// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/aa832668(v=vs.85).aspx
-		const int pl = nat_traversal ? PROTECTION_LEVEL_UNRESTRICTED : PROTECTION_LEVEL_RESTRICTED;
+		const int pl = nat_traversal ? PROTECTION_LEVEL_UNRESTRICTED : PROTECTION_LEVEL_DEFAULT;
 
 		const auto ret = setsockopt(m_Socket, IPPROTO_IPV6, IPV6_PROTECTION_LEVEL,
 									reinterpret_cast<const char*>(&pl), sizeof(pl));
@@ -377,19 +377,16 @@ namespace QuantumGate::Implementation::Network
 
 		// Enable conditional accept (in order to check IP access settings before allowing connection)
 		// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/dd264794(v=vs.85).aspx
-		if (cond_accept)
+		const DWORD ca = cond_accept ? 1 : 0;
+
+		const auto ret = setsockopt(m_Socket, SOL_SOCKET, SO_CONDITIONAL_ACCEPT,
+									reinterpret_cast<const char*>(&ca), sizeof(ca));
+		if (ret == SOCKET_ERROR)
 		{
-			const DWORD ca = cond_accept ? 1 : 0;
+			LogErr(L"Could not set conditional accept socket option for endpoint %s (%s)",
+				   GetLocalName().c_str(), GetLastSysErrorString().c_str());
 
-			const auto ret = setsockopt(m_Socket, SOL_SOCKET, SO_CONDITIONAL_ACCEPT,
-										reinterpret_cast<const char*>(&ca), sizeof(ca));
-			if (ret == SOCKET_ERROR)
-			{
-				LogErr(L"Could not set conditional accept socket option for endpoint %s (%s)",
-					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
-
-				return false;
-			}
+			return false;
 		}
 
 		return true;
@@ -861,38 +858,26 @@ namespace QuantumGate::Implementation::Network
 
 	const bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds, const IOStatus::Update ioupdate) noexcept
 	{
-		if (!(ioupdate & IOStatus::Update::All))
+		switch (ioupdate)
 		{
-			return UpdateIOStatusImpl<true, true, true>(mseconds);
+			case IOStatus::Update::All:
+				return UpdateIOStatusImpl<true, true, true>(mseconds);
+			case (IOStatus::Update::Read | IOStatus::Update::Exception):
+				return UpdateIOStatusImpl<true, false, true>(mseconds);
+			case (IOStatus::Update::Write | IOStatus::Update::Exception):
+				return UpdateIOStatusImpl<false, true, true>(mseconds);
+			case (IOStatus::Update::Read | IOStatus::Update::Write):
+				return UpdateIOStatusImpl<true, true, false>(mseconds);
+			case IOStatus::Update::Read:
+				return UpdateIOStatusImpl<true, false, false>(mseconds);
+			case IOStatus::Update::Write:
+				return UpdateIOStatusImpl<false, true, false>(mseconds);
+			case IOStatus::Update::Exception:
+				return UpdateIOStatusImpl<false, false, true>(mseconds);
+			default:
+				assert(false);
+				break;
 		}
-		else if ((ioupdate & IOStatus::Update::Read) &&
-			(ioupdate & IOStatus::Update::Write))
-		{
-			return UpdateIOStatusImpl<true, true, false>(mseconds);
-		}
-		else if ((ioupdate & IOStatus::Update::Read) &&
-			(ioupdate & IOStatus::Update::Exception))
-		{
-			return UpdateIOStatusImpl<true, false, true>(mseconds);
-		}
-		else if ((ioupdate & IOStatus::Update::Write) &&
-			(ioupdate & IOStatus::Update::Exception))
-		{
-			return UpdateIOStatusImpl<false, true, true>(mseconds);
-		}
-		else if (ioupdate & IOStatus::Update::Read)
-		{
-			return UpdateIOStatusImpl<true, false, false>(mseconds);
-		}
-		else if (ioupdate & IOStatus::Update::Write)
-		{
-			return UpdateIOStatusImpl<false, true, false>(mseconds);
-		}
-		else if (ioupdate & IOStatus::Update::Exception)
-		{
-			return UpdateIOStatusImpl<false, false, true>(mseconds);
-		}
-		else assert(false);
 
 		return false;
 	}

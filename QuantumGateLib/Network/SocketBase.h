@@ -127,12 +127,12 @@ namespace QuantumGate::Implementation::Network
 		virtual void SetCloseCallback(CloseCallback&& callback) noexcept = 0;
 	};
 
-	inline SocketBase::IOStatus::Update operator|(SocketBase::IOStatus::Update a, SocketBase::IOStatus::Update b)
+	inline constexpr SocketBase::IOStatus::Update operator|(SocketBase::IOStatus::Update a, SocketBase::IOStatus::Update b)
 	{
 		return static_cast<SocketBase::IOStatus::Update>(static_cast<int>(a) | static_cast<int>(b));
 	}
 
-	inline bool operator&(SocketBase::IOStatus::Update a, SocketBase::IOStatus::Update b)
+	inline constexpr bool operator&(SocketBase::IOStatus::Update a, SocketBase::IOStatus::Update b)
 	{
 		if (static_cast<int>(a) & static_cast<int>(b)) return true;
 		return false;
