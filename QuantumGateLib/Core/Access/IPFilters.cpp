@@ -72,9 +72,9 @@ namespace QuantumGate::Implementation::Core::Access
 			{
 				if (IPAddress::TryParseMask(ipfilter.Address.GetFamily(), mask, ipfilter.Mask))
 				{
-					ipfilter.FilterID = GetFilterID(ipfilter.Address, ipfilter.Mask);
+					ipfilter.ID = GetFilterID(ipfilter.Address, ipfilter.Mask);
 
-					if (!HasFilter(ipfilter.FilterID, type))
+					if (!HasFilter(ipfilter.ID, type))
 					{
 						const auto range = BinaryIPAddress::GetAddressRange(ipfilter.Address.GetBinary(),
 																			ipfilter.Mask.GetBinary());
@@ -86,14 +86,14 @@ namespace QuantumGate::Implementation::Core::Access
 							switch (ipfilter.Type)
 							{
 								case IPFilterType::Allowed:
-									m_IPAllowFilters[ipfilter.FilterID] = ipfilter;
+									m_IPAllowFilters[ipfilter.ID] = ipfilter;
 									break;
 								case IPFilterType::Blocked:
-									m_IPBlockFilters[ipfilter.FilterID] = ipfilter;
+									m_IPBlockFilters[ipfilter.ID] = ipfilter;
 									break;
 							}
 
-							return ipfilter.FilterID;
+							return ipfilter.ID;
 						}
 						else LogErr(L"Could not add IP filter: failed to get IP range");
 					}
@@ -182,7 +182,7 @@ namespace QuantumGate::Implementation::Core::Access
 				for (const auto& fltpair : *fltmap)
 				{
 					auto& flt = ipfilters.emplace_back();
-					flt.FilterID = fltpair.second.FilterID;
+					flt.ID = fltpair.second.ID;
 					flt.Type = fltpair.second.Type;
 					flt.Address = fltpair.second.Address;
 					flt.Mask = fltpair.second.Mask;

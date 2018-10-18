@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation::Core::Access
 {
 	struct IPFilterImpl
 	{
-		IPFilterID FilterID{ 0 };
+		IPFilterID ID{ 0 };
 		IPFilterType Type{ IPFilterType::Blocked };
 		IPAddress Address;
 		IPAddress Mask;

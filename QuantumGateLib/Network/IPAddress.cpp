@@ -35,7 +35,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool IPAddress::TryParseMask(const BinaryIPAddress::Family af, const String& mask_str, IPAddress& ipmask) noexcept
+	const bool IPAddress::TryParseMask(const IPAddress::Family af, const String& mask_str, IPAddress& ipmask) noexcept
 	{
 		try
 		{

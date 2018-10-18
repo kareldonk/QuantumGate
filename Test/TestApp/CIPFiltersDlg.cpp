@@ -81,7 +81,7 @@ void CIPFiltersDlg::UpdateIPFilterList() noexcept
 				if (flt.Type == QuantumGate::IPFilterType::Blocked) type = L"Blocked";
 				flctrl->SetItemText(pos, 2, type);
 
-				flctrl->SetItemText(pos, 3, std::to_wstring(flt.FilterID).c_str());
+				flctrl->SetItemText(pos, 3, std::to_wstring(flt.ID).c_str());
 			}
 		}
 	}

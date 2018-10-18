@@ -116,10 +116,10 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] static const bool TryParse(const String& ipaddr_str, IPAddress& ipaddr) noexcept;
 		[[nodiscard]] static const bool TryParse(const BinaryIPAddress& bin_ipaddr, IPAddress& ipaddr) noexcept;
 
-		[[nodiscard]] static const bool TryParseMask(const BinaryIPAddress::Family af,
+		[[nodiscard]] static const bool TryParseMask(const IPAddress::Family af,
 													 const String& mask_str, IPAddress& ipmask) noexcept;
 
-		[[nodiscard]] static constexpr const bool CreateMask(const BinaryIPAddress::Family af, UInt8 cidr_lbits,
+		[[nodiscard]] static constexpr const bool CreateMask(const IPAddress::Family af, UInt8 cidr_lbits,
 															 IPAddress& ipmask) noexcept
 		{
 			BinaryIPAddress mask;
