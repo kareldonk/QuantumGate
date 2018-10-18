@@ -3,7 +3,9 @@
 
 #include "stdafx.h"
 #include "CppUnitTest.h"
+#include "Settings.h"
 #include "Core\PublicIPEndpoints.h"
+#include "Common\Util.h"
 
 #include <thread>
 
@@ -130,12 +132,13 @@ namespace UnitTests
 				}
 			};
 
-			PublicIPEndpoints pubendp;
+			Settings_CThS settings;
+
+			PublicIPEndpoints pubendp{ settings };
 			Assert::AreEqual(true, pubendp.Initialize());
 
 			for (const auto& test : tests)
 			{
-				BinaryIPAddress network;
 				const auto result = pubendp.AddIPEndpoint(test.PublicIPEndpoint, test.ReportingPeer,
 														  test.ConnectionType, test.Trusted);
 				Assert::AreEqual(test.Success, result.Succeeded());
@@ -205,7 +208,7 @@ namespace UnitTests
 			}
 		}
 
-		TEST_METHOD(CheckLeastRecent)
+		TEST_METHOD(CheckLeastRelevant)
 		{
 			struct TestCases
 			{
@@ -263,12 +266,13 @@ namespace UnitTests
 				}
 			};
 
-			PublicIPEndpoints pubendp;
+			Settings_CThS settings;
+
+			PublicIPEndpoints pubendp{ settings };
 			Assert::AreEqual(true, pubendp.Initialize());
 
 			for (const auto& test : tests)
 			{
-				BinaryIPAddress network;
 				const auto result = pubendp.AddIPEndpoint(test.PublicIPEndpoint, test.ReportingPeer,
 														  test.ConnectionType, test.Trusted, test.Verified);
 				Assert::AreEqual(test.Success, result.Succeeded());
@@ -333,29 +337,58 @@ namespace UnitTests
 
 			auto endpoints = pubendp.GetIPEndpoints().WithUniqueLock();
 
-			pubendp.RemoveLeastRecentIPEndpoints(1, *endpoints);
+			pubendp.RemoveLeastRelevantIPEndpoints(1, *endpoints);
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193").GetBinary()));
 			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
 
 			endpoints.Lock();
-			pubendp.RemoveLeastRecentIPEndpoints(2, *endpoints);
+			pubendp.RemoveLeastRelevantIPEndpoints(2, *endpoints);
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"160.16.5.51").GetBinary()));
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"200.168.5.51").GetBinary()));
 			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
 
 			endpoints.Lock();
-			pubendp.RemoveLeastRecentIPEndpoints(1, *endpoints);
+			pubendp.RemoveLeastRelevantIPEndpoints(1, *endpoints);
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de").GetBinary()));
 			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
 
 			endpoints.Lock();
-			pubendp.RemoveLeastRecentIPEndpoints(1, *endpoints);
+			pubendp.RemoveLeastRelevantIPEndpoints(4, *endpoints); // Attempt to remove larger number than exists
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"199.111.110.30").GetBinary()));
 			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
+		}
+
+		TEST_METHOD(CheckMaxIPEndpoints)
+		{
+			Settings_CThS settings;
+
+			PublicIPEndpoints pubendp{ settings };
+			Assert::AreEqual(true, pubendp.Initialize());
+
+			// Intentionally add more unique IP addresses from unique networks
+			// to overflow the maximum number of endpoints we manage
+			for (auto x = 0; x < (PublicIPEndpoints::MaxIPEndpoints + 10); ++x)
+			{
+				auto pubip_str = Util::FormatString(L"180.100.90.%u", x);
+				auto repip_str = Util::FormatString(L"18.%u.40.100", x);
+
+				const auto result = pubendp.AddIPEndpoint(IPEndpoint(IPAddress(pubip_str), 999),
+														  IPEndpoint(IPAddress(repip_str), 5000),
+														  PeerConnectionType::Inbound, true, false);
+				Assert::AreEqual(true, result.Succeeded());
+				if (result.Succeeded())
+				{
+					Assert::AreEqual(true, result->first);
+					Assert::AreEqual(true, result->second);
+				}
+			}
+
+			Assert::AreEqual(true, pubendp.GetIPEndpoints().WithUniqueLock()->size() ==
+							 PublicIPEndpoints::MaxIPEndpoints);
 		}
 	};
 }

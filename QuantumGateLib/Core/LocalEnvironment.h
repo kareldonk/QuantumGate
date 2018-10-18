@@ -18,7 +18,10 @@ namespace QuantumGate::Implementation::Core
 		using ChangedCallback = Callback<void() noexcept>;
 		using ChangedCallback_ThS = Concurrency::ThreadSafe<ChangedCallback, std::shared_mutex>;
 
-		LocalEnvironment() = default;
+		LocalEnvironment(const Settings_CThS& settings) noexcept :
+			m_PublicIPEndpoints(settings)
+		{}
+
 		LocalEnvironment(const LocalEnvironment&) = delete;
 		LocalEnvironment(LocalEnvironment&&) = default;
 		~LocalEnvironment() { if (IsInitialized()) Deinitialize(); }
@@ -36,7 +39,7 @@ namespace QuantumGate::Implementation::Core
 		Result<Vector<IPAddressDetails>> GetIPAddresses() const noexcept;
 		inline const Vector<EthernetInterface>& GetEthernetInterfaces() const noexcept { return m_EthernetInterfaces; }
 
-		const Vector<BinaryIPAddress>* GetCachedIPAddresses() const noexcept;
+		const Vector<BinaryIPAddress>* GetTrustedAndVerifiedIPAddresses() const noexcept;
 
 		String GetIPAddressesString() const noexcept;
 		String GetMACAddressesString() const noexcept;

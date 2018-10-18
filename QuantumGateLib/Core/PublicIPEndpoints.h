@@ -81,7 +81,10 @@ namespace QuantumGate::Implementation::Core
 		using ThreadPool = Concurrency::ThreadPool<>;
 
 	public:
-		PublicIPEndpoints() = default;
+		PublicIPEndpoints(const Settings_CThS& settings) noexcept :
+			m_Settings(settings)
+		{}
+
 		PublicIPEndpoints(const PublicIPEndpoints&) = delete;
 		PublicIPEndpoints(PublicIPEndpoints&&) = default;
 		~PublicIPEndpoints() { if (IsInitialized()) Deinitialize(); }
@@ -95,7 +98,7 @@ namespace QuantumGate::Implementation::Core
 		Result<std::pair<bool, bool>> AddIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,
 													const PeerConnectionType rep_con_type,
 													const bool trusted, const bool verified = false) noexcept;
-		const bool RemoveLeastRecentIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept;
+		const bool RemoveLeastRelevantIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept;
 
 		inline IPEndpointsMap_ThS& GetIPEndpoints() noexcept { return m_IPEndpoints; }
 
@@ -124,7 +127,7 @@ namespace QuantumGate::Implementation::Core
 		const std::pair<bool, bool> DataVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event);
 		const std::pair<bool, bool> HopVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event);
 
-	private:
+	public:
 		static constexpr const UInt8 MaxReportingPeerNetworks{ 32 };
 		static constexpr const UInt8 ReportingPeerNetworkIPv4CIDR{ 16 };
 		static constexpr const UInt8 ReportingPeerNetworkIPv6CIDR{ 48 };
@@ -134,6 +137,8 @@ namespace QuantumGate::Implementation::Core
 
 	private:
 		std::atomic_bool m_Initialized{ false };
+
+		const Settings_CThS& m_Settings;
 
 		DataVerificationMap_ThS m_DataVerification;
 		DataVerificationSockets m_DataVerificationSockets;

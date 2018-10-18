@@ -132,7 +132,7 @@ namespace QuantumGate::Implementation::Core
 		Settings_CThS m_Settings;
 		SecurityLevel m_SecurityLevel{ SecurityLevel::One };
 
-		LocalEnvironment_ThS m_LocalEnvironment;
+		LocalEnvironment_ThS m_LocalEnvironment{ m_Settings };
 
 		ExtenderModuleMap m_ExtenderModules;
 

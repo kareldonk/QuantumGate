@@ -3,7 +3,6 @@
 
 #include "stdafx.h"
 #include "CppUnitTest.h"
-#include "Settings.h"
 #include "Concurrency\ThreadLocalCache.h"
 
 #include <thread>

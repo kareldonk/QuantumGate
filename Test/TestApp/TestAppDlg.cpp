@@ -1566,7 +1566,7 @@ void CTestAppDlg::OnUtilsPing()
 						   dlg.GetBufferSize(), dlg.GetTTL());
 		if (ping.Execute())
 		{
-			SLogInfo(ping);
+			SLogInfo(L"Ping: " << ping);
 		}
 	}
 }

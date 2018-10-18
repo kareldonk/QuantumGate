@@ -60,7 +60,7 @@ namespace QuantumGate::Implementation::Core
 		return UpdateEnvironmentInformation();
 	}
 
-	const Vector<BinaryIPAddress>* LocalEnvironment::GetCachedIPAddresses() const noexcept
+	const Vector<BinaryIPAddress>* LocalEnvironment::GetTrustedAndVerifiedIPAddresses() const noexcept
 	{
 		try
 		{
@@ -382,7 +382,7 @@ namespace QuantumGate::Implementation::Core
 				}
 			}
 
-			// Add any verified public IP addresses if we have them
+			// Add any trusted/verified public IP addresses if we have them
 			if (m_PublicIPEndpoints.AddIPAddresses(allips, true).Succeeded())
 			{
 				m_CachedIPAddresses.UpdateValue([&](auto& addresses) noexcept

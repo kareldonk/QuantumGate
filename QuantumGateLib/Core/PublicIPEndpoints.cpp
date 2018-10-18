@@ -43,8 +43,10 @@ namespace QuantumGate::Implementation::Core
 			return false;
 		}
 
-		m_ThreadPool.SetWorkerThreadsMaxBurst(64);
-		m_ThreadPool.SetWorkerThreadsMaxSleep(1ms);
+		const auto& settings = m_Settings.GetCache();
+
+		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
+		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 
 		if (!m_ThreadPool.Startup())
 		{
@@ -231,7 +233,7 @@ namespace QuantumGate::Implementation::Core
 							if (const auto it = verification_map.find(*num); it != verification_map.end())
 							{
 								// Verification data should have been sent by the IP address that we
-								// sent it to and expect, otherwise something is wrong (attack?)
+								// sent it to and expect to hear from, otherwise something is wrong (attack?)
 								if (it->second.IPAddress == sender_endpoint.GetIPAddress().GetBinary())
 								{
 									m_IPEndpoints.WithUniqueLock([&](auto& ipendpoints)
@@ -245,7 +247,7 @@ namespace QuantumGate::Implementation::Core
 										}
 										else
 										{
-											// This should never happen
+											// We should never get here
 											LogErr(L"Failed to verify IP address %s; IP address not found in public endpoints",
 												   IPAddress(it->second.IPAddress).GetString().c_str());
 										}
@@ -261,6 +263,7 @@ namespace QuantumGate::Implementation::Core
 							}
 							else
 							{
+								// Data verification record may have been removed due to timeout, or may be an attack
 								LogErr(L"Received unknown public IP address data verification (%llu) from endpoint %s",
 									   num, sender_endpoint.GetString().c_str());
 							}
@@ -386,7 +389,7 @@ namespace QuantumGate::Implementation::Core
 
 			// We ping the IP address with specific hop numbers to verify the distance
 			// on the network. If the distance is small it's more likely that the
-			// public IP address is the one we're using (ideally 1 or 2 hops away).
+			// public IP address is one that we're using (ideally 1 or 2 hops away).
 			// If the distance is further away then it may not be a public IP address
 			// that we're using (and could be an attack).
 			while (hop <= HopVerification::MaxHops && !shutdown_event.IsSet())
@@ -417,7 +420,7 @@ namespace QuantumGate::Implementation::Core
 					}
 					else
 					{
-						// This should never happen
+						// We should never get here
 						LogErr(L"Failed to verify hops for IP address %s; IP address not found in public endpoints",
 							   IPAddress(hop_verification->IPAddress).GetString().c_str());
 					}
@@ -523,7 +526,9 @@ namespace QuantumGate::Implementation::Core
 	{
 		// We send a random 64-bit number to the IP address to verify, and the port
 		// that we're listening on locally. If the IP address is ours the random
-		// number will be received by us and we'll have verified the address.
+		// number will be received by us and we'll have partially verified the address.
+		// An attacker could intercept and sne dback the 64-bit number bak to us, which
+		// is why we also verify the number of hops between us and the IP address.
 
 		try
 		{
@@ -650,6 +655,8 @@ namespace QuantumGate::Implementation::Core
 		auto new_insert = false;
 		PublicIPEndpointDetails* pub_ipd{ nullptr };
 
+		// If we already have a record for the IP address simply return
+		// it, otherwise we'll add a new one below
 		if (const auto it = ipendpoints.find(pub_ip); it != ipendpoints.end())
 		{
 			pub_ipd = &it->second;
@@ -658,8 +665,12 @@ namespace QuantumGate::Implementation::Core
 		{
 			if (ipendpoints.size() >= MaxIPEndpoints)
 			{
-				RemoveLeastRecentIPEndpoints(ipendpoints.size() - MaxIPEndpoints, ipendpoints);
+				// No room for new IP endpoints, so we need to remove the
+				// ones that are least relevant before we can add a new one
+				RemoveLeastRelevantIPEndpoints((ipendpoints.size() - MaxIPEndpoints) + 1, ipendpoints);
 			}
+
+			assert(ipendpoints.size() < MaxIPEndpoints);
 
 			if (ipendpoints.size() < MaxIPEndpoints)
 			{
@@ -671,14 +682,17 @@ namespace QuantumGate::Implementation::Core
 					pub_ipd = &iti->second;
 					new_insert = inserted;
 				}
-				catch (...) {}
+				catch (...)
+				{
+					LogErr(L"Failed to insert new public IP endpoint due to exception");
+				}
 			}
 		}
 
 		return std::make_pair(pub_ipd, new_insert);
 	}
 
-	const bool PublicIPEndpoints::RemoveLeastRecentIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept
+	const bool PublicIPEndpoints::RemoveLeastRelevantIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept
 	{
 		if (!ipendpoints.empty())
 		{
@@ -718,6 +732,8 @@ namespace QuantumGate::Implementation::Core
 
 				DbgInvoke([&]()
 				{
+					Dbg(L"\r\nSorted IPEndpointDetails:");
+
 					for (auto& ep : temp_endp)
 					{
 						Dbg(L"%s - %s - %s - %llu",
@@ -726,18 +742,24 @@ namespace QuantumGate::Implementation::Core
 							ep.Verified ? L"Verified" : L"Not verified",
 							ep.LastUpdateSteadyTime.time_since_epoch().count());
 					}
+
+					Dbg(L"\r\n");
 				});
 
 				if (num > temp_endp.size()) num = temp_endp.size();
 
 				// Remove first few items which should be
 				// least trusted and least recent;
-				for (Size x = 0; x < num; x++)
+				for (auto it = temp_endp.begin(); it < temp_endp.begin() + num; ++it)
 				{
-					ipendpoints.erase((temp_endp.begin() + x)->IPAddress);
+					ipendpoints.erase(it->IPAddress);
 				}
 			}
-			catch (...) { return false; }
+			catch (...)
+			{
+				LogErr(L"Failed to remove least relevant public IP endpoints due to exception");
+				return false;
+			}
 		}
 
 		return true;
@@ -769,7 +791,10 @@ namespace QuantumGate::Implementation::Core
 			LogErr(L"Could not add public IP addresses due to exception: %s",
 				   Util::ToStringW(e.what()).c_str());
 		}
-		catch (...) {}
+		catch (...)
+		{
+			LogErr(L"Could not add public IP addresses due to unknown exception");
+		}
 
 		return ResultCode::Failed;
 	}
@@ -821,7 +846,10 @@ namespace QuantumGate::Implementation::Core
 			LogErr(L"Could not add public IP addresses due to exception: %s",
 				   Util::ToStringW(e.what()).c_str());
 		}
-		catch (...) {}
+		catch (...)
+		{
+			LogErr(L"Could not add public IP addresses due to unknown exception");
+		}
 
 		return ResultCode::Failed;
 	}
@@ -862,7 +890,15 @@ namespace QuantumGate::Implementation::Core
 			m_ReportingNetworks.emplace(std::make_pair(network, Util::GetCurrentSteadyTime()));
 			return true;
 		}
-		catch (...) {}
+		catch (const std::exception& e)
+		{
+			LogErr(L"Could not add reporting network due to exception: %s",
+				   Util::ToStringW(e.what()).c_str());
+		}
+		catch (...)
+		{
+			LogErr(L"Could not add reporting network due to unknown exception");
+		}
 
 		return false;
 	}

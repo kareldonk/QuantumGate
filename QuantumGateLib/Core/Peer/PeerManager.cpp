@@ -963,7 +963,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	const Vector<BinaryIPAddress>* Manager::GetLocalIPAddresses() const noexcept
 	{
-		return m_LocalEnvironment.WithSharedLock()->GetCachedIPAddresses();
+		return m_LocalEnvironment.WithSharedLock()->GetTrustedAndVerifiedIPAddresses();
 	}
 
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
