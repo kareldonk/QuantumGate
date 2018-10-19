@@ -29,7 +29,7 @@ namespace QuantumGate::Implementation::Core
 		LocalEnvironment& operator=(LocalEnvironment&&) = default;
 
 		[[nodiscard]] const bool Initialize(ChangedCallback&& callback) noexcept;
-		inline const bool IsInitialized() const noexcept { return m_Initialized; }
+		[[nodiscard]] inline const bool IsInitialized() const noexcept { return m_Initialized; }
 		void Deinitialize() noexcept;
 
 		[[nodiscard]] const bool Update() noexcept;

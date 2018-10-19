@@ -93,7 +93,7 @@ namespace QuantumGate::Implementation::Core
 
 		[[nodiscard]] const bool Initialize() noexcept;
 		void Deinitialize() noexcept;
-		inline const bool IsInitialized() const noexcept { return m_Initialized; }
+		[[nodiscard]] inline const bool IsInitialized() const noexcept { return m_Initialized; }
 
 		Result<std::pair<bool, bool>> AddIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,
 													const PeerConnectionType rep_con_type,

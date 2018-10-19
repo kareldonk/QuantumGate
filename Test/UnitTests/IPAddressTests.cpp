@@ -290,24 +290,24 @@ namespace UnitTests
 			const std::vector<IPTest> iptests
 			{
 				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.0.0").GetBinary(), 16, true },
-			{ IPAddress(L"192.168.1.20").GetBinary(), IPAddress(L"192.168.0.0").GetBinary(), 16, true },
-			{ IPAddress(L"172.217.7.238").GetBinary(), IPAddress(L"172.217.0.0").GetBinary(), 16, true },
-			{ IPAddress(L"172.217.4.138").GetBinary(), IPAddress(L"172.217.0.0").GetBinary(), 16, true },
-			{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.117.0.0").GetBinary(), 16, true },
-			{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.117.0.0").GetBinary(), 35, false },
-			{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.117.4.138").GetBinary(), 32, true },
-			{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.0.0.0").GetBinary(), 8, true },
-			{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.1.128.0").GetBinary(), 17, true },
-			{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.0.0.0").GetBinary(), 10, true },
-			{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.0.0.0").GetBinary(), 14, true },
-			{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.1.157.0").GetBinary(), 25, true },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::").GetBinary(), IPAddress(L"fe80:c11a:3a9c::").GetBinary(), 48, true },
-			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e800::").GetBinary(), 8, true },
-			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:6200::").GetBinary(), 23, true },
-			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce::").GetBinary(), 48, true },
-			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce:c433:7c5d:e80::").GetBinary(), 90, true },
-			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), 128, true },
-			{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce:c433:7c5d:e80::").GetBinary(), 129, false }
+				{ IPAddress(L"192.168.1.20").GetBinary(), IPAddress(L"192.168.0.0").GetBinary(), 16, true },
+				{ IPAddress(L"172.217.7.238").GetBinary(), IPAddress(L"172.217.0.0").GetBinary(), 16, true },
+				{ IPAddress(L"172.217.4.138").GetBinary(), IPAddress(L"172.217.0.0").GetBinary(), 16, true },
+				{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.117.0.0").GetBinary(), 16, true },
+				{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.117.0.0").GetBinary(), 35, false },
+				{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.117.4.138").GetBinary(), 32, true },
+				{ IPAddress(L"172.117.4.138").GetBinary(), IPAddress(L"172.0.0.0").GetBinary(), 8, true },
+				{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.1.128.0").GetBinary(), 17, true },
+				{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.0.0.0").GetBinary(), 10, true },
+				{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.0.0.0").GetBinary(), 14, true },
+				{ IPAddress(L"200.1.157.11").GetBinary(), IPAddress(L"200.1.157.0").GetBinary(), 25, true },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::").GetBinary(), IPAddress(L"fe80:c11a:3a9c::").GetBinary(), 48, true },
+				{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e800::").GetBinary(), 8, true },
+				{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:6200::").GetBinary(), 23, true },
+				{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce::").GetBinary(), 48, true },
+				{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce:c433:7c5d:e80::").GetBinary(), 90, true },
+				{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), 128, true },
+				{ IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0").GetBinary(), IPAddress(L"e835:625f:48ce:c433:7c5d:e80::").GetBinary(), 129, false }
 			};
 
 			for (const auto& test : iptests)
@@ -336,19 +336,19 @@ namespace UnitTests
 			const std::vector<IPTest> iptests
 			{
 				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.1.20").GetBinary(), 32, true, false },
-			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.1.20").GetBinary(), 24, true, true },
-			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 24, true, false },
-			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 16, true, false },
-			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 8, true, false },
-			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 128, false, false },
-			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, true, true },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 128, true, false },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 48, true, false },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, true, false },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 130, false, false },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 128, true, false },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 64, true, false },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 48, true, true }
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.1.20").GetBinary(), 24, true, true },
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 24, true, false },
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 16, true, false },
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 8, true, false },
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 128, false, false },
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, true, true },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 128, true, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 48, true, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, true, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 130, false, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 128, true, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 64, true, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 48, true, true }
 			};
 
 			for (const auto& test : iptests)
@@ -373,26 +373,26 @@ namespace UnitTests
 			const std::vector<IPTest> iptests
 			{
 				{ IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193"), IPAddress(L"ff00::"), 8, true, false },
-			{ IPAddress(L"ff80:f4b2:3ff9:a074:d03a:d18e:760d:b193"), IPAddress(L"ff00::"), 8, true, true },
-			{ IPAddress(L"ffc0:f4b2:3ff9:a074:d03a:d18e:760d:b193"), IPAddress(L"ff00::"), 8, true, true },
-			{ IPAddress(L"::1"), IPAddress(L"::"), 127, true, true },
-			{ IPAddress(L"::"), IPAddress(L"::"), 127, true, true },
-			{ IPAddress(L"::2"), IPAddress(L"::"), 127, true, false },
+				{ IPAddress(L"ff80:f4b2:3ff9:a074:d03a:d18e:760d:b193"), IPAddress(L"ff00::"), 8, true, true },
+				{ IPAddress(L"ffc0:f4b2:3ff9:a074:d03a:d18e:760d:b193"), IPAddress(L"ff00::"), 8, true, true },
+				{ IPAddress(L"::1"), IPAddress(L"::"), 127, true, true },
+				{ IPAddress(L"::"), IPAddress(L"::"), 127, true, true },
+				{ IPAddress(L"::2"), IPAddress(L"::"), 127, true, false },
 
-			{ IPAddress(L"192.168.1.1"), IPAddress(L"192.168.0.0"), 16, true, true },
-			{ IPAddress(L"192.168.100.30"), IPAddress(L"192.168.0.0"), 16, true, true },
-			{ IPAddress(L"192.167.1.1"), IPAddress(L"192.168.0.0"), 16, true, false },
-			{ IPAddress(L"192.169.1.1"), IPAddress(L"192.168.0.0"), 16, true, false },
-			{ IPAddress(L"192.172.1.1"), IPAddress(L"192.168.0.0"), 16, true, false },
+				{ IPAddress(L"192.168.1.1"), IPAddress(L"192.168.0.0"), 16, true, true },
+				{ IPAddress(L"192.168.100.30"), IPAddress(L"192.168.0.0"), 16, true, true },
+				{ IPAddress(L"192.167.1.1"), IPAddress(L"192.168.0.0"), 16, true, false },
+				{ IPAddress(L"192.169.1.1"), IPAddress(L"192.168.0.0"), 16, true, false },
+				{ IPAddress(L"192.172.1.1"), IPAddress(L"192.168.0.0"), 16, true, false },
 
-			{ IPAddress(L"172.16.1.1"), IPAddress(L"172.16.0.0"), 12, true, true },
-			{ IPAddress(L"172.16.100.53"), IPAddress(L"172.16.0.0"), 12, true, true },
-			{ IPAddress(L"172.24.2.5"), IPAddress(L"172.16.0.0"), 12, true, true },
-			{ IPAddress(L"172.40.10.50"), IPAddress(L"172.16.0.0"), 12, true, false },
-			{ IPAddress(L"172.15.10.50"), IPAddress(L"172.16.0.0"), 12, true, false },
-			{ IPAddress(L"172.17.10.50"), IPAddress(L"172.16.0.0"), 12, true, true },
-			{ IPAddress(L"172.16.0.0"), IPAddress(L"172.16.0.0"), 12, true, true },
-			{ IPAddress(L"172.31.255.255"), IPAddress(L"172.16.0.0"), 12, true, true }
+				{ IPAddress(L"172.16.1.1"), IPAddress(L"172.16.0.0"), 12, true, true },
+				{ IPAddress(L"172.16.100.53"), IPAddress(L"172.16.0.0"), 12, true, true },
+				{ IPAddress(L"172.24.2.5"), IPAddress(L"172.16.0.0"), 12, true, true },
+				{ IPAddress(L"172.40.10.50"), IPAddress(L"172.16.0.0"), 12, true, false },
+				{ IPAddress(L"172.15.10.50"), IPAddress(L"172.16.0.0"), 12, true, false },
+				{ IPAddress(L"172.17.10.50"), IPAddress(L"172.16.0.0"), 12, true, true },
+				{ IPAddress(L"172.16.0.0"), IPAddress(L"172.16.0.0"), 12, true, true },
+				{ IPAddress(L"172.31.255.255"), IPAddress(L"172.16.0.0"), 12, true, true }
 			};
 
 			for (const auto& test : iptests)
@@ -426,21 +426,21 @@ namespace UnitTests
 			const std::vector<IPTest> iptests
 			{
 				{ IPAddress(L"172.16.0.0"), 12, true, IPAddress(L"172.16.0.0"), IPAddress(L"172.31.255.255") },
-			{ IPAddress(L"169.254.0.0"), 16, true, IPAddress(L"169.254.0.0"), IPAddress(L"169.254.255.255") },
-			{ IPAddress(L"169.254.0.0"), 33, false, IPAddress(L"169.254.0.0"), IPAddress(L"169.254.255.255") },
-			{ IPAddress(L"127.0.0.0"), 8, true, IPAddress(L"127.0.0.0"), IPAddress(L"127.255.255.255") },
-			{ IPAddress(L"192.168.0.0"), 16, true, IPAddress(L"192.168.0.0"), IPAddress(L"192.168.255.255") },
-			{ IPAddress(L"10.0.0.0"), 8, true, IPAddress(L"10.0.0.0"), IPAddress(L"10.255.255.255") },
-			{ IPAddress(L"0.0.0.0"), 8, true, IPAddress(L"0.0.0.0"), IPAddress(L"0.255.255.255") },
+				{ IPAddress(L"169.254.0.0"), 16, true, IPAddress(L"169.254.0.0"), IPAddress(L"169.254.255.255") },
+				{ IPAddress(L"169.254.0.0"), 33, false, IPAddress(L"169.254.0.0"), IPAddress(L"169.254.255.255") },
+				{ IPAddress(L"127.0.0.0"), 8, true, IPAddress(L"127.0.0.0"), IPAddress(L"127.255.255.255") },
+				{ IPAddress(L"192.168.0.0"), 16, true, IPAddress(L"192.168.0.0"), IPAddress(L"192.168.255.255") },
+				{ IPAddress(L"10.0.0.0"), 8, true, IPAddress(L"10.0.0.0"), IPAddress(L"10.255.255.255") },
+				{ IPAddress(L"0.0.0.0"), 8, true, IPAddress(L"0.0.0.0"), IPAddress(L"0.255.255.255") },
 
-			{ IPAddress(L"fc00::"), 7, true, IPAddress(L"fc00::"), IPAddress(L"fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") },
-			{ IPAddress(L"fd00::"), 8, true, IPAddress(L"fd00::"), IPAddress(L"fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") },
-			{ IPAddress(L"fe80::"), 10, true, IPAddress(L"fe80::"), IPAddress(L"febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff") },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 129, false, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:ef10:e796:0:ffff:ffff") },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 96, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:ef10:e796:0:ffff:ffff") },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 80, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:ef10:e796:ffff:ffff:ffff") },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 56, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:efff:ffff:ffff:ffff:ffff") },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 1, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") }
+				{ IPAddress(L"fc00::"), 7, true, IPAddress(L"fc00::"), IPAddress(L"fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") },
+				{ IPAddress(L"fd00::"), 8, true, IPAddress(L"fd00::"), IPAddress(L"fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") },
+				{ IPAddress(L"fe80::"), 10, true, IPAddress(L"fe80::"), IPAddress(L"febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff") },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 129, false, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:ef10:e796:0:ffff:ffff") },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 96, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:ef10:e796:0:ffff:ffff") },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 80, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:ef10:e796:ffff:ffff:ffff") },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 56, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"fe80:c11a:3a9c:efff:ffff:ffff:ffff:ffff") },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), 1, true, IPAddress(L"fe80:c11a:3a9c:ef10:e796::"), IPAddress(L"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") }
 			};
 
 			for (const auto& test : iptests)
@@ -615,7 +615,7 @@ namespace UnitTests
 
 			constexpr auto iplb4 = IPAddress::LoopbackIPv4();
 			static_assert(iplb4.GetFamily() == IPAddress::Family::IPv4, "Should be equal");
-			
+
 			constexpr auto iplb6 = IPAddress::LoopbackIPv6();
 			static_assert(iplb6.GetFamily() == IPAddress::Family::IPv6, "Should be equal");
 

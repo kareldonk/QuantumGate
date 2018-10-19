@@ -552,8 +552,6 @@ namespace QuantumGate::Implementation::Network
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
-		auto success = false;
-
 		const auto bytessent = send(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()),
 									static_cast<int>(buffer.GetSize()), 0);
 
@@ -568,7 +566,7 @@ namespace QuantumGate::Implementation::Network
 				// Update the total amount of bytes sent
 				m_BytesSent += bytessent;
 
-				success = true;
+				return true;
 			}
 			catch (const std::exception& e)
 			{
@@ -584,7 +582,7 @@ namespace QuantumGate::Implementation::Network
 				LogDbg(L"Send buffer full/unavailable for endpoint %s (%s)",
 					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
 
-				success = true;
+				return true;
 			}
 			else
 			{
@@ -593,14 +591,12 @@ namespace QuantumGate::Implementation::Network
 			}
 		}
 
-		return success;
+		return false;
 	}
 
 	const bool Socket::SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-
-		auto success = false;
 
 		sockaddr_storage sock_addr{ 0 };
 		if (!SockAddrSetEndpoint(sock_addr, endpoint))
@@ -629,7 +625,7 @@ namespace QuantumGate::Implementation::Network
 				// Update the total amount of bytes sent
 				m_BytesSent += bytessent;
 
-				success = true;
+				return true;
 			}
 			catch (const std::exception& e)
 			{
@@ -645,7 +641,7 @@ namespace QuantumGate::Implementation::Network
 				LogDbg(L"Send buffer full/unavailable on endpoint %s (%s)",
 					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
 
-				success = true;
+				return true;
 			}
 			else
 			{
@@ -654,14 +650,12 @@ namespace QuantumGate::Implementation::Network
 			}
 		}
 
-		return success;
+		return false;
 	}
 
 	const bool Socket::Receive(Buffer& buffer) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-
-		auto success = false;
 
 		auto& rcvbuf = GetReceiveBuffer();
 
@@ -679,7 +673,7 @@ namespace QuantumGate::Implementation::Network
 				// Update the total amount of bytes received
 				m_BytesReceived += bytesrcv;
 
-				success = true;
+				return true;
 			}
 			catch (const std::exception& e)
 			{
@@ -688,7 +682,11 @@ namespace QuantumGate::Implementation::Network
 		}
 		else if (bytesrcv == 0)
 		{
-			LogDbg(L"Connection closed for endpoint %s", GetPeerName().c_str());
+			if (GetType() == Socket::Type::Stream)
+			{
+				LogDbg(L"Connection closed for endpoint %s", GetLocalName().c_str());
+			}
+			else return true;
 		}
 		else if (bytesrcv == SOCKET_ERROR)
 		{
@@ -699,7 +697,7 @@ namespace QuantumGate::Implementation::Network
 				LogDbg(L"Receive buffer unavailable for endpoint %s (%s)",
 					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
 
-				success = true;
+				return true;
 			}
 			else
 			{
@@ -708,14 +706,12 @@ namespace QuantumGate::Implementation::Network
 			}
 		}
 
-		return success;
+		return false;
 	}
 
 	const bool Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-
-		auto success = false;
 
 		auto& rcvbuf = GetReceiveBuffer();
 
@@ -747,12 +743,20 @@ namespace QuantumGate::Implementation::Network
 				// Update the total amount of bytes received
 				m_BytesReceived += bytesrcv;
 
-				success = true;
+				return true;
 			}
 			catch (const std::exception& e)
 			{
 				LogErr(L"Receive exception on endpoint %s: %s", GetLocalName().c_str(), Util::ToStringW(e.what()).c_str());
 			}
+		}
+		else if (bytesrcv == 0)
+		{
+			if (GetType() == Socket::Type::Stream)
+			{
+				LogDbg(L"Connection closed for endpoint %s", GetLocalName().c_str());
+			}
+			else return true;
 		}
 		else if (bytesrcv == SOCKET_ERROR)
 		{
@@ -763,7 +767,7 @@ namespace QuantumGate::Implementation::Network
 				LogDbg(L"Receive buffer unavailable on endpoint %s (%s)",
 					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
 
-				success = true;
+				return true;
 			}
 			else if (error == WSAECONNRESET)
 			{
@@ -776,7 +780,7 @@ namespace QuantumGate::Implementation::Network
 			}
 		}
 
-		return success;
+		return false;
 	}
 
 	template<bool read, bool write, bool exception>

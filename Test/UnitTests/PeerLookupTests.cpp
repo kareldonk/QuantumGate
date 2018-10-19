@@ -551,17 +551,17 @@ namespace UnitTests
 			const std::vector<IPTest> iptests
 			{
 				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.1.20").GetBinary(), 32, 128, false },
-			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.1.20").GetBinary(), 24, 128, true },
-			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 24, 128, false },
-			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 16, 128, false },
-			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 8, 128, false },
-			{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, 128, true },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 32, 128, false },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 32, 48, false },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, 0, false },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 32, 128, false },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 32, 64, false },
-			{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 32, 48, true }
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.1.20").GetBinary(), 24, 128, true },
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 24, 128, false },
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 16, 128, false },
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 8, 128, false },
+				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, 128, true },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 32, 128, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 32, 48, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, 0, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 32, 128, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 32, 64, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 32, 48, true }
 			};
 
 			for (const auto& test : iptests)

@@ -90,7 +90,7 @@ namespace QuantumGate::Implementation::Core
 	[[nodiscard]] const bool PublicIPEndpoints::InitializeDataVerificationSockets() noexcept
 	{
 		auto success = true;
-		auto nat_traversal = true;
+		const auto& settings = m_Settings.GetCache();
 
 		// Upon failure deinitialize sockets
 		auto sg = MakeScopeGuard([&] { DeinitializeDataVerificationSockets(); });
@@ -111,7 +111,7 @@ namespace QuantumGate::Implementation::Core
 											 Network::Socket::Type::Datagram,
 											 Network::IP::Protocol::UDP);
 
-					if (socket.Bind(endpoint, nat_traversal))
+					if (socket.Bind(endpoint, settings.Local.NATTraversal))
 					{
 						success = true;
 						break;
@@ -141,7 +141,7 @@ namespace QuantumGate::Implementation::Core
 										 Network::Socket::Type::Datagram,
 										 Network::IP::Protocol::UDP);
 
-				if (!socket.Bind(endpoint, nat_traversal))
+				if (!socket.Bind(endpoint, settings.Local.NATTraversal))
 				{
 					success = false;
 					LogWarn(L"Could not bind public IP address data verification socket to endpoint %s",
@@ -178,6 +178,7 @@ namespace QuantumGate::Implementation::Core
 		auto success = true;
 		auto didwork = false;
 		auto socket_error = false;
+		Buffer rcv_buffer;
 
 		const std::array<DataVerificationSockets::Socket_ThS*, 2> sockets
 		{
@@ -199,14 +200,14 @@ namespace QuantumGate::Implementation::Core
 
 					socket_ths->WithUniqueLock([&](Network::Socket& socket)
 					{
-						Buffer buffer;
+						rcv_buffer.Clear();
 
-						if (socket.ReceiveFrom(sender_endpoint, buffer))
+						if (socket.ReceiveFrom(sender_endpoint, rcv_buffer))
 						{
 							// Message should only contain a 64-bit number (8 bytes)
-							if (buffer.GetSize() == sizeof(UInt64))
+							if (rcv_buffer.GetSize() == sizeof(UInt64))
 							{
-								num = Endian::FromNetworkByteOrder(*reinterpret_cast<UInt64*>(buffer.GetBytes()));
+								num = Endian::FromNetworkByteOrder(*reinterpret_cast<UInt64*>(rcv_buffer.GetBytes()));
 
 								LogInfo(L"Received public IP address data verification (%llu) from endpoint %s",
 										num.value(), sender_endpoint.GetString().c_str());
@@ -349,11 +350,15 @@ namespace QuantumGate::Implementation::Core
 		// we'll exit the thread
 		if (socket_error)
 		{
-			LogWarn(L"Attempting to restart PublicIPEndpoints data verification sockets due to errors");
+			LogWarn(L"Attempting to restart PublicIPEndpoints data verification sockets due to errors...");
 
 			DeinitializeDataVerificationSockets();
 
-			if (!InitializeDataVerificationSockets())
+			if (InitializeDataVerificationSockets())
+			{
+				LogInfo(L"PublicIPEndpoints data verification sockets successfully restarted");
+			}
+			else
 			{
 				LogErr(L"PublicIPEndpoints data verification sockets failed initialization; will exit data verification thread");
 				success = false;
@@ -396,7 +401,7 @@ namespace QuantumGate::Implementation::Core
 			{
 				Ping ping(hop_verification->IPAddress,
 						  std::chrono::duration_cast<std::chrono::milliseconds>(HopVerification::TimeoutPeriod),
-						  static_cast<UInt16>(Util::GetPseudoRandomNumber(0, 256)), std::chrono::seconds(hop));
+						  static_cast<UInt16>(Util::GetPseudoRandomNumber(0, 255)), std::chrono::seconds(hop));
 				if (ping.Execute() && ping.GetStatus() == Ping::Status::Succeeded &&
 					ping.GetRespondingIPAddress() == hop_verification->IPAddress)
 				{
@@ -527,7 +532,7 @@ namespace QuantumGate::Implementation::Core
 		// We send a random 64-bit number to the IP address to verify, and the port
 		// that we're listening on locally. If the IP address is ours the random
 		// number will be received by us and we'll have partially verified the address.
-		// An attacker could intercept and sne dback the 64-bit number bak to us, which
+		// An attacker could intercept and send the 64-bit number back to us, which
 		// is why we also verify the number of hops between us and the IP address.
 
 		try

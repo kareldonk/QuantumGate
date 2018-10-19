@@ -390,7 +390,7 @@ namespace QuantumGate::Implementation::Core
 		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
 		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 
-		if (m_ThreadPool.AddThread(L"QuantumGate Local Worker Thread",
+		if (m_ThreadPool.AddThread(L"QuantumGate Local Thread",
 								   MakeCallback(this, &Local::WorkerThreadProcessor),
 								   &m_ThreadPool.GetData().EventQueue.WithUniqueLock()->Event()))
 		{

@@ -64,7 +64,7 @@ namespace QuantumGate::Implementation::Network
 				static_assert(sizeof(BinaryIPAddress::Bytes) == sizeof(IPV6_ADDRESS_EX::sin6_addr),
 							  "Should be same size");
 
-				memcpy(&dest_addr6.sin6_addr, &m_DestinationIPAddress.Bytes, sizeof(in6_addr));
+				std::memcpy(&dest_addr6.sin6_addr, &m_DestinationIPAddress.Bytes, sizeof(in6_addr));
 
 				reply_size = sizeof(ICMPV6_ECHO_REPLY) + m_BufferSize + 8 + sizeof(IO_STATUS_BLOCK);
 				icmp_handle = Icmp6CreateFile();
@@ -81,7 +81,7 @@ namespace QuantumGate::Implementation::Network
 				auto icmp_data = Random::GetPseudoRandomBytes(m_BufferSize);
 				Buffer reply_buffer(reply_size);
 
-				const auto num_replies = [&]()
+				const auto num_replies = std::invoke([&]()
 				{
 					if (m_DestinationIPAddress.AddressFamily == BinaryIPAddress::Family::IPv4)
 					{
@@ -99,7 +99,7 @@ namespace QuantumGate::Implementation::Network
 							reply_buffer.GetBytes(), static_cast<DWORD>(reply_buffer.GetSize()),
 							static_cast<DWORD>(m_Timeout.count()));
 					}
-				}();
+				});
 
 				if (num_replies != 0)
 				{
@@ -129,7 +129,7 @@ namespace QuantumGate::Implementation::Network
 							static_assert(sizeof(BinaryIPAddress::Bytes) == sizeof(IPV6_ADDRESS_EX::sin6_addr),
 										  "Should be same size");
 
-							memcpy(&rip.Bytes, &dest_addr6.sin6_addr, sizeof(IPV6_ADDRESS_EX::sin6_addr));
+							std::memcpy(&rip.Bytes, &dest_addr6.sin6_addr, sizeof(IPV6_ADDRESS_EX::sin6_addr));
 						}
 						else error = L"failed to parse ICMP6 reply";
 					}
