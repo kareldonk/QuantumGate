@@ -56,6 +56,10 @@ The QuantumGate MSVC project is configured to look for specific naming of the Op
 
 Documentation can be found in the [Wiki](https://github.com/kareldonk/QuantumGate/wiki).
 
+### Examples
+
+A listing of examples to get you started quickly can be found in the [Wiki](https://github.com/kareldonk/QuantumGate/wiki/Examples).
+
 ### License
 
 The license for the QuantumGate source code can be found in the [`LICENSE`](https://github.com/kareldonk/QuantumGate/blob/master/LICENSE) file in the project root. In addition, QuantumGate uses third party source code covered under separate licenses. This includes an implementation of SipHash (in `QuantumGateCryptoLib\SipHash`) and NewHope (`QuantumGateCryptoLib\NewHope`). Refer to the `LICENSE` files in the subfolders for details. **Licenses for implementations of NTRUPrime (`QuantumGateCryptoLib\NTRUPrime`) and Classic McEliece (`QuantumGateCryptoLib\McEliece`) have not yet been obtained.**
