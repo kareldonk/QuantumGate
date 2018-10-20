@@ -98,7 +98,9 @@ namespace QuantumGate::Implementation::Network
 		virtual const bool CompleteConnect() noexcept = 0;
 
 		virtual const bool Send(Buffer& buffer) noexcept = 0;
+		virtual const bool SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept = 0;
 		virtual const bool Receive(Buffer& buffer) noexcept = 0;
+		virtual const bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept = 0;
 
 		virtual void Close(const bool linger = false) noexcept = 0;
 

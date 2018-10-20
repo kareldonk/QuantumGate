@@ -33,7 +33,9 @@ namespace QuantumGate::Implementation::Core::Relay
 		[[nodiscard]] const bool CompleteConnect() noexcept override;
 
 		[[nodiscard]] const bool Send(Buffer& buffer) noexcept override;
+		[[nodiscard]] const bool SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept override { return false; }
 		[[nodiscard]] const bool Receive(Buffer& buffer) noexcept override;
+		[[nodiscard]] const bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept override { return false; }
 
 		void Close(const bool linger = false) noexcept override;
 

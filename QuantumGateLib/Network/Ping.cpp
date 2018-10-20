@@ -478,17 +478,17 @@ namespace QuantumGate::Implementation::Network
 			{
 				case Status::Succeeded:
 					str += Util::FormatString(L" / Result [Succeeded, Responding IP: %s, Response time: %llums%s]",
-											  IPAddress(m_RespondingIPAddress).GetString().c_str(), m_RoundTripTime.count(),
+											  IPAddress(*m_RespondingIPAddress).GetString().c_str(), m_RoundTripTime->count(),
 											  rttl_str.c_str());
 					break;
 				case Status::TimeToLiveExceeded:
 					str += Util::FormatString(L" / Result [TTL Exceeded, Responding IP: %s, Response time: %llums%s]",
-											  IPAddress(m_RespondingIPAddress).GetString().c_str(), m_RoundTripTime.count(),
+											  IPAddress(*m_RespondingIPAddress).GetString().c_str(), m_RoundTripTime->count(),
 											  rttl_str.c_str());
 					break;
 				case Status::DestinationUnreachable:
 					str += Util::FormatString(L" / Result [Destination unreachable, Responding IP: %s, Response time: %llums%s]",
-											  IPAddress(m_RespondingIPAddress).GetString().c_str(), m_RoundTripTime.count(),
+											  IPAddress(*m_RespondingIPAddress).GetString().c_str(), m_RoundTripTime->count(),
 											  rttl_str.c_str());
 					break;
 				case Status::Timedout:

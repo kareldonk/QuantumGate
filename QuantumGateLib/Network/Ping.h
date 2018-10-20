@@ -20,9 +20,9 @@ namespace QuantumGate::Implementation::Network
 
 		Ping() = delete;
 
-		Ping(const BinaryIPAddress& ip, const std::chrono::milliseconds timeout = 5000ms,
-			 const UInt16 buf_size = 32, const std::chrono::seconds ip_ttl = 64s) noexcept :
-			m_DestinationIPAddress(ip), m_Timeout(timeout), m_BufferSize(buf_size), m_TTL(ip_ttl)
+		Ping(const BinaryIPAddress& ip, const UInt16 buf_size = 32,
+			 const std::chrono::milliseconds timeout = 5000ms, const std::chrono::seconds ip_ttl = 64s) noexcept :
+			m_DestinationIPAddress(ip),m_BufferSize(buf_size), m_Timeout(timeout), m_TTL(ip_ttl)
 		{}
 
 		Ping(const Ping&) = delete;
@@ -33,17 +33,17 @@ namespace QuantumGate::Implementation::Network
 
 		[[nodiscard]] const bool Execute(const bool use_os_api = true) noexcept;
 
-		inline const BinaryIPAddress& GetDestinationIPAddress() const noexcept { return m_DestinationIPAddress; }
-		inline std::chrono::milliseconds GetTimeout() const noexcept { return m_Timeout; }
-		inline UInt16 GetBufferSize() const noexcept { return m_BufferSize; }
-		inline std::chrono::seconds GetTTL() const noexcept { return m_TTL; }
+		[[nodiscard]] inline const BinaryIPAddress& GetDestinationIPAddress() const noexcept { return m_DestinationIPAddress; }
+		[[nodiscard]] inline std::chrono::milliseconds GetTimeout() const noexcept { return m_Timeout; }
+		[[nodiscard]] inline UInt16 GetBufferSize() const noexcept { return m_BufferSize; }
+		[[nodiscard]] inline std::chrono::seconds GetTTL() const noexcept { return m_TTL; }
 
 		[[nodiscard]] inline Status GetStatus() const noexcept { return m_Status; }
-		inline std::chrono::milliseconds GetRoundTripTime() const noexcept { return m_RoundTripTime; }
-		inline std::optional<std::chrono::seconds> GetResponseTTL() const noexcept { return m_ResponseTTL; }
-		inline const BinaryIPAddress& GetRespondingIPAddress() const noexcept { return m_RespondingIPAddress; }
+		[[nodiscard]] inline const std::optional<std::chrono::seconds>& GetResponseTTL() const noexcept { return m_ResponseTTL; }
+		[[nodiscard]] inline const std::optional<BinaryIPAddress>& GetRespondingIPAddress() const noexcept { return m_RespondingIPAddress; }
+		[[nodiscard]] inline const std::optional<std::chrono::milliseconds>& GetRoundTripTime() const noexcept { return m_RoundTripTime; }
 
-		String GetString() const noexcept;
+		[[nodiscard]] String GetString() const noexcept;
 
 		friend Export std::ostream& operator<<(std::ostream& stream, const Ping& ping);
 		friend Export std::wostream& operator<<(std::wostream& stream, const Ping& ping);
@@ -56,8 +56,8 @@ namespace QuantumGate::Implementation::Network
 		{
 			m_Status = Status::Unknown;
 			m_ResponseTTL.reset();
-			m_RoundTripTime = 0ms;
-			m_RespondingIPAddress.Clear();
+			m_RespondingIPAddress.reset();
+			m_RoundTripTime.reset();
 		}
 
 		[[nodiscard]] const bool VerifyICMPMessageChecksum(BufferView buffer) const noexcept;
@@ -71,13 +71,13 @@ namespace QuantumGate::Implementation::Network
 
 	private:
 		BinaryIPAddress m_DestinationIPAddress;
-		std::chrono::milliseconds m_Timeout{ 0 };
 		UInt16 m_BufferSize{ 0 };
+		std::chrono::milliseconds m_Timeout{ 0 };
 		std::chrono::seconds m_TTL{ 0 };
 
 		Status m_Status{ Status::Unknown };
 		std::optional<std::chrono::seconds> m_ResponseTTL;
-		BinaryIPAddress m_RespondingIPAddress;
-		std::chrono::milliseconds m_RoundTripTime{ 0 };
+		std::optional<BinaryIPAddress> m_RespondingIPAddress;
+		std::optional<std::chrono::milliseconds> m_RoundTripTime;
 	};
 }

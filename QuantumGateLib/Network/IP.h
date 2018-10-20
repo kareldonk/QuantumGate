@@ -32,7 +32,7 @@ namespace QuantumGate::Implementation::Network::IP
 
 	enum class Protocol : UInt8
 	{
-		IP = 0,
+		Unspecified = 0,
 		ICMP = 1,
 		TCP = 6,
 		UDP = 17

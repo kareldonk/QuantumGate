@@ -399,9 +399,9 @@ namespace QuantumGate::Implementation::Core
 			// that we're using (and could be an attack).
 			while (hop <= HopVerification::MaxHops && !shutdown_event.IsSet())
 			{
-				Ping ping(hop_verification->IPAddress,
+				Ping ping(hop_verification->IPAddress, static_cast<UInt16>(Util::GetPseudoRandomNumber(0, 255)),
 						  std::chrono::duration_cast<std::chrono::milliseconds>(HopVerification::TimeoutPeriod),
-						  static_cast<UInt16>(Util::GetPseudoRandomNumber(0, 255)), std::chrono::seconds(hop));
+						  std::chrono::seconds(hop));
 				if (ping.Execute() && ping.GetStatus() == Ping::Status::Succeeded &&
 					ping.GetRespondingIPAddress() == hop_verification->IPAddress)
 				{

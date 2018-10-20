@@ -1562,8 +1562,8 @@ void CTestAppDlg::OnUtilsPing()
 	CPingDlg dlg;
 	if (dlg.DoModal() == IDOK)
 	{
-		Network::Ping ping(dlg.GetIPAddress().GetBinary(), dlg.GetTimeout(),
-						   dlg.GetBufferSize(), dlg.GetTTL());
+		Network::Ping ping(dlg.GetIPAddress().GetBinary(), dlg.GetBufferSize(),
+						   dlg.GetTimeout(), dlg.GetTTL());
 		if (ping.Execute())
 		{
 			SLogInfo(L"Ping: " << ping);

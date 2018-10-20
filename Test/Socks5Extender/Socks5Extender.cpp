@@ -1016,7 +1016,7 @@ namespace QuantumGate::Socks5Extender
 	{
 		ADDRINFOW* result{ nullptr };
 
-		const auto ret = GetAddrInfoW(domain.c_str(), L"0", nullptr, &result);
+		const auto ret = GetAddrInfoW(domain.c_str(), L"", nullptr, &result);
 		if (ret == 0)
 		{
 			// Free ADDRINFO resources when we leave

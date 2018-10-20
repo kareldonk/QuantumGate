@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation::Network
 	public:
 		enum class Type
 		{
-			Unknown,
+			Unspecified,
 			Stream,
 			Datagram,
 			RAW
@@ -39,9 +39,9 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] const bool CompleteConnect() noexcept override;
 
 		[[nodiscard]] const bool Send(Buffer& buffer) noexcept override;
-		[[nodiscard]] const bool SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept;
+		[[nodiscard]] const bool SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept override;
 		[[nodiscard]] const bool Receive(Buffer& buffer) noexcept override;
-		[[nodiscard]] const bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept;
+		[[nodiscard]] const bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept override;
 
 		void Close(const bool linger = false) noexcept override;
 
@@ -56,14 +56,13 @@ namespace QuantumGate::Implementation::Network
 
 		inline const IPEndpoint& GetLocalEndpoint() const noexcept override { return m_LocalEndpoint; }
 		inline const IPAddress& GetLocalIPAddress() const noexcept override { return m_LocalEndpoint.GetIPAddress(); }
-		inline const String GetLocalName() const noexcept override { return m_LocalEndpoint.GetString(); }
 		inline const UInt32 GetLocalPort() const noexcept override { return m_LocalEndpoint.GetPort(); }
+		inline const String GetLocalName() const noexcept override { return m_LocalEndpoint.GetString(); }
 
 		inline const IPEndpoint& GetPeerEndpoint() const noexcept override { return m_PeerEndpoint; }
 		inline const IPAddress& GetPeerIPAddress() const noexcept override { return m_PeerEndpoint.GetIPAddress(); }
 		inline const UInt32 GetPeerPort() const noexcept override { return m_PeerEndpoint.GetPort(); }
 		inline const String GetPeerName() const noexcept override { return m_PeerEndpoint.GetString(); }
-
 
 		[[nodiscard]] const bool SetBlockingMode(const bool blocking) noexcept;
 
