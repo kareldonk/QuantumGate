@@ -503,6 +503,7 @@ namespace QuantumGate::Implementation::Network
 		}
 		else
 		{
+			Dbg(GetLastSysErrorString().c_str());
 			LogErr(L"A connection could not be accepted on endpoint %s (%s)",
 				   GetLocalName().c_str(), GetLastSysErrorString().c_str());
 		}

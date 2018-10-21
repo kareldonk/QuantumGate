@@ -27,6 +27,10 @@ namespace QuantumGate::Implementation::Network
 		Socket& operator=(const Socket&) = delete;
 		Socket& operator=(Socket&& other) noexcept;
 
+		IP::AddressFamily GetAddressFamily() const noexcept;
+		Type GetType() const noexcept;
+		IP::Protocol GetProtocol() const noexcept;
+
 		[[nodiscard]] const bool Bind(const IPEndpoint& endpoint, const bool nat_traversal) noexcept;
 
 		[[nodiscard]] const bool Listen(const IPEndpoint& endpoint, const bool cond_accept,
@@ -51,6 +55,7 @@ namespace QuantumGate::Implementation::Network
 
 		const SystemTime GetConnectedTime() const noexcept override;
 		inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
+
 		inline const Size GetBytesReceived() const noexcept override { return m_BytesReceived; }
 		inline const Size GetBytesSent() const noexcept override { return m_BytesSent; }
 
@@ -66,6 +71,7 @@ namespace QuantumGate::Implementation::Network
 
 		[[nodiscard]] const bool SetBlockingMode(const bool blocking) noexcept;
 
+		[[nodiscard]] const bool SetReuseAddress(const bool reuse) noexcept;
 		[[nodiscard]] const bool SetExclusiveAddressUse(const bool exclusive) noexcept;
 		[[nodiscard]] const bool GetExclusiveAddressUse() const noexcept;
 
@@ -74,14 +80,9 @@ namespace QuantumGate::Implementation::Network
 
 		[[nodiscard]] const bool SetIPTimeToLive(const std::chrono::seconds& seconds) noexcept;
 
-		[[nodiscard]] const bool SetReuseAddress(const bool reuse) noexcept;
 		[[nodiscard]] const bool SetLinger(const std::chrono::seconds& seconds) noexcept;
 		[[nodiscard]] const bool SetNATTraversal(const bool nat_traversal) noexcept;
 		[[nodiscard]] const bool SetConditionalAccept(const bool cond_accept) noexcept;
-
-		IP::AddressFamily GetAddressFamily() const noexcept;
-		Type GetType() const noexcept;
-		IP::Protocol GetProtocol() const noexcept;
 
 		Size GetMaxDatagramMessageSize() const noexcept;
 		Size GetSendBufferSize() const noexcept;
