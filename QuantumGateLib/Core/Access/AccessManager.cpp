@@ -11,7 +11,7 @@ namespace QuantumGate::Implementation::Core::Access
 		m_Settings(settings)
 	{}
 
-	Result<IPFilterID> Manager::AddIPFilter(const String& ip_cidr,
+	Result<IPFilterID> Manager::AddIPFilter(const WChar* ip_cidr,
 											const IPFilterType type) noexcept
 	{
 		auto result = m_IPFilters.WithUniqueLock()->AddFilter(ip_cidr, type);
@@ -23,7 +23,19 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	Result<IPFilterID> Manager::AddIPFilter(const String& ip, const String& mask,
+	Result<IPFilterID> Manager::AddIPFilter(const WChar* ip_str, const WChar* mask_str,
+											const IPFilterType type) noexcept
+	{
+		auto result = m_IPFilters.WithUniqueLock()->AddFilter(ip_str, mask_str, type);
+		if (result.Succeeded())
+		{
+			m_AccessUpdateCallbacks.WithSharedLock()();
+		}
+
+		return result;
+	}
+
+	Result<IPFilterID> Manager::AddIPFilter(const IPAddress& ip, const IPAddress& mask,
 											const IPFilterType type) noexcept
 	{
 		auto result = m_IPFilters.WithUniqueLock()->AddFilter(ip, mask, type);
@@ -82,10 +94,10 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	Result<> Manager::ResetIPReputation(const String& ip) noexcept
+	Result<> Manager::ResetIPReputation(const WChar* ip_str) noexcept
 	{
 		IPAddress ipaddr;
-		if (IPAddress::TryParse(ip, ipaddr))
+		if (IPAddress::TryParse(ip_str, ipaddr))
 		{
 			return ResetIPReputation(ipaddr);
 		}
@@ -187,10 +199,10 @@ namespace QuantumGate::Implementation::Core::Access
 		return m_SubnetLimits.WithSharedLock()->GetLimits();
 	}
 
-	Result<bool> Manager::IsIPAllowed(const String& ip, const AccessCheck check) noexcept
+	Result<bool> Manager::IsIPAllowed(const WChar* ip_str, const AccessCheck check) noexcept
 	{
 		IPAddress ipaddr;
-		if (IPAddress::TryParse(ip, ipaddr))
+		if (IPAddress::TryParse(ip_str, ipaddr))
 		{
 			return IsIPAllowed(ipaddr, check);
 		}
@@ -280,7 +292,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	Result<> Manager::AddPeer(const PeerAccessSettings&& pas) noexcept
+	Result<> Manager::AddPeer(PeerAccessSettings&& pas) noexcept
 	{
 		auto result = m_PeerAccessControl.WithUniqueLock()->AddPeer(std::move(pas));
 		if (result.Succeeded())
@@ -291,7 +303,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	Result<> Manager::UpdatePeer(const PeerAccessSettings&& pas) noexcept
+	Result<> Manager::UpdatePeer(PeerAccessSettings&& pas) noexcept
 	{
 		auto result = m_PeerAccessControl.WithUniqueLock()->UpdatePeer(std::move(pas));
 		if (result.Succeeded())

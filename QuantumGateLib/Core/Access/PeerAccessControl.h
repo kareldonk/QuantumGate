@@ -26,8 +26,8 @@ namespace QuantumGate::Implementation::Core::Access
 		PeerAccessControl& operator=(const PeerAccessControl&) = delete;
 		PeerAccessControl& operator=(PeerAccessControl&&) = default;
 
-		Result<> AddPeer(const PeerAccessSettings&& pas) noexcept;
-		Result<> UpdatePeer(const PeerAccessSettings&& pas) noexcept;
+		Result<> AddPeer(PeerAccessSettings&& pas) noexcept;
+		Result<> UpdatePeer(PeerAccessSettings&& pas) noexcept;
 		Result<> RemovePeer(const PeerUUID& puuid) noexcept;
 
 		Result<bool> IsAllowed(const PeerUUID& puuid) const noexcept;

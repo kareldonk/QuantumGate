@@ -115,7 +115,7 @@ void Stress::ConnectStressThreadProc(Local* qg)
 		if (!m_ConnectStressData.Connected)
 		{
 			ConnectParameters params;
-			params.PeerIPEndpoint = IPEndpoint(m_ConnectStressData.IP, m_ConnectStressData.Port);
+			params.PeerIPEndpoint = IPEndpoint(IPAddress(m_ConnectStressData.IP), m_ConnectStressData.Port);
 			params.GlobalSharedSecret = m_ConnectStressData.GlobalSharedSecret;
 			params.Relay.Hops = m_ConnectStressData.Hops;
 			params.Relay.ViaPeer = m_ConnectStressData.RelayPeer;
@@ -240,7 +240,7 @@ void Stress::MultiInstanceStressThreadProc()
 			for (auto& instance : instances)
 			{
 				ConnectParameters params;
-				params.PeerIPEndpoint = IPEndpoint(m_MultiInstanceStressData.IP, m_MultiInstanceStressData.Port);
+				params.PeerIPEndpoint = IPEndpoint(IPAddress(m_MultiInstanceStressData.IP), m_MultiInstanceStressData.Port);
 				params.GlobalSharedSecret = m_MultiInstanceStressData.GlobalSharedSecret;
 
 				const auto connect_result = instance.ConnectTo(std::move(params), nullptr);

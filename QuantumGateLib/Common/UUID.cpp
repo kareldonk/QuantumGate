@@ -13,9 +13,14 @@
 
 namespace QuantumGate::Implementation
 {
-	UUID::UUID(const String& uuid)
+	UUID::UUID(const WChar* uuid)
 	{
 		Set(uuid);
+	}
+
+	UUID::UUID(const String& uuid)
+	{
+		Set(uuid.c_str());
 	}
 
 	const bool UUID::Verify(const ProtectedBuffer& pub_key) const noexcept
@@ -64,7 +69,7 @@ namespace QuantumGate::Implementation
 																sizeof(suuid))));
 	}
 
-	const bool UUID::TryParse(const String& str, UUID& uuid) noexcept
+	const bool UUID::TryParse(const WChar* str, UUID& uuid) noexcept
 	{
 		try
 		{
@@ -74,6 +79,11 @@ namespace QuantumGate::Implementation
 		catch (...) {}
 
 		return false;
+	}
+
+	const bool UUID::TryParse(const String& str, UUID& uuid) noexcept
+	{
+		return TryParse(str.c_str(), uuid);
 	}
 
 	std::tuple<bool, UUID, std::optional<PeerKeys>> UUID::Create(const Type type,
@@ -177,17 +187,17 @@ namespace QuantumGate::Implementation
 		return true;
 	}
 
-	void UUID::Set(const String& uuid)
+	void UUID::Set(const WChar* uuid)
 	{
 		try
 		{
-			if (uuid.size() == 36)
+			if (std::wcslen(uuid) == 36)
 			{
 				// Looks for UUID in the format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
 				// such as "3df5b8e4-50d2-48c5-8c23-c544f0f0653e"
 				std::wregex r(LR"uuid(^\s*([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})\s*$)uuid",
 							  std::regex_constants::icase);
-				std::wsmatch m;
+				std::wcmatch m;
 				if (std::regex_search(uuid, m, r))
 				{
 					wchar_t* end{ nullptr };
@@ -222,6 +232,11 @@ namespace QuantumGate::Implementation
 		Clear();
 
 		throw std::invalid_argument("Invalid UUID");
+	}
+
+	void UUID::Set(const String& uuid)
+	{
+		Set(uuid.c_str());
 	}
 
 	std::ostream& operator<<(std::ostream& stream, const UUID& uuid)

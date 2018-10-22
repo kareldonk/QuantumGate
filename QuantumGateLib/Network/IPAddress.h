@@ -25,16 +25,17 @@ namespace QuantumGate::Implementation::Network
 	public:
 		using Family = BinaryIPAddress::Family;
 
-		constexpr IPAddress() noexcept :
+		explicit constexpr IPAddress() noexcept :
 			m_BinaryAddress(BinaryIPAddress{ BinaryIPAddress::Family::IPv4 }) // Defaults to IPv4 any address
 		{}
 
 		constexpr IPAddress(const IPAddress& other) noexcept : m_BinaryAddress(other.m_BinaryAddress) {}
 		constexpr IPAddress(IPAddress&& other) noexcept : m_BinaryAddress(std::move(other.m_BinaryAddress)) {}
 
-		IPAddress(const String& ipaddr_str) { SetAddress(ipaddr_str); }
-		IPAddress(const sockaddr_storage* saddr) { SetAddress(saddr); }
-		IPAddress(const sockaddr* saddr) { SetAddress(reinterpret_cast<const sockaddr_storage*>(saddr)); }
+		explicit IPAddress(const WChar* ipaddr_str) { SetAddress(ipaddr_str); }
+		explicit IPAddress(const String& ipaddr_str) { SetAddress(ipaddr_str.c_str()); }
+		explicit IPAddress(const sockaddr_storage* saddr) { SetAddress(saddr); }
+		explicit IPAddress(const sockaddr* saddr) { SetAddress(reinterpret_cast<const sockaddr_storage*>(saddr)); }
 
 		constexpr IPAddress(const BinaryIPAddress& bin_ipaddr) { SetAddress(bin_ipaddr); }
 
@@ -113,9 +114,12 @@ namespace QuantumGate::Implementation::Network
 									 Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 }) };
 		}
 
+		[[nodiscard]] static const bool TryParse(const WChar* ipaddr_str, IPAddress& ipaddr) noexcept;
 		[[nodiscard]] static const bool TryParse(const String& ipaddr_str, IPAddress& ipaddr) noexcept;
 		[[nodiscard]] static const bool TryParse(const BinaryIPAddress& bin_ipaddr, IPAddress& ipaddr) noexcept;
 
+		[[nodiscard]] static const bool TryParseMask(const IPAddress::Family af,
+													 const WChar* mask_str, IPAddress& ipmask) noexcept;
 		[[nodiscard]] static const bool TryParseMask(const IPAddress::Family af,
 													 const String& mask_str, IPAddress& ipmask) noexcept;
 
@@ -212,7 +216,7 @@ namespace QuantumGate::Implementation::Network
 		}
 
 	private:
-		void SetAddress(const String& ipaddr_str);
+		void SetAddress(const WChar* ipaddr_str);
 		void SetAddress(const sockaddr_storage* saddr);
 
 		constexpr void SetAddress(const BinaryIPAddress& bin_ipaddr)

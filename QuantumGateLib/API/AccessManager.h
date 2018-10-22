@@ -25,9 +25,13 @@ namespace QuantumGate::API
 		AccessManager& operator=(const AccessManager&) = delete;
 		AccessManager& operator=(AccessManager&&) = default;
 
-		Result<IPFilterID> AddIPFilter(const String& ip_cidr,
+		Result<IPFilterID> AddIPFilter(const WChar* ip_cidr,
 									   const IPFilterType type) noexcept;
-		Result<IPFilterID> AddIPFilter(const String& ip, const String& mask,
+		Result<IPFilterID> AddIPFilter(const WChar* ip_str, const WChar* mask_str,
+									   const IPFilterType type) noexcept;
+		Result<IPFilterID> AddIPFilter(const String& ip_str, const String& mask_str,
+									   const IPFilterType type) noexcept;
+		Result<IPFilterID> AddIPFilter(const IPAddress& ip, const IPAddress& mask,
 									   const IPFilterType type) noexcept;
 
 		Result<> RemoveIPFilter(const IPFilterID filterid, const IPFilterType type) noexcept;
@@ -41,16 +45,18 @@ namespace QuantumGate::API
 		Result<Vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
 
 		Result<> SetIPReputation(const IPReputation& ip_rep) noexcept;
-		Result<> ResetIPReputation(const String& ip) noexcept;
+		Result<> ResetIPReputation(const WChar* ip_str) noexcept;
+		Result<> ResetIPReputation(const String& ip_str) noexcept;
 		Result<> ResetIPReputation(const IPAddress& ip) noexcept;
 		void ResetAllIPReputations() noexcept;
 		Result<Vector<IPReputation>> GetAllIPReputations() const noexcept;
 
-		Result<bool> IsIPAllowed(const String& ip, const AccessCheck check) const noexcept;
+		Result<bool> IsIPAllowed(const WChar* ip_str, const AccessCheck check) const noexcept;
+		Result<bool> IsIPAllowed(const String& ip_str, const AccessCheck check) const noexcept;
 		Result<bool> IsIPAllowed(const IPAddress& ip, const AccessCheck check) const noexcept;
 
-		Result<> AddPeer(const PeerAccessSettings&& pas) noexcept;
-		Result<> UpdatePeer(const PeerAccessSettings&& pas) noexcept;
+		Result<> AddPeer(PeerAccessSettings&& pas) noexcept;
+		Result<> UpdatePeer(PeerAccessSettings&& pas) noexcept;
 		Result<> RemovePeer(const PeerUUID& puuid) noexcept;
 		void RemoveAllPeers() noexcept;
 

@@ -1267,7 +1267,7 @@ void CTestAppDlg::OnLocalConnect()
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerIPEndpoint = IPEndpoint(m_DefaultIP, m_DefaultPort);
+		params.PeerIPEndpoint = IPEndpoint(IPAddress(m_DefaultIP), m_DefaultPort);
 
 		params.GlobalSharedSecret.emplace();
 
@@ -1321,7 +1321,7 @@ void CTestAppDlg::OnLocalConnectRelayed()
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerIPEndpoint = IPEndpoint(m_DefaultIP, m_DefaultPort);
+		params.PeerIPEndpoint = IPEndpoint(IPAddress(m_DefaultIP), m_DefaultPort);
 		params.Relay.Hops = dlg.GetRelayHops();
 		params.Relay.ViaPeer = dlg.GetRelayPeer();
 

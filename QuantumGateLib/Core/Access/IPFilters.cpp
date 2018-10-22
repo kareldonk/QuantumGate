@@ -11,20 +11,71 @@
 
 namespace QuantumGate::Implementation::Core::Access
 {
-	Result<IPFilterID> IPFilters::AddFilter(const String& ip_cidr,
+	Result<IPFilterID> IPFilters::AddFilter(const WChar* ip_cidr,
 											const IPFilterType type) noexcept
 	{
 		switch (type)
 		{
 			case IPFilterType::Allowed:
 			case IPFilterType::Blocked:
-				return AddFilterImpl(ip_cidr, type);
+				try
+				{
+					// CIDR address notation, "address/leading bits"
+					// e.g. 127.0.0.1/8, 192.168.0.0/16, fc00::/7 etc.
+					// Below regex just splits the CIDR notation into an address and
+					// number of leading bits; the IPAddress class will validate them
+					std::wregex r(LR"r(^\s*(.*)(\/\d+)\s*$)r");
+					std::wcmatch m;
+					if (std::regex_search(ip_cidr, m, r))
+					{
+						return AddFilter(m[1].str().c_str(), m[2].str().c_str(), type);
+					}
+				}
+				catch (...)
+				{
+					LogErr(L"Could not add IP filter: an exception was thrown");
+					return ResultCode::Failed;
+				}
+				break;
+			default:
+				assert(false);
+				break;
 		}
 
 		return ResultCode::InvalidArgument;
 	}
 
-	Result<IPFilterID> IPFilters::AddFilter(const String& ip, const String& mask,
+	Result<IPFilterID> IPFilters::AddFilter(const WChar* ip_str, const WChar* mask_str,
+											const IPFilterType type) noexcept
+	{
+		IPAddress ip, mask;
+
+		if (IPAddress::TryParse(ip_str, ip))
+		{
+			if (IPAddress::TryParseMask(ip.GetFamily(), mask_str, mask))
+			{
+				return AddFilter(ip, mask, type);
+			}
+			else
+			{
+				LogErr(L"Could not add IP filter: Invalid IP address mask %s", mask_str);
+				return ResultCode::AddressMaskInvalid;
+			}
+		}
+		else
+		{
+			LogErr(L"Could not add IP filter: Unrecognized IP address %s", ip_str);
+			return ResultCode::AddressInvalid;
+		}
+	}
+
+	Result<IPFilterID> IPFilters::AddFilter(const String& ip_str, const String& mask_str,
+											const IPFilterType type) noexcept
+	{
+		return AddFilter(ip_str.c_str(), mask_str.c_str(), type);
+	}
+
+	Result<IPFilterID> IPFilters::AddFilter(const IPAddress& ip, const IPAddress& mask,
 											const IPFilterType type) noexcept
 	{
 		switch (type)
@@ -32,84 +83,55 @@ namespace QuantumGate::Implementation::Core::Access
 			case IPFilterType::Allowed:
 			case IPFilterType::Blocked:
 				return AddFilterImpl(ip, mask, type);
+			default:
+				assert(false);
+				break;
 		}
 
 		return ResultCode::InvalidArgument;
 	}
 
-	Result<IPFilterID> IPFilters::AddFilterImpl(const String& ip_cidr,
-												const IPFilterType type) noexcept
-	{
-		try
-		{
-			// CIDR address notation, "address/leading bits"
-			// e.g. 127.0.0.1/8, 192.168.0.0/16, fc00::/7 etc.
-			// Below regex just splits the CIDR notation into an address and
-			// number of leading bits; the IPAddress class will validate them
-			std::wregex r(LR"r(^\s*(.*)(\/\d+)\s*$)r");
-			std::wsmatch m;
-			if (std::regex_search(ip_cidr, m, r))
-			{
-				return AddFilterImpl(m[1].str(), m[2].str(), type);
-			}
-		}
-		catch (...) {}
-
-		return ResultCode::InvalidArgument;
-	}
-
-	Result<IPFilterID> IPFilters::AddFilterImpl(const String& ip, const String& mask,
+	Result<IPFilterID> IPFilters::AddFilterImpl(const IPAddress& ip, const IPAddress& mask,
 												const IPFilterType type) noexcept
 	{
 		auto result_code = ResultCode::Failed;
 
 		try
 		{
-			IPFilterImpl ipfilter;
-			ipfilter.Type = type;
-
-			if (IPAddress::TryParse(ip, ipfilter.Address))
+			if (ip.GetFamily() == mask.GetFamily())
 			{
-				if (IPAddress::TryParseMask(ipfilter.Address.GetFamily(), mask, ipfilter.Mask))
-				{
-					ipfilter.ID = GetFilterID(ipfilter.Address, ipfilter.Mask);
+				IPFilterImpl ipfilter;
+				ipfilter.Type = type;
+				ipfilter.Address = ip;
+				ipfilter.Mask = mask;
+				ipfilter.ID = GetFilterID(ipfilter.Address, ipfilter.Mask);
 
-					if (!HasFilter(ipfilter.ID, type))
+				if (!HasFilter(ipfilter.ID, type))
+				{
+					const auto range = BinaryIPAddress::GetAddressRange(ipfilter.Address.GetBinary(),
+																		ipfilter.Mask.GetBinary());
+					if (range.has_value())
 					{
-						const auto range = BinaryIPAddress::GetAddressRange(ipfilter.Address.GetBinary(),
-																			ipfilter.Mask.GetBinary());
-						if (range.has_value())
+						ipfilter.StartAddress = range->first;
+						ipfilter.EndAddress = range->second;
+
+						switch (ipfilter.Type)
 						{
-							ipfilter.StartAddress = range->first;
-							ipfilter.EndAddress = range->second;
-
-							switch (ipfilter.Type)
-							{
-								case IPFilterType::Allowed:
-									m_IPAllowFilters[ipfilter.ID] = ipfilter;
-									break;
-								case IPFilterType::Blocked:
-									m_IPBlockFilters[ipfilter.ID] = ipfilter;
-									break;
-							}
-
-							return ipfilter.ID;
+							case IPFilterType::Allowed:
+								m_IPAllowFilters[ipfilter.ID] = ipfilter;
+								break;
+							case IPFilterType::Blocked:
+								m_IPBlockFilters[ipfilter.ID] = ipfilter;
+								break;
 						}
-						else LogErr(L"Could not add IP filter: failed to get IP range");
+
+						return ipfilter.ID;
 					}
-					else LogErr(L"Could not add IP filter: filter already exists");
+					else LogErr(L"Could not add IP filter: failed to get IP range");
 				}
-				else
-				{
-					LogErr(L"Could not add IP filter: Invalid IP address mask %s", mask.c_str());
-					result_code = ResultCode::AddressMaskInvalid;
-				}
+				else LogErr(L"Could not add IP filter: filter already exists");
 			}
-			else
-			{
-				LogErr(L"Could not add IP filter: Unrecognized IP address %s", ip.c_str());
-				result_code = ResultCode::AddressInvalid;
-			}
+			else LogErr(L"Could not add IP filter: IP and mask are from different address families");
 		}
 		catch (...) {}
 
@@ -223,7 +245,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return Hash::GetNonPersistentHash(ip.GetString() + mask.GetString());
 	}
 
-	Result<bool> IPFilters::IsAllowed(const String& ip) const noexcept
+	Result<bool> IPFilters::IsAllowed(const WChar* ip) const noexcept
 	{
 		IPAddress ipaddr;
 		if (IPAddress::TryParse(ip, ipaddr))

@@ -32,9 +32,13 @@ namespace QuantumGate::Implementation::Core::Access
 		IPFilters& operator=(const IPFilters&) = delete;
 		IPFilters& operator=(IPFilters&&) = default;
 
-		Result<IPFilterID> AddFilter(const String& ip_cidr,
+		Result<IPFilterID> AddFilter(const WChar* ip_cidr,
 									 const IPFilterType type) noexcept;
-		Result<IPFilterID> AddFilter(const String& ip, const String& mask,
+		Result<IPFilterID> AddFilter(const WChar* ip_str, const WChar* mask_str,
+									 const IPFilterType type) noexcept;
+		Result<IPFilterID> AddFilter(const String& ip_str, const String& mask_str,
+									 const IPFilterType type) noexcept;
+		Result<IPFilterID> AddFilter(const IPAddress& ip, const IPAddress& mask,
 									 const IPFilterType type) noexcept;
 
 		Result<> RemoveFilter(const IPFilterID filterid, const IPFilterType type) noexcept;
@@ -45,13 +49,11 @@ namespace QuantumGate::Implementation::Core::Access
 
 		Result<Vector<IPFilter>> GetFilters() const noexcept;
 
-		Result<bool> IsAllowed(const String& ip) const noexcept;
+		Result<bool> IsAllowed(const WChar* ip) const noexcept;
 		Result<bool> IsAllowed(const IPAddress& ipaddr) const noexcept;
 
 	private:
-		Result<IPFilterID> AddFilterImpl(const String& ip_cidr,
-										 const IPFilterType type) noexcept;
-		Result<IPFilterID> AddFilterImpl(const String& ip, const String& mask,
+		Result<IPFilterID> AddFilterImpl(const IPAddress& ip, const IPAddress& mask,
 										 const IPFilterType type) noexcept;
 
 		[[nodiscard]] const bool IsIPInFilterMap(const IPAddress& address, const IPFilterMap& filtermap) const noexcept;

@@ -9,7 +9,7 @@
 
 namespace QuantumGate::Implementation::Network
 {
-	const bool IPAddress::TryParse(const String& ipaddr_str, IPAddress& ipaddr) noexcept
+	const bool IPAddress::TryParse(const WChar* ipaddr_str, IPAddress& ipaddr) noexcept
 	{
 		try
 		{
@@ -20,6 +20,11 @@ namespace QuantumGate::Implementation::Network
 		catch (...) {}
 
 		return false;
+	}
+
+	const bool IPAddress::TryParse(const String& ipaddr_str, IPAddress& ipaddr) noexcept
+	{
+		return TryParse(ipaddr_str.c_str(), ipaddr);
 	}
 
 	const bool IPAddress::TryParse(const BinaryIPAddress& bin_ipaddr, IPAddress& ipaddr) noexcept
@@ -35,17 +40,17 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool IPAddress::TryParseMask(const IPAddress::Family af, const String& mask_str, IPAddress& ipmask) noexcept
+	const bool IPAddress::TryParseMask(const IPAddress::Family af, const WChar* mask_str, IPAddress& ipmask) noexcept
 	{
 		try
 		{
-			if (mask_str.size() <= IPAddress::MaxIPAddressStringLength)
+			if (std::wcslen(mask_str) <= IPAddress::MaxIPAddressStringLength)
 			{
 				// Looks for mask bits specified in the format
 				// "/999" in the mask string used in CIDR notations
 				// such as "192.168.0.0/16"
 				std::wregex r(LR"bits(^\s*\/(\d+)\s*$)bits");
-				std::wsmatch m;
+				std::wcmatch m;
 				if (std::regex_search(mask_str, m, r))
 				{
 					auto cidr_lbits = std::stoi(m[1].str());
@@ -70,14 +75,19 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	void IPAddress::SetAddress(const String& ipaddr_str)
+	const bool IPAddress::TryParseMask(const IPAddress::Family af, const String& mask_str, IPAddress& ipmask) noexcept
+	{
+		return TryParseMask(af, mask_str.c_str(), ipmask);
+	}
+
+	void IPAddress::SetAddress(const WChar* ipaddr_str)
 	{
 		static_assert(sizeof(m_BinaryAddress.Bytes) >= sizeof(in6_addr), "IP Address length mismatch");
 
-		if (ipaddr_str.size() <= IPAddress::MaxIPAddressStringLength)
+		if (std::wcslen(ipaddr_str) <= IPAddress::MaxIPAddressStringLength)
 		{
 			BinaryIPAddress baddr;
-			if (InetPton(AF_INET, ipaddr_str.c_str(), &baddr.Bytes) == 1)
+			if (InetPton(AF_INET, ipaddr_str, &baddr.Bytes) == 1)
 			{
 				m_BinaryAddress = baddr;
 				m_BinaryAddress.AddressFamily = BinaryIPAddress::Family::IPv4;
@@ -85,14 +95,19 @@ namespace QuantumGate::Implementation::Network
 			}
 			else
 			{
-				String ipint = ipaddr_str;
+				const WChar* ipaddr_ptr = ipaddr_str;
+				std::array<WChar, IPAddress::MaxIPAddressStringLength + 1> ipaddr_str2{ 0 };
 
 				// Remove link-local address zone index for IPv6 addresses;
 				// starts with % on Windows. InetPton does not accept it.
-				const auto pos = ipaddr_str.find(L"%");
-				if (pos != String::npos) ipint = ipaddr_str.substr(0, pos);
+				const auto pos = std::wcsstr(ipaddr_str, L"%");
+				if (pos != nullptr)
+				{
+					std::memcpy(ipaddr_str2.data(), ipaddr_str, (pos - ipaddr_str) * sizeof(WChar));
+					ipaddr_ptr = ipaddr_str2.data();
+				}
 
-				if (InetPton(AF_INET6, ipint.c_str(), &baddr.Bytes) == 1)
+				if (InetPton(AF_INET6, ipaddr_ptr, &baddr.Bytes) == 1)
 				{
 					m_BinaryAddress = baddr;
 					m_BinaryAddress.AddressFamily = BinaryIPAddress::Family::IPv6;

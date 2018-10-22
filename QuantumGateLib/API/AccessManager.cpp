@@ -13,13 +13,25 @@ namespace QuantumGate::API
 		assert(m_AccessManager != nullptr);
 	}
 
-	Result<IPFilterID> AccessManager::AddIPFilter(const String& ip_cidr,
+	Result<IPFilterID> AccessManager::AddIPFilter(const WChar* ip_cidr,
 												  const IPFilterType type) noexcept
 	{
 		return m_AccessManager->AddIPFilter(ip_cidr, type);
 	}
 
-	Result<IPFilterID> AccessManager::AddIPFilter(const String& ip, const String& mask,
+	Result<IPFilterID> AccessManager::AddIPFilter(const WChar* ip_str, const WChar* mask_str,
+												  const IPFilterType type) noexcept
+	{
+		return m_AccessManager->AddIPFilter(ip_str, mask_str, type);
+	}
+
+	Result<IPFilterID> AccessManager::AddIPFilter(const String& ip_str, const String& mask_str,
+												  const IPFilterType type) noexcept
+	{
+		return m_AccessManager->AddIPFilter(ip_str.c_str(), mask_str.c_str(), type);
+	}
+
+	Result<IPFilterID> AccessManager::AddIPFilter(const IPAddress& ip, const IPAddress& mask,
 												  const IPFilterType type) noexcept
 	{
 		return m_AccessManager->AddIPFilter(ip, mask, type);
@@ -61,9 +73,14 @@ namespace QuantumGate::API
 		return m_AccessManager->SetIPReputation(ip_rep);
 	}
 
-	Result<> AccessManager::ResetIPReputation(const String& ip) noexcept
+	Result<> AccessManager::ResetIPReputation(const WChar* ip_str) noexcept
 	{
-		return m_AccessManager->ResetIPReputation(ip);
+		return m_AccessManager->ResetIPReputation(ip_str);
+	}
+
+	Result<> AccessManager::ResetIPReputation(const String& ip_str) noexcept
+	{
+		return m_AccessManager->ResetIPReputation(ip_str.c_str());
 	}
 
 	Result<> AccessManager::ResetIPReputation(const IPAddress& ip) noexcept
@@ -81,9 +98,14 @@ namespace QuantumGate::API
 		return m_AccessManager->GetAllIPReputations();
 	}
 
-	Result<bool> AccessManager::IsIPAllowed(const String& ip, const AccessCheck check) const noexcept
+	Result<bool> AccessManager::IsIPAllowed(const WChar* ip_str, const AccessCheck check) const noexcept
 	{
-		return m_AccessManager->IsIPAllowed(ip, check);
+		return m_AccessManager->IsIPAllowed(ip_str, check);
+	}
+
+	Result<bool> AccessManager::IsIPAllowed(const String& ip_str, const AccessCheck check) const noexcept
+	{
+		return m_AccessManager->IsIPAllowed(ip_str.c_str(), check);
 	}
 
 	Result<bool> AccessManager::IsIPAllowed(const IPAddress& ip, const AccessCheck check) const noexcept
@@ -91,12 +113,12 @@ namespace QuantumGate::API
 		return m_AccessManager->IsIPAllowed(ip, check);
 	}
 
-	Result<> AccessManager::AddPeer(const PeerAccessSettings&& pas) noexcept
+	Result<> AccessManager::AddPeer(PeerAccessSettings&& pas) noexcept
 	{
 		return m_AccessManager->AddPeer(std::move(pas));
 	}
 
-	Result<> AccessManager::UpdatePeer(const PeerAccessSettings&& pas) noexcept
+	Result<> AccessManager::UpdatePeer(PeerAccessSettings&& pas) noexcept
 	{
 		return m_AccessManager->UpdatePeer(std::move(pas));
 	}

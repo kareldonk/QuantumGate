@@ -104,6 +104,7 @@ namespace UnitTests
 			Assert::AreEqual(false, IPAddress::TryParse(L"abcd", address));
 			Assert::AreEqual(false, IPAddress::TryParse(L"192.168.019.14", address));
 			Assert::AreEqual(false, IPAddress::TryParse(L"abcz::c11a:3a9c:ef10:e795", address));
+			Assert::AreEqual(false, IPAddress::TryParse(L"abcz::c11a:3a9c:ef10:e795%1", address));
 			Assert::AreEqual(false, IPAddress::TryParse(L"192.x8.12.14", address));
 			Assert::AreEqual(false, IPAddress::TryParse(L"192.168 .1.1", address));
 			Assert::AreEqual(false, IPAddress::TryParse(L"fd12:3456.789a:1::1", address));
@@ -127,6 +128,8 @@ namespace UnitTests
 			Assert::AreEqual(true, address.GetString() == L"fd12:3456:789a:1::1");
 			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv6);
 			Assert::AreEqual(true, IPAddress::TryParse(L"fe80::c11a:3a9c:ef10:e795", address));
+			Assert::AreEqual(true, address.GetString() == L"fe80::c11a:3a9c:ef10:e795");
+			Assert::AreEqual(true, IPAddress::TryParse(L"fe80::c11a:3a9c:ef10:e795%2", address));
 			Assert::AreEqual(true, address.GetString() == L"fe80::c11a:3a9c:ef10:e795");
 			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv6);
 			Assert::AreEqual(true, IPAddress::TryParse(L"fd00::", address));

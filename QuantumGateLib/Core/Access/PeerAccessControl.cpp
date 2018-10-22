@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Core::Access
 		m_Settings(settings)
 	{}
 
-	Result<> PeerAccessControl::AddPeer(const PeerAccessSettings&& pas) noexcept
+	Result<> PeerAccessControl::AddPeer(PeerAccessSettings&& pas) noexcept
 	{
 		if (!ValidatePeerAccessSettings(pas)) return ResultCode::InvalidArgument;
 
@@ -33,7 +33,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return ResultCode::Failed;
 	}
 
-	Result<> PeerAccessControl::UpdatePeer(const PeerAccessSettings&& pas) noexcept
+	Result<> PeerAccessControl::UpdatePeer(PeerAccessSettings&& pas) noexcept
 	{
 		if (!ValidatePeerAccessSettings(pas)) return ResultCode::InvalidArgument;
 

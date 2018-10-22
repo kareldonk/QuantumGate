@@ -29,6 +29,7 @@ namespace QuantumGate::Implementation
 			Set(data1, data2, data3, data4);
 		}
 
+		UUID(const WChar* uuid);
 		UUID(const String& uuid);
 
 		~UUID() = default;
@@ -93,6 +94,7 @@ namespace QuantumGate::Implementation
 			}
 		}
 
+		void Set(const WChar* uuid);
 		void Set(const String& uuid);
 
 		[[nodiscard]] constexpr const bool IsValid() const noexcept
@@ -175,6 +177,7 @@ namespace QuantumGate::Implementation
 					  static_cast<UInt64>(other.m_Data3) + other.m_Data4));
 		}
 
+		[[nodiscard]] static const bool TryParse(const WChar* str, UUID& uuid) noexcept;
 		[[nodiscard]] static const bool TryParse(const String& str, UUID& uuid) noexcept;
 		[[nodiscard]] static std::tuple<bool, UUID, std::optional<PeerKeys>> Create(const Type type,
 																					const SignAlgorithm salg) noexcept;
