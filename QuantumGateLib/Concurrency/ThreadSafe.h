@@ -40,28 +40,28 @@ namespace QuantumGate::Implementation::Concurrency
 			inline std::conditional_t<std::is_const_v<ThS>, const T&, T&> operator*() noexcept { assert(*this); return m_ThS->m_Data; }
 			inline const T& operator*() const noexcept { assert(*this); return m_ThS->m_Data; }
 
-			template<typename Arg, typename = std::enable_if_t<!std::is_const_v<ThS>>>
+			template<typename Arg, typename ThS2 = ThS, typename = std::enable_if_t<!std::is_const_v<ThS2>>>
 			inline auto& operator[](Arg&& arg) noexcept(noexcept(m_ThS->m_Data[std::forward<Arg>(arg)]))
 			{
 				assert(*this);
 				return m_ThS->m_Data[std::forward<Arg>(arg)];
 			}
 
-			template<typename Arg, typename = std::enable_if_t<std::is_const_v<ThS>>>
+			template<typename Arg, typename ThS2 = ThS, typename = std::enable_if_t<std::is_const_v<ThS2>>>
 			inline const auto& operator[](Arg&& arg) const noexcept(noexcept(m_ThS->m_Data[std::forward<Arg>(arg)]))
 			{
 				assert(*this);
 				return m_ThS->m_Data[std::forward<Arg>(arg)];
 			}
 
-			template<typename... Args, typename = std::enable_if_t<!std::is_const_v<ThS>>>
+			template<typename... Args, typename ThS2 = ThS, typename = std::enable_if_t<!std::is_const_v<ThS2>>>
 			inline auto operator()(Args&&... args) noexcept(noexcept(m_ThS->m_Data(std::forward<Args>(args)...)))
 			{
 				assert(*this);
 				return m_ThS->m_Data(std::forward<Args>(args)...);
 			}
 
-			template<typename... Args, typename = std::enable_if_t<std::is_const_v<ThS>>>
+			template<typename... Args, typename ThS2 = ThS, typename = std::enable_if_t<std::is_const_v<ThS2>>>
 			inline auto operator()(Args&&... args) const noexcept(noexcept(m_ThS->m_Data(std::forward<Args>(args)...)))
 			{
 				assert(*this);
