@@ -40,16 +40,32 @@ namespace QuantumGate::Implementation::Concurrency
 			inline std::conditional_t<std::is_const_v<ThS>, const T&, T&> operator*() noexcept { assert(*this); return m_ThS->m_Data; }
 			inline const T& operator*() const noexcept { assert(*this); return m_ThS->m_Data; }
 
-			template<typename Arg>
-			inline auto& operator[](Arg&& arg) noexcept(std::is_nothrow_invocable_v<decltype(&T::operator[]), T, Arg>)
+			template<typename Arg, typename = std::enable_if_t<!std::is_const_v<ThS>>>
+			inline auto& operator[](Arg&& arg) noexcept(noexcept(m_ThS->m_Data[std::forward<Arg>(arg)]))
 			{
-				assert(*this); return m_ThS->m_Data[std::forward<Arg>(arg)];
+				assert(*this);
+				return m_ThS->m_Data[std::forward<Arg>(arg)];
 			}
 
-			template<typename Arg>
-			inline const auto& operator[](Arg&& arg) const noexcept(std::is_nothrow_invocable_v<decltype(&T::operator[]), T, Arg>)
+			template<typename Arg, typename = std::enable_if_t<std::is_const_v<ThS>>>
+			inline const auto& operator[](Arg&& arg) const noexcept(noexcept(m_ThS->m_Data[std::forward<Arg>(arg)]))
 			{
-				assert(*this); return m_ThS->m_Data[std::forward<Arg>(arg)];
+				assert(*this);
+				return m_ThS->m_Data[std::forward<Arg>(arg)];
+			}
+
+			template<typename... Args, typename = std::enable_if_t<!std::is_const_v<ThS>>>
+			inline auto operator()(Args&&... args) noexcept(noexcept(m_ThS->m_Data(std::forward<Args>(args)...)))
+			{
+				assert(*this);
+				return m_ThS->m_Data(std::forward<Args>(args)...);
+			}
+
+			template<typename... Args, typename = std::enable_if_t<std::is_const_v<ThS>>>
+			inline auto operator()(Args&&... args) const noexcept(noexcept(m_ThS->m_Data(std::forward<Args>(args)...)))
+			{
+				assert(*this);
+				return m_ThS->m_Data(std::forward<Args>(args)...);
 			}
 
 			inline Value& operator=(const T& other) noexcept(std::is_nothrow_copy_assignable_v<T>)
@@ -79,13 +95,6 @@ namespace QuantumGate::Implementation::Concurrency
 			}
 
 			inline explicit operator bool() const noexcept { return (m_ThS != nullptr && m_Lock.owns_lock()); }
-
-			template<typename... Args>
-			inline auto operator()(Args&&... args) noexcept(noexcept(m_ThS->m_Data(std::forward<Args>(args)...)))
-			{
-				assert(*this);
-				return m_ThS->m_Data(std::forward<Args>(args)...);
-			}
 
 			template<typename Lck2 = Lck,
 				typename = std::enable_if_t<std::is_same_v<Lck2, std::unique_lock<M>>>>

@@ -14,6 +14,8 @@ using namespace std::literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace QuantumGate::Implementation::Concurrency;
 
+bool TestTypeConstFuncOperatorExecuted{ false };
+
 struct TestType
 {
 	constexpr TestType() noexcept {}
@@ -22,11 +24,33 @@ struct TestType
 	constexpr TestType(const TestType& other) noexcept : Value(other.Value) {}
 	constexpr TestType(TestType&& other) noexcept : Value(other.Value) {}
 
+	TestType& operator=(const TestType& other) noexcept
+	{
+		Value = other.Value;
+		return *this;
+	}
+
+	TestType& operator=(TestType&& other) noexcept
+	{
+		Value = other.Value;
+		return *this;
+	}
+
+	const bool operator==(const TestType& other) const noexcept
+	{
+		return (Value == other.Value);
+	}
+
 	void operator()(int v) noexcept { Value = v; }
+	void operator()(int v) const noexcept { TestTypeConstFuncOperatorExecuted = true; }
+
 	int& operator[](int idx) noexcept { return Value; }
+	const int& operator[](int idx) const noexcept { return Value; }
 
 	int Value{ 0 };
 };
+
+bool TestTypeMAConstFuncOperatorExecuted{ false };
 
 struct TestTypeMA
 {
@@ -36,8 +60,30 @@ struct TestTypeMA
 	constexpr TestTypeMA(const TestTypeMA& other) : Value1(other.Value1), Value2(other.Value2) {}
 	constexpr TestTypeMA(TestTypeMA&& other) : Value1(other.Value1), Value2(other.Value2) {}
 
+	TestTypeMA& operator=(const TestTypeMA& other)
+	{
+		Value1 = other.Value1;
+		Value2 = other.Value2;
+		return *this;
+	}
+
+	TestTypeMA& operator=(TestTypeMA&& other)
+	{
+		Value1 = other.Value1;
+		Value2 = other.Value2;
+		return *this;
+	}
+
+	const bool operator==(const TestTypeMA& other) const noexcept
+	{
+		return (Value1 == other.Value1 && Value2 == other.Value2);
+	}
+
 	void operator()(int v) { Value1 = v; }
+	void operator()(int v) const { TestTypeMAConstFuncOperatorExecuted = true; }
+
 	int& operator[](int idx) { return Value1; }
+	const int& operator[](int idx) const { return Value1; }
 
 	int Value1{ 0 };
 	double Value2{ 0 };
@@ -145,7 +191,9 @@ namespace UnitTests
 
 				std::this_thread::sleep_for(2s);
 
+				Assert::AreEqual(true, tulock.operator bool());
 				tulock.Unlock();
+				Assert::AreEqual(false, tulock.operator bool());
 			});
 
 			auto thread2 = std::thread([&]()
@@ -208,7 +256,9 @@ namespace UnitTests
 				th2_cv1.notify_one();
 				th1_cv1.wait(umtx);
 
+				Assert::AreEqual(true, tulock.operator bool());
 				tulock.UnlockShared();
+				Assert::AreEqual(false, tulock.operator bool());
 
 				auto tulock2 = test.WithUniqueLock();
 
@@ -218,7 +268,9 @@ namespace UnitTests
 
 				std::this_thread::sleep_for(2s);
 				
+				Assert::AreEqual(true, tulock2.operator bool());
 				tulock2.Reset();
+				Assert::AreEqual(false, tulock2.operator bool());
 			});
 
 			auto thread2 = std::thread([&]()
@@ -262,30 +314,30 @@ namespace UnitTests
 				ThreadSafe<TestType, DummyMutex> test(9);
 				Assert::AreEqual(true, test.WithUniqueLock()->Value == 9);
 
-				static_assert(!noexcept(test.WithUniqueLock()), "Should not be no throw invocable");
-				static_assert(!noexcept(test.WithUniqueLock(NoexceptLambda)), "Should not be no throw invocable");
-				static_assert(!noexcept(test.WithUniqueLock(ExceptLambda)), "Should not be no throw invocable");
+				static_assert(!noexcept(test.WithUniqueLock()), "Should not be noexcept");
+				static_assert(!noexcept(test.WithUniqueLock(NoexceptLambda)), "Should not be noexcept");
+				static_assert(!noexcept(test.WithUniqueLock(ExceptLambda)), "Should not be noexcept");
 
-				static_assert(noexcept(test.IfUniqueLock(NoexceptLambda)), "Should be no throw invocable");
-				static_assert(!noexcept(test.IfUniqueLock(ExceptLambda)), "Should not be no throw invocable");
+				static_assert(noexcept(test.IfUniqueLock(NoexceptLambda)), "Should be noexcept");
+				static_assert(!noexcept(test.IfUniqueLock(ExceptLambda)), "Should not be noexcept");
 
 				ThreadSafe<TestType, DummyMutex>::UniqueLockedType val;
-				static_assert(!noexcept(test.TryUniqueLock(val)), "Should not be no throw invocable");
+				static_assert(!noexcept(test.TryUniqueLock(val)), "Should not be noexcept");
 			}
 
 			{
 				const ThreadSafe<TestType, DummyMutex> test(9);
 				Assert::AreEqual(true, test.WithUniqueLock()->Value == 9);
 
-				static_assert(!noexcept(test.WithUniqueLock()), "Should not be no throw invocable");
-				static_assert(!noexcept(test.WithUniqueLock(NoexceptLambda)), "Should not be no throw invocable");
-				static_assert(!noexcept(test.WithUniqueLock(ExceptLambda)), "Should not be no throw invocable");
+				static_assert(!noexcept(test.WithUniqueLock()), "Should not be noexcept");
+				static_assert(!noexcept(test.WithUniqueLock(NoexceptLambda)), "Should not be noexcept");
+				static_assert(!noexcept(test.WithUniqueLock(ExceptLambda)), "Should not be noexcept");
 
-				static_assert(noexcept(test.IfUniqueLock(NoexceptLambda)), "Should be no throw invocable");
-				static_assert(!noexcept(test.IfUniqueLock(ExceptLambda)), "Should not be no throw invocable");
+				static_assert(noexcept(test.IfUniqueLock(NoexceptLambda)), "Should be noexcept");
+				static_assert(!noexcept(test.IfUniqueLock(ExceptLambda)), "Should not be noexcept");
 
 				ThreadSafe<TestType, DummyMutex>::UniqueLockedConstType val;
-				static_assert(!noexcept(test.TryUniqueLock(val)), "Should not be no throw invocable");
+				static_assert(!noexcept(test.TryUniqueLock(val)), "Should not be noexcept");
 			}
 		}
 
@@ -295,30 +347,30 @@ namespace UnitTests
 				ThreadSafe<TestType, DummyMutex> test(9);
 				Assert::AreEqual(true, test.WithSharedLock()->Value == 9);
 
-				static_assert(!noexcept(test.WithSharedLock()), "Should not be no throw invocable");
-				static_assert(!noexcept(test.WithSharedLock(NoexceptLambda)), "Should not be no throw invocable");
-				static_assert(!noexcept(test.WithSharedLock(ExceptLambda)), "Should not be no throw invocable");
+				static_assert(!noexcept(test.WithSharedLock()), "Should not be noexcept");
+				static_assert(!noexcept(test.WithSharedLock(NoexceptLambda)), "Should not be noexcept");
+				static_assert(!noexcept(test.WithSharedLock(ExceptLambda)), "Should not be noexcept");
 
-				static_assert(noexcept(test.IfSharedLock(NoexceptLambda)), "Should be no throw invocable");
-				static_assert(!noexcept(test.IfSharedLock(ExceptLambda)), "Should not be no throw invocable");
+				static_assert(noexcept(test.IfSharedLock(NoexceptLambda)), "Should be noexcept");
+				static_assert(!noexcept(test.IfSharedLock(ExceptLambda)), "Should not be noexcept");
 
 				ThreadSafe<TestType, std::shared_mutex> test2(9);
-				static_assert(noexcept(test2.IfSharedLock(NoexceptLambda)), "Should be no throw invocable");
+				static_assert(noexcept(test2.IfSharedLock(NoexceptLambda)), "Should be noexcept");
 			}
 
 			{
 				const ThreadSafe<TestType, DummyMutex> test(9);
 				Assert::AreEqual(true, test.WithSharedLock()->Value == 9);
 
-				static_assert(!noexcept(test.WithSharedLock()), "Should not be no throw invocable");
-				static_assert(!noexcept(test.WithSharedLock(NoexceptLambda)), "Should not be no throw invocable");
-				static_assert(!noexcept(test.WithSharedLock(ExceptLambda)), "Should not be no throw invocable");
+				static_assert(!noexcept(test.WithSharedLock()), "Should not be noexcept");
+				static_assert(!noexcept(test.WithSharedLock(NoexceptLambda)), "Should not be noexcept");
+				static_assert(!noexcept(test.WithSharedLock(ExceptLambda)), "Should not be noexcept");
 
-				static_assert(noexcept(test.IfSharedLock(NoexceptLambda)), "Should be no throw invocable");
-				static_assert(!noexcept(test.IfSharedLock(ExceptLambda)), "Should not be no throw invocable");
+				static_assert(noexcept(test.IfSharedLock(NoexceptLambda)), "Should be noexcept");
+				static_assert(!noexcept(test.IfSharedLock(ExceptLambda)), "Should not be noexcept");
 
 				const ThreadSafe<TestType, std::shared_mutex> test2(9);
-				static_assert(noexcept(test2.IfSharedLock(NoexceptLambda)), "Should be no throw invocable");
+				static_assert(noexcept(test2.IfSharedLock(NoexceptLambda)), "Should be noexcept");
 			}
 		}
 
@@ -337,29 +389,93 @@ namespace UnitTests
 		TEST_METHOD(Value)
 		{
 			ThreadSafe<TestType, std::shared_mutex> test(111);
+			const ThreadSafe<TestType, std::shared_mutex> ctest(111);
 			auto testul = test.WithUniqueLock();
+			auto ctestul = ctest.WithUniqueLock();
 
 			ThreadSafe<TestTypeMA, std::shared_mutex> testma(999, 333);
+			const ThreadSafe<TestTypeMA, std::shared_mutex> ctestma(999, 333);
 			auto testmaul = testma.WithUniqueLock();
+			auto ctestmaul = ctestma.WithUniqueLock();
 			
 			// operator()
 			{
-				static_assert(noexcept(testul(333)), "Should be no throw invocable");
-				testul(333);
-				Assert::AreEqual(true, testul->Value == 333);
+				{
+					static_assert(noexcept(testul(333)), "Should be noexcept");
+					testul(333);
+					Assert::AreEqual(true, testul->Value == 333);
 
-				static_assert(!noexcept(testmaul(666)), "Should not be no throw invocable");
-				testmaul(666);
-				Assert::AreEqual(true, testmaul->Value1 == 666);
+					static_assert(noexcept(ctestul(333)), "Should be noexcept");
+					ctestul(0);
+					Assert::AreEqual(true, TestTypeConstFuncOperatorExecuted);
+				}
+
+				{
+					static_assert(!noexcept(testmaul(666)), "Should not be noexcept");
+					testmaul(666);
+					Assert::AreEqual(true, testmaul->Value1 == 666);
+
+					static_assert(!noexcept(ctestmaul(666)), "Should not be noexcept");
+					ctestmaul(0);
+					Assert::AreEqual(true, TestTypeMAConstFuncOperatorExecuted);
+				}
 			}
 
 			// operator[]
 			{
-				static_assert(noexcept(testul[1]), "Should be no throw invocable");
-				Assert::AreEqual(true, testul[1] == 333);
+				{
+					static_assert(noexcept(testul[1]), "Should be noexcept");
+					Assert::AreEqual(true, testul[1] == 333);
+					static_assert(!std::is_const_v<std::remove_reference_t<decltype(testul[1])>>, "Return value should not be const");
 
-				static_assert(!noexcept(testmaul[1]), "Should not be no throw invocable");
-				Assert::AreEqual(true, testmaul[1] == 666);
+					static_assert(noexcept(ctestul[1]), "Should be noexcept");
+					static_assert(std::is_const_v<std::remove_reference_t<decltype(ctestul[1])>>, "Return value should be const");
+				}
+
+				{
+					static_assert(!noexcept(testmaul[1]), "Should not be noexcept");
+					Assert::AreEqual(true, testmaul[1] == 666);
+					static_assert(!std::is_const_v<std::remove_reference_t<decltype(testmaul[1])>>, "Return value should not be const");
+
+					static_assert(!noexcept(ctestmaul[1]), "Should not be noexcept");
+					static_assert(std::is_const_v<std::remove_reference_t<decltype(ctestmaul[1])>>, "Return value should be const");
+				}
+			}
+
+			// Copy assignment and comparison
+			{
+				TestType atest;
+				atest.Value = 336699;
+
+				static_assert(noexcept(testul.operator=(atest)), "Should be no throw copy assignable");
+				testul = atest;
+				Assert::AreEqual(true, testul->Value == 336699);
+				Assert::AreEqual(true, testul == atest);
+
+				TestTypeMA atestma;
+				atestma.Value1 = 336699;
+
+				static_assert(!noexcept(testmaul.operator=(atestma)), "Should not be no throw copy assignable");
+				testmaul = atestma;
+				Assert::AreEqual(true, testmaul->Value1 == 336699);
+				Assert::AreEqual(true, testmaul == atestma);
+			}
+
+			// Move assignment
+			{
+				TestType atest;
+				atest.Value = 669933;
+
+				static_assert(noexcept(testul.operator=(std::move(atest))), "Should be no throw move assignable");
+				testul = std::move(atest);
+				Assert::AreEqual(true, testul->Value == 669933);
+
+				TestTypeMA atestma;
+				atestma.Value1 = 669933;
+
+				static_assert(!noexcept(testmaul.operator=(std::move(atestma))), "Should not be no throw move assignable");
+				testmaul = std::move(atestma);
+				Assert::AreEqual(true, testmaul->Value1 == 669933);
 			}
 		}
 	};
