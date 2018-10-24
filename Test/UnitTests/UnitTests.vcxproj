@@ -395,6 +395,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="IPFiltersTests.cpp" />
+    <ClCompile Include="ThreadSafeTests.cpp" />
     <ClCompile Include="UUIDTests.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
