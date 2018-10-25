@@ -160,6 +160,11 @@ namespace QuantumGate::Socks5Extender
 	void Extender::OnPostStartup()
 	{
 		LogDbg(L"Extender '" + GetName() + L"' running...");
+
+		if (m_UseListener)
+		{
+			StartupListener();
+		}
 	}
 
 	void Extender::OnPreShutdown()
