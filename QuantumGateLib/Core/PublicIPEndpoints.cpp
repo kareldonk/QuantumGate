@@ -103,7 +103,7 @@ namespace QuantumGate::Implementation::Core
 			{
 				try
 				{
-					// Choose port randomly from dynamic port range
+					// Choose port randomly from dynamic port range (RFC 6335)
 					m_DataVerificationSockets.Port = static_cast<UInt16>(Util::GetPseudoRandomNumber(49152, 65535));
 
 					auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), m_DataVerificationSockets.Port);
@@ -326,7 +326,7 @@ namespace QuantumGate::Implementation::Core
 							}
 							else
 							{
-								LogErr(L"Public IP address data verification for %s timed out; this could be due to a firewall blocking incoming UDP traffic",
+								LogErr(L"Public IP address data verification for %s timed out; this could be due to a router/firewall blocking UDP traffic",
 									   IPAddress(it->second.IPAddress).GetString().c_str());
 
 								remove = true;
@@ -389,30 +389,29 @@ namespace QuantumGate::Implementation::Core
 
 		if (hop_verification.has_value())
 		{
-			auto verified = false;
-			UInt8 hop{ 1 };
-
 			// We ping the IP address with specific hop numbers to verify the distance
 			// on the network. If the distance is small it's more likely that the
 			// public IP address is one that we're using (ideally 1 or 2 hops away).
 			// If the distance is further away then it may not be a public IP address
 			// that we're using (and could be an attack).
-			while (hop <= HopVerification::MaxHops && !shutdown_event.IsSet())
-			{
-				Ping ping(hop_verification->IPAddress, static_cast<UInt16>(Util::GetPseudoRandomNumber(0, 255)),
-						  std::chrono::duration_cast<std::chrono::milliseconds>(HopVerification::TimeoutPeriod),
-						  std::chrono::seconds(hop));
-				if (ping.Execute() && ping.GetStatus() == Ping::Status::Succeeded &&
-					ping.GetRespondingIPAddress() == hop_verification->IPAddress)
-				{
-					verified = true;
-					break;
-				}
 
-				++hop;
+			auto verified = false;
+			UInt8 max_hops{ HopVerification::MaxHops };
+
+			if (HasLocallyBoundPublicIPAddress())
+			{
+				// We are directly connected to the Internet via a public IP
+				// configured on a local ethernet interface, so we should reach
+				// ourselves in zero hops
+				max_hops = 0;
 			}
 
-			if (verified)
+			Ping ping(hop_verification->IPAddress, static_cast<UInt16>(Util::GetPseudoRandomNumber(0, 255)),
+						std::chrono::duration_cast<std::chrono::milliseconds>(HopVerification::TimeoutPeriod),
+						std::chrono::seconds(max_hops));
+			if (ping.Execute() && ping.GetStatus() == Ping::Status::Succeeded &&
+				ping.GetRespondingIPAddress() == hop_verification->IPAddress &&
+				ping.GetRoundTripTime() <= HopVerification::MaxRTT)
 			{
 				m_IPEndpoints.WithUniqueLock([&](auto& ipendpoints)
 				{
@@ -434,7 +433,7 @@ namespace QuantumGate::Implementation::Core
 			else
 			{
 				LogWarn(L"Failed to verify hops for IP address %s; host may be further than %u hops away or behind a firewall",
-						IPAddress(hop_verification->IPAddress).GetString().c_str(), HopVerification::MaxHops);
+						IPAddress(hop_verification->IPAddress).GetString().c_str(), max_hops);
 			}
 
 			// Remove from the set so that the IP address can potentially
@@ -582,9 +581,7 @@ namespace QuantumGate::Implementation::Core
 			pub_endpoint.GetIPAddress().GetFamily() == rep_peer.GetIPAddress().GetFamily())
 		{
 			// Should be in public network address range
-			if (!pub_endpoint.GetIPAddress().IsLocal() &&
-				!pub_endpoint.GetIPAddress().IsMulticast() &&
-				!pub_endpoint.GetIPAddress().IsReserved())
+			if (pub_endpoint.GetIPAddress().IsPublic())
 			{
 				BinaryIPAddress network;
 				const auto cidr = (rep_peer.GetIPAddress().GetFamily() == BinaryIPAddress::Family::IPv4) ?

@@ -13,15 +13,21 @@ namespace QuantumGate::Implementation::Core
 {
 	struct PublicIPEndpointDetails final
 	{
-		std::set<UInt16> Ports;
+		Set<UInt16> Ports;
 		bool Trusted{ false };
 		bool DataVerified{ false };
 		bool HopVerified{ false };
-		std::set<std::size_t> ReportingPeerNetworkHashes;
+		Set<std::size_t> ReportingPeerNetworkHashes;
 		SteadyTime LastUpdateSteadyTime;
 
 		[[nodiscard]] inline const bool IsTrusted() const noexcept { return Trusted; }
-		[[nodiscard]] inline const bool IsVerified() const noexcept { return (DataVerified && HopVerified); }
+
+		[[nodiscard]] inline const bool IsVerified() const noexcept
+		{
+			// Verified in case data and hop verification succeeded, and peers from at least
+			// 3 different IP networks reported the address to us
+			return (DataVerified && HopVerified && ReportingPeerNetworkHashes.size() >= 3);
+		}
 	};
 
 	class PublicIPEndpoints final
@@ -30,8 +36,11 @@ namespace QuantumGate::Implementation::Core
 		{
 			BinaryIPAddress IPAddress;
 
-			static constexpr std::chrono::seconds TimeoutPeriod{ 5 };
+			static constexpr std::chrono::seconds TimeoutPeriod{ 2 };
 			static constexpr UInt8 MaxHops{ 2 };
+			static constexpr std::chrono::milliseconds MaxRTT{ 2 };
+
+			static_assert(HopVerification::TimeoutPeriod > HopVerification::MaxRTT, "TimeoutPeriod should be larger than MaxRTT");
 		};
 
 		using HopVerificationQueue = Concurrency::Queue<HopVerification>;
@@ -105,6 +114,9 @@ namespace QuantumGate::Implementation::Core
 		Result<> AddIPAddresses(Vector<BinaryIPAddress>& ips, const bool only_trusted_verified) const noexcept;
 		Result<> AddIPAddresses(Vector<IPAddressDetails>& ips) const noexcept;
 
+		void SetLocallyBoundPublicIPAddress(const bool flag) noexcept { m_HasLocallyBoundPublicIPAddress = flag; }
+		const bool HasLocallyBoundPublicIPAddress() const noexcept { return m_HasLocallyBoundPublicIPAddress; }
+
 	private:
 		[[nodiscard]] const bool InitializeDataVerificationSockets() noexcept;
 		void DeinitializeDataVerificationSockets() noexcept;
@@ -147,6 +159,8 @@ namespace QuantumGate::Implementation::Core
 
 		IPEndpointsMap_ThS m_IPEndpoints;
 		ReportingNetworkMap m_ReportingNetworks;
+
+		std::atomic_bool m_HasLocallyBoundPublicIPAddress{ false };
 
 		ThreadPool m_ThreadPool;
 	};

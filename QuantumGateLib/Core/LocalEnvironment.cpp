@@ -365,6 +365,7 @@ namespace QuantumGate::Implementation::Core
 	{
 		try
 		{
+			auto has_public_ip = false;
 			Vector<BinaryIPAddress> allips;
 
 			// First add the local IP addresses configured on the host
@@ -374,6 +375,13 @@ namespace QuantumGate::Implementation::Core
 				{
 					for (const auto& ip : ifs.IPAddresses)
 					{
+						if (ip.IsPublic())
+						{
+							// Probably connected via public IP address
+							// directly to the Internet
+							has_public_ip = true;
+						}
+
 						if (std::find(allips.begin(), allips.end(), ip.GetBinary()) == allips.end())
 						{
 							allips.emplace_back(ip.GetBinary());
@@ -381,6 +389,8 @@ namespace QuantumGate::Implementation::Core
 					}
 				}
 			}
+
+			m_PublicIPEndpoints.SetLocallyBoundPublicIPAddress(has_public_ip);
 
 			// Add any trusted/verified public IP addresses if we have them
 			if (m_PublicIPEndpoints.AddIPAddresses(allips, true).Succeeded())
