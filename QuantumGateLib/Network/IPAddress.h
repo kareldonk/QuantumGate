@@ -87,6 +87,7 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] constexpr const bool IsLocal() const noexcept { return IsLocal(m_BinaryAddress); }
 		[[nodiscard]] constexpr const bool IsMulticast() const noexcept { return IsMulticast(m_BinaryAddress); }
 		[[nodiscard]] constexpr const bool IsReserved() const noexcept { return IsReserved(m_BinaryAddress); }
+		[[nodiscard]] constexpr const bool IsPublic() const noexcept { return IsPublic(m_BinaryAddress); }
 		[[nodiscard]] constexpr const bool IsClassA() const noexcept { return IsClassA(m_BinaryAddress); }
 		[[nodiscard]] constexpr const bool IsClassB() const noexcept { return IsClassB(m_BinaryAddress); }
 		[[nodiscard]] constexpr const bool IsClassC() const noexcept { return IsClassC(m_BinaryAddress); }
@@ -183,6 +184,11 @@ namespace QuantumGate::Implementation::Network
 		{
 			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 240 }), 4 }; // 240.0.0.0/4 (Future use)
 			return IsInBlock(bin_ipaddr, block);
+		}
+
+		[[nodiscard]] static constexpr const bool IsPublic(const BinaryIPAddress& bin_ipaddr) noexcept
+		{
+			return (!IsLocal(bin_ipaddr) && !IsMulticast(bin_ipaddr) && !IsReserved(bin_ipaddr));
 		}
 
 		[[nodiscard]] static constexpr const bool IsClassA(const BinaryIPAddress& bin_ipaddr) noexcept
