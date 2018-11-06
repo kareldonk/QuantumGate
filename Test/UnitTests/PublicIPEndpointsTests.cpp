@@ -2,7 +2,6 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "stdafx.h"
-#include "CppUnitTest.h"
 #include "Settings.h"
 #include "Core\PublicIPEndpoints.h"
 #include "Common\Util.h"
@@ -278,6 +277,20 @@ namespace UnitTests
 				},
 
 				{
+					IPEndpoint(IPAddress(L"200.168.5.51"), 999),
+					IPEndpoint(IPAddress(L"173.217.17.142"), 5000),
+					PeerConnectionType::Inbound,
+					false, true, true, std::make_pair(true, false)
+				},
+
+				{
+					IPEndpoint(IPAddress(L"200.168.5.51"), 999),
+					IPEndpoint(IPAddress(L"174.217.17.142"), 5000),
+					PeerConnectionType::Inbound,
+					false, true, true, std::make_pair(true, false)
+				},
+
+				{
 					IPEndpoint(IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de"), 999),
 					IPEndpoint(IPAddress(L"e835:625f:48ce:c333::"), 2100),
 					PeerConnectionType::Inbound,
@@ -419,6 +432,20 @@ namespace UnitTests
 					IPEndpoint(IPAddress(L"172.217.17.142"), 5000),
 					PeerConnectionType::Inbound,
 					false, true, true, std::make_pair(true, true)
+				},
+
+				{
+					IPEndpoint(IPAddress(L"200.168.5.51"), 999),
+					IPEndpoint(IPAddress(L"173.217.17.142"), 5000),
+					PeerConnectionType::Inbound,
+					false, true, true, std::make_pair(true, false)
+				},
+
+				{
+					IPEndpoint(IPAddress(L"200.168.5.51"), 999),
+					IPEndpoint(IPAddress(L"174.217.17.142"), 5000),
+					PeerConnectionType::Inbound,
+					false, true, true, std::make_pair(true, false)
 				},
 
 				{
