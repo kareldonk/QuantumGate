@@ -2,7 +2,6 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "stdafx.h"
-#include "CppUnitTest.h"
 #include "Common\Hash.h"
 #include "Common\Util.h"
 
