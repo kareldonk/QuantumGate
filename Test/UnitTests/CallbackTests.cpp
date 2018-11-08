@@ -76,9 +76,11 @@ public:
 		return x + 2;
 	}
 
-	bool operator()(bool flag) const
+	bool operator()(std::optional<bool> flag) const
 	{
-		return flag;
+		if (flag.has_value()) return *flag;
+
+		return false;
 	}
 
 	static bool MemberTestStaticFunction() noexcept
@@ -199,7 +201,7 @@ namespace UnitTests
 			Callback<int(int) const noexcept> cb9(CbTestClass{});
 			Assert::AreEqual(46, cb9(44));
 
-			const Callback<bool(bool) const> cb10(CbTestClass{});
+			Callback<bool(std::optional<bool>) const> cb10(CbTestClass{});
 			Assert::AreEqual(true, cb10(true));
 		}
 

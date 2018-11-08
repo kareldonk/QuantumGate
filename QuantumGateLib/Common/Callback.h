@@ -107,8 +107,18 @@ namespace QuantumGate::Implementation
 		template<typename T, typename F>
 		CallbackImpl(T* object, F member_function_ptr) noexcept
 		{
-			static_assert(std::is_member_function_pointer_v<R(T::*)(Args...)>,
-						  "Object does not have member function with expected signature.");
+			if constexpr (NoExcept)
+			{
+				static_assert(std::is_nothrow_invocable_r_v<R,
+							  std::conditional_t<Const, std::add_const_t<F>, F>, T*, Args...>,
+							  "Function parameter does not have the expected signature.");
+			}
+			else
+			{
+				static_assert(std::is_invocable_r_v<R,
+							  std::conditional_t<Const, std::add_const_t<F>, F>, T*, Args...>,
+							  "Function parameter does not have the expected signature.");
+			}
 
 			static_assert(sizeof(MemberCallbackFunction<T, F>) <= sizeof(m_FunctionStorage),
 						  "Type is too large for FunctionStorage variable; increase size.");
@@ -259,10 +269,11 @@ namespace QuantumGate::Implementation
 		{
 			using objtype = typename std::decay_t<F>;
 			using member_funcsig = make_member_function_pointer_t<objtype, Sig>;
+
+			// This will fail if there is a signature mismatch
+			// especially when it comes to the const-ness. Lambda
+			// functions with non-const signatures must be declared mutable.
 			constexpr member_funcsig fn = &objtype::operator();
-			//using funcsig = function_signature_t<decltype(fn)>;
-			//static_assert(std::is_same_v<Sig, funcsig>,
-			//			  "Function parameter does not have the expected signature.");
 
 			return true;
 		}
