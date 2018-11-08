@@ -1333,7 +1333,7 @@ void CTestAppDlg::OnLocalConnectRelayed()
 		}
 
 		const auto result = m_QuantumGate.ConnectTo(std::move(params),
-													[](PeerLUID pluid, Result<ConnectDetails> result)
+													[](PeerLUID pluid, Result<ConnectDetails> result) mutable
 		{
 			if (result.Succeeded())
 			{

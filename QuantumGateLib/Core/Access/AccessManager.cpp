@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_IPFilters.WithUniqueLock()->AddFilter(ip_cidr, type);
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -29,7 +29,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_IPFilters.WithUniqueLock()->AddFilter(ip_str, mask_str, type);
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -41,7 +41,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_IPFilters.WithUniqueLock()->AddFilter(ip, mask, type);
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_IPFilters.WithUniqueLock()->RemoveFilter(filterid, type);
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -61,7 +61,7 @@ namespace QuantumGate::Implementation::Core::Access
 	void Manager::RemoveAllIPFilters() noexcept
 	{
 		m_IPFilters.WithUniqueLock()->Clear();
-		m_AccessUpdateCallbacks.WithSharedLock()();
+		m_AccessUpdateCallbacks.WithUniqueLock()();
 	}
 
 	Result<Vector<IPFilter>> Manager::GetAllIPFilters() const noexcept
@@ -75,7 +75,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_IPAccessControl.WithUniqueLock()->SetReputation(ip, score, time);
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -88,7 +88,7 @@ namespace QuantumGate::Implementation::Core::Access
 																		ip_rep.LastUpdateTime);
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -110,7 +110,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_IPAccessControl.WithUniqueLock()->ResetReputation(ip);
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -119,7 +119,7 @@ namespace QuantumGate::Implementation::Core::Access
 	void Manager::ResetAllIPReputations() noexcept
 	{
 		m_IPAccessControl.WithUniqueLock()->ResetAllReputations();
-		m_AccessUpdateCallbacks.WithSharedLock()();
+		m_AccessUpdateCallbacks.WithUniqueLock()();
 	}
 
 	Result<std::pair<Int16, bool>> Manager::UpdateIPReputation(const IPAddress& ip,
@@ -128,7 +128,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_IPAccessControl.WithUniqueLock()->UpdateReputation(ip, rep_update);
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -153,7 +153,7 @@ namespace QuantumGate::Implementation::Core::Access
 	{
 		if (!m_IPAccessControl.WithUniqueLock()->AddConnectionAttempt(ip))
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 			return false;
 		}
 
@@ -164,7 +164,7 @@ namespace QuantumGate::Implementation::Core::Access
 	{
 		if (!m_IPAccessControl.WithUniqueLock()->AddRelayConnectionAttempt(ip))
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 			return false;
 		}
 
@@ -177,7 +177,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_SubnetLimits.WithUniqueLock()->AddLimit(af, cidr_lbits, max_con);
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -188,7 +188,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_SubnetLimits.WithUniqueLock()->RemoveLimit(af, cidr_lbits);
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -297,7 +297,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_PeerAccessControl.WithUniqueLock()->AddPeer(std::move(pas));
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -308,7 +308,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_PeerAccessControl.WithUniqueLock()->UpdatePeer(std::move(pas));
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -319,7 +319,7 @@ namespace QuantumGate::Implementation::Core::Access
 		auto result = m_PeerAccessControl.WithUniqueLock()->RemovePeer(puuid);
 		if (result.Succeeded())
 		{
-			m_AccessUpdateCallbacks.WithSharedLock()();
+			m_AccessUpdateCallbacks.WithUniqueLock()();
 		}
 
 		return result;
@@ -328,7 +328,7 @@ namespace QuantumGate::Implementation::Core::Access
 	void Manager::RemoveAllPeers() noexcept
 	{
 		m_PeerAccessControl.WithUniqueLock()->Clear();
-		m_AccessUpdateCallbacks.WithSharedLock()();
+		m_AccessUpdateCallbacks.WithUniqueLock()();
 	}
 
 	Result<bool> Manager::IsPeerAllowed(const PeerUUID& puuid) const noexcept
@@ -344,7 +344,7 @@ namespace QuantumGate::Implementation::Core::Access
 	void Manager::SetPeerAccessDefault(const PeerAccessDefault pad) noexcept
 	{
 		m_PeerAccessControl.WithUniqueLock()->SetAccessDefault(pad);
-		m_AccessUpdateCallbacks.WithSharedLock()();
+		m_AccessUpdateCallbacks.WithUniqueLock()();
 	}
 
 	const PeerAccessDefault Manager::GetPeerAccessDefault() const noexcept

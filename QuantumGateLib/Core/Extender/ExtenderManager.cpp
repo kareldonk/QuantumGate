@@ -86,7 +86,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				// Let connected peers know we have added extenders.
 				// We shouldn't hold locks to extenders or extender controls
 				// before this call to avoid deadlock.
-				m_ExtenderUpdateCallbacks.WithSharedLock()(startupext_list, true);
+				m_ExtenderUpdateCallbacks.WithUniqueLock()(startupext_list, true);
 			}
 
 			m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
@@ -154,7 +154,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				// Let connected peers know we have removed extenders.
 				// We shouldn't hold locks to extenders or extender controls
 				// before this call to avoid deadlock.
-				m_ExtenderUpdateCallbacks.WithSharedLock()(shutdownext_list, false);
+				m_ExtenderUpdateCallbacks.WithUniqueLock()(shutdownext_list, false);
 			}
 		}
 		catch (const std::exception& e)
@@ -323,7 +323,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				// Let connected peers know we have added an extender.
 				// We shouldn't hold locks to extenders or extender controls
 				// before this call to avoid deadlock.
-				m_ExtenderUpdateCallbacks.WithSharedLock()(extuuids, true);
+				m_ExtenderUpdateCallbacks.WithUniqueLock()(extuuids, true);
 
 				// Extender is now initialized and ready to be used
 				extctrl_ths.WithUniqueLock()->GetExtender().OnEndStartup();
@@ -443,7 +443,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				// Let connected peers know we have removed an extender.
 				// We shouldn't hold locks to extenders or extender controls
 				// before this call to avoid deadlock.
-				m_ExtenderUpdateCallbacks.WithSharedLock()(extuuids, false);
+				m_ExtenderUpdateCallbacks.WithUniqueLock()(extuuids, false);
 			}
 		}
 

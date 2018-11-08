@@ -197,8 +197,8 @@ namespace QuantumGate::Implementation::Core::Extender
 					if ((!retval.first || !retval.second) &&
 						!GetExtender().HadException())
 					{
-						m_ExtenderManager.m_UnhandledExtenderMessageCallbacks.WithSharedLock()(GetExtender().GetUUID(),
-																							   pluid, retval);
+						m_ExtenderManager.GetUnhandledExtenderMessageCallbacks().WithUniqueLock()(GetExtender().GetUUID(),
+																								  pluid, retval);
 						break;
 					}
 				}

@@ -880,7 +880,7 @@ namespace QuantumGate::Implementation::Core
 			Result<ConnectDetails> final_result{ ResultCode::Failed };
 
 			const auto result = m_PeerManager.ConnectTo(std::move(params),
-														[&](PeerLUID pluid, Result<ConnectDetails> connect_result)
+														[&](PeerLUID pluid, Result<ConnectDetails> connect_result) mutable
 			{
 				final_result = std::move(connect_result);
 
@@ -939,7 +939,7 @@ namespace QuantumGate::Implementation::Core
 
 			// Initiate disconnect from peer
 			auto result = m_PeerManager.DisconnectFrom(pluid,
-													   [&](PeerLUID pluid, PeerUUID puuid)
+													   [&](PeerLUID pluid, PeerUUID puuid) mutable
 			{
 				cevent.Set();
 			});

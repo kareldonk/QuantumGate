@@ -21,7 +21,7 @@ namespace QuantumGate::Implementation::Core::Access
 	public:
 		using AccessUpdateCallbacks = Dispatcher<void() noexcept>;
 		using AccessUpdateCallbackHandle = AccessUpdateCallbacks::FunctionHandle;
-		using AccessUpdateCallbacks_ThS = Concurrency::ThreadSafe<AccessUpdateCallbacks, std::shared_mutex>;
+		using AccessUpdateCallbacks_ThS = Concurrency::ThreadSafe<AccessUpdateCallbacks, std::mutex>;
 
 		Manager() = delete;
 		Manager(const Settings_CThS& settings) noexcept;

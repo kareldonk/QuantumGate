@@ -1023,7 +1023,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		if (const auto result = GetExtenderUpdateData(); result.Succeeded())
 		{
 			const auto result2 = Broadcast(MessageType::ExtenderUpdate, *result,
-										   [](Peer& peer, const BroadcastResult broadcast_result)
+										   [](Peer& peer, const BroadcastResult broadcast_result) mutable
 			{
 				switch (broadcast_result)
 				{

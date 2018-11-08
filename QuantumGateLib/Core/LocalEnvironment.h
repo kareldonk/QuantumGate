@@ -16,7 +16,7 @@ namespace QuantumGate::Implementation::Core
 
 	public:
 		using ChangedCallback = Callback<void() noexcept>;
-		using ChangedCallback_ThS = Concurrency::ThreadSafe<ChangedCallback, std::shared_mutex>;
+		using ChangedCallback_ThS = Concurrency::ThreadSafe<ChangedCallback, std::mutex>;
 
 		LocalEnvironment(const Settings_CThS& settings) noexcept :
 			m_PublicIPEndpoints(settings)

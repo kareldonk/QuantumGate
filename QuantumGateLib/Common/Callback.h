@@ -13,11 +13,11 @@ namespace QuantumGate::Implementation
 	class CallbackImplBase
 	{};
 
-	template<typename T, bool NoExcept = false>
+	template<typename T, bool Const, bool NoExcept>
 	class CallbackImpl;
 
-	template<typename R, typename... Args, bool NoExcept>
-	class CallbackImpl<R(Args...), NoExcept> : public CallbackImplBase
+	template<typename R, typename... Args, bool Const, bool NoExcept>
+	class CallbackImpl<R(Args...), Const, NoExcept> : public CallbackImplBase
 	{
 		class CallbackFunction
 		{
@@ -31,17 +31,25 @@ namespace QuantumGate::Implementation
 		class FreeCallbackFunction : public CallbackFunction
 		{
 		public:
-			FreeCallbackFunction(F&& function) noexcept : m_Function(std::forward<F>(function)) {}
+			FreeCallbackFunction(F&& function) noexcept : m_Function(std::move(function)) {}
 
 		private:
-			ForceInline R operator()(Args... args) const noexcept(NoExcept)override
+			ForceInline R operator()(Args... args) const noexcept(NoExcept) override
 			{
 				if constexpr (std::is_pointer_v<F>)
 				{
 					assert(m_Function != nullptr);
 				}
 
-				return (m_Function)(std::forward<Args>(args)...);
+				if constexpr (std::is_pointer_v<F> || Const)
+				{
+					return (m_Function)(std::forward<Args>(args)...);
+				}
+				else if constexpr (!Const)
+				{
+					// Allowed to modify because of non-const signature
+					return (const_cast<F&>(m_Function))(std::forward<Args>(args)...);
+				}
 			}
 
 		private:
@@ -52,11 +60,11 @@ namespace QuantumGate::Implementation
 		class MemberCallbackFunction : public CallbackFunction
 		{
 		public:
-			MemberCallbackFunction(T* obj, F&& function) noexcept :
-				m_Object(obj), m_Function(std::forward<F>(function)) {}
+			MemberCallbackFunction(T* object, F member_function_ptr) noexcept :
+				m_Object(object), m_Function(member_function_ptr) {}
 
 		private:
-			ForceInline R operator()(Args... args) const noexcept(NoExcept)override
+			ForceInline R operator()(Args... args) const noexcept(NoExcept) override
 			{
 				assert(m_Object != nullptr && m_Function != nullptr);
 
@@ -75,24 +83,37 @@ namespace QuantumGate::Implementation
 		template<typename F>
 		CallbackImpl(F&& function) noexcept(sizeof(FreeCallbackFunction<F>) <= sizeof(m_FunctionStorage))
 		{
+			if constexpr (NoExcept)
+			{
+				static_assert(std::is_nothrow_invocable_r_v<R,
+							  std::conditional_t<Const, std::add_const_t<F>, F>, Args...>,
+							  "Function parameter does not have the expected signature.");
+			}
+			else
+			{
+				static_assert(std::is_invocable_r_v<R,
+							  std::conditional_t<Const, std::add_const_t<F>, F>, Args...>,
+							  "Function parameter does not have the expected signature.");
+			}
+
 			if constexpr (sizeof(FreeCallbackFunction<F>) > sizeof(m_FunctionStorage))
 			{
-				m_Function = new FreeCallbackFunction<F>(std::forward<F>(function));
+				m_Function = new FreeCallbackFunction<F>(std::move(function));
 				m_Heap = true;
 			}
-			else m_Function = new (&m_FunctionStorage) FreeCallbackFunction<F>(std::forward<F>(function));
+			else m_Function = new (&m_FunctionStorage) FreeCallbackFunction<F>(std::move(function));
 		}
 
 		template<typename T, typename F>
-		CallbackImpl(T* obj, F&& function) noexcept
+		CallbackImpl(T* object, F member_function_ptr) noexcept
 		{
 			static_assert(std::is_member_function_pointer_v<R(T::*)(Args...)>,
-						  "Object does not have callable member function with expected signature.");
+						  "Object does not have member function with expected signature.");
 
 			static_assert(sizeof(MemberCallbackFunction<T, F>) <= sizeof(m_FunctionStorage),
 						  "Type is too large for FunctionStorage variable; increase size.");
 
-			m_Function = new (&m_FunctionStorage) MemberCallbackFunction<T, F>(obj, std::forward<F>(function));
+			m_Function = new (&m_FunctionStorage) MemberCallbackFunction<T, F>(object, member_function_ptr);
 		}
 
 		virtual ~CallbackImpl()
@@ -135,6 +156,15 @@ namespace QuantumGate::Implementation
 			return *this;
 		}
 
+		template<bool Const2 = Const, typename = std::enable_if_t<!Const2>>
+		ForceInline R operator()(Args... args) noexcept(NoExcept)
+		{
+			assert(m_Function != nullptr);
+
+			return (*m_Function)(std::forward<Args>(args)...);
+		}
+
+		template<bool Const2 = Const, typename = std::enable_if_t<Const2>>
 		ForceInline R operator()(Args... args) const noexcept(NoExcept)
 		{
 			assert(m_Function != nullptr);
@@ -178,41 +208,40 @@ namespace QuantumGate::Implementation
 	};
 
 	template<typename Sig>
-	class Callback : public CallbackImpl<function_signature_rm_noexcept_t<Sig>, function_signature_is_noexcept<Sig>>
+	class Callback : public CallbackImpl<function_signature_rm_const_noexcept_t<Sig>,
+		function_signature_is_const<Sig>, function_signature_is_noexcept<Sig>>
 	{
 	public:
 		Callback() noexcept {}
 		Callback(std::nullptr_t) noexcept {}
 
-		template<typename F, typename = std::enable_if_t<!std::is_base_of_v<CallbackImplBase, F>>>
-		Callback(F&& function) noexcept(noexcept(CallbackImpl<function_signature_rm_noexcept_t<Sig>,
-												 function_signature_is_noexcept<Sig>>(std::forward<F>(function)))) :
-			CallbackImpl<function_signature_rm_noexcept_t<Sig>,
-			function_signature_is_noexcept<Sig>>(std::forward<F>(function))
+		template<typename F>
+		Callback(F&& function) noexcept(noexcept(CallbackImpl<function_signature_rm_const_noexcept_t<Sig>,
+												 function_signature_is_const<Sig>,
+												 function_signature_is_noexcept<Sig>>(std::move(function)))) :
+			CallbackImpl<function_signature_rm_const_noexcept_t<Sig>,
+			function_signature_is_const<Sig>,
+			function_signature_is_noexcept<Sig>>(std::move(function))
 		{
 			static_assert(!std::is_base_of_v<CallbackImplBase, F>,
 						  "Attempt to pass in Callback object which is not allowed.");
 
 			if constexpr (std::is_pointer_v<F>)
 			{
-				// For function pointers
 				static_assert(std::is_same_v<Sig, function_signature_t<std::decay_t<F>>>,
 							  "Function parameter does not have the expected signature.");
 			}
 			else
 			{
-				// For lambdas and other objects overloading operator()
-				using objtype = typename std::decay_t<F>;
-				using funcsig = function_signature_t<decltype(&objtype::operator())>;
-				static_assert(std::is_same_v<Sig, funcsig>,
-							  "Function parameter does not have the expected signature.");
+				static_assert(CheckCallableObjectSignature<Sig, F>(), "error");
 			}
 		}
 
 		template<typename T, typename F>
-		Callback(T* object, F&& member_function) noexcept :
-			CallbackImpl<function_signature_rm_noexcept_t<Sig>,
-			function_signature_is_noexcept<Sig>>(object, std::forward<F>(member_function))
+		Callback(T* object, F member_function_ptr) noexcept :
+			CallbackImpl<function_signature_rm_const_noexcept_t<Sig>,
+			function_signature_is_const<Sig>,
+			function_signature_is_noexcept<Sig>>(object, member_function_ptr)
 		{
 			static_assert(std::is_same_v<Sig, function_signature_t<std::decay_t<F>>>,
 						  "Function parameter does not have the expected signature.");
@@ -223,13 +252,21 @@ namespace QuantumGate::Implementation
 		Callback(Callback&& other) noexcept = default;
 		Callback& operator=(const Callback&) = delete;
 		Callback& operator=(Callback&& other) noexcept = default;
-	};
 
-	template<typename T, typename F>
-	inline auto MakeCallback(T* object, F&& member_function) noexcept
-	{
-		return Callback<function_signature_t<F>>(object, std::forward<F>(member_function));
-	}
+	private:
+		template<typename Sig, typename F>
+		static constexpr bool CheckCallableObjectSignature()
+		{
+			using objtype = typename std::decay_t<F>;
+			using member_funcsig = make_member_function_pointer_t<objtype, Sig>;
+			constexpr member_funcsig fn = &objtype::operator();
+			//using funcsig = function_signature_t<decltype(fn)>;
+			//static_assert(std::is_same_v<Sig, funcsig>,
+			//			  "Function parameter does not have the expected signature.");
+
+			return true;
+		}
+	};
 
 	template<typename F>
 	inline auto MakeCallback(F&& function) noexcept(std::is_pointer_v<F>)
@@ -237,14 +274,20 @@ namespace QuantumGate::Implementation
 		if constexpr (std::is_pointer_v<F>)
 		{
 			// For function pointers
-			return Callback<function_signature_t<F>>(std::forward<F>(function));
+			return Callback<function_signature_t<F>>(std::move(function));
 		}
 		else
 		{
 			// For lambdas and other objects overloading operator()
 			using objtype = typename std::decay_t<F>;
 			using funcsig = function_signature_t<decltype(&objtype::operator())>;
-			return Callback<funcsig>(std::forward<F>(function));
+			return Callback<funcsig>(std::move(function));
 		}
+	}
+
+	template<typename T, typename F>
+	inline auto MakeCallback(T* object, F member_function_ptr) noexcept
+	{
+		return Callback<function_signature_t<F>>(object, member_function_ptr);
 	}
 }

@@ -28,6 +28,14 @@ namespace QuantumGate::Implementation
 		DispatcherBase& operator=(const DispatcherBase&) = delete;
 		DispatcherBase& operator=(DispatcherBase&&) = default;
 
+		ForceInline void operator()(Args... args) noexcept(NoExcept)
+		{
+			for (auto& function : m_Functions)
+			{
+				function(std::forward<Args>(args)...);
+			}
+		}
+
 		ForceInline void operator()(Args... args) const noexcept(NoExcept)
 		{
 			for (const auto& function : m_Functions)
@@ -76,7 +84,7 @@ namespace QuantumGate::Implementation
 	};
 
 	template<typename Sig>
-	class Dispatcher : public DispatcherBase<function_signature_rm_noexcept_t<Sig>,
+	class Dispatcher : public DispatcherBase<function_signature_rm_const_noexcept_t<Sig>,
 											function_signature_is_noexcept<Sig>>
 	{};
 }

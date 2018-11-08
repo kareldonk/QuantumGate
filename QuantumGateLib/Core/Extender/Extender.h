@@ -159,12 +159,12 @@ namespace QuantumGate::Implementation::Core::Extender
 		const ExtenderUUID m_UUID;
 		const String m_Name{ L"Unknown" };
 
-		ExtenderStartupCallback m_StartupCallback{ []() -> const bool { return true; } };
-		ExtenderPostStartupCallback m_PostStartupCallback{ [] {} };
-		ExtenderPreShutdownCallback m_PreShutdownCallback{ [] {} };
-		ExtenderShutdownCallback m_ShutdownCallback{ [] {} };
-		ExtenderPeerEventCallback m_PeerEventCallback{ [](QuantumGate::API::PeerEvent&&) {} };
+		ExtenderStartupCallback m_StartupCallback{ []() mutable -> const bool { return true; } };
+		ExtenderPostStartupCallback m_PostStartupCallback{ []() mutable {} };
+		ExtenderPreShutdownCallback m_PreShutdownCallback{ []() mutable {} };
+		ExtenderShutdownCallback m_ShutdownCallback{ []() mutable {} };
+		ExtenderPeerEventCallback m_PeerEventCallback{ [](QuantumGate::API::PeerEvent&&) mutable {} };
 		ExtenderPeerMessageCallback m_PeerMessageCallback
-		{ [](QuantumGate::API::PeerEvent&&) -> const std::pair<bool, bool> { return std::make_pair(false, false); } };
+		{ [](QuantumGate::API::PeerEvent&&) mutable -> const std::pair<bool, bool> { return std::make_pair(false, false); } };
 	};
 }

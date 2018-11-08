@@ -100,7 +100,7 @@ void Benchmarks::BenchmarkCallbacks()
 
 	LogWarn(L"Callback size: %d bytes / std::function size: %d bytes", sizeof(dg1), sizeof(fu1));
 
-	auto dg2 = Callback<int(int)>([&](int ab) -> int {
+	auto dg2 = Callback<int(int)>([&](int ab) mutable -> int {
 		return TestFunction(ab);
 	});
 	DoBenchmark(std::wstring(L"Callback lambda function"), maxtr, [&]()
@@ -147,7 +147,7 @@ void Benchmarks::BenchmarkCallbacks()
 
 	DoBenchmark(std::wstring(L"Callback lambda function (create and execute)"), maxtr, [&]()
 	{
-		auto dg5 = Callback<int(int)>([&](int ab) -> int {
+		auto dg5 = Callback<int(int)>([&](int ab) mutable -> int {
 			return TestFunction(ab);
 		});
 		dg5(10);

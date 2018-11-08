@@ -108,9 +108,9 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		RelayDataQueue m_ReceiveQueue;
 
-		ConnectingCallback m_ConnectingCallback{ []() noexcept {} };
-		AcceptCallback m_AcceptCallback{ []() noexcept {} };
-		ConnectCallback m_ConnectCallback{ []() noexcept -> const bool { return true; } };
-		CloseCallback m_CloseCallback{ []() noexcept {} };
+		ConnectingCallback m_ConnectingCallback{ []() mutable noexcept {} };
+		AcceptCallback m_AcceptCallback{ []() mutable noexcept {} };
+		ConnectCallback m_ConnectCallback{ []() mutable noexcept -> const bool { return true; } };
+		CloseCallback m_CloseCallback{ []() mutable noexcept {} };
 	};
 }
