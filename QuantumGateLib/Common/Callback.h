@@ -230,8 +230,7 @@ namespace QuantumGate::Implementation
 												 function_signature_is_const<Sig>,
 												 function_signature_is_noexcept<Sig>>(std::move(function)))) :
 			CallbackImpl<function_signature_rm_const_noexcept_t<Sig>,
-			function_signature_is_const<Sig>,
-			function_signature_is_noexcept<Sig>>(std::move(function))
+			function_signature_is_const<Sig>, function_signature_is_noexcept<Sig>>(std::move(function))
 		{
 			static_assert(!std::is_base_of_v<CallbackImplBase, F>,
 						  "Attempt to pass in Callback object which is not allowed.");
@@ -239,22 +238,26 @@ namespace QuantumGate::Implementation
 			if constexpr (std::is_pointer_v<F>)
 			{
 				static_assert(std::is_same_v<Sig, function_signature_t<std::decay_t<F>>>,
-							  "Function parameter does not have the expected signature.");
+							  "Function parameter does not have the expected signature. "
+							  "Remember to check for matching const and noexcept specifiers.");
 			}
 			else
 			{
-				static_assert(CheckCallableObjectSignature<Sig, F>(), "error");
+				static_assert(CheckFunctionCallOperatorSignature<Sig, F>(),
+							  "Function parameter does not have an operator() overload with the expected signature. "
+							  "Remember to check for matching const and noexcept specifiers. Lambda functions need "
+							  "to be defined as mutable if the function signature does not have the const specifier.");
 			}
 		}
 
 		template<typename T, typename F>
 		Callback(T* object, F member_function_ptr) noexcept :
 			CallbackImpl<function_signature_rm_const_noexcept_t<Sig>,
-			function_signature_is_const<Sig>,
-			function_signature_is_noexcept<Sig>>(object, member_function_ptr)
+			function_signature_is_const<Sig>, function_signature_is_noexcept<Sig>>(object, member_function_ptr)
 		{
 			static_assert(std::is_same_v<Sig, function_signature_t<std::decay_t<F>>>,
-						  "Function parameter does not have the expected signature.");
+						  "Function parameter does not have the expected signature. "
+						  "Remember to check for matching const and noexcept specifiers.");
 		}
 
 		~Callback() = default;
@@ -262,21 +265,6 @@ namespace QuantumGate::Implementation
 		Callback(Callback&& other) noexcept = default;
 		Callback& operator=(const Callback&) = delete;
 		Callback& operator=(Callback&& other) noexcept = default;
-
-	private:
-		template<typename Sig, typename F>
-		static constexpr bool CheckCallableObjectSignature()
-		{
-			using objtype = typename std::decay_t<F>;
-			using member_funcsig = make_member_function_pointer_t<objtype, Sig>;
-
-			// This will fail if there is a signature mismatch
-			// especially when it comes to the const-ness. Lambda
-			// functions with non-const signatures must be declared mutable.
-			constexpr member_funcsig fn = &objtype::operator();
-
-			return true;
-		}
 	};
 
 	template<typename F>

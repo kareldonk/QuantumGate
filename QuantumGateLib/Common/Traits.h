@@ -280,4 +280,29 @@ namespace QuantumGate::Implementation
 		template<typename T>
 		static constexpr bool function_signature_is_const = function_signature<T>::is_const;
 	}
+
+	// has_function_call_operator
+	namespace
+	{
+		template<typename F, F Func>
+		struct function_call_operator_t {};
+
+		template<typename V, typename O, typename F>
+		struct has_function_call_operator_t : std::false_type {};
+
+		template<typename O, typename F>
+		struct has_function_call_operator_t<std::void_t<function_call_operator_t<F, &O::operator()>>, O, F> : std::true_type {};
+
+		template<typename O, typename F>
+		static constexpr bool has_function_call_operator = has_function_call_operator_t<void, O, F>::value;
+
+		template<typename Sig, typename O>
+		static constexpr bool CheckFunctionCallOperatorSignature()
+		{
+			using objtype = typename std::decay_t<O>;
+			using member_funcsig = make_member_function_pointer_t<objtype, Sig>;
+
+			return has_function_call_operator<objtype, member_funcsig>;
+		}
+	}
 }
