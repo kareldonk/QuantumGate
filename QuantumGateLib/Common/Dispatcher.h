@@ -8,27 +8,26 @@
 
 namespace QuantumGate::Implementation
 {
-	template<typename T, bool NoExcept = false>
-	class DispatcherBase;
-
-	template<typename Ret, typename... Args, bool NoExcept>
-	class DispatcherBase<Ret(Args...), NoExcept>
+	template<typename Sig>
+	class Dispatcher
 	{
 	public:
-		using FunctionType = std::conditional_t<NoExcept, Callback<Ret(Args...) noexcept>, Callback<Ret(Args...)>>;
+		using FunctionType = Callback<Sig>;
 	private:
 		using FunctionList = std::list<FunctionType>;
 	public:
 		using FunctionHandle = std::optional<typename FunctionList::const_iterator>;
 
-		DispatcherBase() = default;
-		DispatcherBase(const DispatcherBase&) = delete;
-		DispatcherBase(DispatcherBase&&) = default;
-		virtual ~DispatcherBase() = default;
-		DispatcherBase& operator=(const DispatcherBase&) = delete;
-		DispatcherBase& operator=(DispatcherBase&&) = default;
+		Dispatcher() = default;
+		Dispatcher(const Dispatcher&) = delete;
+		Dispatcher(Dispatcher&&) = default;
+		virtual ~Dispatcher() = default;
+		Dispatcher& operator=(const Dispatcher&) = delete;
+		Dispatcher& operator=(Dispatcher&&) = default;
 
-		ForceInline void operator()(Args... args) noexcept(NoExcept)
+		template<typename... Args, typename Sig2 = Sig,
+			typename = std::enable_if_t<!FunctionSignatureIsConstV<Sig2>>>
+		ForceInline void operator()(Args... args) noexcept(FunctionSignatureIsNoexceptV<Sig2>)
 		{
 			for (auto& function : m_Functions)
 			{
@@ -36,7 +35,9 @@ namespace QuantumGate::Implementation
 			}
 		}
 
-		ForceInline void operator()(Args... args) const noexcept(NoExcept)
+		template<typename... Args, typename Sig2 = Sig,
+			typename = std::enable_if_t<FunctionSignatureIsConstV<Sig2>>>
+		ForceInline void operator()(Args... args) const noexcept(FunctionSignatureIsNoexceptV<Sig2>)
 		{
 			for (const auto& function : m_Functions)
 			{
@@ -82,9 +83,4 @@ namespace QuantumGate::Implementation
 	private:
 		std::list<FunctionType> m_Functions;
 	};
-
-	template<typename Sig>
-	class Dispatcher : public DispatcherBase<function_signature_rm_const_noexcept_t<Sig>,
-											function_signature_is_noexcept<Sig>>
-	{};
 }
