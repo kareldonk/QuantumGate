@@ -131,7 +131,7 @@ namespace QuantumGate::Implementation::Concurrency
 			inline void Reset() noexcept(noexcept(m_Lock.owns_lock()) &&
 										 noexcept(m_Lock.unlock()))
 			{
-				m_ThS = nullptr; 
+				m_ThS = nullptr;
 				if (m_Lock.owns_lock()) m_Lock.unlock();
 			}
 
@@ -149,7 +149,7 @@ namespace QuantumGate::Implementation::Concurrency
 										std::is_nothrow_default_constructible_v<M>) {}
 
 		template<typename... Args,
-			typename = std::enable_if_t<!are_same<ThreadSafe<T, M>, Args...>::value>>
+			typename = std::enable_if_t<!AreSameV<ThreadSafe<T, M>, std::decay_t<Args>...>>>
 		constexpr ThreadSafe(Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...> &&
 													  std::is_nothrow_constructible_v<M>) :
 			m_Data(std::forward<Args>(args)...) {}
@@ -169,7 +169,7 @@ namespace QuantumGate::Implementation::Concurrency
 		{
 			return { this };
 		}
-		
+
 		template<typename F>
 		inline auto WithUniqueLock(F&& function) noexcept(noexcept(function(*WithUniqueLock())))
 		{
@@ -246,7 +246,7 @@ namespace QuantumGate::Implementation::Concurrency
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::lock_shared)>>>
 		inline SharedLockedConstType WithSharedLock() const noexcept(std::is_nothrow_constructible_v<SharedLockedConstType, ThreadSafe>)
 		{
-			return { this }; 
+			return { this };
 		}
 
 		template<typename F, typename M2 = M,

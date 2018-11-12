@@ -477,5 +477,14 @@ namespace UnitTests
 				Assert::AreEqual(true, testmaul->Value1 == 669933);
 			}
 		}
+
+		TEST_METHOD(ShouldNotCompile)
+		{
+			ThreadSafe<TestType, std::shared_mutex> test(111);
+
+			// Following line should fail to compile because constructor
+			// is disabled for same type
+			//ThreadSafe<TestType, std::shared_mutex> test2(test);
+		}
 	};
 }

@@ -5,304 +5,301 @@
 
 namespace QuantumGate::Implementation
 {
-	// are_same
+	// AreSame
 	namespace
 	{
-		template<typename T, typename T2, typename... Tn>
-		struct are_same
+		template<typename T, typename... Ts>
+		struct AreSame
 		{
-			static constexpr bool value = are_same<T, T2>::value && are_same<T, Tn...>::value;
+			static constexpr bool Value = std::conjunction_v<std::is_same<T, Ts>...>;
 		};
 
-		template<typename T, typename T2>
-		struct are_same<T, T2>
-		{
-			static constexpr bool value = std::is_same<T, std::decay_t<T2>>::value;
-		};
+		template<typename T, typename... Ts>
+		static constexpr bool AreSameV = AreSame<T, Ts...>::Value;
 	}
 
-	// detected
+	// IsDetected
 	namespace
 	{
 		template<typename V, template<typename...> typename D, typename... T>
-		struct detected_t : std::false_type {};
+		struct IsDetected : std::false_type {};
 
 		template<template<typename...> typename D, typename... T>
-		struct detected_t<std::void_t<D<T...>>, D, T...> : std::true_type {};
+		struct IsDetected<std::void_t<D<T...>>, D, T...> : std::true_type {};
 
 		template <template<typename...> typename D, typename... T>
-		static constexpr bool is_detected = detected_t<void, D, T...>::value;
+		static constexpr bool IsDetectedV = IsDetected<void, D, T...>::value;
 	}
 
-	// function_signature_rm_const_noexcept
+	// FunctionSignatureRemoveConstNoexcept
 	namespace
 	{
 		template<typename T>
-		struct function_signature_rm_const_noexcept;
+		struct FunctionSignatureRemoveConstNoexcept;
 
 		template<typename R, typename... Args>
-		struct function_signature_rm_const_noexcept<R(Args...)>
+		struct FunctionSignatureRemoveConstNoexcept<R(Args...)>
 		{
-			using type = R(Args...);
+			using Type = R(Args...);
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature_rm_const_noexcept<R(Args...) noexcept>
+		struct FunctionSignatureRemoveConstNoexcept<R(Args...) noexcept>
 		{
-			using type = R(Args...);
+			using Type = R(Args...);
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature_rm_const_noexcept<R(Args...) const>
+		struct FunctionSignatureRemoveConstNoexcept<R(Args...) const>
 		{
-			using type = R(Args...);
+			using Type = R(Args...);
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature_rm_const_noexcept<R(Args...) const noexcept>
+		struct FunctionSignatureRemoveConstNoexcept<R(Args...) const noexcept>
 		{
-			using type = R(Args...);
+			using Type = R(Args...);
 		};
 
 		template<typename T>
-		using function_signature_rm_const_noexcept_t = typename function_signature_rm_const_noexcept<T>::type;
+		using FunctionSignatureRemoveConstNoexceptT = typename FunctionSignatureRemoveConstNoexcept<T>::Type;
 	}
 
-	// function_signature_add_const
+	// FunctionSignatureAddConst
 	namespace
 	{
 		template<typename T>
-		struct function_signature_add_const;
+		struct FunctionSignatureAddConst;
 
 		template<typename R, typename... Args>
-		struct function_signature_add_const<R(Args...)>
+		struct FunctionSignatureAddConst<R(Args...)>
 		{
-			using type = R(Args...) const;
+			using Type = R(Args...) const;
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature_add_const<R(Args...) const>
+		struct FunctionSignatureAddConst<R(Args...) const>
 		{
-			using type = R(Args...) const;
+			using Type = R(Args...) const;
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature_add_const<R(Args...) noexcept>
+		struct FunctionSignatureAddConst<R(Args...) noexcept>
 		{
-			using type = R(Args...) const noexcept;
+			using Type = R(Args...) const noexcept;
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature_add_const<R(Args...) const noexcept>
+		struct FunctionSignatureAddConst<R(Args...) const noexcept>
 		{
-			using type = R(Args...) const noexcept;
+			using Type = R(Args...) const noexcept;
 		};
 
 		template<typename T>
-		using function_signature_add_const_t = typename function_signature_add_const<T>::type;
+		using FunctionSignatureAddConstT = typename FunctionSignatureAddConst<T>::Type;
 	}
 
-	// function_signature_add_noexcept
+	// FunctionSignatureAddNoexcept
 	namespace
 	{
 		template<typename T>
-		struct function_signature_add_noexcept;
+		struct FunctionSignatureAddNoexcept;
 
 		template<typename R, typename... Args>
-		struct function_signature_add_noexcept<R(Args...)>
+		struct FunctionSignatureAddNoexcept<R(Args...)>
 		{
-			using type = R(Args...) noexcept;
+			using Type = R(Args...) noexcept;
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature_add_noexcept<R(Args...) const>
+		struct FunctionSignatureAddNoexcept<R(Args...) const>
 		{
-			using type = R(Args...) const noexcept;
+			using Type = R(Args...) const noexcept;
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature_add_noexcept<R(Args...) noexcept>
+		struct FunctionSignatureAddNoexcept<R(Args...) noexcept>
 		{
-			using type = R(Args...) noexcept;
+			using Type = R(Args...) noexcept;
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature_add_noexcept<R(Args...) const noexcept>
+		struct FunctionSignatureAddNoexcept<R(Args...) const noexcept>
 		{
-			using type = R(Args...) const noexcept;
+			using Type = R(Args...) const noexcept;
 		};
 
 		template<typename T>
-		using function_signature_add_noexcept_t = typename function_signature_add_noexcept<T>::type;
+		using FunctionSignatureAddNoexceptT = typename FunctionSignatureAddNoexcept<T>::Type;
 	}
 
-	// make_member_function_pointer
+	// MakeMemberFunctionPointer
 	namespace
 	{
 		template<typename T, typename F>
-		struct make_member_function_pointer;
+		struct MakeMemberFunctionPointer;
 
 		template<typename T, typename R, typename... Args>
-		struct make_member_function_pointer<T, R(Args...)>
+		struct MakeMemberFunctionPointer<T, R(Args...)>
 		{
-			using type = R(T::*)(Args...);
+			using Type = R(T::*)(Args...);
 		};
 
 		template<typename T, typename R, typename... Args>
-		struct make_member_function_pointer<T, R(Args...) const>
+		struct MakeMemberFunctionPointer<T, R(Args...) const>
 		{
-			using type = R(T::*)(Args...) const;
+			using Type = R(T::*)(Args...) const;
 		};
 
 		template<typename T, typename R, typename... Args>
-		struct make_member_function_pointer<T, R(Args...) noexcept>
+		struct MakeMemberFunctionPointer<T, R(Args...) noexcept>
 		{
-			using type = R(T::*)(Args...) noexcept;
+			using Type = R(T::*)(Args...) noexcept;
 		};
 
 		template<typename T, typename R, typename... Args>
-		struct make_member_function_pointer<T, R(Args...) const noexcept>
+		struct MakeMemberFunctionPointer<T, R(Args...) const noexcept>
 		{
-			using type = R(T::*)(Args...) const noexcept;
+			using Type = R(T::*)(Args...) const noexcept;
 		};
 
 		template<typename T, typename F>
-		using make_member_function_pointer_t = typename make_member_function_pointer<T, F>::type;
+		using MakeMemberFunctionPointerT = typename MakeMemberFunctionPointer<T, F>::Type;
 	}
 
-	// function_signature
+	// FunctionSignature
 	namespace
 	{
 		template<typename T, bool Const, bool NoExcept>
-		struct function_signature_base;
+		struct FunctionSignatureBase;
 
 		template<typename R, typename... Args, bool Const, bool NoExcept>
-		struct function_signature_base<R(Args...), Const, NoExcept>
+		struct FunctionSignatureBase<R(Args...), Const, NoExcept>
 		{
-			using return_type = R;
-			static constexpr bool is_const = Const;
-			static constexpr bool is_noexcept = NoExcept;
+			using ReturnType = R;
+			static constexpr bool IsConst = Const;
+			static constexpr bool IsNoexcept = NoExcept;
 
 			// With help from https://functionalcpp.wordpress.com/2013/08/05/function-traits/
-			static constexpr std::size_t arity = sizeof...(Args);
-			static constexpr bool has_arguments = (arity > 0);
+			static constexpr std::size_t Arity = sizeof...(Args);
+			static constexpr bool HasArguments = (Arity > 0);
 
 			template<std::size_t N>
-			struct argument
+			struct Argument
 			{
-				static_assert(N < arity, "Invalid argument index");
-				using type = typename std::tuple_element<N, std::tuple<Args...>>::type;
+				static_assert(N < Arity, "Invalid argument index");
+				using Type = typename std::tuple_element<N, std::tuple<Args...>>::type;
 			};
 		};
 
 		template<typename T>
-		struct function_signature;
+		struct FunctionSignature;
 
 		template<typename R, typename... Args>
-		struct function_signature<R(*)(Args...)> :
-			public function_signature_base<R(Args...), false, false>
+		struct FunctionSignature<R(*)(Args...)> :
+			public FunctionSignatureBase<R(Args...), false, false>
 		{
-			using type = R(Args...);
+			using Type = R(Args...);
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature<R(*)(Args...) noexcept> :
-			public function_signature_base<R(Args...), false, true>
+		struct FunctionSignature<R(*)(Args...) noexcept> :
+			public FunctionSignatureBase<R(Args...), false, true>
 		{
-			using type = R(Args...) noexcept;
+			using Type = R(Args...) noexcept;
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature<R(Args...)> :
-			public function_signature_base<R(Args...), false, false>
+		struct FunctionSignature<R(Args...)> :
+			public FunctionSignatureBase<R(Args...), false, false>
 		{
-			using type = R(Args...);
+			using Type = R(Args...);
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature<R(Args...) noexcept> :
-			public function_signature_base<R(Args...), false, true>
+		struct FunctionSignature<R(Args...) noexcept> :
+			public FunctionSignatureBase<R(Args...), false, true>
 		{
-			using type = R(Args...) noexcept;
+			using Type = R(Args...) noexcept;
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature<R(Args...) const> :
-			public function_signature_base<R(Args...), true, false>
+		struct FunctionSignature<R(Args...) const> :
+			public FunctionSignatureBase<R(Args...), true, false>
 		{
-			using type = R(Args...) const;
+			using Type = R(Args...) const;
 		};
 
 		template<typename R, typename... Args>
-		struct function_signature<R(Args...) const noexcept> :
-			public function_signature_base<R(Args...), true, true>
+		struct FunctionSignature<R(Args...) const noexcept> :
+			public FunctionSignatureBase<R(Args...), true, true>
 		{
-			using type = R(Args...) const noexcept;
+			using Type = R(Args...) const noexcept;
 		};
 
 		template<typename R, typename T, typename... Args>
-		struct function_signature<R(T::*)(Args...)> :
-			public function_signature_base<R(Args...), false, false>
+		struct FunctionSignature<R(T::*)(Args...)> :
+			public FunctionSignatureBase<R(Args...), false, false>
 		{
-			using type = R(Args...);
+			using Type = R(Args...);
 		};
 
 		template<typename R, typename T, typename... Args>
-		struct function_signature<R(T::*)(Args...) const> :
-			public function_signature_base<R(Args...), true, false>
+		struct FunctionSignature<R(T::*)(Args...) const> :
+			public FunctionSignatureBase<R(Args...), true, false>
 		{
-			using type = R(Args...) const;
+			using Type = R(Args...) const;
 		};
 
 		template<typename R, typename T, typename... Args>
-		struct function_signature<R(T::*)(Args...) noexcept> :
-			public function_signature_base<R(Args...), false, true>
+		struct FunctionSignature<R(T::*)(Args...) noexcept> :
+			public FunctionSignatureBase<R(Args...), false, true>
 		{
-			using type = R(Args...) noexcept;
+			using Type = R(Args...) noexcept;
 		};
 
 		template<typename R, typename T, typename... Args>
-		struct function_signature<R(T::*)(Args...) const noexcept> :
-			public function_signature_base<R(Args...), true, true>
+		struct FunctionSignature<R(T::*)(Args...) const noexcept> :
+			public FunctionSignatureBase<R(Args...), true, true>
 		{
-			using type = R(Args...) const noexcept;
+			using Type = R(Args...) const noexcept;
 		};
 
 		template<typename T>
-		using function_signature_t = typename function_signature<T>::type;
+		using FunctionSignatureT = typename FunctionSignature<T>::Type;
 
 		template<typename T>
-		using function_signature_rt = typename function_signature<T>::return_type;
+		using FunctionSignatureRT = typename FunctionSignature<T>::ReturnType;
 
 		template<typename T>
-		static constexpr bool function_signature_is_noexcept = function_signature<T>::is_noexcept;
+		static constexpr bool FunctionSignatureIsNoexceptV = FunctionSignature<T>::IsNoexcept;
 
 		template<typename T>
-		static constexpr bool function_signature_is_const = function_signature<T>::is_const;
+		static constexpr bool FunctionSignatureIsConstV = FunctionSignature<T>::IsConst;
 	}
 
-	// has_function_call_operator
+	// HasFunctionCallOperator
 	namespace
 	{
 		template<typename F, F Func>
-		struct function_call_operator_t {};
+		struct FunctionCallOperatorTest {};
 
 		template<typename V, typename O, typename F>
-		struct has_function_call_operator_t : std::false_type {};
+		struct HasFunctionCallOperator : std::false_type {};
 
 		template<typename O, typename F>
-		struct has_function_call_operator_t<std::void_t<function_call_operator_t<F, &O::operator()>>, O, F> : std::true_type {};
+		struct HasFunctionCallOperator<std::void_t<FunctionCallOperatorTest<F, &O::operator()>>, O, F> : std::true_type {};
 
 		template<typename O, typename F>
-		static constexpr bool has_function_call_operator = has_function_call_operator_t<void, O, F>::value;
+		static constexpr bool HasFunctionCallOperatorV = HasFunctionCallOperator<void, O, F>::value;
 
 		template<typename Sig, typename O>
 		static constexpr bool CheckFunctionCallOperatorSignature()
 		{
 			using objtype = typename std::decay_t<O>;
-			using member_funcsig = make_member_function_pointer_t<objtype, Sig>;
+			using member_funcsig = MakeMemberFunctionPointerT<objtype, Sig>;
 
-			return has_function_call_operator<objtype, member_funcsig>;
+			return HasFunctionCallOperatorV<objtype, member_funcsig>;
 		}
 	}
 }
