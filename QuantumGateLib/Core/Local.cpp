@@ -37,6 +37,12 @@ namespace QuantumGate::Implementation::Core
 			}
 		}
 
+		// TODO: Maybe improve this
+		m_LocalEnvironment.WithUniqueLock([](auto& local_env)
+		{
+			if (local_env.IsInitialized()) local_env.Deinitialize();
+		});
+
 		// Deinit Winsock
 		WSACleanup();
 	}
