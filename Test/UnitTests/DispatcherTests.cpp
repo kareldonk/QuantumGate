@@ -14,10 +14,31 @@ int DispatcherTestFunction(int n) noexcept
 	else return 1;
 }
 
+int m_TestVarConst{ 0 };
+int m_TestVarNoexcept{ 0 };
+
+int DispatcherFreeTestFunctionNoexcept(int n) noexcept
+{
+	m_TestVarNoexcept = DispatcherTestFunction(n);
+	return m_TestVarNoexcept;
+}
+
 class DispatcherTestClass
 {
 public:
 	int MemberTestFunction(int n)
+	{
+		m_TestVar = DispatcherTestFunction(n);
+		return m_TestVar;
+	}
+
+	int MemberTestFunctionConst(int n) const
+	{
+		m_TestVarConst = DispatcherTestFunction(n);
+		return m_TestVarConst;
+	}
+
+	int MemberTestFunctionNoexcept(int n) noexcept
 	{
 		m_TestVar = DispatcherTestFunction(n);
 		return m_TestVar;
@@ -109,6 +130,42 @@ namespace UnitTests
 
 			// Should be empty
 			Assert::AreEqual(false, disp.operator bool());
+		}
+
+		TEST_METHOD(ConstSignature)
+		{
+			Dispatcher<int(int) const> disp;
+
+			DispatcherTestClass t;
+			auto cb = Callback<int(int) const>(&t, &DispatcherTestClass::MemberTestFunctionConst);
+
+			auto hn = disp.Add(std::move(cb));
+
+			m_TestVarConst = 0;
+
+			disp(10);
+
+			// Callback should have been executed
+			Assert::AreEqual(3628800, m_TestVarConst);
+		}
+
+		TEST_METHOD(NoexceptSignature)
+		{
+			Dispatcher<int(int) noexcept> disp;
+
+			DispatcherTestClass t;
+			auto cb = Callback<int(int) noexcept>(&t, &DispatcherTestClass::MemberTestFunctionNoexcept);
+
+			auto hn1 = disp.Add(std::move(cb));
+			auto hn2 = disp.Add(MakeCallback(&DispatcherFreeTestFunctionNoexcept));
+
+			m_TestVarNoexcept = 0;
+
+			disp(10);
+
+			// Callbacks should have been executed
+			Assert::AreEqual(3628800, t.m_TestVar);
+			Assert::AreEqual(3628800, m_TestVarNoexcept);
 		}
 	};
 }
