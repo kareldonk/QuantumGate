@@ -10,10 +10,10 @@ namespace QuantumGate::Implementation::Core
 {
 	namespace Events
 	{
-		struct LocalEnvironmentChange
+		struct LocalEnvironmentChange final
 		{};
 
-		struct UnhandledExtenderException
+		struct UnhandledExtenderException final
 		{
 			ExtenderUUID UUID;
 		};

@@ -32,55 +32,65 @@ namespace QuantumGate::Implementation::Core
 
 	class PublicIPEndpoints final
 	{
-		struct HopVerification final
+		struct HopVerificationDetails final
 		{
 			BinaryIPAddress IPAddress;
+
+			[[nodiscard]] const bool Verify(const bool has_locally_bound_ip) noexcept;
 
 			static constexpr std::chrono::seconds TimeoutPeriod{ 2 };
 			static constexpr UInt8 MaxHops{ 2 };
 			static constexpr std::chrono::milliseconds MaxRTT{ 2 };
 
-			static_assert(HopVerification::TimeoutPeriod > HopVerification::MaxRTT, "TimeoutPeriod should be larger than MaxRTT");
+			static_assert(HopVerificationDetails::TimeoutPeriod > HopVerificationDetails::MaxRTT, "TimeoutPeriod should be larger than MaxRTT");
 		};
 
-		using HopVerificationQueue = Concurrency::Queue<HopVerification>;
+		using HopVerificationQueue = Concurrency::Queue<HopVerificationDetails>;
 
-		struct HopVerificationData final
+		struct HopVerification final
 		{
 			std::unordered_set<BinaryIPAddress> Set;
 			HopVerificationQueue Queue;
+
+			inline void Clear() noexcept
+			{
+				Set.clear();
+				Queue.Clear();
+			}
 		};
 
-		using HopVerificationData_ThS = Concurrency::ThreadSafe<HopVerificationData, std::shared_mutex>;
+		using HopVerification_ThS = Concurrency::ThreadSafe<HopVerification, std::shared_mutex>;
+
+		struct DataVerificationDetails final
+		{
+			BinaryIPAddress IPAddress;
+			UInt64 ExpectedData{ 0 };
+			Network::Socket Socket;
+
+			[[nodiscard]] const bool Verify(const bool nat_traversal) noexcept;
+
+			[[nodiscard]] const bool InitializeSocket(const bool nat_traversal) noexcept;
+			[[nodiscard]] const bool SendVerification() noexcept;
+			[[nodiscard]] Result<bool> ReceiveVerification() noexcept;
+
+			static constexpr std::chrono::seconds TimeoutPeriod{ 30 };
+		};
+
+		using DataVerificationQueue = Concurrency::Queue<DataVerificationDetails>;
 
 		struct DataVerification final
 		{
-			enum class Status
+			std::unordered_set<BinaryIPAddress> Set;
+			DataVerificationQueue Queue;
+
+			inline void Clear() noexcept
 			{
-				Registered,
-				VerificationSent
-			};
-
-			Status Status{ Status::Registered };
-			BinaryIPAddress IPAddress;
-			SteadyTime LastUpdateSteadyTime;
-			UInt8 NumVerificationTries{ 0 };
-
-			static constexpr std::chrono::seconds TimeoutPeriod{ 30 };
-			static constexpr UInt8 MaxVerificationTries{ 3 };
+				Set.clear();
+				Queue.Clear();
+			}
 		};
 
-		using DataVerificationMap = std::unordered_map<UInt64, DataVerification>;
-		using DataVerificationMap_ThS = Concurrency::ThreadSafe<DataVerificationMap, std::shared_mutex>;
-
-		struct DataVerificationSockets final
-		{
-			using Socket_ThS = Concurrency::ThreadSafe<Network::Socket, std::shared_mutex>;
-
-			Socket_ThS IPv4UDPSocket;
-			Socket_ThS IPv6UDPSocket;
-			std::atomic<UInt16> Port{ 0 };
-		};
+		using DataVerification_ThS = Concurrency::ThreadSafe<DataVerification, std::shared_mutex>;
 
 		using IPEndpointsMap = std::unordered_map<BinaryIPAddress, PublicIPEndpointDetails>;
 		using IPEndpointsMap_ThS = Concurrency::ThreadSafe<IPEndpointsMap, std::shared_mutex>;
@@ -118,15 +128,10 @@ namespace QuantumGate::Implementation::Core
 		const bool HasLocallyBoundPublicIPAddress() const noexcept { return m_HasLocallyBoundPublicIPAddress; }
 
 	private:
-		[[nodiscard]] const bool InitializeDataVerificationSockets() noexcept;
-		void DeinitializeDataVerificationSockets() noexcept;
-
 		void PreInitialize() noexcept;
 		void ResetState() noexcept;
 
 		[[nodiscard]] const bool AddIPAddressDataVerification(const BinaryIPAddress& ip) noexcept;
-		[[nodiscard]] const bool SendIPAddressVerification(const UInt64 num, DataVerification& ip_verification) noexcept;
-
 		[[nodiscard]] const bool AddIPAddressHopVerification(const BinaryIPAddress& ip) noexcept;
 
 		[[nodiscard]] const bool IsNewReportingNetwork(const BinaryIPAddress& network) const noexcept;
@@ -152,10 +157,8 @@ namespace QuantumGate::Implementation::Core
 
 		const Settings_CThS& m_Settings;
 
-		DataVerificationMap_ThS m_DataVerification;
-		DataVerificationSockets m_DataVerificationSockets;
-
-		HopVerificationData_ThS m_HopVerification;
+		DataVerification_ThS m_DataVerification;
+		HopVerification_ThS m_HopVerification;
 
 		IPEndpointsMap_ThS m_IPEndpoints;
 		ReportingNetworkMap m_ReportingNetworks;

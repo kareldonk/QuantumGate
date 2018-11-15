@@ -13,23 +13,237 @@ using namespace QuantumGate::Implementation::Network;
 
 namespace QuantumGate::Implementation::Core
 {
+	const bool PublicIPEndpoints::HopVerificationDetails::Verify(const bool has_locally_bound_ip) noexcept
+	{
+		// We ping the IP address with specific hop numbers to verify the distance
+		// on the network. If the distance is small it's more likely that the
+		// public IP address is one that we're using (ideally 1 or 2 hops away).
+		// If the distance is further away then it may not be a public IP address
+		// that we're using (and could be an attack).
+
+		auto verified = false;
+		UInt8 max_hops{ HopVerificationDetails::MaxHops };
+
+		if (has_locally_bound_ip)
+		{
+			// We are directly connected to the Internet via a public IP
+			// configured on a local ethernet interface, so we should reach
+			// ourselves in zero hops
+			max_hops = 0;
+		}
+
+		Ping ping(IPAddress, static_cast<UInt16>(Util::GetPseudoRandomNumber(0, 255)),
+				  std::chrono::duration_cast<std::chrono::milliseconds>(HopVerificationDetails::TimeoutPeriod),
+				  std::chrono::seconds(max_hops));
+		if (ping.Execute() && ping.GetStatus() == Ping::Status::Succeeded &&
+			ping.GetRespondingIPAddress() == IPAddress &&
+			ping.GetRoundTripTime() <= HopVerificationDetails::MaxRTT)
+		{
+			return true;
+		}
+		else
+		{
+			LogWarn(L"Failed to verify hops for IP address %s; host may be further than %u hops away or behind a firewall",
+					Network::IPAddress(IPAddress).GetString().c_str(), max_hops);
+		}
+
+		return false;
+	}
+
+	const bool PublicIPEndpoints::DataVerificationDetails::InitializeSocket(const bool nat_traversal) noexcept
+	{
+		auto tries = 0u;
+
+		// We try this a few times because the randomly chosen port might be in use
+		// or there might be some other temporary issue
+		do
+		{
+			try
+			{
+				// Choose port randomly from dynamic port range (RFC 6335)
+				const auto port = static_cast<UInt16>(Util::GetPseudoRandomNumber(49152, 65535));
+
+				const auto endpoint = IPEndpoint((IPAddress.AddressFamily == BinaryIPAddress::Family::IPv4) ?
+												 IPAddress::AnyIPv4() : IPAddress::AnyIPv6(), port);
+				Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
+										 Network::Socket::Type::Datagram,
+										 Network::IP::Protocol::UDP);
+
+				if (Socket.Bind(endpoint, nat_traversal))
+				{
+					return true;
+				}
+				else
+				{
+					LogWarn(L"Could not bind public IP address data verification socket to endpoint %s",
+							endpoint.GetString().c_str());
+				}
+			}
+			catch (...) {}
+
+			++tries;
+		}
+		while (tries < 3);
+
+		return false;
+	}
+
+	const bool PublicIPEndpoints::DataVerificationDetails::SendVerification() noexcept
+	{
+		// We send a random 64-bit number to the IP address and the port
+		// that we're listening on locally. If the IP address is ours the random
+		// number will be received by us and we'll have partially verified the address.
+		// An attacker could intercept and send the 64-bit number back to us, which
+		// is why we also verify the number of hops between us and the IP address.
+
+		try
+		{
+			const IPEndpoint endpoint(IPAddress, Socket.GetLocalEndpoint().GetPort());
+
+			const auto num = Crypto::GetCryptoRandomNumber();
+			if (num.has_value())
+			{
+				ExpectedData = *num;
+
+				LogInfo(L"Sending public IP address data verification (%llu) to endpoint %s",
+						*num, endpoint.GetString().c_str());
+
+				const UInt64 num_nbo = Endian::ToNetworkByteOrder(*num);
+				Buffer snd_buf(reinterpret_cast<const Byte*>(&num_nbo), sizeof(num_nbo));
+
+				if (Socket.SendTo(endpoint, snd_buf))
+				{
+					if (snd_buf.IsEmpty())
+					{
+						return true;
+					}
+				}
+			}
+
+			LogErr(L"Failed to send public IP address data verification to endpoint %s", endpoint.GetString().c_str());
+		}
+		catch (const std::exception& e)
+		{
+			LogErr(L"Failed to send public IP address data verification due to exception: %s",
+				   Util::ToStringW(e.what()).c_str());
+		}
+		catch (...)
+		{
+			LogErr(L"Failed to send public IP address data verification due to unknown exception");
+		}
+
+		return false;
+	}
+
+	Result<bool> PublicIPEndpoints::DataVerificationDetails::ReceiveVerification() noexcept
+	{
+		// Wait for read event on socket
+		if (Socket.UpdateIOStatus(DataVerificationDetails::TimeoutPeriod,
+								  Socket::IOStatus::Update::Read |
+								  Socket::IOStatus::Update::Exception))
+		{
+			if (Socket.GetIOStatus().CanRead())
+			{
+				IPEndpoint sender_endpoint;
+				std::optional<UInt64> num;
+				Buffer rcv_buffer;
+
+				if (Socket.ReceiveFrom(sender_endpoint, rcv_buffer))
+				{
+					// Message should only contain a 64-bit number (8 bytes)
+					if (rcv_buffer.GetSize() == sizeof(UInt64))
+					{
+						num = Endian::FromNetworkByteOrder(*reinterpret_cast<UInt64*>(rcv_buffer.GetBytes()));
+
+						LogInfo(L"Received public IP address data verification (%llu) from endpoint %s",
+								num.value(), sender_endpoint.GetString().c_str());
+					}
+					else
+					{
+						LogWarn(L"Received invalid public IP address data verification from endpoint %s",
+								sender_endpoint.GetString().c_str());
+					}
+				}
+				else
+				{
+					LogWarn(L"Failed to receive public IP address data verification from endpoint %s; the port may not be open",
+							sender_endpoint.GetString().c_str());
+				}
+
+				// If we received verification data
+				if (num.has_value())
+				{
+					// Verification data should match and should have been sent by the IP address that we
+					// sent it to and expect to hear from, otherwise something is wrong (attack?)
+					if (ExpectedData == num &&
+						IPAddress == sender_endpoint.GetIPAddress().GetBinary())
+					{
+						return true;
+					}
+					else
+					{
+						LogWarn(L"Received public IP address data verification (%llu) from endpoint %s, but expected %llu from IP address %s",
+								num, sender_endpoint.GetString().c_str(), ExpectedData, Network::IPAddress(IPAddress).GetString().c_str());
+					}
+				}
+			}
+			else if (Socket.GetIOStatus().HasException())
+			{
+				LogErr(L"Exception on public IP address data verification socket for endpoint %s (%s)",
+					   Socket.GetLocalEndpoint().GetString().c_str(),
+					   GetSysErrorString(Socket.GetIOStatus().GetErrorCode()).c_str());
+
+				return ResultCode::Failed;
+			}
+			else
+			{
+				LogErr(L"Public IP address data verification for %s timed out; this could be due to a router/firewall blocking UDP traffic",
+					   Network::IPAddress(IPAddress).GetString().c_str());
+
+				return ResultCode::Failed;
+			}
+		}
+		else
+		{
+			LogErr(L"Failed to get status of public IP address data verification socket for endpoint %s",
+				   Socket.GetLocalEndpoint().GetString().c_str());
+
+			return ResultCode::Failed;
+		}
+
+		return false;
+	}
+
+	const bool PublicIPEndpoints::DataVerificationDetails::Verify(const bool nat_traversal) noexcept
+	{
+		if (InitializeSocket(nat_traversal))
+		{
+			if (SendVerification())
+			{
+				const auto result = ReceiveVerification();
+				if (result.Succeeded() && result.GetValue())
+				{
+					return true;
+				}
+			}
+		}
+		else
+		{
+			LogErr(L"Public IP address data verification failed; couldn't initialize verification socket");
+		}
+
+		return false;
+	}
+
 	const bool PublicIPEndpoints::Initialize() noexcept
 	{
 		if (m_Initialized) return true;
 
 		PreInitialize();
 
-		if (!InitializeDataVerificationSockets())
-		{
-			LogErr(L"PublicIPEndpoints data verification sockets failed initialization");
-			return false;
-		}
-
-		// Upon failure deinitialize sockets
-		auto sg = MakeScopeGuard([&] { DeinitializeDataVerificationSockets(); });
-
 		if (!m_ThreadPool.AddThread(L"QuantumGate PublicIPEndpoints DataVerification Thread",
-									MakeCallback(this, &PublicIPEndpoints::DataVerificationWorkerThread)))
+									MakeCallback(this, &PublicIPEndpoints::DataVerificationWorkerThread),
+									&m_DataVerification.WithUniqueLock()->Queue.Event()))
 		{
 			LogErr(L"Could not add PublicIPEndpoints data verification thread");
 			return false;
@@ -54,8 +268,6 @@ namespace QuantumGate::Implementation::Core
 			return false;
 		}
 
-		sg.Deactivate();
-
 		m_Initialized = true;
 
 		return true;
@@ -66,8 +278,6 @@ namespace QuantumGate::Implementation::Core
 		if (!m_Initialized) return;
 
 		m_ThreadPool.Shutdown();
-
-		DeinitializeDataVerificationSockets();
 
 		ResetState();
 
@@ -82,297 +292,73 @@ namespace QuantumGate::Implementation::Core
 	void PublicIPEndpoints::ResetState() noexcept
 	{
 		m_ThreadPool.Clear();
-		m_DataVerification.WithUniqueLock()->clear();
+
+		m_DataVerification.WithUniqueLock()->Clear();
+		m_HopVerification.WithUniqueLock()->Clear();
+
 		m_IPEndpoints.WithUniqueLock()->clear();
 		m_ReportingNetworks.clear();
 	}
 
-	[[nodiscard]] const bool PublicIPEndpoints::InitializeDataVerificationSockets() noexcept
+	const std::pair<bool, bool> PublicIPEndpoints::DataVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event)
 	{
-		auto success = true;
-		const auto& settings = m_Settings.GetCache();
+		auto didwork = false;
 
-		// Upon failure deinitialize sockets
-		auto sg = MakeScopeGuard([&] { DeinitializeDataVerificationSockets(); });
+		std::optional<DataVerificationDetails> data_verification;
 
-		m_DataVerificationSockets.IPv4UDPSocket.WithUniqueLock([&](Network::Socket& socket)
+		m_DataVerification.IfUniqueLock([&](auto& verification_data)
 		{
-			auto tries = 0u;
-
-			do
+			if (!verification_data.Queue.Empty())
 			{
-				try
+				data_verification = std::move(verification_data.Queue.Front());
+				verification_data.Queue.Pop();
+
+				// We had data in the queue
+				// so we did work
+				didwork = true;
+			}
+		});
+
+		if (data_verification.has_value())
+		{
+			const auto& settings = m_Settings.GetCache();
+
+			if (data_verification->Verify(settings.Local.NATTraversal))
+			{
+				m_IPEndpoints.WithUniqueLock([&](auto& ipendpoints)
 				{
-					// Choose port randomly from dynamic port range (RFC 6335)
-					m_DataVerificationSockets.Port = static_cast<UInt16>(Util::GetPseudoRandomNumber(49152, 65535));
-
-					auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), m_DataVerificationSockets.Port);
-					socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
-											 Network::Socket::Type::Datagram,
-											 Network::IP::Protocol::UDP);
-
-					if (socket.Bind(endpoint, settings.Local.NATTraversal))
+					if (const auto it2 = ipendpoints.find(data_verification->IPAddress); it2 != ipendpoints.end())
 					{
-						success = true;
-						break;
+						it2->second.DataVerified = true;
+
+						LogInfo(L"Data verification succeeded for public IP address %s",
+								IPAddress(data_verification->IPAddress).GetString().c_str());
 					}
 					else
 					{
-						success = false;
-						LogWarn(L"Could not bind public IP address data verification socket to endpoint %s",
-								endpoint.GetString().c_str());
+						// We should never get here
+						LogErr(L"Failed to verify IP address %s; IP address not found in public endpoints",
+							   IPAddress(data_verification->IPAddress).GetString().c_str());
 					}
-				}
-				catch (...) { success = false; }
-
-				++tries;
+				});
 			}
-			while (tries < 3);
-		});
 
-		if (!success) return false;
-
-		m_DataVerificationSockets.IPv6UDPSocket.WithUniqueLock([&](Network::Socket& socket)
-		{
-			try
+			// Remove from the set so that the IP address can potentially
+			// be added back to the queue if verification failed
+			m_DataVerification.WithUniqueLock([&](auto& verification_data)
 			{
-				auto endpoint = IPEndpoint(IPAddress::AnyIPv6(), m_DataVerificationSockets.Port);
-				socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
-										 Network::Socket::Type::Datagram,
-										 Network::IP::Protocol::UDP);
-
-				if (!socket.Bind(endpoint, settings.Local.NATTraversal))
-				{
-					success = false;
-					LogWarn(L"Could not bind public IP address data verification socket to endpoint %s",
-							endpoint.GetString().c_str());
-				}
-			}
-			catch (...) { success = false; }
-		});
-
-		if (!success) return false;
-
-		sg.Deactivate();
-
-		return true;
-	}
-
-	void PublicIPEndpoints::DeinitializeDataVerificationSockets() noexcept
-	{
-		m_DataVerificationSockets.IPv4UDPSocket.WithUniqueLock([](Network::Socket& socket)
-		{
-			if (socket.GetIOStatus().IsOpen()) socket.Close();
-		});
-
-		m_DataVerificationSockets.IPv6UDPSocket.WithUniqueLock([](Network::Socket& socket)
-		{
-			if (socket.GetIOStatus().IsOpen()) socket.Close();
-		});
-
-		m_DataVerificationSockets.Port = 0;
-	}
-
-	const std::pair<bool, bool> PublicIPEndpoints::DataVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event)
-	{
-		auto success = true;
-		auto didwork = false;
-		auto socket_error = false;
-		Buffer rcv_buffer;
-
-		const std::array<DataVerificationSockets::Socket_ThS*, 2> sockets
-		{
-			&m_DataVerificationSockets.IPv4UDPSocket,
-			&m_DataVerificationSockets.IPv6UDPSocket
-		};
-
-		for (auto socket_ths : sockets)
-		{
-			// Check if we have a read event waiting for us
-			if (socket_ths->WithUniqueLock()->UpdateIOStatus(0ms,
-															 Socket::IOStatus::Update::Read |
-															 Socket::IOStatus::Update::Exception))
-			{
-				if (socket_ths->WithSharedLock()->GetIOStatus().CanRead())
-				{
-					IPEndpoint sender_endpoint;
-					std::optional<UInt64> num;
-
-					socket_ths->WithUniqueLock([&](Network::Socket& socket)
-					{
-						rcv_buffer.Clear();
-
-						if (socket.ReceiveFrom(sender_endpoint, rcv_buffer))
-						{
-							// Message should only contain a 64-bit number (8 bytes)
-							if (rcv_buffer.GetSize() == sizeof(UInt64))
-							{
-								num = Endian::FromNetworkByteOrder(*reinterpret_cast<UInt64*>(rcv_buffer.GetBytes()));
-
-								LogInfo(L"Received public IP address data verification (%llu) from endpoint %s",
-										num.value(), sender_endpoint.GetString().c_str());
-							}
-							else
-							{
-								LogWarn(L"Received invalid public IP address data verification from endpoint %s",
-										sender_endpoint.GetString().c_str());
-							}
-						}
-						else
-						{
-							LogWarn(L"Failed to receive public IP address data verification from endpoint %s; the port may not be open",
-									sender_endpoint.GetString().c_str());
-						}
-					});
-
-					// If we received verification data, look it up and
-					// see which IP address it should verify
-					if (num.has_value())
-					{
-						m_DataVerification.WithUniqueLock([&](auto& verification_map)
-						{
-							if (const auto it = verification_map.find(*num); it != verification_map.end())
-							{
-								// Verification data should have been sent by the IP address that we
-								// sent it to and expect to hear from, otherwise something is wrong (attack?)
-								if (it->second.IPAddress == sender_endpoint.GetIPAddress().GetBinary())
-								{
-									m_IPEndpoints.WithUniqueLock([&](auto& ipendpoints)
-									{
-										if (const auto it2 = ipendpoints.find(it->second.IPAddress); it2 != ipendpoints.end())
-										{
-											it2->second.DataVerified = true;
-
-											LogInfo(L"Verified public IP address %s",
-													IPAddress(it->second.IPAddress).GetString().c_str());
-										}
-										else
-										{
-											// We should never get here
-											LogErr(L"Failed to verify IP address %s; IP address not found in public endpoints",
-												   IPAddress(it->second.IPAddress).GetString().c_str());
-										}
-									});
-
-									verification_map.erase(it);
-								}
-								else
-								{
-									LogWarn(L"Received public IP address data verification (%llu) from endpoint %s, but expected it from IP address %s",
-											num, sender_endpoint.GetString().c_str(), IPAddress(it->second.IPAddress).GetString().c_str());
-								}
-							}
-							else
-							{
-								// Data verification record may have been removed due to timeout, or may be an attack
-								LogErr(L"Received unknown public IP address data verification (%llu) from endpoint %s",
-									   num, sender_endpoint.GetString().c_str());
-							}
-						});
-					}
-
-					didwork = true;
-				}
-				else if (socket_ths->WithSharedLock()->GetIOStatus().HasException())
-				{
-					LogErr(L"Exception on public IP address data verification socket for endpoint %s (%s)",
-						   socket_ths->WithSharedLock()->GetLocalEndpoint().GetString().c_str(),
-						   GetSysErrorString(socket_ths->WithSharedLock()->GetIOStatus().GetErrorCode()).c_str());
-
-					socket_error = true;
-				}
-			}
-			else
-			{
-				LogErr(L"Failed to get status of public IP address data verification socket for endpoint %s",
-					   socket_ths->WithSharedLock()->GetLocalEndpoint().GetString().c_str());
-
-				socket_error = true;
-			}
+				verification_data.Set.erase(data_verification->IPAddress);
+			});
 		}
 
-		m_DataVerification.WithUniqueLock([&](auto& verification_map)
-		{
-			// We go through all pending data verifications and
-			// retry and finally remove those that have timed out
-			auto it = verification_map.begin();
-			while (it != verification_map.end())
-			{
-				auto remove = false;
-
-				switch (it->second.Status)
-				{
-					case DataVerification::Status::Registered:
-					{
-						if (SendIPAddressVerification(it->first, it->second))
-						{
-							didwork = true;
-						}
-						else remove = true;
-						break;
-					}
-					case DataVerification::Status::VerificationSent:
-					{
-						if (Util::GetCurrentSteadyTime() - it->second.LastUpdateSteadyTime >= DataVerification::TimeoutPeriod)
-						{
-							if (it->second.NumVerificationTries < DataVerification::MaxVerificationTries)
-							{
-								// Retry verification
-								if (SendIPAddressVerification(it->first, it->second))
-								{
-									didwork = true;
-								}
-								else remove = true;
-							}
-							else
-							{
-								LogErr(L"Public IP address data verification for %s timed out; this could be due to a router/firewall blocking UDP traffic",
-									   IPAddress(it->second.IPAddress).GetString().c_str());
-
-								remove = true;
-							}
-						}
-						break;
-					}
-					default:
-					{
-						break;
-					}
-				}
-
-				if (remove) it = verification_map.erase(it);
-				else ++it;
-			}
-		});
-
-		// If we had an error on a socket, try to
-		// restart them, and if this doesn't succeed
-		// we'll exit the thread
-		if (socket_error)
-		{
-			LogWarn(L"Attempting to restart PublicIPEndpoints data verification sockets due to errors...");
-
-			DeinitializeDataVerificationSockets();
-
-			if (InitializeDataVerificationSockets())
-			{
-				LogInfo(L"PublicIPEndpoints data verification sockets successfully restarted");
-			}
-			else
-			{
-				LogErr(L"PublicIPEndpoints data verification sockets failed initialization; will exit data verification thread");
-				success = false;
-			}
-		}
-
-		return std::make_pair(success, didwork);
+		return std::make_pair(true, didwork);
 	}
 
 	const std::pair<bool, bool> PublicIPEndpoints::HopVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event)
 	{
 		auto didwork = false;
 
-		std::optional<HopVerification> hop_verification;
+		std::optional<HopVerificationDetails> hop_verification;
 
 		m_HopVerification.IfUniqueLock([&](auto& verification_data)
 		{
@@ -389,29 +375,7 @@ namespace QuantumGate::Implementation::Core
 
 		if (hop_verification.has_value())
 		{
-			// We ping the IP address with specific hop numbers to verify the distance
-			// on the network. If the distance is small it's more likely that the
-			// public IP address is one that we're using (ideally 1 or 2 hops away).
-			// If the distance is further away then it may not be a public IP address
-			// that we're using (and could be an attack).
-
-			auto verified = false;
-			UInt8 max_hops{ HopVerification::MaxHops };
-
-			if (HasLocallyBoundPublicIPAddress())
-			{
-				// We are directly connected to the Internet via a public IP
-				// configured on a local ethernet interface, so we should reach
-				// ourselves in zero hops
-				max_hops = 0;
-			}
-
-			Ping ping(hop_verification->IPAddress, static_cast<UInt16>(Util::GetPseudoRandomNumber(0, 255)),
-						std::chrono::duration_cast<std::chrono::milliseconds>(HopVerification::TimeoutPeriod),
-						std::chrono::seconds(max_hops));
-			if (ping.Execute() && ping.GetStatus() == Ping::Status::Succeeded &&
-				ping.GetRespondingIPAddress() == hop_verification->IPAddress &&
-				ping.GetRoundTripTime() <= HopVerification::MaxRTT)
+			if (hop_verification->Verify(HasLocallyBoundPublicIPAddress()))
 			{
 				m_IPEndpoints.WithUniqueLock([&](auto& ipendpoints)
 				{
@@ -419,7 +383,7 @@ namespace QuantumGate::Implementation::Core
 					{
 						it->second.HopVerified = true;
 
-						LogInfo(L"Verified hops for public IP address %s",
+						LogInfo(L"Hop verification succeeded for public IP address %s",
 								IPAddress(hop_verification->IPAddress).GetString().c_str());
 					}
 					else
@@ -429,11 +393,6 @@ namespace QuantumGate::Implementation::Core
 							   IPAddress(hop_verification->IPAddress).GetString().c_str());
 					}
 				});
-			}
-			else
-			{
-				LogWarn(L"Failed to verify hops for IP address %s; host may be further than %u hops away or behind a firewall",
-						IPAddress(hop_verification->IPAddress).GetString().c_str(), max_hops);
 			}
 
 			// Remove from the set so that the IP address can potentially
@@ -451,28 +410,25 @@ namespace QuantumGate::Implementation::Core
 	{
 		try
 		{
-			const auto num = Crypto::GetCryptoRandomNumber();
-			if (num.has_value())
-			{
-				auto verification_map = m_DataVerification.WithUniqueLock();
+			auto data_verification = m_DataVerification.WithUniqueLock();
 
-				const auto[it, inserted] = verification_map->emplace(
-					std::make_pair(*num, DataVerification{ DataVerification::Status::Registered,
-								   ip, Util::GetCurrentSteadyTime() }));
-				if (inserted)
-				{
-					// If this fails we'll try again in the worker thread
-					if (SendIPAddressVerification(it->first, it->second))
-					{
-						return true;
-					}
-				}
-				else
-				{
-					// A data verification record already existed
-					// and is probably being worked on
-					return true;
-				}
+			const auto result = data_verification->Set.emplace(ip);
+			if (result.second)
+			{
+				// Upon failure to add to the queue, remove from the set
+				auto sg = MakeScopeGuard([&] { data_verification->Set.erase(result.first); });
+
+				data_verification->Queue.Push(DataVerificationDetails{ ip });
+
+				sg.Deactivate();
+
+				return true;
+			}
+			else
+			{
+				// A data verification record already existed
+				// and is probably being worked on
+				return true;
 			}
 		}
 		catch (const std::exception& e)
@@ -500,7 +456,7 @@ namespace QuantumGate::Implementation::Core
 				// Upon failure to add to the queue, remove from the set
 				auto sg = MakeScopeGuard([&] { verification_data->Set.erase(result.first); });
 
-				verification_data->Queue.Push(HopVerification{ ip });
+				verification_data->Queue.Push(HopVerificationDetails{ ip });
 
 				sg.Deactivate();
 
@@ -526,52 +482,6 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool PublicIPEndpoints::SendIPAddressVerification(const UInt64 num, DataVerification& ip_verification) noexcept
-	{
-		// We send a random 64-bit number to the IP address to verify, and the port
-		// that we're listening on locally. If the IP address is ours the random
-		// number will be received by us and we'll have partially verified the address.
-		// An attacker could intercept and send the 64-bit number back to us, which
-		// is why we also verify the number of hops between us and the IP address.
-
-		try
-		{
-			DataVerificationSockets::Socket_ThS* socket_ths = (ip_verification.IPAddress.AddressFamily == BinaryIPAddress::Family::IPv4) ?
-				&m_DataVerificationSockets.IPv4UDPSocket : &m_DataVerificationSockets.IPv6UDPSocket;
-
-			IPEndpoint endpoint(ip_verification.IPAddress, m_DataVerificationSockets.Port);
-
-			LogInfo(L"Sending public IP address data verification (%llu) to endpoint %s", num, endpoint.GetString().c_str());
-
-			const UInt64 num_nbo = Endian::ToNetworkByteOrder(num);
-			Buffer snd_buf(reinterpret_cast<const Byte*>(&num_nbo), sizeof(num_nbo));
-
-			if (socket_ths->WithUniqueLock()->SendTo(endpoint, snd_buf))
-			{
-				if (snd_buf.IsEmpty())
-				{
-					ip_verification.Status = DataVerification::Status::VerificationSent;
-					ip_verification.LastUpdateSteadyTime = Util::GetCurrentSteadyTime();
-					++ip_verification.NumVerificationTries;
-					return true;
-				}
-			}
-
-			LogErr(L"Failed to send public IP address data verification to endpoint %s", endpoint.GetString().c_str());
-		}
-		catch (const std::exception& e)
-		{
-			LogErr(L"Failed to send public IP address data verification due to exception: %s",
-				   Util::ToStringW(e.what()).c_str());
-		}
-		catch (...)
-		{
-			LogErr(L"Failed to send public IP address data verification due to unknown exception");
-		}
-
-		return false;
-	}
-
 	Result<std::pair<bool, bool>> PublicIPEndpoints::AddIPEndpoint(const IPEndpoint& pub_endpoint,
 																   const IPEndpoint& rep_peer,
 																   const PeerConnectionType rep_con_type,
@@ -581,7 +491,7 @@ namespace QuantumGate::Implementation::Core
 			pub_endpoint.GetIPAddress().GetFamily() == rep_peer.GetIPAddress().GetFamily())
 		{
 			// Should be in public network address range
-			if (pub_endpoint.GetIPAddress().IsPublic())
+			//if (pub_endpoint.GetIPAddress().IsPublic())
 			{
 				BinaryIPAddress network;
 				const auto cidr = (rep_peer.GetIPAddress().GetFamily() == BinaryIPAddress::Family::IPv4) ?

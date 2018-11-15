@@ -21,7 +21,7 @@ namespace QuantumGate::Implementation::Core
 		}
 
 		// Initialize security settings
-		SetSecurityLevel(SecurityLevel::One, std::nullopt, true).Failed([&]()
+		SetSecurityLevel(SecurityLevel::One, std::nullopt, true).Failed([]()
 		{
 			LogErr(L"Couldn't set QuantumGate security level.");
 		});
