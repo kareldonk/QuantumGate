@@ -4,10 +4,84 @@
 #include "stdafx.h"
 #include "Local.h"
 #include "..\Core\Local.h"
+#include "..\Core\LocalEnvironment.h"
 
 namespace QuantumGate::API
 {
-	Local::Local() noexcept :
+	Local::Environment::Environment(const void* localenv) noexcept :
+		m_LocalEnvironment(localenv)
+	{
+		assert(m_LocalEnvironment != nullptr);
+	}
+
+	Result<String> Local::Environment::GetHostname() const noexcept
+	{
+		assert(m_LocalEnvironment != nullptr);
+
+		try
+		{
+			using namespace QuantumGate::Implementation::Core;
+			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			if (local_env->IsInitialized()) return local_env->GetHostname();
+		}
+		catch (...) {}
+
+		return ResultCode::Failed;
+	}
+
+	Result<String> Local::Environment::GetUsername() const noexcept
+	{
+		assert(m_LocalEnvironment != nullptr);
+
+		try
+		{
+			using namespace QuantumGate::Implementation::Core;
+			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			if (local_env->IsInitialized()) return local_env->GetUsername();
+		}
+		catch (...) {}
+
+		return ResultCode::Failed;
+	}
+
+	Result<Vector<IPAddressDetails>> Local::Environment::GetIPAddresses() const noexcept
+	{
+		assert(m_LocalEnvironment != nullptr);
+
+		try
+		{
+			using namespace QuantumGate::Implementation::Core;
+			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			if (local_env->IsInitialized())
+			{
+				return local_env->GetIPAddresses();
+			}
+		}
+		catch (...) {}
+
+		return ResultCode::Failed;
+	}
+
+	Result<Vector<EthernetInterface>> Local::Environment::GetEthernetInterfaces() const noexcept
+	{
+		assert(m_LocalEnvironment != nullptr);
+
+		try
+		{
+			using namespace QuantumGate::Implementation::Core;
+			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			if (local_env->IsInitialized())
+			{
+				// This is making a copy
+				return local_env->GetEthernetInterfaces();
+			}
+		}
+		catch (...) {}
+
+		return ResultCode::Failed;
+	}
+
+	Local::Local() :
 		m_Local(std::make_shared<QuantumGate::Implementation::Core::Local>()),
 		m_AccessManager(&m_Local->GetAccessManager())
 	{}
@@ -72,9 +146,9 @@ namespace QuantumGate::API
 		return m_Local->AreRelaysEnabled();
 	}
 
-	const LocalEnvironment Local::GetEnvironment() const noexcept
+	const Local::Environment Local::GetEnvironment() const noexcept
 	{
-		return LocalEnvironment(&m_Local->GetEnvironment());
+		return Local::Environment(&m_Local->GetEnvironment());
 	}
 
 	AccessManager& Local::GetAccessManager() noexcept

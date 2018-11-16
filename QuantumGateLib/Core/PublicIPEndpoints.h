@@ -71,7 +71,7 @@ namespace QuantumGate::Implementation::Core
 
 			[[nodiscard]] const bool InitializeSocket(const bool nat_traversal) noexcept;
 			[[nodiscard]] const bool SendVerification() noexcept;
-			[[nodiscard]] Result<bool> ReceiveVerification() noexcept;
+			[[nodiscard]] const bool ReceiveVerification() noexcept;
 
 			static constexpr std::chrono::seconds TimeoutPeriod{ 30 };
 		};

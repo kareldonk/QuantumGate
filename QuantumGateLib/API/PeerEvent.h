@@ -8,12 +8,19 @@ namespace QuantumGate::Implementation::Core::Peer
 	class Event;
 }
 
+namespace QuantumGate::Implementation::Core::Extender
+{
+	class Control;
+}
+
 namespace QuantumGate::API
 {
 	class Export PeerEvent
 	{
+		friend class QuantumGate::Implementation::Core::Extender::Control;
+
 	public:
-		PeerEvent(QuantumGate::Implementation::Core::Peer::Event&& event) noexcept;
+		PeerEvent() = delete;
 		PeerEvent(const PeerEvent&) = delete;
 		PeerEvent(PeerEvent&& other) noexcept;
 		virtual ~PeerEvent();
@@ -22,12 +29,14 @@ namespace QuantumGate::API
 
 		explicit operator bool() const noexcept;
 
-		const PeerEventType GetType() const noexcept;
-		const PeerLUID GetPeerLUID() const noexcept;
-		const PeerUUID& GetPeerUUID() const noexcept;
-		const Buffer* GetMessageData() const noexcept;
+		[[nodiscard]] const PeerEventType GetType() const noexcept;
+		[[nodiscard]] const PeerLUID GetPeerLUID() const noexcept;
+		[[nodiscard]] const PeerUUID& GetPeerUUID() const noexcept;
+		[[nodiscard]] const Buffer* GetMessageData() const noexcept;
 
 	private:
+		PeerEvent(QuantumGate::Implementation::Core::Peer::Event&& event) noexcept;
+
 		void Reset() noexcept;
 
 	private:

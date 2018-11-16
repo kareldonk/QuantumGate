@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "LocalEnvironment.h"
 #include "AccessManager.h"
 #include "Extender.h"
 
@@ -17,7 +16,31 @@ namespace QuantumGate::API
 	class Export Local
 	{
 	public:
-		Local() noexcept;
+		class Export Environment
+		{
+			friend class Local;
+
+		public:
+			Environment() = delete;
+			Environment(const Environment&) = delete;
+			Environment(Environment&&) = default;
+			virtual ~Environment() = default;
+			Environment& operator=(const Environment&) = delete;
+			Environment& operator=(Environment&&) = default;
+
+			Result<String> GetHostname() const noexcept;
+			Result<String> GetUsername() const noexcept;
+			Result<Vector<IPAddressDetails>> GetIPAddresses() const noexcept;
+			Result<Vector<EthernetInterface>> GetEthernetInterfaces() const noexcept;
+
+		private:
+			Environment(const void* localenv) noexcept;
+
+		private:
+			const void* m_LocalEnvironment{ nullptr };
+		};
+
+		Local();
 		Local(const Local&) = delete;
 		Local(Local&&) = default;
 		virtual ~Local() = default;
@@ -26,28 +49,28 @@ namespace QuantumGate::API
 
 		Result<> Startup(const StartupParameters& params) noexcept;
 		Result<> Shutdown() noexcept;
-		const bool IsRunning() const noexcept;
+		[[nodiscard]] const bool IsRunning() const noexcept;
 
 		Result<> EnableListeners() noexcept;
 		Result<> DisableListeners() noexcept;
-		const bool AreListenersEnabled() const noexcept;
+		[[nodiscard]] const bool AreListenersEnabled() const noexcept;
 
 		Result<> EnableExtenders() noexcept;
 		Result<> DisableExtenders() noexcept;
-		const bool AreExtendersEnabled() const noexcept;
+		[[nodiscard]] const bool AreExtendersEnabled() const noexcept;
 
 		Result<> EnableRelays() noexcept;
 		Result<> DisableRelays() noexcept;
-		const bool AreRelaysEnabled() const noexcept;
+		[[nodiscard]] const bool AreRelaysEnabled() const noexcept;
 
-		const LocalEnvironment GetEnvironment() const noexcept;
+		[[nodiscard]] const Environment GetEnvironment() const noexcept;
 
-		AccessManager& GetAccessManager() noexcept;
+		[[nodiscard]] AccessManager& GetAccessManager() noexcept;
 
-		std::tuple<UInt, UInt, UInt, UInt> GetVersion() const noexcept;
-		String GetVersionString() const noexcept;
-		std::pair<UInt, UInt> GetProtocolVersion() const noexcept;
-		String GetProtocolVersionString() const noexcept;
+		[[nodiscard]] std::tuple<UInt, UInt, UInt, UInt> GetVersion() const noexcept;
+		[[nodiscard]] String GetVersionString() const noexcept;
+		[[nodiscard]] std::pair<UInt, UInt> GetProtocolVersion() const noexcept;
+		[[nodiscard]] String GetProtocolVersionString() const noexcept;
 
 		Result<PeerUUID> GetUUID() const noexcept;
 		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
@@ -59,8 +82,8 @@ namespace QuantumGate::API
 		Result<> AddExtenderModule(const Path& module_path) noexcept;
 		Result<> RemoveExtenderModule(const Path& module_path) noexcept;
 
-		const bool HasExtender(const ExtenderUUID& extuuid) const noexcept;
-		std::weak_ptr<Extender> GetExtender(const ExtenderUUID& extuuid) const noexcept;
+		[[nodiscard]] const bool HasExtender(const ExtenderUUID& extuuid) const noexcept;
+		[[nodiscard]] std::weak_ptr<Extender> GetExtender(const ExtenderUUID& extuuid) const noexcept;
 
 		Result<ConnectDetails> ConnectTo(ConnectParameters&& params) noexcept;
 		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params,

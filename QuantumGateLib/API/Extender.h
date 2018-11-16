@@ -31,14 +31,14 @@ namespace QuantumGate::API
 		Extender& operator=(const Extender&) = delete;
 		Extender& operator=(Extender&&) = default;
 
-		const ExtenderUUID& GetUUID() const noexcept;
-		const String& GetName() const noexcept;
+		[[nodiscard]] const ExtenderUUID& GetUUID() const noexcept;
+		[[nodiscard]] const String& GetName() const noexcept;
 
 		Result<std::tuple<UInt, UInt, UInt, UInt>> GetLocalVersion() const noexcept;
 		Result<std::pair<UInt, UInt>> GetLocalProtocolVersion() const noexcept;
 		Result<PeerUUID> GetLocalUUID() const noexcept;
 
-		const bool IsRunning() const noexcept;
+		[[nodiscard]] const bool IsRunning() const noexcept;
 
 		Result<ConnectDetails> ConnectTo(ConnectParameters&& params) noexcept;
 		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params,
@@ -48,7 +48,7 @@ namespace QuantumGate::API
 
 		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress = true) const;
 
-		const Size GetMaximumMessageDataSize() const noexcept;
+		[[nodiscard]] const Size GetMaximumMessageDataSize() const noexcept;
 
 		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
 		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& settings) const noexcept;

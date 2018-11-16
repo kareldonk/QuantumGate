@@ -25,7 +25,6 @@ namespace QuantumGate
 {
 	using API::AccessManager;
 	using API::Local;
-	using API::LocalEnvironment;
 	using API::PeerEvent;
 	using API::Extender;
 }

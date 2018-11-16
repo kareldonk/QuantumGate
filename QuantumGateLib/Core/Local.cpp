@@ -10,7 +10,7 @@ using namespace std::literals;
 
 namespace QuantumGate::Implementation::Core
 {
-	Local::Local() noexcept
+	Local::Local()
 	{
 		// Initialize Winsock
 		WSADATA wsaData{ 0 };
@@ -18,13 +18,20 @@ namespace QuantumGate::Implementation::Core
 		if (result != 0)
 		{
 			LogErr(L"Couldn't initialize Windows Sockets; WSAStartup() failed");
+			throw std::exception("Couldn't initialize Windows Sockets; WSAStartup() failed");
 		}
+
+		// Upon failure shut down winsock
+		auto sg = MakeScopeGuard([&] { WSACleanup(); });
 
 		// Initialize security settings
 		SetSecurityLevel(SecurityLevel::One, std::nullopt, true).Failed([]()
 		{
-			LogErr(L"Couldn't set QuantumGate security level.");
+			LogErr(L"Couldn't set QuantumGate security level");
+			throw std::exception("Couldn't set QuantumGate security level");
 		});
+
+		sg.Deactivate();
 	}
 
 	Local::~Local()
@@ -33,11 +40,11 @@ namespace QuantumGate::Implementation::Core
 		{
 			if (!Shutdown())
 			{
-				LogErr(L"Couldn't shut down QuantumGate.");
+				LogErr(L"Couldn't shut down QuantumGate");
 			}
 		}
 
-		// TODO: Maybe improve this
+		// May have been initialized before Startup() or after Shutdown()
 		m_LocalEnvironment.WithUniqueLock([](auto& local_env)
 		{
 			if (local_env.IsInitialized()) local_env.Deinitialize();
@@ -208,6 +215,8 @@ namespace QuantumGate::Implementation::Core
 
 	Result<> Local::Startup(const StartupParameters& params) noexcept
 	{
+		assert(!IsRunning());
+
 		if (IsRunning()) return ResultCode::Succeeded;
 
 		if (!ValidateInitParameters(params)) return ResultCode::InvalidArgument;
@@ -357,6 +366,8 @@ namespace QuantumGate::Implementation::Core
 
 	Result<> Local::Shutdown() noexcept
 	{
+		assert(IsRunning());
+
 		if (!IsRunning()) return ResultCode::Succeeded;
 
 		std::unique_lock<std::shared_mutex> lock(m_Mutex);

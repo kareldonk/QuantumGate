@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Common\Callback.h"
+#include "..\Common\Callback.h"
 
 namespace QuantumGate
 {

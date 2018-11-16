@@ -513,7 +513,6 @@
     <ClInclude Include="API\Console.h" />
     <ClInclude Include="API\Extender.h" />
     <ClInclude Include="API\Local.h" />
-    <ClInclude Include="API\LocalEnvironment.h" />
     <ClInclude Include="API\PeerEvent.h" />
     <ClInclude Include="API\QuantumGate.h" />
     <ClInclude Include="API\Result.h" />
@@ -612,7 +611,6 @@
     <ClCompile Include="API\AccessManager.cpp" />
     <ClCompile Include="API\Extender.cpp" />
     <ClCompile Include="API\Local.cpp" />
-    <ClCompile Include="API\LocalEnvironment.cpp" />
     <ClCompile Include="API\PeerEvent.cpp" />
     <ClCompile Include="Common\Console.cpp" />
     <ClCompile Include="Common\Hash.cpp" />

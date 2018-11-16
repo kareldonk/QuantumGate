@@ -37,7 +37,7 @@ namespace QuantumGate::Implementation::Core
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
 
 	public:
-		Local() noexcept;
+		Local();
 		Local(const Local&) = delete;
 		Local(Local&&) = default;
 		~Local();
