@@ -36,7 +36,7 @@ namespace QuantumGate::Implementation::Core
 		Ping ping(IPAddress, static_cast<UInt16>(Util::GetPseudoRandomNumber(0, 255)),
 				  std::chrono::duration_cast<std::chrono::milliseconds>(HopVerificationDetails::TimeoutPeriod),
 				  std::chrono::seconds(max_hops));
-		
+
 		if (ping.Execute() && ping.GetStatus() == Ping::Status::Succeeded &&
 			ping.GetRespondingIPAddress() == IPAddress &&
 			ping.GetRoundTripTime() <= HopVerificationDetails::MaxRTT)
@@ -52,6 +52,10 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
+	PublicIPEndpoints::DataVerificationDetails::DataVerificationDetails(const BinaryIPAddress ip) noexcept :
+		m_IPAddress(ip), m_StartSteadyTime(Util::GetCurrentSteadyTime())
+	{}
+
 	const bool PublicIPEndpoints::DataVerificationDetails::InitializeSocket(const bool nat_traversal) noexcept
 	{
 		auto tries = 0u;
@@ -65,13 +69,13 @@ namespace QuantumGate::Implementation::Core
 				// Choose port randomly from dynamic port range (RFC 6335)
 				const auto port = static_cast<UInt16>(Util::GetPseudoRandomNumber(49152, 65535));
 
-				const auto endpoint = IPEndpoint((IPAddress.AddressFamily == BinaryIPAddress::Family::IPv4) ?
+				const auto endpoint = IPEndpoint((m_IPAddress.AddressFamily == BinaryIPAddress::Family::IPv4) ?
 												 IPAddress::AnyIPv4() : IPAddress::AnyIPv6(), port);
-				Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
-										 Network::Socket::Type::Datagram,
-										 Network::IP::Protocol::UDP);
+				m_Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
+										   Network::Socket::Type::Datagram,
+										   Network::IP::Protocol::UDP);
 
-				if (Socket.Bind(endpoint, nat_traversal))
+				if (m_Socket.Bind(endpoint, nat_traversal))
 				{
 					return true;
 				}
@@ -100,12 +104,12 @@ namespace QuantumGate::Implementation::Core
 
 		try
 		{
-			const IPEndpoint endpoint(IPAddress, Socket.GetLocalEndpoint().GetPort());
+			const IPEndpoint endpoint(m_IPAddress, m_Socket.GetLocalEndpoint().GetPort());
 
 			const auto num = Crypto::GetCryptoRandomNumber();
 			if (num.has_value())
 			{
-				ExpectedData = *num;
+				m_ExpectedData = *num;
 
 				LogInfo(L"Sending public IP address data verification (%llu) to endpoint %s",
 						*num, endpoint.GetString().c_str());
@@ -113,10 +117,11 @@ namespace QuantumGate::Implementation::Core
 				const UInt64 num_nbo = Endian::ToNetworkByteOrder(*num);
 				Buffer snd_buf(reinterpret_cast<const Byte*>(&num_nbo), sizeof(num_nbo));
 
-				if (Socket.SendTo(endpoint, snd_buf))
+				if (m_Socket.SendTo(endpoint, snd_buf))
 				{
 					if (snd_buf.IsEmpty())
 					{
+						m_StartSteadyTime = Util::GetCurrentSteadyTime();
 						return true;
 					}
 				}
@@ -137,20 +142,20 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool PublicIPEndpoints::DataVerificationDetails::ReceiveVerification() noexcept
+	Result<bool> PublicIPEndpoints::DataVerificationDetails::ReceiveVerification() noexcept
 	{
 		// Wait for read event on socket
-		if (Socket.UpdateIOStatus(DataVerificationDetails::TimeoutPeriod,
-								  Socket::IOStatus::Update::Read |
-								  Socket::IOStatus::Update::Exception))
+		if (m_Socket.UpdateIOStatus(1s,
+									Socket::IOStatus::Update::Read |
+									Socket::IOStatus::Update::Exception))
 		{
-			if (Socket.GetIOStatus().CanRead())
+			if (m_Socket.GetIOStatus().CanRead())
 			{
 				IPEndpoint sender_endpoint;
 				std::optional<UInt64> num;
 				Buffer rcv_buffer;
 
-				if (Socket.ReceiveFrom(sender_endpoint, rcv_buffer))
+				if (m_Socket.ReceiveFrom(sender_endpoint, rcv_buffer))
 				{
 					// Message should only contain a 64-bit number (8 bytes)
 					if (rcv_buffer.GetSize() == sizeof(UInt64))
@@ -177,34 +182,31 @@ namespace QuantumGate::Implementation::Core
 				{
 					// Verification data should match and should have been sent by the IP address that we
 					// sent it to and expect to hear from, otherwise something is wrong (attack?)
-					if (ExpectedData == num &&
-						IPAddress == sender_endpoint.GetIPAddress().GetBinary())
+					if (m_ExpectedData == num &&
+						m_IPAddress == sender_endpoint.GetIPAddress().GetBinary())
 					{
 						return true;
 					}
 					else
 					{
 						LogWarn(L"Received public IP address data verification (%llu) from endpoint %s, but expected %llu from IP address %s",
-								num, sender_endpoint.GetString().c_str(), ExpectedData, Network::IPAddress(IPAddress).GetString().c_str());
+								num, sender_endpoint.GetString().c_str(), m_ExpectedData, Network::IPAddress(m_IPAddress).GetString().c_str());
 					}
 				}
 			}
-			else if (Socket.GetIOStatus().HasException())
+			else if (m_Socket.GetIOStatus().HasException())
 			{
 				LogErr(L"Exception on public IP address data verification socket for endpoint %s (%s)",
-					   Socket.GetLocalEndpoint().GetString().c_str(),
-					   GetSysErrorString(Socket.GetIOStatus().GetErrorCode()).c_str());
-			}
-			else
-			{
-				LogErr(L"Public IP address data verification for %s timed out; this could be due to a router/firewall blocking UDP traffic",
-					   Network::IPAddress(IPAddress).GetString().c_str());
+					   m_Socket.GetLocalEndpoint().GetString().c_str(),
+					   GetSysErrorString(m_Socket.GetIOStatus().GetErrorCode()).c_str());
+				return ResultCode::Failed;
 			}
 		}
 		else
 		{
 			LogErr(L"Failed to get status of public IP address data verification socket for endpoint %s",
-				   Socket.GetLocalEndpoint().GetString().c_str());
+				   m_Socket.GetLocalEndpoint().GetString().c_str());
+			return ResultCode::Failed;
 		}
 
 		return false;
@@ -212,17 +214,48 @@ namespace QuantumGate::Implementation::Core
 
 	const bool PublicIPEndpoints::DataVerificationDetails::Verify(const bool nat_traversal) noexcept
 	{
-		if (InitializeSocket(nat_traversal) &&
-			SendVerification() &&
-			ReceiveVerification())
+		if (m_Status == Status::Initialized)
 		{
-			return true;
+			if (!InitializeSocket(nat_traversal) || !SendVerification())
+			{
+				m_Status = Status::Failed;
+			}
+			else
+			{
+				m_Status = Status::Verifying;
+			}
 		}
 
-		LogErr(L"Public IP address data verification failed for IP address %s",
-			   Network::IPAddress(IPAddress).GetString().c_str());
+		if (m_Status == Status::Verifying)
+		{
+			const auto result = ReceiveVerification();
+			if (result.Succeeded() && *result)
+			{
+				m_Status = Status::Succeeded;
+			}
+			else if (result.Failed())
+			{
+				m_Status = Status::Failed;
+			}
+		}
 
-		return false;
+		if (m_Status == Status::Verifying && (Util::GetCurrentSteadyTime() - m_StartSteadyTime > TimeoutPeriod))
+		{
+			LogErr(L"Public IP address data verification for %s timed out; this could be due to a router/firewall blocking UDP traffic",
+				   Network::IPAddress(m_IPAddress).GetString().c_str());
+
+			m_Status = Status::Timedout;
+			return false;
+		}
+
+		if (m_Status == Status::Failed)
+		{
+			LogErr(L"Public IP address data verification failed for IP address %s",
+				   Network::IPAddress(m_IPAddress).GetString().c_str());
+			return false;
+		}
+
+		return true;
 	}
 
 	const bool PublicIPEndpoints::Initialize() noexcept
@@ -317,32 +350,41 @@ namespace QuantumGate::Implementation::Core
 		{
 			const auto& settings = m_Settings.GetCache();
 
-			if (data_verification->Verify(settings.Local.NATTraversal))
+			if (data_verification->Verify(settings.Local.NATTraversal) &&
+				data_verification->IsVerified())
 			{
 				m_IPEndpoints.WithUniqueLock([&](auto& ipendpoints)
 				{
-					if (const auto it = ipendpoints.find(data_verification->IPAddress); it != ipendpoints.end())
+					if (const auto it = ipendpoints.find(data_verification->GetIPAddress()); it != ipendpoints.end())
 					{
 						it->second.DataVerified = true;
 
 						LogInfo(L"Data verification succeeded for public IP address %s",
-								IPAddress(data_verification->IPAddress).GetString().c_str());
+								IPAddress(data_verification->GetIPAddress()).GetString().c_str());
 					}
 					else
 					{
 						// We should never get here
 						LogErr(L"Failed to verify IP address %s; IP address not found in public endpoints",
-							   IPAddress(data_verification->IPAddress).GetString().c_str());
+							   IPAddress(data_verification->GetIPAddress()).GetString().c_str());
 					}
 				});
 			}
 
-			// Remove from the set so that the IP address can potentially
-			// be added back to the queue if verification failed
-			m_DataVerification.WithUniqueLock([&](auto& verification_data)
+			if (data_verification->IsVerifying())
 			{
-				verification_data.Set.erase(data_verification->IPAddress);
-			});
+				// Put at the back of the queue again so we can try again later
+				m_DataVerification.WithUniqueLock()->Queue.Push(std::move(*data_verification));
+			}
+			else
+			{
+				// Remove from the set so that the IP address can potentially
+				// be added back to the queue if verification failed
+				m_DataVerification.WithUniqueLock([&](auto& verification_data)
+				{
+					verification_data.Set.erase(data_verification->GetIPAddress());
+				});
+			}
 		}
 
 		return std::make_pair(true, didwork);
@@ -604,7 +646,7 @@ namespace QuantumGate::Implementation::Core
 		{
 			try
 			{
-				struct MinimalIPEndpointDetails
+				struct MinimalIPEndpointDetails final
 				{
 					BinaryIPAddress IPAddress;
 					bool Verified{ false };

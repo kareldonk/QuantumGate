@@ -61,19 +61,32 @@ namespace QuantumGate::Implementation::Core
 
 		using HopVerification_ThS = Concurrency::ThreadSafe<HopVerification, std::shared_mutex>;
 
-		struct DataVerificationDetails final
+		class DataVerificationDetails final
 		{
-			BinaryIPAddress IPAddress;
-			UInt64 ExpectedData{ 0 };
-			Network::Socket Socket;
+			enum class Status { Initialized, Verifying, Succeeded, Timedout, Failed };
+
+		public:
+			DataVerificationDetails(const BinaryIPAddress ip) noexcept;
 
 			[[nodiscard]] const bool Verify(const bool nat_traversal) noexcept;
 
+			[[nodiscard]] inline const BinaryIPAddress& GetIPAddress() const noexcept { return m_IPAddress; }
+			[[nodiscard]] inline const bool IsVerifying() const noexcept { return (m_Status == Status::Verifying); }
+			[[nodiscard]] inline const bool IsVerified() const noexcept { return (m_Status == Status::Succeeded); }
+
+		private:
 			[[nodiscard]] const bool InitializeSocket(const bool nat_traversal) noexcept;
 			[[nodiscard]] const bool SendVerification() noexcept;
-			[[nodiscard]] const bool ReceiveVerification() noexcept;
+			Result<bool> ReceiveVerification() noexcept;
 
-			static constexpr std::chrono::seconds TimeoutPeriod{ 30 };
+		private:
+			BinaryIPAddress m_IPAddress;
+			SteadyTime m_StartSteadyTime;
+			UInt64 m_ExpectedData{ 0 };
+			Status m_Status{ Status::Initialized };
+			Network::Socket m_Socket;
+
+			static constexpr std::chrono::seconds TimeoutPeriod{ 5 };
 		};
 
 		using DataVerificationQueue = Concurrency::Queue<DataVerificationDetails>;
