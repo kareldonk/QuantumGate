@@ -9,7 +9,7 @@
 
 namespace QuantumGate::Implementation::Memory
 {
-	class BadAllocException : public std::exception
+	class BadAllocException final : public std::exception
 	{
 	public:
 		BadAllocException(const char* message) noexcept : std::exception(message) {}

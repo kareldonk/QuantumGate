@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation::Core::Access
 {
 	using namespace QuantumGate::Implementation::Network;
 
-	struct IPSubnetLimitImpl
+	struct IPSubnetLimitImpl final
 	{
 		IPAddress::Family AddressFamily{ IPAddress::Family::Unspecified };
 		UInt8 CIDRLeadingBits{ 0 };
@@ -27,7 +27,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 	using IPSubnetLimitMap = std::map<UInt8, IPSubnetLimitImpl, decltype(&IPSubnetLimitImpl::Compare)>;
 
-	struct IPSubnetLimitDetail
+	struct IPSubnetLimitDetail final
 	{
 		IPSubnetLimitDetail(const IPAddress::Family af, const UInt8 cidr_lbits) noexcept :
 			AddressFamily(af), CIDRLeadingBits(cidr_lbits) {}
@@ -39,7 +39,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 	using IPSubnetLimitDetailMap = std::unordered_map<Network::BinaryIPAddress, IPSubnetLimitDetail>;
 
-	struct IPSubnetConnection
+	struct IPSubnetConnection final
 	{
 		Network::BinaryIPAddress Address;
 		Size CurrentConnections{ 0 };
@@ -47,7 +47,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 	using IPSubnetConnectionMap = std::unordered_map<Network::BinaryIPAddress, IPSubnetConnection>;
 
-	struct IPSubnetAF
+	struct IPSubnetAF final
 	{
 		IPSubnetLimitMap Limits{ &IPSubnetLimitImpl::Compare };
 		IPSubnetConnectionMap Connections;
@@ -59,7 +59,7 @@ namespace QuantumGate::Implementation::Core::Access
 		}
 	};
 
-	class Export IPSubnetLimits
+	class Export IPSubnetLimits final
 	{
 	public:
 		IPSubnetLimits() = default;

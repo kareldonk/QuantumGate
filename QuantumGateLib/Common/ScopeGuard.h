@@ -9,7 +9,7 @@ namespace QuantumGate::Implementation
 	// https://channel9.msdn.com/Shows/Going+Deep/C-and-Beyond-2012-Andrei-Alexandrescu-Systematic-Error-Handling-in-C
 
 	template<typename F>
-	class ScopeGuard
+	class ScopeGuard final
 	{
 	public:
 		ScopeGuard() = delete;

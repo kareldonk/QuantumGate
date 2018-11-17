@@ -10,7 +10,7 @@
 
 namespace QuantumGate::Implementation::Core::KeyGeneration
 {
-	struct KeyQueue
+	struct KeyQueue final
 	{
 		KeyQueue(const Algorithm::Asymmetric alg) noexcept : Algorithm(alg) {}
 

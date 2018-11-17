@@ -12,14 +12,14 @@ namespace QuantumGate::Implementation::Core
 
 namespace QuantumGate::Implementation::Core::Extender
 {
-	class Extender
+	class Extender final
 	{
 	public:
 		Extender() = delete;
 		Extender(const ExtenderUUID& uuid, const String& name) noexcept;
 		Extender(const Extender&) = delete;
 		Extender(Extender&&) = default;
-		virtual ~Extender() {};
+		~Extender() {};
 		Extender& operator=(const Extender&) = delete;
 		Extender& operator=(Extender&&) = default;
 

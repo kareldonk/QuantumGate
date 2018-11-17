@@ -5,7 +5,7 @@
 
 namespace QuantumGate::Implementation::Core::Relay::Events
 {
-	struct Connect
+	struct Connect final
 	{
 		Connect() = default;
 		Connect(const Connect&) = delete;
@@ -25,7 +25,7 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 		} Origin;
 	};
 
-	struct StatusUpdate
+	struct StatusUpdate final
 	{
 		StatusUpdate() = default;
 		StatusUpdate(const StatusUpdate&) = delete;
@@ -42,7 +42,7 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 		} Origin;
 	};
 
-	struct RelayData
+	struct RelayData final
 	{
 		RelayData() = default;
 		RelayData(const RelayData&) = delete;

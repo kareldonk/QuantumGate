@@ -6,7 +6,7 @@
 namespace QuantumGate::Implementation::Network::IP
 {
 #pragma pack(push, 1) // Disable padding bytes
-	struct Header
+	struct Header final
 	{
 		UInt8 Version_HeaderLength{ 0 };
 		UInt8 ServiceType{ 0 };
@@ -57,7 +57,7 @@ namespace QuantumGate::Implementation::Network::ICMP
 	};
 
 #pragma pack(push, 1) // Disable padding bytes
-	struct Header
+	struct Header final
 	{
 		UInt8 Type{ 0 };
 		UInt8 Code{ 0 };
@@ -68,7 +68,7 @@ namespace QuantumGate::Implementation::Network::ICMP
 	static_assert(sizeof(Header) == 4, "Size of ICMP header should be 4 bytes");
 
 #pragma pack(push, 1) // Disable padding bytes
-	struct EchoMessage
+	struct EchoMessage final
 	{
 		Header Header;
 		UInt16 Identifier{ 0 };
@@ -79,7 +79,7 @@ namespace QuantumGate::Implementation::Network::ICMP
 	static_assert(sizeof(EchoMessage) == 8, "Size of EchoMessage should be 8 bytes");
 
 #pragma pack(push, 1) // Disable padding bytes
-	struct DestinationUnreachableMessage
+	struct DestinationUnreachableMessage final
 	{
 		Header Header;
 		UInt32 Unused{ 0 };

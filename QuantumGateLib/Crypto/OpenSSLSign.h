@@ -9,7 +9,7 @@
 
 namespace QuantumGate::Implementation::Crypto
 {
-	class OpenSSLSign
+	class OpenSSLSign final
 	{
 	private:
 		OpenSSLSign() = default;

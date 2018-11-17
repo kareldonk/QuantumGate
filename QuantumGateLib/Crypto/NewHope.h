@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Crypto
 {
-	class NewHope
+	class NewHope final
 	{
 	private:
 		NewHope() = default;

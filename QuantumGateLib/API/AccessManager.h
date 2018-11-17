@@ -14,7 +14,7 @@ namespace QuantumGate::API
 {
 	using namespace QuantumGate::Implementation::Network;
 
-	class Export AccessManager
+	class Export AccessManager final
 	{
 	public:
 		AccessManager() = delete;

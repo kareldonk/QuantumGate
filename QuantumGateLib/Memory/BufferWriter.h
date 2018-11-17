@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Memory
 {
-	class Export BufferWriter : public BufferIO
+	class Export BufferWriter final : public BufferIO
 	{
 	public:
 		BufferWriter(const bool network_byteorder = false) noexcept;

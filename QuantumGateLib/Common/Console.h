@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation
 {
-	class Export Console
+	class Export Console final
 	{
 		class Window
 		{
@@ -113,7 +113,7 @@ namespace QuantumGate::Implementation
 
 		class Export TerminalOutput : public Output
 		{
-			struct Colors
+			struct Colors final
 			{
 				static constexpr const WChar* Default{ L"\x1b[0;37m" };
 				static constexpr const WChar* DefaultSys{ L"\x1b[0;97m" };

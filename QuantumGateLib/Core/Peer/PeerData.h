@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		SessionInit, Ready, Disconnected
 	};
 
-	struct Data
+	struct Data final
 	{
 		PeerLUID LUID{ 0 };
 		Status Status{ Status::Unknown };

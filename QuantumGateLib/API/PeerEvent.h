@@ -15,7 +15,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 namespace QuantumGate::API
 {
-	class Export PeerEvent
+	class Export PeerEvent final
 	{
 		friend class QuantumGate::Implementation::Core::Extender::Control;
 

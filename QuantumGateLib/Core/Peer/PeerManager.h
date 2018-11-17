@@ -27,14 +27,14 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		using BroadcastCallback = Callback<void(Peer& peer, const BroadcastResult result)>;
 
-		struct PeerCollection
+		struct PeerCollection final
 		{
 			PeerMap_ThS Map;
 			std::atomic<Size> Count{ 0 };
 			std::atomic<UInt> AccessUpdateFlag;
 		};
 
-		struct ThreadPoolData
+		struct ThreadPoolData final
 		{
 			PeerCollection PeerCollection;
 			PeerQueue_ThS Queue;

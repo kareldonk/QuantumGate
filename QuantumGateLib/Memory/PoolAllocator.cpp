@@ -22,14 +22,14 @@ namespace QuantumGate::Implementation::Memory
 	using FreeBufferPool_T = std::list<std::uintptr_t>;
 	using FreeBufferPool_ThS = Concurrency::ThreadSafe<FreeBufferPool_T, Concurrency::SpinMutex>;
 
-	struct PoolAllocStatsT
+	struct PoolAllocStatsT final
 	{
 		std::set<std::size_t> Sizes;
 	};
 
 	using PoolAllocStats_ThS = Concurrency::ThreadSafe<PoolAllocStatsT, Concurrency::SharedSpinMutex>;
 
-	struct MemoryPoolData
+	struct MemoryPoolData final
 	{
 		MemoryPool_ThS MemoryPool;
 		FreeBufferPool_ThS FreeBufferPool;

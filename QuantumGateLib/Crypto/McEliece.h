@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Crypto
 {
-	class McEliece
+	class McEliece final
 	{
 	private:
 		McEliece() = default;

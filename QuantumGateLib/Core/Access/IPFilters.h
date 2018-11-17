@@ -10,7 +10,7 @@
 
 namespace QuantumGate::Implementation::Core::Access
 {
-	struct IPFilterImpl
+	struct IPFilterImpl final
 	{
 		IPFilterID ID{ 0 };
 		IPFilterType Type{ IPFilterType::Blocked };
@@ -22,7 +22,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 	using IPFilterMap = std::unordered_map<IPFilterID, IPFilterImpl>;
 
-	class Export IPFilters
+	class Export IPFilters final
 	{
 	public:
 		IPFilters() noexcept {}

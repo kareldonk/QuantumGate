@@ -25,7 +25,7 @@ namespace QuantumGate::Socks5Extender
 		DisconnectAck
 	};
 
-	struct Listener
+	struct Listener final
 	{
 		Concurrency::EventCondition ShutdownEvent{ false };
 		std::thread Thread;
@@ -37,7 +37,7 @@ namespace QuantumGate::Socks5Extender
 	using Connections = std::unordered_map<ConnectionID, std::unique_ptr<Connection_ThS>>;
 	using Connections_ThS = Concurrency::ThreadSafe<Connections, std::shared_mutex>;
 
-	struct Peer
+	struct Peer final
 	{
 		PeerLUID ID{ 0 };
 	};

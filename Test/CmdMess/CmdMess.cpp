@@ -6,7 +6,7 @@
 
 using namespace QuantumGate::Implementation;
 
-struct Commands
+struct Commands final
 {
 	wstring ID;
 	wstring RegEx;

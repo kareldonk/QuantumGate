@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation::Network
 {
 	class Export IPAddress
 	{
-		struct Block
+		struct Block final
 		{
 			constexpr Block(const BinaryIPAddress& addr, const UInt8 cidr_lbits) :
 				Address(addr), Mask(BinaryIPAddress::CreateMask(addr.AddressFamily, cidr_lbits))

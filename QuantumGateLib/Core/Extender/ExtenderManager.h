@@ -12,7 +12,7 @@
 
 namespace QuantumGate::Implementation::Core::Extender
 {
-	struct ActiveExtenderUUIDs
+	struct ActiveExtenderUUIDs final
 	{
 		Vector<ExtenderUUID> UUIDs;
 		Vector<SerializedUUID> SerializedUUIDs;

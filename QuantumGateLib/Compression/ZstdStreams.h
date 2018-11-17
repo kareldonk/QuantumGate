@@ -11,7 +11,7 @@ namespace QuantumGate::Implementation::Compression
 	// resources for zstd de/compression for efficiency (not
 	// having to allocate context memory constantly); for more
 	// info see manual: https://facebook.github.io/zstd/zstd_manual.html
-	class ZstdStreams
+	class ZstdStreams final
 	{
 	private:
 		ZstdStreams() noexcept

@@ -11,7 +11,7 @@ namespace QuantumGate::Implementation::Core::Listener
 {
 	class Manager final
 	{
-		struct ThreadData
+		struct ThreadData final
 		{
 			ThreadData() = default;
 			ThreadData(const ThreadData&) = delete;
@@ -29,7 +29,7 @@ namespace QuantumGate::Implementation::Core::Listener
 			bool UseConditionalAcceptFunction{ true };
 		};
 
-		struct ThreadPoolData
+		struct ThreadPoolData final
 		{};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;

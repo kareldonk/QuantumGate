@@ -14,7 +14,7 @@ namespace QuantumGate::Algorithm
 		BLAKE2B512 = 400
 	};
 
-	struct HashAlgorithmName
+	struct HashAlgorithmName final
 	{
 		static constexpr const WChar* SHA256{ L"SHA256" };
 		static constexpr const WChar* SHA512{ L"SHA512" };
@@ -38,7 +38,7 @@ namespace QuantumGate::Algorithm
 		EDDSA_ED448 = 2100
 	};
 
-	struct AsymmetricAlgorithmName
+	struct AsymmetricAlgorithmName final
 	{
 		static constexpr const WChar* ECDH_SECP521R1{ L"ECDH_SECP521R1" };
 		static constexpr const WChar* ECDH_X25519{ L"ECDH_X25519" };
@@ -59,7 +59,7 @@ namespace QuantumGate::Algorithm
 		CHACHA20_POLY1305 = 200
 	};
 
-	struct SymmetricAlgorithmName
+	struct SymmetricAlgorithmName final
 	{
 		static constexpr const WChar* AES256_GCM{ L"AES256_GCM" };
 		static constexpr const WChar* CHACHA20_POLY1305{ L"CHACHA20_POLY1305" };
@@ -72,7 +72,7 @@ namespace QuantumGate::Algorithm
 		ZSTANDARD = 200
 	};
 
-	struct CompressionAlgorithmName
+	struct CompressionAlgorithmName final
 	{
 		static constexpr const WChar* DEFLATE{ L"DEFLATE" };
 		static constexpr const WChar* ZSTANDARD{ L"ZSTANDARD" };

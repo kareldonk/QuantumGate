@@ -26,14 +26,14 @@ namespace QuantumGate::Implementation::Core::Relay
 		Unknown, Beginning, Between, End
 	};
 
-	struct PeerDetails
+	struct PeerDetails final
 	{
 		PeerLUID PeerLUID{ 0 };
 		std::shared_ptr<Peer::Peer_ThS> Peer{ nullptr };
 		bool GetStatusUpdates{ true };
 	};
 
-	class Link
+	class Link final
 	{
 	public:
 		Link(const PeerLUID ipeer, const PeerLUID opeer,

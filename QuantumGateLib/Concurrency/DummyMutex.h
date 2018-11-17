@@ -5,7 +5,7 @@
 
 namespace QuantumGate::Implementation::Concurrency
 {
-	class DummyMutex
+	class DummyMutex final
 	{
 	public:
 		constexpr DummyMutex() noexcept {}

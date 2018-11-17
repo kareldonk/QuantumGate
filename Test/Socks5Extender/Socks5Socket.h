@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Socks5Extender
 {
-	class Socket : public QuantumGate::Implementation::Network::Socket
+	class Socket final : public QuantumGate::Implementation::Network::Socket
 	{
 	public:
 		Socket() noexcept : QuantumGate::Implementation::Network::Socket() {}

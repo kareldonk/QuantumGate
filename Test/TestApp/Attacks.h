@@ -9,7 +9,7 @@
 using namespace QuantumGate;
 using namespace QuantumGate::Implementation::Network;
 
-class AttackSocket : public QuantumGate::Implementation::Network::Socket
+class AttackSocket final : public QuantumGate::Implementation::Network::Socket
 {
 public:
 	AttackSocket(const IP::AddressFamily af, const Type type, const IP::Protocol protocol) :
@@ -22,7 +22,7 @@ public:
 
 class Attacks
 {
-	struct ThreadData
+	struct ThreadData final
 	{
 		std::thread Thread;
 		std::atomic_bool Stop{ false };

@@ -20,7 +20,7 @@ namespace QuantumGate::Implementation::Crypto
 		Unknown, DiffieHellman, KeyEncapsulation, DigitalSigning
 	};
 
-	struct AsymmetricKeyData
+	struct AsymmetricKeyData final
 	{
 		AsymmetricKeyData() = delete;
 		AsymmetricKeyData(const Algorithm::Asymmetric aa) noexcept;
@@ -59,7 +59,7 @@ namespace QuantumGate::Implementation::Crypto
 		Unknown, AutoGen, Derived
 	};
 
-	struct SymmetricKeyData
+	struct SymmetricKeyData final
 	{
 		SymmetricKeyData() = delete;
 		SymmetricKeyData(const SymmetricKeyType type, const Algorithm::Hash ha,

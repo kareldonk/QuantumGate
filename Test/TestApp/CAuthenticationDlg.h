@@ -5,7 +5,7 @@
 
 #include "CDialogBase.h"
 
-class CAuthenticationDlg : public CDialogBase
+class CAuthenticationDlg final : public CDialogBase
 {
 public:
 	CAuthenticationDlg(CWnd* pParent = NULL);

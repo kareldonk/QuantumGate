@@ -40,7 +40,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			NeedsExtenderUpdate
 		};
 
-		struct DelayedMessage
+		struct DelayedMessage final
 		{
 			[[nodiscard]] inline const bool IsTime() const noexcept
 			{

@@ -7,9 +7,9 @@
 
 namespace QuantumGate::Implementation::Core::Access
 {
-	class PeerAccessControl
+	class PeerAccessControl final
 	{
-		struct PeerAccessDetails
+		struct PeerAccessDetails final
 		{
 			ProtectedBuffer PublicKey;
 			bool AccessAllowed{ false };

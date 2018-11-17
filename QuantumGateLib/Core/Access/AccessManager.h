@@ -16,7 +16,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 namespace QuantumGate::Implementation::Core::Access
 {
-	class Manager
+	class Manager final
 	{
 	public:
 		using AccessUpdateCallbacks = Dispatcher<void() noexcept>;

@@ -14,10 +14,10 @@ namespace QuantumGate::Implementation::Compression
 	// resources for zlib de/compression for efficiency (not
 	// having to allocate context memory constantly); for more
 	// info see manual: https://www.zlib.net/manual.html
-	class ZlibStreams
+	class ZlibStreams final
 	{
 	private:
-		struct MemoryAllocation
+		struct MemoryAllocation final
 		{
 			Memory::FreeBuffer Buffer;
 			bool IsUsed{ false };

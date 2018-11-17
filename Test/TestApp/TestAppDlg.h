@@ -13,7 +13,7 @@
 #define WM_UPDATE_CONTROLS	(WM_USER+100)
 
 // CTestAppDlg dialog
-class CTestAppDlg : public CDialogBase
+class CTestAppDlg final : public CDialogBase
 {
 // Construction
 public:

@@ -16,7 +16,7 @@ namespace QuantumGate::Implementation::Concurrency
 	class ThreadSafe
 	{
 		template<typename ThS, typename Lck = std::unique_lock<M>>
-		class Value
+		class Value final
 		{
 		public:
 			Value() noexcept(std::is_nothrow_default_constructible_v<Lck>) {}

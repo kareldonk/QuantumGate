@@ -53,7 +53,7 @@ namespace TestExtender
 
 	using FileTransferID = UInt64;
 
-	class FileTransfer
+	class FileTransfer final
 	{
 	public:
 		FileTransfer(const FileTransferType type, const Size trfbuf_size, const bool autotrf) noexcept;
@@ -104,7 +104,7 @@ namespace TestExtender
 	using FileTransfers = std::unordered_map<FileTransferID, std::unique_ptr<FileTransfer>>;
 	using FileTransfers_ThS = Implementation::Concurrency::ThreadSafe<FileTransfers, std::shared_mutex>;
 
-	struct Peer
+	struct Peer final
 	{
 		PeerLUID ID{ 0 };
 		FileTransfers_ThS FileTransfers;
@@ -113,13 +113,13 @@ namespace TestExtender
 	using Peers = std::unordered_map<PeerLUID, std::unique_ptr<Peer>>;
 	using Peers_ThS = Implementation::Concurrency::ThreadSafe<Peers, std::shared_mutex>;
 
-	struct FileAccept
+	struct FileAccept final
 	{
 		PeerLUID PeerLUID{ 0 };
 		FileTransferID FileTransferID{ 0 };
 	};
 
-	struct Event
+	struct Event final
 	{
 		PeerEventType Type{ PeerEventType::Unknown };
 		PeerLUID PeerLUID{ 0 };

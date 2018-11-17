@@ -106,7 +106,7 @@ namespace QuantumGate::Implementation::Network
 	};
 
 #pragma pack(push, 1) // Disable padding bytes
-	struct SerializedIPEndpoint
+	struct SerializedIPEndpoint final
 	{
 		SerializedBinaryIPAddress IPAddress;
 		UInt16 Port{ 0 };

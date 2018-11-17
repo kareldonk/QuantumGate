@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation
 		LittleEndian, BigEndian
 	};
 
-	class Endian
+	class Endian final
 	{
 	private:
 		Endian() = default;

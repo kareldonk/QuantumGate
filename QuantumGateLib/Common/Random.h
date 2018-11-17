@@ -25,7 +25,7 @@ namespace QuantumGate::Implementation
 	using Rng64Alg = std::mt19937_64;
 #endif
 
-	struct RngEngine
+	struct RngEngine final
 	{
 		std::random_device Device;
 		Rng32Alg Rng32{ Device() };
@@ -73,7 +73,7 @@ namespace QuantumGate::Implementation
 		}
 	};
 
-	class Random
+	class Random final
 	{
 	private:
 		Random() = default;

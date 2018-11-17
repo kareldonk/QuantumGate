@@ -11,7 +11,7 @@ namespace QuantumGate::Implementation::Core::Peer
 {
 	class Manager;
 
-	class LookupMaps
+	class LookupMaps final
 	{
 	public:
 		using LUIDVector = Vector<PeerLUID>;

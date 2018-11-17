@@ -458,7 +458,7 @@ namespace QuantumGate::Implementation::Network
 	};
 
 #pragma pack(push, 1) // Disable padding bytes
-	struct SerializedBinaryIPAddress
+	struct SerializedBinaryIPAddress final
 	{
 		using Family = IP::AddressFamily;
 

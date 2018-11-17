@@ -341,7 +341,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	const UInt64 LookupMaps::GetIPPortHash(const IPEndpoint& endpoint) noexcept
 	{
-		struct IPPort
+		struct IPPort final
 		{
 			BinaryIPAddress IP;
 			UInt16 Port{ 0 };

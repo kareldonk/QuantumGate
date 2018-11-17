@@ -10,7 +10,7 @@
 
 namespace QuantumGate::Implementation
 {
-	struct ConsoleObject
+	struct ConsoleObject final
 	{
 		std::atomic<Console::Verbosity> Verbosity{ Console::Verbosity::Silent };
 		std::atomic_bool HasOutput{ false };

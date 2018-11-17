@@ -14,7 +14,7 @@
 
 namespace QuantumGate::Implementation::Crypto
 {
-	class OpenSSL
+	class OpenSSL final
 	{
 	private:
 		OpenSSL() = default;

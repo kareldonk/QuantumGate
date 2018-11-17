@@ -12,17 +12,17 @@ namespace QuantumGate::Implementation::Core
 		Unknown, NotEnoughData, TooMuchData, CompleteMessage
 	};
 
-	class MessageTransport
+	class MessageTransport final
 	{
 	public :
-		struct DataSizeSettings
+		struct DataSizeSettings final
 		{
 			UInt8 Offset{ 9 };
 			UInt32 XOR{ 0 };
 		};
 
 	private:
-		class OHeader
+		class OHeader final
 		{
 		public:
 			OHeader(const DataSizeSettings mds_settings) noexcept :
@@ -31,7 +31,7 @@ namespace QuantumGate::Implementation::Core
 
 			OHeader(const OHeader&) = default;
 			OHeader(OHeader&&) = default;
-			virtual ~OHeader() = default;
+			~OHeader() = default;
 			OHeader& operator=(const OHeader&) = default;
 			OHeader& operator=(OHeader&&) = default;
 
@@ -69,13 +69,13 @@ namespace QuantumGate::Implementation::Core
 			Buffer m_MessageHMAC;
 		};
 
-		class IHeader
+		class IHeader final
 		{
 		public:
 			IHeader() noexcept {}
 			IHeader(const IHeader&) = default;
 			IHeader(IHeader&&) = default;
-			virtual ~IHeader() = default;
+			~IHeader() = default;
 			IHeader& operator=(const IHeader&) = default;
 			IHeader& operator=(IHeader&&) = default;
 
@@ -114,7 +114,7 @@ namespace QuantumGate::Implementation::Core
 		MessageTransport(const DataSizeSettings mds_settings, const Settings& settings) noexcept;
 		MessageTransport(const MessageTransport&) = delete;
 		MessageTransport(MessageTransport&&) = default;
-		virtual ~MessageTransport() = default;
+		~MessageTransport() = default;
 		MessageTransport& operator=(const MessageTransport&) = delete;
 		MessageTransport& operator=(MessageTransport&&) = default;
 

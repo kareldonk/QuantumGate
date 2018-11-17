@@ -7,11 +7,11 @@
 
 using namespace QuantumGate;
 
-class CSecurityDlg : public CDialogBase
+class CSecurityDlg final : public CDialogBase
 {
 public:
 	CSecurityDlg(CWnd* pParent = NULL);
-	~CSecurityDlg();
+	virtual ~CSecurityDlg();
 
 	enum { IDD = IDD_SECURITY_SETTINGS };
 

@@ -49,19 +49,19 @@ namespace QuantumGate::Socks5Extender
 			UnsupportedAddressType = 0x08
 		};
 
-		struct MethodIdentificationMsg
+		struct MethodIdentificationMsg final
 		{
 			UInt8 Version{ 0x05 };
 			UInt8 NumMethods{ 0 };
 		};
 
-		struct MethodSelectionMsg
+		struct MethodSelectionMsg final
 		{
 			UInt8 Version{ 0x05 };
 			UInt8 Method{ 0 };
 		};
 
-		struct RequestMsg
+		struct RequestMsg final
 		{
 			UInt8 Version{ 0x05 };
 			UInt8 Command{ 0 };
@@ -69,7 +69,7 @@ namespace QuantumGate::Socks5Extender
 			UInt8 AddressType{ 0 };
 		};
 
-		struct ReplyMsg
+		struct ReplyMsg final
 		{
 			UInt8 Version{ 0x05 };
 			UInt8 Reply{ 0 };
@@ -77,19 +77,19 @@ namespace QuantumGate::Socks5Extender
 			UInt8 AddressType{ 0 };
 		};
 
-		struct IPv4Address
+		struct IPv4Address final
 		{
 			UInt8 Address[4]{ 0 };
 			UInt16 Port{ 0 };
 		};
 
-		struct IPv6Address
+		struct IPv6Address final
 		{
 			UInt8 Address[16]{ 0 };
 			UInt16 Port{ 0 };
 		};
 
-		struct AuthReplyMsg
+		struct AuthReplyMsg final
 		{
 			UInt8 Version{ 0x01 };
 			UInt8 Reply{ 0 };

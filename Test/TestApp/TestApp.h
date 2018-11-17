@@ -12,7 +12,7 @@
 
 using namespace QuantumGate;
 
-class CTestAppApp : public CWinApp
+class CTestAppApp final : public CWinApp
 {
 public:
 	CTestAppApp();

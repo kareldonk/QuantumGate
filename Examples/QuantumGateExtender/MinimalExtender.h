@@ -10,7 +10,7 @@ class MinimalExtender final : public QuantumGate::Extender
 {
 public:
 	MinimalExtender();
-	~MinimalExtender();
+	virtual ~MinimalExtender();
 
 protected:
 	const bool OnStartup();

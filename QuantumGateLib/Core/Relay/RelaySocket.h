@@ -9,7 +9,7 @@
 
 namespace QuantumGate::Implementation::Core::Relay
 {
-	class Socket : public Network::SocketBase
+	class Socket final : public Network::SocketBase
 	{
 		friend class Manager;
 

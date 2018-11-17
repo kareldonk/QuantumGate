@@ -12,7 +12,7 @@ namespace QuantumGate::Socks5Extender
 
 	using ConnectionID = UInt64;
 
-	class Connection
+	class Connection final
 	{
 	public:
 		enum class Type { Unknown, Incoming, Outgoing };

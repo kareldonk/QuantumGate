@@ -5,7 +5,7 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	struct Algorithms
+	struct Algorithms final
 	{
 		// Initialized with defaults; all peers should *at least* support these
 		Algorithm::Hash Hash{ Algorithm::Hash::BLAKE2B512 };
@@ -15,7 +15,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Algorithm::Compression Compression{ Algorithm::Compression::ZSTANDARD };
 	};
 
-	struct SymmetricKeyPair
+	struct SymmetricKeyPair final
 	{
 		[[nodiscard]] const bool IsExpired() const noexcept
 		{

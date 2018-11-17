@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation
 {
-	class ErrorCategory : public std::error_category
+	class ErrorCategory final : public std::error_category
 	{
 	public:
 		const char* name() const noexcept override { return "QuantumGate"; }

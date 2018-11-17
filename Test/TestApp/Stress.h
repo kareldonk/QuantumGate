@@ -7,15 +7,15 @@
 
 using namespace QuantumGate;
 
-class Stress
+class Stress final
 {
-	struct ExtenderStartupShutdownStressData
+	struct ExtenderStartupShutdownStressData final
 	{
 		std::thread Thread;
 		std::atomic_bool Stop{ false };
 	};
 
-	struct ConnectStressData
+	struct ConnectStressData final
 	{
 		std::thread Thread;
 		String IP;
@@ -27,7 +27,7 @@ class Stress
 		std::atomic_bool Connected{ false };
 	};
 
-	struct MultiInstanceStressData
+	struct MultiInstanceStressData final
 	{
 		std::thread Thread;
 		StartupParameters StartupParams;

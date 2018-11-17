@@ -13,18 +13,18 @@ class HandshakeExtender final : public QuantumGate::Extender
 	enum class MessageType : std::uint16_t { Unknown, PublicKey, Ready, Chat };
 
 #pragma pack(push, 1) // Disable padding bytes
-	struct PublicKeyMessage
+	struct PublicKeyMessage final
 	{
 		MessageType Type{ MessageType::PublicKey };
 		std::byte PublicKey[32]{ std::byte{ 0 } };
 	};
 
-	struct ReadyMessage
+	struct ReadyMessage final
 	{
 		MessageType Type{ MessageType::Ready };
 	};
 
-	struct ChatMessage
+	struct ChatMessage final
 	{
 		MessageType Type{ MessageType::Chat };
 		std::byte Mac[16]{ std::byte{ 0 } };
@@ -32,7 +32,7 @@ class HandshakeExtender final : public QuantumGate::Extender
 	};
 #pragma pack(pop)
 
-	struct Peer
+	struct Peer final
 	{
 		enum class Status { Unknown, Connected, PubKeySent, Ready, Exception };
 
@@ -58,7 +58,7 @@ class HandshakeExtender final : public QuantumGate::Extender
 
 public:
 	HandshakeExtender();
-	~HandshakeExtender();
+	virtual ~HandshakeExtender();
 
 	bool BroadcastToConnectedPeers(const std::wstring& msg);
 

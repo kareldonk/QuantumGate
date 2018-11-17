@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	class ExtenderUUIDs
+	class ExtenderUUIDs final
 	{
 	public:
 		ExtenderUUIDs() = default;

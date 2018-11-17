@@ -18,15 +18,15 @@ namespace QuantumGate::Implementation::Core::Access
 		DeteriorateSevere = -200
 	};
 
-	class IPAccessDetails
+	class IPAccessDetails final
 	{
-		struct Reputation
+		struct Reputation final
 		{
 			Int16 Score{ IPReputation::ScoreLimits::Maximum };
 			SteadyTime LastImproveSteadyTime;
 		};
 
-		struct ConnectionAttempts
+		struct ConnectionAttempts final
 		{
 			Size Amount{ 0 };
 			SteadyTime LastResetSteadyTime;
@@ -67,7 +67,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 	using IPAccessDetailsMap = std::unordered_map<Network::BinaryIPAddress, IPAccessDetails>;
 
-	class IPAccessControl
+	class IPAccessControl final
 	{
 	public:
 		IPAccessControl() = delete;

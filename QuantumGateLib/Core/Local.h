@@ -29,7 +29,7 @@ namespace QuantumGate::Implementation::Core
 		using EventQueue = Concurrency::Queue<Event>;
 		using EventQueue_ThS = Concurrency::ThreadSafe<EventQueue, std::shared_mutex>;
 
-		struct ThreadPoolData
+		struct ThreadPoolData final
 		{
 			EventQueue_ThS EventQueue;
 		};

@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	class Event
+	class Event final
 	{
 	public:
 		Event() = default;
@@ -15,7 +15,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Event(PeerEventType type, PeerLUID pluid, PeerUUID puuid, MessageDetails&& msg) noexcept;
 		Event(const Event& other) noexcept;
 		Event(Event&& other) noexcept;
-		virtual ~Event() = default;
+		~Event() = default;
 		Event& operator=(const Event&) = default;
 		Event& operator=(Event&& other) noexcept;
 

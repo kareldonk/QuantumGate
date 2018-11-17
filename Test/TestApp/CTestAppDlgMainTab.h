@@ -11,7 +11,7 @@
 
 enum class ConsoleState { Disabled, Enabled, EnabledWindow };
 
-class CTestAppDlgMainTab : public CDialogBase
+class CTestAppDlgMainTab final : public CDialogBase
 {
 	DECLARE_DYNAMIC(CTestAppDlgMainTab)
 

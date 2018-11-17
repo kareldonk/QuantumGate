@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		using EventQueue = Concurrency::Queue<Event>;
 		using EventQueue_ThS = Concurrency::ThreadSafe<EventQueue, Concurrency::SpinMutex>;
 
-		struct ThreadPoolData
+		struct ThreadPoolData final
 		{
 			EventQueue_ThS KeyGenEventQueue;
 			Concurrency::EventCondition PrimaryThreadEvent;

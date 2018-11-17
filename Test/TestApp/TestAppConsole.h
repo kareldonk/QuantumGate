@@ -6,7 +6,7 @@
 #include "QuantumGate.h"
 #include "Concurrency\EventCondition.h"
 
-class TestAppConsole : public QuantumGate::Console::Output
+class TestAppConsole final : public QuantumGate::Console::Output
 {
 public:
 	inline QuantumGate::String* GetMessages() noexcept { return &m_Messages; }

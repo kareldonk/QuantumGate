@@ -93,7 +93,7 @@ namespace QuantumGate
 
 namespace QuantumGate
 {
-	struct ProtocolVersion
+	struct ProtocolVersion final
 	{
 		static constexpr const UInt8 Major{ 0 };
 		static constexpr const UInt8 Minor{ 1 };
@@ -161,7 +161,7 @@ namespace QuantumGate
 
 	struct IPReputation
 	{
-		struct ScoreLimits
+		struct ScoreLimits final
 		{
 			static constexpr const Int16 Minimum{ -3000 };
 			static constexpr const Int16 Base{ 0 };
@@ -365,7 +365,7 @@ namespace QuantumGate
 
 		ConnectionOption Connections{ ConnectionOption::Both };
 
-		struct Extenders
+		struct Extenders final
 		{
 			enum class IncludeOption
 			{

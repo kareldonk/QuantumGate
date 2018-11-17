@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation
 {
-	struct MessageSettings
+	struct MessageSettings final
 	{
 		std::chrono::seconds AgeTolerance{ 600 };			// Maximum age of a message in seconds before it's not accepted
 		std::chrono::seconds ExtenderGracePeriod{ 60 };		// Number of seconds after an extender is removed to still silently accept messages for that extender
@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation
 		Size MaxInternalRandomDataSize{ 64 };				// Maximum size in bytes of random data sent with each message
 	};
 
-	struct NoiseSettings
+	struct NoiseSettings final
 	{
 		bool Enabled{ false };							// Whether sending of noise messages is enabled
 		std::chrono::seconds TimeInterval{ 0 };			// Noise time interval in seconds
@@ -27,7 +27,7 @@ namespace QuantumGate::Implementation
 		Size MaxMessageSize{ 0 };						// Maximum size of noise message
 	};
 
-	struct RelaySettings
+	struct RelaySettings final
 	{
 		std::chrono::seconds ConnectTimeout{ 60 };					// Maximum number of seconds to wait for a relay link to be established
 		std::chrono::seconds GracePeriod{ 60 };						// Number of seconds after a relay is closed to still silently accept messages for that relay link
@@ -42,7 +42,7 @@ namespace QuantumGate::Implementation
 		} IPConnectionAttempts;
 	};
 
-	struct LocalAlgorithms
+	struct LocalAlgorithms final
 	{
 		Vector<Algorithm::Hash> Hash;
 		Vector<Algorithm::Asymmetric> PrimaryAsymmetric;
@@ -51,7 +51,7 @@ namespace QuantumGate::Implementation
 		Vector<Algorithm::Compression> Compression;
 	};
 
-	struct LocalSettings
+	struct LocalSettings final
 	{
 		PeerUUID UUID;														// The UUID of the local peer
 		PeerKeys Keys;														// The private and public keys for the local peer
@@ -94,7 +94,7 @@ namespace QuantumGate::Implementation
 		} Concurrency;
 	};
 
-	struct Settings
+	struct Settings final
 	{
 		LocalSettings Local;
 		MessageSettings Message;

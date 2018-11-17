@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Core
 {
-	class MessageDetails
+	class MessageDetails final
 	{
 	public:
 		MessageDetails(const MessageType type, const ExtenderUUID& extuuid, Buffer&& msgdata) noexcept :
@@ -16,7 +16,7 @@ namespace QuantumGate::Implementation::Core
 
 		MessageDetails(const MessageDetails&) = delete;
 		MessageDetails(MessageDetails&&) = default;
-		virtual ~MessageDetails() = default;
+		~MessageDetails() = default;
 		MessageDetails& operator=(const MessageDetails&) = delete;
 		MessageDetails& operator=(MessageDetails&&) = default;
 

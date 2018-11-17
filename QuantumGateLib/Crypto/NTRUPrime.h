@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Crypto
 {
-	class NTRUPrime
+	class NTRUPrime final
 	{
 	private:
 		NTRUPrime() = default;

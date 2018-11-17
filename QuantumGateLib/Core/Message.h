@@ -21,7 +21,7 @@ namespace QuantumGate::Implementation::Core
 		Compressed = 0b00001000,
 	};
 
-	struct MessageOptions
+	struct MessageOptions final
 	{
 	public:
 		MessageOptions(const MessageType type, Buffer&& msgdata, const bool compress = true,
@@ -46,15 +46,15 @@ namespace QuantumGate::Implementation::Core
 		MessageFragmentType Fragment{ MessageFragmentType::Complete };
 	};
 
-	class Message
+	class Message final
 	{
-		class Header
+		class Header final
 		{
 		public:
 			Header() noexcept {}
 			Header(const Header&) = default;
 			Header(Header&&) = default;
-			virtual ~Header() = default;
+			~Header() = default;
 			Header& operator=(const Header&) = default;
 			Header& operator=(Header&&) = default;
 
@@ -124,7 +124,7 @@ namespace QuantumGate::Implementation::Core
 		Message(const MessageOptions& msgopt) noexcept;
 		Message(const Message&) = delete;
 		Message(Message&&) = default;
-		virtual ~Message() = default;
+		~Message() = default;
 		Message& operator=(const Message&) = delete;
 		Message& operator=(Message&&) = default;
 

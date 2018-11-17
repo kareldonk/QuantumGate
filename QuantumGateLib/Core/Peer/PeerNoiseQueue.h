@@ -8,7 +8,7 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	class NoiseQueue
+	class NoiseQueue final
 	{
 		using NoiseItemQueue = Concurrency::PriorityQueue<NoiseItem, decltype(&NoiseItem::Compare)>;
 

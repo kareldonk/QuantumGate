@@ -10,7 +10,7 @@
 
 namespace QuantumGate::Implementation
 {
-	class Hash
+	class Hash final
 	{
 	private:
 		Hash() = default;

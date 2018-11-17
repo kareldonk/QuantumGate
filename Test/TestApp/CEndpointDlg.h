@@ -5,11 +5,11 @@
 
 #include "CDialogBase.h"
 
-class CEndpointDlg : public CDialogBase
+class CEndpointDlg final : public CDialogBase
 {
 public:
 	CEndpointDlg(CWnd* pParent = NULL);
-	~CEndpointDlg();
+	virtual ~CEndpointDlg();
 
 	enum { IDD = IDD_ENDPOINT_DLG };
 

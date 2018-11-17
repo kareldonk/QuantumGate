@@ -7,7 +7,7 @@
 
 using namespace QuantumGate;
 
-class Benchmarks
+class Benchmarks final
 {
 private:
 	Benchmarks() = default;

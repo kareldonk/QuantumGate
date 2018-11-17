@@ -16,7 +16,7 @@ namespace QuantumGate::API
 	class Export Local
 	{
 	public:
-		class Export Environment
+		class Export Environment final
 		{
 			friend class Local;
 

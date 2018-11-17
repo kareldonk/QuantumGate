@@ -10,7 +10,7 @@
 #include <iostream>
 
 // Our custom console class needs to inherit from QuantumGate::Console::Output
-class TestConsole : public QuantumGate::Console::Output
+class TestConsole final : public QuantumGate::Console::Output
 {
 public:
 	TestConsole()

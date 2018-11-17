@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Crypto
 	// One static thread_local OpenSSLSymmetric object will manage
 	// resources for encryption/decryption for efficiency (not
 	// having to allocate context memory constantly)
-	class OpenSSLSymmetric
+	class OpenSSLSymmetric final
 	{
 	private:
 		OpenSSLSymmetric() noexcept

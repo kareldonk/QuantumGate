@@ -5,11 +5,11 @@
 
 #include "CDialogBase.h"
 
-class CIPFiltersDlg : public CDialogBase
+class CIPFiltersDlg final : public CDialogBase
 {
 public:
 	CIPFiltersDlg(CWnd* pParent = NULL);
-	~CIPFiltersDlg();
+	virtual ~CIPFiltersDlg();
 
 	enum { IDD = IDD_IPFILTERS };
 

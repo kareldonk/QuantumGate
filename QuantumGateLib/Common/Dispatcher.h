@@ -9,7 +9,7 @@
 namespace QuantumGate::Implementation
 {
 	template<typename Sig>
-	class Dispatcher
+	class Dispatcher final
 	{
 	public:
 		using FunctionType = Callback<Sig>;

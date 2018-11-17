@@ -14,7 +14,7 @@ namespace QuantumGate::Implementation::Memory
 		BufferReader(const BufferView& buffer, const bool network_byteorder = false) noexcept;
 		BufferReader(const BufferReader&) = delete;
 		BufferReader(BufferReader&&) = default;
-		~BufferReader() = default;
+		virtual ~BufferReader() = default;
 		BufferReader& operator=(const BufferReader&) = delete;
 		BufferReader& operator=(BufferReader&&) = default;
 

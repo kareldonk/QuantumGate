@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation
 {
-	class Export UUID
+	class Export UUID final
 	{
 		friend struct SerializedUUID;
 
@@ -244,7 +244,7 @@ namespace QuantumGate::Implementation
 	};
 
 #pragma pack(push, 1) // Disable padding bytes
-	struct SerializedUUID
+	struct SerializedUUID final
 	{
 		UInt32 Data1{ 0 };
 		UInt16 Data2{ 0 };

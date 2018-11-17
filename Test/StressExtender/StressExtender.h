@@ -17,7 +17,7 @@ namespace StressExtender
 		BenchmarkEnd
 	};
 
-	struct ExceptionTest
+	struct ExceptionTest final
 	{
 		bool Startup{ false };
 		bool PostStartup{ false };

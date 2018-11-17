@@ -28,14 +28,14 @@ namespace QuantumGate::Implementation::Core::Relay
 		using LinkMap = std::unordered_map<RelayPort, std::unique_ptr<Link_ThS>>;
 		using LinkMap_ThS = Concurrency::ThreadSafe<LinkMap, std::shared_mutex>;
 
-		struct ThreadData
+		struct ThreadData final
 		{
 			ThreadData(const ThreadKey thread_key) noexcept : ThreadKey(thread_key) {}
 
 			ThreadKey ThreadKey{ 0 };
 		};
 
-		struct ThreadPoolData
+		struct ThreadPoolData final
 		{
 			RelayPortToThreadKeyMap_ThS RelayPortToThreadKeys;
 			ThreadKeyToLinkTotalMap_ThS ThreadKeyToLinkTotals;

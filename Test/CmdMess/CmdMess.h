@@ -11,11 +11,11 @@
 using namespace QuantumGate;
 using namespace std;
 
-class CmdConsole : public QuantumGate::Console::TerminalOutput
+class CmdConsole final : public QuantumGate::Console::TerminalOutput
 {
 public:
 	CmdConsole() {}
-	~CmdConsole() {}
+	virtual ~CmdConsole() {}
 
 	void AddMessage(const QuantumGate::Console::MessageType type,
 					const QuantumGate::StringView message) override

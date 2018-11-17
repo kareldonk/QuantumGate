@@ -16,7 +16,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 	class Control final
 	{
-		struct Peer
+		struct Peer final
 		{
 			enum class Status { Unknown, Connected, Disconnected };
 
@@ -55,7 +55,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		using Queue = Concurrency::Queue<std::shared_ptr<Peer_ThS>>;
 		using Queue_ThS = Concurrency::ThreadSafe<Queue, Concurrency::SpinMutex>;
 
-		struct ThreadPoolData
+		struct ThreadPoolData final
 		{
 			Queue_ThS Queue;
 			std::atomic<Size> PeerCount{ 0 };

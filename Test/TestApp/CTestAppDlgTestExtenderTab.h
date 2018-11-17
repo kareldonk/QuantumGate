@@ -10,7 +10,7 @@
 
 #define EXTENDER_PEER_ACTIVITY_TIMER	5
 
-class CTestAppDlgTestExtenderTab : public CDialogBase
+class CTestAppDlgTestExtenderTab final : public CDialogBase
 {
 	DECLARE_DYNAMIC(CTestAppDlgTestExtenderTab)
 
