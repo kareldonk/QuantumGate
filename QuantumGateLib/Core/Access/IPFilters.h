@@ -27,7 +27,7 @@ namespace QuantumGate::Implementation::Core::Access
 	public:
 		IPFilters() noexcept {}
 		IPFilters(const IPFilters&) = delete;
-		IPFilters(IPFilters&&) = default;
+		IPFilters(IPFilters&&) noexcept = default;
 		~IPFilters() = default;
 		IPFilters& operator=(const IPFilters&) = delete;
 		IPFilters& operator=(IPFilters&&) = default;

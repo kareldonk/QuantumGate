@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Core::Access
 		[[nodiscard]] const bool AddConnectionAttempt(ConnectionAttempts& attempts, const std::chrono::seconds interval,
 													  const Size max_attempts) noexcept;
 
-		[[nodiscard]] inline static const bool IsAcceptableReputation(const Int16 score) noexcept { return (score > IPReputation::ScoreLimits::Base); }
+		[[nodiscard]] inline static constexpr const bool IsAcceptableReputation(const Int16 score) noexcept { return (score > IPReputation::ScoreLimits::Base); }
 
 	private:
 		void ImproveReputation(const std::chrono::seconds interval) noexcept;

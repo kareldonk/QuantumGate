@@ -36,7 +36,7 @@ namespace QuantumGate::Implementation::Core
 		{}
 
 	private:
-		inline static ExtenderUUID DefaultExtenderUUID{ L"00000000-0000-0900-0600-000000000000" };
+		inline static constexpr ExtenderUUID DefaultExtenderUUID{ 0x0, 0x0, 0x0900, 0x0600000000000000 }; // "00000000-0000-0900-0600-000000000000"
 
 	public:
 		MessageType MessageType{ MessageType::Unknown };
@@ -75,7 +75,7 @@ namespace QuantumGate::Implementation::Core
 			Size GetSize() noexcept;
 
 			[[nodiscard]] const bool Read(const BufferView& buffer);
-			[[nodiscard]] const bool Write(Buffer& buffer) const;
+			[[nodiscard]] const bool Write(Buffer& buffer) const noexcept;
 
 			[[nodiscard]] inline const bool IsCompressed() const noexcept
 			{

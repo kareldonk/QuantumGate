@@ -44,7 +44,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool MessageTransport::OHeader::Write(Buffer& buffer) const
+	const bool MessageTransport::OHeader::Write(Buffer& buffer) const noexcept
 	{
 		const auto size = ObfuscateMessageDataSize(m_MessageDataSizeSettings, m_MessageRandomBits, m_MessageDataSize);
 

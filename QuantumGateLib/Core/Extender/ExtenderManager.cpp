@@ -64,7 +64,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				{
 					auto startup = false;
 
-					e.second->WithSharedLock([&](const Control& extctrl)
+					e.second->WithSharedLock([&](const Control& extctrl) noexcept
 					{
 						assert(extctrl.GetStatus() == Control::Status::Stopped);
 
@@ -89,11 +89,11 @@ namespace QuantumGate::Implementation::Core::Extender
 				m_ExtenderUpdateCallbacks.WithUniqueLock()(startupext_list, true);
 			}
 
-			m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
+			m_Extenders.WithUniqueLock([&](ExtenderMap& extenders) noexcept
 			{
 				for (const auto& e : extenders)
 				{
-					e.second->WithUniqueLock([&](Control& extctrl)
+					e.second->WithUniqueLock([&](Control& extctrl) noexcept
 					{
 						if (extctrl.HasExtender() &&
 							extctrl.GetStatus() == Control::Status::Running)
@@ -129,7 +129,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				{
 					auto shutdown = false;
 
-					e.second->WithSharedLock([&](const Control& extctrl)
+					e.second->WithSharedLock([&](const Control& extctrl) noexcept
 					{
 						if (extctrl.HasExtender() && extctrl.GetStatus() != Control::Status::Stopped)
 						{
@@ -170,12 +170,12 @@ namespace QuantumGate::Implementation::Core::Extender
 		auto result_code = ResultCode::Failed;
 		Control_ThS* extctrl_ths{ nullptr };
 
-		m_Extenders.WithUniqueLock([&](const ExtenderMap& extenders)
+		m_Extenders.WithUniqueLock([&](const ExtenderMap& extenders) noexcept
 		{
 			if (const auto it = extenders.find(extender->GetUUID()); it != extenders.end())
 			{
 				extctrl_ths = it->second.get();
-				extctrl_ths->WithUniqueLock([&](Control& extctrl)
+				extctrl_ths->WithUniqueLock([&](Control& extctrl) noexcept
 				{
 					if (extctrl.HasExtender())
 					{
@@ -312,7 +312,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		{
 			if (update_active)
 			{
-				m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
+				m_Extenders.WithUniqueLock([&](ExtenderMap& extenders) noexcept
 				{
 					// Needs to be done before calling update callbacks
 					UpdateActiveExtenderUUIDs(extenders);
@@ -413,7 +413,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		{
 			if (update_active)
 			{
-				m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
+				m_Extenders.WithUniqueLock([&](ExtenderMap& extenders) noexcept
 				{
 					// Needs to be done before calling update callbacks
 					UpdateActiveExtenderUUIDs(extenders);
@@ -573,11 +573,11 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		std::weak_ptr<QuantumGate::API::Extender> retval;
 
-		m_Extenders.WithSharedLock([&](const ExtenderMap& extenders)
+		m_Extenders.WithSharedLock([&](const ExtenderMap& extenders) noexcept
 		{
 			if (const auto it = extenders.find(extuuid); it != extenders.end())
 			{
-				it->second->WithSharedLock([&](const Control& extctrl)
+				it->second->WithSharedLock([&](const Control& extctrl) noexcept
 				{
 					auto& extender = extctrl.GetAPIExtender();
 					if (extender != nullptr)

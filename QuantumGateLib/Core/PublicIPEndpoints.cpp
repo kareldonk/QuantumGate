@@ -538,7 +538,7 @@ namespace QuantumGate::Implementation::Core
 					if (AddReportingNetwork(network, trusted))
 					{
 						// Upon failure to add the public IP address details remove the network
-						auto sg = MakeScopeGuard([&] { RemoveReportingNetwork(network); });
+						auto sg = MakeScopeGuard([&]() noexcept { RemoveReportingNetwork(network); });
 
 						auto ipendpoints = m_IPEndpoints.WithUniqueLock();
 
@@ -678,7 +678,7 @@ namespace QuantumGate::Implementation::Core
 					return (a.LastUpdateSteadyTime < b.LastUpdateSteadyTime);
 				});
 
-				DbgInvoke([&]()
+				DbgInvoke([&]() noexcept
 				{
 					Dbg(L"\r\nSorted IPEndpointDetails:");
 

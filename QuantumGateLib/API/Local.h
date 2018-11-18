@@ -24,7 +24,7 @@ namespace QuantumGate::API
 			Environment() = delete;
 			Environment(const Environment&) = delete;
 			Environment(Environment&&) = default;
-			virtual ~Environment() = default;
+			~Environment() = default;
 			Environment& operator=(const Environment&) = delete;
 			Environment& operator=(Environment&&) = default;
 

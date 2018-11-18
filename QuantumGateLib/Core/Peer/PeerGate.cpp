@@ -6,7 +6,7 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	Gate::Gate(const GateType type)
+	Gate::Gate(const GateType type) noexcept
 	{
 		switch (type)
 		{

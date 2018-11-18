@@ -76,13 +76,13 @@ namespace QuantumGate::Implementation::Crypto
 				if (key != nullptr)
 				{
 					// Release key when we exit
-					const auto sg1 = MakeScopeGuard([&] { EVP_PKEY_free(key); });
+					const auto sg1 = MakeScopeGuard([&]() noexcept { EVP_PKEY_free(key); });
 
 					auto ctx = EVP_MD_CTX_new();
 					if (ctx != nullptr)
 					{
 						// Release ctx when we exit
-						const auto sg2 = MakeScopeGuard([&] { EVP_MD_CTX_free(ctx); });
+						const auto sg2 = MakeScopeGuard([&]() noexcept { EVP_MD_CTX_free(ctx); });
 
 						if (EVP_DigestSignInit(ctx, nullptr, nullptr, nullptr, key) == 1)
 						{
@@ -143,13 +143,13 @@ namespace QuantumGate::Implementation::Crypto
 				if (key != nullptr)
 				{
 					// Release key when we exit
-					const auto sg1 = MakeScopeGuard([&] { EVP_PKEY_free(key); });
+					const auto sg1 = MakeScopeGuard([&]() noexcept { EVP_PKEY_free(key); });
 
 					auto ctx = EVP_MD_CTX_new();
 					if (ctx != nullptr)
 					{
 						// Release ctx when we exit
-						const auto sg2 = MakeScopeGuard([&] { EVP_MD_CTX_free(ctx); });
+						const auto sg2 = MakeScopeGuard([&]() noexcept { EVP_MD_CTX_free(ctx); });
 
 						if (EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, key) == 1)
 						{
@@ -179,20 +179,20 @@ namespace QuantumGate::Implementation::Crypto
 				BIO_set_close(buff, BIO_CLOSE);
 
 				// Release buff when we exit
-				const auto sg1 = MakeScopeGuard([&] { BIO_free_all(buff); });
+				const auto sg1 = MakeScopeGuard([&]() noexcept { BIO_free_all(buff); });
 
 				EVP_PKEY* key{ nullptr };
 
 				if (PEM_read_bio_PrivateKey(buff, &key, nullptr, nullptr) != nullptr)
 				{
 					// Release key when we exit
-					const auto sg2 = MakeScopeGuard([&] { EVP_PKEY_free(key); });
+					const auto sg2 = MakeScopeGuard([&]() noexcept { EVP_PKEY_free(key); });
 
 					auto ctx = EVP_MD_CTX_new();
 					if (ctx != nullptr)
 					{
 						// Release ctx when we exit
-						const auto sg3 = MakeScopeGuard([&] { EVP_MD_CTX_free(ctx); });
+						const auto sg3 = MakeScopeGuard([&]() noexcept { EVP_MD_CTX_free(ctx); });
 
 						if (EVP_DigestSignInit(ctx, nullptr, nullptr, nullptr, key) == 1)
 						{
@@ -237,20 +237,20 @@ namespace QuantumGate::Implementation::Crypto
 				BIO_set_close(buff, BIO_CLOSE);
 
 				// Release buff when we exit
-				const auto sg1 = MakeScopeGuard([&] { BIO_free_all(buff); });
+				const auto sg1 = MakeScopeGuard([&]() noexcept { BIO_free_all(buff); });
 
 				EVP_PKEY* key{ nullptr };
 
 				if (PEM_read_bio_PUBKEY(buff, &key, nullptr, nullptr) != nullptr)
 				{
 					// Release key when we exit
-					const auto sg2 = MakeScopeGuard([&] { EVP_PKEY_free(key); });
+					const auto sg2 = MakeScopeGuard([&]() noexcept { EVP_PKEY_free(key); });
 
 					auto ctx = EVP_MD_CTX_new();
 					if (ctx != nullptr)
 					{
 						// Release ctx when we exit
-						const auto sg3 = MakeScopeGuard([&] { EVP_MD_CTX_free(ctx); });
+						const auto sg3 = MakeScopeGuard([&]() noexcept { EVP_MD_CTX_free(ctx); });
 
 						if (EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, key) == 1)
 						{

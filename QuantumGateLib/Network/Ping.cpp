@@ -73,7 +73,7 @@ namespace QuantumGate::Implementation::Network
 			if (icmp_handle != INVALID_HANDLE_VALUE)
 			{
 				// Cleanup when we leave
-				auto sg = MakeScopeGuard([&] { IcmpCloseHandle(icmp_handle); });
+				auto sg = MakeScopeGuard([&]() noexcept { IcmpCloseHandle(icmp_handle); });
 
 				IP_OPTION_INFORMATION ip_opts{ 0 };
 				ip_opts.Ttl = static_cast<UCHAR>(m_TTL.count());
@@ -213,7 +213,7 @@ namespace QuantumGate::Implementation::Network
 			icmp_hdr.Header.Code = 0;
 			icmp_hdr.Header.Checksum = 0;
 
-			UInt64 num = Random::GetPseudoRandomNumber();
+			const UInt64 num = Random::GetPseudoRandomNumber();
 			icmp_hdr.Identifier = static_cast<UInt16>(num);
 			icmp_hdr.SequenceNumber = static_cast<UInt16>(num >> 32);
 
@@ -230,11 +230,11 @@ namespace QuantumGate::Implementation::Network
 
 			if (socket.SendTo(IPEndpoint(m_DestinationIPAddress, 0), icmp_msg) && icmp_msg.IsEmpty())
 			{
-				auto snd_steady_time = Util::GetCurrentSteadyTime();
+				const auto snd_steady_time = Util::GetCurrentSteadyTime();
 
 				if (socket.UpdateIOStatus(m_Timeout, Socket::IOStatus::Update::Read | Socket::IOStatus::Update::Exception))
 				{
-					auto rcv_steady_time = Util::GetCurrentSteadyTime();
+					const auto rcv_steady_time = Util::GetCurrentSteadyTime();
 
 					if (socket.GetIOStatus().CanRead())
 					{

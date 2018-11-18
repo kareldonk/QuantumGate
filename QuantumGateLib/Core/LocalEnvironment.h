@@ -71,7 +71,7 @@ namespace QuantumGate::Implementation::Core
 
 		ChangedCallback_ThS m_ChangedCallback;
 
-		HANDLE m_IPInterfaceChangeNotificationHandle{ NULL };
+		HANDLE m_IPInterfaceChangeNotificationHandle{ nullptr };
 
 		String m_Hostname;
 		String m_Username;

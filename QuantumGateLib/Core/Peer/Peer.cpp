@@ -25,7 +25,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			GetSocket<Relay::Socket>().SetRelays(&GetPeerManager().GetRelayManager());
 		}
 
-		m_PeerData.WithUniqueLock([&](Data& peer_data)
+		m_PeerData.WithUniqueLock([&](Data& peer_data) noexcept
 		{
 			peer_data.Type = pctype;
 			peer_data.IsRelayed = (GetGateType() == GateType::RelaySocket);
@@ -40,7 +40,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		if (shared_secret) m_GlobalSharedSecret = std::move(shared_secret);
 
-		m_PeerData.WithUniqueLock([&](Data& peer_data)
+		m_PeerData.WithUniqueLock([&](Data& peer_data) noexcept
 		{
 			peer_data.Type = pctype;
 			peer_data.IsUsingGlobalSharedSecret = !GetGlobalSharedSecret().IsEmpty();
@@ -1453,7 +1453,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		if (Gate::OnConnect())
 		{
-			m_PeerData.WithUniqueLock([&](Data& peer_data)
+			m_PeerData.WithUniqueLock([&](Data& peer_data) noexcept
 			{
 				peer_data.Cached.ConnectedSteadyTime = GetConnectedSteadyTime();
 

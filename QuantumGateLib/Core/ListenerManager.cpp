@@ -175,9 +175,9 @@ namespace QuantumGate::Implementation::Core::Listener
 
 	std::optional<Manager::ThreadPool::Thread> Manager::RemoveListenerThread(Manager::ThreadPool::Thread&& thread) noexcept
 	{
-		IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
+		const IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
 
-		auto[success, next_thread] = m_ListenerThreadPool.RemoveThread(std::move(thread));
+		const auto[success, next_thread] = m_ListenerThreadPool.RemoveThread(std::move(thread));
 		if (success)
 		{
 			LogSys(L"Stopped listening on endpoint %s", endpoint.GetString().c_str());

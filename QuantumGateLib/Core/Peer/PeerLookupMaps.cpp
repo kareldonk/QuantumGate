@@ -292,7 +292,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	const bool LookupMaps::HasIPPort(const UInt64 hash, const Vector<IPEndpoint>& endpoints) noexcept
 	{
 		const auto it = std::find_if(endpoints.begin(), endpoints.end(),
-									 [&](const IPEndpoint& endpoint)
+									 [&](const IPEndpoint& endpoint) noexcept
 		{
 			return (GetIPPortHash(endpoint) == hash);
 		});

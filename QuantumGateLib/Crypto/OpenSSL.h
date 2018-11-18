@@ -39,7 +39,7 @@ namespace QuantumGate::Implementation::Crypto
 				if (context != nullptr)
 				{
 					// Release context when we exit
-					const auto sg = MakeScopeGuard([&] { EVP_MD_CTX_destroy(context); });
+					const auto sg = MakeScopeGuard([&]() noexcept { EVP_MD_CTX_destroy(context); });
 
 					const EVP_MD* md = nullptr;
 
@@ -141,7 +141,7 @@ namespace QuantumGate::Implementation::Crypto
 				if (pctx != nullptr)
 				{
 					// Release pctx when we exit
-					const auto sg = MakeScopeGuard([&] { EVP_PKEY_CTX_free(pctx); });
+					const auto sg = MakeScopeGuard([&]() noexcept { EVP_PKEY_CTX_free(pctx); });
 
 					const EVP_MD* md{ nullptr };
 
@@ -297,7 +297,7 @@ namespace QuantumGate::Implementation::Crypto
 				BIO_set_close(buff, BIO_CLOSE);
 
 				// Release buff when we exit
-				const auto sg = MakeScopeGuard([&] { BIO_free_all(buff); });
+				const auto sg = MakeScopeGuard([&]() noexcept { BIO_free_all(buff); });
 
 				if (PEM_write_bio_PUBKEY(buff, key) == 1)
 				{
@@ -332,7 +332,7 @@ namespace QuantumGate::Implementation::Crypto
 				BIO_set_close(buff, BIO_CLOSE);
 
 				// Release buff when we exit
-				const auto sg = MakeScopeGuard([&] { BIO_free_all(buff); });
+				const auto sg = MakeScopeGuard([&]() noexcept { BIO_free_all(buff); });
 
 				if (PEM_write_bio_PrivateKey(buff, key, nullptr,
 											 nullptr, 0, nullptr, nullptr) == 1)
@@ -380,7 +380,7 @@ namespace QuantumGate::Implementation::Crypto
 			if (pctx != nullptr)
 			{
 				// Release pctx when we exit
-				const auto sg1 = MakeScopeGuard([&] { EVP_PKEY_CTX_free(pctx); });
+				const auto sg1 = MakeScopeGuard([&]() noexcept { EVP_PKEY_CTX_free(pctx); });
 
 				// Initialise the parameter generation
 				if (EVP_PKEY_paramgen_init(pctx) == 1 && EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, nid) == 1)
@@ -391,14 +391,14 @@ namespace QuantumGate::Implementation::Crypto
 					if (EVP_PKEY_paramgen(pctx, &params))
 					{
 						// Release params when we exit
-						const auto sg2 = MakeScopeGuard([&] { EVP_PKEY_free(params); });
+						const auto sg2 = MakeScopeGuard([&]() noexcept { EVP_PKEY_free(params); });
 
 						// Create the context for the key generation
 						auto kctx = EVP_PKEY_CTX_new(params, nullptr);
 						if (kctx != nullptr)
 						{
 							// Release kctx when we exit
-							const auto sg3 = MakeScopeGuard([&] { EVP_PKEY_CTX_free(kctx); });
+							const auto sg3 = MakeScopeGuard([&]() noexcept { EVP_PKEY_CTX_free(kctx); });
 
 							EVP_PKEY* key{ nullptr };
 
@@ -456,7 +456,7 @@ namespace QuantumGate::Implementation::Crypto
 			if (pctx != nullptr)
 			{
 				// Release pctx when we exit
-				const auto sg = MakeScopeGuard([&] { EVP_PKEY_CTX_free(pctx); });
+				const auto sg = MakeScopeGuard([&]() noexcept { EVP_PKEY_CTX_free(pctx); });
 
 				EVP_PKEY* key{ nullptr };
 
@@ -494,7 +494,7 @@ namespace QuantumGate::Implementation::Crypto
 				if (ctx != nullptr)
 				{
 					// Release ctx when we exit
-					const auto sg1 = MakeScopeGuard([&] { EVP_PKEY_CTX_free(ctx); });
+					const auto sg1 = MakeScopeGuard([&]() noexcept { EVP_PKEY_CTX_free(ctx); });
 
 					// Initialize
 					if (EVP_PKEY_derive_init(ctx) == 1)
@@ -504,14 +504,14 @@ namespace QuantumGate::Implementation::Crypto
 						BIO_set_close(buff, BIO_CLOSE);
 
 						// Release buff when we exit
-						const auto sg2 = MakeScopeGuard([&] { BIO_free_all(buff); });
+						const auto sg2 = MakeScopeGuard([&]() noexcept { BIO_free_all(buff); });
 
 						EVP_PKEY* peerkey{ nullptr };
 
 						if (PEM_read_bio_PUBKEY(buff, &peerkey, nullptr, nullptr) != nullptr)
 						{
 							// Release peerkey when we exit
-							const auto sg3 = MakeScopeGuard([&] { EVP_PKEY_free(peerkey); });
+							const auto sg3 = MakeScopeGuard([&]() noexcept { EVP_PKEY_free(peerkey); });
 
 							// Provide the peer public key
 							if (EVP_PKEY_derive_set_peer(ctx, peerkey))
@@ -572,7 +572,7 @@ namespace QuantumGate::Implementation::Crypto
 				if (ctx != nullptr)
 				{
 					// Release ctx when we exit
-					const auto sg1 = MakeScopeGuard([&] { EVP_PKEY_CTX_free(ctx); });
+					const auto sg1 = MakeScopeGuard([&]() noexcept { EVP_PKEY_CTX_free(ctx); });
 
 					// Initialize
 					if (EVP_PKEY_derive_init(ctx) == 1)
@@ -583,7 +583,7 @@ namespace QuantumGate::Implementation::Crypto
 						if (peerkey != nullptr)
 						{
 							// Release peerkey when we exit
-							const auto sg2 = MakeScopeGuard([&] { EVP_PKEY_free(peerkey); });
+							const auto sg2 = MakeScopeGuard([&]() noexcept { EVP_PKEY_free(peerkey); });
 
 							// Provide the peer public key
 							if (EVP_PKEY_derive_set_peer(ctx, peerkey))

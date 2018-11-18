@@ -205,7 +205,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				else break;
 			}
 
-			peerctrl->WithUniqueLock([&](Peer& peer)
+			peerctrl->WithUniqueLock([&](Peer& peer) noexcept
 			{
 				// If we still have peer events or, messages while the peer is
 				// still connected, then add it back into the queue and we'll come 

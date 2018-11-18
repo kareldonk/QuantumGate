@@ -7,7 +7,7 @@
 
 namespace QuantumGate::API
 {
-	Extender::Extender(const ExtenderUUID& uuid, const String& name) noexcept
+	Extender::Extender(const ExtenderUUID& uuid, const String& name)
 	{
 		m_Extender = std::make_shared<QuantumGate::Implementation::Core::Extender::Extender>(uuid, name);
 	}

@@ -38,7 +38,7 @@ namespace QuantumGate::Implementation::Core
 			void Initialize() noexcept;
 
 			[[nodiscard]] const bool Read(const BufferView& buffer);
-			[[nodiscard]] const bool Write(Buffer& buffer) const;
+			[[nodiscard]] const bool Write(Buffer& buffer) const noexcept;
 
 			static constexpr Size GetSize() noexcept
 			{

@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Network::BinaryIPAddress SubnetMask;  // Network byte order (big endian)
 		Size MaximumConnections{ 0 };
 
-		inline static const bool Compare(const UInt8 key1, const UInt8 key2) noexcept
+		inline static constexpr const bool Compare(const UInt8 key1, const UInt8 key2) noexcept
 		{
 			return (key1 > key2);
 		}
@@ -64,7 +64,7 @@ namespace QuantumGate::Implementation::Core::Access
 	public:
 		IPSubnetLimits() = default;
 		IPSubnetLimits(const IPSubnetLimits&) = delete;
-		IPSubnetLimits(IPSubnetLimits&&) = default;
+		IPSubnetLimits(IPSubnetLimits&&) noexcept = default;
 		~IPSubnetLimits() = default;
 		IPSubnetLimits& operator=(const IPSubnetLimits&) = delete;
 		IPSubnetLimits& operator=(IPSubnetLimits&&) = default;

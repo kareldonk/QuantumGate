@@ -147,7 +147,7 @@ namespace QuantumGate::Implementation::Core
 			if (ret == 0)
 			{
 				// Free resources when we return
-				auto sg = MakeScopeGuard([&] { FreeAddrInfoW(result); });
+				auto sg = MakeScopeGuard([&]() noexcept { FreeAddrInfoW(result); });
 
 				Vector<BinaryIPAddress> alladdr;
 

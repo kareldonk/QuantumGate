@@ -196,7 +196,7 @@ namespace QuantumGate::Implementation::Util
 				auto buff = BIO_new(BIO_s_mem());
 
 				// When we leave release bio
-				auto sg = MakeScopeGuard([&] { BIO_free_all(buff); });
+				auto sg = MakeScopeGuard([&]() noexcept { BIO_free_all(buff); });
 
 				buff = BIO_push(b64f, buff);
 
@@ -273,7 +273,7 @@ namespace QuantumGate::Implementation::Util
 			auto buff = BIO_new_mem_buf(b64.c_str(), static_cast<int>(b64.size()));
 
 			// When we leave release bio
-			auto sg = MakeScopeGuard([&] { BIO_free_all(buff); });
+			auto sg = MakeScopeGuard([&]() noexcept { BIO_free_all(buff); });
 
 			buff = BIO_push(b64f, buff);
 

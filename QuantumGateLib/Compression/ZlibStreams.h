@@ -121,7 +121,7 @@ namespace QuantumGate::Implementation::Compression
 			if (ret == Z_OK)
 			{
 				// End zstream when we exit
-				const auto sg = MakeScopeGuard([&] { deflateEnd(&zstream); });
+				const auto sg = MakeScopeGuard([&]() noexcept { deflateEnd(&zstream); });
 
 				const uInt max = (uInt)-1;
 				auto left = outlen;
@@ -178,7 +178,7 @@ namespace QuantumGate::Implementation::Compression
 			if (ret == Z_OK)
 			{
 				// End zstream when we exit
-				const auto sg = MakeScopeGuard([&] { inflateEnd(&zstream); });
+				const auto sg = MakeScopeGuard([&]() noexcept { inflateEnd(&zstream); });
 
 				const uInt max = (uInt)-1;
 				Byte buf{ 0 };

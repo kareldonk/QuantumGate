@@ -111,7 +111,7 @@ namespace QuantumGate::Implementation::Crypto
 									if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG,
 															static_cast<int>(taglen), encrbuf.GetBytes()) == 1)
 									{
-										DbgInvoke([&]()
+										DbgInvoke([&]() noexcept
 										{
 											const auto tag = BufferView(encrbuf).GetFirst(taglen);
 
@@ -190,7 +190,7 @@ namespace QuantumGate::Implementation::Crypto
 							{
 								declen = len;
 
-								DbgInvoke([&]()
+								DbgInvoke([&]() noexcept
 								{
 									const auto tag = BufferView(encrbuf).GetFirst(taglen);
 

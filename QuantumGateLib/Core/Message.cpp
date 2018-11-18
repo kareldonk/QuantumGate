@@ -93,7 +93,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool Message::Header::Write(Buffer& buffer) const
+	const bool Message::Header::Write(Buffer& buffer) const noexcept
 	{
 		// First 4 bytes are a combination of message size and type
 		// stored in little endian format:

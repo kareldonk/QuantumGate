@@ -179,12 +179,18 @@ namespace QuantumGate::Implementation
 	{
 		static_assert(sizeof(UUID) == 16, "UUID size mismatch; expecting 16 bytes");
 
-		auto buffer = Random::GetPseudoRandomBytes(sizeof(UUID));
+		try
+		{
+			const auto buffer = Random::GetPseudoRandomBytes(sizeof(UUID));
 
-		// Fill member data with random bytes
-		memcpy(this, buffer.GetBytes(), sizeof(UUID));
+			// Fill member data with random bytes
+			memcpy(this, buffer.GetBytes(), sizeof(UUID));
 
-		return true;
+			return true;
+		}
+		catch (...) {}
+
+		return false;
 	}
 
 	void UUID::Set(const WChar* uuid)

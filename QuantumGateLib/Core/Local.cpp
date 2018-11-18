@@ -22,7 +22,7 @@ namespace QuantumGate::Implementation::Core
 		}
 
 		// Upon failure shut down winsock
-		auto sg = MakeScopeGuard([&] { WSACleanup(); });
+		auto sg = MakeScopeGuard([]() noexcept { WSACleanup(); });
 
 		// Initialize security settings
 		SetSecurityLevel(SecurityLevel::One, std::nullopt, true).Failed([]()
@@ -45,7 +45,7 @@ namespace QuantumGate::Implementation::Core
 		}
 
 		// May have been initialized before Startup() or after Shutdown()
-		m_LocalEnvironment.WithUniqueLock([](auto& local_env)
+		m_LocalEnvironment.WithUniqueLock([](auto& local_env) noexcept
 		{
 			if (local_env.IsInitialized()) local_env.Deinitialize();
 		});
@@ -897,7 +897,7 @@ namespace QuantumGate::Implementation::Core
 			Result<ConnectDetails> final_result{ ResultCode::Failed };
 
 			const auto result = m_PeerManager.ConnectTo(std::move(params),
-														[&](PeerLUID pluid, Result<ConnectDetails> connect_result) mutable
+														[&](PeerLUID pluid, Result<ConnectDetails> connect_result) mutable noexcept
 			{
 				final_result = std::move(connect_result);
 
@@ -956,7 +956,7 @@ namespace QuantumGate::Implementation::Core
 
 			// Initiate disconnect from peer
 			auto result = m_PeerManager.DisconnectFrom(pluid,
-													   [&](PeerLUID pluid, PeerUUID puuid) mutable
+													   [&](PeerLUID pluid, PeerUUID puuid) mutable noexcept
 			{
 				cevent.Set();
 			});

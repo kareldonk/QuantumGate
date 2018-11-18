@@ -9,6 +9,7 @@ namespace QuantumGate::API
 {
 	PeerEvent::PeerEvent(QuantumGate::Implementation::Core::Peer::Event&& event) noexcept
 	{
+		// TODO: may throw
 		m_PeerEvent = new QuantumGate::Implementation::Core::Peer::Event(std::move(event));
 	}
 

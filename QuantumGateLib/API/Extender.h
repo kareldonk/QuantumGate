@@ -61,7 +61,7 @@ namespace QuantumGate::API
 		Result<> SetPeerMessageCallback(ExtenderPeerMessageCallback&& function) noexcept;
 
 	protected:
-		Extender(const ExtenderUUID& uuid, const String& name) noexcept;
+		Extender(const ExtenderUUID& uuid, const String& name);
 
 	private:
 		std::shared_ptr<QuantumGate::Implementation::Core::Extender::Extender> m_Extender{ nullptr };

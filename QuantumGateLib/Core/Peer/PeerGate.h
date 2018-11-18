@@ -20,7 +20,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	class Gate
 	{
 	public:
-		Gate(const GateType type);
+		Gate(const GateType type) noexcept;
 		Gate(const IP::AddressFamily af, const Socket::Type type, const IP::Protocol protocol);
 		Gate(const Gate&) = delete;
 		Gate(Gate&&) = default;

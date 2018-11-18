@@ -285,7 +285,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				for (auto it = peers.begin(); it != peers.end(); ++it)
 				{
-					it->second->WithUniqueLock([&](Peer& peer)
+					it->second->WithUniqueLock([&](Peer& peer) noexcept
 					{
 						peer.SetNeedsAccessCheck();
 					});
@@ -727,7 +727,7 @@ namespace QuantumGate::Implementation::Core::Peer
 							  std::move(params.GlobalSharedSecret));
 		if (peerths != nullptr)
 		{
-			peerths->WithUniqueLock([&](Peer& peer)
+			peerths->WithUniqueLock([&](Peer& peer) noexcept
 			{
 				if (function) peer.AddConnectCallback(std::move(function));
 
@@ -872,7 +872,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (auto in_peerths = CreateRelay(PeerConnectionType::Outbound,
 												  std::move(params.GlobalSharedSecret)); in_peerths != nullptr)
 				{
-					in_peerths->WithUniqueLock([&](Peer& in_peer)
+					in_peerths->WithUniqueLock([&](Peer& in_peer) noexcept
 					{
 						if (function) in_peer.AddConnectCallback(std::move(function));
 
@@ -1102,7 +1102,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		// If the peer is still connected
 		if (auto peerths = Get(pluid); peerths != nullptr)
 		{
-			peerths->WithUniqueLock([&](Peer& peer)
+			peerths->WithUniqueLock([&](Peer& peer) noexcept
 			{
 				peer.OnUnhandledExtenderMessage(extuuid, result);
 			});
