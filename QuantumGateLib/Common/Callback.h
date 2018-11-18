@@ -11,7 +11,10 @@
 namespace QuantumGate::Implementation
 {
 	class CallbackImplBase
-	{};
+	{
+	protected:
+		inline static constexpr Size FunctionStorageSize{ 31 };
+	};
 
 	template<typename T, bool Const, bool NoExcept>
 	class CallbackImpl;
@@ -81,7 +84,7 @@ namespace QuantumGate::Implementation
 		CallbackImpl(std::nullptr_t) noexcept {}
 
 		template<typename F>
-		CallbackImpl(F&& function) noexcept(sizeof(FreeCallbackFunction<F>) <= sizeof(m_FunctionStorage))
+		CallbackImpl(F&& function) noexcept(sizeof(FreeCallbackFunction<F>) <= FunctionStorageSize)
 		{
 			if constexpr (NoExcept)
 			{
@@ -96,12 +99,15 @@ namespace QuantumGate::Implementation
 							  "Function parameter does not have the expected signature.");
 			}
 
-			if constexpr (sizeof(FreeCallbackFunction<F>) > sizeof(m_FunctionStorage))
+			if constexpr (sizeof(FreeCallbackFunction<F>) > FunctionStorageSize)
 			{
 				m_Function = new FreeCallbackFunction<F>(std::move(function));
-				m_Heap = true;
+				SetUsingHeap();
 			}
-			else m_Function = new (&m_FunctionStorage) FreeCallbackFunction<F>(std::move(function));
+			else
+			{
+				m_Function = new (GetFunctionStorage()) FreeCallbackFunction<F>(std::move(function));
+			}
 		}
 
 		template<typename T, typename F>
@@ -120,10 +126,10 @@ namespace QuantumGate::Implementation
 							  "Function parameter does not have the expected signature.");
 			}
 
-			static_assert(sizeof(MemberCallbackFunction<T, F>) <= sizeof(m_FunctionStorage),
-						  "Type is too large for FunctionStorage variable; increase size.");
+			static_assert(sizeof(MemberCallbackFunction<T, F>) <= FunctionStorageSize,
+						  "Type is too large for Storage variable; increase size.");
 
-			m_Function = new (&m_FunctionStorage) MemberCallbackFunction<T, F>(object, member_function_ptr);
+			m_Function = new (GetFunctionStorage()) MemberCallbackFunction<T, F>(object, member_function_ptr);
 		}
 
 		virtual ~CallbackImpl()
@@ -147,16 +153,15 @@ namespace QuantumGate::Implementation
 
 			if (other)
 			{
-				if (other.m_Heap)
+				if (other.IsUsingHeap())
 				{
 					m_Function = other.m_Function;
-					m_Heap = other.m_Heap;
+					SetUsingHeap();
 				}
 				else
 				{
-					m_FunctionStorage = other.m_FunctionStorage;
-					m_Function = reinterpret_cast<CallbackFunction*>(&m_FunctionStorage);
-					m_Heap = false;
+					m_Storage = other.m_Storage;
+					m_Function = GetFunctionStorage();
 				}
 
 				other.Reset();
@@ -198,23 +203,39 @@ namespace QuantumGate::Implementation
 		{
 			if (m_Function != nullptr)
 			{
-				if (m_Heap) delete m_Function;
+				if (IsUsingHeap()) delete m_Function;
 				//else m_Function->~CallbackFunction(); No need to call; there's nothing to destroy
 			}
 		}
 
 		ForceInline void Reset() noexcept
 		{
-			if (!m_Heap) std::memset(&m_FunctionStorage, 0, sizeof(m_FunctionStorage));
-
 			m_Function = nullptr;
-			m_Heap = false;
+		}
+
+		[[nodiscard]] ForceInline const bool IsUsingHeap() const noexcept
+		{
+			return (reinterpret_cast<const Byte*>(&m_Storage)[0] == Byte{ 1 });
+		}
+
+		ForceInline void SetUsingHeap() noexcept
+		{
+			reinterpret_cast<Byte*>(&m_Storage)[0] = Byte{ 1 };
+		}
+		
+		[[nodiscard]] ForceInline CallbackFunction* GetFunctionStorage() noexcept
+		{
+			return const_cast<CallbackFunction*>(const_cast<const CallbackImpl*>(this)->GetFunctionStorage());
+		}
+
+		[[nodiscard]] ForceInline const CallbackFunction* GetFunctionStorage() const noexcept
+		{
+			return reinterpret_cast<const CallbackFunction*>(reinterpret_cast<const Byte*>(&m_Storage) + 1);
 		}
 
 	private:
 		CallbackFunction* m_Function{ nullptr };
-		typename std::aligned_storage<24>::type m_FunctionStorage{ 0 };
-		bool m_Heap{ false };
+		typename std::aligned_storage<FunctionStorageSize + 1>::type m_Storage{ 0 };
 	};
 
 	template<typename Sig>

@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Core
 		return GetMinSize();
 	}
 
-	const bool Message::Header::Read(const BufferView& buffer)
+	const bool Message::Header::Read(const BufferView& buffer) noexcept
 	{
 		assert(buffer.GetSize() >= Header::GetMinSize());
 
@@ -127,12 +127,12 @@ namespace QuantumGate::Implementation::Core
 			Message::Header::GetMaxSize(), Message::MaxMessageDataSize, MessageTransport::MaxMessageDataSize);
 	}
 
-	Message::Message(const MessageOptions& msgopt) noexcept : Message()
+	Message::Message(MessageOptions&& msgopt) noexcept : Message()
 	{
-		Initialize(msgopt);
+		Initialize(std::move(msgopt));
 	}
 
-	void Message::Initialize(const MessageOptions& msgopt) noexcept
+	void Message::Initialize(MessageOptions&& msgopt) noexcept
 	{
 		m_UseCompression = msgopt.UseCompression;
 
@@ -337,7 +337,7 @@ namespace QuantumGate::Implementation::Core
 		m_Valid = true;
 	}
 
-	const BufferView Message::GetFromBuffer(BufferView& srcbuf)
+	const BufferView Message::GetFromBuffer(BufferView& srcbuf) noexcept
 	{
 		// Check if buffer has enough data for message header
 		if (srcbuf.GetSize() < Header::GetMinSize()) return nullptr;

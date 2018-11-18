@@ -20,12 +20,25 @@ namespace QuantumGate::Implementation::Memory
 		using SizeType = Size;
 
 		BufferImpl() noexcept {}
-		BufferImpl(const BufferImpl& other) { *this += other; }
+		
+		BufferImpl(const BufferImpl& other) :
+			m_Buffer(other.m_Buffer)
+		{}
+
 		BufferImpl(const BufferView& other) { *this += other; }
-		BufferImpl(BufferImpl&& other) noexcept { Swap(other.m_Buffer); }
-		BufferImpl(VectorType&& buffer) noexcept { Swap(buffer); }
+
+		BufferImpl(BufferImpl&& other) noexcept :
+			m_Buffer(std::move(other.m_Buffer))
+		{}
+
+		BufferImpl(VectorType&& buffer) noexcept :
+			m_Buffer(std::move(buffer))
+		{}
+
 		BufferImpl(const Size size) { Allocate(size); }
+
 		BufferImpl(const Byte* data, const Size data_size) { Add(data, data_size); }
+		
 		~BufferImpl() = default;
 
 		inline explicit operator bool() const noexcept { return !IsEmpty(); }
@@ -38,8 +51,17 @@ namespace QuantumGate::Implementation::Memory
 			// Check for same object
 			if (this == &other) return *this;
 
-			Allocate(other.GetSize());
-			memcpy(GetBytes(), other.GetBytes(), other.GetSize());
+			m_Buffer = other.m_Buffer;
+
+			return *this;
+		}
+
+		inline BufferImpl& operator=(BufferImpl&& other) noexcept
+		{
+			// Check for same object
+			if (this == &other) return *this;
+
+			m_Buffer = std::move(other.m_Buffer);
 
 			return *this;
 		}
@@ -54,17 +76,11 @@ namespace QuantumGate::Implementation::Memory
 
 		inline BufferImpl& operator=(const VectorType& buffer)
 		{
-			return this->operator=(BufferView(buffer.data(), buffer.size()));
-		}
-
-		inline BufferImpl& operator=(BufferImpl&& other) noexcept
-		{
 			// Check for same object
-			if (this == &other) return *this;
+			if (&m_Buffer == &buffer) return *this;
 
-			Clear();
-			Swap(other.m_Buffer);
-			
+			m_Buffer = buffer;
+
 			return *this;
 		}
 
@@ -73,8 +89,7 @@ namespace QuantumGate::Implementation::Memory
 			// Check for same object
 			if (&m_Buffer == &buffer) return *this;
 
-			Clear();
-			Swap(buffer);
+			m_Buffer = std::move(buffer);
 			
 			return *this;
 		}

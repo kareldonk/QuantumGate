@@ -23,7 +23,7 @@ namespace QuantumGate::API
 		PeerEvent() = delete;
 		PeerEvent(const PeerEvent&) = delete;
 		PeerEvent(PeerEvent&& other) noexcept;
-		virtual ~PeerEvent();
+		~PeerEvent();
 		PeerEvent& operator=(const PeerEvent&) = delete;
 		PeerEvent& operator=(PeerEvent&& other) noexcept;
 
@@ -37,9 +37,19 @@ namespace QuantumGate::API
 	private:
 		PeerEvent(QuantumGate::Implementation::Core::Peer::Event&& event) noexcept;
 
+		[[nodiscard]] QuantumGate::Implementation::Core::Peer::Event* GetEvent() noexcept;
+		[[nodiscard]] const QuantumGate::Implementation::Core::Peer::Event* GetEvent() const noexcept;
+		
+		[[nodiscard]] const bool HasEvent() const noexcept;
+		void SetHasEvent(const bool flag) noexcept;
+
 		void Reset() noexcept;
 
 	private:
-		QuantumGate::Implementation::Core::Peer::Event* m_PeerEvent{ nullptr };
+#ifdef _DEBUG
+		typename std::aligned_storage<105>::type m_PeerEvent{ 0 };
+#else
+		typename std::aligned_storage<97>::type m_PeerEvent{ 0 };
+#endif
 	};
 }

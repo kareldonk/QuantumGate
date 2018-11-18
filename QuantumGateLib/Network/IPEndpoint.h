@@ -53,6 +53,8 @@ namespace QuantumGate::Implementation::Network
 			}
 		}
 
+		~IPEndpoint() = default;
+
 		constexpr IPEndpoint& operator=(const IPEndpoint& other) noexcept
 		{
 			// Check for same object
@@ -121,7 +123,7 @@ namespace QuantumGate::Implementation::Network
 			return *this;
 		}
 
-		operator IPEndpoint() const
+		operator IPEndpoint() const noexcept
 		{
 			return IPEndpoint({ IPAddress }, Port);
 		}

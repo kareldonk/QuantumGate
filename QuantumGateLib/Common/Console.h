@@ -179,7 +179,7 @@ namespace QuantumGate::Implementation
 		{
 		public:
 			WindowOutput() noexcept;
-			virtual ~WindowOutput();
+			~WindowOutput();
 
 			void AddMessage(const MessageType type, const StringView message) override;
 
@@ -197,14 +197,18 @@ namespace QuantumGate::Implementation
 
 			virtual ~Log()
 			{
-				if constexpr (Check)
+				try
 				{
-					Console::AddMessage(m_MessageType, m_StringStream.str());
+					if constexpr (Check)
+					{
+						Console::AddMessage(m_MessageType, m_StringStream.str());
+					}
+					else
+					{
+						Console::AddMessageWithNoCheck(m_MessageType, m_StringStream.str());
+					}
 				}
-				else
-				{
-					Console::AddMessageWithNoCheck(m_MessageType, m_StringStream.str());
-				}
+				catch (...) {}
 			}
 
 			Log& operator=(const Log&) = delete;
@@ -231,18 +235,18 @@ namespace QuantumGate::Implementation
 		static void SetVerbosity(const Verbosity verbosity) noexcept;
 		[[nodiscard]] static const Verbosity GetVerbosity() noexcept;
 
-		static void SetOutput(const std::shared_ptr<Output>& output) noexcept;
+		static const bool SetOutput(const std::shared_ptr<Output>& output) noexcept;
 
 		[[nodiscard]] static const bool CanAddMessage(const MessageType type) noexcept;
 
 		template<typename... Args>
-		static void AddMessage(const MessageType type, const StringView message, const Args&... args)
+		static void AddMessage(const MessageType type, const StringView message, const Args&... args) noexcept
 		{
 			if (CanAddMessage(type)) AddMessageWithNoCheck(type, message, args...);
 		}
 
 		template<typename... Args>
-		static void AddMessageWithNoCheck(const MessageType type, const StringView message, const Args&... args)
+		static void AddMessageWithNoCheck(const MessageType type, const StringView message, const Args&... args) noexcept
 		{
 			if constexpr (sizeof...(Args) > 0)
 			{
@@ -255,8 +259,8 @@ namespace QuantumGate::Implementation
 		}
 
 	private:
-		static void AddMessageNoArgs(const MessageType type, const StringView message);
-		static void AddMessageWithArgs(const MessageType type, const StringView message, ...);
+		static void AddMessageNoArgs(const MessageType type, const StringView message) noexcept;
+		static void AddMessageWithArgs(const MessageType type, const StringView message, ...) noexcept;
 	};
 }
 

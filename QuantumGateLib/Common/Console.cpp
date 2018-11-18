@@ -25,7 +25,11 @@ namespace QuantumGate::Implementation
 		}
 	};
 
-	static ConsoleObject ConsoleObj;
+	ConsoleObject& GetConsoleObject() noexcept
+	{
+		static ConsoleObject ConsoleObj;
+		return ConsoleObj;
+	}
 
 	Console::Window::Window() noexcept
 	{
@@ -35,10 +39,14 @@ namespace QuantumGate::Implementation
 		_wfreopen_s(&m_ConsoleOutput, L"CONOUT$", L"w", stdout);
 		_wfreopen_s(&m_ConsoleErrOutput, L"CONOUT$", L"w", stderr);
 
-		// Clear all error states
-		std::wcin.clear();
-		std::wcout.clear();
-		std::wcerr.clear();
+		try
+		{
+			// Clear all error states
+			std::wcin.clear();
+			std::wcout.clear();
+			std::wcerr.clear();
+		}
+		catch (...) {}
 
 		SetConsoleTitle(L"QuantumGate Console");
 	}
@@ -69,7 +77,7 @@ namespace QuantumGate::Implementation
 	template<bool Check>
 	Console::Log<Check>& Console::Log<Check>::operator<<(const Format fmt)
 	{
-		ConsoleObj.Output.WithSharedLock([&](const auto& output)
+		GetConsoleObject().Output.WithSharedLock([&](const auto& output)
 		{
 			if (output != nullptr)
 			{
@@ -86,34 +94,42 @@ namespace QuantumGate::Implementation
 
 	void Console::SetVerbosity(const Verbosity verbosity) noexcept
 	{
-		ConsoleObj.Verbosity = verbosity;
+		GetConsoleObject().Verbosity = verbosity;
 	}
 
 	const Console::Verbosity Console::GetVerbosity() noexcept
 	{
-		return ConsoleObj.Verbosity;
+		return GetConsoleObject().Verbosity;
 	}
 
-	void Console::SetOutput(const std::shared_ptr<Output>& output) noexcept
+	const bool Console::SetOutput(const std::shared_ptr<Output>& output) noexcept
 	{
-		if (output != nullptr)
+		try
 		{
-			ConsoleObj.Output.WithUniqueLock() = output;
-			ConsoleObj.HasOutput = true;
+			if (output != nullptr)
+			{
+				GetConsoleObject().Output.WithUniqueLock() = output;
+				GetConsoleObject().HasOutput = true;
+			}
+			else
+			{
+				GetConsoleObject().HasOutput = false;
+				GetConsoleObject().Output.WithUniqueLock()->reset();
+			}
+
+			return true;
 		}
-		else
-		{
-			ConsoleObj.HasOutput = false;
-			ConsoleObj.Output.WithUniqueLock()->reset();
-		}
+		catch (...) {}
+
+		return false;
 	}
 
 	const bool Console::CanAddMessage(const MessageType type) noexcept
 	{
-		return ConsoleObj.CanAddMessage(type);
+		return GetConsoleObject().CanAddMessage(type);
 	}
 
-	void Console::AddMessageWithArgs(const MessageType type, const StringView message, ...)
+	void Console::AddMessageWithArgs(const MessageType type, const StringView message, ...) noexcept
 	{
 		va_list argptr = nullptr;
 		va_start(argptr, message);
@@ -123,15 +139,19 @@ namespace QuantumGate::Implementation
 		va_end(argptr);
 	}
 
-	void Console::AddMessageNoArgs(const MessageType type, const StringView message)
+	void Console::AddMessageNoArgs(const MessageType type, const StringView message) noexcept
 	{
-		ConsoleObj.Output.WithUniqueLock([&](const auto& output)
+		try
 		{
-			if (output != nullptr)
+			GetConsoleObject().Output.WithUniqueLock([&](const auto& output)
 			{
-				output->AddMessage(type, message);
-			}
-		});
+				if (output != nullptr)
+				{
+					output->AddMessage(type, message);
+				}
+			});
+		}
+		catch (...) {}
 	}
 
 	Console::TerminalOutput::TerminalOutput() noexcept

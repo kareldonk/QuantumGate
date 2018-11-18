@@ -74,7 +74,7 @@ namespace QuantumGate::Implementation::Core
 
 			Size GetSize() noexcept;
 
-			[[nodiscard]] const bool Read(const BufferView& buffer);
+			[[nodiscard]] const bool Read(const BufferView& buffer) noexcept;
 			[[nodiscard]] const bool Write(Buffer& buffer) const noexcept;
 
 			[[nodiscard]] inline const bool IsCompressed() const noexcept
@@ -121,7 +121,7 @@ namespace QuantumGate::Implementation::Core
 
 	public:
 		Message() noexcept;
-		Message(const MessageOptions& msgopt) noexcept;
+		Message(MessageOptions&& msgopt) noexcept;
 		Message(const Message&) = delete;
 		Message(Message&&) = default;
 		~Message() = default;
@@ -139,7 +139,7 @@ namespace QuantumGate::Implementation::Core
 		[[nodiscard]] const bool Read(BufferView buffer, const Crypto::SymmetricKeyData& symkey);
 		[[nodiscard]] const bool Write(Buffer& buffer, const Crypto::SymmetricKeyData& symkey);
 
-		static const BufferView GetFromBuffer(BufferView& srcbuf);
+		static const BufferView GetFromBuffer(BufferView& srcbuf) noexcept;
 
 	public:
 		static constexpr Size MinMessageDataSizeForCompression{ 128 }; // Bytes
@@ -150,7 +150,7 @@ namespace QuantumGate::Implementation::Core
 		};
 
 	private:
-		void Initialize(const MessageOptions& msgopt) noexcept;
+		void Initialize(MessageOptions&& msgopt) noexcept;
 		void Validate() noexcept;
 
 	private:

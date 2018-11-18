@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Memory
 {
-	class Export BufferReader : public BufferIO
+	class Export BufferReader final : public BufferIO
 	{
 	public:
 		BufferReader() = delete;

@@ -7,18 +7,29 @@
 
 namespace QuantumGate::API
 {
+	// Size of event object plus one byte to use as a flag
+	static constexpr int MinimumPeerEventStorageSize{ sizeof(QuantumGate::Implementation::Core::Peer::Event) + 1 };
+
 	PeerEvent::PeerEvent(QuantumGate::Implementation::Core::Peer::Event&& event) noexcept
 	{
-		// TODO: may throw
-		m_PeerEvent = new QuantumGate::Implementation::Core::Peer::Event(std::move(event));
+#ifdef _DEBUG
+		static_assert(sizeof(QuantumGate::Implementation::Core::Peer::Event) == 104,
+					  "Size of event object changed; check size of m_PeerEvent and update the size here");
+#else
+		static_assert(sizeof(QuantumGate::Implementation::Core::Peer::Event) == 96,
+					  "Size of event object changed; check size of m_PeerEvent and update the size here");
+#endif
+		static_assert(sizeof(m_PeerEvent) >= MinimumPeerEventStorageSize,
+					  "Storage size is too small; increase size of m_PeerEvent in header file");
+
+		new (GetEvent()) QuantumGate::Implementation::Core::Peer::Event(std::move(event));
+		SetHasEvent(true);
 	}
 
-	PeerEvent::PeerEvent(PeerEvent&& other) noexcept
+	PeerEvent::PeerEvent(PeerEvent&& other) noexcept :
+		m_PeerEvent(other.m_PeerEvent)
 	{
-		assert(other.m_PeerEvent != nullptr);
-
-		m_PeerEvent = other.m_PeerEvent;
-		other.m_PeerEvent = nullptr;
+		other.SetHasEvent(false);
 	}
 
 	PeerEvent::~PeerEvent()
@@ -26,59 +37,85 @@ namespace QuantumGate::API
 		Reset();
 	}
 
-	void PeerEvent::Reset() noexcept
+	inline void PeerEvent::SetHasEvent(const bool flag) noexcept
 	{
-		if (m_PeerEvent != nullptr)
+		reinterpret_cast<Byte*>(&m_PeerEvent)[0] = flag ? Byte{ 1 } : Byte{ 0 };
+	}
+
+	inline const bool PeerEvent::HasEvent() const noexcept
+	{
+		return (reinterpret_cast<const Byte*>(&m_PeerEvent)[0] == Byte{ 1 });
+	}
+
+	inline QuantumGate::Implementation::Core::Peer::Event* PeerEvent::GetEvent() noexcept
+	{
+		return const_cast<QuantumGate::Implementation::Core::Peer::Event*>(const_cast<const PeerEvent*>(this)->GetEvent());
+	}
+
+	inline const QuantumGate::Implementation::Core::Peer::Event* PeerEvent::GetEvent() const noexcept
+	{
+		return reinterpret_cast<const QuantumGate::Implementation::Core::Peer::Event*>(
+			reinterpret_cast<const Byte*>(&m_PeerEvent) + 1);
+	}
+
+	inline void PeerEvent::Reset() noexcept
+	{
+		if (HasEvent())
 		{
-			delete m_PeerEvent;
-			m_PeerEvent = nullptr;
+			if constexpr (!std::is_trivially_destructible_v<QuantumGate::Implementation::Core::Peer::Event>)
+			{
+				GetEvent()->~Event();
+			}
+
+			SetHasEvent(false);
 		}
 	}
 
 	PeerEvent& PeerEvent::operator=(PeerEvent&& other) noexcept
 	{
-		assert(other.m_PeerEvent != nullptr);
-
 		Reset();
 
-		m_PeerEvent = other.m_PeerEvent;
-		other.m_PeerEvent = nullptr;
+		if (other.HasEvent())
+		{
+			m_PeerEvent = other.m_PeerEvent;
+			other.SetHasEvent(false);
+		}
 
 		return *this;
 	}
 
 	PeerEvent::operator bool() const noexcept
 	{
-		assert(m_PeerEvent != nullptr);
+		assert(HasEvent());
 
-		return m_PeerEvent->operator bool();
+		return GetEvent()->operator bool();
 	}
-	
+
 	const PeerEventType PeerEvent::GetType() const noexcept
 	{
-		assert(m_PeerEvent != nullptr);
+		assert(HasEvent());
 
-		return m_PeerEvent->GetType();
+		return GetEvent()->GetType();
 	}
-	
+
 	const PeerLUID PeerEvent::GetPeerLUID() const noexcept
 	{
-		assert(m_PeerEvent != nullptr);
+		assert(HasEvent());
 
-		return m_PeerEvent->GetPeerLUID();
+		return GetEvent()->GetPeerLUID();
 	}
 
 	const PeerUUID& PeerEvent::GetPeerUUID() const noexcept
 	{
-		assert(m_PeerEvent != nullptr);
+		assert(HasEvent());
 
-		return m_PeerEvent->GetPeerUUID();
+		return GetEvent()->GetPeerUUID();
 	}
-	
+
 	const Buffer* PeerEvent::GetMessageData() const noexcept
 	{
-		assert(m_PeerEvent != nullptr);
+		assert(HasEvent());
 
-		return m_PeerEvent->GetMessageData();
+		return GetEvent()->GetMessageData();
 	}
 }

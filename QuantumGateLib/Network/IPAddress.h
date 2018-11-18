@@ -39,6 +39,8 @@ namespace QuantumGate::Implementation::Network
 
 		constexpr IPAddress(const BinaryIPAddress& bin_ipaddr) { SetAddress(bin_ipaddr); }
 
+		~IPAddress() = default;
+
 		constexpr IPAddress& operator=(const IPAddress& other) noexcept
 		{
 			// Check for same object
