@@ -56,11 +56,18 @@ namespace QuantumGate::Implementation::Core::Extender
 		return m_Local.load()->GetPeerDetails(pluid);
 	}
 
-	Result<Vector<PeerLUID>> Extender::QueryPeers(const PeerQueryParameters& settings) const noexcept
+	Result<Vector<PeerLUID>> Extender::QueryPeers(const PeerQueryParameters& params) const noexcept
 	{
 		assert(IsRunning());
 
-		return m_Local.load()->QueryPeers(settings);
+		return m_Local.load()->QueryPeers(params);
+	}
+
+	Result<> Extender::QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept
+	{
+		assert(IsRunning());
+
+		return m_Local.load()->QueryPeers(params, pluids);
 	}
 
 	void Extender::OnException() noexcept

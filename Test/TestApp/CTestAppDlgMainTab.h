@@ -75,6 +75,7 @@ private:
 	QuantumGate::Local& m_QuantumGate;
 	CBrush m_ConsoleBrush;
 
+	Vector<PeerLUID> m_PeerLUIDs;
 	PeerQueryParameters m_PeerQueryParams;
 
 	UINT_PTR m_PeerActivityTimer{ 0 };

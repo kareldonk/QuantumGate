@@ -918,9 +918,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result_code;
 	}
 
-	Result<Vector<PeerLUID>> Manager::QueryPeers(const PeerQueryParameters& params) const noexcept
+	Result<> Manager::QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept
 	{
-		return m_LookupMaps.WithSharedLock()->QueryPeers(params);
+		return m_LookupMaps.WithSharedLock()->QueryPeers(params, pluids);
 	}
 
 	Result<PeerDetails> Manager::GetPeerDetails(const PeerLUID pluid) const noexcept

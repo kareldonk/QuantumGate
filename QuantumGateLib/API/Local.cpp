@@ -242,6 +242,11 @@ namespace QuantumGate::API
 		return m_Local->QueryPeers(params);
 	}
 
+	Result<> Local::QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept
+	{
+		return m_Local->QueryPeers(params, pluids);
+	}
+
 	Result<> Local::SetSecurityLevel(const SecurityLevel level,
 									 const std::optional<SecurityParameters>& params) noexcept
 	{

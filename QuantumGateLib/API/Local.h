@@ -74,7 +74,9 @@ namespace QuantumGate::API
 
 		Result<PeerUUID> GetUUID() const noexcept;
 		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
+
 		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
+		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& peers) const noexcept;
 
 		Result<bool> AddExtender(const std::shared_ptr<Extender>& extender) noexcept;
 		Result<> RemoveExtender(const std::shared_ptr<Extender>& extender) noexcept;

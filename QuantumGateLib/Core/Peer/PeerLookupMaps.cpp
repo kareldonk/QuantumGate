@@ -222,11 +222,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::PeerNotFound;
 	}
 
-	Result<Vector<PeerLUID>> LookupMaps::QueryPeers(const PeerQueryParameters& params) const noexcept
+	Result<> LookupMaps::QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept
 	{
 		try
 		{
-			Vector<PeerLUID> pluids;
+			pluids.clear();
 
 			for (const auto& it : GetPeerDataMap())
 			{
@@ -237,7 +237,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 			}
 
-			return std::move(pluids);
+			return ResultCode::Succeeded;
 		}
 		catch (...) {}
 

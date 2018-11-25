@@ -98,12 +98,12 @@ BOOL CTestAppDlgMainTab::OnInitDialog()
 
 void CTestAppDlgMainTab::UpdatePeers()
 {
-	const auto result = m_QuantumGate.QueryPeers(m_PeerQueryParams);
+	const auto result = m_QuantumGate.QueryPeers(m_PeerQueryParams, m_PeerLUIDs);
 	if (result.Succeeded())
 	{
 		auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
 
-		for (const auto& pluid : *result)
+		for (const auto& pluid : m_PeerLUIDs)
 		{
 			const auto retval = m_QuantumGate.GetPeerDetails(pluid);
 			if (retval.Succeeded())
@@ -143,7 +143,7 @@ void CTestAppDlgMainTab::UpdatePeers()
 			wchar_t* end = nullptr;
 			PeerLUID pluid = wcstoull(lctrl->GetItemText(x, 0), &end, 10);
 
-			if (std::find(result->begin(), result->end(), pluid) == result->end())
+			if (std::find(m_PeerLUIDs.begin(), m_PeerLUIDs.end(), pluid) == m_PeerLUIDs.end())
 			{
 				lctrl->DeleteItem(x);
 				--x;

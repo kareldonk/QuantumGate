@@ -1004,7 +1004,30 @@ namespace QuantumGate::Implementation::Core
 
 	Result<Vector<PeerLUID>> Local::QueryPeers(const PeerQueryParameters& params) const noexcept
 	{
-		if (IsRunning()) return m_PeerManager.QueryPeers(params);
+		if (IsRunning())
+		{
+			try
+			{
+				Vector<PeerLUID> pluids;
+				const auto result = QueryPeers(params, pluids);
+				if (result.Succeeded())
+				{
+					return std::move(pluids);
+				}
+				else return result.GetErrorCode();
+			}
+			catch (...)
+			{
+				return ResultCode::Failed;
+			}
+		}
+
+		return ResultCode::NotRunning;
+	}
+
+	Result<> Local::QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept
+	{
+		if (IsRunning()) return m_PeerManager.QueryPeers(params, pluids);
 
 		return ResultCode::NotRunning;
 	}

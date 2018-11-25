@@ -13,7 +13,7 @@ using namespace QuantumGate::Implementation::Network;
 
 namespace QuantumGate::Implementation::Core
 {
-	const bool PublicIPEndpoints::HopVerificationDetails::Verify(const bool has_locally_bound_ip) noexcept
+	const bool PublicIPEndpoints::HopVerificationDetails::Verify(const bool has_locally_bound_pubip) noexcept
 	{
 		// We ping the IP address with specific maximum number of hops to verify the
 		// distance on the network. If the distance is small it's more likely that the
@@ -22,7 +22,7 @@ namespace QuantumGate::Implementation::Core
 		// that we're using (and could be an attack).
 		const auto max_hops = std::invoke([&]() -> UInt8
 		{
-			if (has_locally_bound_ip)
+			if (has_locally_bound_pubip)
 			{
 				// We are directly connected to the Internet via a public IP
 				// configured on a local ethernet interface, so we should reach

@@ -235,6 +235,8 @@ void Stress::MultiInstanceStressThreadProc()
 
 	if (!error)
 	{
+		Vector<PeerLUID> pluids;
+
 		while (!m_MultiInstanceStressData.Stop)
 		{
 			for (auto& instance : instances)
@@ -254,13 +256,13 @@ void Stress::MultiInstanceStressThreadProc()
 			for (std::size_t x = 0; x < instances.size(); ++x)
 			{
 				PeerQueryParameters qparams;
-				const auto result = instances[x].QueryPeers(qparams);
-				if (result.Succeeded() && result.GetValue().size() > 0)
+				const auto result = instances[x].QueryPeers(qparams, pluids);
+				if (result.Succeeded() && pluids.size() > 0)
 				{
 					const auto num_msg = Util::GetPseudoRandomNumber(1, 5);
 					for (Int64 y = 0; y < num_msg; ++y)
 					{
-						extenders[x]->SendMessageW(result.GetValue()[0],
+						extenders[x]->SendMessageW(pluids[0],
 												   messages[static_cast<size_t>(Util::GetPseudoRandomNumber(0, messages.size() - 1))]);
 					}
 				}

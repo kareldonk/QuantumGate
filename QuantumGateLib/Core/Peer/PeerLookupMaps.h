@@ -55,7 +55,7 @@ namespace QuantumGate::Implementation::Core::Peer
 									   const Vector<BinaryIPAddress>& excl_addr2,
 									   const UInt8 excl_network_cidr4, const UInt8 excl_network_cidr6) const noexcept;
 
-		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
+		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
 
 		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
 

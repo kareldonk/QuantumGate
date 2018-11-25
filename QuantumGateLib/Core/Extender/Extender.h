@@ -44,7 +44,8 @@ namespace QuantumGate::Implementation::Core::Extender
 		inline const Size GetMaximumMessageDataSize() const noexcept { return Message::MaxMessageDataSize; }
 
 		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
-		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& settings) const noexcept;
+		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
+		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
 
 		inline void SetLocal(Local* local) noexcept { assert(local != nullptr); m_Local = local; }
 		inline void ResetLocal() noexcept { m_Local = nullptr; }

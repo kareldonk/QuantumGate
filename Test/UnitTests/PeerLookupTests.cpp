@@ -600,11 +600,12 @@ namespace UnitTests
 			// Default
 			{
 				PeerQueryParameters params;
-				const auto result = lum.QueryPeers(params);
+				Vector<PeerLUID> pluids;
+				const auto result = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.GetValue().size() == 4);
-				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 4);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep2->WithSharedLock()->LUID,
@@ -616,23 +617,24 @@ namespace UnitTests
 			// Only authenticated
 			{
 				PeerQueryParameters params;
+				Vector<PeerLUID> pluids;
 				params.Authentication = PeerQueryParameters::AuthenticationOption::Authenticated;
-				const auto result = lum.QueryPeers(params);
+				const auto result = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.GetValue().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep3->WithSharedLock()->LUID
 														  }));
 
 				params.Connections = PeerQueryParameters::ConnectionOption::Outbound;
-				const auto result2 = lum.QueryPeers(params);
+				const auto result2 = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.GetValue().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep1->WithSharedLock()->LUID
 														  }));
@@ -641,23 +643,24 @@ namespace UnitTests
 			// Only relays
 			{
 				PeerQueryParameters params;
+				Vector<PeerLUID> pluids;
 				params.Relays = PeerQueryParameters::RelayOption::Relayed;
-				const auto result = lum.QueryPeers(params);
+				const auto result = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.GetValue().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep4->WithSharedLock()->LUID
 														  }));
 
 				params.Authentication = PeerQueryParameters::AuthenticationOption::Authenticated;
-				const auto result2 = lum.QueryPeers(params);
+				const auto result2 = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.GetValue().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep1->WithSharedLock()->LUID
 														  }));
@@ -666,12 +669,13 @@ namespace UnitTests
 			// Only inbound
 			{
 				PeerQueryParameters params;
+				Vector<PeerLUID> pluids;
 				params.Connections = PeerQueryParameters::ConnectionOption::Inbound;
-				const auto result = lum.QueryPeers(params);
+				const auto result = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.GetValue().size() == 3);
-				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 3);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep2->WithSharedLock()->LUID,
 															  ep3->WithSharedLock()->LUID,
@@ -679,11 +683,11 @@ namespace UnitTests
 														  }));
 
 				params.Authentication = PeerQueryParameters::AuthenticationOption::Authenticated;
-				const auto result2 = lum.QueryPeers(params);
+				const auto result2 = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.GetValue().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep3->WithSharedLock()->LUID
 														  }));
@@ -692,12 +696,13 @@ namespace UnitTests
 			// Only outbound
 			{
 				PeerQueryParameters params;
+				Vector<PeerLUID> pluids;
 				params.Connections = PeerQueryParameters::ConnectionOption::Outbound;
-				const auto result = lum.QueryPeers(params);
+				const auto result = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.GetValue().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep1->WithSharedLock()->LUID
 														  }));
@@ -706,24 +711,25 @@ namespace UnitTests
 			// Extenders NoneOf
 			{
 				PeerQueryParameters params;
+				Vector<PeerLUID> pluids;
 				params.Extenders.UUIDs = { euuid1 };
 				params.Extenders.Include = PeerQueryParameters::Extenders::IncludeOption::NoneOf;
-				const auto result = lum.QueryPeers(params);
+				const auto result = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.GetValue().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep2->WithSharedLock()->LUID,
 															  ep3->WithSharedLock()->LUID
 														  }));
 
 				params.Extenders.UUIDs = { euuid1, euuid2 };
-				const auto result2 = lum.QueryPeers(params);
+				const auto result2 = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.GetValue().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep2->WithSharedLock()->LUID
 														  }));
@@ -732,66 +738,68 @@ namespace UnitTests
 			// Extenders AllOf
 			{
 				PeerQueryParameters params;
+				Vector<PeerLUID> pluids;
 				params.Extenders.UUIDs = { euuid1 };
 				params.Extenders.Include = PeerQueryParameters::Extenders::IncludeOption::AllOf;
-				const auto result = lum.QueryPeers(params);
+				const auto result = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.GetValue().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep4->WithSharedLock()->LUID
 														  }));
 
 				params.Extenders.UUIDs = { euuid1, euuid2 };
-				const auto result2 = lum.QueryPeers(params);
+				const auto result2 = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.GetValue().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep4->WithSharedLock()->LUID
 														  }));
 
 				params.Connections = PeerQueryParameters::ConnectionOption::Inbound;
-				const auto result3 = lum.QueryPeers(params);
+				const auto result3 = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result3.Succeeded());
-				Assert::AreEqual(true, result3.GetValue().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result3.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep4->WithSharedLock()->LUID
 														  }));
 
 				params.Authentication = PeerQueryParameters::AuthenticationOption::Authenticated;
-				const auto result4 = lum.QueryPeers(params);
+				const auto result4 = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result4.Succeeded());
-				Assert::AreEqual(true, result4.GetValue().size() == 0);
+				Assert::AreEqual(true, pluids.size() == 0);
 			}
 
 			// Extenders OneOf
 			{
 				PeerQueryParameters params;
+				Vector<PeerLUID> pluids;
 				params.Extenders.UUIDs = { euuid1 };
 				params.Extenders.Include = PeerQueryParameters::Extenders::IncludeOption::OneOf;
-				const auto result = lum.QueryPeers(params);
+				const auto result = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result.GetValue().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep4->WithSharedLock()->LUID
 														  }));
 
 				params.Extenders.UUIDs = { euuid1, euuid2 };
-				const auto result2 = lum.QueryPeers(params);
+				const auto result2 = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result2.Succeeded());
-				Assert::AreEqual(true, result2.GetValue().size() == 3);
-				Assert::AreEqual(true, CheckExpectedPeers(result2.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 3);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep3->WithSharedLock()->LUID,
@@ -799,22 +807,22 @@ namespace UnitTests
 														  }));
 
 				params.Relays = PeerQueryParameters::RelayOption::Relayed;
-				const auto result3 = lum.QueryPeers(params);
+				const auto result3 = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result3.Succeeded());
-				Assert::AreEqual(true, result3.GetValue().size() == 2);
-				Assert::AreEqual(true, CheckExpectedPeers(result3.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 2);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep1->WithSharedLock()->LUID,
 															  ep4->WithSharedLock()->LUID
 														  }));
 
 				params.Connections = PeerQueryParameters::ConnectionOption::Outbound;
-				const auto result4 = lum.QueryPeers(params);
+				const auto result4 = lum.QueryPeers(params, pluids);
 
 				Assert::AreEqual(true, result4.Succeeded());
-				Assert::AreEqual(true, result4.GetValue().size() == 1);
-				Assert::AreEqual(true, CheckExpectedPeers(result4.GetValue(),
+				Assert::AreEqual(true, pluids.size() == 1);
+				Assert::AreEqual(true, CheckExpectedPeers(pluids,
 														  {
 															  ep1->WithSharedLock()->LUID
 														  }));

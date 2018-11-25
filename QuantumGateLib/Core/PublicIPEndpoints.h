@@ -36,7 +36,7 @@ namespace QuantumGate::Implementation::Core
 		{
 			BinaryIPAddress IPAddress;
 
-			[[nodiscard]] const bool Verify(const bool has_locally_bound_ip) noexcept;
+			[[nodiscard]] const bool Verify(const bool has_locally_bound_pubip) noexcept;
 
 			static constexpr std::chrono::seconds TimeoutPeriod{ 2 };
 			static constexpr UInt8 MaxHops{ 2 };
