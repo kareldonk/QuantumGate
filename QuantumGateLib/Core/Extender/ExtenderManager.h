@@ -45,8 +45,8 @@ namespace QuantumGate::Implementation::Core::Extender
 		Manager& operator=(const Manager&) = delete;
 		Manager& operator=(Manager&&) = delete;
 
-		[[nodiscard]] const bool Startup();
-		void Shutdown();
+		[[nodiscard]] const bool Startup() noexcept;
+		void Shutdown() noexcept;
 		inline const bool IsRunning() const noexcept { return m_Running; }
 
 		Result<bool> AddExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender,

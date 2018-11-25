@@ -678,7 +678,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 				else
 				{
-					peerths->WithUniqueLock([&](Peer& peer)
+					peerths->WithUniqueLock([&](Peer& peer) noexcept
 					{
 						if ((peer.GetIOStatus().IsConnecting() || peer.GetIOStatus().IsConnected()) &&
 							!peer.GetIOStatus().HasException())

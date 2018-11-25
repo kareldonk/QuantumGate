@@ -21,7 +21,7 @@ namespace QuantumGate::Implementation
 		Dispatcher() = default;
 		Dispatcher(const Dispatcher&) = delete;
 		Dispatcher(Dispatcher&&) = default;
-		virtual ~Dispatcher() = default;
+		~Dispatcher() = default;
 		Dispatcher& operator=(const Dispatcher&) = delete;
 		Dispatcher& operator=(Dispatcher&&) = default;
 

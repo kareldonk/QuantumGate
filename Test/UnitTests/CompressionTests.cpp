@@ -43,6 +43,15 @@ namespace UnitTests
 				inputbufs.insert(inputbufs.end(), std::move(inbuf));
 			}
 
+			// Test 1MB buffer
+			inputbufs.insert(inputbufs.end(), Util::GetPseudoRandomBytes(1024 * 1024));
+
+			// Test 2MB buffer
+			inputbufs.insert(inputbufs.end(), Util::GetPseudoRandomBytes(2 * 1024 * 1024));
+
+			// Test 10MB buffer
+			inputbufs.insert(inputbufs.end(), Util::GetPseudoRandomBytes(10 * 1024 * 1024));
+
 			for (const auto& input : inputbufs)
 			{
 				Buffer zloutbuf, zstdoutbuf;

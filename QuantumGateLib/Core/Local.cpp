@@ -301,7 +301,7 @@ namespace QuantumGate::Implementation::Core
 		}
 
 		// Upon failure shut down threadpool when we return
-		auto sg0 = MakeScopeGuard([&] { ShutdownThreadPool(); });
+		auto sg0 = MakeScopeGuard([&]() noexcept { ShutdownThreadPool(); });
 
 		if (params.NumPreGeneratedKeysPerAlgorithm > 0 &&
 			!m_KeyGenerationManager.Startup())
@@ -310,7 +310,7 @@ namespace QuantumGate::Implementation::Core
 		}
 
 		// Upon failure shut down key manager when we return
-		auto sg1 = MakeScopeGuard([&] { m_KeyGenerationManager.Shutdown(); });
+		auto sg1 = MakeScopeGuard([&]() noexcept { m_KeyGenerationManager.Shutdown(); });
 
 		if (!m_PeerManager.Startup())
 		{
@@ -318,7 +318,7 @@ namespace QuantumGate::Implementation::Core
 		}
 
 		// Upon failure shut down peer manager when we return
-		auto sg2 = MakeScopeGuard([&] { m_PeerManager.Shutdown(); });
+		auto sg2 = MakeScopeGuard([&]() noexcept { m_PeerManager.Shutdown(); });
 
 		if (params.Relays.Enable && !m_PeerManager.StartupRelays())
 		{
@@ -326,7 +326,7 @@ namespace QuantumGate::Implementation::Core
 		}
 
 		// Upon failure shut down relay manager when we return
-		auto sg3 = MakeScopeGuard([&] { m_PeerManager.ShutdownRelays(); });
+		auto sg3 = MakeScopeGuard([&]() noexcept { m_PeerManager.ShutdownRelays(); });
 
 		{
 			const auto local_env = m_LocalEnvironment.WithSharedLock();
@@ -339,13 +339,13 @@ namespace QuantumGate::Implementation::Core
 		}
 
 		// Upon failure shut down listener manager when we return
-		auto sg4 = MakeScopeGuard([&] { m_ListenerManager.Shutdown(); });
+		auto sg4 = MakeScopeGuard([&]() noexcept { m_ListenerManager.Shutdown(); });
 
 		// Enter running state; important for extenders
 		m_Running = true;
 
 		// Upon failure exit running state when we return
-		auto sg5 = MakeScopeGuard([&] { m_Running = false; });
+		auto sg5 = MakeScopeGuard([&]() noexcept { m_Running = false; });
 
 		if (params.EnableExtenders && !m_ExtenderManager.Startup())
 		{
@@ -659,17 +659,25 @@ namespace QuantumGate::Implementation::Core
 
 	void Local::OnLocalEnvironmentChanged() noexcept
 	{
-		m_ThreadPool.GetData().EventQueue.WithUniqueLock([&](EventQueue& queue)
+		m_ThreadPool.GetData().EventQueue.WithUniqueLock([&](EventQueue& queue) noexcept
 		{
-			queue.Push(Events::LocalEnvironmentChange{});
+			try
+			{
+				queue.Push(Events::LocalEnvironmentChange{});
+			}
+			catch (...) {}
 		});
 	}
 
 	void Local::OnUnhandledExtenderException(const ExtenderUUID extuuid) noexcept
 	{
-		m_ThreadPool.GetData().EventQueue.WithUniqueLock([&](EventQueue& queue)
+		m_ThreadPool.GetData().EventQueue.WithUniqueLock([&](EventQueue& queue) noexcept
 		{
-			queue.Push(Events::UnhandledExtenderException{ extuuid });
+			try
+			{
+				queue.Push(Events::UnhandledExtenderException{ extuuid });
+			}
+			catch (...) {}
 		});
 	}
 
@@ -791,7 +799,7 @@ namespace QuantumGate::Implementation::Core
 						// Remove all extenders that were successfully added
 						for (auto& extender : added_extenders)
 						{
-							RemoveExtenderImpl(extender, module.GetID()).Failed([&](const auto& result)
+							RemoveExtenderImpl(extender, module.GetID()).Failed([&](const auto& result) noexcept
 							{
 								LogErr(L"Failed to remove extender '%s' : %s",
 									   extender->GetName().c_str(), result.GetErrorDescription().c_str());
@@ -844,7 +852,7 @@ namespace QuantumGate::Implementation::Core
 
 				for (auto& extender : extenders)
 				{
-					RemoveExtenderImpl(extender, moduleid).Failed([&](const auto& result)
+					RemoveExtenderImpl(extender, moduleid).Failed([&](const auto& result) noexcept
 					{
 						LogErr(L"Failed to remove extender '%s' : %s",
 							   extender->GetName().c_str(), result.GetErrorDescription().c_str());

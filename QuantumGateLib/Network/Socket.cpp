@@ -401,7 +401,7 @@ namespace QuantumGate::Implementation::Network
 		if (SockAddrSetEndpoint(saddr, endpoint))
 		{
 			// Bind our name to the socket
-			auto ret = bind(m_Socket, reinterpret_cast<sockaddr*>(&saddr), sizeof(sockaddr_storage));
+			const auto ret = bind(m_Socket, reinterpret_cast<sockaddr*>(&saddr), sizeof(sockaddr_storage));
 			if (ret != SOCKET_ERROR)
 			{
 				UpdateSocketInfo();
@@ -896,7 +896,7 @@ namespace QuantumGate::Implementation::Network
 
 		try
 		{
-			IPAddress ip(addr);
+			const IPAddress ip(addr);
 			switch (ip.GetFamily())
 			{
 				case IPAddress::Family::IPv4:

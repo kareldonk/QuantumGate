@@ -64,7 +64,7 @@ namespace QuantumGate::Implementation::Core::Access
 	public:
 		IPSubnetLimits() = default;
 		IPSubnetLimits(const IPSubnetLimits&) = delete;
-		IPSubnetLimits(IPSubnetLimits&&) noexcept = default;
+		IPSubnetLimits(IPSubnetLimits&&) = default;
 		~IPSubnetLimits() = default;
 		IPSubnetLimits& operator=(const IPSubnetLimits&) = delete;
 		IPSubnetLimits& operator=(IPSubnetLimits&&) = default;

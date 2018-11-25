@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	Manager::Manager(const Settings_CThS& settings) noexcept : m_Settings(settings)
 	{}
 
-	const bool Manager::Startup()
+	const bool Manager::Startup() noexcept
 	{
 		if (m_Running) return true;
 
@@ -35,7 +35,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		return true;
 	}
 
-	void Manager::Shutdown()
+	void Manager::Shutdown() noexcept
 	{
 		if (!m_Running) return;
 
@@ -283,7 +283,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		auto success = false;
 		const auto extname = Control::GetExtenderName(extctrl_ths.WithSharedLock()->GetExtender());
 
-		extctrl_ths.WithUniqueLock([&](Control& extctrl)
+		extctrl_ths.WithUniqueLock([&](Control& extctrl) noexcept
 		{
 			if (extctrl.GetStatus() != Control::Status::Stopped) return;
 
@@ -395,7 +395,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		auto success = false;
 		const auto extname = Control::GetExtenderName(extctrl_ths.WithSharedLock()->GetExtender());
 
-		extctrl_ths.WithUniqueLock([&](Control& extctrl)
+		extctrl_ths.WithUniqueLock([&](Control& extctrl) noexcept
 		{
 			if (extctrl.GetStatus() != Control::Status::Stopped)
 			{
@@ -601,7 +601,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		assert(event.GetType() == PeerEventType::Connected ||
 			   event.GetType() == PeerEventType::Disconnected);
 
-		m_Extenders.WithSharedLock([&](const ExtenderMap& extenders)
+		m_Extenders.WithSharedLock([&](const ExtenderMap& extenders) noexcept
 		{
 			for (const auto& extuuid : extuuids)
 			{

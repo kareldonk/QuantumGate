@@ -532,7 +532,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		if (auto orig_peer = GetPeers().Get(pluid); orig_peer != nullptr)
 		{
-			orig_peer->WithUniqueLock([&](Peer::Peer& peer)
+			orig_peer->WithUniqueLock([&](Peer::Peer& peer) noexcept
 			{
 				peer.UpdateReputation(rep_update);
 			});
@@ -874,7 +874,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			auto peerths = m_Peers.CreateRelay(PeerConnectionType::Inbound, std::nullopt);
 			if (peerths != nullptr)
 			{
-				peerths->WithUniqueLock([&](Peer::Peer& peer)
+				peerths->WithUniqueLock([&](Peer::Peer& peer) noexcept
 				{
 					if (peer.GetSocket<Socket>().BeginAccept(connect_event.Port, connect_event.Hop,
 															 connect_event.Origin.LocalEndpoint,
@@ -1026,7 +1026,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		if (auto relayths = Get(event.Port); relayths != nullptr)
 		{
-			relayths->WithUniqueLock([&](Link& rl)
+			relayths->WithUniqueLock([&](Link& rl) noexcept
 			{
 				// Event should come from expected origin
 				if (!ValidateEventOrigin(event, rl)) return;
@@ -1097,7 +1097,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		if (auto relayths = Get(event.Port); relayths != nullptr)
 		{
-			relayths->WithUniqueLock([&](Link& rl)
+			relayths->WithUniqueLock([&](Link& rl) noexcept
 			{
 				if (event.Origin.PeerLUID == 0) // Special case for Relay::Socket peers
 				{

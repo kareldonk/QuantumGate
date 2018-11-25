@@ -115,7 +115,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		if (AddPeer(pluid, endpoint.GetIPAddress().GetBinary()))
 		{
 			// If anything fails below undo previous add upon return
-			auto sg = MakeScopeGuard([&]
+			auto sg = MakeScopeGuard([&]() noexcept
 			{
 				if (!RemovePeer(pluid, endpoint.GetIPAddress().GetBinary()))
 				{

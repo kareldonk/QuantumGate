@@ -195,7 +195,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] const bool UpdateSocketStatus() noexcept;
 		[[nodiscard]] const bool CheckStatus(const bool noise_enabled, const std::chrono::seconds max_connect_duration,
-											 std::chrono::seconds max_handshake_duration);
+											 std::chrono::seconds max_handshake_duration) noexcept;
 
 		void UpdateReputation(const Access::IPReputationUpdate rep_update) noexcept;
 
@@ -206,7 +206,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		inline void SetNeedsAccessCheck() noexcept { SetFlag(Flags::NeedsAccessCheck, true); }
 		[[nodiscard]] inline const bool NeedsAccessCheck() const noexcept { return IsFlagSet(Flags::NeedsAccessCheck); }
-		void CheckAccess();
+		void CheckAccess() noexcept;
 
 		inline void SetNeedsExtenderUpdate() noexcept { SetFlag(Flags::NeedsExtenderUpdate, true); }
 		[[nodiscard]] inline const bool NeedsExtenderUpdate() const noexcept { return IsFlagSet(Flags::NeedsExtenderUpdate); }

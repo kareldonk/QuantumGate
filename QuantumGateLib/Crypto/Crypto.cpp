@@ -431,7 +431,7 @@ namespace QuantumGate::Implementation::Crypto
 		return false;
 	}
 
-	std::optional<ProtectedBuffer> GetPEMPrivateKey(AsymmetricKeyData& keydata) noexcept
+	std::optional<ProtectedBuffer> GetPEMPrivateKey(const AsymmetricKeyData& keydata) noexcept
 	{
 		// Must have a key already
 		assert(keydata.GetKey() != nullptr);
@@ -439,7 +439,7 @@ namespace QuantumGate::Implementation::Crypto
 		return OpenSSL::GetPEMPrivateKey(static_cast<EVP_PKEY*>(keydata.GetKey()));
 	}
 
-	std::optional<ProtectedBuffer> GetPEMPublicKey(AsymmetricKeyData& keydata) noexcept
+	std::optional<ProtectedBuffer> GetPEMPublicKey(const AsymmetricKeyData& keydata) noexcept
 	{
 		// Must have a key already
 		assert(keydata.GetKey() != nullptr);

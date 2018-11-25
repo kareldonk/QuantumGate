@@ -105,7 +105,7 @@ namespace QuantumGate::Implementation::Core
 		m_MessageTime = Util::ToTimeT(Util::GetCurrentSystemTime());
 	}
 
-	const bool MessageTransport::IHeader::Read(const BufferView& buffer)
+	const bool MessageTransport::IHeader::Read(const BufferView& buffer) noexcept
 	{
 		assert(buffer.GetSize() >= IHeader::GetSize());
 
@@ -120,19 +120,25 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool MessageTransport::IHeader::Write(Buffer& buffer) const
+	const bool MessageTransport::IHeader::Write(Buffer& buffer) const noexcept
 	{
-		Buffer rnddata;
-		if (m_RandomDataSize > 0)
+		try
 		{
-			rnddata = Random::GetPseudoRandomBytes(m_RandomDataSize);
+			Buffer rnddata;
+			if (m_RandomDataSize > 0)
+			{
+				rnddata = Random::GetPseudoRandomBytes(m_RandomDataSize);
 
-			Dbg(L"MsgTIHdr Random data: %d bytes - %s", rnddata.GetSize(), Util::GetBase64(rnddata)->c_str());
+				Dbg(L"MsgTIHdr Random data: %d bytes - %s", rnddata.GetSize(), Util::GetBase64(rnddata)->c_str());
+			}
+
+			Memory::BufferWriter wrt(buffer, true);
+			return wrt.WriteWithPreallocation(m_MessageCounter, m_MessageTime, m_NextRandomDataPrefixLength,
+											  m_RandomDataSize, rnddata);
 		}
+		catch (...) {}
 
-		Memory::BufferWriter wrt(buffer, true);
-		return wrt.WriteWithPreallocation(m_MessageCounter, m_MessageTime, m_NextRandomDataPrefixLength,
-										  m_RandomDataSize, rnddata);
+		return false;
 	}
 
 	const SystemTime MessageTransport::IHeader::GetMessageTime() const noexcept

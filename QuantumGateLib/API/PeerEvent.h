@@ -46,10 +46,6 @@ namespace QuantumGate::API
 		void Reset() noexcept;
 
 	private:
-#ifdef _DEBUG
-		typename std::aligned_storage<105>::type m_PeerEvent{ 0 };
-#else
-		typename std::aligned_storage<97>::type m_PeerEvent{ 0 };
-#endif
+		typename std::aligned_storage<128>::type m_PeerEvent{ 0 };
 	};
 }

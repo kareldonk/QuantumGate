@@ -580,7 +580,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				return false;
 		}
 
-		SerializedUUID suuid{ uuid };
+		const SerializedUUID suuid{ uuid };
 
 		ProtectedBuffer sigdata;
 		sigdata += BufferView(reinterpret_cast<const Byte*>(&suuid), sizeof(SerializedUUID));
@@ -671,7 +671,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				return false;
 		}
 
-		SerializedUUID suuid{ uuid };
+		const SerializedUUID suuid{ uuid };
 
 		ProtectedBuffer sigdata;
 		sigdata += BufferView(reinterpret_cast<const Byte*>(&suuid), sizeof(SerializedUUID));

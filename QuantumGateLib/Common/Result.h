@@ -205,30 +205,44 @@ namespace QuantumGate::Implementation
 		}
 
 		template<typename F>
-		void Succeeded(F&& function) const
+		std::enable_if_t<!IsDetectedV<NoArgumentFunction, F>, void>
+			Succeeded(F&& function) const noexcept(noexcept(function(*this)))
 		{
 			if (Succeeded())
 			{
-				if constexpr (IsDetectedV<NoArgumentFunction, F>)
-				{
-					function();
-				}
-				else function(*this);
+				function(*this);
+			}
+		}
+
+		template<typename F>
+		std::enable_if_t<IsDetectedV<NoArgumentFunction, F>, void>
+			Succeeded(F&& function) const noexcept(noexcept(function()))
+		{
+			if (Succeeded())
+			{
+				function();
 			}
 		}
 
 		[[nodiscard]] inline const bool Failed() const noexcept { return !Succeeded(); }
 
 		template<typename F>
-		void Failed(F&& function) const
+		std::enable_if_t<!IsDetectedV<NoArgumentFunction, F>, void>
+			Failed(F&& function) const noexcept(noexcept(function(*this)))
 		{
 			if (Failed())
 			{
-				if constexpr (IsDetectedV<NoArgumentFunction, F>)
-				{
-					function();
-				}
-				else function(*this);
+				function(*this);
+			}
+		}
+
+		template<typename F>
+		std::enable_if_t<IsDetectedV<NoArgumentFunction, F>, void>
+			Failed(F&& function) const noexcept(noexcept(function()))
+		{
+			if (Failed())
+			{
+				function();
 			}
 		}
 

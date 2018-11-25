@@ -253,7 +253,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	const bool Peer::CheckStatus(const bool noise_enabled, const std::chrono::seconds max_connect_duration,
-								 std::chrono::seconds max_handshake_duration)
+								 std::chrono::seconds max_handshake_duration) noexcept
 	{
 		if (!UpdateSocketStatus()) return false;
 
@@ -1743,7 +1743,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	void Peer::CheckAccess()
+	void Peer::CheckAccess() noexcept
 	{
 		SetFlag(Flags::NeedsAccessCheck, false);
 

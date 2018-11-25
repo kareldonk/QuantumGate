@@ -21,7 +21,7 @@ namespace QuantumGate::API
 		try
 		{
 			using namespace QuantumGate::Implementation::Core;
-			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			const auto local_env = static_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
 			if (local_env->IsInitialized()) return local_env->GetHostname();
 		}
 		catch (...) {}
@@ -36,7 +36,7 @@ namespace QuantumGate::API
 		try
 		{
 			using namespace QuantumGate::Implementation::Core;
-			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			const auto local_env = static_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
 			if (local_env->IsInitialized()) return local_env->GetUsername();
 		}
 		catch (...) {}
@@ -51,7 +51,7 @@ namespace QuantumGate::API
 		try
 		{
 			using namespace QuantumGate::Implementation::Core;
-			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			const auto local_env = static_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
 			if (local_env->IsInitialized())
 			{
 				return local_env->GetIPAddresses();
@@ -69,7 +69,7 @@ namespace QuantumGate::API
 		try
 		{
 			using namespace QuantumGate::Implementation::Core;
-			const auto local_env = reinterpret_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			const auto local_env = static_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
 			if (local_env->IsInitialized())
 			{
 				// This is making a copy

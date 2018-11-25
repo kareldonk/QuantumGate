@@ -123,26 +123,26 @@ namespace QuantumGate::Implementation::Compression
 				// End zstream when we exit
 				const auto sg = MakeScopeGuard([&]() noexcept { deflateEnd(&zstream); });
 
-				const uInt max = (uInt)-1;
-				auto left = outlen;
-				auto sourcelen = inbuffer.GetSize();
+				const uInt max = std::numeric_limits<uInt>::max();
+				Size left = outlen;
+				Size sourcelen = inbuffer.GetSize();
 
 				zstream.next_in = (Bytef*)inbuffer.GetBytes();
 				zstream.avail_in = 0;
-				zstream.next_out = (Bytef*)outbuffer;
+				zstream.next_out = reinterpret_cast<Bytef*>(outbuffer);
 				zstream.avail_out = 0;
 
 				do
 				{
 					if (zstream.avail_out == 0)
 					{
-						zstream.avail_out = left > static_cast<uLong>(max) ? max : static_cast<uInt>(left);
+						zstream.avail_out = (left > static_cast<Size>(max)) ? max : static_cast<uInt>(left);
 						left -= zstream.avail_out;
 					}
 
 					if (zstream.avail_in == 0)
 					{
-						zstream.avail_in = sourcelen > static_cast<uLong>(max) ? max : static_cast<uInt>(sourcelen);
+						zstream.avail_in = (sourcelen > static_cast<Size>(max)) ? max : static_cast<uInt>(sourcelen);
 						sourcelen -= zstream.avail_in;
 					}
 
@@ -180,10 +180,10 @@ namespace QuantumGate::Implementation::Compression
 				// End zstream when we exit
 				const auto sg = MakeScopeGuard([&]() noexcept { inflateEnd(&zstream); });
 
-				const uInt max = (uInt)-1;
+				const uInt max = std::numeric_limits<uInt>::max();
 				Byte buf{ 0 };
-				auto left = outlen;
-				auto sourcelen = inbuffer.GetSize();
+				Size left = outlen;
+				Size sourcelen = inbuffer.GetSize();
 
 				if (outlen == 0)
 				{
@@ -195,20 +195,20 @@ namespace QuantumGate::Implementation::Compression
 
 				zstream.next_in = (Bytef*)inbuffer.GetBytes();
 				zstream.avail_in = 0;
-				zstream.next_out = (Bytef*)outbuffer;
+				zstream.next_out = reinterpret_cast<Bytef*>(outbuffer);
 				zstream.avail_out = 0;
 
 				do
 				{
 					if (zstream.avail_out == 0)
 					{
-						zstream.avail_out = left > static_cast<uLong>(max) ? max : static_cast<uInt>(left);
+						zstream.avail_out = (left > static_cast<Size>(max)) ? max : static_cast<uInt>(left);
 						left -= zstream.avail_out;
 					}
 
 					if (zstream.avail_in == 0)
 					{
-						zstream.avail_in = sourcelen > static_cast<uLong>(max) ? max : static_cast<uInt>(sourcelen);
+						zstream.avail_in = (sourcelen > static_cast<Size>(max)) ? max : static_cast<uInt>(sourcelen);
 						sourcelen -= zstream.avail_in;
 					}
 

@@ -17,17 +17,17 @@ namespace QuantumGate::Implementation::Core
 		if (!m_PublicIPEndpoints.Initialize()) return false;
 
 		// Upon failure deinit public IP endpoints when we return
-		auto sg0 = MakeScopeGuard([&] { m_PublicIPEndpoints.Deinitialize(); });
+		auto sg0 = MakeScopeGuard([&]() noexcept { m_PublicIPEndpoints.Deinitialize(); });
 
 		if (!UpdateEnvironmentInformation()) return false;
 
 		// Upon failure clear environment info when we return
-		auto sg1 = MakeScopeGuard([&] { ClearEnvironmentInformation(); });
+		auto sg1 = MakeScopeGuard([&]() noexcept { ClearEnvironmentInformation(); });
 
 		if (callback) m_ChangedCallback.WithUniqueLock() = std::move(callback);
 
 		// Upon failure clear callback when we return
-		auto sg2 = MakeScopeGuard([&] { m_ChangedCallback.WithUniqueLock()->Clear(); });
+		auto sg2 = MakeScopeGuard([&]() noexcept { m_ChangedCallback.WithUniqueLock()->Clear(); });
 
 		if (!RegisterIPInterfaceChangeNotification()) return false;
 

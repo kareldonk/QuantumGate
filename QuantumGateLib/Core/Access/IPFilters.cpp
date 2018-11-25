@@ -94,8 +94,6 @@ namespace QuantumGate::Implementation::Core::Access
 	Result<IPFilterID> IPFilters::AddFilterImpl(const IPAddress& ip, const IPAddress& mask,
 												const IPFilterType type) noexcept
 	{
-		auto result_code = ResultCode::Failed;
-
 		try
 		{
 			if (ip.GetFamily() == mask.GetFamily())
@@ -135,7 +133,7 @@ namespace QuantumGate::Implementation::Core::Access
 		}
 		catch (...) {}
 
-		return result_code;
+		return ResultCode::Failed;
 	}
 
 	Result<> IPFilters::RemoveFilter(const IPFilterID filterid, const IPFilterType type) noexcept
