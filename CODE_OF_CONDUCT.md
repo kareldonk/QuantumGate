@@ -1,4 +1,4 @@
-QuantumGate Code of Conduct
+# QuantumGate Code of Conduct
 
 We believe freedom of speech to be a fundamental requirement for open and clear
 communication, learning and enlightenment. 
