@@ -20,7 +20,10 @@ static BCRYPT_ALG_HANDLE BCryptAlgorithm = NULL;
 
 int QGCryptoInitRng()
 {
-	if (BCryptOpenAlgorithmProvider(&BCryptAlgorithm, BCRYPT_RNG_ALGORITHM, NULL, 0) == STATUS_SUCCESS)
+	assert(BCryptAlgorithm == NULL);
+
+	if (BCryptOpenAlgorithmProvider(&BCryptAlgorithm, BCRYPT_RNG_ALGORITHM, NULL, 0) == STATUS_SUCCESS &&
+		BCryptAlgorithm != NULL)
 	{
 		return 0;
 	}
@@ -41,8 +44,10 @@ void QGCryptoDeinitRng()
 
 int QGCryptoGetRandomBytes(unsigned char* buffer, unsigned long buffer_len)
 {
-	assert(BCryptAlgorithm != NULL);
 	assert(buffer != NULL);
+
+	// Should already have been initialized with QGCryptoInitRng()
+	assert(BCryptAlgorithm != NULL);
 
 	if (BCryptGenRandom(BCryptAlgorithm, buffer, buffer_len, 0) == STATUS_SUCCESS)
 	{
