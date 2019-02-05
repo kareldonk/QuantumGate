@@ -84,7 +84,7 @@ int main()
 
 							PeerLUID pluid = wcstoull(m[1].str().c_str(), &end, 10);
 
-							LogInfo(L"Disconnecting peer %u", pluid);
+							LogInfo(L"Disconnecting peer %llu", pluid);
 							
 							if (m_QuantumGate.DisconnectFrom(pluid, nullptr) == ResultCode::PeerNotFound)
 							{
@@ -162,7 +162,7 @@ bool Send(const shared_ptr<TestExtender::Extender>& extender, const wstring& plu
 
 	if (count.size() > 0) nmess = wcstoul(count.c_str(), &end, 10);
 
-	LogInfo(L"Sending message '%s' to peer %u, %d %s", msg.c_str(), pluid, nmess, ((nmess == 1) ? L"time" : L"times"));
+	LogInfo(L"Sending message '%s' to peer %llu, %d %s", msg.c_str(), pluid, nmess, ((nmess == 1) ? L"time" : L"times"));
 
 	auto success = true;
 	auto begin = chrono::high_resolution_clock::now();
