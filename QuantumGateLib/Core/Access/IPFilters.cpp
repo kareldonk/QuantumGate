@@ -258,23 +258,28 @@ namespace QuantumGate::Implementation::Core::Access
 
 	Result<bool> IPFilters::IsAllowed(const IPAddress& ipaddr) const noexcept
 	{
-		// If the IP address is not in the blocked filter ranges we can return true immediately
-		if (!IsIPInFilterMap(ipaddr, m_IPBlockFilters))
+		// IP addresses are blocked by default unless they are allowed via a filter in the
+		// allowed filter ranges. Even if they are allowed via one of the allowed filter
+		// ranges, they can still be blocked if they also exist in one of the blocked filter
+		// ranges.
+
+		// If the IP address is not in the allowed filter ranges we can return true immediately
+		if (!IsIPInFilterMap(ipaddr, m_IPAllowFilters))
 		{
-			return true;
+			return false;
 		}
 		else
 		{
-			// If the IP address is in the blocked filter ranges check if it's also in the allowed
-			// filter ranges, in which case it was explicitly allowed through
-			if (IsIPInFilterMap(ipaddr, m_IPAllowFilters))
+			// If the IP address is in the allowed filter ranges check if it's also in the blocked
+			// filter ranges, in which case it was explicitly blocked
+			if (IsIPInFilterMap(ipaddr, m_IPBlockFilters))
 			{
-				return true;
+				return false;
 			}
 		}
 
-		// If we get here, the IP address was in the blocked filter ranges and 
-		// not in the allowed filter ranges, in which case it's not allowed
-		return false;
+		// If we get here, the IP address was in the allowed filter ranges and 
+		// not in the blocked filter ranges, in which case it's allowed
+		return true;
 	}
 }

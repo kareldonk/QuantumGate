@@ -152,6 +152,14 @@ int main()
 	// For testing purposes we allow access by default
 	qg.GetAccessManager().SetPeerAccessDefault(QuantumGate::PeerAccessDefault::Allowed);
 
+	// For testing purposes we allow all IP addresses to connect
+	if (!qg.GetAccessManager().AddIPFilter(L"0.0.0.0/0", QuantumGate::IPFilterType::Allowed) ||
+		!qg.GetAccessManager().AddIPFilter(L"::/0", QuantumGate::IPFilterType::Allowed))
+	{
+		std::wcout << L"Failed to add an IP filter\r\n";
+		return -1;
+	}
+
 	auto extender = std::make_shared<HandshakeExtender>();
 	if (const auto result = qg.AddExtender(extender); result.Failed())
 	{

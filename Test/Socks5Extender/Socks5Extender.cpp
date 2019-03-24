@@ -194,9 +194,15 @@ namespace QuantumGate::Socks5Extender
 	{
 		auto success = true;
 
+		// Allow all addresses by default
+		constexpr const std::array<const WChar*, 2> allowed_nets = {
+			L"0.0.0.0/0",	// IPv4
+			L"::/0"			// IPv6
+		};
+
 		// Block internal networks to prevent incoming connections
 		// from connecting to internal addresses
-		const std::array<const WChar*, 15> internal_nets = {
+		constexpr const std::array<const WChar*, 15> internal_nets = {
 			L"0.0.0.0/8",		// Local system
 			L"169.254.0.0/16",	// Link local
 			L"127.0.0.0/8",		// Loopback
@@ -216,14 +222,28 @@ namespace QuantumGate::Socks5Extender
 
 		m_IPFilters.WithUniqueLock([&](Core::Access::IPFilters& filters)
 		{
-			for (const auto net : internal_nets)
+			for (const auto net : allowed_nets)
 			{
-				const auto result = filters.AddFilter(net, IPFilterType::Blocked);
+				const auto result = filters.AddFilter(net, IPFilterType::Allowed);
 				if (result.Failed())
 				{
 					LogErr(GetName() + L": could not add %s to IP filters", net);
 					success = false;
 					break;
+				}
+			}
+
+			if (success)
+			{
+				for (const auto net : internal_nets)
+				{
+					const auto result = filters.AddFilter(net, IPFilterType::Blocked);
+					if (result.Failed())
+					{
+						LogErr(GetName() + L": could not add %s to IP filters", net);
+						success = false;
+						break;
+					}
 				}
 			}
 		});

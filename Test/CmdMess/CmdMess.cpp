@@ -57,7 +57,16 @@ int main()
 	
 	if (!m_QuantumGate.AddExtender(extp)) return - 1;
 
+	// Allow access by default
 	m_QuantumGate.GetAccessManager().SetPeerAccessDefault(PeerAccessDefault::Allowed);
+
+	// Allow all IP addresses to connect
+	if (!m_QuantumGate.GetAccessManager().AddIPFilter(L"0.0.0.0/0", QuantumGate::IPFilterType::Allowed) ||
+		!m_QuantumGate.GetAccessManager().AddIPFilter(L"::/0", QuantumGate::IPFilterType::Allowed))
+	{
+		LogErr(L"Failed to add an IP filter");
+		return -1;
+	}
 
 	if (m_QuantumGate.Startup(params).Succeeded())
 	{

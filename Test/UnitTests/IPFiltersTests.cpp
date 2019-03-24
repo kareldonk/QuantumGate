@@ -107,87 +107,138 @@ namespace UnitTests
 		{
 			IPFilters ipfilters;
 
-			auto result = ipfilters.AddFilter(L"192.168.0.1", L"255.255.255.0", IPFilterType::Blocked);
-			Assert::AreEqual(true, result.Succeeded());
-
 			Assert::AreEqual(true, ipfilters.IsAllowed(L"") == ResultCode::AddressInvalid);
 			Assert::AreEqual(true, ipfilters.IsAllowed(L"192.abc.0.1") == ResultCode::AddressInvalid);
 
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.0.1").GetValue());
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.0.10").GetValue());
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.0.200").GetValue());
+			{
+				// Not allowed by default
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.0.1").GetValue());
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.0.10").GetValue());
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.0.200").GetValue());
 
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef10:e795").GetValue());
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.1.2").GetValue());
+				// Allow range
+				auto result = ipfilters.AddFilter(L"192.168.0.1", L"255.255.255.0", IPFilterType::Allowed);
+				Assert::AreEqual(true, result.Succeeded());
 
-			auto result2 = ipfilters.AddFilter(L"192.168.1.2", L"255.255.255.255", IPFilterType::Blocked);
-			Assert::AreEqual(true, result2.Succeeded());
+				// Should now be allowed
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.0.1").GetValue());
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.0.10").GetValue());
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.0.200").GetValue());
 
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.1.2").GetValue());
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.1.1").GetValue());
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.1.100").GetValue());
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"192.200.1.100").GetValue());
+				// Not allowed
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80::c11a:3a9c:ef10:e795").GetValue());
+				
+			}
 
-			Assert::AreEqual(true,
-							 ipfilters.RemoveFilter(*result2, IPFilterType::Blocked).Succeeded());
+			{
+				// Not allowed by default
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.1.2").GetValue());
 
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.1.2").GetValue());
+				// Allow range
+				auto result2 = ipfilters.AddFilter(L"192.168.1.2", L"255.255.255.255", IPFilterType::Allowed);
+				Assert::AreEqual(true, result2.Succeeded());
 
-			auto result3 = ipfilters.AddFilter(L"fe80:c11a:3a9c:ef10:e795::",
-											   L"ffff:ffff:ffff:ffff:ffff::", IPFilterType::Blocked);
-			Assert::AreEqual(true, result3.Succeeded());
+				// Should now be allowed
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.1.2").GetValue());
 
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef10:e795::").GetValue());
+				// Not allowed by default
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.1.1").GetValue());
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.1.100").GetValue());
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"192.200.1.100").GetValue());
 
-			Assert::AreEqual(true,
-							 ipfilters.RemoveFilter(*result3, IPFilterType::Blocked).Succeeded());
+				Assert::AreEqual(true,
+								 ipfilters.RemoveFilter(*result2, IPFilterType::Allowed).Succeeded());
 
-			Assert::AreEqual(true,
-							 ipfilters.AddFilter(L"fe80:c11a:3a9c:ef11:e795::",
-												 L"ffff:ffff:ffff:ff00::", IPFilterType::Blocked).Succeeded());
+				// Not allowed anymore after removal of filter range above
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.1.2").GetValue());
+			}
 
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef80:e795::").GetValue());
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef81:e795::").GetValue());
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef91:e795::").GetValue());
-			
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80:c11a:3a9c:df11::").GetValue());
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ff11::").GetValue());
+			{
+				// Not allowed by default
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef10:e795::").GetValue());
 
+				// Allow range
+				auto result3 = ipfilters.AddFilter(L"fe80:c11a:3a9c:ef10:e795::",
+												   L"ffff:ffff:ffff:ffff:ffff::", IPFilterType::Allowed);
+				Assert::AreEqual(true, result3.Succeeded());
+
+				// Should now be allowed
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef10:e795::").GetValue());
+
+				Assert::AreEqual(true,
+								 ipfilters.RemoveFilter(*result3, IPFilterType::Allowed).Succeeded());
+
+				// Not allowed anymore after removal of filter range above
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef10:e795::").GetValue());
+			}
+
+			{
+				Assert::AreEqual(true,
+								 ipfilters.AddFilter(L"fe80:c11a:3a9c:ef11:e795::",
+													 L"ffff:ffff:ffff:ff00::", IPFilterType::Allowed).Succeeded());
+
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef80:e795::").GetValue());
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef81:e795::").GetValue());
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef91:e795::").GetValue());
+
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:df11::").GetValue());
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ff11::").GetValue());
+			}
+
+			// Remove all filters
 			ipfilters.Clear();
 
+			// Should be empty after clear
 			Assert::AreEqual(static_cast<size_t>(0), ipfilters.GetFilters().GetValue().size());
 		}
 
-		TEST_METHOD(AllowOverride)
+		TEST_METHOD(BlockOverride)
 		{
 			IPFilters ipfilters;
 
-			// Block IPv4 range
-			Assert::AreEqual(true,
-							 ipfilters.AddFilter(L"192.168.0.1", L"255.255.255.0", IPFilterType::Blocked).Succeeded());
+			{
+				// Blocked by default
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.0.100").GetValue());
 
-			// This address should be blocked now because of above filter
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.0.100").GetValue());
+				// Allow IPv4 range
+				Assert::AreEqual(true,
+								 ipfilters.AddFilter(L"192.168.0.1", L"255.255.255.0", IPFilterType::Allowed).Succeeded());
 
-			// Specifically allow an address in the blocked range
-			Assert::AreEqual(true,
-							 ipfilters.AddFilter(L"192.168.0.100", L"255.255.255.255", IPFilterType::Allowed).Succeeded());
+				// This address should be allowed now because of above filter
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.0.100").GetValue());
 
-			// This address should now be allowed
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.0.100").GetValue());
+				// Specifically block an address in the allowed range
+				Assert::AreEqual(true,
+								 ipfilters.AddFilter(L"192.168.0.100", L"255.255.255.255", IPFilterType::Blocked).Succeeded());
 
-			// And now the same as above for IPv6
-			Assert::AreEqual(true, ipfilters.AddFilter(L"fe80:c11a:3a9c:ef11:e795::",
-													   L"/80",
-													   IPFilterType::Blocked).Succeeded());
+				// This address should now be blocked
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"192.168.0.100").GetValue());
 
-			Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef11:e795::f000").GetValue());
+				// These should be allowed
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.0.99").GetValue());
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"192.168.0.101").GetValue());
+			}
 
-			Assert::AreEqual(true, ipfilters.AddFilter(L"fe80:c11a:3a9c:ef11:e795::f000",
-													   L"/128",
-													   IPFilterType::Allowed).Succeeded());
+			{
+				// Blocked by default
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef11:e795::f000").GetValue());
 
-			Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef11:e795::f000").GetValue());
+				// Allow IPv6 range
+				Assert::AreEqual(true, ipfilters.AddFilter(L"fe80:c11a:3a9c:ef11:e795::",
+														   L"/80",
+														   IPFilterType::Allowed).Succeeded());
+
+				// This address should be allowed now because of above filter
+				Assert::AreEqual(true, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef11:e795::f000").GetValue());
+
+				// Specifically block an address in the allowed range
+				Assert::AreEqual(true, ipfilters.AddFilter(L"fe80:c11a:3a9c:ef11:e795::f000",
+														   L"/128",
+														   IPFilterType::Blocked).Succeeded());
+
+				// This address should now be blocked
+				Assert::AreEqual(false, ipfilters.IsAllowed(L"fe80:c11a:3a9c:ef11:e795::f000").GetValue());
+			}
 		}
 	};
 }

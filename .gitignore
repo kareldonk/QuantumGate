@@ -24,6 +24,7 @@ bld/
 [Dd]ependencies/
 [Bb]uild/
 [Ll]ib/
+[Ww]in32/
 
 # Visual Studio 2015 cache/options directory
 .vs/
