@@ -309,6 +309,9 @@
       <TreatOutputAsContent>
       </TreatOutputAsContent>
     </CustomBuildStep>
+    <Lib>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -437,6 +440,9 @@
       <TreatOutputAsContent>
       </TreatOutputAsContent>
     </CustomBuildStep>
+    <Lib>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
