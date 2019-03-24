@@ -110,7 +110,7 @@ namespace QuantumGate::Implementation::Compression
 			assert(outbuffer != nullptr);
 			assert(outlen > inbuffer.GetSize());
 
-			// Code below largely taken from zlib library but the allocation
+			// Code below largely taken from zlib library (uncompr.c) but the allocation
 			// functions have been customized for some more efficiency
 
 			z_stream zstream{ 0 };
