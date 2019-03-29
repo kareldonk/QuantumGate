@@ -81,15 +81,28 @@ namespace UnitTests
 
 			// Move constructor
 			{
-				Result<int> result{ 2 };
+				{
+					Result<int> result{ 2 };
 
-				Result<int> result1{ std::move(result) };
+					Result<int> result1{ std::move(result) };
 
-				Assert::AreEqual(true, result1.Succeeded());
-				Assert::AreEqual(true, result1.operator bool());
-				Assert::AreEqual(false, result1.Failed());
-				Assert::AreEqual(2, result1.GetValue());
-				Assert::AreEqual(2, *result1);
+					Assert::AreEqual(true, result1.Succeeded());
+					Assert::AreEqual(true, result1.operator bool());
+					Assert::AreEqual(false, result1.Failed());
+					Assert::AreEqual(2, result1.GetValue());
+					Assert::AreEqual(2, *result1);
+				}
+
+				{
+					Result<> result{ ResultCode::InvalidArgument };
+
+					Result<> result1{ std::move(result) };
+
+					Assert::AreEqual(false, result1.Succeeded());
+					Assert::AreEqual(false, result1.operator bool());
+					Assert::AreEqual(true, result1.Failed());
+					Assert::AreEqual(true, ResultCode::InvalidArgument == result1.GetErrorValue<ResultCode>());
+				}
 			}
 
 			// Move assignment

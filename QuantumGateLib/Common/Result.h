@@ -60,7 +60,7 @@ namespace QuantumGate::Implementation
 	Export const std::error_category& GetErrorCategory() noexcept;
 
 	// The following function overload is needed for the enum conversion 
-	// in one of the constructors for class error_code
+	// in one of the constructors for class std::error_code
 	Export std::error_code make_error_code(const ResultCode code) noexcept;
 
 	struct NoResultValue final {};
@@ -68,7 +68,7 @@ namespace QuantumGate::Implementation
 	template<typename E, E DefaultErrorCode, typename T = NoResultValue>
 	class ResultImpl
 	{
-		static_assert(std::is_error_code_enum<E>::value, "E has to be an enum usable with std::error_code.");
+		static_assert(std::is_error_code_enum_v<E>, "E has to be an enum usable with std::error_code.");
 		static_assert(static_cast<int>(DefaultErrorCode) != 0,
 					  "Default error code shouldn't be zero. Zero indicates no error.");
 
@@ -84,6 +84,10 @@ namespace QuantumGate::Implementation
 		ResultImpl() noexcept {}
 
 		ResultImpl(const E code) noexcept(!HasValueType<T>) : ResultImpl(std::error_code(code)) {}
+
+		// This constructor accepts any enum that works with std::error_code
+		template<class Enum, typename = std::enable_if_t<std::is_error_code_enum_v<Enum>>>
+		ResultImpl(const Enum code) noexcept(!HasValueType<T>) : ResultImpl(std::error_code(code)) {}
 
 		ResultImpl(const std::error_code& code) noexcept(!HasValueType<T>) : m_ErrorCode(code)
 		{
@@ -128,6 +132,10 @@ namespace QuantumGate::Implementation
 		[[nodiscard]] inline const std::error_code& GetErrorCode() const noexcept { return m_ErrorCode; }
 
 		[[nodiscard]] inline int GetErrorValue() const noexcept { return m_ErrorCode.value(); }
+
+		// This overload accepts any enum that works with std::error_code
+		template<class Enum, typename = std::enable_if_t<std::is_error_code_enum_v<Enum>>>
+		[[nodiscard]] inline Enum GetErrorValue() const noexcept { return static_cast<Enum>(m_ErrorCode.value()); }
 
 		[[nodiscard]] String GetErrorDescription() const noexcept
 		{
