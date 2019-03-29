@@ -75,7 +75,4 @@
 #pragma pop_macro("max")
 
 #include <json.hpp>
-#include <afxcontrolbars.h>
-#include <afxcontrolbars.h>
-
 

@@ -227,8 +227,10 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\QuantumGate;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalOptions>/permissive- %(AdditionalOptions)</AdditionalOptions>
       <EnablePREfast>false</EnablePREfast>
+      <OpenMPSupport>
+      </OpenMPSupport>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -259,8 +261,10 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\QuantumGate;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalOptions>/permissive- %(AdditionalOptions)</AdditionalOptions>
       <EnablePREfast>false</EnablePREfast>
+      <OpenMPSupport>
+      </OpenMPSupport>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -289,8 +293,10 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\QuantumGate;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalOptions>/permissive- %(AdditionalOptions)</AdditionalOptions>
       <EnablePREfast>false</EnablePREfast>
+      <OpenMPSupport>
+      </OpenMPSupport>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -320,8 +326,10 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\QuantumGate;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalOptions>/permissive- %(AdditionalOptions)</AdditionalOptions>
       <EnablePREfast>false</EnablePREfast>
+      <OpenMPSupport>
+      </OpenMPSupport>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -351,8 +359,10 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\QuantumGate;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalOptions>/permissive- %(AdditionalOptions)</AdditionalOptions>
       <EnablePREfast>false</EnablePREfast>
+      <OpenMPSupport>
+      </OpenMPSupport>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -385,8 +395,10 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\QuantumGate;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalOptions>/permissive- %(AdditionalOptions)</AdditionalOptions>
       <EnablePREfast>false</EnablePREfast>
+      <OpenMPSupport>
+      </OpenMPSupport>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -419,8 +431,10 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\QuantumGate;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalOptions>/permissive- %(AdditionalOptions)</AdditionalOptions>
       <EnablePREfast>false</EnablePREfast>
+      <OpenMPSupport>
+      </OpenMPSupport>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -452,8 +466,10 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\QuantumGate;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalOptions>/permissive- %(AdditionalOptions)</AdditionalOptions>
       <EnablePREfast>false</EnablePREfast>
+      <OpenMPSupport>
+      </OpenMPSupport>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -475,6 +491,11 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\AVExtender\AVErrorCode.h" />
+    <ClInclude Include="..\AVExtender\AVExtender.h" />
+    <ClInclude Include="..\AVExtender\Common.h" />
+    <ClInclude Include="..\AVExtender\VideoSourceReader.h" />
+    <ClInclude Include="..\AVExtender\VideoWindow.h" />
     <ClInclude Include="..\Socks5Extender\Socks5Connection.h" />
     <ClInclude Include="..\Socks5Extender\Socks5Extender.h" />
     <ClInclude Include="..\Socks5Extender\Socks5Protocol.h" />
@@ -493,6 +514,8 @@
     <ClInclude Include="CPeerAccessDlg.h" />
     <ClInclude Include="CPingDlg.h" />
     <ClInclude Include="CSettingsDlg.h" />
+    <ClInclude Include="CTabBase.h" />
+    <ClInclude Include="CTestAppDlgAVExtenderTab.h" />
     <ClInclude Include="CTestAppDlgMainTab.h" />
     <ClInclude Include="CTestAppDlgTestExtenderTab.h" />
     <ClInclude Include="CSecurityDlg.h" />
@@ -507,6 +530,11 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\AVExtender\AVErrorCode.cpp" />
+    <ClCompile Include="..\AVExtender\AVExtender.cpp" />
+    <ClCompile Include="..\AVExtender\Common.cpp" />
+    <ClCompile Include="..\AVExtender\VideoSourceReader.cpp" />
+    <ClCompile Include="..\AVExtender\VideoWindow.cpp" />
     <ClCompile Include="..\Socks5Extender\Socks5Connection.cpp" />
     <ClCompile Include="..\Socks5Extender\Socks5Extender.cpp" />
     <ClCompile Include="..\StressExtender\StressExtender.cpp" />
@@ -523,6 +551,8 @@
     <ClCompile Include="CPeerAccessDlg.cpp" />
     <ClCompile Include="CPingDlg.cpp" />
     <ClCompile Include="CSettingsDlg.cpp" />
+    <ClCompile Include="CTabBase.cpp" />
+    <ClCompile Include="CTestAppDlgAVExtenderTab.cpp" />
     <ClCompile Include="CTestAppDlgMainTab.cpp" />
     <ClCompile Include="CTestAppDlgTestExtenderTab.cpp" />
     <ClCompile Include="CSecurityDlg.cpp" />

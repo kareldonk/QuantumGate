@@ -10,10 +10,10 @@
 
 using namespace QuantumGate::Implementation;
 
-IMPLEMENT_DYNAMIC(CTestAppDlgTestExtenderTab, CDialogBase)
+IMPLEMENT_DYNAMIC(CTestAppDlgTestExtenderTab, CTabBase)
 
 CTestAppDlgTestExtenderTab::CTestAppDlgTestExtenderTab(QuantumGate::Local& local, CWnd* pParent /*=nullptr*/)
-	: CDialogBase(IDD_QGTESTAPP_DIALOG_TESTEXTENDER_TAB, pParent), m_QuantumGate(local)
+	: CTabBase(IDD_QGTESTAPP_DIALOG_TESTEXTENDER_TAB, pParent), m_QuantumGate(local)
 {}
 
 CTestAppDlgTestExtenderTab::~CTestAppDlgTestExtenderTab()
@@ -38,10 +38,10 @@ void CTestAppDlgTestExtenderTab::UpdateControls() noexcept
 
 void CTestAppDlgTestExtenderTab::DoDataExchange(CDataExchange* pDX)
 {
-	CDialogBase::DoDataExchange(pDX);
+	CTabBase::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CTestAppDlgTestExtenderTab, CDialogBase)
+BEGIN_MESSAGE_MAP(CTestAppDlgTestExtenderTab, CTabBase)
 	ON_MESSAGE(WMQG_PEER_EVENT, &CTestAppDlgTestExtenderTab::OnQGPeerEvent)
 	ON_MESSAGE(WMQG_PEER_FILEACCEPT, &CTestAppDlgTestExtenderTab::OnQGPeerFileAccept)
 	ON_MESSAGE(WMQG_EXTENDER_INIT, &CTestAppDlgTestExtenderTab::OnQGExtenderInit)
@@ -81,10 +81,9 @@ BEGIN_MESSAGE_MAP(CTestAppDlgTestExtenderTab, CDialogBase)
 	ON_BN_CLICKED(IDC_AUTO_SENDFILE, &CTestAppDlgTestExtenderTab::OnBnClickedAutoSendfile)
 END_MESSAGE_MAP()
 
-
 BOOL CTestAppDlgTestExtenderTab::OnInitDialog()
 {
-	CDialogBase::OnInitDialog();
+	CTabBase::OnInitDialog();
 
 	SetValue(IDC_SENDTEXT, L"Hello world");
 	SetValue(IDC_SENDSECONDS, L"10");
@@ -563,7 +562,7 @@ void CTestAppDlgTestExtenderTab::OnTimer(UINT_PTR nIDEvent)
 		}
 	}
 
-	CDialogBase::OnTimer(nIDEvent);
+	CTabBase::OnTimer(nIDEvent);
 }
 
 void CTestAppDlgTestExtenderTab::OnDestroy()
@@ -579,7 +578,7 @@ void CTestAppDlgTestExtenderTab::OnDestroy()
 	UnloadTestExtender();
 	UnloadStressExtender();
 
-	CDialogBase::OnDestroy();
+	CTabBase::OnDestroy();
 }
 
 void CTestAppDlgTestExtenderTab::OnExceptiontestStartup()

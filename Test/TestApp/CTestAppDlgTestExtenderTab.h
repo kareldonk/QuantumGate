@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include "CDialogBase.h"
+#include "CTabBase.h"
 
 #include "..\TestExtender\TestExtender.h"
 #include "..\StressExtender\StressExtender.h"
 
 #define EXTENDER_PEER_ACTIVITY_TIMER	5
 
-class CTestAppDlgTestExtenderTab final : public CDialogBase
+class CTestAppDlgTestExtenderTab final : public CTabBase
 {
 	DECLARE_DYNAMIC(CTestAppDlgTestExtenderTab)
 
