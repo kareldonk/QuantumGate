@@ -10,7 +10,7 @@ using namespace QuantumGate;
 class CDialogBase : public CDialogEx
 {
 public:
-	CDialogBase(UINT nIDTemplate, CWnd *pParent = NULL);
+	CDialogBase(UINT nIDTemplate, CWnd* pParent = NULL);
 	virtual ~CDialogBase();
 
 	Int64 GetInt64Value(const int id, const Int64 def = 0) const noexcept;

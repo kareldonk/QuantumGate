@@ -19,6 +19,12 @@
     <Filter Include="Header Files\Socks5Extender">
       <UniqueIdentifier>{8ceb5aa3-d52a-4704-ac04-5cb29bf28ce0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\AVExtender">
+      <UniqueIdentifier>{a72f4d35-6e82-4297-a59e-1d16090c5c32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\AVExtender">
+      <UniqueIdentifier>{91a706da-d92d-49ed-bf69-bfb128937ba4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -111,6 +117,27 @@
     <ClInclude Include="CPingDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\AVExtender\AVExtender.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AVExtender\VideoSourceReader.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
+    <ClInclude Include="CTestAppDlgAVExtenderTab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CTabBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AVExtender\VideoWindow.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AVExtender\Common.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AVExtender\AVErrorCode.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -190,6 +217,27 @@
     </ClCompile>
     <ClCompile Include="CPingDlg.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\AVExtender.cpp">
+      <Filter>Source Files\AVExtender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\VideoSourceReader.cpp">
+      <Filter>Source Files\AVExtender</Filter>
+    </ClCompile>
+    <ClCompile Include="CTestAppDlgAVExtenderTab.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CTabBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\VideoWindow.cpp">
+      <Filter>Source Files\AVExtender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\Common.cpp">
+      <Filter>Source Files\AVExtender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\AVErrorCode.cpp">
+      <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

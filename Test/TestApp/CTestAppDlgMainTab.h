@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "CDialogBase.h"
+#include "CTabBase.h"
 #include "TestAppConsole.h"
 
 #define CONSOLE_TIMER	1
@@ -11,7 +11,7 @@
 
 enum class ConsoleState { Disabled, Enabled, EnabledWindow };
 
-class CTestAppDlgMainTab final : public CDialogBase
+class CTestAppDlgMainTab final : public CTabBase
 {
 	DECLARE_DYNAMIC(CTestAppDlgMainTab)
 

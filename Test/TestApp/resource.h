@@ -21,6 +21,7 @@
 #define IDD_IPREPUTATIONS_DIALOG        156
 #define IDD_INFO_DIALOG                 158
 #define IDD_PING_DIALOG                 160
+#define IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB 162
 #define IDC_INIT                        1000
 #define IDC_CONSOLE                     1001
 #define IDC_DEINIT                      1002
@@ -155,9 +156,14 @@
 #define IDC_CHECK9                      1070
 #define IDC_BUFFER_SIZE                 1070
 #define IDC_CHECK10                     1071
+#define IDC_INITIALIZE_AV               1071
 #define IDC_CHECK11                     1072
+#define IDC_VIDEO_PREVIEW               1072
 #define IDC_CHECK12                     1073
+#define IDC_VIDEO_DEVICES_COMBO         1073
 #define IDC_CHECK13                     1074
+#define IDC_VIDEO_DEVICES_COMBO2        1074
+#define IDC_AUDIO_DEVICES_COMBO         1074
 #define IDC_CHECK15                     1076
 #define IDC_CHECK14                     1078
 #define IDC_CHECK16                     1079
@@ -250,9 +256,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        162
+#define _APS_NEXT_RESOURCE_VALUE        164
 #define _APS_NEXT_COMMAND_VALUE         32849
-#define _APS_NEXT_CONTROL_VALUE         1071
+#define _APS_NEXT_CONTROL_VALUE         1074
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

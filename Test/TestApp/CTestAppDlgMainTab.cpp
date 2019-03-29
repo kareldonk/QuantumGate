@@ -11,10 +11,10 @@
 
 using namespace QuantumGate::Implementation;
 
-IMPLEMENT_DYNAMIC(CTestAppDlgMainTab, CDialogBase)
+IMPLEMENT_DYNAMIC(CTestAppDlgMainTab, CTabBase)
 
 CTestAppDlgMainTab::CTestAppDlgMainTab(QuantumGate::Local& local, CWnd* pParent /*=nullptr*/)
-	: CDialogBase(IDD_QGTESTAPP_DIALOG_MAIN_TAB, pParent), m_QuantumGate(local)
+	: CTabBase(IDD_QGTESTAPP_DIALOG_MAIN_TAB, pParent), m_QuantumGate(local)
 {}
 
 CTestAppDlgMainTab::~CTestAppDlgMainTab()
@@ -30,10 +30,10 @@ void CTestAppDlgMainTab::UpdateControls() noexcept
 
 void CTestAppDlgMainTab::DoDataExchange(CDataExchange* pDX)
 {
-	CDialogBase::DoDataExchange(pDX);
+	CTabBase::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CTestAppDlgMainTab, CDialogBase)
+BEGIN_MESSAGE_MAP(CTestAppDlgMainTab, CTabBase)
 	ON_WM_TIMER()
 	ON_WM_CTLCOLOR()
 	ON_COMMAND(ID_PEERLIST_VIEW_DETAILS, &CTestAppDlgMainTab::OnPeerlistViewDetails)
@@ -68,7 +68,7 @@ END_MESSAGE_MAP()
 
 BOOL CTestAppDlgMainTab::OnInitDialog()
 {
-	CDialogBase::OnInitDialog();
+	CTabBase::OnInitDialog();
 
 	m_Console = std::make_shared<TestAppConsole>();
 	Console::SetOutput(m_Console);
@@ -199,7 +199,7 @@ void CTestAppDlgMainTab::OnTimer(UINT_PTR nIDEvent)
 		}
 	}
 
-	CDialogBase::OnTimer(nIDEvent);
+	CTabBase::OnTimer(nIDEvent);
 }
 
 HBRUSH CTestAppDlgMainTab::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
@@ -216,7 +216,7 @@ HBRUSH CTestAppDlgMainTab::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		return (HBRUSH)GetStockObject(HOLLOW_BRUSH);
 	}
 
-	return CDialogBase::OnCtlColor(pDC, pWnd, nCtlColor);
+	return CTabBase::OnCtlColor(pDC, pWnd, nCtlColor);
 }
 
 void CTestAppDlgMainTab::OnPeerlistViewDetails()
@@ -466,7 +466,7 @@ void CTestAppDlgMainTab::OnDestroy()
 		m_PeerActivityTimer = 0;
 	}
 
-	CDialogBase::OnDestroy();
+	CTabBase::OnDestroy();
 }
 
 void CTestAppDlgMainTab::OnBnClickedOnlyRelayedCheck()

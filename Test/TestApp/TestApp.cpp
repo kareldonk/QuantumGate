@@ -47,7 +47,7 @@ BOOL CTestAppApp::InitInstance()
 
 	// Create the shell manager, in case the dialog contains
 	// any shell tree view or shell list view controls.
-	CShellManager*pShellManager = new CShellManager;
+	CShellManager* pShellManager = new CShellManager;
 
 	// Activate "Windows Native" visual manager for enabling themes in MFC controls
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
@@ -55,7 +55,7 @@ BOOL CTestAppApp::InitInstance()
 	SetRegistryKey(_T("QuantumGate"));
 
 	CTestAppDlg dlg;
-	m_pMainWnd =&dlg;
+	m_pMainWnd = &dlg;
 	const INT_PTR nResponse = dlg.DoModal();
 	if (nResponse == IDOK)
 	{
