@@ -5,6 +5,12 @@
 #include "TestApp.h"
 #include "CTestAppDlgAVExtenderTab.h"
 
+#include <Console.h>
+#include <Common\Util.h>
+#include <Common\ScopeGuard.h>
+
+using namespace QuantumGate::Implementation;
+
 IMPLEMENT_DYNAMIC(CTestAppDlgAVExtenderTab, CTabBase)
 
 CTestAppDlgAVExtenderTab::CTestAppDlgAVExtenderTab(QuantumGate::Local& local, CWnd* pParent /*=nullptr*/)
@@ -20,9 +26,16 @@ void CTestAppDlgAVExtenderTab::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
+	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::PeerEvent), &CTestAppDlgAVExtenderTab::OnPeerEvent)
+	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::ExtenderInit), &CTestAppDlgAVExtenderTab::OnExtenderInit)
+	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::ExtenderDeinit), &CTestAppDlgAVExtenderTab::OnExtenderDeInit)
 	ON_BN_CLICKED(IDC_INITIALIZE_AV, &CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv)
 	ON_WM_DESTROY()
 	ON_WM_TIMER()
+	ON_COMMAND(ID_AVEXTENDER_LOAD, &CTestAppDlgAVExtenderTab::OnAVExtenderLoad)
+	ON_COMMAND(ID_AVEXTENDER_USECOMPRESSION, &CTestAppDlgAVExtenderTab::OnAVExtenderUseCompression)
+	ON_UPDATE_COMMAND_UI(ID_AVEXTENDER_LOAD, &CTestAppDlgAVExtenderTab::OnUpdateAVExtenderLoad)
+	ON_UPDATE_COMMAND_UI(ID_AVEXTENDER_USECOMPRESSION, &CTestAppDlgAVExtenderTab::OnUpdateAVExtenderUseCompression)
 END_MESSAGE_MAP()
 
 void CTestAppDlgAVExtenderTab::UpdateControls() noexcept
@@ -125,4 +138,110 @@ void CTestAppDlgAVExtenderTab::OnTimer(UINT_PTR nIDEvent)
 	delete bgraBuffer;
 
 	CTabBase::OnTimer(nIDEvent);
+}
+
+LRESULT CTestAppDlgAVExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
+{
+	auto event = reinterpret_cast<AVExtender::Event*>(w);
+
+	// Make sure we delete the event when we return
+	const auto sg = MakeScopeGuard([&]() noexcept { delete event; });
+
+	if (event->Type == PeerEventType::Connected)
+	{
+		auto lbox = reinterpret_cast<CListBox*>(GetDlgItem(IDC_PEERLIST));
+		lbox->InsertString(-1, Util::FormatString(L"%llu", event->PeerLUID).c_str());
+
+		UpdateControls();
+	}
+	else if (event->Type == PeerEventType::Disconnected)
+	{
+		CString pluid = Util::FormatString(L"%llu", event->PeerLUID).c_str();
+
+		const auto lbox = reinterpret_cast<CListBox*>(GetDlgItem(IDC_PEERLIST));
+		const auto pos = lbox->FindString(-1, pluid);
+		if (pos != LB_ERR) lbox->DeleteString(pos);
+
+		UpdateControls();
+	}
+	else
+	{
+		LogWarn(L"Unhandled peer event from %llu: %d", event->PeerLUID, event->Type);
+	}
+
+	return 0;
+}
+
+LRESULT CTestAppDlgAVExtenderTab::OnExtenderInit(WPARAM w, LPARAM l)
+{
+	return 0;
+}
+
+LRESULT CTestAppDlgAVExtenderTab::OnExtenderDeInit(WPARAM w, LPARAM l)
+{
+	auto lbox = reinterpret_cast<CListBox*>(GetDlgItem(IDC_PEERLIST));
+	lbox->ResetContent();
+
+	UpdateControls();
+
+	return 0;
+}
+
+void CTestAppDlgAVExtenderTab::OnAVExtenderLoad()
+{
+	if (m_AVExtender == nullptr) LoadAVExtender();
+	else UnloadAVExtender();
+}
+
+void CTestAppDlgAVExtenderTab::OnUpdateAVExtenderLoad(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_AVExtender != nullptr);
+}
+
+void CTestAppDlgAVExtenderTab::OnAVExtenderUseCompression()
+{
+	if (m_AVExtender != nullptr)
+	{
+		m_AVExtender->SetUseCompression(!m_AVExtender->IsUsingCompression());
+	}
+}
+
+void CTestAppDlgAVExtenderTab::OnUpdateAVExtenderUseCompression(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(m_AVExtender != nullptr);
+	pCmdUI->SetCheck(m_AVExtender != nullptr && m_AVExtender->IsUsingCompression());
+}
+
+void CTestAppDlgAVExtenderTab::LoadAVExtender() noexcept
+{
+	if (m_AVExtender == nullptr)
+	{
+		try
+		{
+			m_AVExtender = std::make_shared<QuantumGate::AVExtender::Extender>(GetSafeHwnd());
+			auto extp = std::static_pointer_cast<Extender>(m_AVExtender);
+			if (!m_QuantumGate.AddExtender(extp))
+			{
+				LogErr(L"Failed to add AVExtender");
+				m_AVExtender.reset();
+			}
+		}
+		catch (...)
+		{
+			LogErr(L"Failed to add AVExtender due to exception");
+		}
+	}
+}
+
+void CTestAppDlgAVExtenderTab::UnloadAVExtender() noexcept
+{
+	if (m_AVExtender != nullptr)
+	{
+		auto extp = std::static_pointer_cast<Extender>(m_AVExtender);
+		if (!m_QuantumGate.RemoveExtender(extp))
+		{
+			LogErr(L"Failed to remove AVExtender");
+		}
+		else m_AVExtender.reset();
+	}
 }
