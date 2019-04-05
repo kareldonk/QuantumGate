@@ -19,15 +19,15 @@ namespace QuantumGate::AVExtender
 	{
 		WNDCLASSEX wc{ 0 };
 		wc.cbSize = sizeof(WNDCLASSEX);
-		wc.hbrBackground = (HBRUSH)(COLOR_BACKGROUND);
-		wc.hCursor = (HCURSOR)LoadCursor(NULL, IDC_ARROW);
+		wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_BACKGROUND);
+		wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
 		wc.lpfnWndProc = VideoWindow::WndProc;
 		wc.lpszClassName = TEXT("VideoWindowClass");
 		wc.style = CS_VREDRAW | CS_HREDRAW;
 
 		RegisterClassEx(&wc);
 		m_WndHandle = CreateWindowEx(dwExStyle, wc.lpszClassName, L"VideoWindow",
-									 dwStyle, x, y, width, height, parent, NULL, NULL, this);
+									 dwStyle, x, y, width, height, parent, nullptr, nullptr, this);
 		if (m_WndHandle)
 		{
 			if (InitializeD2DRenderTarget(m_WndHandle, width, height))
@@ -54,18 +54,18 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	LRESULT VideoWindow::WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+	LRESULT VideoWindow::WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept
 	{
 		VideoWindow* vwnd{ nullptr };
 
 		if (msg == WM_CREATE)
 		{
-			vwnd = (VideoWindow*)(((LPCREATESTRUCT)(lparam))->lpCreateParams);
-			SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)vwnd);
+			vwnd = static_cast<VideoWindow*>(reinterpret_cast<LPCREATESTRUCT>(lparam)->lpCreateParams);
+			SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(vwnd));
 		}
 		else
 		{
-			vwnd = (VideoWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+			vwnd = reinterpret_cast<VideoWindow*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
 		}
 
 		switch (msg)

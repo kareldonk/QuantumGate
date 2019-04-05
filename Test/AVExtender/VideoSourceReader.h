@@ -124,15 +124,15 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] std::pair<UInt, UInt> GetSampleDimensions() noexcept;
 
 		// Methods from IUnknown 
-		STDMETHODIMP QueryInterface(REFIID iid, void** ppv);
-		STDMETHODIMP_(ULONG) AddRef();
-		STDMETHODIMP_(ULONG) Release();
+		STDMETHODIMP QueryInterface(REFIID iid, void** ppv) override;
+		STDMETHODIMP_(ULONG) AddRef() override;
+		STDMETHODIMP_(ULONG) Release() override;
 
 		// Methods from IMFSourceReaderCallback 
 		STDMETHODIMP OnReadSample(HRESULT hrStatus, DWORD dwStreamIndex, DWORD dwStreamFlags,
-								  LONGLONG llTimestamp, IMFSample* pSample);
-		STDMETHODIMP OnEvent(DWORD dwStreamIndex, IMFMediaEvent* pEvent) { return S_OK; }
-		STDMETHODIMP OnFlush(DWORD dwStreamIndex) { return S_OK; }
+								  LONGLONG llTimestamp, IMFSample* pSample) override;
+		STDMETHODIMP OnEvent(DWORD dwStreamIndex, IMFMediaEvent* pEvent) override { return S_OK; }
+		STDMETHODIMP OnFlush(DWORD dwStreamIndex) override { return S_OK; }
 
 	private:
 		[[nodiscard]] Result<std::pair<UINT32, IMFActivate**>> GetVideoCaptureDevices() const noexcept;

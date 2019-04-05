@@ -35,7 +35,7 @@ namespace QuantumGate::AVExtender
 		void Render(const Byte* pixels, const UInt width, const UInt height) noexcept;
 		
 	private:
-		static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+		static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept;
 
 		[[nodiscard]] const bool InitializeD2DRenderTarget(const HWND hwnd, const UInt width, const UInt height) noexcept;
 		void DeinitializeD2DRenderTarget() noexcept;

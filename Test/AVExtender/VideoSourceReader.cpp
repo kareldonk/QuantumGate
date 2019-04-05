@@ -6,14 +6,14 @@
 
 #include <shlwapi.h>
 
-#include "Common\ScopeGuard.h"
-#include "Common\Util.h"
+#include <Common\ScopeGuard.h>
+#include <Common\Util.h>
 
 namespace QuantumGate::AVExtender
 {
 	VideoSourceReader::VideoSourceReader() noexcept
 	{
-		CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+		DiscardReturnValue(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
 	}
 
 	VideoSourceReader::~VideoSourceReader()
@@ -27,9 +27,9 @@ namespace QuantumGate::AVExtender
 		return QISearch(this, qit, riid, ppvObject);
 	}
 
-	ULONG VideoSourceReader::Release()
+	STDMETHODIMP_(ULONG) VideoSourceReader::Release()
 	{
-		ULONG count = InterlockedDecrement(&m_RefCount);
+		const ULONG count = InterlockedDecrement(&m_RefCount);
 		if (count == 0)
 		{
 			delete this;
@@ -38,7 +38,7 @@ namespace QuantumGate::AVExtender
 		return count;
 	}
 
-	ULONG VideoSourceReader::AddRef()
+	STDMETHODIMP_(ULONG) VideoSourceReader::AddRef()
 	{
 		return InterlockedIncrement(&m_RefCount);
 	}
@@ -228,7 +228,7 @@ namespace QuantumGate::AVExtender
 							auto& subtype = result->second;
 
 							// Release media type when we exit this scope
-							const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&result->first); });
+							const auto sg2 = MakeScopeGuard([&]() noexcept { SafeRelease(&result->first); });
 
 							if (SetMediaType(source_reader_data, media_type, subtype).Succeeded())
 							{
@@ -257,7 +257,7 @@ namespace QuantumGate::AVExtender
 		{
 			IMFMediaType* media_type{ nullptr };
 
-			auto hr = source_reader->GetNativeMediaType((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM,
+			auto hr = source_reader->GetNativeMediaType(static_cast<DWORD>(MF_SOURCE_READER_FIRST_VIDEO_STREAM),
 														i, &media_type);
 			if (SUCCEEDED(hr))
 			{
@@ -308,9 +308,9 @@ namespace QuantumGate::AVExtender
 					try
 					{
 						// Allocate a buffer for the raw pixel data
-						source_reader_data.RawData.Allocate(source_reader_data.Width *
-															source_reader_data.Height *
-															source_reader_data.BytesPerPixel);
+						source_reader_data.RawData.Allocate(static_cast<Size>(source_reader_data.Width) *
+															static_cast<Size>(source_reader_data.Height) *
+															static_cast<Size>(source_reader_data.BytesPerPixel));
 
 						return AVResultCode::Succeeded;
 					}

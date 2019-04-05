@@ -162,7 +162,6 @@
 #define IDC_CHECK12                     1073
 #define IDC_VIDEO_DEVICES_COMBO         1073
 #define IDC_CHECK13                     1074
-#define IDC_VIDEO_DEVICES_COMBO2        1074
 #define IDC_AUDIO_DEVICES_COMBO         1074
 #define IDC_CHECK15                     1076
 #define IDC_CHECK14                     1078
@@ -251,13 +250,16 @@
 #define ID_ATTACKS_CONNECTANDWAIT       32846
 #define ID_LOCAL_ENVIRONMENTINFO        32847
 #define ID_UTILS_PING                   32848
+#define ID_EXTENDERS_AVEXTENDER         32849
+#define ID_AVEXTENDER_LOAD              32850
+#define ID_AVEXTENDER_USECOMPRESSION    32851
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
-#define _APS_NEXT_COMMAND_VALUE         32849
+#define _APS_NEXT_COMMAND_VALUE         32852
 #define _APS_NEXT_CONTROL_VALUE         1074
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
