@@ -30,10 +30,10 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 
-	LRESULT OnQGPeerEvent(WPARAM w, LPARAM l);
-	LRESULT OnQGPeerFileAccept(WPARAM w, LPARAM l);
-	LRESULT OnQGExtenderInit(WPARAM w, LPARAM l);
-	LRESULT OnQGExtenderDeInit(WPARAM w, LPARAM l);
+	LRESULT OnPeerEvent(WPARAM w, LPARAM l);
+	LRESULT OnPeerFileAccept(WPARAM w, LPARAM l);
+	LRESULT OnExtenderInit(WPARAM w, LPARAM l);
+	LRESULT OnExtenderDeInit(WPARAM w, LPARAM l);
 
 	virtual BOOL OnInitDialog();
 

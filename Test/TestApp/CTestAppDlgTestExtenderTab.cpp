@@ -5,8 +5,9 @@
 #include "TestApp.h"
 #include "CTestAppDlgTestExtenderTab.h"
 
-#include "Console.h"
-#include "Common\Util.h"
+#include <Console.h>
+#include <Common\Util.h>
+#include <Common\ScopeGuard.h>
 
 using namespace QuantumGate::Implementation;
 
@@ -42,10 +43,10 @@ void CTestAppDlgTestExtenderTab::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CTestAppDlgTestExtenderTab, CTabBase)
-	ON_MESSAGE(WMQG_PEER_EVENT, &CTestAppDlgTestExtenderTab::OnQGPeerEvent)
-	ON_MESSAGE(WMQG_PEER_FILEACCEPT, &CTestAppDlgTestExtenderTab::OnQGPeerFileAccept)
-	ON_MESSAGE(WMQG_EXTENDER_INIT, &CTestAppDlgTestExtenderTab::OnQGExtenderInit)
-	ON_MESSAGE(WMQG_EXTENDER_DEINIT, &CTestAppDlgTestExtenderTab::OnQGExtenderDeInit)
+	ON_MESSAGE(static_cast<UINT>(TestExtender::WindowsMessage::PeerEvent), &CTestAppDlgTestExtenderTab::OnPeerEvent)
+	ON_MESSAGE(static_cast<UINT>(TestExtender::WindowsMessage::FileAccept), &CTestAppDlgTestExtenderTab::OnPeerFileAccept)
+	ON_MESSAGE(static_cast<UINT>(TestExtender::WindowsMessage::ExtenderInit), &CTestAppDlgTestExtenderTab::OnExtenderInit)
+	ON_MESSAGE(static_cast<UINT>(TestExtender::WindowsMessage::ExtenderDeinit), &CTestAppDlgTestExtenderTab::OnExtenderDeInit)
 	ON_BN_CLICKED(IDC_SENDBUTTON, &CTestAppDlgTestExtenderTab::OnBnClickedSendbutton)
 	ON_BN_CLICKED(IDC_SENDCHECK, &CTestAppDlgTestExtenderTab::OnBnClickedSendcheck)
 	ON_BN_CLICKED(IDC_SENDFILE, &CTestAppDlgTestExtenderTab::OnBnClickedSendfile)
@@ -161,7 +162,7 @@ void CTestAppDlgTestExtenderTab::UpdateFileTransfers(const TestExtender::FileTra
 		if (index != -1)
 		{
 			lctrl->SetItemText(index, 2, percstr.c_str());
-			lctrl->SetItemText(index, 3, status.c_str());
+			lctrl->SetItemText(index, 3, status);
 		}
 		else
 		{
@@ -172,7 +173,7 @@ void CTestAppDlgTestExtenderTab::UpdateFileTransfers(const TestExtender::FileTra
 			{
 				lctrl->SetItemText(pos, 1, filetransfer.second->GetFileName().c_str());
 				lctrl->SetItemText(pos, 2, percstr.c_str());
-				lctrl->SetItemText(pos, 3, status.c_str());
+				lctrl->SetItemText(pos, 3, status);
 			}
 		}
 	}
@@ -474,9 +475,12 @@ void CTestAppDlgTestExtenderTab::OnBnClickedSendstress()
 	SetValue(IDC_STRESSRESULT, Util::FormatString(L"%dms", ms.count()));
 }
 
-LRESULT CTestAppDlgTestExtenderTab::OnQGPeerEvent(WPARAM w, LPARAM l)
+LRESULT CTestAppDlgTestExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 {
 	auto event = reinterpret_cast<TestExtender::Event*>(w);
+
+	// Make sure we delete the event when we return
+	const auto sg = MakeScopeGuard([&]() noexcept { delete event; });
 
 	if (event->Type == PeerEventType::Connected)
 	{
@@ -503,16 +507,13 @@ LRESULT CTestAppDlgTestExtenderTab::OnQGPeerEvent(WPARAM w, LPARAM l)
 	}
 	else
 	{
-		LogWarn(L"Opened peer event from %llu: %d", event->PeerLUID, event->Type);
+		LogWarn(L"Unhandled peer event from %llu: %d", event->PeerLUID, event->Type);
 	}
-
-	// Delete allocated event from extender
-	delete event;
 
 	return 0;
 }
 
-LRESULT CTestAppDlgTestExtenderTab::OnQGPeerFileAccept(WPARAM w, LPARAM l)
+LRESULT CTestAppDlgTestExtenderTab::OnPeerFileAccept(WPARAM w, LPARAM l)
 {
 	auto fa = reinterpret_cast<TestExtender::FileAccept*>(w);
 	const auto pluid = fa->PeerLUID;
@@ -531,12 +532,12 @@ LRESULT CTestAppDlgTestExtenderTab::OnQGPeerFileAccept(WPARAM w, LPARAM l)
 	return 0;
 }
 
-LRESULT CTestAppDlgTestExtenderTab::OnQGExtenderInit(WPARAM w, LPARAM l)
+LRESULT CTestAppDlgTestExtenderTab::OnExtenderInit(WPARAM w, LPARAM l)
 {
 	return 0;
 }
 
-LRESULT CTestAppDlgTestExtenderTab::OnQGExtenderDeInit(WPARAM w, LPARAM l)
+LRESULT CTestAppDlgTestExtenderTab::OnExtenderDeInit(WPARAM w, LPARAM l)
 {
 	auto lbox = (CListBox*)GetDlgItem(IDC_PEERLIST);
 	lbox->ResetContent();

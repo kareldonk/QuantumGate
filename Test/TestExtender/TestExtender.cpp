@@ -13,10 +13,10 @@ extern "C"
 #include <cassert>
 #include <functional>
 
-#include "Console.h"
-#include "Common\Util.h"
-#include "Memory\BufferWriter.h"
-#include "Memory\BufferReader.h"
+#include <Console.h>
+#include <Common\Util.h>
+#include <Memory\BufferWriter.h>
+#include <Memory\BufferReader.h>
 
 using namespace QuantumGate::Implementation;
 using namespace QuantumGate::Implementation::Memory;
@@ -56,8 +56,7 @@ namespace TestExtender
 		}
 
 		if (((m_Status != FileTransferStatus::Succeeded || IsAuto()) &&
-			 m_Type == FileTransferType::Incoming) &&
-			!m_FileName.empty())
+			 m_Type == FileTransferType::Incoming) && !m_FileName.empty())
 		{
 			DeleteFile(m_FileName.c_str());
 		}
@@ -185,7 +184,7 @@ namespace TestExtender
 		m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
 	}
 
-	const String FileTransfer::GetStatusString() const noexcept
+	const WChar* FileTransfer::GetStatusString() const noexcept
 	{
 		switch (GetStatus())
 		{
@@ -301,7 +300,10 @@ namespace TestExtender
 
 		m_Thread = std::thread(Extender::WorkerThreadLoop, this);
 
-		PostMessage(m_Window, WMQG_EXTENDER_INIT, 0, 0);
+		if (m_Window != nullptr)
+		{
+			PostMessage(m_Window, static_cast<UINT>(WindowsMessage::ExtenderInit), 0, 0);
+		}
 
 		// Return true if initialization was successful, otherwise return false and
 		// QuantumGate won't be sending this extender any notifications
@@ -328,10 +330,13 @@ namespace TestExtender
 
 		m_Peers.WithUniqueLock()->clear();
 
-		PostMessage(m_Window, WMQG_EXTENDER_DEINIT, 0, 0);
+		if (m_Window != nullptr)
+		{
+			PostMessage(m_Window, static_cast<UINT>(WindowsMessage::ExtenderDeinit), 0, 0);
+		}
 	}
 
-	void Extender::OnPeerEvent(PeerEvent&& event)
+	void Extender::OnPeerEvent(PeerEvent && event)
 	{
 		String ev(L"Unknown");
 
@@ -360,11 +365,14 @@ namespace TestExtender
 
 			// Using PostMessage because the current QuantumGate worker thread should NOT be calling directly to the UI;
 			// only the thread that created the Window should do that, to avoid deadlocks
-			PostMessage(m_Window, WMQG_PEER_EVENT, reinterpret_cast<WPARAM>(ev), 0);
+			if (!PostMessage(m_Window, static_cast<UINT>(WindowsMessage::PeerEvent), reinterpret_cast<WPARAM>(ev), 0))
+			{
+				delete ev;
+			}
 		}
 	}
 
-	const std::pair<bool, bool> Extender::OnPeerMessage(PeerEvent&& event)
+	const std::pair<bool, bool> Extender::OnPeerMessage(PeerEvent && event)
 	{
 		auto handled = false;
 		auto success = false;
@@ -445,7 +453,7 @@ namespace TestExtender
 
 							if (rdr.Read(fid, fsize))
 							{
-								auto fsize2 = static_cast<Size>(fsize);
+								const auto fsize2 = static_cast<Size>(fsize);
 
 								// This check needed for 32-bit systems that can't support 64-bit file sizes
 								if (sizeof(fsize2) != sizeof(fsize) && fsize > (std::numeric_limits<UInt32>::max)())
@@ -466,7 +474,7 @@ namespace TestExtender
 										ft->SetStatus(FileTransferStatus::NeedAccept);
 
 										IfNotHasFileTransfer(event.GetPeerLUID(), ft->GetID(),
-															 [&](FileTransfers& filetransfers)
+															 [&](FileTransfers & filetransfers)
 										{
 											auto retval = filetransfers.insert({ fid, std::move(ft) });
 											success = true;
@@ -479,8 +487,11 @@ namespace TestExtender
 												fa->PeerLUID = event.GetPeerLUID();
 												fa->FileTransferID = fid;
 
-												PostMessage(m_Window, WMQG_PEER_FILEACCEPT,
-															reinterpret_cast<WPARAM>(fa), 0);
+												if (!PostMessage(m_Window, static_cast<UINT>(WindowsMessage::FileAccept),
+																reinterpret_cast<WPARAM>(fa), 0))
+												{
+													delete fa;
+												}
 											}
 											else
 											{
@@ -525,7 +536,7 @@ namespace TestExtender
 							{
 								Dbg(L"Received FileTransferAccept message from %llu", event.GetPeerLUID());
 
-								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer& ft)
+								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer & ft)
 								{
 									ft.SetStatus(FileTransferStatus::Transfering);
 
@@ -544,7 +555,7 @@ namespace TestExtender
 							{
 								Dbg(L"Received FileTransferCancel message from %llu", event.GetPeerLUID());
 
-								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer& ft) noexcept
+								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer & ft) noexcept
 								{
 									ft.SetStatus(FileTransferStatus::Cancelled);
 									success = true;
@@ -562,7 +573,7 @@ namespace TestExtender
 							{
 								Dbg(L"Received FileTransferData message from %llu", event.GetPeerLUID());
 
-								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer& ft)
+								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer & ft)
 								{
 									auto& buffer = ft.GetTransferBuffer();
 
@@ -591,7 +602,7 @@ namespace TestExtender
 							{
 								Dbg(L"Received FileTransferDataAck message from %llu", event.GetPeerLUID());
 
-								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer& ft)
+								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer & ft)
 								{
 									if (ft.GetNumBytesTransferred() == ft.GetFileSize())
 									{
@@ -620,7 +631,7 @@ namespace TestExtender
 		return std::make_pair(handled, success);
 	}
 
-	void Extender::WorkerThreadLoop(Extender* extender)
+	void Extender::WorkerThreadLoop(Extender * extender)
 	{
 		LogDbg(L"%s worker thread %u starting", extender->GetName().c_str(), std::this_thread::get_id());
 
@@ -629,11 +640,11 @@ namespace TestExtender
 		// If the shutdown event is set quit the loop
 		while (!extender->m_ShutdownEvent.IsSet())
 		{
-			extender->m_Peers.IfSharedLock([&](auto& peers)
+			extender->m_Peers.IfSharedLock([&](auto & peers)
 			{
 				for (auto it = peers.begin(); it != peers.end() && !extender->m_ShutdownEvent.IsSet(); ++it)
 				{
-					it->second->FileTransfers.IfUniqueLock([&](FileTransfers& filetransfers)
+					it->second->FileTransfers.IfUniqueLock([&](FileTransfers & filetransfers)
 					{
 						auto fit = filetransfers.begin();
 
@@ -674,11 +685,11 @@ namespace TestExtender
 	}
 
 	template<typename Func>
-	bool Extender::IfHasFileTransfer(const PeerLUID pluid, const FileTransferID ftid, Func&& func)
+	bool Extender::IfHasFileTransfer(const PeerLUID pluid, const FileTransferID ftid, Func && func)
 	{
 		auto success = false;
 
-		m_Peers.WithSharedLock([&](auto& peers)
+		m_Peers.WithSharedLock([&](auto & peers)
 		{
 			const auto it = peers.find(pluid);
 			if (it != peers.end())
@@ -698,16 +709,16 @@ namespace TestExtender
 	}
 
 	template<typename Func>
-	bool Extender::IfNotHasFileTransfer(const PeerLUID pluid, const FileTransferID ftid, Func&& func)
+	bool Extender::IfNotHasFileTransfer(const PeerLUID pluid, const FileTransferID ftid, Func && func)
 	{
 		auto success = false;
 
-		m_Peers.WithSharedLock([&](auto& peers)
+		m_Peers.WithSharedLock([&](auto & peers)
 		{
 			const auto it = peers.find(pluid);
 			if (it != peers.end())
 			{
-				it->second->FileTransfers.WithUniqueLock([&](auto& filetransfers)
+				it->second->FileTransfers.WithUniqueLock([&](auto & filetransfers)
 				{
 					const auto fit = filetransfers.find(ftid);
 					if (fit == filetransfers.end())
@@ -778,7 +789,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg) const
+	const bool Extender::SendMessage(const PeerLUID pluid, const std::wstring & msg) const
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::MessageString);
 
@@ -806,7 +817,7 @@ namespace TestExtender
 			{
 				ft->SetStatus(FileTransferStatus::WaitingForAccept);
 
-				IfNotHasFileTransfer(pluid, ft->GetID(), [&](FileTransfers& filetransfers)
+				IfNotHasFileTransfer(pluid, ft->GetID(), [&](FileTransfers & filetransfers)
 				{
 					if (SendFileTransferStart(pluid, *ft))
 					{
@@ -825,11 +836,11 @@ namespace TestExtender
 		return success;
 	}
 
-	const bool Extender::AcceptFile(const PeerLUID pluid, const FileTransferID ftid, const String& filename)
+	const bool Extender::AcceptFile(const PeerLUID pluid, const FileTransferID ftid, const String & filename)
 	{
 		auto success = false;
 
-		IfHasFileTransfer(pluid, ftid, [&](FileTransfer& ft)
+		IfHasFileTransfer(pluid, ftid, [&](FileTransfer & ft)
 		{
 			success = AcceptFile(pluid, filename, ft);
 		});
@@ -837,7 +848,7 @@ namespace TestExtender
 		return success;
 	}
 
-	const bool Extender::AcceptFile(const PeerLUID pluid, const String& filename, FileTransfer& ft)
+	const bool Extender::AcceptFile(const PeerLUID pluid, const String & filename, FileTransfer & ft)
 	{
 		auto success = false;
 
@@ -877,7 +888,7 @@ namespace TestExtender
 		return &m_Peers;
 	}
 
-	const bool Extender::SendFileTransferStart(const PeerLUID pluid, FileTransfer& ft)
+	const bool Extender::SendFileTransferStart(const PeerLUID pluid, FileTransfer & ft)
 	{
 		Path fp(ft.GetFileName());
 		String filename = fp.filename().wstring();
@@ -907,7 +918,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool Extender::SendFileTransferCancel(const PeerLUID pluid, FileTransfer& ft)
+	const bool Extender::SendFileTransferCancel(const PeerLUID pluid, FileTransfer & ft)
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferCancel);
 
@@ -934,7 +945,7 @@ namespace TestExtender
 		return (GetMaximumMessageDataSize() - 15);
 	}
 
-	const bool Extender::SendFileData(const PeerLUID pluid, FileTransfer& ft)
+	const bool Extender::SendFileData(const PeerLUID pluid, FileTransfer & ft)
 	{
 		auto& buffer = ft.GetTransferBuffer();
 		const auto numread = ft.ReadFromFile(buffer.GetBytes(), buffer.GetSize());
@@ -959,7 +970,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool Extender::SendFileDataAck(const PeerLUID pluid, FileTransfer& ft)
+	const bool Extender::SendFileDataAck(const PeerLUID pluid, FileTransfer & ft)
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferDataAck);
 
