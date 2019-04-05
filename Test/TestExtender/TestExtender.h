@@ -10,12 +10,6 @@
 #include "Concurrency\ThreadSafe.h"
 #include "Concurrency\EventCondition.h"
 
-// Peer event messages
-#define WMQG_PEER_EVENT			(WM_USER+1)
-#define WMQG_PEER_FILEACCEPT	(WM_USER+2)
-#define WMQG_EXTENDER_INIT		(WM_USER+3)
-#define WMQG_EXTENDER_DEINIT	(WM_USER+4)
-
 namespace TestExtender
 {
 	using namespace QuantumGate;
@@ -70,7 +64,7 @@ namespace TestExtender
 		void SetStatus(const FileTransferStatus status) noexcept;
 
 		inline const FileTransferStatus GetStatus() const noexcept { return m_Status; }
-		const String GetStatusString() const noexcept;
+		const WChar* GetStatusString() const noexcept;
 		inline const FileTransferType GetType() const noexcept { return m_Type; }
 		inline const bool IsAuto() const noexcept { return m_Auto; }
 		inline const SteadyTime GetLastActiveSteadyTime() const noexcept { return m_LastActiveSteadyTime; }
@@ -117,6 +111,14 @@ namespace TestExtender
 	{
 		PeerLUID PeerLUID{ 0 };
 		FileTransferID FileTransferID{ 0 };
+	};
+
+	enum class WindowsMessage : UINT
+	{
+		PeerEvent = WM_USER + 1,
+		FileAccept = WM_USER + 2,
+		ExtenderInit = WM_USER + 3,
+		ExtenderDeinit = WM_USER + 4
 	};
 
 	struct Event final
