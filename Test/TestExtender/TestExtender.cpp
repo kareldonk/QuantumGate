@@ -336,7 +336,7 @@ namespace TestExtender
 		}
 	}
 
-	void Extender::OnPeerEvent(PeerEvent && event)
+	void Extender::OnPeerEvent(PeerEvent&& event)
 	{
 		String ev(L"Unknown");
 
@@ -372,7 +372,7 @@ namespace TestExtender
 		}
 	}
 
-	const std::pair<bool, bool> Extender::OnPeerMessage(PeerEvent && event)
+	const std::pair<bool, bool> Extender::OnPeerMessage(PeerEvent&& event)
 	{
 		auto handled = false;
 		auto success = false;
@@ -474,7 +474,7 @@ namespace TestExtender
 										ft->SetStatus(FileTransferStatus::NeedAccept);
 
 										IfNotHasFileTransfer(event.GetPeerLUID(), ft->GetID(),
-															 [&](FileTransfers & filetransfers)
+															 [&](FileTransfers& filetransfers)
 										{
 											auto retval = filetransfers.insert({ fid, std::move(ft) });
 											success = true;
@@ -488,7 +488,7 @@ namespace TestExtender
 												fa->FileTransferID = fid;
 
 												if (!PostMessage(m_Window, static_cast<UINT>(WindowsMessage::FileAccept),
-																reinterpret_cast<WPARAM>(fa), 0))
+																 reinterpret_cast<WPARAM>(fa), 0))
 												{
 													delete fa;
 												}
@@ -536,7 +536,7 @@ namespace TestExtender
 							{
 								Dbg(L"Received FileTransferAccept message from %llu", event.GetPeerLUID());
 
-								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer & ft)
+								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer& ft)
 								{
 									ft.SetStatus(FileTransferStatus::Transfering);
 
@@ -555,7 +555,7 @@ namespace TestExtender
 							{
 								Dbg(L"Received FileTransferCancel message from %llu", event.GetPeerLUID());
 
-								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer & ft) noexcept
+								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer& ft) noexcept
 								{
 									ft.SetStatus(FileTransferStatus::Cancelled);
 									success = true;
@@ -573,7 +573,7 @@ namespace TestExtender
 							{
 								Dbg(L"Received FileTransferData message from %llu", event.GetPeerLUID());
 
-								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer & ft)
+								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer& ft)
 								{
 									auto& buffer = ft.GetTransferBuffer();
 
@@ -602,7 +602,7 @@ namespace TestExtender
 							{
 								Dbg(L"Received FileTransferDataAck message from %llu", event.GetPeerLUID());
 
-								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer & ft)
+								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer& ft)
 								{
 									if (ft.GetNumBytesTransferred() == ft.GetFileSize())
 									{
@@ -631,7 +631,7 @@ namespace TestExtender
 		return std::make_pair(handled, success);
 	}
 
-	void Extender::WorkerThreadLoop(Extender * extender)
+	void Extender::WorkerThreadLoop(Extender* extender)
 	{
 		LogDbg(L"%s worker thread %u starting", extender->GetName().c_str(), std::this_thread::get_id());
 
@@ -640,11 +640,11 @@ namespace TestExtender
 		// If the shutdown event is set quit the loop
 		while (!extender->m_ShutdownEvent.IsSet())
 		{
-			extender->m_Peers.IfSharedLock([&](auto & peers)
+			extender->m_Peers.IfSharedLock([&](auto& peers)
 			{
 				for (auto it = peers.begin(); it != peers.end() && !extender->m_ShutdownEvent.IsSet(); ++it)
 				{
-					it->second->FileTransfers.IfUniqueLock([&](FileTransfers & filetransfers)
+					it->second->FileTransfers.IfUniqueLock([&](FileTransfers& filetransfers)
 					{
 						auto fit = filetransfers.begin();
 
@@ -685,11 +685,11 @@ namespace TestExtender
 	}
 
 	template<typename Func>
-	bool Extender::IfHasFileTransfer(const PeerLUID pluid, const FileTransferID ftid, Func && func)
+	bool Extender::IfHasFileTransfer(const PeerLUID pluid, const FileTransferID ftid, Func&& func)
 	{
 		auto success = false;
 
-		m_Peers.WithSharedLock([&](auto & peers)
+		m_Peers.WithSharedLock([&](auto& peers)
 		{
 			const auto it = peers.find(pluid);
 			if (it != peers.end())
@@ -709,11 +709,11 @@ namespace TestExtender
 	}
 
 	template<typename Func>
-	bool Extender::IfNotHasFileTransfer(const PeerLUID pluid, const FileTransferID ftid, Func && func)
+	bool Extender::IfNotHasFileTransfer(const PeerLUID pluid, const FileTransferID ftid, Func&& func)
 	{
 		auto success = false;
 
-		m_Peers.WithSharedLock([&](auto & peers)
+		m_Peers.WithSharedLock([&](auto& peers)
 		{
 			const auto it = peers.find(pluid);
 			if (it != peers.end())
@@ -789,7 +789,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool Extender::SendMessage(const PeerLUID pluid, const std::wstring & msg) const
+	const bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg) const
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::MessageString);
 
@@ -808,39 +808,34 @@ namespace TestExtender
 	{
 		auto success = false;
 
-		auto it = m_Peers.WithSharedLock()->find(pluid);
-		if (it != m_Peers.WithSharedLock()->end())
+		auto ft = std::make_unique<FileTransfer>(FileTransferType::Outgoing, GetFileTransferDataSize(), autotrf);
+		if (ft->OpenSourceFile(filename))
 		{
-			auto ft = std::make_unique<FileTransfer>(FileTransferType::Outgoing, GetFileTransferDataSize(), autotrf);
+			ft->SetStatus(FileTransferStatus::WaitingForAccept);
 
-			if (ft->OpenSourceFile(filename))
+			IfNotHasFileTransfer(pluid, ft->GetID(), [&](FileTransfers& filetransfers)
 			{
-				ft->SetStatus(FileTransferStatus::WaitingForAccept);
-
-				IfNotHasFileTransfer(pluid, ft->GetID(), [&](FileTransfers & filetransfers)
+				if (SendFileTransferStart(pluid, *ft))
 				{
-					if (SendFileTransferStart(pluid, *ft))
-					{
-						filetransfers.insert({ ft->GetID(), std::move(ft) });
+					filetransfers.insert({ ft->GetID(), std::move(ft) });
 
-						SLogInfo(SLogFmt(FGBrightCyan) << L"Starting file transfer for file " <<
-								 filename << SLogFmt(Default));
+					SLogInfo(SLogFmt(FGBrightCyan) << L"Starting file transfer for file " <<
+							 filename << SLogFmt(Default));
 
-						success = true;
-					}
-				});
-			}
-			else LogErr(L"Could not open file %s", filename.c_str());
+					success = true;
+				}
+			});
 		}
+		else LogErr(L"Could not open file %s", filename.c_str());
 
 		return success;
 	}
 
-	const bool Extender::AcceptFile(const PeerLUID pluid, const FileTransferID ftid, const String & filename)
+	const bool Extender::AcceptFile(const PeerLUID pluid, const FileTransferID ftid, const String& filename)
 	{
 		auto success = false;
 
-		IfHasFileTransfer(pluid, ftid, [&](FileTransfer & ft)
+		IfHasFileTransfer(pluid, ftid, [&](FileTransfer& ft)
 		{
 			success = AcceptFile(pluid, filename, ft);
 		});
@@ -848,7 +843,7 @@ namespace TestExtender
 		return success;
 	}
 
-	const bool Extender::AcceptFile(const PeerLUID pluid, const String & filename, FileTransfer & ft)
+	const bool Extender::AcceptFile(const PeerLUID pluid, const String& filename, FileTransfer& ft)
 	{
 		auto success = false;
 
@@ -888,7 +883,7 @@ namespace TestExtender
 		return &m_Peers;
 	}
 
-	const bool Extender::SendFileTransferStart(const PeerLUID pluid, FileTransfer & ft)
+	const bool Extender::SendFileTransferStart(const PeerLUID pluid, FileTransfer& ft)
 	{
 		Path fp(ft.GetFileName());
 		String filename = fp.filename().wstring();
@@ -918,7 +913,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool Extender::SendFileTransferCancel(const PeerLUID pluid, FileTransfer & ft)
+	const bool Extender::SendFileTransferCancel(const PeerLUID pluid, FileTransfer& ft)
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferCancel);
 
@@ -945,7 +940,7 @@ namespace TestExtender
 		return (GetMaximumMessageDataSize() - 15);
 	}
 
-	const bool Extender::SendFileData(const PeerLUID pluid, FileTransfer & ft)
+	const bool Extender::SendFileData(const PeerLUID pluid, FileTransfer& ft)
 	{
 		auto& buffer = ft.GetTransferBuffer();
 		const auto numread = ft.ReadFromFile(buffer.GetBytes(), buffer.GetSize());
@@ -970,7 +965,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool Extender::SendFileDataAck(const PeerLUID pluid, FileTransfer & ft)
+	const bool Extender::SendFileDataAck(const PeerLUID pluid, FileTransfer& ft)
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferDataAck);
 
