@@ -6,13 +6,14 @@
 #include <unordered_map>
 #include <chrono>
 
-#include "QuantumGate.h"
-#include "Concurrency\ThreadSafe.h"
-#include "Concurrency\EventCondition.h"
+#include <QuantumGate.h>
+#include <Concurrency\ThreadSafe.h>
+#include <Concurrency\EventCondition.h>
 
 namespace TestExtender
 {
 	using namespace QuantumGate;
+	using namespace QuantumGate::Implementation;
 
 	enum class MessageType : UInt16
 	{
@@ -175,7 +176,7 @@ namespace TestExtender
 		HWND m_Window{ nullptr };
 
 		std::atomic_bool m_UseCompression{ true };
-		Implementation::Concurrency::EventCondition m_ShutdownEvent{ false };
+		Concurrency::EventCondition m_ShutdownEvent{ false };
 		std::thread m_Thread;
 		Peers_ThS m_Peers;
 
