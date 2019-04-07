@@ -132,11 +132,14 @@ namespace TestExtender
 
 	class Extender final : public QuantumGate::Extender
 	{
+		using String_ThS = Concurrency::ThreadSafe<String, std::shared_mutex>;
+		using atomic_time_point = std::atomic<std::chrono::time_point<std::chrono::high_resolution_clock>>;
+
 	public:
 		Extender(HWND wnd) noexcept;
 		virtual ~Extender();
 
-		inline void SetAutoFileTransferPath(const String& path) { m_AutoFileTransferPath = path; }
+		inline void SetAutoFileTransferPath(const String& path) { m_AutoFileTransferPath.WithUniqueLock() = path; }
 		inline void SetUseCompression(const bool compression) noexcept { m_UseCompression = compression; }
 		inline const bool IsUsingCompression() const noexcept { return m_UseCompression; }
 
@@ -182,12 +185,12 @@ namespace TestExtender
 		std::thread m_Thread;
 		Peers_ThS m_Peers;
 
-		String m_AutoFileTransferPath;
+		String_ThS m_AutoFileTransferPath;
 
-		bool m_IsLocalBenchmarking{ false };
-		bool m_IsPeerBenchmarking{ false };
-		std::chrono::time_point<std::chrono::high_resolution_clock> m_LocalBenchmarkStart;
-		std::chrono::time_point<std::chrono::high_resolution_clock> m_PeerBenchmarkStart;
+		std::atomic_bool m_IsLocalBenchmarking{ false };
+		std::atomic_bool m_IsPeerBenchmarking{ false };
+		atomic_time_point m_LocalBenchmarkStart;
+		atomic_time_point m_PeerBenchmarkStart;
 
 		std::chrono::seconds m_MaxFileTransferInactivePeriod{ 120 };
 	};
