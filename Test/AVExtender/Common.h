@@ -25,7 +25,7 @@ namespace QuantumGate::AVExtender
 	};
 
 	template <bool top_down>
-	void BGR24ToBGRA32(BGRAPixel* dest_buffer, const BGRPixel* source_buffer, UInt width, UInt height) noexcept
+	inline void BGR24ToBGRA32(BGRAPixel* dest_buffer, const BGRPixel* source_buffer, UInt width, UInt height) noexcept
 	{
 		if (dest_buffer == nullptr || source_buffer == nullptr)
 		{
@@ -61,7 +61,7 @@ namespace QuantumGate::AVExtender
 	void BGR24ToBGRA32(BGRAPixel* dest_buffer, const BGRPixel* source_buffer, UInt width, UInt height, Int stride) noexcept;
 
 	template <class T>
-	void SafeRelease(T** ppT) noexcept
+	inline void SafeRelease(T** ppT) noexcept
 	{
 		if (*ppT)
 		{

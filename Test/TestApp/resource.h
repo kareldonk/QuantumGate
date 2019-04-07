@@ -138,6 +138,7 @@
 #define IDC_RELAY_PEER_LABEL            1060
 #define IDC_ONLY_RELAYED_CHECK          1061
 #define IDC_CHECK1                      1062
+#define IDC_SEND_AUDIO_CHECK            1062
 #define IDC_CHECK2                      1063
 #define IDC_IPV4LB                      1063
 #define IDC_CHECK3                      1064
@@ -163,9 +164,14 @@
 #define IDC_VIDEO_DEVICES_COMBO         1073
 #define IDC_CHECK13                     1074
 #define IDC_AUDIO_DEVICES_COMBO         1074
+#define IDC_CALL_BUTTON                 1075
 #define IDC_CHECK15                     1076
+#define IDC_HANGUP_BUTTON               1076
+#define IDC_SEND_VIDEO_CHECK            1077
 #define IDC_CHECK14                     1078
+#define IDC_CALL_STATUS                 1078
 #define IDC_CHECK16                     1079
+#define IDC_CALL_DURATION               1079
 #define IDC_CHECK17                     1080
 #define IDC_CHECK18                     1081
 #define IDC_CHECK19                     1082
@@ -260,7 +266,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
 #define _APS_NEXT_COMMAND_VALUE         32852
-#define _APS_NEXT_CONTROL_VALUE         1074
+#define _APS_NEXT_CONTROL_VALUE         1080
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

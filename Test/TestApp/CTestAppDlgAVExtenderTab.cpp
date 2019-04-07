@@ -36,6 +36,9 @@ BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
 	ON_COMMAND(ID_AVEXTENDER_USECOMPRESSION, &CTestAppDlgAVExtenderTab::OnAVExtenderUseCompression)
 	ON_UPDATE_COMMAND_UI(ID_AVEXTENDER_LOAD, &CTestAppDlgAVExtenderTab::OnUpdateAVExtenderLoad)
 	ON_UPDATE_COMMAND_UI(ID_AVEXTENDER_USECOMPRESSION, &CTestAppDlgAVExtenderTab::OnUpdateAVExtenderUseCompression)
+	ON_LBN_SELCHANGE(IDC_PEERLIST, &CTestAppDlgAVExtenderTab::OnLbnSelChangePeerList)
+	ON_BN_CLICKED(IDC_SEND_VIDEO_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedSendVideoCheck)
+	ON_BN_CLICKED(IDC_SEND_AUDIO_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedSendAudioCheck)
 END_MESSAGE_MAP()
 
 void CTestAppDlgAVExtenderTab::UpdateControls() noexcept
@@ -99,7 +102,7 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 		const auto result = m_VideoSourceReader->Open(m_VideoCaptureDevices[idx]);
 		if (result.Succeeded())
 		{
-			SetTimer(1, 100, NULL);
+			m_VideoPreviewTimer = SetTimer(AVEXTENDER_VIDEO_PREVIEW_TIMER, 1, NULL);
 		}
 		else
 		{
@@ -114,7 +117,11 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 
 void CTestAppDlgAVExtenderTab::OnDestroy()
 {
-	KillTimer(1);
+	if (m_VideoPreviewTimer != 0)
+	{
+		KillTimer(m_VideoPreviewTimer);
+		m_VideoPreviewTimer = 0;
+	}
 
 	if (m_VideoSourceReader)
 	{
@@ -128,14 +135,24 @@ void CTestAppDlgAVExtenderTab::OnDestroy()
 
 void CTestAppDlgAVExtenderTab::OnTimer(UINT_PTR nIDEvent)
 {
-	const auto dim = m_VideoSourceReader->GetSampleDimensions();
+	if (IsWindowVisible())
+	{
+		if (nIDEvent == AVEXTENDER_PEER_ACTIVITY_TIMER)
+		{
+			UpdatePeerActivity();
+		}
+		else if (nIDEvent == AVEXTENDER_VIDEO_PREVIEW_TIMER)
+		{
+			const auto dim = m_VideoSourceReader->GetSampleDimensions();
 
-	QuantumGate::AVExtender::BGRAPixel* bgraBuffer = new QuantumGate::AVExtender::BGRAPixel[dim.first * dim.second];
+			QuantumGate::AVExtender::BGRAPixel* bgraBuffer = new QuantumGate::AVExtender::BGRAPixel[dim.first * dim.second];
 
-	m_VideoSourceReader->GetSample(bgraBuffer);
-	m_VideoWindow.Render(reinterpret_cast<Byte*>(bgraBuffer), dim.first, dim.second);
+			m_VideoSourceReader->GetSample(bgraBuffer);
+			m_VideoWindow.Render(reinterpret_cast<Byte*>(bgraBuffer), dim.first, dim.second);
 
-	delete bgraBuffer;
+			delete bgraBuffer;
+		}
+	}
 
 	CTabBase::OnTimer(nIDEvent);
 }
@@ -153,6 +170,7 @@ LRESULT CTestAppDlgAVExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 		lbox->InsertString(-1, Util::FormatString(L"%llu", event->PeerLUID).c_str());
 
 		UpdateControls();
+		UpdatePeerActivity();
 	}
 	else if (event->Type == PeerEventType::Disconnected)
 	{
@@ -163,6 +181,7 @@ LRESULT CTestAppDlgAVExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 		if (pos != LB_ERR) lbox->DeleteString(pos);
 
 		UpdateControls();
+		UpdatePeerActivity();
 	}
 	else
 	{
@@ -174,15 +193,26 @@ LRESULT CTestAppDlgAVExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 
 LRESULT CTestAppDlgAVExtenderTab::OnExtenderInit(WPARAM w, LPARAM l)
 {
+	m_PeerActivityTimer = SetTimer(AVEXTENDER_PEER_ACTIVITY_TIMER, 500, NULL);
+
 	return 0;
 }
 
 LRESULT CTestAppDlgAVExtenderTab::OnExtenderDeInit(WPARAM w, LPARAM l)
 {
+	if (m_PeerActivityTimer != 0)
+	{
+		KillTimer(m_PeerActivityTimer);
+		m_PeerActivityTimer = 0;
+	}
+
 	auto lbox = reinterpret_cast<CListBox*>(GetDlgItem(IDC_PEERLIST));
 	lbox->ResetContent();
 
+	m_SelectedPeerLUID.reset();
+
 	UpdateControls();
+	UpdatePeerActivity();
 
 	return 0;
 }
@@ -243,5 +273,119 @@ void CTestAppDlgAVExtenderTab::UnloadAVExtender() noexcept
 			LogErr(L"Failed to remove AVExtender");
 		}
 		else m_AVExtender.reset();
+	}
+}
+
+void CTestAppDlgAVExtenderTab::UpdateCallInformation(const QuantumGate::AVExtender::Call* call) noexcept
+{
+	auto send_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_SEND_VIDEO_CHECK));
+	auto send_audio_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_SEND_AUDIO_CHECK));
+
+	if (call != nullptr)
+	{
+		SetValue(IDC_CALL_STATUS, call->GetStatusString());
+		SetValue(IDC_CALL_DURATION, Util::FormatString(L"%llums", call->GetDuration().count()));
+
+		GetDlgItem(IDC_CALL_BUTTON)->EnableWindow(m_QuantumGate.IsRunning() && !call->IsInCall());
+		GetDlgItem(IDC_HANGUP_BUTTON)->EnableWindow(m_QuantumGate.IsRunning() && call->IsInCall());
+		
+		send_video_check->EnableWindow(m_QuantumGate.IsRunning());
+		if (call->GetSendVideo())
+		{
+			send_video_check->SetCheck(BST_CHECKED);
+		}
+		else send_video_check->SetCheck(BST_UNCHECKED);
+
+		send_audio_check->EnableWindow(m_QuantumGate.IsRunning());
+		if (call->GetSendAudio())
+		{
+			send_audio_check->SetCheck(BST_CHECKED);
+		}
+		else send_audio_check->SetCheck(BST_UNCHECKED);
+	}
+	else
+	{
+		SetValue(IDC_CALL_STATUS, L"Unknown");
+		SetValue(IDC_CALL_DURATION, L"Unknown");
+
+		GetDlgItem(IDC_CALL_BUTTON)->EnableWindow(false);
+		GetDlgItem(IDC_HANGUP_BUTTON)->EnableWindow(false);
+		send_video_check->EnableWindow(false);
+		send_video_check->SetCheck(BST_UNCHECKED);
+		send_audio_check->EnableWindow(false);
+		send_audio_check->SetCheck(BST_UNCHECKED);
+	}
+}
+
+void CTestAppDlgAVExtenderTab::UpdatePeerActivity() noexcept
+{
+	if (m_SelectedPeerLUID.has_value() && m_AVExtender != nullptr)
+	{
+		m_AVExtender->GetPeers().IfSharedLock([&](const AVExtender::Peers& peers)
+		{
+			const auto peer = peers.find(*m_SelectedPeerLUID);
+			if (peer != peers.end())
+			{
+				peer->second->Call.WithSharedLock([&](const AVExtender::Call& call)
+				{
+					UpdateCallInformation(&call);
+				});
+			}
+		});
+	}
+	else
+	{
+		UpdateCallInformation(nullptr);
+	}
+}
+
+void CTestAppDlgAVExtenderTab::OnLbnSelChangePeerList()
+{
+	m_SelectedPeerLUID.reset();
+
+	const auto lbox = reinterpret_cast<CListBox*>(GetDlgItem(IDC_PEERLIST));
+	const auto cursel = lbox->GetCurSel();
+	if (cursel != LB_ERR)
+	{
+		CString pluidtxt;
+		lbox->GetText(cursel, pluidtxt);
+		if (pluidtxt.GetLength() != 0)
+		{
+			wchar_t* end = nullptr;
+			m_SelectedPeerLUID = wcstoull(pluidtxt, &end, 10);
+		}
+	}
+
+	UpdateControls();
+	UpdatePeerActivity();
+}
+
+void CTestAppDlgAVExtenderTab::OnBnClickedSendVideoCheck()
+{
+	OnBnClickedSendAudioCheck();
+}
+
+void CTestAppDlgAVExtenderTab::OnBnClickedSendAudioCheck()
+{
+	const auto send_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_SEND_VIDEO_CHECK));
+	const auto send_video = (send_video_check->GetCheck() == BST_CHECKED);
+
+	const auto send_audio_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_SEND_AUDIO_CHECK));
+	const auto send_audio = (send_audio_check->GetCheck() == BST_CHECKED);
+
+	if (m_SelectedPeerLUID.has_value() && m_AVExtender != nullptr)
+	{
+		m_AVExtender->GetPeers().WithSharedLock([&](const AVExtender::Peers & peers)
+		{
+			const auto peer = peers.find(*m_SelectedPeerLUID);
+			if (peer != peers.end())
+			{
+				peer->second->Call.WithUniqueLock([&](AVExtender::Call & call)
+				{
+					call.SetSendVideo(send_video);
+					call.SetSendAudio(send_audio);
+				});
+			}
+		});
 	}
 }
