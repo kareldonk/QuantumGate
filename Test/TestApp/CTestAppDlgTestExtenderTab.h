@@ -37,7 +37,6 @@ protected:
 
 	virtual BOOL OnInitDialog();
 
-	const PeerLUID GetSelectedPeerLUID();
 	void UpdatePeerActivity();
 	void UpdateFileTransfers(const TestExtender::FileTransfers& filetransfers);
 	const int GetFileTransferIndex(const TestExtender::FileTransferID id);
@@ -73,8 +72,8 @@ protected:
 	afx_msg void OnUpdateTestExtenderUseCompression(CCmdUI* pCmdUI);
 	afx_msg void OnStressExtenderUseCompression();
 	afx_msg void OnUpdateStressExtenderUseCompression(CCmdUI* pCmdUI);
-	afx_msg void OnBnClickedSendstress();
-	afx_msg void OnLbnSelchangePeerlist();
+	afx_msg void OnBnClickedSendStress();
+	afx_msg void OnLbnSelChangePeerList();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnDestroy();
 	afx_msg void OnExceptiontestStartup();
@@ -95,6 +94,7 @@ protected:
 private:
 	QuantumGate::Local& m_QuantumGate;
 	
+	std::optional<PeerLUID> m_SelectedPeerLUID;
 	UINT_PTR m_PeerActivityTimer{ 0 };
 
 	std::shared_ptr<TestExtender::Extender> m_TestExtender{ nullptr };

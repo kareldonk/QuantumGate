@@ -62,8 +62,8 @@ BEGIN_MESSAGE_MAP(CTestAppDlgTestExtenderTab, CTabBase)
 	ON_UPDATE_COMMAND_UI(ID_TESTEXTENDER_USECOMPRESSION, &CTestAppDlgTestExtenderTab::OnUpdateTestExtenderUseCompression)
 	ON_COMMAND(ID_STRESSEXTENDER_USECOMPRESSION, &CTestAppDlgTestExtenderTab::OnStressExtenderUseCompression)
 	ON_UPDATE_COMMAND_UI(ID_STRESSEXTENDER_USECOMPRESSION, &CTestAppDlgTestExtenderTab::OnUpdateStressExtenderUseCompression)
-	ON_BN_CLICKED(IDC_SENDSTRESS, &CTestAppDlgTestExtenderTab::OnBnClickedSendstress)
-	ON_LBN_SELCHANGE(IDC_PEERLIST, &CTestAppDlgTestExtenderTab::OnLbnSelchangePeerlist)
+	ON_BN_CLICKED(IDC_SENDSTRESS, &CTestAppDlgTestExtenderTab::OnBnClickedSendStress)
+	ON_LBN_SELCHANGE(IDC_PEERLIST, &CTestAppDlgTestExtenderTab::OnLbnSelChangePeerList)
 	ON_WM_TIMER()
 	ON_WM_DESTROY()
 	ON_COMMAND(ID_EXCEPTIONTEST_STARTUP, &CTestAppDlgTestExtenderTab::OnExceptiontestStartup)
@@ -97,20 +97,17 @@ BOOL CTestAppDlgTestExtenderTab::OnInitDialog()
 	lctrl->InsertColumn(2, _T("Progress"), LVCFMT_LEFT, GetApp()->GetScaledWidth(75));
 	lctrl->InsertColumn(3, _T("Status"), LVCFMT_LEFT, GetApp()->GetScaledWidth(100));
 
-	m_PeerActivityTimer = SetTimer(EXTENDER_PEER_ACTIVITY_TIMER, 500, NULL);
-
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // EXCEPTION: OCX Property Pages should return FALSE
 }
 
 void CTestAppDlgTestExtenderTab::UpdatePeerActivity()
 {
-	auto pluid = GetSelectedPeerLUID();
-	if (pluid != 0 && m_TestExtender != nullptr)
+	if (m_SelectedPeerLUID.has_value() && m_TestExtender != nullptr)
 	{
 		m_TestExtender->GetPeers()->IfSharedLock([&](const TestExtender::Peers& peers)
 		{
-			const auto peer = peers.find(pluid);
+			const auto peer = peers.find(*m_SelectedPeerLUID);
 			if (peer != peers.end())
 			{
 				peer->second->FileTransfers.IfSharedLock([&](const TestExtender::FileTransfers& filetransfers)
@@ -125,25 +122,6 @@ void CTestAppDlgTestExtenderTab::UpdatePeerActivity()
 		auto lctrl = (CListCtrl*)GetDlgItem(IDC_FILETRANSFER_LIST);
 		lctrl->DeleteAllItems();
 	}
-}
-
-const PeerLUID CTestAppDlgTestExtenderTab::GetSelectedPeerLUID()
-{
-	PeerLUID pluid{ 0 };
-
-	const auto lbox = (CListBox*)GetDlgItem(IDC_PEERLIST);
-	if (lbox->GetCurSel() != LB_ERR)
-	{
-		CString pluidtxt;
-		lbox->GetText(lbox->GetCurSel(), pluidtxt);
-		if (pluidtxt.GetLength() != 0)
-		{
-			wchar_t* end = nullptr;
-			pluid = wcstoull(pluidtxt, &end, 10);
-		}
-	}
-
-	return pluid;
 }
 
 void CTestAppDlgTestExtenderTab::UpdateFileTransfers(const TestExtender::FileTransfers& filetransfers)
@@ -271,7 +249,7 @@ void CTestAppDlgTestExtenderTab::UpdateStressExtenderExceptionTest(CCmdUI* pCmdU
 
 void CTestAppDlgTestExtenderTab::OnBnClickedSendbutton()
 {
-	SendMsgToPeer(GetSelectedPeerLUID(), GetTextValue(IDC_SENDTEXT));
+	SendMsgToPeer(*m_SelectedPeerLUID, GetTextValue(IDC_SENDTEXT));
 }
 
 void CTestAppDlgTestExtenderTab::OnBnClickedSendcheck()
@@ -292,9 +270,9 @@ void CTestAppDlgTestExtenderTab::StartSendThread()
 
 		const auto ms = static_cast<int>(GetInt64Value(IDC_SENDSECONDS));
 		const auto txt = GetTextValue(IDC_SENDTEXT);
-		const auto pluid = GetSelectedPeerLUID();
 
-		m_SendThread = std::make_unique<std::thread>(CTestAppDlgTestExtenderTab::SendThreadProc, this, ms, pluid, txt);
+		m_SendThread = std::make_unique<std::thread>(CTestAppDlgTestExtenderTab::SendThreadProc, this, ms,
+													 *m_SelectedPeerLUID, txt);
 
 		const auto check = (CButton*)GetDlgItem(IDC_SENDCHECK);
 		check->SetCheck(BST_CHECKED);
@@ -319,7 +297,7 @@ void CTestAppDlgTestExtenderTab::StopSendThread()
 }
 
 void CTestAppDlgTestExtenderTab::SendThreadProc(CTestAppDlgTestExtenderTab* dlg, int interval,
-												  PeerLUID pluid, CString txt)
+												PeerLUID pluid, CString txt)
 {
 	while (!dlg->m_SendThreadStop)
 	{
@@ -342,7 +320,7 @@ void CTestAppDlgTestExtenderTab::OnBnClickedSendfile()
 	const auto path = GetApp()->BrowseForFile(GetSafeHwnd(), false);
 	if (path)
 	{
-		m_TestExtender->SendFile(GetSelectedPeerLUID(), path->GetString(), false);
+		m_TestExtender->SendFile(*m_SelectedPeerLUID, path->GetString(), false);
 	}
 }
 
@@ -371,8 +349,7 @@ void CTestAppDlgTestExtenderTab::OnUpdateStressExtenderUse(CCmdUI* pCmdUI)
 
 void CTestAppDlgTestExtenderTab::OnStressextenderMessages()
 {
-	const auto pluid = GetSelectedPeerLUID();
-	if (pluid != 0) m_StressExtender->BenchmarkSendMessage(pluid);
+	if (m_SelectedPeerLUID.has_value()) m_StressExtender->BenchmarkSendMessage(*m_SelectedPeerLUID);
 	else AfxMessageBox(L"Select a connected peer first from the list.", MB_ICONINFORMATION);
 }
 
@@ -430,12 +407,12 @@ void CTestAppDlgTestExtenderTab::ProcessMessages()
 	}
 }
 
-void CTestAppDlgTestExtenderTab::OnBnClickedSendstress()
+void CTestAppDlgTestExtenderTab::OnBnClickedSendStress()
 {
 	if (m_TestExtender == nullptr) return;
 
 	CString txt;
-	const auto pluid = GetSelectedPeerLUID();
+	const auto pluid = *m_SelectedPeerLUID;
 
 	const auto txto = GetTextValue(IDC_SENDTEXT);
 	const auto num = GetTextValue(IDC_NUMSTRESSMESS);
@@ -534,13 +511,23 @@ LRESULT CTestAppDlgTestExtenderTab::OnPeerFileAccept(WPARAM w, LPARAM l)
 
 LRESULT CTestAppDlgTestExtenderTab::OnExtenderInit(WPARAM w, LPARAM l)
 {
+	m_PeerActivityTimer = SetTimer(EXTENDER_PEER_ACTIVITY_TIMER, 500, NULL);
+
 	return 0;
 }
 
 LRESULT CTestAppDlgTestExtenderTab::OnExtenderDeInit(WPARAM w, LPARAM l)
 {
+	if (m_PeerActivityTimer != 0)
+	{
+		KillTimer(m_PeerActivityTimer);
+		m_PeerActivityTimer = 0;
+	}
+
 	auto lbox = (CListBox*)GetDlgItem(IDC_PEERLIST);
 	lbox->ResetContent();
+
+	m_SelectedPeerLUID.reset();
 
 	UpdateControls();
 	UpdatePeerActivity();
@@ -548,9 +535,25 @@ LRESULT CTestAppDlgTestExtenderTab::OnExtenderDeInit(WPARAM w, LPARAM l)
 	return 0;
 }
 
-void CTestAppDlgTestExtenderTab::OnLbnSelchangePeerlist()
+void CTestAppDlgTestExtenderTab::OnLbnSelChangePeerList()
 {
+	m_SelectedPeerLUID.reset();
+
+	const auto lbox = reinterpret_cast<CListBox*>(GetDlgItem(IDC_PEERLIST));
+	const auto cursel = lbox->GetCurSel();
+	if (cursel != LB_ERR)
+	{
+		CString pluidtxt;
+		lbox->GetText(cursel, pluidtxt);
+		if (pluidtxt.GetLength() != 0)
+		{
+			wchar_t* end = nullptr;
+			m_SelectedPeerLUID = wcstoull(pluidtxt, &end, 10);
+		}
+	}
+
 	UpdateControls();
+	UpdatePeerActivity();
 }
 
 void CTestAppDlgTestExtenderTab::OnTimer(UINT_PTR nIDEvent)
@@ -568,12 +571,6 @@ void CTestAppDlgTestExtenderTab::OnTimer(UINT_PTR nIDEvent)
 
 void CTestAppDlgTestExtenderTab::OnDestroy()
 {
-	if (m_PeerActivityTimer != 0)
-	{
-		KillTimer(m_PeerActivityTimer);
-		m_PeerActivityTimer = 0;
-	}
-
 	StopSendThread();
 
 	UnloadTestExtender();
@@ -672,5 +669,5 @@ void CTestAppDlgTestExtenderTab::OnBnClickedAutoSendfile()
 		return;
 	}
 
-	m_TestExtender->SendFile(GetSelectedPeerLUID(), path.GetString(), true);
+	m_TestExtender->SendFile(*m_SelectedPeerLUID, path.GetString(), true);
 }
