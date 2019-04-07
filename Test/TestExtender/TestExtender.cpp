@@ -434,7 +434,7 @@ namespace TestExtender
 							else
 							{
 								m_IsPeerBenchmarking = false;
-								auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_PeerBenchmarkStart);
+								auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_PeerBenchmarkStart.load());
 
 								LogSys(L"Peer %s benchmark result: %dms", GetName().c_str(), ms.count());
 								success = true;
@@ -494,7 +494,8 @@ namespace TestExtender
 											}
 											else
 											{
-												if (!m_AutoFileTransferPath.empty())
+												auto filepath = m_AutoFileTransferPath.WithSharedLock();
+												if (!filepath->empty())
 												{
 													// Random temporary filename because the file
 													// will get deleted after completion anyway and
@@ -502,7 +503,7 @@ namespace TestExtender
 													const auto rndfname = Util::FormatString(L"%llu.tmp",
 																							 Util::GetPseudoRandomNumber());
 													if (!AcceptFile(event.GetPeerLUID(),
-																	m_AutoFileTransferPath + rndfname,
+																	*filepath + rndfname,
 																	*retval.first->second))
 													{
 														error = true;
@@ -770,7 +771,7 @@ namespace TestExtender
 		else
 		{
 			m_IsLocalBenchmarking = false;
-			auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_LocalBenchmarkStart);
+			auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_LocalBenchmarkStart.load());
 
 			LogSys(L"Local %s benchmark result: %dms", GetName().c_str(), ms.count());
 		}
