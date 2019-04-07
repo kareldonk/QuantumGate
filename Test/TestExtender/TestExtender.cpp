@@ -344,8 +344,7 @@ namespace TestExtender
 		{
 			ev = L"Connect";
 
-			auto peer = std::make_unique<Peer>();
-			peer->ID = event.GetPeerLUID();
+			auto peer = std::make_unique<Peer>(event.GetPeerLUID());
 
 			m_Peers.WithUniqueLock()->insert({ event.GetPeerLUID(), std::move(peer) });
 		}
