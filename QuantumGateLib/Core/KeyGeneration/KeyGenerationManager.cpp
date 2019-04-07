@@ -268,18 +268,24 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		{
 			m_KeyQueues.WithUniqueLock([&](KeyQueueMap& queues)
 			{
-				for (auto it = queues.begin(); it != queues.end() && !shutdown_event.IsSet(); ++it)
+				auto it = queues.begin();
+				while (it != queues.end() && !shutdown_event.IsSet())
 				{
-					auto active = false;
-					Size num_pending_events{ 0 };
+					auto erase = false;
 
 					it->second->WithUniqueLock([&](KeyQueue& key_queue)
 					{
-						active = key_queue.Active;
-						num_pending_events = key_queue.NumPendingEvents;
+						if (!key_queue.Active && key_queue.NumPendingEvents == 0)
+						{
+							erase = true;
+						}
 					});
 
-					if (!active && num_pending_events == 0) it = queues.erase(it);
+					if (erase)
+					{
+						it = queues.erase(it);
+					}
+					else ++it;
 				}
 			});
 
