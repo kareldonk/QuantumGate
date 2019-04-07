@@ -9,6 +9,9 @@
 #include "..\AVExtender\VideoSourceReader.h"
 #include "..\AVExtender\VideoWindow.h"
 
+#define AVEXTENDER_PEER_ACTIVITY_TIMER	10
+#define AVEXTENDER_VIDEO_PREVIEW_TIMER	11
+
 class CTestAppDlgAVExtenderTab : public CTabBase
 {
 	DECLARE_DYNAMIC(CTestAppDlgAVExtenderTab)
@@ -35,6 +38,8 @@ protected:
 
 	void LoadAVExtender() noexcept;
 	void UnloadAVExtender() noexcept;
+	void UpdateCallInformation(const QuantumGate::AVExtender::Call* call) noexcept;
+	void UpdatePeerActivity() noexcept;
 
 	virtual BOOL OnInitDialog();
 
@@ -45,6 +50,7 @@ protected:
 	afx_msg void OnAVExtenderUseCompression();
 	afx_msg void OnUpdateAVExtenderLoad(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateAVExtenderUseCompression(CCmdUI* pCmdUI);
+	afx_msg void OnLbnSelChangePeerList();
 
 private:
 	void UpdateVideoDeviceCombo() noexcept;
@@ -52,9 +58,16 @@ private:
 private:
 	QuantumGate::Local& m_QuantumGate;
 
+	std::optional<PeerLUID> m_SelectedPeerLUID;
+	UINT_PTR m_PeerActivityTimer{ 0 };
+	UINT_PTR m_VideoPreviewTimer{ 0 };
+
 	std::shared_ptr<QuantumGate::AVExtender::Extender> m_AVExtender{ nullptr };
 
 	QuantumGate::AVExtender::VideoSourceReader* m_VideoSourceReader{ nullptr };
 	QuantumGate::AVExtender::VideoWindow m_VideoWindow;
 	QuantumGate::AVExtender::VideoCaptureDeviceVector m_VideoCaptureDevices;
+public:
+	afx_msg void OnBnClickedSendVideoCheck();
+	afx_msg void OnBnClickedSendAudioCheck();
 };
