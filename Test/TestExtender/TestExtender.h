@@ -101,7 +101,9 @@ namespace TestExtender
 
 	struct Peer final
 	{
-		PeerLUID ID{ 0 };
+		Peer(const PeerLUID pluid) noexcept : ID(pluid) {}
+
+		const PeerLUID ID{ 0 };
 		FileTransfers_ThS FileTransfers;
 	};
 
