@@ -33,21 +33,21 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		const GateType GetGateType() const noexcept { return m_Type; }
 
-		const bool BeginConnect(const IPEndpoint& endpoint) noexcept
+		bool BeginConnect(const IPEndpoint& endpoint) noexcept
 		{
 			assert(m_Socket); return m_Socket->BeginConnect(endpoint);
 		}
 
-		const bool CompleteConnect() noexcept { assert(m_Socket); return m_Socket->CompleteConnect(); }
+		bool CompleteConnect() noexcept { assert(m_Socket); return m_Socket->CompleteConnect(); }
 
-		const bool Send(Buffer& buffer) noexcept { assert(m_Socket); return m_Socket->Send(buffer); }
-		const bool Receive(Buffer& buffer) noexcept { assert(m_Socket); return m_Socket->Receive(buffer); }
+		bool Send(Buffer& buffer) noexcept { assert(m_Socket); return m_Socket->Send(buffer); }
+		bool Receive(Buffer& buffer) noexcept { assert(m_Socket); return m_Socket->Receive(buffer); }
 
 		void Close(const bool linger = false) noexcept { assert(m_Socket); return m_Socket->Close(linger); }
 
 		const Socket::IOStatus& GetIOStatus() const noexcept { assert(m_Socket); return m_Socket->GetIOStatus(); }
 
-		const bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
+		bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
 		{
 			assert(m_Socket); return m_Socket->UpdateIOStatus(mseconds);
 		}
@@ -75,7 +75,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	protected:
 		virtual void OnConnecting() noexcept {}
 		virtual void OnAccept() noexcept {}
-		virtual const bool OnConnect() noexcept { return true; }
+		virtual bool OnConnect() noexcept { return true; }
 		virtual void OnClose() noexcept {}
 
 	private:

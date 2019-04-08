@@ -49,19 +49,19 @@ namespace QuantumGate::API
 
 		Result<> Startup(const StartupParameters& params) noexcept;
 		Result<> Shutdown() noexcept;
-		[[nodiscard]] const bool IsRunning() const noexcept;
+		[[nodiscard]] bool IsRunning() const noexcept;
 
 		Result<> EnableListeners() noexcept;
 		Result<> DisableListeners() noexcept;
-		[[nodiscard]] const bool AreListenersEnabled() const noexcept;
+		[[nodiscard]] bool AreListenersEnabled() const noexcept;
 
 		Result<> EnableExtenders() noexcept;
 		Result<> DisableExtenders() noexcept;
-		[[nodiscard]] const bool AreExtendersEnabled() const noexcept;
+		[[nodiscard]] bool AreExtendersEnabled() const noexcept;
 
 		Result<> EnableRelays() noexcept;
 		Result<> DisableRelays() noexcept;
-		[[nodiscard]] const bool AreRelaysEnabled() const noexcept;
+		[[nodiscard]] bool AreRelaysEnabled() const noexcept;
 
 		[[nodiscard]] const Environment GetEnvironment() const noexcept;
 
@@ -84,7 +84,7 @@ namespace QuantumGate::API
 		Result<> AddExtenderModule(const Path& module_path) noexcept;
 		Result<> RemoveExtenderModule(const Path& module_path) noexcept;
 
-		[[nodiscard]] const bool HasExtender(const ExtenderUUID& extuuid) const noexcept;
+		[[nodiscard]] bool HasExtender(const ExtenderUUID& extuuid) const noexcept;
 		[[nodiscard]] std::weak_ptr<Extender> GetExtender(const ExtenderUUID& extuuid) const noexcept;
 
 		Result<ConnectDetails> ConnectTo(ConnectParameters&& params) noexcept;

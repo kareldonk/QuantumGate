@@ -111,7 +111,7 @@ namespace QuantumGate::Implementation::Crypto
 	template void SortAlgorithms<Algorithm::Compression>(Vector<Algorithm::Compression>& list);
 
 	template<typename T>
-	Export const bool HasAlgorithm(const Vector<T>& list, const T value)
+	Export bool HasAlgorithm(const Vector<T>& list, const T value)
 	{
 		// Assuming list is sorted already
 		assert(std::is_sorted(list.begin(), list.end()));
@@ -123,16 +123,16 @@ namespace QuantumGate::Implementation::Crypto
 	}
 
 	// Specific instantiations
-	template Export const bool HasAlgorithm<Algorithm::Hash>(
+	template Export bool HasAlgorithm<Algorithm::Hash>(
 		const Vector<Algorithm::Hash>& list, const Algorithm::Hash value);
 
-	template Export const bool HasAlgorithm<Algorithm::Asymmetric>(
+	template Export bool HasAlgorithm<Algorithm::Asymmetric>(
 		const Vector<Algorithm::Asymmetric>& list, const Algorithm::Asymmetric value);
 
-	template Export const bool HasAlgorithm<Algorithm::Symmetric>(
+	template Export bool HasAlgorithm<Algorithm::Symmetric>(
 		const Vector<Algorithm::Symmetric>& list, const Algorithm::Symmetric value);
 
-	template Export const bool HasAlgorithm<Algorithm::Compression>(
+	template Export bool HasAlgorithm<Algorithm::Compression>(
 		const Vector<Algorithm::Compression>& list, const Algorithm::Compression value);
 
 	template<typename T>
@@ -199,31 +199,31 @@ namespace QuantumGate::Implementation::Crypto
 	}
 
 	template<typename T>
-	Export const bool Hash(const BufferView& buffer, T& hashbuf, const Algorithm::Hash type) noexcept
+	Export bool Hash(const BufferView& buffer, T& hashbuf, const Algorithm::Hash type) noexcept
 	{
 		return OpenSSL::Hash(buffer, hashbuf, type);
 	}
 
 	// Specific instantiations
-	template Export const bool Hash<Buffer>(const BufferView& buffer, Buffer& hashbuf,
-											const Algorithm::Hash type) noexcept;
-	template Export const bool Hash<ProtectedBuffer>(const BufferView& buffer, ProtectedBuffer& hashbuf,
-													 const Algorithm::Hash type) noexcept;
+	template Export bool Hash<Buffer>(const BufferView& buffer, Buffer& hashbuf,
+									  const Algorithm::Hash type) noexcept;
+	template Export bool Hash<ProtectedBuffer>(const BufferView& buffer, ProtectedBuffer& hashbuf,
+											   const Algorithm::Hash type) noexcept;
 
 	template<typename T>
-	const bool HMAC(const BufferView& buffer, T& hmac, const BufferView& key, const Algorithm::Hash type) noexcept
+	bool HMAC(const BufferView& buffer, T& hmac, const BufferView& key, const Algorithm::Hash type) noexcept
 	{
 		return OpenSSL::HMAC(buffer, hmac, key, type);
 	}
 
 	// Specific instantiations
-	template const bool HMAC<Buffer>(const BufferView& buffer, Buffer& hmac,
-									 const BufferView& key, const Algorithm::Hash type) noexcept;
-	template const bool HMAC<ProtectedBuffer>(const BufferView& buffer, ProtectedBuffer& hmac,
-											  const BufferView& key, const Algorithm::Hash type) noexcept;
+	template bool HMAC<Buffer>(const BufferView& buffer, Buffer& hmac,
+							   const BufferView& key, const Algorithm::Hash type) noexcept;
+	template bool HMAC<ProtectedBuffer>(const BufferView& buffer, ProtectedBuffer& hmac,
+										const BufferView& key, const Algorithm::Hash type) noexcept;
 
-	Export const bool HKDF(const BufferView& secret, ProtectedBuffer& outkey, const Size outkeylen,
-						   const Algorithm::Hash type) noexcept
+	Export bool HKDF(const BufferView& secret, ProtectedBuffer& outkey, const Size outkeylen,
+					 const Algorithm::Hash type) noexcept
 	{
 		if (ValidateBuffer(secret))
 		{
@@ -236,7 +236,7 @@ namespace QuantumGate::Implementation::Crypto
 		return false;
 	}
 
-	const bool GenerateAsymmetricKeys(AsymmetricKeyData& keydata) noexcept
+	bool GenerateAsymmetricKeys(AsymmetricKeyData& keydata) noexcept
 	{
 		// Should have algorithm
 		assert(keydata.GetAlgorithm() != Algorithm::Asymmetric::Unknown);
@@ -280,7 +280,7 @@ namespace QuantumGate::Implementation::Crypto
 		return false;
 	}
 
-	const bool GenerateSharedSecret(AsymmetricKeyData& keydata) noexcept
+	bool GenerateSharedSecret(AsymmetricKeyData& keydata) noexcept
 	{
 		// Should have algorithm and owner
 		assert(keydata.GetAlgorithm() != Algorithm::Asymmetric::Unknown &&
@@ -364,8 +364,8 @@ namespace QuantumGate::Implementation::Crypto
 		return false;
 	}
 
-	const bool GenerateSymmetricKeys(const BufferView& sharedsecret,
-									 SymmetricKeyData& key1, SymmetricKeyData& key2) noexcept
+	bool GenerateSymmetricKeys(const BufferView& sharedsecret,
+							   SymmetricKeyData& key1, SymmetricKeyData& key2) noexcept
 	{
 		// Should have a shared secret
 		assert(!sharedsecret.IsEmpty());
@@ -447,8 +447,8 @@ namespace QuantumGate::Implementation::Crypto
 		return OpenSSL::GetPEMPublicKey(static_cast<EVP_PKEY*>(keydata.GetKey()));
 	}
 
-	const bool Encrypt(const BufferView& buffer, Buffer& encrbuf,
-					   SymmetricKeyData& symkeydata, const BufferView& iv) noexcept
+	bool Encrypt(const BufferView& buffer, Buffer& encrbuf,
+				 SymmetricKeyData& symkeydata, const BufferView& iv) noexcept
 	{
 		if (OpenSSLSymmetric::Encrypt(buffer, encrbuf, symkeydata, iv))
 		{
@@ -459,8 +459,8 @@ namespace QuantumGate::Implementation::Crypto
 		return false;
 	}
 
-	const bool Decrypt(const BufferView& encrbuf, Buffer& buffer,
-					   SymmetricKeyData& symkeydata, const BufferView& iv) noexcept
+	bool Decrypt(const BufferView& encrbuf, Buffer& buffer,
+				 SymmetricKeyData& symkeydata, const BufferView& iv) noexcept
 	{
 		if (OpenSSLSymmetric::Decrypt(encrbuf, buffer, symkeydata, iv))
 		{
@@ -471,8 +471,8 @@ namespace QuantumGate::Implementation::Crypto
 		return false;
 	}
 
-	const bool HashAndSign(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& priv_key,
-						   Buffer& sig, const Algorithm::Hash type) noexcept
+	bool HashAndSign(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& priv_key,
+					 Buffer& sig, const Algorithm::Hash type) noexcept
 	{
 		try
 		{
@@ -487,8 +487,8 @@ namespace QuantumGate::Implementation::Crypto
 		return false;
 	}
 
-	const bool HashAndVerify(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& pub_key,
-							 const Buffer& sig, const Algorithm::Hash type) noexcept
+	bool HashAndVerify(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& pub_key,
+					   const Buffer& sig, const Algorithm::Hash type) noexcept
 	{
 		try
 		{
@@ -503,19 +503,18 @@ namespace QuantumGate::Implementation::Crypto
 		return false;
 	}
 
-	const bool Sign(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& priv_key,
-					Buffer& sig) noexcept
+	bool Sign(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& priv_key, Buffer& sig) noexcept
 	{
 		return OpenSSLSign::Sign(msg, alg, priv_key, sig);
 	}
 
-	const bool Verify(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& pub_key,
-					  const BufferView& sig) noexcept
+	bool Verify(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& pub_key,
+				const BufferView& sig) noexcept
 	{
 		return OpenSSLSign::Verify(msg, alg, pub_key, sig);
 	}
 
-	const bool CompareBuffers(const BufferView& buffer1, const BufferView& buffer2) noexcept
+	bool CompareBuffers(const BufferView& buffer1, const BufferView& buffer2) noexcept
 	{
 		if (buffer1.GetSize() != buffer2.GetSize()) return false;
 
@@ -528,7 +527,7 @@ namespace QuantumGate::Implementation::Crypto
 		return (chksum == 0);
 	}
 
-	const bool ValidateBuffer(const BufferView& buffer) noexcept
+	bool ValidateBuffer(const BufferView& buffer) noexcept
 	{
 		const auto bsize = buffer.GetSize();
 

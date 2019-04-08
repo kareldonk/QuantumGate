@@ -52,7 +52,7 @@ namespace QuantumGate::API
 		reinterpret_cast<Byte*>(&m_PeerEvent)[0] = flag ? Byte{ 1 } : Byte{ 0 };
 	}
 
-	inline const bool PeerEvent::HasEvent() const noexcept
+	inline bool PeerEvent::HasEvent() const noexcept
 	{
 		return (reinterpret_cast<const Byte*>(&m_PeerEvent)[0] == Byte{ 1 });
 	}

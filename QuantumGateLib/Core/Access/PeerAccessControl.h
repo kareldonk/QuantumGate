@@ -42,7 +42,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Result<Vector<PeerAccessSettings>> GetPeers() const noexcept;
 
 	private:
-		const bool ValidatePeerAccessSettings(const PeerAccessSettings& pas) const noexcept;
+		bool ValidatePeerAccessSettings(const PeerAccessSettings& pas) const noexcept;
 
 	private:
 		const Settings_CThS& m_Settings;

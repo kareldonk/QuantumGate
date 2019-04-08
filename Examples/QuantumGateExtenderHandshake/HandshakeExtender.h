@@ -63,7 +63,7 @@ public:
 	bool BroadcastToConnectedPeers(const std::wstring& msg);
 
 protected:
-	const bool OnStartup();
+	bool OnStartup();
 	void OnPostStartup();
 	void OnPreShutdown();
 	void OnShutdown();

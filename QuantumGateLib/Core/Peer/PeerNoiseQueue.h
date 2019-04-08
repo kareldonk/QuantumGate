@@ -13,11 +13,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		using NoiseItemQueue = Concurrency::PriorityQueue<NoiseItem, decltype(&NoiseItem::Compare)>;
 
 	public:
-		const bool QueueNoise(const Settings& settings, const bool inhandshake) noexcept;
+		bool QueueNoise(const Settings& settings, const bool inhandshake) noexcept;
 
 		const std::optional<NoiseItem> GetQueuedNoise() noexcept;
 
-		inline const bool IsQueuedNoiseReady() const noexcept
+		inline bool IsQueuedNoiseReady() const noexcept
 		{
 			if (!m_NoiseQueue.Empty())
 			{

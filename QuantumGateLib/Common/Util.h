@@ -33,7 +33,7 @@ namespace QuantumGate::Implementation::Util
 	Export std::optional<ProtectedBuffer> FromBase64(const ProtectedStringA& b64) noexcept;
 
 	template<typename S, typename B>
-	const bool FromBase64(const S& b64, B& buffer) noexcept;
+	bool FromBase64(const S& b64, B& buffer) noexcept;
 
 	template<typename T>
 	Vector<T> SetToVector(const Set<T>& set)
@@ -52,8 +52,8 @@ namespace QuantumGate::Implementation::Util
 	Export UInt64 NonPersistentHash(const String& txt) noexcept;
 	Export UInt64 PersistentHash(const String& txt) noexcept;
 
-	Export const bool SetThreadName(HANDLE thread, const String& name) noexcept;
-	Export const bool SetCurrentThreadName(const String& name) noexcept;
+	Export bool SetThreadName(HANDLE thread, const String& name) noexcept;
+	Export bool SetCurrentThreadName(const String& name) noexcept;
 
 	Export Int64 GetPseudoRandomNumber() noexcept;
 	Export Int64 GetPseudoRandomNumber(const Int64 min, const Int64 max) noexcept;

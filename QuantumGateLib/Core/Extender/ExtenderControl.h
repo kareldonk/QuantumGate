@@ -80,10 +80,10 @@ namespace QuantumGate::Implementation::Core::Extender
 		inline const Status GetStatus() const noexcept { return m_Status; }
 		inline const SteadyTime GetSteadyTimeRemoved() const noexcept { return m_SteadyTimeRemoved; }
 
-		inline const bool HasExtender() const noexcept { return (m_Extender != nullptr); }
+		inline bool HasExtender() const noexcept { return (m_Extender != nullptr); }
 
-		[[nodiscard]] inline const bool IsSameExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender,
-													   const ExtenderModuleID moduleid) const noexcept
+		[[nodiscard]] inline bool IsSameExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender,
+												 const ExtenderModuleID moduleid) const noexcept
 		{
 			return (m_Extender.get() == extender.get() && m_ExtenderModuleID == moduleid);
 		}
@@ -111,9 +111,9 @@ namespace QuantumGate::Implementation::Core::Extender
 									  extender.GetUUID().GetString().c_str());
 		}
 
-		[[nodiscard]] const bool AddPeerEvent(Core::Peer::Event&& event) noexcept;
-
-		[[nodiscard]] const bool StartupExtenderThreadPools() noexcept;
+		[[nodiscard]] bool AddPeerEvent(Core::Peer::Event&& event) noexcept;
+		
+		[[nodiscard]] bool StartupExtenderThreadPools() noexcept;
 		void ShutdownExtenderThreadPools() noexcept;
 
 	private:

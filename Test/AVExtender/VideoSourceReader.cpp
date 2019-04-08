@@ -83,7 +83,7 @@ namespace QuantumGate::AVExtender
 		return AVResultCode::Failed;
 	}
 
-	const bool VideoSourceReader::IsOpen() noexcept
+	bool VideoSourceReader::IsOpen() noexcept
 	{
 		auto source_reader_data = m_SourceReader.WithSharedLock();
 		return (source_reader_data->SourceReader != nullptr);
@@ -176,7 +176,7 @@ namespace QuantumGate::AVExtender
 		return AVResultCode::Failed;
 	}
 
-	const bool VideoSourceReader::GetVideoCaptureDeviceInfo(IMFActivate* device,
+	bool VideoSourceReader::GetVideoCaptureDeviceInfo(IMFActivate* device,
 															VideoCaptureDevice& device_info) const noexcept
 	{
 		assert(device != nullptr);
@@ -326,7 +326,7 @@ namespace QuantumGate::AVExtender
 	}
 
 	// Calculates the default stride based on the format and size of the frames
-	const bool VideoSourceReader::GetDefaultStride(IMFMediaType* type, LONG* stride) const noexcept
+	bool VideoSourceReader::GetDefaultStride(IMFMediaType* type, LONG* stride) const noexcept
 	{
 		LONG tstride{ 0 };
 

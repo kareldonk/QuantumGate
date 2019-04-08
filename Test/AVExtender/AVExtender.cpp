@@ -5,6 +5,7 @@
 #include "AVExtender.h"
 
 #include <Common\Util.h>
+#include <Common\ScopeGuard.h>
 #include <Memory\BufferWriter.h>
 #include <Memory\BufferReader.h>
 
@@ -14,10 +15,51 @@ using namespace std::literals;
 
 namespace QuantumGate::AVExtender
 {
-	void Call::SetStatus(const CallStatus status) noexcept
+	bool Call::SetStatus(const CallStatus status) noexcept
 	{
-		m_Status = status;
-		m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+		auto success = true;
+		const auto prev_status = m_Status;
+
+		switch (status)
+		{
+			case CallStatus::WaitingForAccept:
+				assert(prev_status == CallStatus::Disconnected);
+				if (prev_status == CallStatus::Disconnected) m_Status = status;
+				else success = false;
+				break;
+			case CallStatus::NeedAccept:
+				assert(prev_status == CallStatus::Disconnected);
+				if (prev_status == CallStatus::Disconnected) m_Status = status;
+				else success = false;
+				break;
+			case CallStatus::Connected:
+				assert(prev_status == CallStatus::WaitingForAccept || prev_status == CallStatus::NeedAccept);
+				if (prev_status == CallStatus::WaitingForAccept || prev_status == CallStatus::NeedAccept)
+				{
+					m_Status = status;
+					m_StartSteadyTime = Util::GetCurrentSteadyTime();
+				}
+				else success = false;
+				break;
+			case CallStatus::Disconnected:
+				assert(prev_status == CallStatus::WaitingForAccept || prev_status == CallStatus::NeedAccept ||
+					   prev_status == CallStatus::Connected);
+				if (prev_status == CallStatus::WaitingForAccept || prev_status == CallStatus::NeedAccept ||
+					prev_status == CallStatus::Connected) m_Status = status;
+				else success = false;
+				break;
+			default:
+				assert(false);
+				success = false;
+				break;
+		}
+
+		if (success)
+		{
+			m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+		}
+
+		return success;
 	}
 
 	const WChar* Call::GetStatusString() const noexcept
@@ -32,10 +74,6 @@ namespace QuantumGate::AVExtender
 				return L"Connected";
 			case CallStatus::Disconnected:
 				return L"Disconnected";
-			case CallStatus::Error:
-				return L"Failed";
-			case CallStatus::Cancelled:
-				return L"Cancelled";
 			default:
 				break;
 		}
@@ -43,11 +81,40 @@ namespace QuantumGate::AVExtender
 		return L"Unknown";
 	}
 
-	const bool Call::IsInCall() const noexcept
+	bool Call::BeginCall() noexcept
 	{
-		if (GetStatus() == CallStatus::NeedAccept ||
-			GetStatus() == CallStatus::WaitingForAccept ||
-			GetStatus() == CallStatus::Connected)
+		if (!IsInCall())
+		{
+			if (SetStatus(CallStatus::WaitingForAccept))
+			{
+				m_ID = Util::GetPseudoRandomNumber();
+				SetType(CallType::Outgoing);
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Call::CancelCall() noexcept
+	{
+		if (IsInCall())
+		{
+			if (SetStatus(CallStatus::Disconnected))
+			{
+				m_ID = 0;
+				SetType(CallType::None);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool Call::IsInCall() const noexcept
+	{
+		if (GetType() != CallType::None)
 		{
 			return true;
 		}
@@ -84,7 +151,7 @@ namespace QuantumGate::AVExtender
 	Extender::~Extender()
 	{}
 
-	const bool Extender::OnStartup()
+	bool Extender::OnStartup()
 	{
 		LogDbg(GetName() + L": starting...");
 
@@ -206,17 +273,24 @@ namespace QuantumGate::AVExtender
 		LogDbg(L"%s worker thread %u exiting", extender->GetName().c_str(), std::this_thread::get_id());
 	}
 
-	const bool Extender::BeginCall(const PeerLUID pluid) noexcept
+	bool Extender::BeginCall(const PeerLUID pluid) noexcept
 	{
 		auto success = false;
 
 		IfNotHasCall(pluid, [&](Call& call)
 		{
-			if (SendCallRequest(pluid, call))
+			if (call.BeginCall())
 			{
-				SLogInfo(SLogFmt(FGBrightCyan) << L"Calling peer " << pluid << SLogFmt(Default));
+				// Cancel call if we leave scope without success
+				auto sg = MakeScopeGuard([&]() noexcept { DiscardReturnValue(call.CancelCall()); });
 
-				success = true;
+				if (SendCallRequest(pluid, call))
+				{
+					SLogInfo(SLogFmt(FGBrightCyan) << L"Calling peer " << pluid << SLogFmt(Default));
+
+					sg.Deactivate();
+					success = true;
+				}
 			}
 		});
 
@@ -224,7 +298,7 @@ namespace QuantumGate::AVExtender
 	}
 
 	template<typename Func>
-	const bool Extender::IfHasCall(const PeerLUID pluid, const CallID id, Func&& func)
+	bool Extender::IfHasCall(const PeerLUID pluid, const CallID id, Func&& func)
 	{
 		auto success = false;
 
@@ -233,20 +307,13 @@ namespace QuantumGate::AVExtender
 			const auto it = peers.find(pluid);
 			if (it != peers.end())
 			{
-				if (it->second->Call)
+				auto call = it->second->Call.WithUniqueLock();
+				if (call->GetID() == id)
 				{
-					auto call = it->second->Call.WithUniqueLock();
-					if (call->GetID() == id)
-					{
-						func(*call);
-						success = true;
-					}
+					func(*call);
+					success = true;
 				}
-
-				if (!success)
-				{
-					LogErr(L"Call not found");
-				}
+				else LogErr(L"Call not found");
 			}
 		});
 
@@ -254,7 +321,7 @@ namespace QuantumGate::AVExtender
 	}
 
 	template<typename Func>
-	const bool Extender::IfNotHasCall(const PeerLUID pluid, Func&& func)
+	bool Extender::IfNotHasCall(const PeerLUID pluid, Func&& func)
 	{
 		auto success = false;
 
@@ -265,7 +332,7 @@ namespace QuantumGate::AVExtender
 			{
 				it->second->Call.WithUniqueLock([&](auto& call)
 				{
-					if (call.GetType() == CallType::None)
+					if (!call.IsInCall())
 					{
 						func(call);
 						success = true;
@@ -278,7 +345,7 @@ namespace QuantumGate::AVExtender
 		return success;
 	}
 
-	const bool Extender::SendCallRequest(const PeerLUID pluid, Call& call)
+	bool Extender::SendCallRequest(const PeerLUID pluid, Call& call)
 	{
 		const UInt16 msgtype = static_cast<const UInt16>(MessageType::CallRequest);
 
@@ -287,15 +354,11 @@ namespace QuantumGate::AVExtender
 		{
 			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
 			{
-				call.SetType(CallType::Outgoing);
-				call.SetStatus(CallStatus::WaitingForAccept);
 				return true;
 			}
 			else LogErr(L"Could not send CallRequest message to peer");
 		}
 		else LogErr(L"Could not prepare CallRequest message for peer");
-
-		call.SetStatus(CallStatus::Error);
 
 		return false;
 	}

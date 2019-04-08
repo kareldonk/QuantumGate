@@ -31,7 +31,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		return *this;
 	}
 
-	const ExtenderModuleID Module::GetID() const noexcept
+	ExtenderModuleID Module::GetID() const noexcept
 	{
 		assert(IsLoaded());
 
@@ -45,7 +45,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		return m_Extenders;
 	}
 
-	const bool Module::LoadModule(const Path& module_path) noexcept
+	bool Module::LoadModule(const Path& module_path) noexcept
 	{
 		assert(!IsLoaded());
 

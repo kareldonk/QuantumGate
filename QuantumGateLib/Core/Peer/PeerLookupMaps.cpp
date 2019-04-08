@@ -10,7 +10,7 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	const bool LookupMaps::AddPeerData(const Data_ThS& data) noexcept
+	bool LookupMaps::AddPeerData(const Data_ThS& data) noexcept
 	{
 		const auto pluid = data.WithSharedLock()->LUID;
 		if (const auto it = m_PeerDataMap.find(pluid); it == m_PeerDataMap.end())
@@ -57,7 +57,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool LookupMaps::RemovePeerData(const Data_ThS& data) noexcept
+	bool LookupMaps::RemovePeerData(const Data_ThS& data) noexcept
 	{
 		const auto pluid = data.WithSharedLock()->LUID;
 		const auto success1 = RemovePeer(pluid, data.WithSharedLock()->PeerUUID);
@@ -77,7 +77,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return nullptr;
 	}
 
-	const bool LookupMaps::AddPeer(const PeerLUID pluid, const PeerUUID uuid) noexcept
+	bool LookupMaps::AddPeer(const PeerLUID pluid, const PeerUUID uuid) noexcept
 	{
 		if (const auto it = m_UUIDMap.find(uuid); it != m_UUIDMap.end())
 		{
@@ -96,7 +96,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool LookupMaps::RemovePeer(const PeerLUID pluid, const PeerUUID uuid) noexcept
+	bool LookupMaps::RemovePeer(const PeerLUID pluid, const PeerUUID uuid) noexcept
 	{
 		if (const auto it = m_UUIDMap.find(uuid); it != m_UUIDMap.end())
 		{
@@ -110,7 +110,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool LookupMaps::AddPeer(const PeerLUID pluid, const IPEndpoint& endpoint) noexcept
+	bool LookupMaps::AddPeer(const PeerLUID pluid, const IPEndpoint& endpoint) noexcept
 	{
 		if (AddPeer(pluid, endpoint.GetIPAddress().GetBinary()))
 		{
@@ -134,7 +134,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool LookupMaps::RemovePeer(const PeerLUID pluid, const IPEndpoint& endpoint) noexcept
+	bool LookupMaps::RemovePeer(const PeerLUID pluid, const IPEndpoint& endpoint) noexcept
 	{
 		const auto success1 = RemovePeer(pluid, endpoint.GetIPAddress().GetBinary());
 		const auto success2 = RemovePeer(pluid, GetIPPortHash(endpoint));
@@ -284,12 +284,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result_code;
 	}
 
-	const bool LookupMaps::HasLUID(const PeerLUID pluid, const Vector<PeerLUID>& pluids) noexcept
+	bool LookupMaps::HasLUID(const PeerLUID pluid, const Vector<PeerLUID>& pluids) noexcept
 	{
 		return (std::find(pluids.begin(), pluids.end(), pluid) != pluids.end());
 	}
 
-	const bool LookupMaps::HasIPPort(const UInt64 hash, const Vector<IPEndpoint>& endpoints) noexcept
+	bool LookupMaps::HasIPPort(const UInt64 hash, const Vector<IPEndpoint>& endpoints) noexcept
 	{
 		const auto it = std::find_if(endpoints.begin(), endpoints.end(),
 									 [&](const IPEndpoint& endpoint) noexcept
@@ -300,8 +300,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return (it != endpoints.end());
 	}
 
-	const bool LookupMaps::HasIP(const BinaryIPAddress& ip,
-								 const Vector<BinaryIPAddress>& addresses) noexcept
+	bool LookupMaps::HasIP(const BinaryIPAddress& ip, const Vector<BinaryIPAddress>& addresses) noexcept
 	{
 		return (std::find(addresses.begin(), addresses.end(), ip) != addresses.end());
 	}
@@ -355,7 +354,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return Hash::GetNonPersistentHash(BufferView(reinterpret_cast<Byte*>(&ipport), sizeof(ipport)));
 	}
 
-	const bool LookupMaps::AddLUID(const PeerLUID pluid, LUIDVector& pluids) const noexcept
+	bool LookupMaps::AddLUID(const PeerLUID pluid, LUIDVector& pluids) const noexcept
 	{
 		// If LUID exists there's a problem; it should be unique
 		if (const auto& it = std::find(pluids.begin(), pluids.end(), pluid); it == pluids.end())
@@ -376,7 +375,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool LookupMaps::RemoveLUID(const PeerLUID pluid, LUIDVector& pluids) const noexcept
+	bool LookupMaps::RemoveLUID(const PeerLUID pluid, LUIDVector& pluids) const noexcept
 	{
 		if (const auto& it = std::find(pluids.begin(), pluids.end(), pluid); it != pluids.end())
 		{
@@ -387,7 +386,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool LookupMaps::AddPeer(const PeerLUID pluid, const BinaryIPAddress& ip) noexcept
+	bool LookupMaps::AddPeer(const PeerLUID pluid, const BinaryIPAddress& ip) noexcept
 	{
 		if (const auto it = m_IPMap.find(ip); it != m_IPMap.end())
 		{
@@ -406,7 +405,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool LookupMaps::RemovePeer(const PeerLUID pluid, const BinaryIPAddress& ip) noexcept
+	bool LookupMaps::RemovePeer(const PeerLUID pluid, const BinaryIPAddress& ip) noexcept
 	{
 		if (const auto it = m_IPMap.find(ip); it != m_IPMap.end())
 		{
@@ -420,7 +419,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool LookupMaps::AddPeer(const PeerLUID pluid, const UInt64 hash) noexcept
+	bool LookupMaps::AddPeer(const PeerLUID pluid, const UInt64 hash) noexcept
 	{
 		if (const auto it = m_IPPortMap.find(hash); it != m_IPPortMap.end())
 		{
@@ -440,7 +439,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool LookupMaps::RemovePeer(const PeerLUID pluid, const UInt64 hash) noexcept
+	bool LookupMaps::RemovePeer(const PeerLUID pluid, const UInt64 hash) noexcept
 	{
 		if (const auto it = m_IPPortMap.find(hash); it != m_IPPortMap.end())
 		{

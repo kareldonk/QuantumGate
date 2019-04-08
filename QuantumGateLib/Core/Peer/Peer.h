@@ -42,7 +42,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		struct DelayedMessage final
 		{
-			[[nodiscard]] inline const bool IsTime() const noexcept
+			[[nodiscard]] inline bool IsTime() const noexcept
 			{
 				if ((Util::GetCurrentSteadyTime() - ScheduleSteadyTime) >= Delay) return true;
 
@@ -62,7 +62,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		public:
 			inline void SetEvent() noexcept { m_EventState = true; }
 			inline void ResetEvent() noexcept { m_EventState = false; }
-			[[nodiscard]] inline const bool IsEventSet() const noexcept { return m_EventState; }
+			[[nodiscard]] inline bool IsEventSet() const noexcept { return m_EventState; }
 
 			using Buffer::operator=;
 
@@ -83,7 +83,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Peer& operator=(const Peer&) = delete;
 		Peer& operator=(Peer&&) = default;
 
-		[[nodiscard]] const bool Initialize() noexcept;
+		[[nodiscard]] bool Initialize() noexcept;
 
 		const Settings& GetSettings() const noexcept;
 		KeyGeneration::Manager& GetKeyGenerationManager() const noexcept;
@@ -103,21 +103,21 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		inline const Data_ThS& GetPeerData() const noexcept { return m_PeerData; }
 
-		[[nodiscard]] const bool SetStatus(const Status status) noexcept;
+		[[nodiscard]] bool SetStatus(const Status status) noexcept;
 		inline const Status GetStatus() const noexcept { return m_PeerData.WithSharedLock()->Status; }
 
-		inline const bool IsReady() const noexcept { return (GetStatus() == Status::Ready); }
-		inline const bool IsInSessionInit() const noexcept { return (GetStatus() == Status::SessionInit); }
+		inline bool IsReady() const noexcept { return (GetStatus() == Status::Ready); }
+		inline bool IsInSessionInit() const noexcept { return (GetStatus() == Status::SessionInit); }
 
-		inline const bool IsInHandshake() const noexcept
+		inline bool IsInHandshake() const noexcept
 		{
 			return (GetStatus() > Status::Connected && GetStatus() < Status::Ready);
 		}
 
-		[[nodiscard]] inline const bool IsAuthenticated() const noexcept { return m_PeerData.WithSharedLock()->IsAuthenticated; }
+		[[nodiscard]] inline bool IsAuthenticated() const noexcept { return m_PeerData.WithSharedLock()->IsAuthenticated; }
 		void SetAuthenticated(const bool auth) noexcept;
 
-		[[nodiscard]] inline const bool IsRelayed() const noexcept { return m_PeerData.WithSharedLock()->IsRelayed; }
+		[[nodiscard]] inline bool IsRelayed() const noexcept { return m_PeerData.WithSharedLock()->IsRelayed; }
 
 		inline std::pair<UInt8, UInt8> GetLocalProtocolVersion() const noexcept { return m_PeerData.WithSharedLock()->LocalProtocolVersion; }
 		inline void SetPeerProtocolVersion(const std::pair<UInt8, UInt8>& version) noexcept { m_PeerData.WithUniqueLock()->PeerProtocolVersion = version; }
@@ -139,30 +139,30 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		inline MessageProcessor& GetMessageProcessor() noexcept { return m_MessageProcessor; }
 
-		[[nodiscard]] const bool Send(Message&& msg, const std::chrono::milliseconds delay = std::chrono::milliseconds(0));
-		[[nodiscard]] const bool Send(const MessageType msgtype, Buffer&& buffer,
-									  const std::chrono::milliseconds delay = std::chrono::milliseconds(0),
-									  const bool compress = true);
-		[[nodiscard]] const bool SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
-													 const std::chrono::milliseconds maxdelay);
+		[[nodiscard]] bool Send(Message&& msg, const std::chrono::milliseconds delay = std::chrono::milliseconds(0));
+		[[nodiscard]] bool Send(const MessageType msgtype, Buffer&& buffer,
+								const std::chrono::milliseconds delay = std::chrono::milliseconds(0),
+								const bool compress = true);
+		[[nodiscard]] bool SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
+											   const std::chrono::milliseconds maxdelay);
 
 		std::chrono::milliseconds GetHandshakeDelayPerMessage() const noexcept;
 
 		const LocalAlgorithms& GetSupportedAlgorithms() const noexcept;
 
-		[[nodiscard]] const bool SetAlgorithms(const Algorithm::Hash ha, const Algorithm::Asymmetric paa,
-											   const Algorithm::Asymmetric saa, const Algorithm::Symmetric sa,
-											   const Algorithm::Compression ca) noexcept;
+		[[nodiscard]] bool SetAlgorithms(const Algorithm::Hash ha, const Algorithm::Asymmetric paa,
+										 const Algorithm::Asymmetric saa, const Algorithm::Symmetric sa,
+										 const Algorithm::Compression ca) noexcept;
 
 		inline const Algorithms& GetAlgorithms() const noexcept { return m_Algorithms; }
 
-		[[nodiscard]] inline const bool IsUsingGlobalSharedSecret() const noexcept { return !GetGlobalSharedSecret().IsEmpty(); }
+		[[nodiscard]] inline bool IsUsingGlobalSharedSecret() const noexcept { return !GetGlobalSharedSecret().IsEmpty(); }
 		const ProtectedBuffer& GetGlobalSharedSecret() const noexcept;
 		inline const ProtectedBuffer& GetLocalPrivateKey() const noexcept { return GetSettings().Local.Keys.PrivateKey; }
 		const ProtectedBuffer* GetPeerPublicKey() const noexcept;
 
 		inline SymmetricKeys& GetKeys() noexcept { return m_Keys; }
-		[[nodiscard]] const bool InitializeKeyExchange() noexcept;
+		[[nodiscard]] bool InitializeKeyExchange() noexcept;
 		void ReleaseKeyExchange() noexcept;
 		inline KeyExchange& GetKeyExchange() noexcept { assert(m_KeyExchange != nullptr); return *m_KeyExchange; }
 		inline const KeyExchange& GetKeyExchange() const noexcept { assert(m_KeyExchange != nullptr); return *m_KeyExchange; }
@@ -175,7 +175,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		std::optional<UInt8> GetNextPeerMessageCounter() noexcept;
 
 		SerializedIPEndpoint GetPublicIPEndpointToReport() const noexcept;
-		[[nodiscard]] const bool AddReportedPublicIPEndpoint(const SerializedIPEndpoint& pub_endpoint) noexcept;
+		[[nodiscard]] bool AddReportedPublicIPEndpoint(const SerializedIPEndpoint& pub_endpoint) noexcept;
 
 		const Extender::ActiveExtenderUUIDs& GetLocalExtenderUUIDs() noexcept;
 		inline ExtenderUUIDs& GetPeerExtenderUUIDs() noexcept { return m_PeerExtenderUUIDs; }
@@ -183,40 +183,40 @@ namespace QuantumGate::Implementation::Core::Peer
 		void AddConnectCallback(ConnectCallback&& function) noexcept { m_ConnectCallbacks.Add(std::move(function)); }
 		void AddDisconnectCallback(DisconnectCallback&& function) noexcept { m_DisconnectCallbacks.Add(std::move(function)); }
 
-		[[nodiscard]] inline const bool IsInQueue() const noexcept { return IsFlagSet(Flags::InQueue); }
+		[[nodiscard]] inline bool IsInQueue() const noexcept { return IsFlagSet(Flags::InQueue); }
 		inline void SetInQueue(const bool flag) noexcept { SetFlag(Flags::InQueue, flag); }
 
 		inline const UInt64 GetThreadPoolKey() const noexcept { return m_ThreadPoolKey; }
 		inline void SetThreadPoolKey(const UInt64 key) noexcept { m_ThreadPoolKey = key; }
 
-		[[nodiscard]] inline const bool ShouldDisconnect() const noexcept { return (m_DisconnectCondition != DisconnectCondition::None); }
+		[[nodiscard]] inline bool ShouldDisconnect() const noexcept { return (m_DisconnectCondition != DisconnectCondition::None); }
 		inline DisconnectCondition GetDisconnectCondition() const noexcept { return m_DisconnectCondition; }
 		inline void SetDisconnectCondition(const DisconnectCondition dc) noexcept { if (!ShouldDisconnect()) m_DisconnectCondition = dc; }
 
-		[[nodiscard]] const bool UpdateSocketStatus() noexcept;
-		[[nodiscard]] const bool CheckStatus(const bool noise_enabled, const std::chrono::seconds max_connect_duration,
-											 std::chrono::seconds max_handshake_duration) noexcept;
+		[[nodiscard]] bool UpdateSocketStatus() noexcept;
+		[[nodiscard]] bool CheckStatus(const bool noise_enabled, const std::chrono::seconds max_connect_duration,
+									   std::chrono::seconds max_handshake_duration) noexcept;
 
 		void UpdateReputation(const Access::IPReputationUpdate rep_update) noexcept;
 
-		[[nodiscard]] const bool HasPendingEvents() noexcept;
-		[[nodiscard]] const bool ProcessEvents();
+		[[nodiscard]] bool HasPendingEvents() noexcept;
+		[[nodiscard]] bool ProcessEvents();
 		void ProcessLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids);
-		[[nodiscard]] const bool ProcessPeerExtenderUpdate(Vector<ExtenderUUID>&& uuids) noexcept;
+		[[nodiscard]] bool ProcessPeerExtenderUpdate(Vector<ExtenderUUID>&& uuids) noexcept;
 
 		inline void SetNeedsAccessCheck() noexcept { SetFlag(Flags::NeedsAccessCheck, true); }
-		[[nodiscard]] inline const bool NeedsAccessCheck() const noexcept { return IsFlagSet(Flags::NeedsAccessCheck); }
+		[[nodiscard]] inline bool NeedsAccessCheck() const noexcept { return IsFlagSet(Flags::NeedsAccessCheck); }
 		void CheckAccess() noexcept;
 
 		inline void SetNeedsExtenderUpdate() noexcept { SetFlag(Flags::NeedsExtenderUpdate, true); }
-		[[nodiscard]] inline const bool NeedsExtenderUpdate() const noexcept { return IsFlagSet(Flags::NeedsExtenderUpdate); }
+		[[nodiscard]] inline bool NeedsExtenderUpdate() const noexcept { return IsFlagSet(Flags::NeedsExtenderUpdate); }
 
 		void OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const std::pair<bool, bool>& result) noexcept;
 
 	protected:
 		void OnConnecting() noexcept override;
 		void OnAccept() noexcept override;
-		const bool OnConnect() noexcept override;
+		bool OnConnect() noexcept override;
 		void OnClose() noexcept override;
 
 	private:
@@ -224,59 +224,59 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Extender::Manager& GetExtenderManager() const noexcept;
 
-		[[nodiscard]] const bool OnStatusChange(const Status old_status, const Status new_status);
+		[[nodiscard]] bool OnStatusChange(const Status old_status, const Status new_status);
 
-		[[nodiscard]] const bool SendFromNoiseQueue();
+		[[nodiscard]] bool SendFromNoiseQueue();
 
 		void EnableSend() noexcept;
 		void DisableSend() noexcept;
 		void DisableSend(const std::chrono::milliseconds duration) noexcept;
 
-		[[nodiscard]] const bool SendNoise(const Size minsize, const Size maxsize,
-										   const std::chrono::milliseconds delay = std::chrono::milliseconds(0));
-		[[nodiscard]] const bool SendNoise(const Size maxnum, const Size minsize, const Size maxsize);
+		[[nodiscard]] bool SendNoise(const Size minsize, const Size maxsize,
+									 const std::chrono::milliseconds delay = std::chrono::milliseconds(0));
+		[[nodiscard]] bool SendNoise(const Size maxnum, const Size minsize, const Size maxsize);
 
-		[[nodiscard]] inline const bool HasReceiveEvents() noexcept
+		[[nodiscard]] inline bool HasReceiveEvents() noexcept
 		{
 			return (GetIOStatus().CanRead() || m_ReceiveBuffer.IsEventSet());
 		}
 
-		[[nodiscard]] inline const bool HasSendEvents() noexcept
+		[[nodiscard]] inline bool HasSendEvents() noexcept
 		{
 			return (GetIOStatus().CanWrite() && !IsFlagSet(Flags::SendDisabled) &&
 				(m_SendBuffer.IsEventSet() || m_SendQueue.Event().IsSet() ||
 					(m_DelayedSendQueue.Event().IsSet() && m_DelayedSendQueue.Front().IsTime())));
 		}
 
-		[[nodiscard]] const bool SendFromQueue();
+		[[nodiscard]] bool SendFromQueue();
 		[[nodiscard]] const std::pair<bool, Size> GetMessagesFromSendQueue(Buffer& buffer,
 																		   const Crypto::SymmetricKeyData& symkey);
 
-		[[nodiscard]] const bool ReceiveAndProcess();
+		[[nodiscard]] bool ReceiveAndProcess();
 		[[nodiscard]] const std::tuple<bool, Size, UInt16> ProcessMessage(const BufferView msgbuf,
 																		  const Settings& settings);
 		[[nodiscard]] const std::pair<bool, Size> ProcessMessages(BufferView buffer,
 																  const Crypto::SymmetricKeyData& symkey);
 
-		[[nodiscard]] const bool ProcessMessage(Message& msg);
+		[[nodiscard]] bool ProcessMessage(Message& msg);
 		[[nodiscard]] const std::pair<bool, bool> ProcessMessage(MessageDetails&& msg);
 
 		void ProcessEvent(const PeerEventType etype) noexcept;
 		void ProcessEvent(const Vector<ExtenderUUID>& extuuids, const PeerEventType etype) noexcept;
 
-		[[nodiscard]] const bool CheckAndProcessKeyUpdate() noexcept;
+		[[nodiscard]] bool CheckAndProcessKeyUpdate() noexcept;
 
 		void SetInitialConditionsWithGlobalSharedSecret(const ProtectedBuffer& encr_authkey,
 														const ProtectedBuffer& decr_authkey) noexcept;
 
-		[[nodiscard]] inline const bool IsAutoGenKeyAllowed() const noexcept;
+		[[nodiscard]] inline bool IsAutoGenKeyAllowed() const noexcept;
 
 		ForceInline void SetFlag(const Flags flag, const bool state) noexcept
 		{
 			m_Flags.set(static_cast<Size>(flag), state);
 		}
 
-		[[nodiscard]] ForceInline const bool IsFlagSet(const Flags flag) const noexcept
+		[[nodiscard]] ForceInline bool IsFlagSet(const Flags flag) const noexcept
 		{
 			return (m_Flags.test(static_cast<Size>(flag)));
 		}

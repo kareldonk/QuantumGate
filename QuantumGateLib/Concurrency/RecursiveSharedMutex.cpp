@@ -40,7 +40,7 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 	}
 	
-	const bool RecursiveSharedMutex::try_lock() noexcept
+	bool RecursiveSharedMutex::try_lock() noexcept
 	{
 		const auto id = std::this_thread::get_id();
 
@@ -104,7 +104,7 @@ namespace QuantumGate::Implementation::Concurrency
 		++m_SharedLockCount;
 	}
 	
-	const bool RecursiveSharedMutex::try_lock_shared() noexcept
+	bool RecursiveSharedMutex::try_lock_shared() noexcept
 	{
 		std::unique_lock<SpinMutex> lock(m_Mutex);
 

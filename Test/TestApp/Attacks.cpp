@@ -12,7 +12,7 @@ Attacks::ThreadData Attacks::m_ConnectGarbageData;
 Attacks::ThreadData Attacks::m_ConnectData;
 Attacks::ThreadData Attacks::m_ConnectWaitData;
 
-const bool Attacks::StartConnectGarbageAttack(const CString& ip, const UInt16 port)
+bool Attacks::StartConnectGarbageAttack(const CString& ip, const UInt16 port)
 {
 	if (!m_ConnectGarbageData.Thread.joinable())
 	{
@@ -104,7 +104,7 @@ void Attacks::ConnectGarbageThreadProc(const CString ip, const UInt16 port)
 	LogWarn(L"ConnectGarbage: stopping attack on endpoint %s:%u...", ip.GetString(), port);
 }
 
-const bool Attacks::StartConnectAttack(const CString& ip, const UInt16 port)
+bool Attacks::StartConnectAttack(const CString& ip, const UInt16 port)
 {
 	if (!m_ConnectData.Thread.joinable())
 	{
@@ -182,7 +182,7 @@ void Attacks::ConnectThreadProc(const CString ip, const UInt16 port)
 	LogWarn(L"ConnectAttack: stopping attack on endpoint %s:%u...", ip.GetString(), port);
 }
 
-const bool Attacks::StartConnectWaitAttack(const CString& ip, const UInt16 port)
+bool Attacks::StartConnectWaitAttack(const CString& ip, const UInt16 port)
 {
 	if (!m_ConnectWaitData.Thread.joinable())
 	{

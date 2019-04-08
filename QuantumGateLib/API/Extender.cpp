@@ -22,7 +22,7 @@ namespace QuantumGate::API
 		return m_Extender->GetName();
 	}
 
-	const bool Extender::IsRunning() const noexcept
+	bool Extender::IsRunning() const noexcept
 	{
 		return m_Extender->IsRunning();
 	}

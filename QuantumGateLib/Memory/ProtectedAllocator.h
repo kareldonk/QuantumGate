@@ -45,13 +45,13 @@ namespace QuantumGate::Implementation::Memory
 		ProtectedAllocator& operator=(ProtectedAllocator&&) = default;
 
 		template<class Other> 
-		inline const bool operator==(const ProtectedAllocator<Other>&) const noexcept
+		inline bool operator==(const ProtectedAllocator<Other>&) const noexcept
 		{
 			return true;
 		}
 
 		template<class Other>
-		inline const bool operator!=(const ProtectedAllocator<Other>&) const noexcept
+		inline bool operator!=(const ProtectedAllocator<Other>&) const noexcept
 		{
 			return false;
 		}

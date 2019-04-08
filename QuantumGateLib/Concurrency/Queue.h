@@ -20,7 +20,7 @@ namespace QuantumGate::Implementation::Concurrency
 		virtual ~Queue() = default;
 		Queue& operator=(Queue&&) = default;
 
-		inline const bool Empty() const noexcept
+		inline bool Empty() const noexcept
 		{
 			return m_Queue.empty();
 		}

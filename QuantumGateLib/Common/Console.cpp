@@ -16,7 +16,7 @@ namespace QuantumGate::Implementation
 		std::atomic_bool HasOutput{ false };
 		Concurrency::ThreadSafe<std::shared_ptr<Console::Output>, std::shared_mutex> Output{ nullptr };
 
-		[[nodiscard]] inline const bool CanAddMessage(const Console::MessageType type) const noexcept
+		[[nodiscard]] inline bool CanAddMessage(const Console::MessageType type) const noexcept
 		{
 			if (!HasOutput.load() ||
 				!(static_cast<Int16>(type) & static_cast<Int16>(Verbosity.load()))) return false;
@@ -102,7 +102,7 @@ namespace QuantumGate::Implementation
 		return GetConsoleObject().Verbosity;
 	}
 
-	const bool Console::SetOutput(const std::shared_ptr<Output>& output) noexcept
+	bool Console::SetOutput(const std::shared_ptr<Output>& output) noexcept
 	{
 		try
 		{
@@ -124,7 +124,7 @@ namespace QuantumGate::Implementation
 		return false;
 	}
 
-	const bool Console::CanAddMessage(const MessageType type) noexcept
+	bool Console::CanAddMessage(const MessageType type) noexcept
 	{
 		return GetConsoleObject().CanAddMessage(type);
 	}
@@ -159,7 +159,7 @@ namespace QuantumGate::Implementation
 		InitConsole();
 	}
 
-	const bool Console::TerminalOutput::InitConsole() noexcept
+	bool Console::TerminalOutput::InitConsole() noexcept
 	{
 		// Set output mode to handle virtual terminal sequences
 		std::array<ULong, 2> handles{ STD_OUTPUT_HANDLE, STD_ERROR_HANDLE };

@@ -169,7 +169,7 @@ namespace QuantumGate::Implementation
 		public:
 			TerminalOutput() noexcept;
 
-			const bool InitConsole() noexcept;
+			bool InitConsole() noexcept;
 
 			const WChar* GetFormat(const MessageType type, const Format fmt) const noexcept override;
 			void AddMessage(const MessageType type, const StringView message) override;
@@ -235,9 +235,9 @@ namespace QuantumGate::Implementation
 		static void SetVerbosity(const Verbosity verbosity) noexcept;
 		[[nodiscard]] static const Verbosity GetVerbosity() noexcept;
 
-		static const bool SetOutput(const std::shared_ptr<Output>& output) noexcept;
+		static bool SetOutput(const std::shared_ptr<Output>& output) noexcept;
 
-		[[nodiscard]] static const bool CanAddMessage(const MessageType type) noexcept;
+		[[nodiscard]] static bool CanAddMessage(const MessageType type) noexcept;
 
 		template<typename... Args>
 		static void AddMessage(const MessageType type, const StringView message, const Args&... args) noexcept

@@ -139,17 +139,17 @@ namespace QuantumGate::Implementation::Core::Access
 		return m_IPAccessControl.WithUniqueLock()->GetReputations();
 	}
 
-	const bool Manager::AddIPConnection(const IPAddress& ip) noexcept
+	bool Manager::AddIPConnection(const IPAddress& ip) noexcept
 	{
 		return m_SubnetLimits.WithUniqueLock()->AddConnection(ip);
 	}
 
-	const bool Manager::RemoveIPConnection(const IPAddress& ip) noexcept
+	bool Manager::RemoveIPConnection(const IPAddress& ip) noexcept
 	{
 		return m_SubnetLimits.WithUniqueLock()->RemoveConnection(ip);
 	}
 
-	const bool Manager::AddIPConnectionAttempt(const IPAddress& ip) noexcept
+	bool Manager::AddIPConnectionAttempt(const IPAddress& ip) noexcept
 	{
 		if (!m_IPAccessControl.WithUniqueLock()->AddConnectionAttempt(ip))
 		{
@@ -160,7 +160,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return true;
 	}
 
-	const bool Manager::AddIPRelayConnectionAttempt(const IPAddress& ip) noexcept
+	bool Manager::AddIPRelayConnectionAttempt(const IPAddress& ip) noexcept
 	{
 		if (!m_IPAccessControl.WithUniqueLock()->AddRelayConnectionAttempt(ip))
 		{

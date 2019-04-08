@@ -40,8 +40,8 @@ namespace QuantumGate::Implementation::Core::Access
 		IPAccessDetails& operator=(const IPAccessDetails&) = delete;
 		IPAccessDetails& operator=(IPAccessDetails&&) = default;
 
-		[[nodiscard]] const bool SetReputation(const Int16 score,
-											   const std::optional<Time>& time = std::nullopt) noexcept;
+		[[nodiscard]] bool SetReputation(const Int16 score,
+										 const std::optional<Time>& time = std::nullopt) noexcept;
 		void ResetReputation() noexcept;
 		const Int16 UpdateReputation(const std::chrono::seconds interval, const IPReputationUpdate rep_update) noexcept;
 		[[nodiscard]] const std::pair<Int16, Time> GetReputation() const noexcept;
@@ -49,10 +49,13 @@ namespace QuantumGate::Implementation::Core::Access
 		inline ConnectionAttempts& GetConnectionAttempts() noexcept { return m_ConnectionAttempts; }
 		inline ConnectionAttempts& GetRelayConnectionAttempts() noexcept { return m_RelayConnectionAttempts; }
 
-		[[nodiscard]] const bool AddConnectionAttempt(ConnectionAttempts& attempts, const std::chrono::seconds interval,
-													  const Size max_attempts) noexcept;
+		[[nodiscard]] bool AddConnectionAttempt(ConnectionAttempts& attempts, const std::chrono::seconds interval,
+												const Size max_attempts) noexcept;
 
-		[[nodiscard]] inline static constexpr const bool IsAcceptableReputation(const Int16 score) noexcept { return (score > IPReputation::ScoreLimits::Base); }
+		[[nodiscard]] inline static constexpr bool IsAcceptableReputation(const Int16 score) noexcept
+		{
+			return (score > IPReputation::ScoreLimits::Base);
+		}
 
 	private:
 		void ImproveReputation(const std::chrono::seconds interval) noexcept;
@@ -84,12 +87,12 @@ namespace QuantumGate::Implementation::Core::Access
 		void ResetAllReputations() noexcept;
 		Result<std::pair<Int16, bool>> UpdateReputation(const IPAddress& ip,
 														const IPReputationUpdate rep_update) noexcept;
-		[[nodiscard]] const bool HasAcceptableReputation(const IPAddress& ip) noexcept;
+		[[nodiscard]] bool HasAcceptableReputation(const IPAddress& ip) noexcept;
 
 		Result<Vector<IPReputation>> GetReputations() const noexcept;
 
-		[[nodiscard]] const bool AddConnectionAttempt(const IPAddress& ip) noexcept;
-		[[nodiscard]] const bool AddRelayConnectionAttempt(const IPAddress& ip) noexcept;
+		[[nodiscard]] bool AddConnectionAttempt(const IPAddress& ip) noexcept;
+		[[nodiscard]] bool AddRelayConnectionAttempt(const IPAddress& ip) noexcept;
 
 	private:
 		IPAccessDetails* GetIPAccessDetails(const IPAddress& ip) noexcept;

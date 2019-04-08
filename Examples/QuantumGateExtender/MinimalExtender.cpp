@@ -27,7 +27,7 @@ MinimalExtender::MinimalExtender() :
 MinimalExtender::~MinimalExtender()
 {}
 
-const bool MinimalExtender::OnStartup()
+bool MinimalExtender::OnStartup()
 {
 	// This function gets called by the QuantumGate instance to notify
 	// an extender to initialize and startup

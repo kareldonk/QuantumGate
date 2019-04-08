@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Crypto
 		NTRUPrime() = default;
 
 	public:
-		[[nodiscard]] static const bool GenerateKey(AsymmetricKeyData& keydata) noexcept
+		[[nodiscard]] static bool GenerateKey(AsymmetricKeyData& keydata) noexcept
 		{
 			try
 			{
@@ -35,7 +35,7 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool GenerateSharedSecret(AsymmetricKeyData& keydata) noexcept
+		[[nodiscard]] static bool GenerateSharedSecret(AsymmetricKeyData& keydata) noexcept
 		{
 			try
 			{

@@ -8,7 +8,7 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	const bool KeyUpdate::SetStatus(const Status status) noexcept
+	bool KeyUpdate::SetStatus(const Status status) noexcept
 	{
 		auto success = true;
 		const auto prev_status = m_Status;
@@ -68,7 +68,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return success;
 	}
 
-	const bool KeyUpdate::UpdateTimedOut() const noexcept
+	bool KeyUpdate::UpdateTimedOut() const noexcept
 	{
 		if (GetStatus() == Status::PrimaryExchange ||
 			GetStatus() == Status::SecondaryExchange)
@@ -83,7 +83,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool KeyUpdate::ShouldUpdate() noexcept
+	bool KeyUpdate::ShouldUpdate() noexcept
 	{
 		if (GetStatus() == Status::UpdateWait &&
 			m_Peer.GetConnectionType() == PeerConnectionType::Inbound &&
@@ -119,7 +119,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool KeyUpdate::BeginKeyUpdate() noexcept
+	bool KeyUpdate::BeginKeyUpdate() noexcept
 	{
 		// Should not already be updating
 		assert(GetStatus() == Status::UpdateWait);

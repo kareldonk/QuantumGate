@@ -16,11 +16,11 @@ namespace QuantumGate::Implementation::Concurrency
 		DummyMutex& operator=(DummyMutex&&) = delete;
 
 		constexpr void lock() noexcept {}
-		constexpr const bool try_lock() noexcept { return true; }
+		constexpr bool try_lock() noexcept { return true; }
 		constexpr void unlock() noexcept {}
 
 		constexpr void lock_shared() noexcept {}
-		constexpr const bool try_lock_shared() noexcept { return true; }
+		constexpr bool try_lock_shared() noexcept { return true; }
 		constexpr void unlock_shared() noexcept {}
 	};
 }

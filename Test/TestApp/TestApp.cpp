@@ -117,7 +117,7 @@ std::optional<CString> CTestAppApp::BrowseForFile(HWND hwnd, const bool save) co
 	return std::nullopt;
 }
 
-const bool CTestAppApp::LoadKey(const String& path, ProtectedBuffer& key) const noexcept
+bool CTestAppApp::LoadKey(const String& path, ProtectedBuffer& key) const noexcept
 {
 	try
 	{
@@ -158,7 +158,7 @@ const bool CTestAppApp::LoadKey(const String& path, ProtectedBuffer& key) const 
 	return false;
 }
 
-const bool CTestAppApp::SaveKey(const String& path, const ProtectedBuffer& key) const noexcept
+bool CTestAppApp::SaveKey(const String& path, const ProtectedBuffer& key) const noexcept
 {
 	try
 	{

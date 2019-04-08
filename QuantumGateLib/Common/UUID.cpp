@@ -23,7 +23,7 @@ namespace QuantumGate::Implementation
 		Set(uuid.c_str());
 	}
 
-	const bool UUID::Verify(const ProtectedBuffer& pub_key) const noexcept
+	bool UUID::Verify(const ProtectedBuffer& pub_key) const noexcept
 	{
 		if (GetType() == Type::Peer)
 		{
@@ -69,7 +69,7 @@ namespace QuantumGate::Implementation
 																sizeof(suuid))));
 	}
 
-	const bool UUID::TryParse(const WChar* str, UUID& uuid) noexcept
+	bool UUID::TryParse(const WChar* str, UUID& uuid) noexcept
 	{
 		try
 		{
@@ -81,7 +81,7 @@ namespace QuantumGate::Implementation
 		return false;
 	}
 
-	const bool UUID::TryParse(const String& str, UUID& uuid) noexcept
+	bool UUID::TryParse(const String& str, UUID& uuid) noexcept
 	{
 		return TryParse(str.c_str(), uuid);
 	}
@@ -157,7 +157,7 @@ namespace QuantumGate::Implementation
 		return std::make_tuple(success, std::move(uuid), std::move(keys));
 	}
 
-	const bool UUID::FillPeerUUID(const ProtectedBuffer& pub_key) noexcept
+	bool UUID::FillPeerUUID(const ProtectedBuffer& pub_key) noexcept
 	{
 		UInt64 hash[2]{ 0, 0 };
 		hash[0] = Hash::GetHash(pub_key,
@@ -175,7 +175,7 @@ namespace QuantumGate::Implementation
 		return true;
 	}
 
-	const bool UUID::FillExtenderUUID() noexcept
+	bool UUID::FillExtenderUUID() noexcept
 	{
 		static_assert(sizeof(UUID) == 16, "UUID size mismatch; expecting 16 bytes");
 

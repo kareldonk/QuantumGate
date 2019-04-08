@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Network::BinaryIPAddress SubnetMask;  // Network byte order (big endian)
 		Size MaximumConnections{ 0 };
 
-		inline static constexpr const bool Compare(const UInt8 key1, const UInt8 key2) noexcept
+		inline static constexpr bool Compare(const UInt8 key1, const UInt8 key2) noexcept
 		{
 			return (key1 > key2);
 		}
@@ -78,28 +78,28 @@ namespace QuantumGate::Implementation::Core::Access
 
 		void Clear() noexcept;
 
-		[[nodiscard]] const bool HasLimit(const IPAddress::Family af, const UInt8 cidr_lbits) const noexcept;
+		[[nodiscard]] bool HasLimit(const IPAddress::Family af, const UInt8 cidr_lbits) const noexcept;
 
-		[[nodiscard]] const bool AddConnection(const IPAddress& ip) noexcept;
-		[[nodiscard]] const bool RemoveConnection(const IPAddress& ip) noexcept;
+		[[nodiscard]] bool AddConnection(const IPAddress& ip) noexcept;
+		[[nodiscard]] bool RemoveConnection(const IPAddress& ip) noexcept;
 
-		[[nodiscard]] const bool HasConnectionOverflow(const IPAddress& ip) const noexcept;
-		[[nodiscard]] const bool CanAcceptConnection(const IPAddress& ip) const noexcept;
+		[[nodiscard]] bool HasConnectionOverflow(const IPAddress& ip) const noexcept;
+		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ip) const noexcept;
 
 	private:
 		IPSubnetAF* GetSubnets(const IPAddress::Family af) noexcept;
 		const IPSubnetAF* GetSubnets(const IPAddress::Family af) const noexcept;
 
-		[[nodiscard]] const bool AddSubnetConnection(IPSubnetConnectionMap& connections, const IPAddress& ip) noexcept;
-		[[nodiscard]] const bool RemoveSubnetConnection(IPSubnetConnectionMap& connections, const IPAddress& ip) noexcept;
+		[[nodiscard]] bool AddSubnetConnection(IPSubnetConnectionMap& connections, const IPAddress& ip) noexcept;
+		[[nodiscard]] bool RemoveSubnetConnection(IPSubnetConnectionMap& connections, const IPAddress& ip) noexcept;
 
-		[[nodiscard]] const bool AddLimitsConnection(const IPSubnetLimitMap& limits, const IPAddress& ip) noexcept;
-		[[nodiscard]] const bool AddLimitConnection(const IPSubnetLimitImpl& limit, const IPAddress& ip,
-													const Size num, const bool allow_overflow) noexcept;
-		[[nodiscard]] const bool RemoveLimitsConnection(const IPSubnetLimitMap& limits, const IPAddress& ip) noexcept;
-		[[nodiscard]] const bool RemoveLimitConnection(const IPSubnetLimitImpl& limit, const IPAddress& ip) noexcept;
+		[[nodiscard]] bool AddLimitsConnection(const IPSubnetLimitMap& limits, const IPAddress& ip) noexcept;
+		[[nodiscard]] bool AddLimitConnection(const IPSubnetLimitImpl& limit, const IPAddress& ip,
+											  const Size num, const bool allow_overflow) noexcept;
+		[[nodiscard]] bool RemoveLimitsConnection(const IPSubnetLimitMap& limits, const IPAddress& ip) noexcept;
+		[[nodiscard]] bool RemoveLimitConnection(const IPSubnetLimitImpl& limit, const IPAddress& ip) noexcept;
 
-		[[nodiscard]] const bool CanAcceptConnection(const IPSubnetLimitMap& map, const IPAddress& ip) const noexcept;
+		[[nodiscard]] bool CanAcceptConnection(const IPSubnetLimitMap& map, const IPAddress& ip) const noexcept;
 
 	private:
 		IPSubnetAF m_IPv4Subnets;

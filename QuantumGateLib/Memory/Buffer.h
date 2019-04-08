@@ -94,14 +94,14 @@ namespace QuantumGate::Implementation::Memory
 			return *this;
 		}
 
-		inline const bool operator==(const BufferImpl& other) const noexcept
+		inline bool operator==(const BufferImpl& other) const noexcept
 		{
 			if (GetSize() != other.GetSize()) return false;
 
 			return (memcmp(GetBytes(), other.GetBytes(), GetSize()) == 0);
 		}
 
-		inline const bool operator!=(const BufferImpl& other) const noexcept
+		inline bool operator!=(const BufferImpl& other) const noexcept
 		{
 			return !(*this == other);
 		}
@@ -120,7 +120,7 @@ namespace QuantumGate::Implementation::Memory
 		
 		[[nodiscard]] inline Size GetSize() const noexcept { return m_Buffer.size(); }
 		
-		[[nodiscard]] inline const bool IsEmpty() const noexcept { return m_Buffer.empty(); }
+		[[nodiscard]] inline bool IsEmpty() const noexcept { return m_Buffer.empty(); }
 		
 		inline void Swap(VectorType& other) noexcept { m_Buffer.swap(other); }
 		inline void Swap(BufferImpl& other) noexcept { m_Buffer.swap(other.m_Buffer); }

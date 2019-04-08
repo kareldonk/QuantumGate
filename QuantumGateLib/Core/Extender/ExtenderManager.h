@@ -45,9 +45,9 @@ namespace QuantumGate::Implementation::Core::Extender
 		Manager& operator=(const Manager&) = delete;
 		Manager& operator=(Manager&&) = delete;
 
-		[[nodiscard]] const bool Startup() noexcept;
+		[[nodiscard]] bool Startup() noexcept;
 		void Shutdown() noexcept;
-		inline const bool IsRunning() const noexcept { return m_Running; }
+		inline bool IsRunning() const noexcept { return m_Running; }
 
 		Result<bool> AddExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender,
 								 const ExtenderModuleID moduleid) noexcept;
@@ -57,7 +57,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		Result<> StartExtender(const ExtenderUUID& extuuid) noexcept;
 		Result<> ShutdownExtender(const ExtenderUUID& extuuid) noexcept;
 
-		const bool HasExtender(const ExtenderUUID& extuuid) const noexcept;
+		bool HasExtender(const ExtenderUUID& extuuid) const noexcept;
 		std::weak_ptr<QuantumGate::API::Extender> GetExtender(const ExtenderUUID& extuuid) const noexcept;
 
 		void OnPeerEvent(const Vector<ExtenderUUID>& extuuids, Peer::Event&& event) noexcept;
@@ -73,14 +73,14 @@ namespace QuantumGate::Implementation::Core::Extender
 		}
 
 	private:
-		[[nodiscard]] const bool StartExtenders() noexcept;
+		[[nodiscard]] bool StartExtenders() noexcept;
 		void ShutdownExtenders() noexcept;
 
 		Result<Control_ThS*> GetExtenderControl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
 												const std::optional<ExtenderModuleID> moduleid = std::nullopt) const noexcept;
 
-		[[nodiscard]] const bool StartExtender(Control_ThS& extctrl_ths, const bool update_active);
-		[[nodiscard]] const bool ShutdownExtender(Control_ThS& extctrl_ths, const bool update_active);
+		[[nodiscard]] bool StartExtender(Control_ThS& extctrl_ths, const bool update_active);
+		[[nodiscard]] bool ShutdownExtender(Control_ThS& extctrl_ths, const bool update_active);
 
 		void UpdateActiveExtenderUUIDs(const ExtenderMap& extenders) noexcept;
 

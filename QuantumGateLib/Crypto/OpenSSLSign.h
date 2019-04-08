@@ -15,8 +15,8 @@ namespace QuantumGate::Implementation::Crypto
 		OpenSSLSign() = default;
 
 	public:
-		[[nodiscard]] static const bool Sign(const BufferView& msg, const Algorithm::Asymmetric alg,
-											 const BufferView& priv_key, Buffer& sig) noexcept
+		[[nodiscard]] static bool Sign(const BufferView& msg, const Algorithm::Asymmetric alg,
+									   const BufferView& priv_key, Buffer& sig) noexcept
 		{
 			switch (alg)
 			{
@@ -31,8 +31,8 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool Verify(const BufferView& msg, const Algorithm::Asymmetric alg,
-											   const BufferView& pub_key, const BufferView& sig) noexcept
+		[[nodiscard]] static bool Verify(const BufferView& msg, const Algorithm::Asymmetric alg,
+										 const BufferView& pub_key, const BufferView& sig) noexcept
 		{
 			switch (alg)
 			{
@@ -48,8 +48,8 @@ namespace QuantumGate::Implementation::Crypto
 		}
 
 	private:
-		[[nodiscard]] static const bool SignWithRawKey(const BufferView& msg, const Algorithm::Asymmetric alg,
-													   const BufferView& priv_key, Buffer& sig) noexcept
+		[[nodiscard]] static bool SignWithRawKey(const BufferView& msg, const Algorithm::Asymmetric alg,
+												 const BufferView& priv_key, Buffer& sig) noexcept
 		{
 			int id{ 0 };
 
@@ -115,8 +115,8 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool VerifyWithRawKey(const BufferView& msg, const Algorithm::Asymmetric alg,
-														 const BufferView& pub_key, const BufferView& sig) noexcept
+		[[nodiscard]] static bool VerifyWithRawKey(const BufferView& msg, const Algorithm::Asymmetric alg,
+												   const BufferView& pub_key, const BufferView& sig) noexcept
 		{
 			int id{ 0 };
 
@@ -167,8 +167,8 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool SignWithPEMKey(const BufferView& msg, const BufferView& priv_key,
-													   Buffer& sig) noexcept
+		[[nodiscard]] static bool SignWithPEMKey(const BufferView& msg, const BufferView& priv_key,
+												 Buffer& sig) noexcept
 		{
 			try
 			{
@@ -225,8 +225,8 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool VerifyWithPEMKey(const BufferView& msg, const BufferView& pub_key,
-														 const BufferView& sig) noexcept
+		[[nodiscard]] static bool VerifyWithPEMKey(const BufferView& msg, const BufferView& pub_key,
+												   const BufferView& sig) noexcept
 		{
 			try
 			{

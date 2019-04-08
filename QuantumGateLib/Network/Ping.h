@@ -31,7 +31,7 @@ namespace QuantumGate::Implementation::Network
 		Ping& operator=(const Ping&) = delete;
 		Ping& operator=(Ping&&) = default;
 
-		[[nodiscard]] const bool Execute(const bool use_os_api = true) noexcept;
+		[[nodiscard]] bool Execute(const bool use_os_api = true) noexcept;
 
 		[[nodiscard]] inline const BinaryIPAddress& GetDestinationIPAddress() const noexcept { return m_DestinationIPAddress; }
 		[[nodiscard]] inline std::chrono::milliseconds GetTimeout() const noexcept { return m_Timeout; }
@@ -49,8 +49,8 @@ namespace QuantumGate::Implementation::Network
 		friend Export std::wostream& operator<<(std::wostream& stream, const Ping& ping);
 
 	private:
-		[[nodiscard]] const bool ExecuteOS() noexcept;
-		[[nodiscard]] const bool ExecuteRAW() noexcept;
+		[[nodiscard]] bool ExecuteOS() noexcept;
+		[[nodiscard]] bool ExecuteRAW() noexcept;
 
 		inline void Reset() noexcept
 		{
@@ -60,10 +60,10 @@ namespace QuantumGate::Implementation::Network
 			m_RoundTripTime.reset();
 		}
 
-		[[nodiscard]] const bool VerifyICMPMessageChecksum(BufferView buffer) const noexcept;
-		[[nodiscard]] const bool VerifyICMPEchoMessage(BufferView buffer, const UInt16 expected_id,
-													   const UInt16 expected_sequence_number,
-													   const BufferView expected_data) const noexcept;
+		[[nodiscard]] bool VerifyICMPMessageChecksum(BufferView buffer) const noexcept;
+		[[nodiscard]] bool VerifyICMPEchoMessage(BufferView buffer, const UInt16 expected_id,
+												 const UInt16 expected_sequence_number,
+												 const BufferView expected_data) const noexcept;
 
 		[[nodiscard]] std::optional<ICMP::MessageType> ProcessICMPReply(BufferView buffer, const UInt16 expected_id,
 																		const UInt16 expected_sequence_number,

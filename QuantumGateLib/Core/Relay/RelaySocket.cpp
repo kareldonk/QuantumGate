@@ -18,8 +18,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		if (m_IOStatus.IsOpen()) Close();
 	}
 
-	const bool Socket::BeginAccept(const RelayPort rport, const RelayHop hop,
-								   const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
+	bool Socket::BeginAccept(const RelayPort rport, const RelayHop hop,
+							 const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
 
@@ -33,7 +33,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return true;
 	}
 
-	const bool Socket::CompleteAccept() noexcept
+	bool Socket::CompleteAccept() noexcept
 	{
 		assert(m_IOStatus.IsOpen());
 
@@ -45,7 +45,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return m_ConnectCallback();
 	}
 
-	const bool Socket::BeginConnect(const IPEndpoint& endpoint) noexcept
+	bool Socket::BeginConnect(const IPEndpoint& endpoint) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
 
@@ -60,7 +60,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return true;
 	}
 
-	const bool Socket::CompleteConnect() noexcept
+	bool Socket::CompleteConnect() noexcept
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnecting());
 
@@ -82,7 +82,7 @@ namespace QuantumGate::Implementation::Core::Relay
 									rport, hop);
 	}
 
-	const bool Socket::Send(Buffer& buffer) noexcept
+	bool Socket::Send(Buffer& buffer) noexcept
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanWrite());
 		assert(m_RelayManager != nullptr);
@@ -114,7 +114,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return success;
 	}
 
-	const bool Socket::Receive(Buffer& buffer) noexcept
+	bool Socket::Receive(Buffer& buffer) noexcept
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanRead());
 
@@ -164,7 +164,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		m_IOStatus.Reset();
 	}
 
-	const bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds, const IOStatus::Update ioupdate) noexcept
+	bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds, const IOStatus::Update ioupdate) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
 
@@ -185,7 +185,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return (Util::GetCurrentSystemTime() - dif);
 	}
 
-	const bool Socket::AddToReceiveQueue(Buffer&& buffer) noexcept
+	bool Socket::AddToReceiveQueue(Buffer&& buffer) noexcept
 	{
 		try
 		{

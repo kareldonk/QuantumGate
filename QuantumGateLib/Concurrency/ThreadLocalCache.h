@@ -98,7 +98,7 @@ namespace QuantumGate::Implementation::Concurrency
 			});
 		}
 
-		ForceInline const bool IsCacheExpired() const noexcept
+		ForceInline bool IsCacheExpired() const noexcept
 		{
 			return (m_ValueUpdateFlag.load() != CacheUpdateFlag());
 		}

@@ -28,11 +28,11 @@ namespace QuantumGate::Implementation::Core
 		LocalEnvironment& operator=(const LocalEnvironment&) = delete;
 		LocalEnvironment& operator=(LocalEnvironment&&) = default;
 
-		[[nodiscard]] const bool Initialize(ChangedCallback&& callback) noexcept;
-		[[nodiscard]] inline const bool IsInitialized() const noexcept { return m_Initialized; }
+		[[nodiscard]] bool Initialize(ChangedCallback&& callback) noexcept;
+		[[nodiscard]] inline bool IsInitialized() const noexcept { return m_Initialized; }
 		void Deinitialize() noexcept;
 
-		[[nodiscard]] const bool Update() noexcept;
+		[[nodiscard]] bool Update() noexcept;
 
 		inline const String& GetHostname() const noexcept { return m_Hostname; }
 		inline const String& GetUsername() const noexcept { return m_Username; }
@@ -44,22 +44,22 @@ namespace QuantumGate::Implementation::Core
 		String GetIPAddressesString() const noexcept;
 		String GetMACAddressesString() const noexcept;
 
-		[[nodiscard]] const bool AddPublicIPEndpoint(const IPEndpoint& pub_endpoint,
-													 const IPEndpoint& rep_peer,
-													 const PeerConnectionType rep_con_type,
-													 const bool trusted) noexcept;
+		[[nodiscard]] bool AddPublicIPEndpoint(const IPEndpoint& pub_endpoint,
+											   const IPEndpoint& rep_peer,
+											   const PeerConnectionType rep_con_type,
+											   const bool trusted) noexcept;
 
 	private:
-		[[nodiscard]] const bool RegisterIPInterfaceChangeNotification() noexcept;
+		[[nodiscard]] bool RegisterIPInterfaceChangeNotification() noexcept;
 		void DeregisterIPInterfaceChangeNotification() noexcept;
 
 		static VOID NETIOAPI_API_ IPInterfaceChangeNotificationCallback(PVOID CallerContext, PMIB_IPINTERFACE_ROW Row,
 																		MIB_NOTIFICATION_TYPE NotificationType);
 
-		[[nodiscard]] const bool UpdateEnvironmentInformation() noexcept;
+		[[nodiscard]] bool UpdateEnvironmentInformation() noexcept;
 		void ClearEnvironmentInformation() noexcept;
 
-		[[nodiscard]] const bool UpdateCachedIPAddresses() noexcept;
+		[[nodiscard]] bool UpdateCachedIPAddresses() noexcept;
 
 		static Result<String> OSGetHostname() noexcept;
 		static Result<String> OSGetUsername() noexcept;

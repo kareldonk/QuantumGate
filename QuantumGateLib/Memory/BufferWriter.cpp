@@ -28,7 +28,7 @@ namespace QuantumGate::Implementation::Memory
 		return std::move(m_Buffer);
 	}
 
-	const bool BufferWriter::WriteEncodedSize(const Size size, const Size maxsize) noexcept
+	bool BufferWriter::WriteEncodedSize(const Size size, const Size maxsize) noexcept
 	{
 		assert(size <= maxsize);
 
@@ -58,7 +58,7 @@ namespace QuantumGate::Implementation::Memory
 		return false;
 	}
 
-	const bool BufferWriter::WriteBytes(const Byte* data, const Size len, const bool endian_convert)
+	bool BufferWriter::WriteBytes(const Byte* data, const Size len, const bool endian_convert)
 	{
 		if (len == 0) return true;
 
@@ -87,37 +87,37 @@ namespace QuantumGate::Implementation::Memory
 		return false;
 	}
 
-	template<> const bool BufferWriter::WriteImpl(const String& data)
+	template<> bool BufferWriter::WriteImpl(const String& data)
 	{
 		return WriteBytes(reinterpret_cast<const Byte*>(data.data()), GetDataSize(data));
 	}
 
-	template<> const bool BufferWriter::WriteImpl(const Network::SerializedBinaryIPAddress& data)
+	template<> bool BufferWriter::WriteImpl(const Network::SerializedBinaryIPAddress& data)
 	{
 		return WriteBytes(reinterpret_cast<const Byte*>(&data), GetDataSize(data));
 	}
 
-	template<> const bool BufferWriter::WriteImpl(const Network::SerializedIPEndpoint& data)
+	template<> bool BufferWriter::WriteImpl(const Network::SerializedIPEndpoint& data)
 	{
 		return WriteBytes(reinterpret_cast<const Byte*>(&data), GetDataSize(data));
 	}
 
-	template<> const bool BufferWriter::WriteImpl(const SerializedUUID& data)
+	template<> bool BufferWriter::WriteImpl(const SerializedUUID& data)
 	{
 		return WriteBytes(reinterpret_cast<const Byte*>(&data), GetDataSize(data));
 	}
 
-	template<> const bool BufferWriter::WriteImpl(const Buffer& data)
+	template<> bool BufferWriter::WriteImpl(const Buffer& data)
 	{
 		return WriteBytes(data.GetBytes(), GetDataSize(data));
 	}
 
-	template<> const bool BufferWriter::WriteImpl(const BufferView& data)
+	template<> bool BufferWriter::WriteImpl(const BufferView& data)
 	{
 		return WriteBytes(data.GetBytes(), GetDataSize(data));
 	}
 
-	template<> const bool BufferWriter::WriteImpl(const ProtectedBuffer& data)
+	template<> bool BufferWriter::WriteImpl(const ProtectedBuffer& data)
 	{
 		return WriteBytes(data.GetBytes(), GetDataSize(data));
 	}

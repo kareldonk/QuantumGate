@@ -56,31 +56,31 @@ namespace QuantumGate::Socks5Extender
 		virtual ~Extender();
 
 		inline void SetUseCompression(const bool compression) noexcept { m_UseCompression = compression; }
-		inline const bool IsUsingCompression() const noexcept { return m_UseCompression; }
+		inline bool IsUsingCompression() const noexcept { return m_UseCompression; }
 
-		inline const bool IsAuthenticationRequired() const noexcept { return m_RequireAuthentication; }
+		inline bool IsAuthenticationRequired() const noexcept { return m_RequireAuthentication; }
 
-		const bool IsAcceptingIncomingConnections() const noexcept { return m_UseListener; }
+		bool IsAcceptingIncomingConnections() const noexcept { return m_UseListener; }
 		void SetAcceptIncomingConnections(const bool accept);
 
-		const bool SetCredentials(const ProtectedStringA& username, const ProtectedStringA& password);
-		const bool CheckCredentials(const BufferView& username, const BufferView& password) const;
+		bool SetCredentials(const ProtectedStringA& username, const ProtectedStringA& password);
+		bool CheckCredentials(const BufferView& username, const BufferView& password) const;
 
-		const bool IsOutgoingIPAllowed(const IPAddress& ip) const noexcept;
+		bool IsOutgoingIPAllowed(const IPAddress& ip) const noexcept;
 
 	private:
-		const bool OnStartup();
+		bool OnStartup();
 		void OnPostStartup();
 		void OnPreShutdown();
 		void OnShutdown();
 		void OnPeerEvent(PeerEvent&& event);
 		const std::pair<bool, bool> OnPeerMessage(PeerEvent&& event);
 
-		const bool InitializeIPFilters();
+		bool InitializeIPFilters();
 		void DeInitializeIPFilters() noexcept;
-		const bool StartupListener();
+		bool StartupListener();
 		void ShutdownListener();
-		const bool StartupThreadPool();
+		bool StartupThreadPool();
 		void ShutdownThreadPool() noexcept;
 
 		static void ListenerThreadLoop(Extender* extender);
@@ -89,35 +89,34 @@ namespace QuantumGate::Socks5Extender
 		std::optional<IPAddress> ResolveDomainIP(const String& domain) const noexcept;
 		const Socks5Protocol::Replies TranslateWSAErrorToSocks5(Int errorcode) const noexcept;
 
-		const bool AddConnection(const PeerLUID pluid, const ConnectionID cid,
-								 std::unique_ptr<Connection_ThS>&& c) noexcept;
+		bool AddConnection(const PeerLUID pluid, const ConnectionID cid, std::unique_ptr<Connection_ThS>&& c) noexcept;
 		Connection_ThS* GetConnection(const PeerLUID pluid, const ConnectionID cid) const noexcept;
-		const void Disconnect(Connection_ThS& c);
-		const void Disconnect(Connection& c);
-		const void DisconnectFor(const PeerLUID pluid);
-		const void DisconnectAll();
+		void Disconnect(Connection_ThS& c);
+		void Disconnect(Connection& c);
+		void DisconnectFor(const PeerLUID pluid);
+		void DisconnectAll();
 
 		void AcceptIncomingConnection();
 		std::optional<PeerLUID> GetPeerForConnection() const;
 
-		const bool MakeOutgoingConnection(const PeerLUID pluid, const ConnectionID cid,
-										  const IPAddress& ip, const UInt16 port);
+		bool MakeOutgoingConnection(const PeerLUID pluid, const ConnectionID cid,
+									const IPAddress& ip, const UInt16 port);
 
-		const bool SendConnectDomain(const PeerLUID pluid, const ConnectionID cid,
-									 const String& domain, const UInt16 port) const;
+		bool SendConnectDomain(const PeerLUID pluid, const ConnectionID cid,
+							   const String& domain, const UInt16 port) const;
 
-		const bool SendConnectIP(const PeerLUID pluid, const ConnectionID cid,
-								 const Network::BinaryIPAddress& ip, const UInt16 port) const;
+		bool SendConnectIP(const PeerLUID pluid, const ConnectionID cid,
+						   const Network::BinaryIPAddress& ip, const UInt16 port) const;
 
-		const bool SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const;
-		const bool SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const;
+		bool SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const;
+		bool SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const;
 
-		const bool SendSocks5Reply(const PeerLUID pluid, const ConnectionID cid, const Socks5Protocol::Replies reply,
-								   const Socks5Protocol::AddressTypes atype = Socks5Protocol::AddressTypes::IPv4,
-								   const Network::BinaryIPAddress ip = Network::BinaryIPAddress{},
-								   const UInt16 port = 0) const;
+		bool SendSocks5Reply(const PeerLUID pluid, const ConnectionID cid, const Socks5Protocol::Replies reply,
+							 const Socks5Protocol::AddressTypes atype = Socks5Protocol::AddressTypes::IPv4,
+							 const Network::BinaryIPAddress ip = Network::BinaryIPAddress{},
+							 const UInt16 port = 0) const;
 
-		const bool SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const;
+		bool SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const;
 
 		constexpr Size GetDataRelayHeaderSize() const noexcept
 		{
@@ -131,16 +130,16 @@ namespace QuantumGate::Socks5Extender
 			return GetMaximumMessageDataSize() - GetDataRelayHeaderSize();
 		}
 
-		const bool HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
-												  const String& domain, const UInt16 port);
+		bool HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+											const String& domain, const UInt16 port);
 
-		const bool HandleConnectIPPeerMessage(const PeerLUID pluid, const ConnectionID cid,
-											  const Network::BinaryIPAddress& ip, const UInt16 port);
+		bool HandleConnectIPPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+										const Network::BinaryIPAddress& ip, const UInt16 port);
 
-		const bool HandleSocks5ReplyRelayPeerMessage(const PeerLUID pluid, const ConnectionID cid,
-													 const Socks5Protocol::Replies reply,
-													 const Socks5Protocol::AddressTypes atype,
-													 const BufferView& address, const UInt16 port);
+		bool HandleSocks5ReplyRelayPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+											   const Socks5Protocol::Replies reply,
+											   const Socks5Protocol::AddressTypes atype,
+											   const BufferView& address, const UInt16 port);
 
 	public:
 		inline static ExtenderUUID UUID{ L"20a86749-7e9e-297d-1e1c-3a7ddc723f66" };

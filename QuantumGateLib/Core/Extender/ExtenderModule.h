@@ -21,14 +21,14 @@ namespace QuantumGate::Implementation::Core::Extender
 		Module& operator=(const Module&) = delete;
 		Module& operator=(Module&& other) noexcept;
 
-		[[nodiscard]] inline const bool IsLoaded() const noexcept { return m_Handle != nullptr; }
+		[[nodiscard]] inline bool IsLoaded() const noexcept { return m_Handle != nullptr; }
 
-		const ExtenderModuleID GetID() const noexcept;
+		ExtenderModuleID GetID() const noexcept;
 
 		const ExtendersVector& GetExtenders() const noexcept;
 
 	private:
-		const bool LoadModule(const Path& module_path) noexcept;
+		bool LoadModule(const Path& module_path) noexcept;
 		void ReleaseModule() noexcept;
 
 	private:

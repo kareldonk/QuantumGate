@@ -12,7 +12,7 @@ public:
 	inline QuantumGate::String* GetMessages() noexcept { return &m_Messages; }
 	inline QuantumGate::Implementation::Concurrency::EventCondition* GetNewMessageEvent() noexcept { return &m_NewMessageEvent; }
 
-	inline const bool TryLock() { return m_Mutex.try_lock(); }
+	inline bool TryLock() { return m_Mutex.try_lock(); }
 	inline void Lock() { m_Mutex.lock(); }
 	inline void Unlock() { m_Mutex.unlock(); }
 

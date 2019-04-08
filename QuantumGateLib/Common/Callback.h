@@ -213,7 +213,7 @@ namespace QuantumGate::Implementation
 			m_Function = nullptr;
 		}
 
-		[[nodiscard]] ForceInline const bool IsUsingHeap() const noexcept
+		[[nodiscard]] ForceInline bool IsUsingHeap() const noexcept
 		{
 			return (reinterpret_cast<const Byte*>(&m_Storage)[0] == Byte{ 1 });
 		}

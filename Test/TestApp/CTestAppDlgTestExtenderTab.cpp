@@ -307,7 +307,7 @@ void CTestAppDlgTestExtenderTab::SendThreadProc(CTestAppDlgTestExtenderTab* dlg,
 	}
 }
 
-const bool CTestAppDlgTestExtenderTab::SendMsgToPeer(PeerLUID pluid, CString txt)
+bool CTestAppDlgTestExtenderTab::SendMsgToPeer(PeerLUID pluid, CString txt)
 {
 	if (m_UseStressExtender) return m_StressExtender->SendMessage(pluid, txt.GetString());
 	else if (m_TestExtender != nullptr) return m_TestExtender->SendMessage(pluid, txt.GetString());

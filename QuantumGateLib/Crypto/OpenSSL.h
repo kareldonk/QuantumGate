@@ -20,7 +20,7 @@ namespace QuantumGate::Implementation::Crypto
 		OpenSSL() = default;
 
 	public:
-		[[nodiscard]] static const bool GetRandomBytes(const UInt seed, Byte* buffer, const Size len) noexcept
+		[[nodiscard]] static bool GetRandomBytes(const UInt seed, Byte* buffer, const Size len) noexcept
 		{
 			assert(buffer != nullptr);
 
@@ -31,7 +31,7 @@ namespace QuantumGate::Implementation::Crypto
 		}
 
 		template<typename T>
-		[[nodiscard]] static const bool Hash(const BufferView& buffer, T& hashbuf, const Algorithm::Hash type) noexcept
+		[[nodiscard]] static bool Hash(const BufferView& buffer, T& hashbuf, const Algorithm::Hash type) noexcept
 		{
 			try
 			{
@@ -87,8 +87,8 @@ namespace QuantumGate::Implementation::Crypto
 		}
 
 		template<typename T>
-		[[nodiscard]] static const bool HMAC(const BufferView& buffer, T& hmac, const BufferView& key,
-											 const Algorithm::Hash type) noexcept
+		[[nodiscard]] static bool HMAC(const BufferView& buffer, T& hmac, const BufferView& key,
+									   const Algorithm::Hash type) noexcept
 		{
 			try
 			{
@@ -132,8 +132,8 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool HKDF(const BufferView& secret, ProtectedBuffer& outkey, const Size outkeylen,
-											 const Algorithm::Hash type) noexcept
+		[[nodiscard]] static bool HKDF(const BufferView& secret, ProtectedBuffer& outkey, const Size outkeylen,
+									   const Algorithm::Hash type) noexcept
 		{
 			try
 			{
@@ -188,7 +188,7 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool GenerateKey(AsymmetricKeyData& keydata) noexcept
+		[[nodiscard]] static bool GenerateKey(AsymmetricKeyData& keydata) noexcept
 		{
 			switch (keydata.GetAlgorithm())
 			{
@@ -208,7 +208,7 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool GenerateSharedSecret(AsymmetricKeyData& keydata) noexcept
+		[[nodiscard]] static bool GenerateSharedSecret(AsymmetricKeyData& keydata) noexcept
 		{
 			switch (keydata.GetAlgorithm())
 			{
@@ -359,7 +359,7 @@ namespace QuantumGate::Implementation::Crypto
 		}
 
 	private:
-		[[nodiscard]] static const bool GenerateKeyWithParam(AsymmetricKeyData& keydata) noexcept
+		[[nodiscard]] static bool GenerateKeyWithParam(AsymmetricKeyData& keydata) noexcept
 		{
 			int nid{ 0 };
 
@@ -428,7 +428,7 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool GenerateKeyNoParam(AsymmetricKeyData& keydata) noexcept
+		[[nodiscard]] static bool GenerateKeyNoParam(AsymmetricKeyData& keydata) noexcept
 		{
 			int id{ 0 };
 
@@ -483,7 +483,7 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool GenerateSharedSecretWithPEMKeys(AsymmetricKeyData& keydata) noexcept
+		[[nodiscard]] static bool GenerateSharedSecretWithPEMKeys(AsymmetricKeyData& keydata) noexcept
 		{
 			// Docs: https://wiki.openssl.org/index.php/Elliptic_Curve_Diffie_Hellman
 
@@ -540,7 +540,7 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool GenerateSharedSecretWithRawKeys(AsymmetricKeyData& keydata) noexcept
+		[[nodiscard]] static bool GenerateSharedSecretWithRawKeys(AsymmetricKeyData& keydata) noexcept
 		{
 			// Docs: https://wiki.openssl.org/index.php/Elliptic_Curve_Diffie_Hellman
 

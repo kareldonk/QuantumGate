@@ -22,17 +22,17 @@ namespace QuantumGate::Implementation::Core::Peer
 		KeyUpdate& operator=(const KeyUpdate&) = delete;
 		KeyUpdate& operator=(KeyUpdate&&) = default;
 
-		[[nodiscard]] const bool BeginKeyUpdate() noexcept;
+		[[nodiscard]] bool BeginKeyUpdate() noexcept;
 
 		inline const Status GetStatus() const noexcept { return m_Status; }
-		[[nodiscard]] const bool SetStatus(const Status status) noexcept;
+		[[nodiscard]] bool SetStatus(const Status status) noexcept;
 		
-		[[nodiscard]] inline const bool HasEvents() noexcept { return ShouldUpdate() || UpdateTimedOut(); }
+		[[nodiscard]] inline bool HasEvents() noexcept { return ShouldUpdate() || UpdateTimedOut(); }
 
-		[[nodiscard]] const bool UpdateTimedOut() const noexcept;
-		[[nodiscard]] const bool ShouldUpdate() noexcept;
+		[[nodiscard]] bool UpdateTimedOut() const noexcept;
+		[[nodiscard]] bool ShouldUpdate() noexcept;
 		
-		[[nodiscard]] inline const bool IsUpdating() const noexcept
+		[[nodiscard]] inline bool IsUpdating() const noexcept
 		{
 			return (GetStatus() == Status::PrimaryExchange || GetStatus() == Status::SecondaryExchange);
 		}

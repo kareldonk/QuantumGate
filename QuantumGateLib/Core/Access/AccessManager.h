@@ -53,16 +53,16 @@ namespace QuantumGate::Implementation::Core::Access
 														  const IPReputationUpdate rep_update) noexcept;
 		Result<Vector<IPReputation>> GetAllIPReputations() const noexcept;
 
-		[[nodiscard]] const bool AddIPConnectionAttempt(const IPAddress& ip) noexcept;
-		[[nodiscard]] const bool AddIPRelayConnectionAttempt(const IPAddress& ip) noexcept;
+		[[nodiscard]] bool AddIPConnectionAttempt(const IPAddress& ip) noexcept;
+		[[nodiscard]] bool AddIPRelayConnectionAttempt(const IPAddress& ip) noexcept;
 
 		Result<> AddIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits, const Size max_con) noexcept;
 		Result<> RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept;
 
 		Result<Vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
 
-		[[nodiscard]] const bool AddIPConnection(const IPAddress& ip) noexcept;
-		[[nodiscard]] const bool RemoveIPConnection(const IPAddress& ip) noexcept;
+		[[nodiscard]] bool AddIPConnection(const IPAddress& ip) noexcept;
+		[[nodiscard]] bool RemoveIPConnection(const IPAddress& ip) noexcept;
 
 		Result<bool> IsIPAllowed(const WChar* ip_str, const AccessCheck check) noexcept;
 		Result<bool> IsIPAllowed(const IPAddress& ip, const AccessCheck check) noexcept;

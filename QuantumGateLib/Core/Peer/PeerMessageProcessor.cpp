@@ -12,7 +12,7 @@ using namespace QuantumGate::Implementation::Memory;
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	const bool MessageProcessor::SendBeginHandshake() const noexcept
+	bool MessageProcessor::SendBeginHandshake() const noexcept
 	{
 		Dbg(L"*********** SendBeginHandshake ***********");
 
@@ -43,21 +43,21 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool MessageProcessor::SendBeginPrimaryKeyExchange() const noexcept
+	bool MessageProcessor::SendBeginPrimaryKeyExchange() const noexcept
 	{
 		Dbg(L"*********** SendBeginPrimaryKeyExchange ***********");
 
 		return SendBeginKeyExchange(MessageType::BeginPrimaryKeyExchange);
 	}
 
-	const bool MessageProcessor::SendBeginPrimaryKeyUpdateExchange() const noexcept
+	bool MessageProcessor::SendBeginPrimaryKeyUpdateExchange() const noexcept
 	{
 		Dbg(L"*********** SendBeginPrimaryKeyUpdateExchange ***********");
 
 		return SendBeginKeyExchange(MessageType::BeginPrimaryKeyUpdateExchange);
 	}
 
-	const bool MessageProcessor::SendBeginKeyExchange(const MessageType type) const noexcept
+	bool MessageProcessor::SendBeginKeyExchange(const MessageType type) const noexcept
 	{
 		if (m_Peer.GetKeyExchange().GeneratePrimaryAsymmetricKeys(m_Peer.GetAlgorithms(),
 																  Crypto::AsymmetricKeyOwner::Alice))
@@ -544,7 +544,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::make_pair(handled, success);
 	}
 
-	const bool MessageProcessor::GetSignature(Buffer& sig) const
+	bool MessageProcessor::GetSignature(Buffer& sig) const
 	{
 		// If we have a local private key we make a signature
 		// otherwise we send an empty signature to try and establish
@@ -563,8 +563,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	const bool MessageProcessor::MakeSignature(const UUID& uuid, const UInt64 sessionid, const BufferView& priv_key,
-											   const Algorithm::Hash ha, Buffer& sig) const
+	bool MessageProcessor::MakeSignature(const UUID& uuid, const UInt64 sessionid, const BufferView& priv_key,
+										 const Algorithm::Hash ha, Buffer& sig) const
 	{
 		auto salg = Algorithm::Asymmetric::Unknown;
 		switch (uuid.GetSignAlgorithm())
@@ -591,7 +591,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return Crypto::HashAndSign(sigdata, salg, priv_key, sig, ha);
 	}
 
-	const bool MessageProcessor::AuthenticatePeer(const Buffer& psig) const
+	bool MessageProcessor::AuthenticatePeer(const Buffer& psig) const
 	{
 		// Should have a peer UUID by now
 		assert(m_Peer.GetPeerUUID().IsValid());
@@ -619,7 +619,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool MessageProcessor::VerifySignature(const Buffer& psig) const
+	bool MessageProcessor::VerifySignature(const Buffer& psig) const
 	{
 		// Peers may send empty signatures to try
 		// unauthenticated communications
@@ -654,8 +654,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool MessageProcessor::VerifySignature(const UUID& uuid, const UInt64 sessionid, const BufferView& pub_key,
-												 const Algorithm::Hash ha, const Buffer& psig) const
+	bool MessageProcessor::VerifySignature(const UUID& uuid, const UInt64 sessionid, const BufferView& pub_key,
+										   const Algorithm::Hash ha, const Buffer& psig) const
 	{
 		auto salg = Algorithm::Asymmetric::Unknown;
 		switch (uuid.GetSignAlgorithm())

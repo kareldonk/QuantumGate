@@ -20,9 +20,9 @@ namespace QuantumGate::Implementation::Core
 		Set<std::size_t> ReportingPeerNetworkHashes;
 		SteadyTime LastUpdateSteadyTime;
 
-		[[nodiscard]] inline const bool IsTrusted() const noexcept { return Trusted; }
+		[[nodiscard]] inline bool IsTrusted() const noexcept { return Trusted; }
 
-		[[nodiscard]] inline const bool IsVerified() const noexcept
+		[[nodiscard]] inline bool IsVerified() const noexcept
 		{
 			// Verified in case data and hop verification succeeded, and peers from at least
 			// 3 different IP networks reported the address to us
@@ -36,7 +36,7 @@ namespace QuantumGate::Implementation::Core
 		{
 			BinaryIPAddress IPAddress;
 
-			[[nodiscard]] const bool Verify(const bool has_locally_bound_pubip) noexcept;
+			[[nodiscard]] bool Verify(const bool has_locally_bound_pubip) noexcept;
 
 			static constexpr std::chrono::seconds TimeoutPeriod{ 2 };
 			static constexpr UInt8 MaxHops{ 2 };
@@ -68,15 +68,15 @@ namespace QuantumGate::Implementation::Core
 		public:
 			DataVerificationDetails(const BinaryIPAddress ip) noexcept;
 
-			[[nodiscard]] const bool Verify(const bool nat_traversal) noexcept;
+			[[nodiscard]] bool Verify(const bool nat_traversal) noexcept;
 
 			[[nodiscard]] inline const BinaryIPAddress& GetIPAddress() const noexcept { return m_IPAddress; }
-			[[nodiscard]] inline const bool IsVerifying() const noexcept { return (m_Status == Status::Verifying); }
-			[[nodiscard]] inline const bool IsVerified() const noexcept { return (m_Status == Status::Succeeded); }
+			[[nodiscard]] inline bool IsVerifying() const noexcept { return (m_Status == Status::Verifying); }
+			[[nodiscard]] inline bool IsVerified() const noexcept { return (m_Status == Status::Succeeded); }
 
 		private:
-			[[nodiscard]] const bool InitializeSocket(const bool nat_traversal) noexcept;
-			[[nodiscard]] const bool SendVerification() noexcept;
+			[[nodiscard]] bool InitializeSocket(const bool nat_traversal) noexcept;
+			[[nodiscard]] bool SendVerification() noexcept;
 			Result<bool> ReceiveVerification() noexcept;
 
 		private:
@@ -123,14 +123,14 @@ namespace QuantumGate::Implementation::Core
 		PublicIPEndpoints& operator=(const PublicIPEndpoints&) = delete;
 		PublicIPEndpoints& operator=(PublicIPEndpoints&&) = default;
 
-		[[nodiscard]] const bool Initialize() noexcept;
+		[[nodiscard]] bool Initialize() noexcept;
 		void Deinitialize() noexcept;
-		[[nodiscard]] inline const bool IsInitialized() const noexcept { return m_Initialized; }
+		[[nodiscard]] inline bool IsInitialized() const noexcept { return m_Initialized; }
 
 		Result<std::pair<bool, bool>> AddIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,
 													const PeerConnectionType rep_con_type,
 													const bool trusted, const bool verified = false) noexcept;
-		const bool RemoveLeastRelevantIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept;
+		bool RemoveLeastRelevantIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept;
 
 		inline IPEndpointsMap_ThS& GetIPEndpoints() noexcept { return m_IPEndpoints; }
 
@@ -138,17 +138,17 @@ namespace QuantumGate::Implementation::Core
 		Result<> AddIPAddresses(Vector<IPAddressDetails>& ips) const noexcept;
 
 		void SetLocallyBoundPublicIPAddress(const bool flag) noexcept { m_HasLocallyBoundPublicIPAddress = flag; }
-		const bool HasLocallyBoundPublicIPAddress() const noexcept { return m_HasLocallyBoundPublicIPAddress; }
+		bool HasLocallyBoundPublicIPAddress() const noexcept { return m_HasLocallyBoundPublicIPAddress; }
 
 	private:
 		void PreInitialize() noexcept;
 		void ResetState() noexcept;
 
-		[[nodiscard]] const bool AddIPAddressDataVerification(const BinaryIPAddress& ip) noexcept;
-		[[nodiscard]] const bool AddIPAddressHopVerification(const BinaryIPAddress& ip) noexcept;
+		[[nodiscard]] bool AddIPAddressDataVerification(const BinaryIPAddress& ip) noexcept;
+		[[nodiscard]] bool AddIPAddressHopVerification(const BinaryIPAddress& ip) noexcept;
 
-		[[nodiscard]] const bool IsNewReportingNetwork(const BinaryIPAddress& network) const noexcept;
-		[[nodiscard]] const bool AddReportingNetwork(const BinaryIPAddress& network, const bool trusted) noexcept;
+		[[nodiscard]] bool IsNewReportingNetwork(const BinaryIPAddress& network) const noexcept;
+		[[nodiscard]] bool AddReportingNetwork(const BinaryIPAddress& network, const bool trusted) noexcept;
 		void RemoveReportingNetwork(const BinaryIPAddress& network) noexcept;
 
 		std::pair<PublicIPEndpointDetails*, bool>

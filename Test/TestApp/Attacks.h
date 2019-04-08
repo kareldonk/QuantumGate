@@ -32,15 +32,15 @@ private:
 	Attacks() = default;
 
 public:
-	static const bool StartConnectGarbageAttack(const CString& ip, const UInt16 port);
+	static bool StartConnectGarbageAttack(const CString& ip, const UInt16 port);
 	static void StopConnectGarbageAttack();
 	static bool IsConnectGarbageAttackRunning() noexcept;
 
-	static const bool StartConnectAttack(const CString& ip, const UInt16 port);
+	static bool StartConnectAttack(const CString& ip, const UInt16 port);
 	static void StopConnectAttack();
 	static bool IsConnectAttackRunning() noexcept;
 
-	static const bool StartConnectWaitAttack(const CString& ip, const UInt16 port);
+	static bool StartConnectWaitAttack(const CString& ip, const UInt16 port);
 	static void StopConnectWaitAttack();
 	static bool IsConnectWaitAttackRunning() noexcept;
 

@@ -12,7 +12,7 @@ using namespace std::literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace QuantumGate::Implementation::Core;
 
-const bool CheckIPs(const std::vector<BinaryIPAddress>& ips, const std::vector<BinaryIPAddress>& exp_ips)
+bool CheckIPs(const std::vector<BinaryIPAddress>& ips, const std::vector<BinaryIPAddress>& exp_ips)
 {
 	for (const auto& ip : ips)
 	{
@@ -33,7 +33,7 @@ const bool CheckIPs(const std::vector<BinaryIPAddress>& ips, const std::vector<B
 	return true;
 }
 
-const bool CheckIPs(const PublicIPEndpoints& pubendp, const std::vector<BinaryIPAddress>& exp_ips)
+bool CheckIPs(const PublicIPEndpoints& pubendp, const std::vector<BinaryIPAddress>& exp_ips)
 {
 	Vector<BinaryIPAddress> pub_ips;
 	const auto result = pubendp.AddIPAddresses(pub_ips, false);
@@ -42,7 +42,7 @@ const bool CheckIPs(const PublicIPEndpoints& pubendp, const std::vector<BinaryIP
 	return CheckIPs(pub_ips, exp_ips);
 }
 
-const bool RemoveIP(std::vector<BinaryIPAddress>& list, const BinaryIPAddress& ip)
+bool RemoveIP(std::vector<BinaryIPAddress>& list, const BinaryIPAddress& ip)
 {
 	const auto it = std::find(list.begin(), list.end(), ip);
 	if (it != list.end())

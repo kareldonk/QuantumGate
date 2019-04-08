@@ -38,7 +38,7 @@ namespace StressExtender
 		LogWarn(L"Destructor called for QGStress Extender");
 	}
 
-	const bool Extender::OnStartup()
+	bool Extender::OnStartup()
 	{
 		LogDbg(L"Extender '" + GetName() + L"' starting...");
 
@@ -161,7 +161,7 @@ namespace StressExtender
 		return std::make_pair(handled, success);
 	}
 
-	const bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg) const
+	bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg) const
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::MessageString);
 
@@ -178,7 +178,7 @@ namespace StressExtender
 		return true;
 	}
 
-	const bool Extender::SendBenchmarkStart(const PeerLUID pluid)
+	bool Extender::SendBenchmarkStart(const PeerLUID pluid)
 	{
 		if (m_IsLocalBenchmarking)
 		{
@@ -205,7 +205,7 @@ namespace StressExtender
 		return false;
 	}
 
-	const bool Extender::SendBenchmarkEnd(const PeerLUID pluid)
+	bool Extender::SendBenchmarkEnd(const PeerLUID pluid)
 	{
 		if (!m_IsLocalBenchmarking)
 		{
@@ -233,7 +233,7 @@ namespace StressExtender
 		return false;
 	}
 
-	const bool Extender::BenchmarkSendMessage(const PeerLUID pluid)
+	bool Extender::BenchmarkSendMessage(const PeerLUID pluid)
 	{
 		LogSys(L"%s starting messaging benchmark", GetName().c_str());
 

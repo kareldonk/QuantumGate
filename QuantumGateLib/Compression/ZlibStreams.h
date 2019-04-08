@@ -105,7 +105,7 @@ namespace QuantumGate::Implementation::Compression
 		}
 
 	public:
-		[[nodiscard]] static const bool Compress(Byte* outbuffer, Size& outlen, const BufferView& inbuffer) noexcept
+		[[nodiscard]] static bool Compress(Byte* outbuffer, Size& outlen, const BufferView& inbuffer) noexcept
 		{
 			assert(outbuffer != nullptr);
 			assert(outlen > inbuffer.GetSize());
@@ -160,7 +160,7 @@ namespace QuantumGate::Implementation::Compression
 			return false;
 		}
 
-		[[nodiscard]] static const bool Decompress(Byte* outbuffer, Size& outlen, const BufferView& inbuffer) noexcept
+		[[nodiscard]] static bool Decompress(Byte* outbuffer, Size& outlen, const BufferView& inbuffer) noexcept
 		{
 			DbgInvoke([&]()
 			{

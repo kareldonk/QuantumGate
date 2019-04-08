@@ -13,7 +13,7 @@
 
 namespace QuantumGate::Implementation::Network
 {
-	const bool Ping::Execute(const bool use_os_api) noexcept
+	bool Ping::Execute(const bool use_os_api) noexcept
 	{
 		Reset();
 
@@ -35,7 +35,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Ping::ExecuteOS() noexcept
+	bool Ping::ExecuteOS() noexcept
 	{
 		String error;
 
@@ -194,7 +194,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Ping::ExecuteRAW() noexcept
+	bool Ping::ExecuteRAW() noexcept
 	{
 		// Currently only supports IPv4. On Windows this does not fully work for
 		// because the OS does not notify the socket of Time Exceeded ICMP
@@ -406,9 +406,9 @@ namespace QuantumGate::Implementation::Network
 		return std::nullopt;
 	}
 
-	const bool Ping::VerifyICMPEchoMessage(BufferView buffer, const UInt16 expected_id,
-										   const UInt16 expected_sequence_number,
-										   const BufferView expected_data) const noexcept
+	bool Ping::VerifyICMPEchoMessage(BufferView buffer, const UInt16 expected_id,
+									 const UInt16 expected_sequence_number,
+									 const BufferView expected_data) const noexcept
 	{
 		if (buffer.GetSize() >= sizeof(ICMP::EchoMessage))
 		{
@@ -435,7 +435,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Ping::VerifyICMPMessageChecksum(BufferView buffer) const noexcept
+	bool Ping::VerifyICMPMessageChecksum(BufferView buffer) const noexcept
 	{
 		try
 		{

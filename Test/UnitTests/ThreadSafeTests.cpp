@@ -35,7 +35,7 @@ struct TestType
 		return *this;
 	}
 
-	const bool operator==(const TestType& other) const noexcept
+	bool operator==(const TestType& other) const noexcept
 	{
 		return (Value == other.Value);
 	}
@@ -73,7 +73,7 @@ struct TestTypeMA
 		return *this;
 	}
 
-	const bool operator==(const TestTypeMA& other) const noexcept
+	bool operator==(const TestTypeMA& other) const noexcept
 	{
 		return (Value1 == other.Value1 && Value2 == other.Value2);
 	}

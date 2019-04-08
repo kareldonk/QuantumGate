@@ -41,17 +41,17 @@ private:
 	Stress() = default;
 
 public:
-	static const bool StartExtenderStartupShutdownStress(Local& qg);
+	static bool StartExtenderStartupShutdownStress(Local& qg);
 	static void StopExtenderStartupShutdownStress();
 	static bool IsExtenderStartupShutdownStressRunning() noexcept;
 
-	static const bool StartConnectStress(Local& qg, const CString& ip, const UInt16 port, const RelayHop hops,
-										 const std::optional<PeerLUID>& rpeer, const ProtectedBuffer& gsecret);
+	static bool StartConnectStress(Local& qg, const CString& ip, const UInt16 port, const RelayHop hops,
+								   const std::optional<PeerLUID>& rpeer, const ProtectedBuffer& gsecret);
 	static void StopConnectStress();
 	static bool IsConnectStressRunning() noexcept;
 
-	static const bool StartMultiInstanceStress(const StartupParameters& startup_params,
-											   const CString& ip, const UInt16 port, const ProtectedBuffer& gsecret);
+	static bool StartMultiInstanceStress(const StartupParameters& startup_params,
+										 const CString& ip, const UInt16 port, const ProtectedBuffer& gsecret);
 	static void StopMultiInstanceStress();
 	static bool IsMultiInstanceStressRunning() noexcept;
 

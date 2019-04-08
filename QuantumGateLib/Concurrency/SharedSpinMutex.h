@@ -25,7 +25,7 @@ namespace QuantumGate::Implementation::Concurrency
 			while (m_SharedCount.load() > 0) {}
 		}
 
-		const bool try_lock() noexcept
+		bool try_lock() noexcept
 		{
 			auto val = false;
 			if (m_ExclusiveLocked.compare_exchange_strong(val, true, std::memory_order_seq_cst))
@@ -54,7 +54,7 @@ namespace QuantumGate::Implementation::Concurrency
 			++m_SharedCount;
 		};
 
-		const bool try_lock_shared() noexcept
+		bool try_lock_shared() noexcept
 		{
 			if (m_ExclusiveLocked.load()) return false;
 

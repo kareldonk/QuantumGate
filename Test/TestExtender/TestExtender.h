@@ -57,17 +57,17 @@ namespace TestExtender
 					 const Size trfbuf_size, const bool autotrf) noexcept;
 		~FileTransfer();
 
-		const bool OpenSourceFile(const String& filename);
-		const Size ReadFromFile(Byte* buffer, Size size);
-		const bool OpenDestinationFile(const String& filename);
-		const bool WriteToFile(const Byte* buffer, const Size size);
+		bool OpenSourceFile(const String& filename);
+		Size ReadFromFile(Byte* buffer, Size size);
+		bool OpenDestinationFile(const String& filename);
+		bool WriteToFile(const Byte* buffer, const Size size);
 
 		void SetStatus(const FileTransferStatus status) noexcept;
 
 		inline const FileTransferStatus GetStatus() const noexcept { return m_Status; }
 		const WChar* GetStatusString() const noexcept;
 		inline const FileTransferType GetType() const noexcept { return m_Type; }
-		inline const bool IsAuto() const noexcept { return m_Auto; }
+		inline bool IsAuto() const noexcept { return m_Auto; }
 		inline const SteadyTime GetLastActiveSteadyTime() const noexcept { return m_LastActiveSteadyTime; }
 		inline const SteadyTime GetTransferStartSteadyTime() const noexcept { return m_TransferStartSteadyTime; }
 		inline String GetFileName() const noexcept { return m_FileName; }
@@ -141,20 +141,20 @@ namespace TestExtender
 
 		inline void SetAutoFileTransferPath(const String& path) { m_AutoFileTransferPath.WithUniqueLock() = path; }
 		inline void SetUseCompression(const bool compression) noexcept { m_UseCompression = compression; }
-		inline const bool IsUsingCompression() const noexcept { return m_UseCompression; }
+		inline bool IsUsingCompression() const noexcept { return m_UseCompression; }
 
-		const bool SendMessage(const PeerLUID pluid, const std::wstring& msg) const;
+		bool SendMessage(const PeerLUID pluid, const std::wstring& msg) const;
 
-		const bool SendBenchmarkStart(const PeerLUID pluid);
-		const bool SendBenchmarkEnd(const PeerLUID pluid);
+		bool SendBenchmarkStart(const PeerLUID pluid);
+		bool SendBenchmarkEnd(const PeerLUID pluid);
 
-		const bool SendFile(const PeerLUID pluid, const String filename, const bool autotrf);
-		const bool AcceptFile(const PeerLUID pluid, const FileTransferID ftid, const String& filename);
+		bool SendFile(const PeerLUID pluid, const String filename, const bool autotrf);
+		bool AcceptFile(const PeerLUID pluid, const FileTransferID ftid, const String& filename);
 
 		const Peers_ThS* GetPeers() const noexcept;
 
 	protected:
-		const bool OnStartup();
+		bool OnStartup();
 		void OnPostStartup();
 		void OnShutdown();
 		void OnPeerEvent(PeerEvent&& event);
@@ -169,13 +169,13 @@ namespace TestExtender
 		template<typename Func>
 		bool IfNotHasFileTransfer(const PeerLUID pluid, const FileTransferID ftid, Func&& func);
 
-		const bool AcceptFile(const PeerLUID pluid, const String& filename, FileTransfer& ft);
+		bool AcceptFile(const PeerLUID pluid, const String& filename, FileTransfer& ft);
 
-		const bool SendFileTransferStart(const PeerLUID pluid, FileTransfer& ft);
-		const bool SendFileTransferCancel(const PeerLUID pluid, FileTransfer& ft);
-		const Size GetFileTransferDataSize() const noexcept;
-		const bool SendFileData(const PeerLUID pluid, FileTransfer& ft);
-		const bool SendFileDataAck(const PeerLUID pluid, FileTransfer& ft);
+		bool SendFileTransferStart(const PeerLUID pluid, FileTransfer& ft);
+		bool SendFileTransferCancel(const PeerLUID pluid, FileTransfer& ft);
+		Size GetFileTransferDataSize() const noexcept;
+		bool SendFileData(const PeerLUID pluid, FileTransfer& ft);
+		bool SendFileDataAck(const PeerLUID pluid, FileTransfer& ft);
 
 	private:
 		HWND m_Window{ nullptr };

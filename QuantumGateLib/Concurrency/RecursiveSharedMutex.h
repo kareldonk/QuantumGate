@@ -18,11 +18,11 @@ namespace QuantumGate::Implementation::Concurrency
 		RecursiveSharedMutex& operator=(RecursiveSharedMutex&&) = delete;
 
 		void lock() noexcept;
-		const bool try_lock() noexcept;
+		bool try_lock() noexcept;
 		void unlock() noexcept;
 
 		void lock_shared() noexcept;
-		const bool try_lock_shared() noexcept;
+		bool try_lock_shared() noexcept;
 		void unlock_shared() noexcept;
 
 	private:

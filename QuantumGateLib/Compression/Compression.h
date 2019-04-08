@@ -7,8 +7,8 @@
 
 namespace QuantumGate::Implementation::Compression
 {
-	[[nodiscard]] Export const bool Compress(const BufferView& inbuffer, Buffer& outbuffer,
-											 const Algorithm::Compression ca) noexcept;
-	[[nodiscard]] Export const bool Decompress(BufferView inbuffer, Buffer& outbuffer, const Algorithm::Compression ca,
-											   const std::optional<Size> maxsize = std::nullopt) noexcept;
+	[[nodiscard]] Export bool Compress(const BufferView& inbuffer, Buffer& outbuffer,
+									   const Algorithm::Compression ca) noexcept;
+	[[nodiscard]] Export bool Decompress(BufferView inbuffer, Buffer& outbuffer, const Algorithm::Compression ca,
+										 const std::optional<Size> maxsize = std::nullopt) noexcept;
 }

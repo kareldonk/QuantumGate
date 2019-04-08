@@ -61,22 +61,22 @@ namespace QuantumGate::Implementation::Network
 			return *this;
 		}
 
-		constexpr const bool operator==(const IPAddress& other) const noexcept
+		constexpr bool operator==(const IPAddress& other) const noexcept
 		{
 			return (m_BinaryAddress == other.m_BinaryAddress);
 		}
 
-		constexpr const bool operator!=(const IPAddress& other) const noexcept
+		constexpr bool operator!=(const IPAddress& other) const noexcept
 		{
 			return !(*this == other);
 		}
 
-		constexpr const bool operator==(const BinaryIPAddress& other) const noexcept
+		constexpr bool operator==(const BinaryIPAddress& other) const noexcept
 		{
 			return (m_BinaryAddress == other);
 		}
 
-		constexpr const bool operator!=(const BinaryIPAddress& other) const noexcept
+		constexpr bool operator!=(const BinaryIPAddress& other) const noexcept
 		{
 			return !(*this == other);
 		}
@@ -85,16 +85,16 @@ namespace QuantumGate::Implementation::Network
 		constexpr const BinaryIPAddress& GetBinary() const noexcept { return m_BinaryAddress; }
 		constexpr const Family GetFamily() const noexcept { return m_BinaryAddress.AddressFamily; }
 
-		[[nodiscard]] constexpr const bool IsMask() const noexcept { return BinaryIPAddress::IsMask(m_BinaryAddress); }
-		[[nodiscard]] constexpr const bool IsLocal() const noexcept { return IsLocal(m_BinaryAddress); }
-		[[nodiscard]] constexpr const bool IsMulticast() const noexcept { return IsMulticast(m_BinaryAddress); }
-		[[nodiscard]] constexpr const bool IsReserved() const noexcept { return IsReserved(m_BinaryAddress); }
-		[[nodiscard]] constexpr const bool IsPublic() const noexcept { return IsPublic(m_BinaryAddress); }
-		[[nodiscard]] constexpr const bool IsClassA() const noexcept { return IsClassA(m_BinaryAddress); }
-		[[nodiscard]] constexpr const bool IsClassB() const noexcept { return IsClassB(m_BinaryAddress); }
-		[[nodiscard]] constexpr const bool IsClassC() const noexcept { return IsClassC(m_BinaryAddress); }
-		[[nodiscard]] constexpr const bool IsClassD() const noexcept { return IsClassD(m_BinaryAddress); }
-		[[nodiscard]] constexpr const bool IsClassE() const noexcept { return IsClassE(m_BinaryAddress); }
+		[[nodiscard]] constexpr bool IsMask() const noexcept { return BinaryIPAddress::IsMask(m_BinaryAddress); }
+		[[nodiscard]] constexpr bool IsLocal() const noexcept { return IsLocal(m_BinaryAddress); }
+		[[nodiscard]] constexpr bool IsMulticast() const noexcept { return IsMulticast(m_BinaryAddress); }
+		[[nodiscard]] constexpr bool IsReserved() const noexcept { return IsReserved(m_BinaryAddress); }
+		[[nodiscard]] constexpr bool IsPublic() const noexcept { return IsPublic(m_BinaryAddress); }
+		[[nodiscard]] constexpr bool IsClassA() const noexcept { return IsClassA(m_BinaryAddress); }
+		[[nodiscard]] constexpr bool IsClassB() const noexcept { return IsClassB(m_BinaryAddress); }
+		[[nodiscard]] constexpr bool IsClassC() const noexcept { return IsClassC(m_BinaryAddress); }
+		[[nodiscard]] constexpr bool IsClassD() const noexcept { return IsClassD(m_BinaryAddress); }
+		[[nodiscard]] constexpr bool IsClassE() const noexcept { return IsClassE(m_BinaryAddress); }
 
 		friend Export std::ostream& operator<<(std::ostream& stream, const IPAddress& ipaddr);
 		friend Export std::wostream& operator<<(std::wostream& stream, const IPAddress& ipaddr);
@@ -117,17 +117,17 @@ namespace QuantumGate::Implementation::Network
 									 Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 }) };
 		}
 
-		[[nodiscard]] static const bool TryParse(const WChar* ipaddr_str, IPAddress& ipaddr) noexcept;
-		[[nodiscard]] static const bool TryParse(const String& ipaddr_str, IPAddress& ipaddr) noexcept;
-		[[nodiscard]] static const bool TryParse(const BinaryIPAddress& bin_ipaddr, IPAddress& ipaddr) noexcept;
+		[[nodiscard]] static bool TryParse(const WChar* ipaddr_str, IPAddress& ipaddr) noexcept;
+		[[nodiscard]] static bool TryParse(const String& ipaddr_str, IPAddress& ipaddr) noexcept;
+		[[nodiscard]] static bool TryParse(const BinaryIPAddress& bin_ipaddr, IPAddress& ipaddr) noexcept;
 
-		[[nodiscard]] static const bool TryParseMask(const IPAddress::Family af,
-													 const WChar* mask_str, IPAddress& ipmask) noexcept;
-		[[nodiscard]] static const bool TryParseMask(const IPAddress::Family af,
-													 const String& mask_str, IPAddress& ipmask) noexcept;
+		[[nodiscard]] static bool TryParseMask(const IPAddress::Family af,
+											   const WChar* mask_str, IPAddress& ipmask) noexcept;
+		[[nodiscard]] static bool TryParseMask(const IPAddress::Family af,
+											   const String& mask_str, IPAddress& ipmask) noexcept;
 
-		[[nodiscard]] static constexpr const bool CreateMask(const IPAddress::Family af, UInt8 cidr_lbits,
-															 IPAddress& ipmask) noexcept
+		[[nodiscard]] static constexpr bool CreateMask(const IPAddress::Family af, UInt8 cidr_lbits,
+													   IPAddress& ipmask) noexcept
 		{
 			BinaryIPAddress mask;
 			if (BinaryIPAddress::CreateMask(af, cidr_lbits, mask))
@@ -139,7 +139,7 @@ namespace QuantumGate::Implementation::Network
 			return false;
 		}
 
-		[[nodiscard]] static constexpr const bool IsLocal(const BinaryIPAddress& bin_ipaddr) noexcept
+		[[nodiscard]] static constexpr bool IsLocal(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
 			constexpr std::array<Block, 12> local =
 			{
@@ -166,7 +166,7 @@ namespace QuantumGate::Implementation::Network
 			return false;
 		}
 
-		[[nodiscard]] static constexpr const bool IsMulticast(const BinaryIPAddress& bin_ipaddr) noexcept
+		[[nodiscard]] static constexpr bool IsMulticast(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
 			constexpr std::array<Block, 2> multicast =
 			{
@@ -182,42 +182,42 @@ namespace QuantumGate::Implementation::Network
 			return false;
 		}
 
-		[[nodiscard]] static constexpr const bool IsReserved(const BinaryIPAddress& bin_ipaddr) noexcept
+		[[nodiscard]] static constexpr bool IsReserved(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
 			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 240 }), 4 }; // 240.0.0.0/4 (Future use)
 			return IsInBlock(bin_ipaddr, block);
 		}
 
-		[[nodiscard]] static constexpr const bool IsPublic(const BinaryIPAddress& bin_ipaddr) noexcept
+		[[nodiscard]] static constexpr bool IsPublic(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
 			return (!IsLocal(bin_ipaddr) && !IsMulticast(bin_ipaddr) && !IsReserved(bin_ipaddr));
 		}
 
-		[[nodiscard]] static constexpr const bool IsClassA(const BinaryIPAddress& bin_ipaddr) noexcept
+		[[nodiscard]] static constexpr bool IsClassA(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
 			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 0 }), 1 }; // 0.0.0.0/1
 			return IsInBlock(bin_ipaddr, block);
 		}
 
-		[[nodiscard]] static constexpr const bool IsClassB(const BinaryIPAddress& bin_ipaddr) noexcept
+		[[nodiscard]] static constexpr bool IsClassB(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
 			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 128 }), 2 }; // 128.0.0.0/2
 			return IsInBlock(bin_ipaddr, block);
 		}
 
-		[[nodiscard]] static constexpr const bool IsClassC(const BinaryIPAddress& bin_ipaddr) noexcept
+		[[nodiscard]] static constexpr bool IsClassC(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
 			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 192 }), 3 }; // 192.0.0.0/3
 			return IsInBlock(bin_ipaddr, block);
 		}
 
-		[[nodiscard]] static constexpr const bool IsClassD(const BinaryIPAddress& bin_ipaddr) noexcept
+		[[nodiscard]] static constexpr bool IsClassD(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
 			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 224 }), 4 }; // 224.0.0.0/4
 			return IsInBlock(bin_ipaddr, block);
 		}
 
-		[[nodiscard]] static constexpr const bool IsClassE(const BinaryIPAddress& bin_ipaddr) noexcept
+		[[nodiscard]] static constexpr bool IsClassE(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
 			constexpr auto block = Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 240 }), 4 }; // 240.0.0.0/4
 			return IsInBlock(bin_ipaddr, block);
@@ -244,7 +244,7 @@ namespace QuantumGate::Implementation::Network
 
 		constexpr void Clear() noexcept { m_BinaryAddress.Clear(); }
 
-		[[nodiscard]] static constexpr const bool IsInBlock(const BinaryIPAddress& bin_ipaddr, const Block& block) noexcept
+		[[nodiscard]] static constexpr bool IsInBlock(const BinaryIPAddress& bin_ipaddr, const Block& block) noexcept
 		{
 			const auto[success, same_network] = BinaryIPAddress::AreInSameNetwork(bin_ipaddr, block.Address,
 																				  block.Mask);

@@ -119,12 +119,12 @@ namespace QuantumGate::Implementation
 			return Succeeded();
 		}
 
-		inline const bool operator==(const std::error_code& code) const noexcept
+		inline bool operator==(const std::error_code& code) const noexcept
 		{
 			return (m_ErrorCode == code);
 		}
 
-		inline const bool operator!=(const std::error_code& code) const noexcept
+		inline bool operator!=(const std::error_code& code) const noexcept
 		{
 			return (m_ErrorCode != code);
 		}
@@ -180,7 +180,7 @@ namespace QuantumGate::Implementation
 		inline const T& GetValue() const noexcept { assert(m_Value); return m_Value.value(); }
 
 		template<typename U = T, typename = std::enable_if_t<HasValueType<U>>>
-		[[nodiscard]] inline const bool HasValue() const noexcept { return m_Value.has_value(); }
+		[[nodiscard]] inline bool HasValue() const noexcept { return m_Value.has_value(); }
 
 		template<typename U = T, typename = std::enable_if_t<HasValueType<U>>>
 		inline T* operator->() noexcept { assert(m_Value); return &m_Value.value(); }
@@ -200,7 +200,7 @@ namespace QuantumGate::Implementation
 			m_Value.reset();
 		}
 
-		[[nodiscard]] inline const bool Succeeded() const noexcept
+		[[nodiscard]] inline bool Succeeded() const noexcept
 		{
 			if constexpr (!HasValueType<T>)
 			{
@@ -232,7 +232,7 @@ namespace QuantumGate::Implementation
 			}
 		}
 
-		[[nodiscard]] inline const bool Failed() const noexcept { return !Succeeded(); }
+		[[nodiscard]] inline bool Failed() const noexcept { return !Succeeded(); }
 
 		template<typename F>
 		std::enable_if_t<!IsDetectedV<NoArgumentFunction, F>, void>
