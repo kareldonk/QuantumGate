@@ -24,15 +24,18 @@ namespace QuantumGate::AVExtender
 		VideoWindow& operator=(const VideoWindow&) = delete;
 		VideoWindow& operator=(VideoWindow&&) = default;
 
-		[[nodiscard]] bool Create(const DWORD dwExStyle, const DWORD dwStyle,
+		[[nodiscard]] bool Create(const WChar* title, const DWORD dwExStyle, const DWORD dwStyle,
 								  const int x, const int y, const int width, const int height,
 								  const HWND parent) noexcept;
 		void Close() noexcept;
+		[[nodiscard]] inline bool IsOpen() const noexcept { return m_WndHandle != nullptr; }
 
 		inline void SetRenderSize(const RenderSize render_size) noexcept { m_RenderSize = render_size; }
 		[[nodiscard]] inline RenderSize GetRenderSize() const noexcept { return m_RenderSize; }
 
 		void Render(const Byte* pixels, const UInt width, const UInt height) noexcept;
+
+		void ProcessMessages() noexcept;
 		
 	private:
 		static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept;

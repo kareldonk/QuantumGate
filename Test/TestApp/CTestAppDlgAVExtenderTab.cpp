@@ -29,6 +29,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
 	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::PeerEvent), &CTestAppDlgAVExtenderTab::OnPeerEvent)
 	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::ExtenderInit), &CTestAppDlgAVExtenderTab::OnExtenderInit)
 	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::ExtenderDeinit), &CTestAppDlgAVExtenderTab::OnExtenderDeInit)
+	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::AcceptIncomingCall), &CTestAppDlgAVExtenderTab::OnAcceptIncomingCall)
 	ON_BN_CLICKED(IDC_INITIALIZE_AV, &CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv)
 	ON_WM_DESTROY()
 	ON_WM_TIMER()
@@ -58,7 +59,8 @@ BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 	GetDlgItem(IDC_VIDEO_PREVIEW)->GetWindowRect(&rect);
 	ScreenToClient(&rect);
 
-	if (!m_VideoWindow.Create(NULL, WS_CHILD, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, GetSafeHwnd()))
+	if (!m_VideoWindow.Create(L"Preview", NULL, WS_CHILD, rect.left, rect.top,
+							  rect.right - rect.left, rect.bottom - rect.top, GetSafeHwnd()))
 	//if (!m_VideoWindow.Create(NULL, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
 	//						  640, 480, GetSafeHwnd()))
 	{
@@ -171,6 +173,7 @@ LRESULT CTestAppDlgAVExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 		auto lbox = reinterpret_cast<CListBox*>(GetDlgItem(IDC_PEERLIST));
 		lbox->InsertString(-1, Util::FormatString(L"%llu", event->PeerLUID).c_str());
 
+		UpdateSelectedPeer();
 		UpdateControls();
 		UpdatePeerActivity();
 	}
@@ -182,6 +185,7 @@ LRESULT CTestAppDlgAVExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 		const auto pos = lbox->FindString(-1, pluid);
 		if (pos != LB_ERR) lbox->DeleteString(pos);
 
+		UpdateSelectedPeer();
 		UpdateControls();
 		UpdatePeerActivity();
 	}
@@ -215,6 +219,34 @@ LRESULT CTestAppDlgAVExtenderTab::OnExtenderDeInit(WPARAM w, LPARAM l)
 
 	UpdateControls();
 	UpdatePeerActivity();
+
+	return 0;
+}
+
+LRESULT CTestAppDlgAVExtenderTab::OnAcceptIncomingCall(WPARAM w, LPARAM l)
+{
+	auto ca = reinterpret_cast<AVExtender::CallAccept*>(w);
+	const auto pluid = ca->PeerLUID;
+
+	// Delete allocated object from extender
+	delete ca;
+
+	const auto retval = AfxMessageBox(Util::FormatString(L"Do you want to accept an incoming call from peer %llu?", pluid).c_str(),
+									  MB_ICONQUESTION | MB_YESNO);
+	if (retval == IDYES)
+	{
+		if (!m_AVExtender->AcceptCall(pluid))
+		{
+			AfxMessageBox(L"Failed to accept call.", MB_ICONERROR);
+		}
+	}
+	else
+	{
+		if (!m_AVExtender->DeclineCall(pluid))
+		{
+			AfxMessageBox(L"Failed to decline call.", MB_ICONERROR);
+		}
+	}
 
 	return 0;
 }
@@ -286,10 +318,12 @@ void CTestAppDlgAVExtenderTab::UpdateCallInformation(const QuantumGate::AVExtend
 	if (call != nullptr)
 	{
 		SetValue(IDC_CALL_STATUS, call->GetStatusString());
-		SetValue(IDC_CALL_DURATION, Util::FormatString(L"%llums", call->GetDuration().count()));
+		SetValue(IDC_CALL_DURATION,
+				 Util::FormatString(L"%llu seconds",
+									std::chrono::duration_cast<std::chrono::seconds>(call->GetDuration()).count()));
 
-		GetDlgItem(IDC_CALL_BUTTON)->EnableWindow(m_QuantumGate.IsRunning() && !call->IsInCall());
-		GetDlgItem(IDC_HANGUP_BUTTON)->EnableWindow(m_QuantumGate.IsRunning() && call->IsInCall());
+		GetDlgItem(IDC_CALL_BUTTON)->EnableWindow(m_QuantumGate.IsRunning() && call->IsDisconnected());
+		GetDlgItem(IDC_HANGUP_BUTTON)->EnableWindow(m_QuantumGate.IsRunning() && !call->IsDisconnected());
 		
 		send_video_check->EnableWindow(m_QuantumGate.IsRunning());
 		if (call->GetSendVideo())
@@ -341,7 +375,7 @@ void CTestAppDlgAVExtenderTab::UpdatePeerActivity() noexcept
 	}
 }
 
-void CTestAppDlgAVExtenderTab::OnLbnSelChangePeerList()
+void CTestAppDlgAVExtenderTab::UpdateSelectedPeer() noexcept
 {
 	m_SelectedPeerLUID.reset();
 
@@ -357,7 +391,11 @@ void CTestAppDlgAVExtenderTab::OnLbnSelChangePeerList()
 			m_SelectedPeerLUID = wcstoull(pluidtxt, &end, 10);
 		}
 	}
+}
 
+void CTestAppDlgAVExtenderTab::OnLbnSelChangePeerList()
+{
+	UpdateSelectedPeer();
 	UpdateControls();
 	UpdatePeerActivity();
 }
@@ -405,5 +443,11 @@ void CTestAppDlgAVExtenderTab::OnBnClickedCallButton()
 
 void CTestAppDlgAVExtenderTab::OnBnClickedHangupButton()
 {
-	// TODO: Add your control notification handler code here
+	if (m_AVExtender != nullptr && m_SelectedPeerLUID.has_value())
+	{
+		if (!m_AVExtender->HangupCall(*m_SelectedPeerLUID))
+		{
+			AfxMessageBox(L"Failed to hangup call.", MB_ICONERROR);
+		}
+	}
 }

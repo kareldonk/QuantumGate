@@ -35,11 +35,14 @@ protected:
 	LRESULT OnPeerEvent(WPARAM w, LPARAM l);
 	LRESULT OnExtenderInit(WPARAM w, LPARAM l);
 	LRESULT OnExtenderDeInit(WPARAM w, LPARAM l);
+	LRESULT OnAcceptIncomingCall(WPARAM w, LPARAM l);
 
 	void LoadAVExtender() noexcept;
 	void UnloadAVExtender() noexcept;
+	void UpdateVideoDeviceCombo() noexcept;
 	void UpdateCallInformation(const QuantumGate::AVExtender::Call* call) noexcept;
 	void UpdatePeerActivity() noexcept;
+	void UpdateSelectedPeer() noexcept;
 
 	virtual BOOL OnInitDialog();
 
@@ -51,9 +54,10 @@ protected:
 	afx_msg void OnUpdateAVExtenderLoad(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateAVExtenderUseCompression(CCmdUI* pCmdUI);
 	afx_msg void OnLbnSelChangePeerList();
-
-private:
-	void UpdateVideoDeviceCombo() noexcept;
+	afx_msg void OnBnClickedSendVideoCheck();
+	afx_msg void OnBnClickedSendAudioCheck();
+	afx_msg void OnBnClickedCallButton();
+	afx_msg void OnBnClickedHangupButton();
 
 private:
 	QuantumGate::Local& m_QuantumGate;
@@ -67,9 +71,4 @@ private:
 	QuantumGate::AVExtender::VideoSourceReader* m_VideoSourceReader{ nullptr };
 	QuantumGate::AVExtender::VideoWindow m_VideoWindow;
 	QuantumGate::AVExtender::VideoCaptureDeviceVector m_VideoCaptureDevices;
-public:
-	afx_msg void OnBnClickedSendVideoCheck();
-	afx_msg void OnBnClickedSendAudioCheck();
-	afx_msg void OnBnClickedCallButton();
-	afx_msg void OnBnClickedHangupButton();
 };

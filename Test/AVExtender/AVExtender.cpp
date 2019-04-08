@@ -45,7 +45,10 @@ namespace QuantumGate::AVExtender
 				assert(prev_status == CallStatus::WaitingForAccept || prev_status == CallStatus::NeedAccept ||
 					   prev_status == CallStatus::Connected);
 				if (prev_status == CallStatus::WaitingForAccept || prev_status == CallStatus::NeedAccept ||
-					prev_status == CallStatus::Connected) m_Status = status;
+					prev_status == CallStatus::Connected)
+				{
+					m_Status = status;
+				}
 				else success = false;
 				break;
 			default:
@@ -66,14 +69,14 @@ namespace QuantumGate::AVExtender
 	{
 		switch (GetStatus())
 		{
+			case CallStatus::Disconnected:
+				return L"Disconnected";
 			case CallStatus::NeedAccept:
 				return L"Need accept";
 			case CallStatus::WaitingForAccept:
 				return L"Waiting for accept";
 			case CallStatus::Connected:
 				return L"Connected";
-			case CallStatus::Disconnected:
-				return L"Disconnected";
 			default:
 				break;
 		}
@@ -83,14 +86,9 @@ namespace QuantumGate::AVExtender
 
 	bool Call::BeginCall() noexcept
 	{
-		if (!IsInCall())
+		if (SetStatus(CallStatus::WaitingForAccept))
 		{
-			if (SetStatus(CallStatus::WaitingForAccept))
-			{
-				m_ID = Util::GetPseudoRandomNumber();
-				SetType(CallType::Outgoing);
-			}
-
+			SetType(CallType::Outgoing);
 			return true;
 		}
 
@@ -99,14 +97,53 @@ namespace QuantumGate::AVExtender
 
 	bool Call::CancelCall() noexcept
 	{
-		if (IsInCall())
+		if (SetStatus(CallStatus::Disconnected))
 		{
-			if (SetStatus(CallStatus::Disconnected))
-			{
-				m_ID = 0;
-				SetType(CallType::None);
-				return true;
-			}
+			SetType(CallType::None);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Call::AcceptCall() noexcept
+	{
+		if (SetStatus(CallStatus::Connected))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Call::StopCall() noexcept
+	{
+		if (SetStatus(CallStatus::Disconnected))
+		{
+			SetType(CallType::None);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Call::ProcessIncomingCall() noexcept
+	{
+		if (SetStatus(CallStatus::NeedAccept))
+		{
+			SetType(CallType::Incoming);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Call::ProcessCallFailure() noexcept
+	{
+		if (SetStatus(CallStatus::Disconnected))
+		{
+			SetType(CallType::None);
+			return true;
 		}
 
 		return false;
@@ -114,12 +151,58 @@ namespace QuantumGate::AVExtender
 
 	bool Call::IsInCall() const noexcept
 	{
-		if (GetType() != CallType::None)
+		if (GetType() != CallType::None && GetStatus() == CallStatus::Connected)
 		{
 			return true;
 		}
 
 		return false;
+	}
+
+	bool Call::IsCalling() const noexcept
+	{
+		if (GetType() != CallType::None &&
+			(GetStatus() == CallStatus::NeedAccept || GetStatus() == CallStatus::WaitingForAccept))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Call::IsDisconnected() const noexcept
+	{
+		if (GetType() == CallType::None && GetStatus() == CallStatus::Disconnected)
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Call::IsWaitExpired() const noexcept
+	{
+		if (Util::GetCurrentSteadyTime() - GetLastActiveSteadyTime() > Call::MaxWaitTimeForAccept)
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	void Call::OpenVideoWindow() noexcept
+	{
+		if (!m_VideoWindow.Create(GetType() == CallType::Incoming ? L"Incoming" : L"Outgoing",
+								  NULL, WS_OVERLAPPED | WS_THICKFRAME,
+								  CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, NULL))
+		{
+			LogErr(L"Failed to create call video window");
+		}
+	}
+
+	void Call::CloseVideoWindow() noexcept
+	{
+		m_VideoWindow.Close();
 	}
 
 	std::chrono::milliseconds Call::GetDuration() const noexcept
@@ -245,6 +328,122 @@ namespace QuantumGate::AVExtender
 		auto msgdata = event.GetMessageData();
 		if (msgdata != nullptr)
 		{
+			UInt16 mtype = 0;
+			BufferReader rdr(*msgdata, true);
+
+			// Get message type
+			if (rdr.Read(mtype))
+			{
+				const auto type = static_cast<MessageType>(mtype);
+				switch (type)
+				{
+					case MessageType::CallRequest:
+					{
+						Dbg(L"Received CallRequest message from %llu", event.GetPeerLUID());
+
+						handled = true;
+
+						IfGetCall(event.GetPeerLUID(), [&](auto& call)
+						{
+							if (call.ProcessIncomingCall())
+							{
+								success = true;
+
+								if (m_Window != nullptr)
+								{
+									// Must be deallocated in message handler
+									CallAccept* ca = new CallAccept(event.GetPeerLUID());
+
+									if (!PostMessage(m_Window, static_cast<UINT>(WindowsMessage::AcceptIncomingCall),
+													 reinterpret_cast<WPARAM>(ca), 0))
+									{
+										delete ca;
+									}
+								}
+							}
+							else
+							{
+								DiscardReturnValue(SendGeneralFailure(event.GetPeerLUID()));
+							}
+						});
+
+						if (!success)
+						{
+							LogErr(L"Couldn't process incoming call from peer %llu", event.GetPeerLUID());
+						}
+						break;
+					}
+					case MessageType::CallAccept:
+					{
+						Dbg(L"Received CallAccept message from %llu", event.GetPeerLUID());
+
+						handled = true;
+
+						IfGetCall(event.GetPeerLUID(), [&](auto& call)
+						{
+							if (call.AcceptCall())
+							{
+								success = true;
+							}
+							else
+							{
+								DiscardReturnValue(SendGeneralFailure(event.GetPeerLUID()));
+							}
+						});
+
+						if (!success)
+						{
+							LogErr(L"Couldn't accept outgoing call from peer %llu", event.GetPeerLUID());
+						}
+						break;
+					}
+					case MessageType::CallHangup:
+					{
+						Dbg(L"Received CallHangup message from %llu", event.GetPeerLUID());
+
+						handled = true;
+
+						IfGetCall(event.GetPeerLUID(), [&](auto& call)
+						{
+							if (call.StopCall())
+							{
+								success = true;
+							}
+						});
+
+						if (!success)
+						{
+							LogErr(L"Couldn't hangup call from peer %llu", event.GetPeerLUID());
+						}
+						break;
+					}
+					case MessageType::GeneralFailure:
+					{
+						Dbg(L"Received GeneralFailure message from %llu", event.GetPeerLUID());
+
+						handled = true;
+
+						IfGetCall(event.GetPeerLUID(), [&](auto& call)
+						{
+							if (call.ProcessCallFailure())
+							{
+								success = true;
+							}
+						});
+
+						if (!success)
+						{
+							LogErr(L"Couldn't process call failure from peer %llu", event.GetPeerLUID());
+						}
+						break;
+					}
+					default:
+					{
+						LogInfo(L"Received unknown msgtype from %llu: %u", event.GetPeerLUID(), type);
+						break;
+					}
+				}
+			}
 		}
 
 		return std::make_pair(handled, success);
@@ -263,11 +462,42 @@ namespace QuantumGate::AVExtender
 			{
 				for (auto it = peers.begin(); it != peers.end() && !extender->m_ShutdownEvent.IsSet(); ++it)
 				{
+					auto call = it->second->Call.WithUniqueLock();
+
+					// If we've been waiting too long for a call to be
+					// accepted cancel it
+					if (call->IsCalling())
+					{
+						if (call->IsWaitExpired())
+						{
+							LogErr(L"Cancelling expired call %s peer %llu",
+								(call->GetType() == CallType::Incoming) ? L"from" : L"to",
+								   it->second->ID);
+
+							DiscardReturnValue(call->CancelCall());
+						}
+					}
+					else if (call->IsInCall())
+					{
+						if (!call->HasVideoWindow())
+						{
+							call->OpenVideoWindow();
+						}
+						
+						call->UpdateVideoWindow();
+					}
+					else if (call->IsDisconnected())
+					{
+						if (call->HasVideoWindow())
+						{
+							call->CloseVideoWindow();
+						}
+					}
 				}
 			});
 
 			// Sleep for a while or until we have to shut down
-			extender->m_ShutdownEvent.Wait(10ms);
+			extender->m_ShutdownEvent.Wait(1ms);
 		}
 
 		LogDbg(L"%s worker thread %u exiting", extender->GetName().c_str(), std::this_thread::get_id());
@@ -277,14 +507,14 @@ namespace QuantumGate::AVExtender
 	{
 		auto success = false;
 
-		IfNotHasCall(pluid, [&](Call& call)
+		IfGetCall(pluid, [&](auto& call)
 		{
 			if (call.BeginCall())
 			{
 				// Cancel call if we leave scope without success
 				auto sg = MakeScopeGuard([&]() noexcept { DiscardReturnValue(call.CancelCall()); });
 
-				if (SendCallRequest(pluid, call))
+				if (SendCallRequest(pluid))
 				{
 					SLogInfo(SLogFmt(FGBrightCyan) << L"Calling peer " << pluid << SLogFmt(Default));
 
@@ -297,68 +527,151 @@ namespace QuantumGate::AVExtender
 		return success;
 	}
 
-	template<typename Func>
-	bool Extender::IfHasCall(const PeerLUID pluid, const CallID id, Func&& func)
+	bool Extender::AcceptCall(const PeerLUID pluid) noexcept
 	{
 		auto success = false;
 
+		IfGetCall(pluid, [&](auto& call)
+		{
+			if (call.AcceptCall())
+			{
+				// Cancel call if we leave scope without success
+				auto sg = MakeScopeGuard([&]() noexcept { DiscardReturnValue(call.CancelCall()); });
+
+				if (SendCallAccept(pluid))
+				{
+					SLogInfo(SLogFmt(FGBrightCyan) << L"Accepted call from peer " << pluid << SLogFmt(Default));
+
+					sg.Deactivate();
+					success = true;
+				}
+			}
+		});
+
+		return success;
+	}
+
+	bool Extender::DeclineCall(const PeerLUID pluid) noexcept
+	{
+		auto success = false;
+
+		IfGetCall(pluid, [&](auto& call)
+		{
+			if (call.CancelCall())
+			{
+				SLogInfo(SLogFmt(FGBrightCyan) << L"Declined call from peer " << pluid << SLogFmt(Default));
+
+				success = true;
+			}
+		});
+
+		return success;
+	}
+
+	bool Extender::HangupCall(const PeerLUID pluid) noexcept
+	{
+		auto success = false;
+
+		IfGetCall(pluid, [&](auto& call)
+		{
+			if (call.IsInCall())
+			{
+				if (call.StopCall())
+				{
+					if (SendCallHangup(pluid))
+					{
+						SLogInfo(SLogFmt(FGBrightCyan) << L"Hung up call to peer " << pluid << SLogFmt(Default));
+
+						success = true;
+					}
+				}
+			}
+			else if (call.IsCalling())
+			{
+				if (call.CancelCall())
+				{
+					SLogInfo(SLogFmt(FGBrightCyan) << L"Cancelled call to peer " << pluid << SLogFmt(Default));
+
+					success = true;
+				}
+			}
+		});
+
+		return success;
+	}
+
+	template<typename Func>
+	void Extender::IfGetCall(const PeerLUID pluid, Func&& func) noexcept(noexcept(func(std::declval<Call&>())))
+	{
 		m_Peers.WithSharedLock([&](auto& peers)
 		{
 			const auto it = peers.find(pluid);
 			if (it != peers.end())
 			{
 				auto call = it->second->Call.WithUniqueLock();
-				if (call->GetID() == id)
-				{
-					func(*call);
-					success = true;
-				}
-				else LogErr(L"Call not found");
+				func(*call);
 			}
+			else LogErr(L"Peer not found");
 		});
-
-		return success;
 	}
 
-	template<typename Func>
-	bool Extender::IfNotHasCall(const PeerLUID pluid, Func&& func)
+	bool Extender::SendSimpleMessage(const PeerLUID pluid, const MessageType type)
 	{
-		auto success = false;
-
-		m_Peers.WithSharedLock([&](auto& peers)
-		{
-			const auto it = peers.find(pluid);
-			if (it != peers.end())
-			{
-				it->second->Call.WithUniqueLock([&](auto& call)
-				{
-					if (!call.IsInCall())
-					{
-						func(call);
-						success = true;
-					}
-					else LogErr(L"Call already active");
-				});
-			}
-		});
-
-		return success;
-	}
-
-	bool Extender::SendCallRequest(const PeerLUID pluid, Call& call)
-	{
-		const UInt16 msgtype = static_cast<const UInt16>(MessageType::CallRequest);
+		const UInt16 msgtype = static_cast<const UInt16>(type);
 
 		BufferWriter writer(true);
-		if (writer.WriteWithPreallocation(msgtype, call.GetID()))
+		if (writer.WriteWithPreallocation(msgtype))
 		{
 			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
 			{
 				return true;
 			}
-			else LogErr(L"Could not send CallRequest message to peer");
 		}
-		else LogErr(L"Could not prepare CallRequest message for peer");
+		else LogErr(L"Failed to prepare message for peer %llu", pluid);
+
+		return false;
+	}
+
+	bool Extender::SendCallRequest(const PeerLUID pluid)
+	{
+		if (SendSimpleMessage(pluid, MessageType::CallRequest))
+		{
+			return true;
+		}
+		else LogErr(L"Could not send CallRequest message to peer");
+
+		return false;
+	}
+
+	bool Extender::SendCallAccept(const PeerLUID pluid)
+	{
+		if (SendSimpleMessage(pluid, MessageType::CallAccept))
+		{
+			return true;
+		}
+		else LogErr(L"Could not send CallAccept message to peer");
+
+		return false;
+	}
+
+	bool Extender::SendCallHangup(const PeerLUID pluid)
+	{
+		if (SendSimpleMessage(pluid, MessageType::CallHangup))
+		{
+			return true;
+		}
+		else LogErr(L"Could not send CallHangup message to peer");
+
+		return false;
+	}
+
+	bool Extender::SendGeneralFailure(const PeerLUID pluid)
+	{
+		if (SendSimpleMessage(pluid, MessageType::GeneralFailure))
+		{
+			return true;
+		}
+		else LogErr(L"Could not send GeneralFailure message to peer");
 
 		return false;
 	}
