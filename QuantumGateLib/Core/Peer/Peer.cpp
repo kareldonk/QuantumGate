@@ -47,7 +47,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	const bool Peer::Initialize() noexcept
+	bool Peer::Initialize() noexcept
 	{
 		// Delay for a few random milliseconds before we begin communication;
 		// this gives the peer a chance to sometimes start communicating first.
@@ -180,7 +180,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	const bool Peer::ProcessPeerExtenderUpdate(Vector<ExtenderUUID>&& uuids) noexcept
+	bool Peer::ProcessPeerExtenderUpdate(Vector<ExtenderUUID>&& uuids) noexcept
 	{
 		auto success = false;
 
@@ -227,7 +227,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return success;
 	}
 
-	const bool Peer::UpdateSocketStatus() noexcept
+	bool Peer::UpdateSocketStatus() noexcept
 	{
 		if (NeedsAccessCheck()) CheckAccess();
 
@@ -252,8 +252,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool Peer::CheckStatus(const bool noise_enabled, const std::chrono::seconds max_connect_duration,
-								 std::chrono::seconds max_handshake_duration) noexcept
+	bool Peer::CheckStatus(const bool noise_enabled, const std::chrono::seconds max_connect_duration,
+						   std::chrono::seconds max_handshake_duration) noexcept
 	{
 		if (!UpdateSocketStatus()) return false;
 
@@ -359,7 +359,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	const bool Peer::ProcessEvents()
+	bool Peer::ProcessEvents()
 	{
 		if (ShouldDisconnect()) return false;
 
@@ -429,7 +429,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	const bool Peer::InitializeKeyExchange() noexcept
+	bool Peer::InitializeKeyExchange() noexcept
 	{
 		assert(m_KeyExchange == nullptr);
 
@@ -461,7 +461,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		GetKeys().ExpireAllExceptLatestKeyPair();
 	}
 
-	const bool Peer::SetStatus(const Status status) noexcept
+	bool Peer::SetStatus(const Status status) noexcept
 	{
 		auto success = true;
 		const auto prev_status = m_PeerData.WithSharedLock()->Status;
@@ -544,7 +544,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return success;
 	}
 
-	const bool Peer::OnStatusChange(const Status old_status, const Status new_status)
+	bool Peer::OnStatusChange(const Status old_status, const Status new_status)
 	{
 		switch (new_status)
 		{
@@ -678,7 +678,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	const bool Peer::SendNoise(const Size minsize, const Size maxsize, const std::chrono::milliseconds delay)
+	bool Peer::SendNoise(const Size minsize, const Size maxsize, const std::chrono::milliseconds delay)
 	{
 		const auto datasize = std::abs(Random::GetPseudoRandomNumber(minsize, maxsize));
 		auto data = Random::GetPseudoRandomBytes(static_cast<Size>(datasize));
@@ -691,7 +691,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return Send(MessageType::Noise, std::move(data), delay, false);
 	}
 
-	const bool Peer::SendNoise(const Size maxnum, const Size minsize, const Size maxsize)
+	bool Peer::SendNoise(const Size maxnum, const Size minsize, const Size maxsize)
 	{
 		auto success = true;
 		const auto max = static_cast<Size>(Random::GetPseudoRandomNumber(0, maxnum));
@@ -708,7 +708,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return success;
 	}
 
-	const bool Peer::Send(Message&& msg, const std::chrono::milliseconds delay)
+	bool Peer::Send(Message&& msg, const std::chrono::milliseconds delay)
 	{
 		if (!msg.IsValid()) return false;
 
@@ -726,8 +726,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	const bool Peer::Send(const MessageType msgtype, Buffer&& buffer,
-						  const std::chrono::milliseconds delay, const bool compress)
+	bool Peer::Send(const MessageType msgtype, Buffer&& buffer,
+					const std::chrono::milliseconds delay, const bool compress)
 	{
 		if (buffer.GetSize() <= Message::MaxMessageDataSize)
 		{
@@ -771,15 +771,15 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool Peer::SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
-										 const std::chrono::milliseconds maxdelay)
+	bool Peer::SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
+								   const std::chrono::milliseconds maxdelay)
 	{
 		const auto delay = std::chrono::milliseconds(Random::GetPseudoRandomNumber(0, maxdelay.count()));
 
 		return Send(msgtype, std::move(buffer), delay);
 	}
 
-	const bool Peer::SendFromQueue()
+	bool Peer::SendFromQueue()
 	{
 		// If the send buffer isn't empty yet
 		if (!m_SendBuffer.IsEmpty())
@@ -1005,7 +1005,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::make_pair(success, num);
 	}
 
-	const bool Peer::ReceiveAndProcess()
+	bool Peer::ReceiveAndProcess()
 	{
 		auto success = true;
 
@@ -1230,7 +1230,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::make_pair(success, num);
 	}
 
-	const bool Peer::ProcessMessage(Message& msg)
+	bool Peer::ProcessMessage(Message& msg)
 	{
 		auto msg_sequence_error = false;
 		auto msg_complete = false;
@@ -1350,7 +1350,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool Peer::SendFromNoiseQueue()
+	bool Peer::SendFromNoiseQueue()
 	{
 		// Send queued noise as long as we have items
 		auto noiseitm = m_NoiseQueue.GetQueuedNoise();
@@ -1367,7 +1367,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	const bool Peer::CheckAndProcessKeyUpdate() noexcept
+	bool Peer::CheckAndProcessKeyUpdate() noexcept
 	{
 		if (m_KeyUpdate.ShouldUpdate())
 		{
@@ -1401,7 +1401,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return Util::FormatString(L"%s (LUID %llu)", GetPeerEndpoint().GetString().c_str(), GetLUID());
 	}
 
-	const bool Peer::HasPendingEvents() noexcept
+	bool Peer::HasPendingEvents() noexcept
 	{
 		if (HasReceiveEvents() || HasSendEvents() ||
 			m_NoiseQueue.IsQueuedNoiseReady() || m_KeyUpdate.HasEvents() ||
@@ -1449,7 +1449,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		DiscardReturnValue(SetStatus(Status::Accepted));
 	}
 
-	const bool Peer::OnConnect() noexcept
+	bool Peer::OnConnect() noexcept
 	{
 		if (Gate::OnConnect())
 		{
@@ -1488,9 +1488,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		DiscardReturnValue(SetStatus(Status::Disconnected));
 	}
 
-	const bool Peer::SetAlgorithms(const Algorithm::Hash ha, const Algorithm::Asymmetric paa,
-								   const Algorithm::Asymmetric saa, const Algorithm::Symmetric sa,
-								   const Algorithm::Compression ca) noexcept
+	bool Peer::SetAlgorithms(const Algorithm::Hash ha, const Algorithm::Asymmetric paa,
+							 const Algorithm::Asymmetric saa, const Algorithm::Symmetric sa,
+							 const Algorithm::Compression ca) noexcept
 	{
 		const auto& algorithms = GetSupportedAlgorithms();
 
@@ -1543,7 +1543,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return SerializedIPEndpoint{};
 	}
 
-	const bool Peer::AddReportedPublicIPEndpoint(const SerializedIPEndpoint& pub_endpoint) noexcept
+	bool Peer::AddReportedPublicIPEndpoint(const SerializedIPEndpoint& pub_endpoint) noexcept
 	{
 		// Only for normal connections because the reported
 		// IPs might not be accurate for relays because there
@@ -1592,7 +1592,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return GetAccessManager().GetPeerPublicKey(GetPeerUUID());
 	}
 
-	const bool Peer::IsAutoGenKeyAllowed() const noexcept
+	bool Peer::IsAutoGenKeyAllowed() const noexcept
 	{
 		// Auto generated keys are only allowed during the handshake when we
 		// don't have a shared secret yet to derive a key. Note however

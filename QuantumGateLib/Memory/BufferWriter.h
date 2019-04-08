@@ -25,7 +25,7 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		template<typename... Args>
-		[[nodiscard]] const bool Write(const Args&... data) noexcept
+		[[nodiscard]] bool Write(const Args&... data) noexcept
 		{
 			try
 			{
@@ -37,7 +37,7 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		template<typename... Args>
-		[[nodiscard]] const bool WriteWithPreallocation(const Args&... data) noexcept
+		[[nodiscard]] bool WriteWithPreallocation(const Args&... data) noexcept
 		{
 			try
 			{
@@ -56,7 +56,7 @@ namespace QuantumGate::Implementation::Memory
 
 	private:
 		template<typename T>
-		[[nodiscard]] const std::enable_if_t<!std::is_enum_v<T>, bool> WriteImpl(const T& data)
+		[[nodiscard]] std::enable_if_t<!std::is_enum_v<T>, bool> WriteImpl(const T& data)
 		{
 			static_assert(std::is_integral_v<T> || std::is_same_v<T, Byte>, "Unsupported type.");
 
@@ -64,13 +64,13 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		template<typename T>
-		[[nodiscard]] const std::enable_if_t<std::is_enum_v<T>, bool> WriteImpl(const T& data)
+		[[nodiscard]] std::enable_if_t<std::is_enum_v<T>, bool> WriteImpl(const T& data)
 		{
 			return WriteImpl(static_cast<const std::underlying_type_t<T>>(data));
 		}
 
 		template<typename T>
-		[[nodiscard]] const std::enable_if_t<std::is_integral_v<T> ||
+		[[nodiscard]] std::enable_if_t<std::is_integral_v<T> ||
 			std::is_same_v<T, Byte> || std::is_enum_v<T> ||
 			std::is_same_v<T, SerializedUUID>, bool> WriteImpl(const Vector<T>& data)
 		{
@@ -83,13 +83,13 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		template<typename T>
-		[[nodiscard]] const bool WriteImpl(const SizeWrap<T>& data)
+		[[nodiscard]] bool WriteImpl(const SizeWrap<T>& data)
 		{
 			return (WriteEncodedSize(GetDataSize(*data), data.MaxSize()) && WriteImpl(*data));
 		}
 
-		[[nodiscard]] const bool WriteEncodedSize(const Size size, const Size maxsize) noexcept;
-		[[nodiscard]] const bool WriteBytes(const Byte* data, const Size len, const bool endian_convert = false);
+		[[nodiscard]] bool WriteEncodedSize(const Size size, const Size maxsize) noexcept;
+		[[nodiscard]] bool WriteBytes(const Byte* data, const Size len, const bool endian_convert = false);
 
 	private:
 		bool m_ConvertToNetworkByteOrder{ false };
@@ -100,11 +100,11 @@ namespace QuantumGate::Implementation::Memory
 	};
 
 	// Specializations
-	template<> [[nodiscard]] Export const bool BufferWriter::WriteImpl(const String& data);
-	template<> [[nodiscard]] Export const bool BufferWriter::WriteImpl(const Network::SerializedBinaryIPAddress& data);
-	template<> [[nodiscard]] Export const bool BufferWriter::WriteImpl(const Network::SerializedIPEndpoint& data);
-	template<> [[nodiscard]] Export const bool BufferWriter::WriteImpl(const SerializedUUID& data);
-	template<> [[nodiscard]] Export const bool BufferWriter::WriteImpl(const Buffer& data);
-	template<> [[nodiscard]] Export const bool BufferWriter::WriteImpl(const BufferView& data);
-	template<> [[nodiscard]] Export const bool BufferWriter::WriteImpl(const ProtectedBuffer& data);
+	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const String& data);
+	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const Network::SerializedBinaryIPAddress& data);
+	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const Network::SerializedIPEndpoint& data);
+	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const SerializedUUID& data);
+	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const Buffer& data);
+	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const BufferView& data);
+	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const ProtectedBuffer& data);
 }

@@ -45,7 +45,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 		void Clear() noexcept;
 
-		[[nodiscard]] const bool HasFilter(const IPFilterID filterid, const IPFilterType type) const noexcept;
+		[[nodiscard]] bool HasFilter(const IPFilterID filterid, const IPFilterType type) const noexcept;
 
 		Result<Vector<IPFilter>> GetFilters() const noexcept;
 
@@ -56,7 +56,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Result<IPFilterID> AddFilterImpl(const IPAddress& ip, const IPAddress& mask,
 										 const IPFilterType type) noexcept;
 
-		[[nodiscard]] const bool IsIPInFilterMap(const IPAddress& address, const IPFilterMap& filtermap) const noexcept;
+		[[nodiscard]] bool IsIPInFilterMap(const IPAddress& address, const IPFilterMap& filtermap) const noexcept;
 
 		const IPFilterID GetFilterID(const IPAddress& ip, const IPAddress& mask) const noexcept;
 

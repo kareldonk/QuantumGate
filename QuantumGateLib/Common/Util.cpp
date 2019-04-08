@@ -262,7 +262,7 @@ namespace QuantumGate::Implementation::Util
 	}
 
 	template<typename S, typename B>
-	const bool FromBase64(const S& b64, B& buffer) noexcept
+	bool FromBase64(const S& b64, B& buffer) noexcept
 	{
 		try
 		{
@@ -294,8 +294,8 @@ namespace QuantumGate::Implementation::Util
 	}
 
 	// Specific instantiations
-	template const bool FromBase64<std::string, Buffer>(const std::string& b64, Buffer& buffer) noexcept;
-	template const bool FromBase64<ProtectedStringA, ProtectedBuffer>(const ProtectedStringA& b64,
+	template bool FromBase64<std::string, Buffer>(const std::string& b64, Buffer& buffer) noexcept;
+	template bool FromBase64<ProtectedStringA, ProtectedBuffer>(const ProtectedStringA& b64,
 																	  ProtectedBuffer& buffer) noexcept;
 
 	Export UInt64 NonPersistentHash(const String& txt) noexcept
@@ -308,7 +308,7 @@ namespace QuantumGate::Implementation::Util
 		return Hash::GetPersistentHash(txt);
 	}
 
-	Export const bool SetThreadName(HANDLE thread, const String& name) noexcept
+	Export bool SetThreadName(HANDLE thread, const String& name) noexcept
 	{
 		const HRESULT hr = SetThreadDescription(thread, name.c_str());
 		if (FAILED(hr)) return false;
@@ -316,7 +316,7 @@ namespace QuantumGate::Implementation::Util
 		return true;
 	}
 
-	Export const bool SetCurrentThreadName(const String& name) noexcept
+	Export bool SetCurrentThreadName(const String& name) noexcept
 	{
 		return SetThreadName(GetCurrentThread(), name);
 	}

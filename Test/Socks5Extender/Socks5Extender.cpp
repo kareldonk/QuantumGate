@@ -61,7 +61,7 @@ namespace QuantumGate::Socks5Extender
 		}
 	}
 
-	const bool Extender::SetCredentials(const ProtectedStringA& username, const ProtectedStringA& password)
+	bool Extender::SetCredentials(const ProtectedStringA& username, const ProtectedStringA& password)
 	{
 		if (!username.empty() && !password.empty())
 		{
@@ -95,7 +95,7 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	const bool Extender::CheckCredentials(const BufferView& username, const BufferView& password) const
+	bool Extender::CheckCredentials(const BufferView& username, const BufferView& password) const
 	{
 		if (!m_RequireAuthentication) return true;
 
@@ -127,7 +127,7 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	const bool Extender::IsOutgoingIPAllowed(const IPAddress& ip) const noexcept
+	bool Extender::IsOutgoingIPAllowed(const IPAddress& ip) const noexcept
 	{
 		if (const auto result = m_IPFilters.WithSharedLock()->IsAllowed(ip); result.Succeeded())
 		{
@@ -137,7 +137,7 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	const bool Extender::OnStartup()
+	bool Extender::OnStartup()
 	{
 		LogDbg(L"Extender '" + GetName() + L"' starting...");
 
@@ -190,7 +190,7 @@ namespace QuantumGate::Socks5Extender
 		DeInitializeIPFilters();
 	}
 
-	const bool Extender::InitializeIPFilters()
+	bool Extender::InitializeIPFilters()
 	{
 		auto success = true;
 
@@ -258,7 +258,7 @@ namespace QuantumGate::Socks5Extender
 		m_IPFilters.WithUniqueLock()->Clear();
 	}
 
-	const bool Extender::StartupListener()
+	bool Extender::StartupListener()
 	{
 		std::unique_lock<std::shared_mutex> lock(m_Listener.Mutex);
 
@@ -303,7 +303,7 @@ namespace QuantumGate::Socks5Extender
 		}
 	}
 
-	const bool Extender::StartupThreadPool()
+	bool Extender::StartupThreadPool()
 	{
 		m_ThreadPool.SetWorkerThreadsMaxBurst(50);
 		m_ThreadPool.SetWorkerThreadsMaxSleep(64ms);
@@ -540,8 +540,8 @@ namespace QuantumGate::Socks5Extender
 		return std::make_pair(handled, success);
 	}
 
-	const bool Extender::HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
-														const String& domain, const UInt16 port)
+	bool Extender::HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+												  const String& domain, const UInt16 port)
 	{
 		if (!domain.empty() && port != 0)
 		{
@@ -565,8 +565,8 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	const bool Extender::HandleConnectIPPeerMessage(const PeerLUID pluid, const ConnectionID cid,
-													const BinaryIPAddress& ip, const UInt16 port)
+	bool Extender::HandleConnectIPPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+											  const BinaryIPAddress& ip, const UInt16 port)
 	{
 		if ((ip.AddressFamily == BinaryIPAddress::Family::IPv4 ||
 			 ip.AddressFamily == BinaryIPAddress::Family::IPv6) && port != 0)
@@ -582,10 +582,10 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	const bool Extender::HandleSocks5ReplyRelayPeerMessage(const PeerLUID pluid, const ConnectionID cid,
-														   const Socks5Protocol::Replies reply,
-														   const Socks5Protocol::AddressTypes atype,
-														   const BufferView& address, const UInt16 port)
+	bool Extender::HandleSocks5ReplyRelayPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+													 const Socks5Protocol::Replies reply,
+													 const Socks5Protocol::AddressTypes atype,
+													 const BufferView& address, const UInt16 port)
 	{
 		switch (reply)
 		{
@@ -655,8 +655,8 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	const bool Extender::AddConnection(const PeerLUID pluid, const ConnectionID cid,
-									   std::unique_ptr<Connection_ThS>&& c) noexcept
+	bool Extender::AddConnection(const PeerLUID pluid, const ConnectionID cid,
+								 std::unique_ptr<Connection_ThS>&& c) noexcept
 	{
 		auto success = false;
 
@@ -695,7 +695,7 @@ namespace QuantumGate::Socks5Extender
 		return con;
 	}
 
-	const void Extender::Disconnect(Connection_ThS& c)
+	void Extender::Disconnect(Connection_ThS& c)
 	{
 		c.WithUniqueLock([&](Connection& connection)
 		{
@@ -703,7 +703,7 @@ namespace QuantumGate::Socks5Extender
 		});
 	}
 
-	const void Extender::Disconnect(Connection& c)
+	void Extender::Disconnect(Connection& c)
 	{
 		if (c.IsActive())
 		{
@@ -711,7 +711,7 @@ namespace QuantumGate::Socks5Extender
 		}
 	}
 
-	const void Extender::DisconnectFor(const PeerLUID pluid)
+	void Extender::DisconnectFor(const PeerLUID pluid)
 	{
 		LogInfo(GetName() + L": disconnecting connections for peer %llu", pluid);
 
@@ -731,7 +731,7 @@ namespace QuantumGate::Socks5Extender
 		});
 	}
 
-	const void Extender::DisconnectAll()
+	void Extender::DisconnectAll()
 	{
 		LogInfo(GetName() + L": disconnecting all connections");
 
@@ -868,8 +868,8 @@ namespace QuantumGate::Socks5Extender
 		else LogErr(GetName() + L": could not accept new connection");
 	}
 
-	const bool Extender::SendConnectDomain(const PeerLUID pluid, const ConnectionID cid,
-										   const String & domain, const UInt16 port) const
+	bool Extender::SendConnectDomain(const PeerLUID pluid, const ConnectionID cid,
+									 const String& domain, const UInt16 port) const
 	{
 		const UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectDomain);
 
@@ -887,8 +887,8 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	const bool Extender::SendConnectIP(const PeerLUID pluid, const ConnectionID cid,
-									   const BinaryIPAddress& ip, const UInt16 port) const
+	bool Extender::SendConnectIP(const PeerLUID pluid, const ConnectionID cid,
+								 const BinaryIPAddress& ip, const UInt16 port) const
 	{
 		assert(ip.AddressFamily != BinaryIPAddress::Family::Unspecified);
 
@@ -908,7 +908,7 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	const bool Extender::SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const
+	bool Extender::SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const
 	{
 		const UInt16 msgtype = static_cast<const UInt16>(MessageType::Disconnect);
 
@@ -926,7 +926,7 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	const bool Extender::SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const
+	bool Extender::SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const
 	{
 		const UInt16 msgtype = static_cast<const UInt16>(MessageType::DisconnectAck);
 
@@ -944,10 +944,10 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	const bool Extender::SendSocks5Reply(const PeerLUID pluid, const ConnectionID cid,
-										 const Socks5Protocol::Replies reply,
-										 const Socks5Protocol::AddressTypes atype,
-										 const BinaryIPAddress ip, const UInt16 port) const
+	bool Extender::SendSocks5Reply(const PeerLUID pluid, const ConnectionID cid,
+								   const Socks5Protocol::Replies reply,
+								   const Socks5Protocol::AddressTypes atype,
+								   const BinaryIPAddress ip, const UInt16 port) const
 	{
 		const UInt16 msgtype = static_cast<const UInt16>(MessageType::Socks5ReplyRelay);
 
@@ -965,8 +965,7 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	const bool Extender::SendDataRelay(const PeerLUID pluid, const ConnectionID cid,
-									   const BufferView& buffer) const
+	bool Extender::SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::DataRelay);
 
@@ -1001,8 +1000,8 @@ namespace QuantumGate::Socks5Extender
 		return pluid;
 	}
 
-	const bool Extender::MakeOutgoingConnection(const PeerLUID pluid, const ConnectionID cid,
-												const IPAddress& ip, const UInt16 port)
+	bool Extender::MakeOutgoingConnection(const PeerLUID pluid, const ConnectionID cid,
+										  const IPAddress& ip, const UInt16 port)
 	{
 		if (IsOutgoingIPAllowed(ip))
 		{

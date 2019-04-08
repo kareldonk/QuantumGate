@@ -62,7 +62,7 @@ namespace TestExtender
 		}
 	}
 
-	const bool FileTransfer::OpenSourceFile(const String& filename)
+	bool FileTransfer::OpenSourceFile(const String& filename)
 	{
 		auto success = false;
 
@@ -100,7 +100,7 @@ namespace TestExtender
 		return success;
 	}
 
-	const Size FileTransfer::ReadFromFile(Byte* buffer, Size size)
+	Size FileTransfer::ReadFromFile(Byte* buffer, Size size)
 	{
 		if (m_NumBytesTransferred == 0) m_TransferStartSteadyTime = Util::GetCurrentSteadyTime();
 
@@ -126,7 +126,7 @@ namespace TestExtender
 		return numread;
 	}
 
-	const bool FileTransfer::OpenDestinationFile(const String& filename)
+	bool FileTransfer::OpenDestinationFile(const String& filename)
 	{
 		if (fopen_s(&m_File, Util::ToStringA(filename).c_str(), "w+b") == 0)
 		{
@@ -139,7 +139,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool FileTransfer::WriteToFile(const Byte* buffer, const Size size)
+	bool FileTransfer::WriteToFile(const Byte* buffer, const Size size)
 	{
 		if (m_NumBytesTransferred == 0) m_TransferStartSteadyTime = Util::GetCurrentSteadyTime();
 
@@ -292,7 +292,7 @@ namespace TestExtender
 	Extender::~Extender()
 	{}
 
-	const bool Extender::OnStartup()
+	bool Extender::OnStartup()
 	{
 		LogDbg(L"Extender '" + GetName() + L"' starting...");
 
@@ -734,7 +734,7 @@ namespace TestExtender
 		return success;
 	}
 
-	const bool Extender::SendBenchmarkStart(const PeerLUID pluid)
+	bool Extender::SendBenchmarkStart(const PeerLUID pluid)
 	{
 		if (m_IsLocalBenchmarking)
 		{
@@ -761,7 +761,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool Extender::SendBenchmarkEnd(const PeerLUID pluid)
+	bool Extender::SendBenchmarkEnd(const PeerLUID pluid)
 	{
 		if (!m_IsLocalBenchmarking)
 		{
@@ -789,7 +789,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg) const
+	bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg) const
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::MessageString);
 
@@ -804,7 +804,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool Extender::SendFile(const PeerLUID pluid, const String filename, const bool autotrf)
+	bool Extender::SendFile(const PeerLUID pluid, const String filename, const bool autotrf)
 	{
 		auto success = false;
 
@@ -831,7 +831,7 @@ namespace TestExtender
 		return success;
 	}
 
-	const bool Extender::AcceptFile(const PeerLUID pluid, const FileTransferID ftid, const String& filename)
+	bool Extender::AcceptFile(const PeerLUID pluid, const FileTransferID ftid, const String& filename)
 	{
 		auto success = false;
 
@@ -843,7 +843,7 @@ namespace TestExtender
 		return success;
 	}
 
-	const bool Extender::AcceptFile(const PeerLUID pluid, const String& filename, FileTransfer& ft)
+	bool Extender::AcceptFile(const PeerLUID pluid, const String& filename, FileTransfer& ft)
 	{
 		auto success = false;
 
@@ -883,7 +883,7 @@ namespace TestExtender
 		return &m_Peers;
 	}
 
-	const bool Extender::SendFileTransferStart(const PeerLUID pluid, FileTransfer& ft)
+	bool Extender::SendFileTransferStart(const PeerLUID pluid, FileTransfer& ft)
 	{
 		Path fp(ft.GetFileName());
 		String filename = fp.filename().wstring();
@@ -913,7 +913,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool Extender::SendFileTransferCancel(const PeerLUID pluid, FileTransfer& ft)
+	bool Extender::SendFileTransferCancel(const PeerLUID pluid, FileTransfer& ft)
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferCancel);
 
@@ -934,13 +934,13 @@ namespace TestExtender
 		return false;
 	}
 
-	const Size Extender::GetFileTransferDataSize() const noexcept
+	Size Extender::GetFileTransferDataSize() const noexcept
 	{
 		// 15 bytes for MessageType::FileTransferData message header
 		return (GetMaximumMessageDataSize() - 15);
 	}
 
-	const bool Extender::SendFileData(const PeerLUID pluid, FileTransfer& ft)
+	bool Extender::SendFileData(const PeerLUID pluid, FileTransfer& ft)
 	{
 		auto& buffer = ft.GetTransferBuffer();
 		const auto numread = ft.ReadFromFile(buffer.GetBytes(), buffer.GetSize());
@@ -965,7 +965,7 @@ namespace TestExtender
 		return false;
 	}
 
-	const bool Extender::SendFileDataAck(const PeerLUID pluid, FileTransfer& ft)
+	bool Extender::SendFileDataAck(const PeerLUID pluid, FileTransfer& ft)
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferDataAck);
 

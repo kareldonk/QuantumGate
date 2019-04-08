@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Core
 		return GetMinSize();
 	}
 
-	const bool Message::Header::Read(const BufferView& buffer) noexcept
+	bool Message::Header::Read(const BufferView& buffer) noexcept
 	{
 		assert(buffer.GetSize() >= Header::GetMinSize());
 
@@ -93,7 +93,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool Message::Header::Write(Buffer& buffer) const noexcept
+	bool Message::Header::Write(Buffer& buffer) const noexcept
 	{
 		// First 4 bytes are a combination of message size and type
 		// stored in little endian format:
@@ -163,7 +163,7 @@ namespace QuantumGate::Implementation::Core
 		return std::move(m_MessageData);
 	}
 
-	const bool Message::Read(BufferView buffer, const Crypto::SymmetricKeyData& symkey)
+	bool Message::Read(BufferView buffer, const Crypto::SymmetricKeyData& symkey)
 	{
 		assert(buffer.GetSize() >= Header::GetMinSize());
 
@@ -218,7 +218,7 @@ namespace QuantumGate::Implementation::Core
 		return success;
 	}
 
-	const bool Message::Write(Buffer& buffer, const Crypto::SymmetricKeyData& symkey)
+	bool Message::Write(Buffer& buffer, const Crypto::SymmetricKeyData& symkey)
 	{
 		const bool hasmsgdata = !m_MessageData.IsEmpty();
 		Buffer tmpdata;

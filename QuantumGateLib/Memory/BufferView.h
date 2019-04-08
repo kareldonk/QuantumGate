@@ -32,18 +32,18 @@ namespace QuantumGate::Implementation::Memory
 
 		[[nodiscard]] constexpr const Byte* GetBytes() const noexcept { return m_Buffer; }
 		[[nodiscard]] constexpr const Size GetSize() const noexcept { return m_Size; }
-		[[nodiscard]] constexpr const bool IsEmpty() const noexcept { return (m_Buffer == nullptr || m_Size == 0); }
+		[[nodiscard]] constexpr bool IsEmpty() const noexcept { return (m_Buffer == nullptr || m_Size == 0); }
 
 		constexpr explicit operator bool() const noexcept { return !IsEmpty(); }
 
-		constexpr const bool operator==(const BufferView& other) const noexcept
+		constexpr bool operator==(const BufferView& other) const noexcept
 		{
 			if (GetSize() != other.GetSize()) return false;
 
 			return (memcmp(GetBytes(), other.GetBytes(), GetSize()) == 0);
 		}
 
-		constexpr const bool operator!=(const BufferView& other) const noexcept
+		constexpr bool operator!=(const BufferView& other) const noexcept
 		{
 			return !(*this == other);
 		}

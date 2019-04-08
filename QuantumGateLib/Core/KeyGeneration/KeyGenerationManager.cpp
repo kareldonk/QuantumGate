@@ -16,7 +16,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		return m_Settings.GetCache();
 	}
 
-	const bool Manager::Startup() noexcept
+	bool Manager::Startup() noexcept
 	{
 		if (m_Running) return true;
 
@@ -73,7 +73,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		ClearKeyQueues();
 	}
 
-	const bool Manager::AddKeyQueues() noexcept
+	bool Manager::AddKeyQueues() noexcept
 	{
 		bool success = true;
 
@@ -123,7 +123,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		m_KeyQueues.WithUniqueLock()->clear();
 	}
 
-	const bool Manager::StartupThreadPool() noexcept
+	bool Manager::StartupThreadPool() noexcept
 	{
 		const auto cth = std::thread::hardware_concurrency();
 		const Size numthreadsperpool = (cth > 2) ? cth : 2;

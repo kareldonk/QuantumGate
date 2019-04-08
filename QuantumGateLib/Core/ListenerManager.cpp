@@ -14,7 +14,7 @@ namespace QuantumGate::Implementation::Core::Listener
 	{}
 
 	// Starts listening on the default interfaces
-	const bool Manager::Startup() noexcept
+	bool Manager::Startup() noexcept
 	{
 		if (m_Running) return true;
 
@@ -78,7 +78,7 @@ namespace QuantumGate::Implementation::Core::Listener
 	}
 
 	// Starts listening on all active interfaces
-	const bool Manager::Startup(const Vector<EthernetInterface>& interfaces) noexcept
+	bool Manager::Startup(const Vector<EthernetInterface>& interfaces) noexcept
 	{
 		if (m_Running) return true;
 
@@ -130,8 +130,8 @@ namespace QuantumGate::Implementation::Core::Listener
 		return m_Running;
 	}
 
-	const bool Manager::AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
-										   const bool cond_accept, const bool nat_traversal) noexcept
+	bool Manager::AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
+									 const bool cond_accept, const bool nat_traversal) noexcept
 	{
 		// Separate listener for every port
 		for (const auto port : ports)
@@ -190,7 +190,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		return next_thread;
 	}
 
-	const bool Manager::Update(const Vector<EthernetInterface>& interfaces) noexcept
+	bool Manager::Update(const Vector<EthernetInterface>& interfaces) noexcept
 	{
 		if (!m_Running) return false;
 
@@ -382,7 +382,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		}
 	}
 
-	const bool Manager::CanAcceptConnection(const IPAddress& ipaddr) const noexcept
+	bool Manager::CanAcceptConnection(const IPAddress& ipaddr) const noexcept
 	{
 		// Increase connection attempts for this IP; if attempts get too high
 		// for a given interval the IP will get a bad reputation and this will fail

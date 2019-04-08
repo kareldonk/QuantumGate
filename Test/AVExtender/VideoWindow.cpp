@@ -14,8 +14,8 @@ namespace QuantumGate::AVExtender
 		Close();
 	}
 
-	const bool VideoWindow::Create(const DWORD dwExStyle, const DWORD dwStyle, const int x, const int y,
-								   const int width, const int height, const HWND parent) noexcept
+	bool VideoWindow::Create(const DWORD dwExStyle, const DWORD dwStyle, const int x, const int y,
+							 const int width, const int height, const HWND parent) noexcept
 	{
 		WNDCLASSEX wc{ 0 };
 		wc.cbSize = sizeof(WNDCLASSEX);
@@ -84,7 +84,7 @@ namespace QuantumGate::AVExtender
 		return DefWindowProc(hwnd, msg, wparam, lparam);
 	}
 
-	const bool VideoWindow::InitializeD2DRenderTarget(const HWND hwnd, const UInt width, const UInt height) noexcept
+	bool VideoWindow::InitializeD2DRenderTarget(const HWND hwnd, const UInt width, const UInt height) noexcept
 	{
 		auto hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_D2D1Factory);
 		if (SUCCEEDED(hr))

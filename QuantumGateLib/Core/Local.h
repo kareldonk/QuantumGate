@@ -48,20 +48,20 @@ namespace QuantumGate::Implementation::Core
 
 		Result<> Startup(const StartupParameters& params) noexcept;
 		Result<> Shutdown() noexcept;
-		inline const bool IsRunning() const noexcept { return (m_Running && !m_ShutdownEvent.IsSet()); }
+		inline bool IsRunning() const noexcept { return (m_Running && !m_ShutdownEvent.IsSet()); }
 
 		Result<> EnableListeners() noexcept;
 		Result<> UpdateListeners() noexcept;
 		Result<> DisableListeners() noexcept;
-		const bool AreListenersEnabled() const noexcept;
+		bool AreListenersEnabled() const noexcept;
 
 		Result<> EnableExtenders() noexcept;
 		Result<> DisableExtenders() noexcept;
-		const bool AreExtendersEnabled() const noexcept;
+		bool AreExtendersEnabled() const noexcept;
 
 		Result<> EnableRelays() noexcept;
 		Result<> DisableRelays() noexcept;
-		const bool AreRelaysEnabled() const noexcept;
+		bool AreRelaysEnabled() const noexcept;
 
 		const LocalEnvironment_ThS& GetEnvironment() noexcept;
 
@@ -75,7 +75,7 @@ namespace QuantumGate::Implementation::Core
 		Result<> AddExtenderModule(const Path& module_path) noexcept;
 		Result<> RemoveExtenderModule(const Path& module_path) noexcept;
 
-		const bool HasExtender(const ExtenderUUID& extuuid) const noexcept;
+		bool HasExtender(const ExtenderUUID& extuuid) const noexcept;
 		std::weak_ptr<QuantumGate::API::Extender> GetExtender(const ExtenderUUID& extuuid) const noexcept;
 
 		Result<ConnectDetails> ConnectTo(ConnectParameters&& params) noexcept;
@@ -103,7 +103,7 @@ namespace QuantumGate::Implementation::Core
 		void SetDefaultSecuritySettings(Settings& settings) noexcept;
 
 	private:
-		[[nodiscard]] const bool StartupThreadPool() noexcept;
+		[[nodiscard]] bool StartupThreadPool() noexcept;
 		void ShutdownThreadPool() noexcept;
 
 		void OnLocalEnvironmentChanged() noexcept;
@@ -114,9 +114,9 @@ namespace QuantumGate::Implementation::Core
 		Result<> RemoveExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
 									const Extender::ExtenderModuleID moduleid = 0) noexcept;
 
-		const bool ValidateInitParameters(const StartupParameters& params) const noexcept;
-		const bool ValidateSupportedAlgorithms(const Algorithms& algorithms) const noexcept;
-		const bool ValidateSecurityParameters(const SecurityParameters& params) const noexcept;
+		bool ValidateInitParameters(const StartupParameters& params) const noexcept;
+		bool ValidateSupportedAlgorithms(const Algorithms& algorithms) const noexcept;
+		bool ValidateSecurityParameters(const SecurityParameters& params) const noexcept;
 
 		Result<> SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running,
 						const PeerLUID id, Buffer&& buffer, const bool compress);

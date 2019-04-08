@@ -39,6 +39,8 @@ BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
 	ON_LBN_SELCHANGE(IDC_PEERLIST, &CTestAppDlgAVExtenderTab::OnLbnSelChangePeerList)
 	ON_BN_CLICKED(IDC_SEND_VIDEO_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedSendVideoCheck)
 	ON_BN_CLICKED(IDC_SEND_AUDIO_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedSendAudioCheck)
+	ON_BN_CLICKED(IDC_CALL_BUTTON, &CTestAppDlgAVExtenderTab::OnBnClickedCallButton)
+	ON_BN_CLICKED(IDC_HANGUP_BUTTON, &CTestAppDlgAVExtenderTab::OnBnClickedHangupButton)
 END_MESSAGE_MAP()
 
 void CTestAppDlgAVExtenderTab::UpdateControls() noexcept
@@ -388,4 +390,20 @@ void CTestAppDlgAVExtenderTab::OnBnClickedSendAudioCheck()
 			}
 		});
 	}
+}
+
+void CTestAppDlgAVExtenderTab::OnBnClickedCallButton()
+{
+	if (m_AVExtender != nullptr && m_SelectedPeerLUID.has_value())
+	{
+		if (!m_AVExtender->BeginCall(*m_SelectedPeerLUID))
+		{
+			AfxMessageBox(L"Failed to call peer.", MB_ICONERROR);
+		}
+	}
+}
+
+void CTestAppDlgAVExtenderTab::OnBnClickedHangupButton()
+{
+	// TODO: Add your control notification handler code here
 }

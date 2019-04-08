@@ -35,7 +35,7 @@ namespace QuantumGate::Implementation::Core::Access
 		}
 	}
 
-	const bool IPAccessDetails::SetReputation(const Int16 score, const std::optional<Time>& time) noexcept
+	bool IPAccessDetails::SetReputation(const Int16 score, const std::optional<Time>& time) noexcept
 	{
 		if (score < IPReputation::ScoreLimits::Minimum ||
 			score > IPReputation::ScoreLimits::Maximum) return false;
@@ -96,8 +96,8 @@ namespace QuantumGate::Implementation::Core::Access
 							  Util::ToTimeT(Util::GetCurrentSystemTime() - tlru));
 	}
 
-	const bool IPAccessDetails::AddConnectionAttempt(ConnectionAttempts& attempts, const std::chrono::seconds interval,
-													 const Size max_attempts) noexcept
+	bool IPAccessDetails::AddConnectionAttempt(ConnectionAttempts& attempts, const std::chrono::seconds interval,
+											   const Size max_attempts) noexcept
 	{
 		auto seconds = std::chrono::duration_cast<std::chrono::seconds>(
 			Util::GetCurrentSteadyTime() - attempts.LastResetSteadyTime);
@@ -186,7 +186,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return ResultCode::Failed;
 	}
 
-	const bool IPAccessControl::HasAcceptableReputation(const IPAddress& ip) noexcept
+	bool IPAccessControl::HasAcceptableReputation(const IPAddress& ip) noexcept
 	{
 		const auto result = UpdateReputation(ip, IPReputationUpdate::None);
 		if (result.Succeeded())
@@ -220,7 +220,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return ResultCode::Failed;
 	}
 
-	const bool IPAccessControl::AddConnectionAttempt(const IPAddress& ip) noexcept
+	bool IPAccessControl::AddConnectionAttempt(const IPAddress& ip) noexcept
 	{
 		const auto& settings = m_Settings.GetCache();
 		const auto interval = settings.Local.IPConnectionAttempts.Interval;
@@ -234,7 +234,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	const bool IPAccessControl::AddRelayConnectionAttempt(const IPAddress & ip) noexcept
+	bool IPAccessControl::AddRelayConnectionAttempt(const IPAddress & ip) noexcept
 	{
 		const auto& settings = m_Settings.GetCache();
 		const auto interval = settings.Relay.IPConnectionAttempts.Interval;

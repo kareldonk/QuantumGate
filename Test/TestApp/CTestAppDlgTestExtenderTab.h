@@ -49,7 +49,7 @@ protected:
 	void LoadStressExtender();
 	void UnloadStressExtender();
 
-	const bool SendMsgToPeer(PeerLUID pluid, CString txt);
+	bool SendMsgToPeer(PeerLUID pluid, CString txt);
 	void StartSendThread();
 	void StopSendThread();
 	static void SendThreadProc(CTestAppDlgTestExtenderTab* dlg, int interval, PeerLUID pluid, CString txt);

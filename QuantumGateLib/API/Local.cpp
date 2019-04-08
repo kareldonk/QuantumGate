@@ -96,7 +96,7 @@ namespace QuantumGate::API
 		return m_Local->Shutdown();
 	}
 
-	const bool Local::IsRunning() const noexcept
+	bool Local::IsRunning() const noexcept
 	{
 		return m_Local->IsRunning();
 	}
@@ -111,7 +111,7 @@ namespace QuantumGate::API
 		return m_Local->DisableListeners();
 	}
 
-	const bool Local::AreListenersEnabled() const noexcept
+	bool Local::AreListenersEnabled() const noexcept
 	{
 		return m_Local->AreListenersEnabled();
 	}
@@ -126,7 +126,7 @@ namespace QuantumGate::API
 		return m_Local->DisableExtenders();
 	}
 
-	const bool Local::AreExtendersEnabled() const noexcept
+	bool Local::AreExtendersEnabled() const noexcept
 	{
 		return m_Local->AreExtendersEnabled();
 	}
@@ -141,7 +141,7 @@ namespace QuantumGate::API
 		return m_Local->DisableRelays();
 	}
 
-	const bool Local::AreRelaysEnabled() const noexcept
+	bool Local::AreRelaysEnabled() const noexcept
 	{
 		return m_Local->AreRelaysEnabled();
 	}
@@ -176,7 +176,7 @@ namespace QuantumGate::API
 		return m_Local->RemoveExtenderModule(module_path);
 	}
 
-	const bool Local::HasExtender(const ExtenderUUID& extuuid) const noexcept
+	bool Local::HasExtender(const ExtenderUUID& extuuid) const noexcept
 	{
 		return m_Local->HasExtender(extuuid);
 	}

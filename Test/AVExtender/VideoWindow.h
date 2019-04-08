@@ -24,9 +24,9 @@ namespace QuantumGate::AVExtender
 		VideoWindow& operator=(const VideoWindow&) = delete;
 		VideoWindow& operator=(VideoWindow&&) = default;
 
-		[[nodiscard]] const bool Create(const DWORD dwExStyle, const DWORD dwStyle,
-										const int x, const int y, const int width, const int height,
-										const HWND parent) noexcept;
+		[[nodiscard]] bool Create(const DWORD dwExStyle, const DWORD dwStyle,
+								  const int x, const int y, const int width, const int height,
+								  const HWND parent) noexcept;
 		void Close() noexcept;
 
 		inline void SetRenderSize(const RenderSize render_size) noexcept { m_RenderSize = render_size; }
@@ -37,7 +37,7 @@ namespace QuantumGate::AVExtender
 	private:
 		static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept;
 
-		[[nodiscard]] const bool InitializeD2DRenderTarget(const HWND hwnd, const UInt width, const UInt height) noexcept;
+		[[nodiscard]] bool InitializeD2DRenderTarget(const HWND hwnd, const UInt width, const UInt height) noexcept;
 		void DeinitializeD2DRenderTarget() noexcept;
 		void ResizeRenderTarget() noexcept;
 		void ResizeDrawRect() noexcept;

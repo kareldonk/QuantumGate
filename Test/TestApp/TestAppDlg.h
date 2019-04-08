@@ -41,7 +41,7 @@ protected:
 
 	void SetSecurityLevel(const QuantumGate::SecurityLevel level);
 
-	const bool GenerateGlobalSharedSecret(CString& passphrase, ProtectedBuffer& buffer) const noexcept;
+	bool GenerateGlobalSharedSecret(CString& passphrase, ProtectedBuffer& buffer) const noexcept;
 
 	virtual BOOL OnInitDialog();
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support

@@ -22,7 +22,7 @@ namespace QuantumGate::Implementation::Concurrency
 		PriorityQueue& operator=(const PriorityQueue&) = delete;
 		PriorityQueue& operator=(PriorityQueue&&) = default;
 
-		inline const bool Empty() const noexcept
+		inline bool Empty() const noexcept
 		{
 			return m_Queue.empty();
 		}

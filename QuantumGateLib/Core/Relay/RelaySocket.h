@@ -25,23 +25,23 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		inline void SetRelays(Manager* relays) noexcept { m_RelayManager = relays; }
 
-		[[nodiscard]] const bool BeginAccept(const RelayPort rport, const RelayHop hop,
-											 const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept;
-		[[nodiscard]] const bool CompleteAccept() noexcept;
+		[[nodiscard]] bool BeginAccept(const RelayPort rport, const RelayHop hop,
+									   const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept;
+		[[nodiscard]] bool CompleteAccept() noexcept;
 
-		[[nodiscard]] const bool BeginConnect(const IPEndpoint& endpoint) noexcept override;
-		[[nodiscard]] const bool CompleteConnect() noexcept override;
+		[[nodiscard]] bool BeginConnect(const IPEndpoint& endpoint) noexcept override;
+		[[nodiscard]] bool CompleteConnect() noexcept override;
 
-		[[nodiscard]] const bool Send(Buffer& buffer) noexcept override;
-		[[nodiscard]] const bool SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept override { return false; }
-		[[nodiscard]] const bool Receive(Buffer& buffer) noexcept override;
-		[[nodiscard]] const bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept override { return false; }
+		[[nodiscard]] bool Send(Buffer& buffer) noexcept override;
+		[[nodiscard]] bool SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept override { return false; }
+		[[nodiscard]] bool Receive(Buffer& buffer) noexcept override;
+		[[nodiscard]] bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept override { return false; }
 
 		void Close(const bool linger = false) noexcept override;
 
 		inline const IOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
-		[[nodiscard]] const bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
-												const IOStatus::Update ioupdate = IOStatus::Update::All) noexcept override;
+		[[nodiscard]] bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
+										  const IOStatus::Update ioupdate = IOStatus::Update::All) noexcept override;
 
 		const SystemTime GetConnectedTime() const noexcept override;
 		inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
@@ -81,7 +81,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	private:
 		void SetLocalEndpoint(const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept;
 
-		const bool AddToReceiveQueue(Buffer&& buffer) noexcept;
+		bool AddToReceiveQueue(Buffer&& buffer) noexcept;
 
 		inline void SetException(const Int errorcode) noexcept
 		{
@@ -110,7 +110,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		ConnectingCallback m_ConnectingCallback{ []() mutable noexcept {} };
 		AcceptCallback m_AcceptCallback{ []() mutable noexcept {} };
-		ConnectCallback m_ConnectCallback{ []() mutable noexcept -> const bool { return true; } };
+		ConnectCallback m_ConnectCallback{ []() mutable noexcept -> bool { return true; } };
 		CloseCallback m_CloseCallback{ []() mutable noexcept {} };
 	};
 }

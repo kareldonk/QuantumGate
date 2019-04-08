@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Memory
 		m_ConvertFromNetworkByteOrder = (network_byteorder && Endian::GetLocalEndian() != EndianType::BigEndian);
 	}
 
-	const bool BufferReader::ReadEncodedSize(Size& size, const Size maxsize) noexcept
+	bool BufferReader::ReadEncodedSize(Size& size, const Size maxsize) noexcept
 	{
 		auto success = false;
 
@@ -54,7 +54,7 @@ namespace QuantumGate::Implementation::Memory
 		return success;
 	}
 
-	const bool BufferReader::ReadBytes(Byte* data, const Size len, const bool endian_convert) noexcept
+	bool BufferReader::ReadBytes(Byte* data, const Size len, const bool endian_convert) noexcept
 	{
 		if (len == 0) return true;
 
@@ -83,37 +83,37 @@ namespace QuantumGate::Implementation::Memory
 		return false;
 	}
 
-	template<> const bool BufferReader::ReadImpl(String& data)
+	template<> bool BufferReader::ReadImpl(String& data)
 	{
 		return ReadBytes(reinterpret_cast<Byte*>(data.data()), GetDataSize(data));
 	}
 
-	template<> const bool BufferReader::ReadImpl(Network::SerializedBinaryIPAddress& data)
+	template<> bool BufferReader::ReadImpl(Network::SerializedBinaryIPAddress& data)
 	{
 		return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));
 	}
 
-	template<> const bool BufferReader::ReadImpl(Network::SerializedIPEndpoint& data)
+	template<> bool BufferReader::ReadImpl(Network::SerializedIPEndpoint& data)
 	{
 		return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));
 	}
 
-	template<> const bool BufferReader::ReadImpl(SerializedUUID& data)
+	template<> bool BufferReader::ReadImpl(SerializedUUID& data)
 	{
 		return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));
 	}
 
-	template<> const bool BufferReader::ReadImpl(Buffer& data)
+	template<> bool BufferReader::ReadImpl(Buffer& data)
 	{
 		return ReadBytes(data.GetBytes(), GetDataSize(data));
 	}
 
-	template<> const bool BufferReader::ReadImpl(ProtectedBuffer& data)
+	template<> bool BufferReader::ReadImpl(ProtectedBuffer& data)
 	{
 		return ReadBytes(data.GetBytes(), GetDataSize(data));
 	}
 
-	template<> const bool BufferReader::ReadImpl(const SizeWrap<String>& data)
+	template<> bool BufferReader::ReadImpl(const SizeWrap<String>& data)
 	{
 		Size size{ 0 };
 		return (ReadEncodedSize(size, data.MaxSize()) &&
@@ -126,7 +126,7 @@ namespace QuantumGate::Implementation::Memory
 				ReadImpl(*data));
 	}
 
-	template<> const bool BufferReader::ReadImpl(const SizeWrap<Buffer>& data)
+	template<> bool BufferReader::ReadImpl(const SizeWrap<Buffer>& data)
 	{
 		Size size{ 0 };
 		return (ReadEncodedSize(size, data.MaxSize()) &&
@@ -134,7 +134,7 @@ namespace QuantumGate::Implementation::Memory
 				ReadImpl(*data));
 	}
 
-	template<> const bool BufferReader::ReadImpl(const SizeWrap<ProtectedBuffer>& data)
+	template<> bool BufferReader::ReadImpl(const SizeWrap<ProtectedBuffer>& data)
 	{
 		Size size{ 0 };
 		return (ReadEncodedSize(size, data.MaxSize()) &&

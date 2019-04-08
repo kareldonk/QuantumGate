@@ -97,12 +97,12 @@ namespace QuantumGate::Implementation
 		void Set(const WChar* uuid);
 		void Set(const String& uuid);
 
-		[[nodiscard]] constexpr const bool IsValid() const noexcept
+		[[nodiscard]] constexpr bool IsValid() const noexcept
 		{
 			return (GetType() != Type::Unknown);
 		}
 
-		[[nodiscard]] const bool Verify(const ProtectedBuffer& pub_key) const noexcept;
+		[[nodiscard]] bool Verify(const ProtectedBuffer& pub_key) const noexcept;
 
 		constexpr Type GetType() const noexcept
 		{
@@ -156,7 +156,7 @@ namespace QuantumGate::Implementation
 			m_Data4 = 0;
 		}
 
-		constexpr const bool operator==(const UUID& other) const noexcept
+		constexpr bool operator==(const UUID& other) const noexcept
 		{
 			return (m_Data1 == other.m_Data1 &&
 					m_Data2 == other.m_Data2 &&
@@ -164,7 +164,7 @@ namespace QuantumGate::Implementation
 					m_Data4 == other.m_Data4);
 		}
 
-		constexpr const bool operator!=(const UUID& other) const noexcept
+		constexpr bool operator!=(const UUID& other) const noexcept
 		{
 			return !(*this == other);
 		}
@@ -177,8 +177,8 @@ namespace QuantumGate::Implementation
 					  static_cast<UInt64>(other.m_Data3) + other.m_Data4));
 		}
 
-		[[nodiscard]] static const bool TryParse(const WChar* str, UUID& uuid) noexcept;
-		[[nodiscard]] static const bool TryParse(const String& str, UUID& uuid) noexcept;
+		[[nodiscard]] static bool TryParse(const WChar* str, UUID& uuid) noexcept;
+		[[nodiscard]] static bool TryParse(const String& str, UUID& uuid) noexcept;
 		[[nodiscard]] static std::tuple<bool, UUID, std::optional<PeerKeys>> Create(const Type type,
 																					const SignAlgorithm salg) noexcept;
 
@@ -212,8 +212,8 @@ namespace QuantumGate::Implementation
 			else m_Data4 = (m_Data4 & 0xffffffffffffffc7) | UUID::UUIDSignAlgorithm_EDDSA_ED448;
 		}
 
-		[[nodiscard]] const bool FillPeerUUID(const ProtectedBuffer& pub_key) noexcept;
-		[[nodiscard]] const bool FillExtenderUUID() noexcept;
+		[[nodiscard]] bool FillPeerUUID(const ProtectedBuffer& pub_key) noexcept;
+		[[nodiscard]] bool FillExtenderUUID() noexcept;
 
 	private:
 		UInt32 m_Data1{ 0 };
@@ -273,7 +273,7 @@ namespace QuantumGate::Implementation
 			return uuid;
 		}
 
-		inline const bool operator==(const SerializedUUID& other) const noexcept
+		inline bool operator==(const SerializedUUID& other) const noexcept
 		{
 			return (Data1 == other.Data1 &&
 					Data2 == other.Data2 &&
@@ -281,7 +281,7 @@ namespace QuantumGate::Implementation
 					Data4 == other.Data4);
 		}
 
-		inline const bool operator!=(const SerializedUUID& other) const noexcept
+		inline bool operator!=(const SerializedUUID& other) const noexcept
 		{
 			return !(*this == other);
 		}

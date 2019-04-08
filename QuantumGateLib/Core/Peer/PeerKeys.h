@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	struct SymmetricKeyPair final
 	{
-		[[nodiscard]] const bool IsExpired() const noexcept
+		[[nodiscard]] bool IsExpired() const noexcept
 		{
 			// If it has an expiration time
 			if (ExpirationSteadyTime.has_value())
@@ -51,10 +51,10 @@ namespace QuantumGate::Implementation::Core::Peer
 	public:
 		inline SymmetricKeyPairCollection& GetSymmetricKeyPairs() noexcept { return m_SymmetricKeyPairs; }
 
-		[[nodiscard]] const bool GenerateAndAddSymmetricKeyPair(const ProtectedBuffer& sharedsecret,
-																const ProtectedBuffer& global_sharedsecret,
-																const Algorithms& pa,
-																const PeerConnectionType pctype) noexcept
+		[[nodiscard]] bool GenerateAndAddSymmetricKeyPair(const ProtectedBuffer& sharedsecret,
+														  const ProtectedBuffer& global_sharedsecret,
+														  const Algorithms& pa,
+														  const PeerConnectionType pctype) noexcept
 		{
 			try
 			{
@@ -73,7 +73,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			return false;
 		}
 
-		[[nodiscard]] const bool AddSymmetricKeyPair(const std::shared_ptr<SymmetricKeyPair>& keypair) noexcept
+		[[nodiscard]] bool AddSymmetricKeyPair(const std::shared_ptr<SymmetricKeyPair>& keypair) noexcept
 		{
 			assert(!keypair->EncryptionKey->Key.IsEmpty() && !keypair->EncryptionKey->AuthKey.IsEmpty() &&
 				   !keypair->DecryptionKey->Key.IsEmpty() && !keypair->DecryptionKey->AuthKey.IsEmpty());
@@ -159,16 +159,16 @@ namespace QuantumGate::Implementation::Core::Peer
 			return std::make_pair(nullptr, Buffer());
 		}
 
-		[[nodiscard]] const bool HasNumBytesProcessedExceededForLatestKeyPair(const Size max_num) const noexcept
+		[[nodiscard]] bool HasNumBytesProcessedExceededForLatestKeyPair(const Size max_num) const noexcept
 		{
 			return (GetNumBytesProcessedForLatestKeyPair(m_SymmetricKeyPairs) > max_num);
 		}
 
-		[[nodiscard]] static const bool GenerateSymmetricKeyPair(const std::shared_ptr<SymmetricKeyPair>& keypair,
-																 const ProtectedBuffer& sharedsecret,
-																 const ProtectedBuffer& global_sharedsecret,
-																 const Algorithms& pa,
-																 const PeerConnectionType pctype) noexcept
+		[[nodiscard]] static bool GenerateSymmetricKeyPair(const std::shared_ptr<SymmetricKeyPair>& keypair,
+														   const ProtectedBuffer& sharedsecret,
+														   const ProtectedBuffer& global_sharedsecret,
+														   const Algorithms& pa,
+														   const PeerConnectionType pctype) noexcept
 		{
 			// Should have shared secret
 			assert(!sharedsecret.IsEmpty());
@@ -294,7 +294,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			return make_pair(nullptr, Buffer());
 		}
 
-		[[nodiscard]] static const bool GetNonce(const UInt32 nonce_seed, Buffer& nonce, const Algorithm::Hash ha) noexcept
+		[[nodiscard]] static bool GetNonce(const UInt32 nonce_seed, Buffer& nonce, const Algorithm::Hash ha) noexcept
 		{
 			const BufferView seedb(reinterpret_cast<const Byte*>(&nonce_seed), sizeof(UInt32));
 			if (Crypto::Hash(seedb, nonce, ha))

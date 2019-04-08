@@ -56,33 +56,33 @@ namespace QuantumGate::Implementation::Core::Relay
 		Access::Manager& GetAccessManager() const noexcept;
 		const Settings& GetSettings() const noexcept;
 
-		[[nodiscard]] const bool Startup() noexcept;
+		[[nodiscard]] bool Startup() noexcept;
 		void Shutdown() noexcept;
-		[[nodiscard]] inline const bool IsRunning() const noexcept { return m_Running; }
+		[[nodiscard]] inline bool IsRunning() const noexcept { return m_Running; }
 
 		std::optional<RelayPort> MakeRelayPort() const noexcept;
 
-		[[nodiscard]] const bool Connect(const PeerLUID in_peer, const PeerLUID out_peer,
-										 const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hops) noexcept;
+		[[nodiscard]] bool Connect(const PeerLUID in_peer, const PeerLUID out_peer,
+								   const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hops) noexcept;
 
-		[[nodiscard]] const bool AddRelayEvent(const RelayPort rport, Event&& event) noexcept;
+		[[nodiscard]] bool AddRelayEvent(const RelayPort rport, Event&& event) noexcept;
 
 	private:
 		void PreStartup() noexcept;
 		void ResetState() noexcept;
 
-		[[nodiscard]] const bool StartupThreadPool() noexcept;
+		[[nodiscard]] bool StartupThreadPool() noexcept;
 		void ShutdownThreadPool() noexcept;
 
 		const std::optional<ThreadKey> GetThreadKey(const RelayPort rport) const noexcept;
 
 		const std::optional<ThreadKey> GetThreadKeyWithLeastLinks() const noexcept;
-		[[nodiscard]] const bool MapRelayPortToThreadKey(const RelayPort rport) noexcept;
+		[[nodiscard]] bool MapRelayPortToThreadKey(const RelayPort rport) noexcept;
 		void UnMapRelayPortFromThreadKey(const RelayPort rport) noexcept;
 
-		[[nodiscard]] const bool Accept(const Events::Connect& rcevent, const PeerLUID out_peer) noexcept;
+		[[nodiscard]] bool Accept(const Events::Connect& rcevent, const PeerLUID out_peer) noexcept;
 
-		[[nodiscard]] const bool Add(const RelayPort rport, std::unique_ptr<Link_ThS>&& rl) noexcept;
+		[[nodiscard]] bool Add(const RelayPort rport, std::unique_ptr<Link_ThS>&& rl) noexcept;
 		void Remove(const std::list<RelayPort>& rlist) noexcept;
 		void DisconnectAndRemoveAll() noexcept;
 
@@ -104,20 +104,20 @@ namespace QuantumGate::Implementation::Core::Relay
 		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
 														  const Concurrency::EventCondition& shutdown_event);
 
-		const bool ProcessRelayConnect(Link& rc,
-									   Peer::Peer_ThS::UniqueLockedType& in_peer,
-									   Peer::Peer_ThS::UniqueLockedType& out_peer);
+		bool ProcessRelayConnect(Link& rc,
+								 Peer::Peer_ThS::UniqueLockedType& in_peer,
+								 Peer::Peer_ThS::UniqueLockedType& out_peer);
 
 		void ProcessRelayDisconnect(Link& rc,
 									Peer::Peer_ThS::UniqueLockedType& in_peer,
 									Peer::Peer_ThS::UniqueLockedType& out_peer) noexcept;
 
 		template<typename T>
-		[[nodiscard]] const bool ValidateEventOrigin(const T& event, const Link& rl) const noexcept;
+		[[nodiscard]] bool ValidateEventOrigin(const T& event, const Link& rl) const noexcept;
 
-		const bool ProcessRelayEvent(const Events::Connect& event) noexcept;
-		const bool ProcessRelayEvent(const Events::StatusUpdate& event) noexcept;
-		const bool ProcessRelayEvent(Events::RelayData& event) noexcept;
+		bool ProcessRelayEvent(const Events::Connect& event) noexcept;
+		bool ProcessRelayEvent(const Events::StatusUpdate& event) noexcept;
+		bool ProcessRelayEvent(Events::RelayData& event) noexcept;
 
 	private:
 		std::atomic_bool m_Running{ false };

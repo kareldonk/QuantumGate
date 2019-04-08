@@ -46,7 +46,7 @@ std::unique_ptr<Data_ThS> MakePeerData(const IPEndpoint& peer_endpoint, const Qu
 	return peer_data;
 }
 
-const bool CheckExpectedPeers(const Vector<PeerLUID>& peers, const Vector<PeerLUID>& expected_peers)
+bool CheckExpectedPeers(const Vector<PeerLUID>& peers, const Vector<PeerLUID>& expected_peers)
 {
 	for (const auto peer : peers)
 	{

@@ -29,9 +29,9 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 		inline void Reset() noexcept { m_State = false; }
-		inline const bool IsSet() const noexcept { return m_State; }
+		inline bool IsSet() const noexcept { return m_State; }
 		
-		const bool Wait(const std::chrono::milliseconds& ms)
+		bool Wait(const std::chrono::milliseconds& ms)
 		{
 			DummyMutex mtx;
 			return m_Condition.wait_for(mtx, ms, [&]() noexcept -> bool { return m_State; });

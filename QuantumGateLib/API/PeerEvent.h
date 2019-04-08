@@ -40,7 +40,7 @@ namespace QuantumGate::API
 		[[nodiscard]] QuantumGate::Implementation::Core::Peer::Event* GetEvent() noexcept;
 		[[nodiscard]] const QuantumGate::Implementation::Core::Peer::Event* GetEvent() const noexcept;
 		
-		[[nodiscard]] const bool HasEvent() const noexcept;
+		[[nodiscard]] bool HasEvent() const noexcept;
 		void SetHasEvent(const bool flag) noexcept;
 
 		void Reset() noexcept;

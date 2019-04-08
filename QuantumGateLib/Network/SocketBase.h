@@ -51,14 +51,14 @@ namespace QuantumGate::Implementation::Network
 			inline void SetException(const bool state) noexcept { Set(StatusType::Exception, state); }
 			inline void SetErrorCode(const Int errorcode) noexcept { ErrorCode = errorcode; }
 
-			inline const bool IsOpen() const noexcept { return IsSet(StatusType::Open); }
-			inline const bool IsConnecting() const noexcept { return IsSet(StatusType::Connecting); }
-			inline const bool IsConnected() const noexcept { return IsSet(StatusType::Connected); }
-			inline const bool IsListening() const noexcept { return IsSet(StatusType::Listening); }
-			inline const bool CanRead() const noexcept { return IsSet(StatusType::Read); }
-			inline const bool CanWrite() const noexcept { return IsSet(StatusType::Write); }
-			inline const bool HasException() const noexcept { return IsSet(StatusType::Exception); }
-			inline const Int GetErrorCode() const noexcept { return ErrorCode; }
+			inline bool IsOpen() const noexcept { return IsSet(StatusType::Open); }
+			inline bool IsConnecting() const noexcept { return IsSet(StatusType::Connecting); }
+			inline bool IsConnected() const noexcept { return IsSet(StatusType::Connected); }
+			inline bool IsListening() const noexcept { return IsSet(StatusType::Listening); }
+			inline bool CanRead() const noexcept { return IsSet(StatusType::Read); }
+			inline bool CanWrite() const noexcept { return IsSet(StatusType::Write); }
+			inline bool HasException() const noexcept { return IsSet(StatusType::Exception); }
+			inline Int GetErrorCode() const noexcept { return ErrorCode; }
 
 			inline void Reset() noexcept
 			{
@@ -72,7 +72,7 @@ namespace QuantumGate::Implementation::Network
 				Status.set(static_cast<Size>(status), state);
 			}
 
-			ForceInline const bool IsSet(const StatusType status) const noexcept
+			ForceInline bool IsSet(const StatusType status) const noexcept
 			{
 				return (Status.test(static_cast<Size>(status)));
 			}
@@ -84,7 +84,7 @@ namespace QuantumGate::Implementation::Network
 
 		using ConnectingCallback = Callback<void(void) noexcept>;
 		using AcceptCallback = Callback<void(void) noexcept>;
-		using ConnectCallback = Callback<const bool(void) noexcept>;
+		using ConnectCallback = Callback<bool(void) noexcept>;
 		using CloseCallback = Callback<void(void) noexcept>;
 
 		SocketBase() = default;
@@ -94,19 +94,19 @@ namespace QuantumGate::Implementation::Network
 		SocketBase& operator=(const SocketBase&) = default;
 		SocketBase& operator=(SocketBase&&) = default;
 
-		virtual const bool BeginConnect(const IPEndpoint& endpoint) noexcept = 0;
-		virtual const bool CompleteConnect() noexcept = 0;
+		virtual bool BeginConnect(const IPEndpoint& endpoint) noexcept = 0;
+		virtual bool CompleteConnect() noexcept = 0;
 
-		virtual const bool Send(Buffer& buffer) noexcept = 0;
-		virtual const bool SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept = 0;
-		virtual const bool Receive(Buffer& buffer) noexcept = 0;
-		virtual const bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept = 0;
+		virtual bool Send(Buffer& buffer) noexcept = 0;
+		virtual bool SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept = 0;
+		virtual bool Receive(Buffer& buffer) noexcept = 0;
+		virtual bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept = 0;
 
 		virtual void Close(const bool linger = false) noexcept = 0;
 
 		virtual const IOStatus& GetIOStatus() const noexcept = 0;
-		virtual const bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
-										  const IOStatus::Update ioupdate = IOStatus::Update::All) noexcept = 0;
+		virtual bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
+									const IOStatus::Update ioupdate = IOStatus::Update::All) noexcept = 0;
 
 		virtual const SystemTime GetConnectedTime() const noexcept = 0;
 		virtual const SteadyTime& GetConnectedSteadyTime() const noexcept = 0;

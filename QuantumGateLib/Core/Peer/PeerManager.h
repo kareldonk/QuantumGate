@@ -56,13 +56,13 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		const Settings& GetSettings() const noexcept;
 
-		const bool Startup() noexcept;
+		bool Startup() noexcept;
 		void Shutdown() noexcept;
-		[[nodiscard]] inline const bool IsRunning() const noexcept { return m_Running; }
+		[[nodiscard]] inline bool IsRunning() const noexcept { return m_Running; }
 
-		const bool StartupRelays() noexcept;
-		const void ShutdownRelays() noexcept;
-		[[nodiscard]] inline const bool AreRelaysRunning() const noexcept { return m_RelayManager.IsRunning(); }
+		bool StartupRelays() noexcept;
+		void ShutdownRelays() noexcept;
+		[[nodiscard]] inline bool AreRelaysRunning() const noexcept { return m_RelayManager.IsRunning(); }
 
 		std::shared_ptr<Peer_ThS> Get(const PeerLUID pluid) const noexcept;
 
@@ -74,7 +74,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		std::shared_ptr<Peer_ThS> CreateRelay(const PeerConnectionType pctype,
 											  std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
-		const bool Accept(std::shared_ptr<Peer_ThS>& peerths) noexcept;
+		bool Accept(std::shared_ptr<Peer_ThS>& peerths) noexcept;
 
 		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params,
 													ConnectCallback&& function) noexcept;
@@ -93,9 +93,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		void PreStartupThreadPools() noexcept;
 		void ResetState() noexcept;
 
-		const bool StartupThreadPools() noexcept;
+		bool StartupThreadPools() noexcept;
 		void ShutdownThreadPools() noexcept;
-		const bool AddCallbacks() noexcept;
+		bool AddCallbacks() noexcept;
 		void RemoveCallbacks() noexcept;
 
 		inline Access::Manager& GetAccessManager() const noexcept { return m_AccessManager; }
@@ -115,13 +115,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		Result<bool> AreRelayIPsInSameNetwork(const BinaryIPAddress& ip,
 											  const Vector<BinaryIPAddress>& addresses) noexcept;
 
-		const bool Add(std::shared_ptr<Peer_ThS>& peerths) noexcept;
+		bool Add(std::shared_ptr<Peer_ThS>& peerths) noexcept;
 		void Remove(const Peer& peer) noexcept;
 		void Remove(const std::list<std::shared_ptr<Peer_ThS>>& peerlist) noexcept;
 		void RemoveAll() noexcept;
 
-		const bool DirectConnectTo(ConnectParameters&& params,
-								   ConnectCallback&& function) noexcept;
+		bool DirectConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept;
 
 		Result<std::pair<PeerLUID, bool>> RelayConnectTo(ConnectParameters&& params,
 														 ConnectCallback&& function) noexcept;
@@ -129,7 +128,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		void Disconnect(Peer& peer, const bool graceful) noexcept;
 		void DisconnectAndRemoveAll() noexcept;
 
-		const bool BroadcastExtenderUpdate();
+		bool BroadcastExtenderUpdate();
 
 		void OnAccessUpdate() noexcept;
 		void OnLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids, const bool added);

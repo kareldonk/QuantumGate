@@ -21,8 +21,8 @@ public:
 
 	std::optional<CString> BrowseForFile(HWND hwnd, const bool save) const noexcept;
 
-	const bool LoadKey(const String& path, ProtectedBuffer& key) const noexcept;
-	const bool SaveKey(const String& path, const ProtectedBuffer& key) const noexcept;
+	bool LoadKey(const String& path, ProtectedBuffer& key) const noexcept;
+	bool SaveKey(const String& path, const ProtectedBuffer& key) const noexcept;
 
 	int GetScaledWidth(const int width) const noexcept;
 	int GetScaledHeight(const int height) const noexcept;

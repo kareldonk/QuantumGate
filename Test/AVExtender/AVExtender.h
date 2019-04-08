@@ -30,8 +30,6 @@ namespace QuantumGate::AVExtender
 		Disconnected,
 		NeedAccept,
 		WaitingForAccept,
-		Cancelled,
-		Error,
 		Connected
 	};
 
@@ -43,25 +41,27 @@ namespace QuantumGate::AVExtender
 		Call() noexcept {};
 		~Call() {};
 
-		void SetStatus(const CallStatus status) noexcept;
-		inline const CallStatus GetStatus() const noexcept { return m_Status; }
-		const WChar* GetStatusString() const noexcept;
+		[[nodiscard]] bool SetStatus(const CallStatus status) noexcept;
+		[[nodiscard]] inline const CallStatus GetStatus() const noexcept { return m_Status; }
+		[[nodiscard]] const WChar* GetStatusString() const noexcept;
 
-		const bool IsInCall() const noexcept;
+		[[nodiscard]] bool BeginCall() noexcept;
+		[[nodiscard]] bool CancelCall() noexcept;
+		[[nodiscard]] bool IsInCall() const noexcept;
 
 		inline void SetType(const CallType type) noexcept { m_Type = type; }
-		inline CallType GetType() const noexcept { return m_Type; }
-		inline CallID GetID() const noexcept { return m_ID; }
+		[[nodiscard]] inline CallType GetType() const noexcept { return m_Type; }
+		[[nodiscard]] inline CallID GetID() const noexcept { return m_ID; }
 
-		inline SteadyTime GetLastActiveSteadyTime() const noexcept { return m_LastActiveSteadyTime; }
-		inline SteadyTime GetStartSteadyTime() const noexcept { return m_StartSteadyTime; }
-		std::chrono::milliseconds GetDuration() const noexcept;
+		[[nodiscard]] inline SteadyTime GetLastActiveSteadyTime() const noexcept { return m_LastActiveSteadyTime; }
+		[[nodiscard]] inline SteadyTime GetStartSteadyTime() const noexcept { return m_StartSteadyTime; }
+		[[nodiscard]] std::chrono::milliseconds GetDuration() const noexcept;
 
 		inline void SetSendVideo(const bool send) noexcept { m_SendVideo = send; }
-		inline const bool GetSendVideo() const noexcept { return m_SendVideo; }
+		[[nodiscard]] inline bool GetSendVideo() const noexcept { return m_SendVideo; }
 
 		inline void SetSendAudio(const bool send) noexcept { m_SendAudio = send; }
-		inline const bool GetSendAudio() const noexcept { return m_SendAudio; }
+		[[nodiscard]] inline bool GetSendAudio() const noexcept { return m_SendAudio; }
 
 	private:
 		CallType m_Type{ CallType::None };
@@ -106,14 +106,14 @@ namespace QuantumGate::AVExtender
 		virtual ~Extender();
 
 		inline void SetUseCompression(const bool compression) noexcept { m_UseCompression = compression; }
-		inline const bool IsUsingCompression() const noexcept { return m_UseCompression; }
+		[[nodiscard]] inline bool IsUsingCompression() const noexcept { return m_UseCompression; }
 
-		inline const Peers_ThS& GetPeers() const noexcept { return m_Peers; }
+		[[nodiscard]] inline const Peers_ThS& GetPeers() const noexcept { return m_Peers; }
 
-		const bool BeginCall(const PeerLUID pluid) noexcept;
+		[[nodiscard]] bool BeginCall(const PeerLUID pluid) noexcept;
 
 	protected:
-		const bool OnStartup();
+		bool OnStartup();
 		void OnPostStartup();
 		void OnPreShutdown();
 		void OnShutdown();
@@ -124,12 +124,12 @@ namespace QuantumGate::AVExtender
 		static void WorkerThreadLoop(Extender* extender);
 
 		template<typename Func>
-		const bool IfHasCall(const PeerLUID pluid, const CallID id, Func&& func);
+		bool IfHasCall(const PeerLUID pluid, const CallID id, Func&& func);
 
 		template<typename Func>
-		const bool IfNotHasCall(const PeerLUID pluid, Func&& func);
+		bool IfNotHasCall(const PeerLUID pluid, Func&& func);
 
-		const bool SendCallRequest(const PeerLUID pluid, Call& call);
+		[[nodiscard]] bool SendCallRequest(const PeerLUID pluid, Call& call);
 
 	public:
 		inline static constexpr ExtenderUUID UUID{ 0x10a86749, 0x7e9e, 0x297d, 0x1e1c3a7ddc723f66 };

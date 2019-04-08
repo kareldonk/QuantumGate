@@ -15,7 +15,7 @@ Stress::ExtenderStartupShutdownStressData Stress::m_ExtenderStartupShutdownStres
 Stress::ConnectStressData Stress::m_ConnectStressData;
 Stress::MultiInstanceStressData Stress::m_MultiInstanceStressData;
 
-const bool Stress::StartExtenderStartupShutdownStress(Local& qg)
+bool Stress::StartExtenderStartupShutdownStress(Local& qg)
 {
 	if (!m_ExtenderStartupShutdownStressData.Thread.joinable())
 	{
@@ -70,8 +70,8 @@ void Stress::ExtenderStartupShutdownStressThreadProc(Local* qg)
 	}
 }
 
-const bool Stress::StartConnectStress(Local& qg, const CString& ip, const UInt16 port, const RelayHop hops,
-									  const std::optional<PeerLUID>& rpeer, const ProtectedBuffer& gsecret)
+bool Stress::StartConnectStress(Local& qg, const CString& ip, const UInt16 port, const RelayHop hops,
+								const std::optional<PeerLUID>& rpeer, const ProtectedBuffer& gsecret)
 {
 	if (!m_ConnectStressData.Thread.joinable())
 	{
@@ -154,8 +154,8 @@ void Stress::ConnectStressThreadProc(Local* qg)
 	}
 }
 
-const bool Stress::StartMultiInstanceStress(const StartupParameters& startup_params,
-											const CString& ip, const UInt16 port, const ProtectedBuffer& gsecret)
+bool Stress::StartMultiInstanceStress(const StartupParameters& startup_params,
+									  const CString& ip, const UInt16 port, const ProtectedBuffer& gsecret)
 {
 	if (!m_MultiInstanceStressData.Thread.joinable())
 	{

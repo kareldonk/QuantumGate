@@ -181,7 +181,7 @@ namespace QuantumGate::Implementation::Core::Access
 		m_IPSubnetLimitDetails.clear();
 	}
 
-	const bool IPSubnetLimits::HasLimit(const IPAddress::Family af, const UInt8 cidr_lbits) const noexcept
+	bool IPSubnetLimits::HasLimit(const IPAddress::Family af, const UInt8 cidr_lbits) const noexcept
 	{
 		auto subnets = GetSubnets(af);
 		if (subnets != nullptr) return (subnets->Limits.find(cidr_lbits) != subnets->Limits.end());
@@ -189,7 +189,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	const bool IPSubnetLimits::AddConnection(const IPAddress& ip) noexcept
+	bool IPSubnetLimits::AddConnection(const IPAddress& ip) noexcept
 	{
 		auto subnets = GetSubnets(ip.GetFamily());
 		if (subnets != nullptr && CanAcceptConnection(subnets->Limits, ip))
@@ -214,7 +214,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	const bool IPSubnetLimits::RemoveConnection(const IPAddress& ip) noexcept
+	bool IPSubnetLimits::RemoveConnection(const IPAddress& ip) noexcept
 	{
 		auto subnets = GetSubnets(ip.GetFamily());
 		if (subnets != nullptr)
@@ -228,7 +228,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	const bool IPSubnetLimits::AddSubnetConnection(IPSubnetConnectionMap& connections, const IPAddress& ip) noexcept
+	bool IPSubnetLimits::AddSubnetConnection(IPSubnetConnectionMap& connections, const IPAddress& ip) noexcept
 	{
 		try
 		{
@@ -261,7 +261,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	const bool IPSubnetLimits::RemoveSubnetConnection(IPSubnetConnectionMap& connections, const IPAddress& ip) noexcept
+	bool IPSubnetLimits::RemoveSubnetConnection(IPSubnetConnectionMap& connections, const IPAddress& ip) noexcept
 	{
 		const auto it = connections.find(ip.GetBinary());
 		if (it != connections.end())
@@ -283,7 +283,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	const bool IPSubnetLimits::AddLimitsConnection(const IPSubnetLimitMap& limits, const IPAddress& ip) noexcept
+	bool IPSubnetLimits::AddLimitsConnection(const IPSubnetLimitMap& limits, const IPAddress& ip) noexcept
 	{
 		try
 		{
@@ -325,8 +325,8 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	const bool IPSubnetLimits::AddLimitConnection(const IPSubnetLimitImpl& limit, const IPAddress& ip,
-												  const Size num, const bool allow_overflow) noexcept
+	bool IPSubnetLimits::AddLimitConnection(const IPSubnetLimitImpl& limit, const IPAddress& ip,
+											const Size num, const bool allow_overflow) noexcept
 	{
 		try
 		{
@@ -372,7 +372,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	const bool IPSubnetLimits::RemoveLimitsConnection(const IPSubnetLimitMap& limits, const IPAddress& ip) noexcept
+	bool IPSubnetLimits::RemoveLimitsConnection(const IPSubnetLimitMap& limits, const IPAddress& ip) noexcept
 	{
 		auto success = true;
 
@@ -387,7 +387,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return success;
 	}
 
-	const bool IPSubnetLimits::RemoveLimitConnection(const IPSubnetLimitImpl& limit, const IPAddress& ip) noexcept
+	bool IPSubnetLimits::RemoveLimitConnection(const IPSubnetLimitImpl& limit, const IPAddress& ip) noexcept
 	{
 		const auto subnet = ip.GetBinary() & limit.SubnetMask;
 
@@ -422,7 +422,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return true;
 	}
 
-	const bool IPSubnetLimits::HasConnectionOverflow(const IPAddress& ip) const noexcept
+	bool IPSubnetLimits::HasConnectionOverflow(const IPAddress& ip) const noexcept
 	{
 		auto overflow = false;
 
@@ -449,7 +449,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return overflow;
 	}
 
-	const bool IPSubnetLimits::CanAcceptConnection(const IPAddress& ip) const noexcept
+	bool IPSubnetLimits::CanAcceptConnection(const IPAddress& ip) const noexcept
 	{
 		auto subnets = GetSubnets(ip.GetFamily());
 		if (subnets != nullptr)
@@ -460,7 +460,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	const bool IPSubnetLimits::CanAcceptConnection(const IPSubnetLimitMap& map, const IPAddress& ip) const noexcept
+	bool IPSubnetLimits::CanAcceptConnection(const IPSubnetLimitMap& map, const IPAddress& ip) const noexcept
 	{
 		auto success = true;
 

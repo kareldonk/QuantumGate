@@ -24,7 +24,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return m_Settings.GetCache();
 	}
 
-	const bool Manager::Startup() noexcept
+	bool Manager::Startup() noexcept
 	{
 		if (m_Running) return true;
 
@@ -61,17 +61,17 @@ namespace QuantumGate::Implementation::Core::Peer
 		LogSys(L"Peermanager shut down");
 	}
 
-	const bool Manager::StartupRelays() noexcept
+	bool Manager::StartupRelays() noexcept
 	{
 		return m_RelayManager.Startup();
 	}
 
-	const void Manager::ShutdownRelays() noexcept
+	void Manager::ShutdownRelays() noexcept
 	{
 		m_RelayManager.Shutdown();
 	}
 
-	const bool Manager::StartupThreadPools() noexcept
+	bool Manager::StartupThreadPools() noexcept
 	{
 		PreStartupThreadPools();
 
@@ -199,7 +199,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		m_ThreadPools.clear();
 	}
 
-	const bool Manager::AddCallbacks() noexcept
+	bool Manager::AddCallbacks() noexcept
 	{
 		auto success = true;
 
@@ -467,7 +467,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return nullptr;
 	}
 
-	const bool Manager::Add(std::shared_ptr<Peer_ThS>& peerths) noexcept
+	bool Manager::Add(std::shared_ptr<Peer_ThS>& peerths) noexcept
 	{
 		auto success = false;
 
@@ -644,7 +644,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		RemoveAll();
 	}
 
-	const bool Manager::Accept(std::shared_ptr<Peer_ThS>& peerths) noexcept
+	bool Manager::Accept(std::shared_ptr<Peer_ThS>& peerths) noexcept
 	{
 		return Add(peerths);
 	}
@@ -718,7 +718,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result_code;
 	}
 
-	const bool Manager::DirectConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept
+	bool Manager::DirectConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept
 	{
 		auto success = false;
 
@@ -1015,7 +1015,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::Failed;
 	}
 
-	const bool Manager::BroadcastExtenderUpdate()
+	bool Manager::BroadcastExtenderUpdate()
 	{
 		// If there are no connections, don't bother
 		if (m_AllPeers.Count == 0) return true;

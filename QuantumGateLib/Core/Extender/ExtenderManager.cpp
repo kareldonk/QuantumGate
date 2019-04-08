@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	Manager::Manager(const Settings_CThS& settings) noexcept : m_Settings(settings)
 	{}
 
-	const bool Manager::Startup() noexcept
+	bool Manager::Startup() noexcept
 	{
 		if (m_Running) return true;
 
@@ -48,7 +48,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		LogSys(L"Extendermanager shut down");
 	}
 
-	const bool Manager::StartExtenders() noexcept
+	bool Manager::StartExtenders() noexcept
 	{
 		auto success = true;
 
@@ -278,7 +278,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		return result_code;
 	}
 
-	const bool Manager::StartExtender(Control_ThS& extctrl_ths, const bool update_active)
+	bool Manager::StartExtender(Control_ThS& extctrl_ths, const bool update_active)
 	{
 		auto success = false;
 		const auto extname = Control::GetExtenderName(extctrl_ths.WithSharedLock()->GetExtender());
@@ -390,7 +390,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		return result_code;
 	}
 
-	const bool Manager::ShutdownExtender(Control_ThS& extctrl_ths, const bool update_active)
+	bool Manager::ShutdownExtender(Control_ThS& extctrl_ths, const bool update_active)
 	{
 		auto success = false;
 		const auto extname = Control::GetExtenderName(extctrl_ths.WithSharedLock()->GetExtender());
@@ -554,7 +554,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		return result_code;
 	}
 
-	const bool Manager::HasExtender(const ExtenderUUID& extuuid) const noexcept
+	bool Manager::HasExtender(const ExtenderUUID& extuuid) const noexcept
 	{
 		auto found = false;
 

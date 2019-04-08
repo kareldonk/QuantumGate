@@ -26,7 +26,7 @@ namespace QuantumGate::Implementation::Core
 		Dbg(L"MsgTOHdr Nonce seed: %u : 0b%s", m_MessageNonceSeed, Util::ToBinaryString(m_MessageNonceSeed).c_str());
 	}
 
-	const bool MessageTransport::OHeader::Read(const BufferView& buffer)
+	bool MessageTransport::OHeader::Read(const BufferView& buffer)
 	{
 		assert(buffer.GetSize() >= OHeader::GetSize());
 
@@ -44,7 +44,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool MessageTransport::OHeader::Write(Buffer& buffer) const noexcept
+	bool MessageTransport::OHeader::Write(Buffer& buffer) const noexcept
 	{
 		const auto size = ObfuscateMessageDataSize(m_MessageDataSizeSettings, m_MessageRandomBits, m_MessageDataSize);
 
@@ -105,7 +105,7 @@ namespace QuantumGate::Implementation::Core
 		m_MessageTime = Util::ToTimeT(Util::GetCurrentSystemTime());
 	}
 
-	const bool MessageTransport::IHeader::Read(const BufferView& buffer) noexcept
+	bool MessageTransport::IHeader::Read(const BufferView& buffer) noexcept
 	{
 		assert(buffer.GetSize() >= IHeader::GetSize());
 
@@ -120,7 +120,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool MessageTransport::IHeader::Write(Buffer& buffer) const noexcept
+	bool MessageTransport::IHeader::Write(Buffer& buffer) const noexcept
 	{
 		try
 		{
@@ -320,7 +320,7 @@ namespace QuantumGate::Implementation::Core
 		return std::make_pair(success, retry);
 	}
 
-	const bool MessageTransport::Write(Buffer& buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce)
+	bool MessageTransport::Write(Buffer& buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce)
 	{
 		assert(!nonce.IsEmpty());
 

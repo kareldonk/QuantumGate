@@ -13,7 +13,7 @@ using namespace QuantumGate::Implementation::Network;
 
 namespace QuantumGate::Implementation::Core
 {
-	const bool PublicIPEndpoints::HopVerificationDetails::Verify(const bool has_locally_bound_pubip) noexcept
+	bool PublicIPEndpoints::HopVerificationDetails::Verify(const bool has_locally_bound_pubip) noexcept
 	{
 		// We ping the IP address with specific maximum number of hops to verify the
 		// distance on the network. If the distance is small it's more likely that the
@@ -56,7 +56,7 @@ namespace QuantumGate::Implementation::Core
 		m_IPAddress(ip), m_StartSteadyTime(Util::GetCurrentSteadyTime())
 	{}
 
-	const bool PublicIPEndpoints::DataVerificationDetails::InitializeSocket(const bool nat_traversal) noexcept
+	bool PublicIPEndpoints::DataVerificationDetails::InitializeSocket(const bool nat_traversal) noexcept
 	{
 		auto tries = 0u;
 
@@ -94,7 +94,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool PublicIPEndpoints::DataVerificationDetails::SendVerification() noexcept
+	bool PublicIPEndpoints::DataVerificationDetails::SendVerification() noexcept
 	{
 		// We send a random 64-bit number to the IP address and the port
 		// that we're listening on locally. If the IP address is ours the random
@@ -212,7 +212,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool PublicIPEndpoints::DataVerificationDetails::Verify(const bool nat_traversal) noexcept
+	bool PublicIPEndpoints::DataVerificationDetails::Verify(const bool nat_traversal) noexcept
 	{
 		if (m_Status == Status::Initialized)
 		{
@@ -258,7 +258,7 @@ namespace QuantumGate::Implementation::Core
 		return true;
 	}
 
-	const bool PublicIPEndpoints::Initialize() noexcept
+	bool PublicIPEndpoints::Initialize() noexcept
 	{
 		assert(!m_Initialized);
 
@@ -442,7 +442,7 @@ namespace QuantumGate::Implementation::Core
 		return std::make_pair(true, didwork);
 	}
 
-	const bool PublicIPEndpoints::AddIPAddressDataVerification(const BinaryIPAddress& ip) noexcept
+	bool PublicIPEndpoints::AddIPAddressDataVerification(const BinaryIPAddress& ip) noexcept
 	{
 		try
 		{
@@ -480,7 +480,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool PublicIPEndpoints::AddIPAddressHopVerification(const BinaryIPAddress& ip) noexcept
+	bool PublicIPEndpoints::AddIPAddressHopVerification(const BinaryIPAddress& ip) noexcept
 	{
 		try
 		{
@@ -640,7 +640,7 @@ namespace QuantumGate::Implementation::Core
 		return std::make_pair(pub_ipd, new_insert);
 	}
 
-	const bool PublicIPEndpoints::RemoveLeastRelevantIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept
+	bool PublicIPEndpoints::RemoveLeastRelevantIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept
 	{
 		if (!ipendpoints.empty())
 		{
@@ -802,12 +802,12 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	const bool PublicIPEndpoints::IsNewReportingNetwork(const BinaryIPAddress& network) const noexcept
+	bool PublicIPEndpoints::IsNewReportingNetwork(const BinaryIPAddress& network) const noexcept
 	{
 		return (m_ReportingNetworks.find(network) == m_ReportingNetworks.end());
 	}
 
-	const bool PublicIPEndpoints::AddReportingNetwork(const BinaryIPAddress& network, const bool trusted) noexcept
+	bool PublicIPEndpoints::AddReportingNetwork(const BinaryIPAddress& network, const bool trusted) noexcept
 	{
 		if (!IsNewReportingNetwork(network))
 		{

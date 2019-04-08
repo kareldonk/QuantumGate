@@ -26,8 +26,8 @@ namespace QuantumGate::Implementation::Core::Extender
 		inline const ExtenderUUID& GetUUID() const noexcept { return m_UUID; }
 		inline const String& GetName() const noexcept { return m_Name; }
 
-		inline const bool IsRunning() const noexcept { return m_Running; }
-		inline const bool HadException() const noexcept { return m_Exception; }
+		inline bool IsRunning() const noexcept { return m_Running; }
+		inline bool HadException() const noexcept { return m_Exception; }
 
 		Result<std::tuple<UInt, UInt, UInt, UInt>> GetLocalVersion() const noexcept;
 		Result<std::pair<UInt, UInt>> GetLocalProtocolVersion() const noexcept;
@@ -80,7 +80,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			return SetCallback(m_PeerMessageCallback, std::move(function));
 		}
 
-		[[nodiscard]] inline const bool OnBeginStartup() noexcept
+		[[nodiscard]] inline bool OnBeginStartup() noexcept
 		{
 			m_Exception = false;
 			
@@ -160,7 +160,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		const ExtenderUUID m_UUID;
 		const String m_Name{ L"Unknown" };
 
-		ExtenderStartupCallback m_StartupCallback{ []() mutable -> const bool { return true; } };
+		ExtenderStartupCallback m_StartupCallback{ []() mutable -> bool { return true; } };
 		ExtenderPostStartupCallback m_PostStartupCallback{ []() mutable {} };
 		ExtenderPreShutdownCallback m_PreShutdownCallback{ []() mutable {} };
 		ExtenderShutdownCallback m_ShutdownCallback{ []() mutable {} };

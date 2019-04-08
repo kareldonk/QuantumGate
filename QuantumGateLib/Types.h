@@ -323,7 +323,7 @@ namespace QuantumGate
 	using ConnectCallback = Callback<void(PeerLUID, Result<ConnectDetails> result)>;
 	using DisconnectCallback = Callback<void(PeerLUID, PeerUUID)>;
 
-	using ExtenderStartupCallback = Callback<const bool(void)>;
+	using ExtenderStartupCallback = Callback<bool(void)>;
 	using ExtenderPostStartupCallback = Callback<void(void)>;
 	using ExtenderPreShutdownCallback = Callback<void(void)>;
 	using ExtenderShutdownCallback = Callback<void(void)>;

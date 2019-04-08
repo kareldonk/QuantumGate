@@ -13,8 +13,8 @@ using namespace std::literals;
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	const bool MessageProcessor::SendBeginRelay(const RelayPort rport, const IPEndpoint& endpoint,
-												const RelayHop hops) const noexcept
+	bool MessageProcessor::SendBeginRelay(const RelayPort rport, const IPEndpoint& endpoint,
+										  const RelayHop hops) const noexcept
 	{
 		Dbg(L"*********** SendBeginRelay ***********");
 
@@ -37,15 +37,15 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool MessageProcessor::SendEndRelay(const RelayPort rport) const noexcept
+	bool MessageProcessor::SendEndRelay(const RelayPort rport) const noexcept
 	{
 		Dbg(L"*********** SendEndRelay ***********");
 
 		return SendRelayStatus(rport, RelayStatusUpdate::Disconnected);
 	}
 
-	const bool MessageProcessor::SendRelayStatus(const RelayPort rport,
-												 const RelayStatusUpdate status) const noexcept
+	bool MessageProcessor::SendRelayStatus(const RelayPort rport,
+										   const RelayStatusUpdate status) const noexcept
 	{
 		Dbg(L"*********** SendRelayStatus ***********");
 
@@ -69,7 +69,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool MessageProcessor::SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept
+	bool MessageProcessor::SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept
 	{
 		BufferWriter wrt(true);
 		if (wrt.WriteWithPreallocation(rport, WithSize(buffer, MaxSize::_2MB)))

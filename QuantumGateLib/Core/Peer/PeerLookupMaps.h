@@ -33,11 +33,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		inline const IPMap& GetIPMap() const noexcept { return m_IPMap; }
 		inline const IPPortMap& GetIPPortMap() const noexcept { return m_IPPortMap; }
 
-		[[nodiscard]] const bool AddPeerData(const Data_ThS& data) noexcept;
-		[[nodiscard]] const bool RemovePeerData(const Data_ThS& data) noexcept;
+		[[nodiscard]] bool AddPeerData(const Data_ThS& data) noexcept;
+		[[nodiscard]] bool RemovePeerData(const Data_ThS& data) noexcept;
 		const Data_ThS* GetPeerData(const PeerLUID pluid) const noexcept;
 
-		[[nodiscard]] inline const bool IsEmpty() const noexcept
+		[[nodiscard]] inline bool IsEmpty() const noexcept
 		{
 			return (m_UUIDMap.empty() && m_IPMap.empty() && m_IPPortMap.empty() && m_PeerDataMap.empty());
 		}
@@ -61,9 +61,9 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		static const UInt64 GetIPPortHash(const IPEndpoint& endpoint) noexcept;
 
-		[[nodiscard]] static const bool HasLUID(const PeerLUID pluid, const Vector<PeerLUID>& pluids) noexcept;
-		[[nodiscard]] static const bool HasIPPort(const UInt64 hash, const Vector<IPEndpoint>& endpoints) noexcept;
-		[[nodiscard]] static const bool HasIP(const BinaryIPAddress& ip, const Vector<BinaryIPAddress>& addresses) noexcept;
+		[[nodiscard]] static bool HasLUID(const PeerLUID pluid, const Vector<PeerLUID>& pluids) noexcept;
+		[[nodiscard]] static bool HasIPPort(const UInt64 hash, const Vector<IPEndpoint>& endpoints) noexcept;
+		[[nodiscard]] static bool HasIP(const BinaryIPAddress& ip, const Vector<BinaryIPAddress>& addresses) noexcept;
 
 		static Result<bool> AreIPsInSameNetwork(const BinaryIPAddress& ip, const Vector<BinaryIPAddress>& addresses,
 												const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept;
@@ -72,20 +72,20 @@ namespace QuantumGate::Implementation::Core::Peer
 												const UInt8 cidr_lbits4, const UInt8 cidr_lbits6) noexcept;
 
 	private:
-		[[nodiscard]] const bool AddPeer(const PeerLUID pluid, const PeerUUID uuid) noexcept;
-		[[nodiscard]] const bool RemovePeer(const PeerLUID pluid, const PeerUUID uuid) noexcept;
+		[[nodiscard]] bool AddPeer(const PeerLUID pluid, const PeerUUID uuid) noexcept;
+		[[nodiscard]] bool RemovePeer(const PeerLUID pluid, const PeerUUID uuid) noexcept;
 
-		[[nodiscard]] const bool AddPeer(const PeerLUID pluid, const IPEndpoint& endpoint) noexcept;
-		[[nodiscard]] const bool RemovePeer(const PeerLUID pluid, const IPEndpoint& endpoint) noexcept;
+		[[nodiscard]] bool AddPeer(const PeerLUID pluid, const IPEndpoint& endpoint) noexcept;
+		[[nodiscard]] bool RemovePeer(const PeerLUID pluid, const IPEndpoint& endpoint) noexcept;
 
-		[[nodiscard]] const bool AddPeer(const PeerLUID pluid, const BinaryIPAddress& ip) noexcept;
-		[[nodiscard]] const bool RemovePeer(const PeerLUID pluid, const BinaryIPAddress& ip) noexcept;
+		[[nodiscard]] bool AddPeer(const PeerLUID pluid, const BinaryIPAddress& ip) noexcept;
+		[[nodiscard]] bool RemovePeer(const PeerLUID pluid, const BinaryIPAddress& ip) noexcept;
 
-		[[nodiscard]] const bool AddPeer(const PeerLUID pluid, const UInt64 hash) noexcept;
-		[[nodiscard]] const bool RemovePeer(const PeerLUID pluid, const UInt64 hash) noexcept;
+		[[nodiscard]] bool AddPeer(const PeerLUID pluid, const UInt64 hash) noexcept;
+		[[nodiscard]] bool RemovePeer(const PeerLUID pluid, const UInt64 hash) noexcept;
 
-		[[nodiscard]] const bool AddLUID(const PeerLUID pluid, LUIDVector& pluids) const noexcept;
-		[[nodiscard]] const bool RemoveLUID(const PeerLUID pluid, LUIDVector& pluids) const noexcept;
+		[[nodiscard]] bool AddLUID(const PeerLUID pluid, LUIDVector& pluids) const noexcept;
+		[[nodiscard]] bool RemoveLUID(const PeerLUID pluid, LUIDVector& pluids) const noexcept;
 
 	private:
 		UUIDMap m_UUIDMap;

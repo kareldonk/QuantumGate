@@ -43,15 +43,15 @@ namespace QuantumGate::Implementation::Core::Listener
 		Manager& operator=(const Manager&) = delete;
 		Manager& operator=(Manager&&) = default;
 
-		[[nodiscard]] const bool Startup() noexcept;
-		[[nodiscard]] const bool Startup(const Vector<EthernetInterface>& interfaces) noexcept;
+		[[nodiscard]] bool Startup() noexcept;
+		[[nodiscard]] bool Startup(const Vector<EthernetInterface>& interfaces) noexcept;
 		void Shutdown() noexcept;
-		[[nodiscard]] inline const bool IsRunning() const noexcept { return m_Running; }
+		[[nodiscard]] inline bool IsRunning() const noexcept { return m_Running; }
 
-		[[nodiscard]] const bool AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
-													const bool cond_accept, const bool nat_traversal) noexcept;
+		[[nodiscard]] bool AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
+											  const bool cond_accept, const bool nat_traversal) noexcept;
 		std::optional<ThreadPool::Thread> RemoveListenerThread(ThreadPool::Thread&& thread) noexcept;
-		[[nodiscard]] const bool Update(const Vector<EthernetInterface>& interfaces) noexcept;
+		[[nodiscard]] bool Update(const Vector<EthernetInterface>& interfaces) noexcept;
 
 	private:
 		void PreStartup() noexcept;
@@ -62,7 +62,7 @@ namespace QuantumGate::Implementation::Core::Listener
 
 		void AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept;
 
-		[[nodiscard]] const bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
+		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
 
 		static int CALLBACK AcceptConditionFunction(LPWSABUF lpCallerId, LPWSABUF lpCallerData, LPQOS lpSQOS,
 													LPQOS lpGQOS, LPWSABUF lpCalleeId, LPWSABUF lpCalleeData,

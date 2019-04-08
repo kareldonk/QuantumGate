@@ -751,7 +751,7 @@ void CTestAppDlg::OnLocalInitialize()
 	UpdateControls();
 }
 
-const bool CTestAppDlg::GenerateGlobalSharedSecret(CString& passphrase, ProtectedBuffer& buffer) const noexcept
+bool CTestAppDlg::GenerateGlobalSharedSecret(CString& passphrase, ProtectedBuffer& buffer) const noexcept
 {
 	ProtectedBuffer pbuf(reinterpret_cast<Byte*>(passphrase.GetBuffer()), passphrase.GetLength() * sizeof(wchar_t));
 

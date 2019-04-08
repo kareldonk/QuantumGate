@@ -36,7 +36,7 @@ HandshakeExtender::HandshakeExtender() :
 HandshakeExtender::~HandshakeExtender()
 {}
 
-const bool HandshakeExtender::OnStartup()
+bool HandshakeExtender::OnStartup()
 {
 	// This function gets called by the QuantumGate instance to notify
 	// an extender to initialize and startup

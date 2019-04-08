@@ -82,13 +82,13 @@ namespace QuantumGate::Implementation::Concurrency
 				return *this;
 			}
 
-			inline const bool operator==(const T& other) const noexcept
+			inline bool operator==(const T& other) const noexcept
 			{
 				assert(*this);
 				return (m_ThS->m_Data == other);
 			}
 
-			inline const bool operator!=(const T& other) const noexcept
+			inline bool operator!=(const T& other) const noexcept
 			{
 				assert(*this);
 				return !(m_ThS->m_Data == other);
@@ -184,9 +184,9 @@ namespace QuantumGate::Implementation::Concurrency
 
 		template<typename F, typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock)>>>
-		inline const bool IfUniqueLock(F&& function) noexcept(noexcept(m_Mutex.try_lock()) &&
-															  noexcept(function(m_Data)) &&
-															  noexcept(m_Mutex.unlock()))
+		inline bool IfUniqueLock(F&& function) noexcept(noexcept(m_Mutex.try_lock()) &&
+														noexcept(function(m_Data)) &&
+														noexcept(m_Mutex.unlock()))
 		{
 			if (m_Mutex.try_lock())
 			{
@@ -200,9 +200,9 @@ namespace QuantumGate::Implementation::Concurrency
 
 		template<typename F, typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock)>>>
-		inline const bool IfUniqueLock(F&& function) const noexcept(noexcept(m_Mutex.try_lock()) &&
-																	noexcept(function(m_Data)) &&
-																	noexcept(m_Mutex.unlock()))
+		inline bool IfUniqueLock(F&& function) const noexcept(noexcept(m_Mutex.try_lock()) &&
+															  noexcept(function(m_Data)) &&
+															  noexcept(m_Mutex.unlock()))
 		{
 			if (m_Mutex.try_lock())
 			{
@@ -216,8 +216,8 @@ namespace QuantumGate::Implementation::Concurrency
 
 		template<typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock)>>>
-		inline const bool TryUniqueLock(UniqueLockedType& value) noexcept(noexcept(m_Mutex.try_lock()) &&
-																		  noexcept(UniqueLockedType(this, std::adopt_lock)))
+		inline bool TryUniqueLock(UniqueLockedType& value) noexcept(noexcept(m_Mutex.try_lock()) &&
+																	noexcept(UniqueLockedType(this, std::adopt_lock)))
 		{
 			if (m_Mutex.try_lock())
 			{
@@ -230,8 +230,8 @@ namespace QuantumGate::Implementation::Concurrency
 
 		template<typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock)>>>
-		inline const bool TryUniqueLock(UniqueLockedConstType& value) const noexcept(noexcept(m_Mutex.try_lock()) &&
-																					 noexcept(UniqueLockedConstType(this, std::adopt_lock)))
+		inline bool TryUniqueLock(UniqueLockedConstType& value) const noexcept(noexcept(m_Mutex.try_lock()) &&
+																			   noexcept(UniqueLockedConstType(this, std::adopt_lock)))
 		{
 			if (m_Mutex.try_lock())
 			{
@@ -258,9 +258,9 @@ namespace QuantumGate::Implementation::Concurrency
 
 		template<typename F, typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock_shared)>>>
-		inline const bool IfSharedLock(F&& function) const noexcept(noexcept(m_Mutex.try_lock_shared()) &&
-																	noexcept(function(m_Data)) &&
-																	noexcept(m_Mutex.unlock_shared()))
+		inline bool IfSharedLock(F&& function) const noexcept(noexcept(m_Mutex.try_lock_shared()) &&
+															  noexcept(function(m_Data)) &&
+															  noexcept(m_Mutex.unlock_shared()))
 		{
 			if (m_Mutex.try_lock_shared())
 			{

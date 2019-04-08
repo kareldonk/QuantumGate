@@ -45,7 +45,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		m_ThreadPools.clear();
 	}
 
-	const bool Control::StartupExtenderThreadPools() noexcept
+	bool Control::StartupExtenderThreadPools() noexcept
 	{
 		PreStartupExtenderThreadPools();
 
@@ -225,7 +225,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		return std::make_pair(true, didwork);
 	}
 
-	const bool Control::AddPeerEvent(Core::Peer::Event&& event) noexcept
+	bool Control::AddPeerEvent(Core::Peer::Event&& event) noexcept
 	{
 		assert(event.GetType() != PeerEventType::Unknown);
 

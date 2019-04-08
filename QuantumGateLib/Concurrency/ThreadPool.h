@@ -83,7 +83,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 			const std::thread::id GetID() const noexcept { return m_ThreadIterator->Thread.get_id(); }
 			const String& GetName() const noexcept { return m_ThreadIterator->ThreadName; }
-			[[nodiscard]] const bool IsRunning() const noexcept { return m_ThreadIterator->Thread.joinable(); }
+			[[nodiscard]] bool IsRunning() const noexcept { return m_ThreadIterator->Thread.joinable(); }
 
 			template<typename U = ThData, typename = std::enable_if_t<has_thread_data<U>>>
 			ThData& GetData() noexcept { return m_ThreadIterator->ThreadData; }
@@ -111,7 +111,7 @@ namespace QuantumGate::Implementation::Concurrency
 			m_WorkerThreadsMaxSleep = max_sleep;
 		}
 
-		inline const bool IsRunning() const noexcept
+		inline bool IsRunning() const noexcept
 		{
 			// If at least one thread is active
 			// then threadpool is running
@@ -124,16 +124,16 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 		template<typename U = ThData, typename = std::enable_if_t<!has_thread_data<U>>>
-		[[nodiscard]] inline const bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
-												  EventCondition* thevent = nullptr, const bool event_reset = true) noexcept
+		[[nodiscard]] inline bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
+											EventCondition* thevent = nullptr, const bool event_reset = true) noexcept
 		{
 			return AddThreadImpl(thname, std::move(thcallback), NoThreadData{}, thevent, event_reset);
 		}
 
 		template<typename U = ThData, typename = std::enable_if_t<has_thread_data<U>>>
-		[[nodiscard]] inline const bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
-												  ThData&& thdata, EventCondition* thevent = nullptr,
-												  const bool event_reset = true) noexcept
+		[[nodiscard]] inline bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
+											ThData&& thdata, EventCondition* thevent = nullptr,
+											const bool event_reset = true) noexcept
 		{
 			return AddThreadImpl(thname, std::move(thcallback), std::move(thdata), thevent, event_reset);
 		}
@@ -178,7 +178,7 @@ namespace QuantumGate::Implementation::Concurrency
 			m_Threads.clear();
 		}
 
-		[[nodiscard]] const bool Startup() noexcept
+		[[nodiscard]] bool Startup() noexcept
 		{
 			assert(!IsRunning());
 
@@ -216,8 +216,8 @@ namespace QuantumGate::Implementation::Concurrency
 		inline const ThPData& GetData() const noexcept { return m_Data; }
 
 	private:
-		[[nodiscard]] const bool AddThreadImpl(const String& thname, ThreadCallbackType&& thcallback,
-											   ThData&& thdata, EventCondition* thevent, const bool event_reset) noexcept
+		[[nodiscard]] bool AddThreadImpl(const String& thname, ThreadCallbackType&& thcallback,
+										 ThData&& thdata, EventCondition* thevent, const bool event_reset) noexcept
 		{
 			assert(thcallback);
 
@@ -240,7 +240,7 @@ namespace QuantumGate::Implementation::Concurrency
 			return false;
 		}
 
-		const bool StartThread(ThreadCtrl& threadctrl, const bool event_reset = true) noexcept
+		bool StartThread(ThreadCtrl& threadctrl, const bool event_reset = true) noexcept
 		{
 			try
 			{

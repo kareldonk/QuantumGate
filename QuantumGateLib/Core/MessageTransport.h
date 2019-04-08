@@ -37,8 +37,8 @@ namespace QuantumGate::Implementation::Core
 
 			void Initialize() noexcept;
 
-			[[nodiscard]] const bool Read(const BufferView& buffer);
-			[[nodiscard]] const bool Write(Buffer& buffer) const noexcept;
+			[[nodiscard]] bool Read(const BufferView& buffer);
+			[[nodiscard]] bool Write(Buffer& buffer) const noexcept;
 
 			static constexpr Size GetSize() noexcept
 			{
@@ -81,8 +81,8 @@ namespace QuantumGate::Implementation::Core
 
 			void Initialize() noexcept;
 
-			[[nodiscard]] const bool Read(const BufferView& buffer) noexcept;
-			[[nodiscard]] const bool Write(Buffer& buffer) const noexcept;
+			[[nodiscard]] bool Read(const BufferView& buffer) noexcept;
+			[[nodiscard]] bool Write(Buffer& buffer) const noexcept;
 
 			static constexpr Size GetSize() noexcept
 			{
@@ -118,7 +118,7 @@ namespace QuantumGate::Implementation::Core
 		MessageTransport& operator=(const MessageTransport&) = delete;
 		MessageTransport& operator=(MessageTransport&&) = default;
 
-		[[nodiscard]] inline const bool IsValid() const noexcept { return m_Valid; }
+		[[nodiscard]] inline bool IsValid() const noexcept { return m_Valid; }
 
 		inline void SetMessageCounter(const UInt8 counter) noexcept { m_IHeader.SetMessageCounter(counter); }
 		inline const UInt8 GetMessageCounter() const noexcept { return m_IHeader.GetMessageCounter(); }
@@ -137,7 +137,7 @@ namespace QuantumGate::Implementation::Core
 		[[nodiscard]] const std::pair<bool, bool> Read(BufferView buffer, Crypto::SymmetricKeyData& symkey,
 													   const BufferView& nonce);
 
-		[[nodiscard]] const bool Write(Buffer& buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce);
+		[[nodiscard]] bool Write(Buffer& buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce);
 
 		static const MessageTransportCheck Peek(const UInt16 rndp_len, const DataSizeSettings mds_settings,
 												const Buffer& srcbuf) noexcept;

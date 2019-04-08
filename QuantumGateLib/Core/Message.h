@@ -74,10 +74,10 @@ namespace QuantumGate::Implementation::Core
 
 			Size GetSize() noexcept;
 
-			[[nodiscard]] const bool Read(const BufferView& buffer) noexcept;
-			[[nodiscard]] const bool Write(Buffer& buffer) const noexcept;
+			[[nodiscard]] bool Read(const BufferView& buffer) noexcept;
+			[[nodiscard]] bool Write(Buffer& buffer) const noexcept;
 
-			[[nodiscard]] inline const bool IsCompressed() const noexcept
+			[[nodiscard]] inline bool IsCompressed() const noexcept
 			{
 				return (m_MessageFlags & static_cast<UInt8>(MessageFlag::Compressed));
 			}
@@ -128,7 +128,7 @@ namespace QuantumGate::Implementation::Core
 		Message& operator=(const Message&) = delete;
 		Message& operator=(Message&&) = default;
 
-		[[nodiscard]] inline const bool IsValid() const noexcept { return m_Valid; }
+		[[nodiscard]] inline bool IsValid() const noexcept { return m_Valid; }
 
 		inline const MessageType GetMessageType() const noexcept { return m_Header.GetMessageType(); }
 		inline const MessageFragmentType GetMessageFragmentType() const noexcept { return m_Header.GetMessageFragmentType(); }
@@ -136,8 +136,8 @@ namespace QuantumGate::Implementation::Core
 		const Buffer& GetMessageData() const noexcept;
 		Buffer&& MoveMessageData() noexcept;
 
-		[[nodiscard]] const bool Read(BufferView buffer, const Crypto::SymmetricKeyData& symkey);
-		[[nodiscard]] const bool Write(Buffer& buffer, const Crypto::SymmetricKeyData& symkey);
+		[[nodiscard]] bool Read(BufferView buffer, const Crypto::SymmetricKeyData& symkey);
+		[[nodiscard]] bool Write(Buffer& buffer, const Crypto::SymmetricKeyData& symkey);
 
 		static const BufferView GetFromBuffer(BufferView& srcbuf) noexcept;
 

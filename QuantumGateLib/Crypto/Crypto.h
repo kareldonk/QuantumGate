@@ -16,7 +16,7 @@ namespace QuantumGate::Implementation::Crypto
 	void SortAlgorithms(Vector<T>& list);
 
 	template<typename T>
-	Export const bool HasAlgorithm(const Vector<T>& list, const T value);
+	Export bool HasAlgorithm(const Vector<T>& list, const T value);
 
 	template<typename T>
 	const T ChooseAlgorithm(const Vector<T>& list1, Vector<T>& list2);
@@ -25,41 +25,40 @@ namespace QuantumGate::Implementation::Crypto
 	std::optional<Buffer> GetCryptoRandomBytes(const Size size) noexcept;
 
 	template<typename T>
-	[[nodiscard]] Export const bool Hash(const BufferView& buffer, T& hashbuf, const Algorithm::Hash type) noexcept;
+	[[nodiscard]] Export bool Hash(const BufferView& buffer, T& hashbuf, const Algorithm::Hash type) noexcept;
 
 	template<typename T>
-	[[nodiscard]] const bool HMAC(const BufferView& buffer, T& hmac, const BufferView& key,
-								  const Algorithm::Hash type) noexcept;
+	[[nodiscard]] bool HMAC(const BufferView& buffer, T& hmac, const BufferView& key, const Algorithm::Hash type) noexcept;
 
-	[[nodiscard]] Export const bool HKDF(const BufferView& secret, ProtectedBuffer& outkey, const Size outkeylen,
-										 const Algorithm::Hash type) noexcept;
+	[[nodiscard]] Export bool HKDF(const BufferView& secret, ProtectedBuffer& outkey, const Size outkeylen,
+								   const Algorithm::Hash type) noexcept;
 
-	[[nodiscard]] const bool GenerateAsymmetricKeys(AsymmetricKeyData& keydata) noexcept;
-	[[nodiscard]] const bool GenerateSharedSecret(AsymmetricKeyData& keydata) noexcept;
-	[[nodiscard]] const bool GenerateSymmetricKeys(const BufferView& sharedsecret,
-												   SymmetricKeyData& key1, SymmetricKeyData& key2) noexcept;
+	[[nodiscard]] bool GenerateAsymmetricKeys(AsymmetricKeyData& keydata) noexcept;
+	[[nodiscard]] bool GenerateSharedSecret(AsymmetricKeyData& keydata) noexcept;
+	[[nodiscard]] bool GenerateSymmetricKeys(const BufferView& sharedsecret,
+											 SymmetricKeyData& key1, SymmetricKeyData& key2) noexcept;
 
 	[[nodiscard]] std::optional<ProtectedBuffer> GetPEMPrivateKey(AsymmetricKeyData& keydata) noexcept;
 	[[nodiscard]] std::optional<ProtectedBuffer> GetPEMPublicKey(AsymmetricKeyData& keydata) noexcept;
 
-	[[nodiscard]] const bool Encrypt(const BufferView& buffer, Buffer& encrbuf,
-									 SymmetricKeyData& symkeydata, const BufferView& iv) noexcept;
+	[[nodiscard]] bool Encrypt(const BufferView& buffer, Buffer& encrbuf,
+							   SymmetricKeyData& symkeydata, const BufferView& iv) noexcept;
 
-	[[nodiscard]] const bool Decrypt(const BufferView& encrbuf, Buffer& buffer,
-									 SymmetricKeyData& symkeydata, const BufferView& iv) noexcept;
+	[[nodiscard]] bool Decrypt(const BufferView& encrbuf, Buffer& buffer,
+							   SymmetricKeyData& symkeydata, const BufferView& iv) noexcept;
 
-	[[nodiscard]] const bool HashAndSign(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& priv_key,
-										 Buffer& sig, const Algorithm::Hash type) noexcept;
+	[[nodiscard]] bool HashAndSign(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& priv_key,
+								   Buffer& sig, const Algorithm::Hash type) noexcept;
 
-	[[nodiscard]] const bool HashAndVerify(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& pub_key,
-										   const Buffer& sig, const Algorithm::Hash type) noexcept;
+	[[nodiscard]] bool HashAndVerify(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& pub_key,
+									 const Buffer& sig, const Algorithm::Hash type) noexcept;
 
-	[[nodiscard]] const bool Sign(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& priv_key,
-								  Buffer& sig) noexcept;
-	[[nodiscard]] const bool Verify(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& pub_key,
-									const BufferView& sig) noexcept;
+	[[nodiscard]] bool Sign(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& priv_key,
+							Buffer& sig) noexcept;
+	[[nodiscard]] bool Verify(const BufferView& msg, const Algorithm::Asymmetric alg, const BufferView& pub_key,
+							  const BufferView& sig) noexcept;
 
-	[[nodiscard]] const bool CompareBuffers(const BufferView& buffer1, const BufferView& buffer2) noexcept;
+	[[nodiscard]] bool CompareBuffers(const BufferView& buffer1, const BufferView& buffer2) noexcept;
 
-	[[nodiscard]] const bool ValidateBuffer(const BufferView& buffer) noexcept;
+	[[nodiscard]] bool ValidateBuffer(const BufferView& buffer) noexcept;
 }

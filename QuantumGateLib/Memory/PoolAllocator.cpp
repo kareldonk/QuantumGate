@@ -175,7 +175,7 @@ namespace QuantumGate::Implementation::Memory
 		return retbuf;
 	}
 
-	const bool PoolAllocatorBase::FreeToPool(void* p, const std::size_t n) noexcept
+	bool PoolAllocatorBase::FreeToPool(void* p, const std::size_t n) noexcept
 	{
 		auto found = false;
 

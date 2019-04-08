@@ -21,21 +21,21 @@ namespace QuantumGate::Implementation::Core::Peer
 		MessageProcessor& operator=(const MessageProcessor&) = delete;
 		MessageProcessor& operator=(MessageProcessor&&) = default;
 
-		const bool SendBeginHandshake() const noexcept;
+		bool SendBeginHandshake() const noexcept;
 
-		const bool SendBeginPrimaryKeyUpdateExchange() const noexcept;
+		bool SendBeginPrimaryKeyUpdateExchange() const noexcept;
 
-		const bool SendBeginRelay(const RelayPort rport, const IPEndpoint& endpoint,
-								  const RelayHop hops) const noexcept;
-		const bool SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept;
-		const bool SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept;
-		const bool SendEndRelay(const RelayPort rport) const noexcept;
+		bool SendBeginRelay(const RelayPort rport, const IPEndpoint& endpoint,
+							const RelayHop hops) const noexcept;
+		bool SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept;
+		bool SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept;
+		bool SendEndRelay(const RelayPort rport) const noexcept;
 
 		const std::pair<bool, bool> ProcessMessage(const MessageDetails& msg) const;
 
 	private:
-		const bool SendBeginPrimaryKeyExchange() const noexcept;
-		const bool SendBeginKeyExchange(const MessageType type) const noexcept;
+		bool SendBeginPrimaryKeyExchange() const noexcept;
+		bool SendBeginKeyExchange(const MessageType type) const noexcept;
 
 		const std::pair<bool, bool> ProcessMessageMetaExchange(const MessageDetails& msg) const;
 		const std::pair<bool, bool> ProcessMessagePrimaryKeyExchange(const MessageDetails& msg) const;
@@ -46,17 +46,17 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		const std::pair<bool, bool> ProcessKeyExchange(const MessageDetails& msg) const;
 
-		const bool GetSignature(Buffer& sig) const;
+		bool GetSignature(Buffer& sig) const;
 
-		const bool MakeSignature(const UUID& uuid, const UInt64 sessionid, const BufferView& priv_key,
-								 const Algorithm::Hash ha, Buffer& sig) const;
+		bool MakeSignature(const UUID& uuid, const UInt64 sessionid, const BufferView& priv_key,
+						   const Algorithm::Hash ha, Buffer& sig) const;
 
-		const bool AuthenticatePeer(const Buffer& psig) const;
+		bool AuthenticatePeer(const Buffer& psig) const;
 
-		const bool VerifySignature(const Buffer& psig) const;
+		bool VerifySignature(const Buffer& psig) const;
 
-		const bool VerifySignature(const UUID& uuid, const UInt64 sessionid, const BufferView& pub_key,
-								   const Algorithm::Hash ha, const Buffer& psig) const;
+		bool VerifySignature(const UUID& uuid, const UInt64 sessionid, const BufferView& pub_key,
+							 const Algorithm::Hash ha, const Buffer& psig) const;
 
 		std::optional<Vector<ExtenderUUID>> ValidateExtenderUUIDs(const Vector<SerializedUUID>& sextlist) const noexcept;
 

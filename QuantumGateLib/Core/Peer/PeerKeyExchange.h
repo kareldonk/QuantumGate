@@ -19,8 +19,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		KeyExchange& operator=(const KeyExchange&) = delete;
 		KeyExchange& operator=(KeyExchange&&) = default;
 
-		[[nodiscard]] inline const bool GeneratePrimaryAsymmetricKeys(const Algorithms& algorithms,
-																	  const Crypto::AsymmetricKeyOwner type) noexcept
+		[[nodiscard]] inline bool GeneratePrimaryAsymmetricKeys(const Algorithms& algorithms,
+																const Crypto::AsymmetricKeyOwner type) noexcept
 		{
 			return GenerateAsymmetricKeys(m_PrimaryAsymmetricKeys, algorithms.PrimaryAsymmetric, type);
 		}
@@ -53,8 +53,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			return m_PrimaryAsymmetricKeys->LocalPublicKey;
 		}
 
-		[[nodiscard]] const bool GenerateSecondaryAsymmetricKeys(const Algorithms& algorithms,
-																 const Crypto::AsymmetricKeyOwner owner) noexcept
+		[[nodiscard]] bool GenerateSecondaryAsymmetricKeys(const Algorithms& algorithms,
+														   const Crypto::AsymmetricKeyOwner owner) noexcept
 		{
 			return GenerateAsymmetricKeys(m_SecondaryAsymmetricKeys, algorithms.SecondaryAsymmetric, owner);
 		}
@@ -87,9 +87,9 @@ namespace QuantumGate::Implementation::Core::Peer
 			return m_SecondaryAsymmetricKeys->LocalPublicKey;
 		}
 
-		[[nodiscard]] const bool GeneratePrimarySymmetricKeyPair(const ProtectedBuffer& global_sharedsecret,
-																 const Algorithms& algorithms,
-																 const PeerConnectionType pctype) noexcept
+		[[nodiscard]] bool GeneratePrimarySymmetricKeyPair(const ProtectedBuffer& global_sharedsecret,
+														   const Algorithms& algorithms,
+														   const PeerConnectionType pctype) noexcept
 		{
 			// Should not already have a key-pair
 			assert(m_PrimarySymmetricKeyPair == nullptr);
@@ -116,9 +116,9 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		const std::shared_ptr<SymmetricKeyPair>& GetPrimarySymmetricKeyPair() const noexcept { return m_PrimarySymmetricKeyPair; }
 
-		[[nodiscard]] const bool GenerateSecondarySymmetricKeyPair(const ProtectedBuffer& global_sharedsecret,
-																   const Algorithms& algorithms,
-																   const PeerConnectionType pctype) noexcept
+		[[nodiscard]] bool GenerateSecondarySymmetricKeyPair(const ProtectedBuffer& global_sharedsecret,
+															 const Algorithms& algorithms,
+															 const PeerConnectionType pctype) noexcept
 		{
 			// Should not already have a key-pair
 			assert(m_SecondarySymmetricKeyPair == nullptr);
@@ -159,7 +159,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			m_SecondarySymmetricKeyPair->UseForEncryption = true;
 		}
 
-		[[nodiscard]] inline const bool AddKeyExchangeData(ProtectedBuffer& data) const noexcept
+		[[nodiscard]] inline bool AddKeyExchangeData(ProtectedBuffer& data) const noexcept
 		{
 			try
 			{
@@ -222,9 +222,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 	private:
-		[[nodiscard]] inline const bool GenerateAsymmetricKeys(std::shared_ptr<Crypto::AsymmetricKeyData>& keydata,
-															   const Algorithm::Asymmetric aa,
-															   const Crypto::AsymmetricKeyOwner owner) noexcept
+		[[nodiscard]] inline bool GenerateAsymmetricKeys(std::shared_ptr<Crypto::AsymmetricKeyData>& keydata,
+														 const Algorithm::Asymmetric aa,
+														 const Crypto::AsymmetricKeyOwner owner) noexcept
 		{
 			// Should not already have a key
 			assert(keydata == nullptr);
@@ -265,17 +265,17 @@ namespace QuantumGate::Implementation::Core::Peer
 			return false;
 		}
 
-		[[nodiscard]] inline const bool GeneratePrimarySharedSecret() noexcept
+		[[nodiscard]] inline bool GeneratePrimarySharedSecret() noexcept
 		{
 			return GenerateSharedSecret(m_PrimaryAsymmetricKeys);
 		}
 
-		[[nodiscard]] inline const bool GenerateSecondarySharedSecret() noexcept
+		[[nodiscard]] inline bool GenerateSecondarySharedSecret() noexcept
 		{
 			return GenerateSharedSecret(m_SecondaryAsymmetricKeys);
 		}
 
-		[[nodiscard]] inline const bool GenerateSharedSecret(const std::shared_ptr<Crypto::AsymmetricKeyData>& keydata) noexcept
+		[[nodiscard]] inline bool GenerateSharedSecret(const std::shared_ptr<Crypto::AsymmetricKeyData>& keydata) noexcept
 		{
 			// Asymmetric keys should already have been created
 			assert(keydata != nullptr);

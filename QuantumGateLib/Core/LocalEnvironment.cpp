@@ -10,7 +10,7 @@
 
 namespace QuantumGate::Implementation::Core
 {
-	const bool LocalEnvironment::Initialize(ChangedCallback&& callback) noexcept
+	bool LocalEnvironment::Initialize(ChangedCallback&& callback) noexcept
 	{
 		assert(!IsInitialized());
 
@@ -53,7 +53,7 @@ namespace QuantumGate::Implementation::Core
 		m_PublicIPEndpoints.Deinitialize();
 	}
 
-	const bool LocalEnvironment::Update() noexcept
+	bool LocalEnvironment::Update() noexcept
 	{
 		assert(IsInitialized());
 
@@ -262,10 +262,10 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	const bool LocalEnvironment::AddPublicIPEndpoint(const IPEndpoint& pub_endpoint,
-													 const IPEndpoint& rep_peer,
-													 const PeerConnectionType rep_con_type,
-													 const bool trusted) noexcept
+	bool LocalEnvironment::AddPublicIPEndpoint(const IPEndpoint& pub_endpoint,
+											   const IPEndpoint& rep_peer,
+											   const PeerConnectionType rep_con_type,
+											   const bool trusted) noexcept
 	{
 		if (const auto result = m_PublicIPEndpoints.AddIPEndpoint(pub_endpoint, rep_peer,
 																  rep_con_type, trusted);
@@ -283,7 +283,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const bool LocalEnvironment::RegisterIPInterfaceChangeNotification() noexcept
+	bool LocalEnvironment::RegisterIPInterfaceChangeNotification() noexcept
 	{
 		assert(m_IPInterfaceChangeNotificationHandle == NULL);
 
@@ -331,7 +331,7 @@ namespace QuantumGate::Implementation::Core
 		});
 	}
 
-	const bool LocalEnvironment::UpdateEnvironmentInformation() noexcept
+	bool LocalEnvironment::UpdateEnvironmentInformation() noexcept
 	{
 		if (auto result = OSGetHostname(); result.Failed()) return false;
 		else m_Hostname = std::move(result.GetValue());
@@ -361,7 +361,7 @@ namespace QuantumGate::Implementation::Core
 		return;
 	}
 
-	const bool LocalEnvironment::UpdateCachedIPAddresses() noexcept
+	bool LocalEnvironment::UpdateCachedIPAddresses() noexcept
 	{
 		try
 		{

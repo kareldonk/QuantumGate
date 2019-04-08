@@ -27,7 +27,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return GetPeers().GetSettings();
 	}
 
-	const bool Manager::Startup() noexcept
+	bool Manager::Startup() noexcept
 	{
 		if (m_Running) return true;
 
@@ -87,7 +87,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		m_RelayLinks.WithUniqueLock()->clear();
 	}
 
-	const bool Manager::StartupThreadPool() noexcept
+	bool Manager::StartupThreadPool() noexcept
 	{
 		Size numthreadsperpool{ 2 };
 
@@ -177,8 +177,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		return std::nullopt;
 	}
 
-	const bool Manager::Connect(const PeerLUID in_peer, const PeerLUID out_peer,
-								const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hops) noexcept
+	bool Manager::Connect(const PeerLUID in_peer, const PeerLUID out_peer,
+						  const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hops) noexcept
 	{
 		assert(IsRunning());
 
@@ -200,7 +200,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return false;
 	}
 
-	const bool Manager::Accept(const Events::Connect& rcevent, const PeerLUID out_peer) noexcept
+	bool Manager::Accept(const Events::Connect& rcevent, const PeerLUID out_peer) noexcept
 	{
 		assert(IsRunning());
 
@@ -238,7 +238,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return thkey;
 	}
 
-	const bool Manager::MapRelayPortToThreadKey(const RelayPort rport) noexcept
+	bool Manager::MapRelayPortToThreadKey(const RelayPort rport) noexcept
 	{
 		auto success = false;
 
@@ -343,7 +343,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return thkey;
 	}
 
-	const bool Manager::AddRelayEvent(const RelayPort rport, Event&& event) noexcept
+	bool Manager::AddRelayEvent(const RelayPort rport, Event&& event) noexcept
 	{
 		if (!IsRunning()) return false;
 
@@ -379,7 +379,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return success;
 	}
 
-	const bool Manager::Add(const RelayPort rport, std::unique_ptr<Link_ThS>&& rl) noexcept
+	bool Manager::Add(const RelayPort rport, std::unique_ptr<Link_ThS>&& rl) noexcept
 	{
 		auto success = false;
 
@@ -723,9 +723,9 @@ namespace QuantumGate::Implementation::Core::Relay
 		return std::make_pair(true, didwork);
 	}
 
-	const bool Manager::ProcessRelayConnect(Link& rl,
-											Peer::Peer_ThS::UniqueLockedType& in_peer,
-											Peer::Peer_ThS::UniqueLockedType& out_peer)
+	bool Manager::ProcessRelayConnect(Link& rl,
+									  Peer::Peer_ThS::UniqueLockedType& in_peer,
+									  Peer::Peer_ThS::UniqueLockedType& out_peer)
 	{
 		assert(rl.GetStatus() == Status::Connect);
 
@@ -848,7 +848,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		rl.UpdateStatus(Status::Closed);
 	}
 
-	const bool Manager::ProcessRelayEvent(const Events::Connect& connect_event) noexcept
+	bool Manager::ProcessRelayEvent(const Events::Connect& connect_event) noexcept
 	{
 		// Increase relay connection attempts for this IP; if attempts get too high
 		// for a given interval the IP will get a bad reputation and this will fail
@@ -1020,7 +1020,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return true;
 	}
 
-	const bool Manager::ProcessRelayEvent(const Events::StatusUpdate& event) noexcept
+	bool Manager::ProcessRelayEvent(const Events::StatusUpdate& event) noexcept
 	{
 		auto success = false;
 
@@ -1091,7 +1091,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return success;
 	}
 
-	const bool Manager::ProcessRelayEvent(Events::RelayData& event) noexcept
+	bool Manager::ProcessRelayEvent(Events::RelayData& event) noexcept
 	{
 		auto success = false;
 
@@ -1190,7 +1190,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	}
 
 	template<typename T>
-	const bool Manager::ValidateEventOrigin(const T& event, const Link& rl) const noexcept
+	bool Manager::ValidateEventOrigin(const T& event, const Link& rl) const noexcept
 	{
 		if (event.Origin.PeerLUID != rl.GetIncomingPeer().PeerLUID &&
 			event.Origin.PeerLUID != rl.GetOutgoingPeer().PeerLUID)

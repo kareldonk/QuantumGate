@@ -81,12 +81,12 @@ namespace QuantumGate::Implementation::Network
 			return *this;
 		}
 
-		constexpr const bool operator==(const IPEndpoint& other) const noexcept
+		constexpr bool operator==(const IPEndpoint& other) const noexcept
 		{
 			return ((m_Address == other.m_Address) && (m_Port == other.m_Port));
 		}
 
-		constexpr const bool operator!=(const IPEndpoint& other) const noexcept
+		constexpr bool operator!=(const IPEndpoint& other) const noexcept
 		{
 			return !(*this == other);
 		}

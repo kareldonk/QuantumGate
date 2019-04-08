@@ -54,7 +54,7 @@ namespace QuantumGate::Implementation::Core
 		WSACleanup();
 	}
 
-	const bool Local::ValidateInitParameters(const StartupParameters& params) const noexcept
+	bool Local::ValidateInitParameters(const StartupParameters& params) const noexcept
 	{
 		if (params.UUID.GetType() != UUID::Type::Peer)
 		{
@@ -94,7 +94,7 @@ namespace QuantumGate::Implementation::Core
 		return true;
 	}
 
-	const bool Local::ValidateSupportedAlgorithms(const Algorithms& algorithms) const noexcept
+	bool Local::ValidateSupportedAlgorithms(const Algorithms& algorithms) const noexcept
 	{
 		try
 		{
@@ -399,7 +399,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Succeeded;
 	}
 
-	const bool Local::StartupThreadPool() noexcept
+	bool Local::StartupThreadPool() noexcept
 	{
 		LogSys(L"Creating local threadpool with 1 worker thread");
 
@@ -551,7 +551,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::NotRunning;
 	}
 
-	const bool Local::AreListenersEnabled() const noexcept
+	bool Local::AreListenersEnabled() const noexcept
 	{
 		return m_ListenerManager.IsRunning();
 	}
@@ -585,7 +585,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::NotRunning;
 	}
 
-	const bool Local::AreExtendersEnabled() const noexcept
+	bool Local::AreExtendersEnabled() const noexcept
 	{
 		return m_ExtenderManager.IsRunning();
 	}
@@ -619,7 +619,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::NotRunning;
 	}
 
-	const bool Local::AreRelaysEnabled() const noexcept
+	bool Local::AreRelaysEnabled() const noexcept
 	{
 		return m_PeerManager.AreRelaysRunning();
 	}
@@ -887,7 +887,7 @@ namespace QuantumGate::Implementation::Core
 		return result_code;
 	}
 
-	const bool Local::HasExtender(const ExtenderUUID& extuuid) const noexcept
+	bool Local::HasExtender(const ExtenderUUID& extuuid) const noexcept
 	{
 		return m_ExtenderManager.HasExtender(extuuid);
 	}
@@ -1032,7 +1032,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::NotRunning;
 	}
 
-	const bool Local::ValidateSecurityParameters(const SecurityParameters& params) const noexcept
+	bool Local::ValidateSecurityParameters(const SecurityParameters& params) const noexcept
 	{
 		if (params.General.ConnectTimeout < 0s) return false;
 

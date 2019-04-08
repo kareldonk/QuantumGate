@@ -117,7 +117,7 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] Result<VideoCaptureDeviceVector> EnumCaptureDevices() const noexcept;
 		[[nodiscard]] Result<> Open(const VideoCaptureDevice& device) noexcept;
-		[[nodiscard]] const bool IsOpen() noexcept;
+		[[nodiscard]] bool IsOpen() noexcept;
 		void Close() noexcept;
 
 		void GetSample(BGRAPixel* buffer) noexcept;
@@ -136,8 +136,8 @@ namespace QuantumGate::AVExtender
 
 	private:
 		[[nodiscard]] Result<std::pair<UINT32, IMFActivate**>> GetVideoCaptureDevices() const noexcept;
-		[[nodiscard]] const bool GetVideoCaptureDeviceInfo(IMFActivate* device,
-														   VideoCaptureDevice& device_info) const noexcept;
+		[[nodiscard]] bool GetVideoCaptureDeviceInfo(IMFActivate* device,
+													 VideoCaptureDevice& device_info) const noexcept;
 
 		[[nodiscard]] Result<> CreateSourceReader(SourceReaderData& source_reader_data) noexcept;
 
@@ -145,7 +145,7 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] Result<> SetMediaType(SourceReaderData& source_reader_data,
 											IMFMediaType* media_type, const GUID& subtype) noexcept;
 
-		[[nodiscard]] const bool GetDefaultStride(IMFMediaType* type, LONG* stride) const noexcept;
+		[[nodiscard]] bool GetDefaultStride(IMFMediaType* type, LONG* stride) const noexcept;
 
 	private:
 		long m_RefCount{ 1 };

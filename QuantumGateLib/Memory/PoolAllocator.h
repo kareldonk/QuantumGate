@@ -15,7 +15,7 @@ namespace QuantumGate::Implementation::Memory
 	protected:
 		static std::pair<bool, std::size_t> GetAllocationDetails(const std::size_t n) noexcept;
 		[[nodiscard]] static void* AllocateFromPool(const std::size_t n) noexcept;
-		[[nodiscard]] static const bool FreeToPool(void* p, const std::size_t n) noexcept;
+		[[nodiscard]] static bool FreeToPool(void* p, const std::size_t n) noexcept;
 	};
 
 	template<class T>
@@ -41,13 +41,13 @@ namespace QuantumGate::Implementation::Memory
 		PoolAllocator& operator=(PoolAllocator&&) = default;
 
 		template<class Other>
-		inline const bool operator==(const PoolAllocator<Other>&) const noexcept
+		inline bool operator==(const PoolAllocator<Other>&) const noexcept
 		{
 			return true;
 		}
 
 		template<class Other>
-		inline const bool operator!=(const PoolAllocator<Other>&) const noexcept
+		inline bool operator!=(const PoolAllocator<Other>&) const noexcept
 		{
 			return false;
 		}

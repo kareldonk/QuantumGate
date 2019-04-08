@@ -9,8 +9,8 @@
 
 namespace QuantumGate::Implementation::Compression
 {
-	Export const bool Compress(const BufferView& inbuffer, Buffer& outbuffer,
-							   const Algorithm::Compression ca) noexcept
+	Export bool Compress(const BufferView& inbuffer, Buffer& outbuffer,
+						 const Algorithm::Compression ca) noexcept
 	{
 		auto success = false;
 
@@ -66,8 +66,8 @@ namespace QuantumGate::Implementation::Compression
 		return success;
 	}
 
-	Export const bool Decompress(BufferView inbuffer, Buffer& outbuffer,
-								 const Algorithm::Compression ca, const std::optional<Size> maxsize) noexcept
+	Export bool Decompress(BufferView inbuffer, Buffer& outbuffer,
+						   const Algorithm::Compression ca, const std::optional<Size> maxsize) noexcept
 	{
 		try
 		{

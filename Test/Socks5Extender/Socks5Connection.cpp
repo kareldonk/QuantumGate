@@ -63,7 +63,7 @@ namespace QuantumGate::Socks5Extender
 		else SetStatus(Status::Disconnected);
 	}
 
-	const bool Connection::IsTimedOut() const noexcept
+	bool Connection::IsTimedOut() const noexcept
 	{
 		// Timeout is shorter in handshake state
 		const auto current_time = Util::GetCurrentSteadyTime();
@@ -134,14 +134,14 @@ namespace QuantumGate::Socks5Extender
 		}
 	}
 
-	const bool Connection::SendSocks5Reply(const Socks5Protocol::Replies reply)
+	bool Connection::SendSocks5Reply(const Socks5Protocol::Replies reply)
 	{
 		return SendSocks5Reply(reply, Socks5Protocol::AddressTypes::DomainName, BufferView(), 0);
 	}
 
-	const bool Connection::SendSocks5Reply(const Socks5Protocol::Replies reply,
-										   const Socks5Protocol::AddressTypes atype,
-										   const BufferView& address, const UInt16 port)
+	bool Connection::SendSocks5Reply(const Socks5Protocol::Replies reply,
+									 const Socks5Protocol::AddressTypes atype,
+									 const BufferView& address, const UInt16 port)
 	{
 		Socks5Protocol::ReplyMsg msg;
 		msg.Reply = static_cast<UInt8>(reply);
@@ -195,13 +195,13 @@ namespace QuantumGate::Socks5Extender
 		return true;
 	}
 
-	const bool Connection::SendRelayedData(const Buffer&& data)
+	bool Connection::SendRelayedData(const Buffer&& data)
 	{
 		m_SendBuffer += data;
 		return true;
 	}
 
-	const bool Connection::ProcessEvents(bool& didwork)
+	bool Connection::ProcessEvents(bool& didwork)
 	{
 		assert(!IsDisconnecting() && !IsDisconnected());
 
@@ -265,12 +265,12 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
-	const UInt64 Connection::MakeKey(const PeerLUID pluid, const ConnectionID cid) noexcept
+	UInt64 Connection::MakeKey(const PeerLUID pluid, const ConnectionID cid) noexcept
 	{
 		return Util::NonPersistentHash(Util::FormatString(L"%llu:%llu", pluid, cid));
 	}
 
-	const bool Connection::SendAndReceive(bool& didwork)
+	bool Connection::SendAndReceive(bool& didwork)
 	{
 		auto success = true;
 
@@ -392,7 +392,7 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
-	const bool Connection::HandleReceivedSocks5Messages()
+	bool Connection::HandleReceivedSocks5Messages()
 	{
 		assert(IsInHandshake());
 
@@ -416,7 +416,7 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
-	const bool Connection::ProcessSocks5MethodIdentificationMessage()
+	bool Connection::ProcessSocks5MethodIdentificationMessage()
 	{
 		auto success = true;
 
@@ -510,7 +510,7 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
-	const bool Connection::ProcessSocks5AuthenticationMessages()
+	bool Connection::ProcessSocks5AuthenticationMessages()
 	{
 		auto success = true;
 
@@ -582,7 +582,7 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
-	const bool Connection::ProcessSocks5ConnectMessages()
+	bool Connection::ProcessSocks5ConnectMessages()
 	{
 		auto success = true;
 
@@ -650,7 +650,7 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
-	const bool Connection::ProcessSocks5DomainConnectMessage(BufferView buffer)
+	bool Connection::ProcessSocks5DomainConnectMessage(BufferView buffer)
 	{
 		auto success = true;
 
@@ -698,7 +698,7 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
-	const bool Connection::ProcessSocks5IPv4ConnectMessage(BufferView buffer)
+	bool Connection::ProcessSocks5IPv4ConnectMessage(BufferView buffer)
 	{
 		auto success = true;
 
@@ -736,7 +736,7 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
-	const bool Connection::ProcessSocks5IPv6ConnectMessage(BufferView buffer)
+	bool Connection::ProcessSocks5IPv6ConnectMessage(BufferView buffer)
 	{
 		auto success = true;
 
@@ -774,7 +774,7 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
-	const bool Connection::RelayReceivedData()
+	bool Connection::RelayReceivedData()
 	{
 		assert(IsReady());
 

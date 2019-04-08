@@ -136,7 +136,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return ResultCode::Failed;
 	}
 
-	const bool PeerAccessControl::ValidatePeerAccessSettings(const PeerAccessSettings& pas) const noexcept
+	bool PeerAccessControl::ValidatePeerAccessSettings(const PeerAccessSettings& pas) const noexcept
 	{
 		if (!pas.UUID.IsValid()) return false;
 

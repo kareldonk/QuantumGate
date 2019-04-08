@@ -9,7 +9,7 @@
 
 namespace QuantumGate::Implementation::Network
 {
-	const bool IPAddress::TryParse(const WChar* ipaddr_str, IPAddress& ipaddr) noexcept
+	bool IPAddress::TryParse(const WChar* ipaddr_str, IPAddress& ipaddr) noexcept
 	{
 		try
 		{
@@ -22,12 +22,12 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool IPAddress::TryParse(const String& ipaddr_str, IPAddress& ipaddr) noexcept
+	bool IPAddress::TryParse(const String& ipaddr_str, IPAddress& ipaddr) noexcept
 	{
 		return TryParse(ipaddr_str.c_str(), ipaddr);
 	}
 
-	const bool IPAddress::TryParse(const BinaryIPAddress& bin_ipaddr, IPAddress& ipaddr) noexcept
+	bool IPAddress::TryParse(const BinaryIPAddress& bin_ipaddr, IPAddress& ipaddr) noexcept
 	{
 		try
 		{
@@ -40,7 +40,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool IPAddress::TryParseMask(const IPAddress::Family af, const WChar* mask_str, IPAddress& ipmask) noexcept
+	bool IPAddress::TryParseMask(const IPAddress::Family af, const WChar* mask_str, IPAddress& ipmask) noexcept
 	{
 		try
 		{
@@ -75,7 +75,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool IPAddress::TryParseMask(const IPAddress::Family af, const String& mask_str, IPAddress& ipmask) noexcept
+	bool IPAddress::TryParseMask(const IPAddress::Family af, const String& mask_str, IPAddress& ipmask) noexcept
 	{
 		return TryParseMask(af, mask_str.c_str(), ipmask);
 	}

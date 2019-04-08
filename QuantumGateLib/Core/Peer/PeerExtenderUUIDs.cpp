@@ -8,7 +8,7 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	const bool ExtenderUUIDs::Set(Vector<ExtenderUUID>&& uuids) noexcept
+	bool ExtenderUUIDs::Set(Vector<ExtenderUUID>&& uuids) noexcept
 	{
 		if (SortAndEnsureUnique(uuids))
 		{
@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const bool ExtenderUUIDs::Copy(const ExtenderUUIDs& uuids) noexcept
+	bool ExtenderUUIDs::Copy(const ExtenderUUIDs& uuids) noexcept
 	{
 		try
 		{
@@ -65,12 +65,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::Failed;
 	}
 
-	const bool ExtenderUUIDs::HasExtender(const ExtenderUUID& uuid) const noexcept
+	bool ExtenderUUIDs::HasExtender(const ExtenderUUID& uuid) const noexcept
 	{
 		return (std::binary_search(m_ExtenderUUIDs.begin(), m_ExtenderUUIDs.end(), uuid));
 	}
 
-	const bool ExtenderUUIDs::SortAndEnsureUnique(Vector<ExtenderUUID>& uuids) const noexcept
+	bool ExtenderUUIDs::SortAndEnsureUnique(Vector<ExtenderUUID>& uuids) const noexcept
 	{
 		if (uuids.size() <= 1) return true;
 

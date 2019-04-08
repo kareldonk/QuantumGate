@@ -70,4 +70,6 @@ private:
 public:
 	afx_msg void OnBnClickedSendVideoCheck();
 	afx_msg void OnBnClickedSendAudioCheck();
+	afx_msg void OnBnClickedCallButton();
+	afx_msg void OnBnClickedHangupButton();
 };

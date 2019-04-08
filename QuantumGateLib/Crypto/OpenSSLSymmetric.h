@@ -40,8 +40,8 @@ namespace QuantumGate::Implementation::Crypto
 		}
 
 	public:
-		[[nodiscard]] static const bool Encrypt(const BufferView& buffer, Buffer& encrbuf,
-												const SymmetricKeyData& symkeydata, const BufferView& iv) noexcept
+		[[nodiscard]] static bool Encrypt(const BufferView& buffer, Buffer& encrbuf,
+										  const SymmetricKeyData& symkeydata, const BufferView& iv) noexcept
 		{
 			assert(symkeydata.Key.GetSize() >= 32); // At least 256 bits
 			assert(iv.GetSize() >= 12); // At least 96 bits
@@ -133,8 +133,8 @@ namespace QuantumGate::Implementation::Crypto
 			return false;
 		}
 
-		[[nodiscard]] static const bool Decrypt(const BufferView& encrbuf, Buffer& buffer,
-												const SymmetricKeyData& symkeydata, const BufferView& iv) noexcept
+		[[nodiscard]] static bool Decrypt(const BufferView& encrbuf, Buffer& buffer,
+										  const SymmetricKeyData& symkeydata, const BufferView& iv) noexcept
 		{
 			assert(symkeydata.Key.GetSize() >= 32); // At least 256 bits
 			assert(iv.GetSize() >= 12); // At least 96 bits

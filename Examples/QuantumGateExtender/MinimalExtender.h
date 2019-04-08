@@ -13,7 +13,7 @@ public:
 	virtual ~MinimalExtender();
 
 protected:
-	const bool OnStartup();
+	bool OnStartup();
 	void OnPostStartup();
 	void OnPreShutdown();
 	void OnShutdown();

@@ -171,7 +171,7 @@ namespace QuantumGate::Implementation::Core::Access
 		m_IPBlockFilters.clear();
 	}
 
-	const bool IPFilters::HasFilter(const IPFilterID filterid, const IPFilterType type) const noexcept
+	bool IPFilters::HasFilter(const IPFilterID filterid, const IPFilterType type) const noexcept
 	{
 		const IPFilterMap* fltmap{ nullptr };
 
@@ -216,7 +216,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return ResultCode::Failed;
 	}
 
-	const bool IPFilters::IsIPInFilterMap(const IPAddress& address, const IPFilterMap& filtermap) const noexcept
+	bool IPFilters::IsIPInFilterMap(const IPAddress& address, const IPFilterMap& filtermap) const noexcept
 	{
 		for (const auto& fltpair : filtermap)
 		{

@@ -10,14 +10,14 @@ namespace QuantumGate::Implementation::Core::Peer
 		NoiseItem() = default;
 		NoiseItem(const std::chrono::milliseconds& max_interval, const Size minsize, const Size maxsize) noexcept;
 
-		inline const bool IsTime() const noexcept
+		inline bool IsTime() const noexcept
 		{
 			if ((Util::GetCurrentSteadyTime() - ScheduleSteadyTime) >= ScheduleMilliseconds) return true;
 
 			return false;
 		}
 
-		inline static const bool Compare(const NoiseItem& item1, const NoiseItem& item2) noexcept
+		inline static bool Compare(const NoiseItem& item1, const NoiseItem& item2) noexcept
 		{
 			return (item1.ScheduleSteadyTime + item1.ScheduleMilliseconds) > (item2.ScheduleSteadyTime + item2.ScheduleMilliseconds);
 		}

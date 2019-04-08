@@ -34,19 +34,19 @@ namespace StressExtender
 		virtual ~Extender();
 
 		inline void SetUseCompression(const bool compression) noexcept { m_UseCompression = compression; }
-		inline const bool IsUsingCompression() const noexcept { return m_UseCompression; }
+		inline bool IsUsingCompression() const noexcept { return m_UseCompression; }
 
-		const bool SendMessage(const PeerLUID pluid, const std::wstring& msg) const;
+		bool SendMessage(const PeerLUID pluid, const std::wstring& msg) const;
 
-		const bool SendBenchmarkStart(const PeerLUID pluid);
-		const bool SendBenchmarkEnd(const PeerLUID pluid);
+		bool SendBenchmarkStart(const PeerLUID pluid);
+		bool SendBenchmarkEnd(const PeerLUID pluid);
 
-		const bool BenchmarkSendMessage(const PeerLUID pluid);
+		bool BenchmarkSendMessage(const PeerLUID pluid);
 
 		inline ExceptionTest& GetExceptionTest() noexcept { return m_ExceptionTest; }
 
 	protected:
-		const bool OnStartup();
+		bool OnStartup();
 		void OnPostStartup();
 		void OnPreShutdown();
 		void OnShutdown();

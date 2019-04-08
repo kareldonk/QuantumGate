@@ -44,7 +44,7 @@ namespace QuantumGate::Implementation
 			}
 		}
 
-		inline const bool IsActive() const noexcept { return m_Active; }
+		inline bool IsActive() const noexcept { return m_Active; }
 		inline void Activate() noexcept { m_Active = true; }
 		inline void Deactivate() noexcept { m_Active = false; }
 

@@ -35,10 +35,10 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 
 		const Settings& GetSettings() const noexcept;
 
-		const bool Startup() noexcept;
+		bool Startup() noexcept;
 		void Shutdown() noexcept;
 
-		inline const bool IsRunning() const noexcept { return m_Running; }
+		inline bool IsRunning() const noexcept { return m_Running; }
 
 		std::optional<Crypto::AsymmetricKeyData> GetAsymmetricKeys(const Algorithm::Asymmetric alg) noexcept;
 
@@ -46,10 +46,10 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		void PreStartup() noexcept;
 		void ResetState() noexcept;
 
-		const bool AddKeyQueues() noexcept;
+		bool AddKeyQueues() noexcept;
 		void ClearKeyQueues() noexcept;
 
-		const bool StartupThreadPool() noexcept;
+		bool StartupThreadPool() noexcept;
 		void ShutdownThreadPool() noexcept;
 
 		const std::pair<bool, bool> PrimaryThreadProcessor(ThreadPoolData& thpdata,

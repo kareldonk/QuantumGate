@@ -20,7 +20,7 @@ namespace QuantumGate::Implementation::Core
 		MessageDetails& operator=(const MessageDetails&) = delete;
 		MessageDetails& operator=(MessageDetails&&) = default;
 
-		[[nodiscard]] inline const bool AddToMessageData(const Buffer& data) noexcept
+		[[nodiscard]] inline bool AddToMessageData(const Buffer& data) noexcept
 		{
 			try
 			{

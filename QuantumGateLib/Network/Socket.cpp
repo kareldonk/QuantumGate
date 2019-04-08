@@ -136,7 +136,7 @@ namespace QuantumGate::Implementation::Network
 		return *this;
 	}
 
-	const bool Socket::SetSocket(const SOCKET s, const bool excl_addr_use, const bool blocking) noexcept
+	bool Socket::SetSocket(const SOCKET s, const bool excl_addr_use, const bool blocking) noexcept
 	{
 		assert(s != INVALID_SOCKET);
 
@@ -210,7 +210,7 @@ namespace QuantumGate::Implementation::Network
 		return rcvbuf;
 	}
 
-	const bool Socket::SetBlockingMode(const bool blocking) noexcept
+	bool Socket::SetBlockingMode(const bool blocking) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -228,7 +228,7 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SetExclusiveAddressUse(const bool exclusive) noexcept
+	bool Socket::SetExclusiveAddressUse(const bool exclusive) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -245,12 +245,12 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::GetExclusiveAddressUse() const noexcept
+	bool Socket::GetExclusiveAddressUse() const noexcept
 	{
 		return (GetSockOptInt(SO_EXCLUSIVEADDRUSE) == 1) ? true : false;
 	}
 
-	const bool Socket::SetSendTimeout(const std::chrono::milliseconds& milliseconds) noexcept
+	bool Socket::SetSendTimeout(const std::chrono::milliseconds& milliseconds) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -267,7 +267,7 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SetReceiveTimeout(const std::chrono::milliseconds& milliseconds) noexcept
+	bool Socket::SetReceiveTimeout(const std::chrono::milliseconds& milliseconds) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -284,7 +284,7 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SetIPTimeToLive(const std::chrono::seconds& seconds) noexcept
+	bool Socket::SetIPTimeToLive(const std::chrono::seconds& seconds) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -301,7 +301,7 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SetReuseAddress(const bool reuse) noexcept
+	bool Socket::SetReuseAddress(const bool reuse) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -318,7 +318,7 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SetLinger(const std::chrono::seconds& seconds) noexcept
+	bool Socket::SetLinger(const std::chrono::seconds& seconds) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -348,7 +348,7 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SetNATTraversal(const bool nat_traversal) noexcept
+	bool Socket::SetNATTraversal(const bool nat_traversal) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -369,7 +369,7 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::SetConditionalAccept(const bool cond_accept) noexcept
+	bool Socket::SetConditionalAccept(const bool cond_accept) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -390,7 +390,7 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	const bool Socket::Bind(const IPEndpoint& endpoint, const bool nat_traversal) noexcept
+	bool Socket::Bind(const IPEndpoint& endpoint, const bool nat_traversal) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -422,8 +422,8 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Socket::Listen(const IPEndpoint& endpoint, const bool cond_accept,
-							  const bool nat_traversal) noexcept
+	bool Socket::Listen(const IPEndpoint& endpoint, const bool cond_accept,
+						const bool nat_traversal) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -468,7 +468,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Socket::Accept(Socket& s, const bool cond_accept, const LPCONDITIONPROC cond_func, void* cbdata) noexcept
+	bool Socket::Accept(Socket& s, const bool cond_accept, const LPCONDITIONPROC cond_func, void* cbdata) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -511,7 +511,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Socket::BeginConnect(const IPEndpoint& endpoint) noexcept
+	bool Socket::BeginConnect(const IPEndpoint& endpoint) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -545,7 +545,7 @@ namespace QuantumGate::Implementation::Network
 		return m_IOStatus.IsConnecting();
 	}
 
-	const bool Socket::CompleteConnect() noexcept
+	bool Socket::CompleteConnect() noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -557,7 +557,7 @@ namespace QuantumGate::Implementation::Network
 		return m_ConnectCallback();
 	}
 
-	const bool Socket::Send(Buffer& buffer) noexcept
+	bool Socket::Send(Buffer& buffer) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -603,7 +603,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Socket::SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept
+	bool Socket::SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -660,7 +660,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Socket::Receive(Buffer& buffer) noexcept
+	bool Socket::Receive(Buffer& buffer) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -716,7 +716,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept
+	bool Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -791,7 +791,7 @@ namespace QuantumGate::Implementation::Network
 	}
 
 	template<bool read, bool write, bool exception>
-	const bool Socket::UpdateIOStatusImpl(const std::chrono::milliseconds& mseconds) noexcept
+	bool Socket::UpdateIOStatusImpl(const std::chrono::milliseconds& mseconds) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -857,7 +857,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds, const IOStatus::Update ioupdate) noexcept
+	bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds, const IOStatus::Update ioupdate) noexcept
 	{
 		switch (ioupdate)
 		{
@@ -890,7 +890,7 @@ namespace QuantumGate::Implementation::Network
 		return (Util::GetCurrentSystemTime() - dif);
 	}
 
-	const bool Socket::SockAddrGetIPEndpoint(const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept
+	bool Socket::SockAddrGetIPEndpoint(const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept
 	{
 		assert(addr != nullptr);
 
@@ -915,7 +915,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const bool Socket::SockAddrSetEndpoint(sockaddr_storage& addr, const IPEndpoint& endpoint) noexcept
+	bool Socket::SockAddrSetEndpoint(sockaddr_storage& addr, const IPEndpoint& endpoint) noexcept
 	{
 		switch (endpoint.GetIPAddress().GetFamily())
 		{

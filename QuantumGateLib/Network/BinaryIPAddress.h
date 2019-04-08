@@ -249,9 +249,9 @@ namespace QuantumGate::Implementation::Network
 			return mask;
 		}
 
-		[[nodiscard]] static constexpr const bool CreateMask(const Family af,
-															 UInt8 cidr_lbits,
-															 BinaryIPAddress& bin_mask) noexcept
+		[[nodiscard]] static constexpr bool CreateMask(const Family af,
+													   UInt8 cidr_lbits,
+													   BinaryIPAddress& bin_mask) noexcept
 		{
 			switch (af)
 			{
@@ -291,7 +291,7 @@ namespace QuantumGate::Implementation::Network
 			return false;
 		}
 
-		[[nodiscard]] static constexpr const bool IsMask(const BinaryIPAddress& bin_ipaddr) noexcept
+		[[nodiscard]] static constexpr bool IsMask(const BinaryIPAddress& bin_ipaddr) noexcept
 		{
 			if (const auto numbytes = bin_ipaddr.GetNumAddressBytes(); numbytes > 0u)
 			{
@@ -333,9 +333,9 @@ namespace QuantumGate::Implementation::Network
 			return false;
 		}
 
-		[[nodiscard]] static constexpr const bool GetNetwork(const BinaryIPAddress& bin_ipaddr,
-															 const UInt8 cidr_lbits,
-															 BinaryIPAddress& bin_network) noexcept
+		[[nodiscard]] static constexpr bool GetNetwork(const BinaryIPAddress& bin_ipaddr,
+													   const UInt8 cidr_lbits,
+													   BinaryIPAddress& bin_network) noexcept
 		{
 			BinaryIPAddress mask;
 			if (CreateMask(bin_ipaddr.AddressFamily, cidr_lbits, mask))
@@ -347,9 +347,9 @@ namespace QuantumGate::Implementation::Network
 			return false;
 		}
 
-		[[nodiscard]] static constexpr const bool GetNetwork(const BinaryIPAddress& bin_ipaddr,
-															 const BinaryIPAddress& bin_mask,
-															 BinaryIPAddress& bin_network) noexcept
+		[[nodiscard]] static constexpr bool GetNetwork(const BinaryIPAddress& bin_ipaddr,
+													   const BinaryIPAddress& bin_mask,
+													   BinaryIPAddress& bin_network) noexcept
 		{
 			assert(bin_ipaddr.AddressFamily == bin_mask.AddressFamily);
 

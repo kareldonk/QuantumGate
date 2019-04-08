@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation::Memory
 		return mutex;
 	}
 
-	const bool GetCurrentProcessWorkingSetSize(Size& minsize, Size& maxsize) noexcept
+	bool GetCurrentProcessWorkingSetSize(Size& minsize, Size& maxsize) noexcept
 	{
 		SIZE_T tminsize{ 0 };
 		SIZE_T tmaxsize{ 0 };
@@ -32,7 +32,7 @@ namespace QuantumGate::Implementation::Memory
 		return false;
 	}
 
-	const bool SetCurrentProcessWorkingSetSize(const Size minsize, const Size maxsize) noexcept
+	bool SetCurrentProcessWorkingSetSize(const Size minsize, const Size maxsize) noexcept
 	{
 		if (::SetProcessWorkingSetSize(::GetCurrentProcess(), minsize, maxsize))
 		{

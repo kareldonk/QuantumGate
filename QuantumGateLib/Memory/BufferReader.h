@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Memory
 		BufferReader& operator=(BufferReader&&) = default;
 
 		template<typename... Args>
-		[[nodiscard]] const bool Read(Args&... data) noexcept
+		[[nodiscard]] bool Read(Args&... data) noexcept
 		{
 			try
 			{
@@ -32,7 +32,7 @@ namespace QuantumGate::Implementation::Memory
 
 	private:
 		template<typename T>
-		[[nodiscard]] const std::enable_if_t<!std::is_enum_v<T>, bool> ReadImpl(T& data)
+		[[nodiscard]] std::enable_if_t<!std::is_enum_v<T>, bool> ReadImpl(T& data)
 		{
 			static_assert(std::is_integral_v<T> || std::is_same_v<T, Byte>, "Unsupported type.");
 
@@ -40,7 +40,7 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		template<typename T>
-		[[nodiscard]] const std::enable_if_t<std::is_enum_v<T>, bool> ReadImpl(T& data)
+		[[nodiscard]] std::enable_if_t<std::is_enum_v<T>, bool> ReadImpl(T& data)
 		{
 			std::underlying_type_t<T> tdata{ 0 };
 			if (ReadImpl(tdata))
@@ -53,7 +53,7 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		template<typename T>
-		[[nodiscard]] const std::enable_if_t<std::is_integral_v<T> ||
+		[[nodiscard]] std::enable_if_t<std::is_integral_v<T> ||
 			std::is_same_v<T, Byte> || std::is_enum_v<T> ||
 			std::is_same_v<T, SerializedUUID>, bool> ReadImpl(Vector<T>& data)
 		{
@@ -66,14 +66,14 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		template<typename T>
-		[[nodiscard]] const bool ReadImpl(const SizeWrap<T>& data)
+		[[nodiscard]] bool ReadImpl(const SizeWrap<T>& data)
 		{
 			static_assert(false, "Unsupported type.");
 			return false;
 		}
 
 		template<typename T>
-		[[nodiscard]] const bool ReadImpl(const SizeWrap<Vector<T>>& data)
+		[[nodiscard]] bool ReadImpl(const SizeWrap<Vector<T>>& data)
 		{
 			Size size{ 0 };
 			if (!ReadEncodedSize(size, data.MaxSize())) return false;
@@ -89,8 +89,8 @@ namespace QuantumGate::Implementation::Memory
 			return ReadImpl(*data);
 		}
 
-		[[nodiscard]] const bool ReadEncodedSize(Size& size, const Size maxsize) noexcept;
-		[[nodiscard]] const bool ReadBytes(Byte* data, const Size len, const bool endian_convert = false) noexcept;
+		[[nodiscard]] bool ReadEncodedSize(Size& size, const Size maxsize) noexcept;
+		[[nodiscard]] bool ReadBytes(Byte* data, const Size len, const bool endian_convert = false) noexcept;
 
 	private:
 		bool m_ConvertFromNetworkByteOrder{ false };
@@ -100,13 +100,13 @@ namespace QuantumGate::Implementation::Memory
 	};
 
 	// Specializations
-	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(String& data);
-	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(Network::SerializedBinaryIPAddress& data);
-	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(Network::SerializedIPEndpoint& data);
-	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(SerializedUUID& data);
-	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(Buffer& data);
-	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(ProtectedBuffer& data);
-	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(const SizeWrap<String>& data);
-	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(const SizeWrap<Buffer>& data);
-	template<> [[nodiscard]] Export const bool BufferReader::ReadImpl(const SizeWrap<ProtectedBuffer>& data);
+	template<> [[nodiscard]] Export bool BufferReader::ReadImpl(String& data);
+	template<> [[nodiscard]] Export bool BufferReader::ReadImpl(Network::SerializedBinaryIPAddress& data);
+	template<> [[nodiscard]] Export bool BufferReader::ReadImpl(Network::SerializedIPEndpoint& data);
+	template<> [[nodiscard]] Export bool BufferReader::ReadImpl(SerializedUUID& data);
+	template<> [[nodiscard]] Export bool BufferReader::ReadImpl(Buffer& data);
+	template<> [[nodiscard]] Export bool BufferReader::ReadImpl(ProtectedBuffer& data);
+	template<> [[nodiscard]] Export bool BufferReader::ReadImpl(const SizeWrap<String>& data);
+	template<> [[nodiscard]] Export bool BufferReader::ReadImpl(const SizeWrap<Buffer>& data);
+	template<> [[nodiscard]] Export bool BufferReader::ReadImpl(const SizeWrap<ProtectedBuffer>& data);
 }
