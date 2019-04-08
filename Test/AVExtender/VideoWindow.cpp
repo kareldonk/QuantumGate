@@ -14,7 +14,7 @@ namespace QuantumGate::AVExtender
 		Close();
 	}
 
-	bool VideoWindow::Create(const DWORD dwExStyle, const DWORD dwStyle, const int x, const int y,
+	bool VideoWindow::Create(const WChar* title, const DWORD dwExStyle, const DWORD dwStyle, const int x, const int y,
 							 const int width, const int height, const HWND parent) noexcept
 	{
 		WNDCLASSEX wc{ 0 };
@@ -26,7 +26,7 @@ namespace QuantumGate::AVExtender
 		wc.style = CS_VREDRAW | CS_HREDRAW;
 
 		RegisterClassEx(&wc);
-		m_WndHandle = CreateWindowEx(dwExStyle, wc.lpszClassName, L"VideoWindow",
+		m_WndHandle = CreateWindowEx(dwExStyle, wc.lpszClassName, title,
 									 dwStyle, x, y, width, height, parent, nullptr, nullptr, this);
 		if (m_WndHandle)
 		{
@@ -48,9 +48,29 @@ namespace QuantumGate::AVExtender
 	{
 		DeinitializeD2DRenderTarget();
 
-		if (DestroyWindow(m_WndHandle))
+		if (m_WndHandle != nullptr)
 		{
-			m_WndHandle = nullptr;
+			if (DestroyWindow(m_WndHandle))
+			{
+				m_WndHandle = nullptr;
+			}
+			else LogErr(L"Failed to destroy video window; GetLastError() returned %d", GetLastError());
+		}
+	}
+
+	void VideoWindow::ProcessMessages() noexcept
+	{
+		MSG msg{ 0 };
+
+		while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+		{
+			if (m_WndHandle != nullptr && IsDialogMessage(m_WndHandle, &msg))
+			{
+				continue;
+			}
+
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
 		}
 	}
 
