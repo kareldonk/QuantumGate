@@ -100,8 +100,7 @@ namespace StressExtender
 				// Get message type first
 				if (rdr.Read(mtype))
 				{
-					const MessageType type = static_cast<MessageType>(mtype);
-
+					const auto type = static_cast<MessageType>(mtype);
 					if (type == MessageType::MessageString)
 					{
 						handled = true;
@@ -155,7 +154,7 @@ namespace StressExtender
 		}
 		else
 		{
-			LogErr(L"Opened peer event from %llu: %d", event.GetPeerLUID(), event.GetType());
+			LogErr(L"Unknown peer event from %llu: %d", event.GetPeerLUID(), event.GetType());
 		}
 
 		return std::make_pair(handled, success);
