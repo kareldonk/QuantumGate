@@ -379,7 +379,6 @@ namespace TestExtender
 		if (event.GetType() == PeerEventType::Message)
 		{
 			auto msgdata = event.GetMessageData();
-
 			if (msgdata != nullptr)
 			{
 				UInt16 mtype = 0;
@@ -388,7 +387,7 @@ namespace TestExtender
 				// Get message type
 				if (rdr.Read(mtype))
 				{
-					const MessageType type = static_cast<MessageType>(mtype);
+					const auto type = static_cast<MessageType>(mtype);
 					switch (type)
 					{
 						case MessageType::MessageString:
@@ -625,7 +624,7 @@ namespace TestExtender
 		}
 		else
 		{
-			LogWarn(L"Opened peer event from %llu: %d", event.GetPeerLUID(), event.GetType());
+			LogWarn(L"Unknown peer event from %llu: %d", event.GetPeerLUID(), event.GetType());
 		}
 
 		return std::make_pair(handled, success);
