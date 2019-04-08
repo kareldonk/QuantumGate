@@ -237,7 +237,7 @@ bool SetVerbosity(const wstring& verb)
 		verbosity = QuantumGate::Console::Verbosity::Debug;
 		LogSys(L"Console verbosity set to debug");
 	}
-	else LogErr(L"Opened console verbosity level");
+	else LogErr(L"Unknown console verbosity level");
 
 	if (set) QuantumGate::Console::SetVerbosity(verbosity);
 

@@ -54,8 +54,6 @@ namespace StressExtender
 		const std::pair<bool, bool> OnPeerMessage(PeerEvent&& event);
 
 	private:
-		HWND m_Window{ nullptr };
-
 		std::atomic_bool m_UseCompression{ true };
 		
 		bool m_IsLocalBenchmarking{ false };
