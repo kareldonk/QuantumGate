@@ -37,6 +37,7 @@ protected:
 
 	virtual BOOL OnInitDialog();
 
+	void UpdateSelectedPeer() noexcept;
 	void UpdatePeerActivity();
 	void UpdateFileTransfers(const TestExtender::FileTransfers& filetransfers);
 	const int GetFileTransferIndex(const TestExtender::FileTransferID id);

@@ -466,6 +466,7 @@ LRESULT CTestAppDlgTestExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 		auto lbox = (CListBox*)GetDlgItem(IDC_PEERLIST);
 		lbox->InsertString(-1, Util::FormatString(L"%llu", event->PeerLUID).c_str());
 
+		UpdateSelectedPeer();
 		UpdateControls();
 		UpdatePeerActivity();
 	}
@@ -479,6 +480,7 @@ LRESULT CTestAppDlgTestExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 		const auto pos = lbox->FindString(-1, pluid);
 		if (pos != LB_ERR) lbox->DeleteString(pos);
 
+		UpdateSelectedPeer();
 		UpdateControls();
 		UpdatePeerActivity();
 	}
@@ -535,7 +537,7 @@ LRESULT CTestAppDlgTestExtenderTab::OnExtenderDeInit(WPARAM w, LPARAM l)
 	return 0;
 }
 
-void CTestAppDlgTestExtenderTab::OnLbnSelChangePeerList()
+void CTestAppDlgTestExtenderTab::UpdateSelectedPeer() noexcept
 {
 	m_SelectedPeerLUID.reset();
 
@@ -551,7 +553,11 @@ void CTestAppDlgTestExtenderTab::OnLbnSelChangePeerList()
 			m_SelectedPeerLUID = wcstoull(pluidtxt, &end, 10);
 		}
 	}
+}
 
+void CTestAppDlgTestExtenderTab::OnLbnSelChangePeerList()
+{
+	UpdateSelectedPeer();
 	UpdateControls();
 	UpdatePeerActivity();
 }
