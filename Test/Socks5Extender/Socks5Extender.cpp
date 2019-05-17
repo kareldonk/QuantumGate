@@ -34,7 +34,7 @@ namespace QuantumGate::Socks5Extender
 			!SetPeerEventCallback(MakeCallback(this, &Extender::OnPeerEvent)) ||
 			!SetPeerMessageCallback(MakeCallback(this, &Extender::OnPeerMessage)))
 		{
-			LogErr(GetName() + L": couldn't set one or more extender callbacks");
+			LogErr(L"%s: couldn't set one or more extender callbacks", GetName().c_str());
 		}
 	}
 
@@ -139,7 +139,7 @@ namespace QuantumGate::Socks5Extender
 
 	bool Extender::OnStartup()
 	{
-		LogDbg(L"Extender '" + GetName() + L"' starting...");
+		LogDbg(L"Extender '%s' starting...", GetName().c_str());
 
 		auto success = false;
 
@@ -159,7 +159,7 @@ namespace QuantumGate::Socks5Extender
 
 	void Extender::OnPostStartup()
 	{
-		LogDbg(L"Extender '" + GetName() + L"' running...");
+		LogDbg(L"Extender '%s' running...", GetName().c_str());
 
 		if (m_UseListener)
 		{
@@ -169,7 +169,7 @@ namespace QuantumGate::Socks5Extender
 
 	void Extender::OnPreShutdown()
 	{
-		LogDbg(L"Extender '" + GetName() + L"' will begin shutting down...");
+		LogDbg(L"Extender '%s' will begin shutting down...", GetName().c_str());
 
 		// Stop accepting incoming connections
 		ShutdownListener();
@@ -180,7 +180,7 @@ namespace QuantumGate::Socks5Extender
 
 	void Extender::OnShutdown()
 	{
-		LogDbg(L"Extender '" + GetName() + L"' shutting down...");
+		LogDbg(L"Extender '%s' shutting down...", GetName().c_str());
 
 		ShutdownThreadPool();
 
@@ -227,7 +227,7 @@ namespace QuantumGate::Socks5Extender
 				const auto result = filters.AddFilter(net, IPFilterType::Allowed);
 				if (result.Failed())
 				{
-					LogErr(GetName() + L": could not add %s to IP filters", net);
+					LogErr(L"%s: could not add %s to IP filters", GetName().c_str(), net);
 					success = false;
 					break;
 				}
@@ -240,7 +240,7 @@ namespace QuantumGate::Socks5Extender
 					const auto result = filters.AddFilter(net, IPFilterType::Blocked);
 					if (result.Failed())
 					{
-						LogErr(GetName() + L": could not add %s to IP filters", net);
+						LogErr(L"%s: could not add %s to IP filters", GetName().c_str(), net);
 						success = false;
 						break;
 					}
@@ -262,7 +262,7 @@ namespace QuantumGate::Socks5Extender
 	{
 		std::unique_lock<std::shared_mutex> lock(m_Listener.Mutex);
 
-		LogInfo(GetName() + L": listener starting...");
+		LogInfo(L"%s: listener starting...", GetName().c_str());
 
 		try
 		{
@@ -274,7 +274,7 @@ namespace QuantumGate::Socks5Extender
 												IP::Protocol::TCP);
 			if (m_Listener.Socket.Listen(endpoint, false, false))
 			{
-				LogInfo(GetName() + L": listening on endpoint %s", endpoint.GetString().c_str());
+				LogInfo(L"%s: listening on endpoint %s", GetName().c_str(), endpoint.GetString().c_str());
 
 				m_Listener.Thread = std::thread(Extender::ListenerThreadLoop, this);
 
@@ -283,7 +283,7 @@ namespace QuantumGate::Socks5Extender
 		}
 		catch (...) {}
 
-		LogErr(GetName() + L": listener startup failed");
+		LogErr(L"%s: listener startup failed", GetName().c_str());
 
 		return false;
 	}
@@ -292,7 +292,7 @@ namespace QuantumGate::Socks5Extender
 	{
 		std::unique_lock<std::shared_mutex> lock(m_Listener.Mutex);
 
-		LogInfo(GetName() + L": listener shutting down...");
+		LogInfo(L"%s: listener shutting down...", GetName().c_str());
 
 		m_Listener.ShutdownEvent.Set();
 
@@ -360,7 +360,8 @@ namespace QuantumGate::Socks5Extender
 			}
 		}
 
-		LogInfo(L"Extender '" + GetName() + L"' got peer event: %s, Peer LUID: %llu", ev.c_str(), event.GetPeerLUID());
+		LogInfo(L"Extender '%s' got peer event: %s, Peer LUID: %llu",
+				GetName().c_str(), ev.c_str(), event.GetPeerLUID());
 	}
 
 	const std::pair<bool, bool> Extender::OnPeerMessage(PeerEvent&& event)
@@ -393,7 +394,8 @@ namespace QuantumGate::Socks5Extender
 						{
 							success = HandleConnectDomainPeerMessage(event.GetPeerLUID(), cid, domain, port);
 						}
-						else LogErr(GetName() + L": could not read ConnectDomain message from peer %llu", event.GetPeerLUID());
+						else LogErr(L"%s: could not read ConnectDomain message from peer %llu",
+									GetName().c_str(), event.GetPeerLUID());
 
 						break;
 					}
@@ -409,7 +411,8 @@ namespace QuantumGate::Socks5Extender
 						{
 							success = HandleConnectIPPeerMessage(event.GetPeerLUID(), cid, ip, port);
 						}
-						else LogErr(GetName() + L": could not read ConnectIP message from peer %llu", event.GetPeerLUID());
+						else LogErr(L"%s: could not read ConnectIP message from peer %llu",
+									GetName().c_str(), event.GetPeerLUID());
 
 						break;
 					}
@@ -429,8 +432,8 @@ namespace QuantumGate::Socks5Extender
 																		BufferView(reinterpret_cast<Byte*>(&ip.Bytes),
 																				   sizeof(SerializedBinaryIPAddress::Bytes)), port);
 						}
-						else LogErr(GetName() + L": could not read Socks5ReplyRelay message from peer %llu",
-									event.GetPeerLUID());
+						else LogErr(L"%s: could not read Socks5ReplyRelay message from peer %llu",
+									GetName().c_str(), event.GetPeerLUID());
 
 						break;
 					}
@@ -450,7 +453,7 @@ namespace QuantumGate::Socks5Extender
 								{
 									if (!connection.SendRelayedData(std::move(data)))
 									{
-										LogErr(GetName() + L": error sending relayed data to connection %llu", cid);
+										LogErr(L"%s: error sending relayed data to connection %llu", GetName().c_str(), cid);
 										connection.SetDisconnectCondition();
 									}
 								});
@@ -459,11 +462,12 @@ namespace QuantumGate::Socks5Extender
 							}
 							else
 							{
-								LogErr(GetName() + L": received DataRelay from peer %llu for unknown connection %llu",
-									   event.GetPeerLUID(), cid);
+								LogErr(L"%s: received DataRelay from peer %llu for unknown connection %llu",
+									   GetName().c_str(), event.GetPeerLUID(), cid);
 							}
 						}
-						else LogErr(GetName() + L": could not read DataRelay message from peer %llu", event.GetPeerLUID());
+						else LogErr(L"%s: could not read DataRelay message from peer %llu",
+									GetName().c_str(), event.GetPeerLUID());
 
 						break;
 					}
@@ -490,11 +494,12 @@ namespace QuantumGate::Socks5Extender
 							}
 							else
 							{
-								LogErr(GetName() + L": received Disconnect from peer %llu for unknown connection %llu",
-									   event.GetPeerLUID(), cid);
+								LogErr(L"%s: received Disconnect from peer %llu for unknown connection %llu",
+									   GetName().c_str(), event.GetPeerLUID(), cid);
 							}
 						}
-						else LogErr(GetName() + L": could not read Disconnect message from peer %llu", event.GetPeerLUID());
+						else LogErr(L"%s: could not read Disconnect message from peer %llu",
+									GetName().c_str(), event.GetPeerLUID());
 
 						break;
 					}
@@ -519,18 +524,19 @@ namespace QuantumGate::Socks5Extender
 							}
 							else
 							{
-								LogErr(GetName() + L": received DisconnectAck from peer %llu for unknown connection %llu",
-									   event.GetPeerLUID(), cid);
+								LogErr(L"%s: received DisconnectAck from peer %llu for unknown connection %llu",
+									   GetName().c_str(), event.GetPeerLUID(), cid);
 							}
 						}
-						else LogErr(GetName() + L": could not read DisconnectAck message from peer %llu",
-									event.GetPeerLUID());
+						else LogErr(L"%s: could not read DisconnectAck message from peer %llu",
+									GetName().c_str(), event.GetPeerLUID());
 
 						break;
 					}
 					default:
 					{
-						LogErr(GetName() + L": received unknown message type from %llu: %u", event.GetPeerLUID(), mtype);
+						LogErr(L"%s: received unknown message type from %llu: %u",
+							   GetName().c_str(), event.GetPeerLUID(), mtype);
 						break;
 					}
 				}
@@ -545,7 +551,8 @@ namespace QuantumGate::Socks5Extender
 	{
 		if (!domain.empty() && port != 0)
 		{
-			LogDbg(GetName() + L": received ConnectDomain from peer %llu for connection %llu", pluid, cid);
+			LogDbg(L"%s: received ConnectDomain from peer %llu for connection %llu",
+				   GetName().c_str(), pluid, cid);
 
 			const auto ip = ResolveDomainIP(domain);
 			if (ip)
@@ -560,7 +567,7 @@ namespace QuantumGate::Socks5Extender
 
 			return true;
 		}
-		else LogErr(GetName() + L": received invalid ConnectDomain parameters from peer %llu", pluid);
+		else LogErr(L"%s: received invalid ConnectDomain parameters from peer %llu", GetName().c_str(), pluid);
 
 		return false;
 	}
@@ -571,13 +578,13 @@ namespace QuantumGate::Socks5Extender
 		if ((ip.AddressFamily == BinaryIPAddress::Family::IPv4 ||
 			 ip.AddressFamily == BinaryIPAddress::Family::IPv6) && port != 0)
 		{
-			LogDbg(GetName() + L": received ConnectIP from peer %llu for connection %llu", pluid, cid);
+			LogDbg(L"%s: received ConnectIP from peer %llu for connection %llu", GetName().c_str(), pluid, cid);
 
 			MakeOutgoingConnection(pluid, cid, IPAddress(ip), port);
 
 			return true;
 		}
-		else LogErr(GetName() + L": received invalid ConnectIP parameters from peer %llu", pluid);
+		else LogErr(L"%s: received invalid ConnectIP parameters from peer %llu", GetName().c_str(), pluid);
 
 		return false;
 	}
@@ -630,15 +637,15 @@ namespace QuantumGate::Socks5Extender
 						}
 						else
 						{
-							LogErr(GetName() + L": received Socks5ReplyRelay (%u) from peer %llu for unknown connection ID %llu",
-								   reply, pluid, cid);
+							LogErr(L"%s: received Socks5ReplyRelay (%u) from peer %llu for unknown connection ID %llu",
+								   GetName().c_str(), reply, pluid, cid);
 						}
 
 						break;
 					}
 					default:
 					{
-						LogErr(GetName() + L": received unsupported address type from %llu: %u", pluid, atype);
+						LogErr(L"%s: received unsupported address type from %llu: %u", GetName().c_str(), pluid, atype);
 						break;
 					}
 				}
@@ -647,7 +654,7 @@ namespace QuantumGate::Socks5Extender
 			}
 			default:
 			{
-				LogErr(GetName() + L": received unknown Socks5 reply from %llu: %u", pluid, reply);
+				LogErr(L"%s: received unknown Socks5 reply from %llu: %u", GetName().c_str(), pluid, reply);
 				break;
 			}
 		}
@@ -672,7 +679,7 @@ namespace QuantumGate::Socks5Extender
 
 		if (!success)
 		{
-			LogErr(GetName() + L": could not add new connection");
+			LogErr(L"%s: could not add new connection", GetName().c_str());
 		}
 
 		return success;
@@ -713,7 +720,7 @@ namespace QuantumGate::Socks5Extender
 
 	void Extender::DisconnectFor(const PeerLUID pluid)
 	{
-		LogInfo(GetName() + L": disconnecting connections for peer %llu", pluid);
+		LogInfo(L"%s: disconnecting connections for peer %llu", GetName().c_str(), pluid);
 
 		m_Connections.WithSharedLock([&](const Connections& connections)
 		{
@@ -733,7 +740,7 @@ namespace QuantumGate::Socks5Extender
 
 	void Extender::DisconnectAll()
 	{
-		LogInfo(GetName() + L": disconnecting all connections");
+		LogInfo(L"%s: disconnecting all connections", GetName().c_str());
 
 		m_Connections.WithUniqueLock([&](const Connections& connections)
 		{
@@ -750,7 +757,7 @@ namespace QuantumGate::Socks5Extender
 
 		auto extname = extender->GetName();
 
-		LogDbg(extname + L": listener thread %u starting", std::this_thread::get_id());
+		LogDbg(L"%s: listener thread %u starting", extname.c_str(), std::this_thread::get_id());
 
 		Util::SetCurrentThreadName(extname + L" Listener Thread");
 
@@ -765,27 +772,27 @@ namespace QuantumGate::Socks5Extender
 				if (extender->m_Listener.Socket.GetIOStatus().CanRead())
 				{
 					// Probably have a connection waiting to accept
-					LogDbg(extname + L": accepting new incoming connection");
+					LogDbg(L"%s: accepting new incoming connection", extname.c_str());
 
 					extender->AcceptIncomingConnection();
 				}
 				else if (extender->m_Listener.Socket.GetIOStatus().HasException())
 				{
-					LogErr(extname + L": exception on listener socket (%s)",
+					LogErr(L"%s: exception on listener socket (%s)", extname.c_str(),
 						   GetSysErrorString(extender->m_Listener.Socket.GetIOStatus().GetErrorCode()).c_str());
 					break;
 				}
 			}
 			else
 			{
-				LogErr(extname + L": could not get status of listener socket");
+				LogErr(L"%s: could not get status of listener socket", extname.c_str());
 				break;
 			}
 		}
 
 		if (extender->m_Listener.Socket.GetIOStatus().IsOpen()) extender->m_Listener.Socket.Close();
 
-		LogDbg(extname + L": listener thread %u exiting", std::this_thread::get_id());
+		LogDbg(L"%s: listener thread %u exiting", extname.c_str(), std::this_thread::get_id());
 	}
 
 	const std::pair<bool, bool> Extender::MainWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event)
@@ -805,7 +812,7 @@ namespace QuantumGate::Socks5Extender
 
 						if (connection.IsTimedOut())
 						{
-							LogDbg(GetName() + L": connection %llu timed out", connection.GetID());
+							LogDbg(L"%s: connection %llu timed out", GetName().c_str(), connection.GetID());
 
 							connection.SetDisconnectCondition();
 						}
@@ -813,7 +820,7 @@ namespace QuantumGate::Socks5Extender
 					else if (connection.IsDisconnected() ||
 						(connection.IsDisconnecting() && connection.IsTimedOut()))
 					{
-						LogDbg(GetName() + L": removing connection %llu", connection.GetID());
+						LogDbg(L"%s: removing connection %llu", GetName().c_str(), connection.GetID());
 
 						rlist.emplace_back(connection.GetKey());
 					}
@@ -854,18 +861,18 @@ namespace QuantumGate::Socks5Extender
 
 				AddConnection(*pluid, cid, std::move(cths));
 
-				LogInfo(GetName() + L": accepted connection %llu from endpoint %s and associated with peer %llu",
-						cid, endp.c_str(), *pluid);
+				LogInfo(L"%s: accepted connection %llu from endpoint %s and associated with peer %llu",
+						GetName().c_str(), cid, endp.c_str(), *pluid);
 			}
 			else
 			{
-				LogErr(GetName() + L": found no peers to associate with socket %s",
-					   s.GetPeerEndpoint().GetString().c_str());
+				LogErr(L"%s: found no peers to associate with socket %s",
+					   GetName().c_str(), s.GetPeerEndpoint().GetString().c_str());
 
 				s.Close();
 			}
 		}
-		else LogErr(GetName() + L": could not accept new connection");
+		else LogErr(L"%s: could not accept new connection", GetName().c_str());
 	}
 
 	bool Extender::SendConnectDomain(const PeerLUID pluid, const ConnectionID cid,
@@ -880,9 +887,10 @@ namespace QuantumGate::Socks5Extender
 			{
 				return true;
 			}
-			else LogErr(GetName() + L": could not send ConnectDomain message for connection %llu to peer %llu", cid, pluid);
+			else LogErr(L"%s: could not send ConnectDomain message for connection %llu to peer %llu",
+						GetName().c_str(), cid, pluid);
 		}
-		else LogErr(GetName() + L": could not prepare ConnectDomain message for connection %llu", cid);
+		else LogErr(L"%s: could not prepare ConnectDomain message for connection %llu", GetName().c_str(), cid);
 
 		return false;
 	}
@@ -901,9 +909,10 @@ namespace QuantumGate::Socks5Extender
 			{
 				return true;
 			}
-			else LogErr(GetName() + L": could not send ConnectIP message for connection %llu to peer %llu", cid, pluid);
+			else LogErr(L"%s: could not send ConnectIP message for connection %llu to peer %llu",
+						GetName().c_str(), cid, pluid);
 		}
-		else LogErr(GetName() + L": could not prepare ConnectIP message for connection %llu", cid);
+		else LogErr(L"%s: could not prepare ConnectIP message for connection %llu", GetName().c_str(), cid);
 
 		return false;
 	}
@@ -919,9 +928,10 @@ namespace QuantumGate::Socks5Extender
 			{
 				return true;
 			}
-			else LogErr(GetName() + L": could not send Disconnect message for connection %llu to peer %llu", cid, pluid);
+			else LogErr(L"%s: could not send Disconnect message for connection %llu to peer %llu",
+						GetName().c_str(), cid, pluid);
 		}
-		else LogErr(GetName() + L": could not prepare Disconnect message for connection %llu", cid);
+		else LogErr(L"%s: could not prepare Disconnect message for connection %llu", GetName().c_str(), cid);
 
 		return false;
 	}
@@ -937,9 +947,10 @@ namespace QuantumGate::Socks5Extender
 			{
 				return true;
 			}
-			else LogErr(GetName() + L": could not send DisconnectAck message for connection %llu to peer %llu", cid, pluid);
+			else LogErr(L"%s: could not send DisconnectAck message for connection %llu to peer %llu",
+						GetName().c_str(), cid, pluid);
 		}
-		else LogErr(GetName() + L": could not prepare DisconnectAck message for connection %llu", cid);
+		else LogErr(L"%s: could not prepare DisconnectAck message for connection %llu", GetName().c_str(), cid);
 
 		return false;
 	}
@@ -958,9 +969,10 @@ namespace QuantumGate::Socks5Extender
 			{
 				return true;
 			}
-			else LogErr(GetName() + L": could not send Socks5ReplyRelay message for connection %llu to peer %llu", cid, pluid);
+			else LogErr(L"%s: could not send Socks5ReplyRelay message for connection %llu to peer %llu",
+						GetName().c_str(), cid, pluid);
 		}
-		else LogErr(GetName() + L": could not prepare Socks5ReplyRelay message for connection %llu", cid);
+		else LogErr(L"%s: could not prepare Socks5ReplyRelay message for connection %llu", GetName().c_str(), cid);
 
 		return false;
 	}
@@ -976,10 +988,11 @@ namespace QuantumGate::Socks5Extender
 			{
 				return true;
 			}
-			else LogErr(GetName() + L": could not send DataRelay message for connection %llu to peer %llu", cid, pluid);
+			else LogErr(L"%s: could not send DataRelay message for connection %llu to peer %llu",
+						GetName().c_str(), cid, pluid);
 		}
-		else LogErr(GetName() + L": could not prepare DataRelay message for connection %llu; buffer size is %llu and max. data size is %llu",
-					cid, buffer.GetSize(), GetMaxDataRelayDataSize());
+		else LogErr(L"%s: could not prepare DataRelay message for connection %llu; buffer size is %llu and max. data size is %llu",
+					GetName().c_str(), cid, buffer.GetSize(), GetMaxDataRelayDataSize());
 
 		return false;
 	}
@@ -1008,8 +1021,8 @@ namespace QuantumGate::Socks5Extender
 			IPEndpoint endp(ip, port);
 			Socket s(endp.GetIPAddress().GetFamily());
 
-			LogInfo(GetName() + L": connecting to %s for peer %llu for connection %llu",
-					endp.GetString().c_str(), pluid, cid);
+			LogInfo(L"%s: connecting to %s for peer %llu for connection %llu",
+					GetName().c_str(), endp.GetString().c_str(), pluid, cid);
 
 			if (s.BeginConnect(endp))
 			{
@@ -1027,8 +1040,8 @@ namespace QuantumGate::Socks5Extender
 		}
 		else
 		{
-			LogErr(GetName() + L": attempt by peer %llu (connection %llu) to connect to address %s that is not allowed",
-				   pluid, cid, ip.GetString().c_str());
+			LogErr(L"%s: attempt by peer %llu (connection %llu) to connect to address %s that is not allowed",
+				   GetName().c_str(), pluid, cid, ip.GetString().c_str());
 
 			SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::ConnectionNotAllowed);
 		}
@@ -1054,7 +1067,7 @@ namespace QuantumGate::Socks5Extender
 				}
 			}
 		}
-		else LogErr(GetName() + L": could not resolve IP addresses for domain %s", domain.c_str());
+		else LogErr(L"%s: could not resolve IP addresses for domain %s", GetName().c_str(), domain.c_str());
 
 		return std::nullopt;
 	}

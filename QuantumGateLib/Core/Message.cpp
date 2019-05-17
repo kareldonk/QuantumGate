@@ -106,7 +106,7 @@ namespace QuantumGate::Implementation::Core
 		const UInt32 data = ((static_cast<UInt16>(m_MessageType) & MessageTypeMask) << 21) |
 			(m_MessageDataSize & MessageDataSizeMask);
 
-		Dbg(L"MsgHdr first 4 bytes: 0b%s", Util::ToBinaryString(data).c_str());
+		Dbg(L"MsgHdr first 4 bytes: 0b%s", Util::ToBinaryString(data).data());
 
 		Memory::BufferWriter wrt(buffer, true);
 

@@ -131,11 +131,11 @@ CString CIPFiltersDlg::GetIPRange(const CString& ip, const CString& mask) const 
 		QuantumGate::IPAddress ipmask;
 		if (QuantumGate::IPAddress::TryParseMask(ipaddr.GetFamily(), mask.GetString(), ipmask))
 		{
-			Dbg(L"ip %s %s", Util::ToBinaryString(ipaddr.GetBinary().UInt64s[1]).c_str(),
-				Util::ToBinaryString(ipaddr.GetBinary().UInt64s[0]).c_str());
+			Dbg(L"ip %s %s", Util::ToBinaryString(ipaddr.GetBinary().UInt64s[1]).data(),
+				Util::ToBinaryString(ipaddr.GetBinary().UInt64s[0]).data());
 
-			Dbg(L"ma %s %s", Util::ToBinaryString(ipmask.GetBinary().UInt64s[1]).c_str(),
-				Util::ToBinaryString(ipmask.GetBinary().UInt64s[0]).c_str());
+			Dbg(L"ma %s %s", Util::ToBinaryString(ipmask.GetBinary().UInt64s[1]).data(),
+				Util::ToBinaryString(ipmask.GetBinary().UInt64s[0]).data());
 
 			const auto StartAddress = ipaddr.GetBinary() & ipmask.GetBinary();
 			const auto EndAddress = ipaddr.GetBinary() | ~ipmask.GetBinary();

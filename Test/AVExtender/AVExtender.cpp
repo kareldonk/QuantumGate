@@ -227,7 +227,7 @@ namespace QuantumGate::AVExtender
 			!SetPeerEventCallback(MakeCallback(this, &Extender::OnPeerEvent)) ||
 			!SetPeerMessageCallback(MakeCallback(this, &Extender::OnPeerMessage)))
 		{
-			LogErr(GetName() + L": couldn't set one or more extender callbacks");
+			LogErr(L"%s: couldn't set one or more extender callbacks", GetName().c_str());
 		}
 	}
 
@@ -236,7 +236,7 @@ namespace QuantumGate::AVExtender
 
 	bool Extender::OnStartup()
 	{
-		LogDbg(GetName() + L": starting...");
+		LogDbg(L"%s: starting...", GetName().c_str());
 
 		m_ShutdownEvent.Reset();
 
@@ -254,17 +254,17 @@ namespace QuantumGate::AVExtender
 
 	void Extender::OnPostStartup()
 	{
-		LogDbg(GetName() + L": running...");
+		LogDbg(L"%s: running...", GetName().c_str());
 	}
 
 	void Extender::OnPreShutdown()
 	{
-		LogDbg(GetName() + L": will begin shutting down...");
+		LogDbg(L"%s: will begin shutting down...", GetName().c_str());
 	}
 
 	void Extender::OnShutdown()
 	{
-		LogDbg(GetName() + L": shutting down...");
+		LogDbg(L"%s: shutting down...", GetName().c_str());
 
 		// Set the shutdown event to notify thread that we're shutting down
 		m_ShutdownEvent.Set();
@@ -302,7 +302,7 @@ namespace QuantumGate::AVExtender
 			m_Peers.WithUniqueLock()->erase(event.GetPeerLUID());
 		}
 
-		LogInfo(GetName() + L": got peer event: %s, Peer LUID: %llu", ev.c_str(), event.GetPeerLUID());
+		LogInfo(L"%s: got peer event: %s, Peer LUID: %llu", GetName().c_str(), ev.c_str(), event.GetPeerLUID());
 
 		if (m_Window != nullptr)
 		{

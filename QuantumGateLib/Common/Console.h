@@ -101,14 +101,14 @@ namespace QuantumGate::Implementation
 			Output& operator=(Output&&) = default;
 
 			virtual const WChar* GetFormat(const MessageType type, const Format fmt) const = 0;
-			virtual void AddMessage(const MessageType type, const StringView message) = 0;
+			virtual void AddMessage(const MessageType type, const WChar* message) = 0;
 		};
 
 		class Export DummyOutput : public Output
 		{
 		public:
 			const WChar* GetFormat(const MessageType type, const Format fmt) const noexcept override { return L""; }
-			void AddMessage(const MessageType type, const StringView message) noexcept override {}
+			void AddMessage(const MessageType type, const WChar* message) noexcept override {}
 		};
 
 		class Export TerminalOutput : public Output
@@ -172,7 +172,7 @@ namespace QuantumGate::Implementation
 			bool InitConsole() noexcept;
 
 			const WChar* GetFormat(const MessageType type, const Format fmt) const noexcept override;
-			void AddMessage(const MessageType type, const StringView message) override;
+			void AddMessage(const MessageType type, const WChar* message) override;
 		};
 
 		class Export WindowOutput : public TerminalOutput
@@ -181,7 +181,7 @@ namespace QuantumGate::Implementation
 			WindowOutput() noexcept;
 			~WindowOutput();
 
-			void AddMessage(const MessageType type, const StringView message) override;
+			void AddMessage(const MessageType type, const WChar* message) override;
 
 		protected:
 			std::unique_ptr<Window> m_ConsoleWindow;
@@ -201,11 +201,11 @@ namespace QuantumGate::Implementation
 				{
 					if constexpr (Check)
 					{
-						Console::AddMessage(m_MessageType, m_StringStream.str());
+						Console::AddMessage(m_MessageType, m_StringStream.str().c_str());
 					}
 					else
 					{
-						Console::AddMessageWithNoCheck(m_MessageType, m_StringStream.str());
+						Console::AddMessageWithNoCheck(m_MessageType, m_StringStream.str().c_str());
 					}
 				}
 				catch (...) {}
@@ -240,13 +240,13 @@ namespace QuantumGate::Implementation
 		[[nodiscard]] static bool CanAddMessage(const MessageType type) noexcept;
 
 		template<typename... Args>
-		static void AddMessage(const MessageType type, const StringView message, const Args&... args) noexcept
+		static void AddMessage(const MessageType type, const WChar* message, const Args&... args) noexcept
 		{
 			if (CanAddMessage(type)) AddMessageWithNoCheck(type, message, args...);
 		}
 
 		template<typename... Args>
-		static void AddMessageWithNoCheck(const MessageType type, const StringView message, const Args&... args) noexcept
+		static void AddMessageWithNoCheck(const MessageType type, const WChar* message, const Args&... args) noexcept
 		{
 			if constexpr (sizeof...(Args) > 0)
 			{
@@ -259,8 +259,8 @@ namespace QuantumGate::Implementation
 		}
 
 	private:
-		static void AddMessageNoArgs(const MessageType type, const StringView message) noexcept;
-		static void AddMessageWithArgs(const MessageType type, const StringView message, ...) noexcept;
+		static void AddMessageNoArgs(const MessageType type, const WChar* message) noexcept;
+		static void AddMessageWithArgs(const MessageType type, const WChar* message, ...) noexcept;
 	};
 }
 

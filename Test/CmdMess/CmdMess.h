@@ -18,7 +18,7 @@ public:
 	virtual ~CmdConsole() {}
 
 	void AddMessage(const QuantumGate::Console::MessageType type,
-					const QuantumGate::StringView message) override
+					const QuantumGate::WChar* message) override
 	{
 		TerminalOutput::AddMessage(type, message);
 	}

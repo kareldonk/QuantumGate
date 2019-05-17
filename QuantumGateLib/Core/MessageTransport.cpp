@@ -21,9 +21,9 @@ namespace QuantumGate::Implementation::Core
 		// Use the last 4 bytes
 		m_MessageRandomBits = static_cast<UInt32>(rndbytes >> 32);
 
-		Dbg(L"MsgTOHdr Random bytes: %llu : 0b%s", rndbytes, Util::ToBinaryString(rndbytes).c_str());
-		Dbg(L"MsgTOHdr Random bits: %u : 0b%s", m_MessageRandomBits, Util::ToBinaryString(m_MessageRandomBits).c_str());
-		Dbg(L"MsgTOHdr Nonce seed: %u : 0b%s", m_MessageNonceSeed, Util::ToBinaryString(m_MessageNonceSeed).c_str());
+		Dbg(L"MsgTOHdr Random bytes: %llu : 0b%s", rndbytes, Util::ToBinaryString(rndbytes).data());
+		Dbg(L"MsgTOHdr Random bits: %u : 0b%s", m_MessageRandomBits, Util::ToBinaryString(m_MessageRandomBits).data());
+		Dbg(L"MsgTOHdr Nonce seed: %u : 0b%s", m_MessageNonceSeed, Util::ToBinaryString(m_MessageNonceSeed).data());
 	}
 
 	bool MessageTransport::OHeader::Read(const BufferView& buffer)
@@ -65,17 +65,17 @@ namespace QuantumGate::Implementation::Core
 		// D = MessageTransport data size bits
 
 		Dbg(L"MsgTDSOffset: %u bits", mds_settings.Offset);
-		Dbg(L"MsgTDSXOR bytes: 0b%s", Util::ToBinaryString(mds_settings.XOR).c_str());
+		Dbg(L"MsgTDSXOR bytes: 0b%s", Util::ToBinaryString(mds_settings.XOR).data());
 
 		size = size << mds_settings.Offset;
 		const auto mask = 0x000FFFFF << mds_settings.Offset;
 		size |= (rnd_bits & ~mask);
 
-		Dbg(L"MsgTOHdr first 4 bytes:\t0b%s", Util::ToBinaryString(size).c_str());
+		Dbg(L"MsgTOHdr first 4 bytes:\t0b%s", Util::ToBinaryString(size).data());
 
 		size ^= mds_settings.XOR;
 
-		Dbg(L"MsgTOHdr first 4 bytes (XORed):\t0b%s", Util::ToBinaryString(size).c_str());
+		Dbg(L"MsgTOHdr first 4 bytes (XORed):\t0b%s", Util::ToBinaryString(size).data());
 
 		return size;
 	}

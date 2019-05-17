@@ -666,7 +666,7 @@ void CTestAppDlg::LoadSocks5Extender()
 		auto extp = std::static_pointer_cast<Extender>(extender);
 		if (const auto result = m_QuantumGate.AddExtender(extp); result.Failed())
 		{
-			LogErr(L"Failed to add Socks5Extender: " + result.GetErrorDescription());
+			LogErr(L"Failed to add Socks5Extender: %s", result.GetErrorDescription().c_str());
 		}
 	}
 }
@@ -678,7 +678,7 @@ void CTestAppDlg::UnloadSocks5Extender()
 	{
 		if (const auto result = m_QuantumGate.RemoveExtender(extender); result.Failed())
 		{
-			LogErr(L"Failed to add Socks5Extender: " + result.GetErrorDescription());
+			LogErr(L"Failed to add Socks5Extender: %s", result.GetErrorDescription().c_str());
 		}
 	}
 }
@@ -745,7 +745,7 @@ void CTestAppDlg::OnLocalInitialize()
 
 	m_QuantumGate.Startup(params).Failed([](auto& result)
 	{
-		LogErr(L"Failed to start QuantumGate: " + result.GetErrorString());
+		LogErr(L"Failed to start QuantumGate: %s", result.GetErrorString().c_str());
 	});
 
 	UpdateControls();
@@ -786,7 +786,7 @@ void CTestAppDlg::OnLocalDeinitialize()
 
 	m_QuantumGate.Shutdown().Failed([](auto& result)
 	{
-		LogErr(L"Failed to shut down QuantumGate: " + result.GetErrorString());
+		LogErr(L"Failed to shut down QuantumGate: %s", result.GetErrorString().c_str());
 	});
 
 	UpdateControls();
@@ -858,7 +858,7 @@ void CTestAppDlg::SetSecurityLevel(const QuantumGate::SecurityLevel level)
 {
 	m_QuantumGate.SetSecurityLevel(level).Failed([](auto& result)
 	{
-		LogErr(L"Failed to set QuantumGate security level: " + result.GetErrorString());
+		LogErr(L"Failed to set QuantumGate security level: %s", result.GetErrorString().c_str());
 	});
 }
 
@@ -953,14 +953,14 @@ void CTestAppDlg::OnLocalListenersEnabled()
 	{
 		m_QuantumGate.EnableListeners().Failed([](auto& result)
 		{
-			LogErr(L"Failed to enable listeners: " + result.GetErrorString());
+			LogErr(L"Failed to enable listeners: %s", result.GetErrorString().c_str());
 		});
 	}
 	else
 	{
 		m_QuantumGate.DisableListeners().Failed([](auto& result)
 		{
-			LogErr(L"Failed to disable listeners: " + result.GetErrorString());
+			LogErr(L"Failed to disable listeners: %s", result.GetErrorString().c_str());
 		});
 	}
 }
@@ -977,14 +977,14 @@ void CTestAppDlg::OnLocalExtendersEnabled()
 	{
 		m_QuantumGate.EnableExtenders().Failed([](auto& result)
 		{
-			LogErr(L"Failed to enable extenders: " + result.GetErrorString());
+			LogErr(L"Failed to enable extenders: %s", result.GetErrorString().c_str());
 		});
 	}
 	else
 	{
 		m_QuantumGate.DisableExtenders().Failed([](auto& result)
 		{
-			LogErr(L"Failed to disable extenders: " + result.GetErrorString());
+			LogErr(L"Failed to disable extenders: %s", result.GetErrorString().c_str());
 		});
 	}
 }
@@ -1093,8 +1093,8 @@ void CTestAppDlg::OnSocks5ExtenderAuthentication()
 				auto usr = ProtectedString{ dlg.GetUsername().GetString() };
 				auto pwd = ProtectedString{ dlg.GetPassword().GetString() };
 
-				if (!socks5ext->SetCredentials(ProtectedStringA(usr.begin(), usr.end()),
-											   ProtectedStringA(pwd.begin(), pwd.end())))
+				if (!socks5ext->SetCredentials(Util::ToProtectedStringA(usr),
+											   Util::ToProtectedStringA(pwd)))
 				{
 					AfxMessageBox(L"Couldn't set credentials for Socks5 Extender.", MB_ICONERROR);
 				}
@@ -1190,7 +1190,7 @@ void CTestAppDlg::OnExtendersLoadFromModule()
 	{
 		m_QuantumGate.AddExtenderModule(Path(path->GetString())).Failed([](auto& result)
 		{
-			LogErr(L"Failed to add extender module: " + result.GetErrorString());
+			LogErr(L"Failed to add extender module: %s", result.GetErrorString().c_str());
 		});
 	}
 }
@@ -1202,7 +1202,7 @@ void CTestAppDlg::OnExtendersUnloadFromModule()
 	{
 		m_QuantumGate.RemoveExtenderModule(Path(path->GetString())).Failed([](auto& result)
 		{
-			LogErr(L"Failed to remove extender module: " + result.GetErrorString());
+			LogErr(L"Failed to remove extender module: %s", result.GetErrorString().c_str());
 		});
 	}
 }
@@ -1244,14 +1244,14 @@ void CTestAppDlg::OnLocalRelaysEnabled()
 	{
 		m_QuantumGate.EnableRelays().Failed([](const auto& result)
 		{
-			LogErr(L"Failed to enable relays: " + result.GetErrorString());
+			LogErr(L"Failed to enable relays: %s", result.GetErrorString().c_str());
 		});
 	}
 	else
 	{
 		m_QuantumGate.DisableRelays().Failed([](const auto& result)
 		{
-			LogErr(L"Failed to disable relays: " + result.GetErrorString());
+			LogErr(L"Failed to disable relays: %s", result.GetErrorString().c_str());
 		});
 	}
 }
@@ -1287,7 +1287,7 @@ void CTestAppDlg::OnLocalConnect()
 		const auto result = m_QuantumGate.ConnectTo(std::move(params), MakeCallback(this, &CTestAppDlg::OnPeerConnected));
 		if (!result)
 		{
-			LogErr(L"Failed to connect: " + result.GetErrorDescription());
+			LogErr(L"Failed to connect: %s", result.GetErrorDescription().c_str());
 		}
 	}
 }
@@ -1352,7 +1352,7 @@ void CTestAppDlg::OnLocalConnectRelayed()
 
 		if (!result)
 		{
-			LogErr(L"Failed to connect: " + result.GetErrorDescription());
+			LogErr(L"Failed to connect: %s", result.GetErrorDescription().c_str());
 		}
 	}
 }

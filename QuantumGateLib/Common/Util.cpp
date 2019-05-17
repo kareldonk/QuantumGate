@@ -3,9 +3,7 @@
 
 #include "stdafx.h"
 #include "Util.h"
-#include "Endian.h"
 #include "Random.h"
-#include "..\Algorithms.h"
 #include "..\Common\Hash.h"
 #include "..\Common\ScopeGuard.h"
 
@@ -14,19 +12,34 @@
 
 namespace QuantumGate::Implementation::Util
 {
-	Export String GetCurrentLocalTime(const String& format) noexcept
+	Export bool GetCurrentLocalTime(const WChar* format, std::array<WChar, 128>& timestr) noexcept
 	{
 		const Time time = std::time(nullptr);
 		tm time_tm{ 0 };
-		std::array<WChar, 100> timestr{ 0 };
 
 		if (localtime_s(&time_tm, &time) == 0)
 		{
-			if (std::wcsftime(timestr.data(), timestr.size(), format.c_str(), &time_tm) != 0)
+			if (std::wcsftime(timestr.data(), timestr.size(), format, &time_tm) != 0)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	Export String GetCurrentLocalTime(const WChar* format) noexcept
+	{
+		try
+		{
+			std::array<WChar, 128> timestr{ 0 };
+
+			if (GetCurrentLocalTime(format, timestr))
 			{
 				return timestr.data();
 			}
 		}
+		catch (...) {}
 
 		return {};
 	}
@@ -51,7 +64,24 @@ namespace QuantumGate::Implementation::Util
 		return std::chrono::system_clock::to_time_t(time);
 	}
 
-	Export String FormatString(const StringView format, ...) noexcept
+	Export String FormatString(const WChar* format, va_list arglist) noexcept
+	{
+		try
+		{
+			const std::size_t size = static_cast<std::size_t>(_vscwprintf(format, arglist)) + 1; // include space for '\0'
+
+			String txt;
+			txt.resize(size - 1); // exclude space for '\0'
+			std::vswprintf(txt.data(), size, format, arglist);
+
+			return txt;
+		}
+		catch (...) {}
+
+		return {};
+	}
+
+	Export String FormatString(const WChar* format, ...) noexcept
 	{
 		va_list argptr = nullptr;
 		va_start(argptr, format);
@@ -63,87 +93,21 @@ namespace QuantumGate::Implementation::Util
 		return fstr;
 	}
 
-	Export String FormatString(const StringView format, va_list arglist) noexcept
+	Export String ToBinaryString(const gsl::span<Byte> bytes) noexcept
 	{
 		try
 		{
-			String tmpstr;
-			std::array<WChar, 1024> tmp{ 0 };
-			WChar* fmtptr{ nullptr };
-
-			// Need to add '\0' to format
-			if (format.size() < tmp.size())
-			{
-				memcpy(tmp.data(), format.data(), format.size() * sizeof(WChar));
-				fmtptr = tmp.data();
-			}
-			else
-			{
-				tmpstr = format;
-				fmtptr = tmpstr.data();
-			}
-
-			const std::size_t size = static_cast<std::size_t>(_vscwprintf(fmtptr, arglist)) + 1; // include space for '\0'
+			const auto numbits = CHAR_BIT * bytes.size();
+			const auto numsep = bytes.size() - 1;
+			const auto len = numbits + numsep;
 
 			String txt;
-			txt.resize(size - 1); // exclude space for '\0'
-			std::vswprintf(txt.data(), size, fmtptr, arglist);
+			txt.reserve(len);
 
-			return txt;
-		}
-		catch (...) {}
-
-		return {};
-	}
-
-	template<typename T>
-	Export String ToBinaryString(const T bytes) noexcept
-	{
-		static_assert(std::is_integral_v<T>, "Unsupported type.");
-
-		const auto numbits = CHAR_BIT * sizeof(T);
-		const auto numsep = sizeof(T) - 1;
-		Char txt[numbits + numsep + 1]{ 0 };
-
-		auto pos = 0llu;
-		auto bitcount = 0llu;
-		for (auto x = 0llu; x < numbits; ++x)
-		{
-			if (bitcount == CHAR_BIT)
-			{
-				txt[sizeof(txt) - (pos + 2)] = '\'';
-				bitcount = 0;
-				++pos;
-			}
-
-			txt[sizeof(txt) - (pos + 2)] = static_cast<UChar>((bytes >> x) & 0x1) ? '1' : '0';
-
-			++pos;
-			++bitcount;
-		}
-
-		return ToStringW(txt);
-	}
-
-	// Specific instantiations
-	template Export String ToBinaryString<Int8>(const Int8 bytes) noexcept;
-	template Export String ToBinaryString<UInt8>(const UInt8 bytes) noexcept;
-	template Export String ToBinaryString<Int16>(const Int16 bytes) noexcept;
-	template Export String ToBinaryString<UInt16>(const UInt16 bytes) noexcept;
-	template Export String ToBinaryString<Int32>(const Int32 bytes) noexcept;
-	template Export String ToBinaryString<UInt32>(const UInt32 bytes) noexcept;
-	template Export String ToBinaryString<Int64>(const Int64 bytes) noexcept;
-	template Export String ToBinaryString<UInt64>(const UInt64 bytes) noexcept;
-
-	String ToBinaryString(const gsl::span<Byte> bytes) noexcept
-	{
-		try
-		{
-			String txt;
 			for (const auto byte : bytes)
 			{
 				if (!txt.empty()) txt += L"'";
-				txt += ToBinaryString(static_cast<UChar>(byte));
+				txt += ToBinaryString(static_cast<UChar>(byte)).data();
 			}
 
 			return txt;
@@ -151,28 +115,99 @@ namespace QuantumGate::Implementation::Util
 		catch (...) {}
 
 		return {};
+	}
+
+	template<typename T, typename U, bool clear>
+	T ToStringWImpl(const U& txt) noexcept
+	{
+		T str;
+
+		try
+		{
+			std::array<typename T::value_type, 1024> tmp{ 0 };
+
+			const auto ret = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, txt.data(), -1, tmp.data(), static_cast<int>(tmp.size()));
+			if (ret != 0)
+			{
+				str = tmp.data();
+			}
+			else if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+			{
+				const auto len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, txt.data(), -1, nullptr, 0);
+				if (len > 0)
+				{
+					str.resize(len - 1); // exclude space for '\0'
+
+					MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, txt.data(), -1, str.data(), len);
+				}
+			}
+
+			if constexpr (clear)
+			{
+				// Wipe all temp data
+				MemClear(tmp.data(), sizeof(typename T::value_type) * tmp.size());
+			}
+		}
+		catch (...) {}
+
+		return str;
 	}
 
 	Export String ToStringW(const std::string& txt) noexcept
 	{
+		return ToStringWImpl<String, std::string, false>(txt);
+	}
+
+	Export ProtectedString ToProtectedStringW(const ProtectedStringA& txt) noexcept
+	{
+		return ToStringWImpl<ProtectedString, ProtectedStringA, true>(txt);
+	}
+
+	template<typename T, typename U, bool clear>
+	T ToStringAImpl(const U& txt) noexcept
+	{
+		T str;
+
 		try
 		{
-			return String(txt.begin(), txt.end());
+			std::array<typename T::value_type, 1024> tmp{ 0 };
+
+			const auto ret = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, txt.data(), -1,
+												 tmp.data(), static_cast<int>(tmp.size()), nullptr, nullptr);
+			if (ret != 0)
+			{
+				str = tmp.data();
+			}
+			else if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) 
+			{
+				const auto len = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, txt.data(), -1, nullptr, 0, nullptr, nullptr);
+				if (len > 0)
+				{
+					str.resize(len - 1); // exclude space for '\0'
+
+					WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, txt.data(), -1, str.data(), len, nullptr, nullptr);
+				}
+			}
+
+			if constexpr (clear)
+			{
+				// Wipe all temp data
+				MemClear(tmp.data(), sizeof(typename T::value_type) * tmp.size());
+			}
 		}
 		catch (...) {}
 
-		return {};
+		return str;
 	}
 
 	Export std::string ToStringA(const String& txt) noexcept
 	{
-		try
-		{
-			return std::string(txt.begin(), txt.end());
-		}
-		catch (...) {}
+		return ToStringAImpl<std::string, String, false>(txt);
+	}
 
-		return {};
+	Export ProtectedStringA ToProtectedStringA(const ProtectedString& txt) noexcept
+	{
+		return ToStringAImpl<ProtectedStringA, ProtectedString, true>(txt);
 	}
 
 	Export std::optional<String> GetBase64(const BufferView& buffer) noexcept
@@ -229,38 +264,6 @@ namespace QuantumGate::Implementation::Util
 		return std::nullopt;
 	}
 
-	std::optional<Buffer> FromBase64(const String& b64) noexcept
-	{
-		// Convert to string (char*) first
-		const auto b64str = ToStringA(b64);
-
-		return FromBase64(b64str);
-	}
-
-	Export std::optional<Buffer> FromBase64(const std::string& b64) noexcept
-	{
-		try
-		{
-			Buffer buffer;
-			if (FromBase64(b64, buffer)) return { std::move(buffer) };
-		}
-		catch (...) {}
-
-		return std::nullopt;
-	}
-
-	std::optional<ProtectedBuffer> FromBase64(const ProtectedStringA& b64) noexcept
-	{
-		try
-		{
-			ProtectedBuffer buffer;
-			if (FromBase64(b64, buffer)) return { std::move(buffer) };
-		}
-		catch (...) {}
-
-		return std::nullopt;
-	}
-
 	template<typename S, typename B>
 	bool FromBase64(const S& b64, B& buffer) noexcept
 	{
@@ -295,8 +298,40 @@ namespace QuantumGate::Implementation::Util
 
 	// Specific instantiations
 	template bool FromBase64<std::string, Buffer>(const std::string& b64, Buffer& buffer) noexcept;
-	template bool FromBase64<ProtectedStringA, ProtectedBuffer>(const ProtectedStringA& b64,
-																	  ProtectedBuffer& buffer) noexcept;
+	template bool FromBase64<ProtectedStringA, ProtectedBuffer>(const ProtectedStringA& b64, ProtectedBuffer& buffer) noexcept;
+
+	std::optional<Buffer> FromBase64(const String& b64) noexcept
+	{
+		// Convert to string (char*) first
+		const auto b64str = ToStringA(b64);
+
+		return FromBase64(b64str);
+	}
+
+	Export std::optional<Buffer> FromBase64(const std::string& b64) noexcept
+	{
+		try
+		{
+			Buffer buffer;
+			if (FromBase64(b64, buffer)) return { std::move(buffer) };
+		}
+		catch (...) {}
+
+		return std::nullopt;
+	}
+
+	std::optional<ProtectedBuffer> FromBase64(const ProtectedStringA& b64) noexcept
+	{
+		try
+		{
+			ProtectedBuffer buffer;
+			if (FromBase64(b64, buffer)) return { std::move(buffer) };
+		}
+		catch (...) {}
+
+		return std::nullopt;
+	}
+
 
 	Export UInt64 NonPersistentHash(const String& txt) noexcept
 	{
@@ -354,7 +389,7 @@ namespace QuantumGate::Implementation::Util
 		return errorstr;
 	}
 
-	Export void DisplayDebugMessage(const StringView message, ...) noexcept
+	Export void DisplayDebugMessage(const WChar* message, ...) noexcept
 	{
 		va_list argptr = nullptr;
 		va_start(argptr, message);
