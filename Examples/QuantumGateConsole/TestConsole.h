@@ -63,7 +63,7 @@ public:
 	// other data elsewhere that can also be accessed by other threads,
 	// then you need to implement additional synchronization. 
 	void AddMessage(const QuantumGate::Console::MessageType type,
-					const QuantumGate::StringView message) override
+					const QuantumGate::WChar* message) override
 	{
 		// Simply output the message to the standard output. We could instead
 		// send the output to a file or a text control in the case of an 

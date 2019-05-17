@@ -11,7 +11,7 @@
 using namespace QuantumGate::Implementation;
 
 void TestAppConsole::AddMessage(const QuantumGate::Console::MessageType type,
-								const QuantumGate::StringView message)
+								const QuantumGate::WChar* message)
 {
 	std::unique_lock<std::mutex> lock(m_Mutex);
 
@@ -36,8 +36,8 @@ void TestAppConsole::AddMessage(const QuantumGate::Console::MessageType type,
 	}
 
 	m_Messages += message;
-
 	m_Messages += L"\r\n";
+
 	m_NewMessageEvent.Set();
 
 #ifdef _DEBUG

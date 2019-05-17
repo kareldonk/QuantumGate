@@ -285,7 +285,7 @@ namespace TestExtender
 			!SetPeerEventCallback(MakeCallback(this, &Extender::OnPeerEvent)) ||
 			!SetPeerMessageCallback(MakeCallback(this, &Extender::OnPeerMessage)))
 		{
-			LogErr(GetName() + L": couldn't set one or more extender callbacks");
+			LogErr(L"%s: couldn't set one or more extender callbacks", GetName().c_str());
 		}
 	}
 
@@ -294,7 +294,7 @@ namespace TestExtender
 
 	bool Extender::OnStartup()
 	{
-		LogDbg(L"Extender '" + GetName() + L"' starting...");
+		LogDbg(L"Extender '%s' starting...", GetName().c_str());
 
 		m_ShutdownEvent.Reset();
 
@@ -312,12 +312,12 @@ namespace TestExtender
 
 	void Extender::OnPostStartup()
 	{
-		LogDbg(L"Extender '" + GetName() + L"' running...");
+		LogDbg(L"Extender '%s' running...", GetName().c_str());
 	}
 
 	void Extender::OnShutdown()
 	{
-		LogDbg(L"Extender '" + GetName() + L"' shutting down...");
+		LogDbg(L"Extender '%s' shutting down...", GetName().c_str());
 
 		// Set the shutdown event to notify thread that we're shutting down
 		m_ShutdownEvent.Set();
@@ -355,7 +355,8 @@ namespace TestExtender
 			m_Peers.WithUniqueLock()->erase(event.GetPeerLUID());
 		}
 
-		LogInfo(L"Extender '" + GetName() + L"' got peer event: %s, Peer LUID: %llu", ev.c_str(), event.GetPeerLUID());
+		LogInfo(L"Extender '%s' got peer event: %s, Peer LUID: %llu",
+				GetName().c_str(), ev.c_str(), event.GetPeerLUID());
 
 		if (m_Window != nullptr)
 		{

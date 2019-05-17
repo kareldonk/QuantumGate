@@ -242,11 +242,13 @@ namespace QuantumGate::Socks5Extender
 			// there is data to be sent (such as Socks5 (error) replies)
 			if (IsInHandshake() && !m_SendBuffer.IsEmpty())
 			{
-				LogDbg(m_Extender.GetName() + L": cannot yet remove connection %llu (send buffer not empty)", GetID());
+				LogDbg(L"%s: cannot yet remove connection %llu (send buffer not empty)",
+					   m_Extender.GetName().c_str(), GetID());
 			}
 			else
 			{
-				LogDbg(m_Extender.GetName() + L": will remove connection %llu marked for disconnection", GetID());
+				LogDbg(L"%s: will remove connection %llu marked for disconnection",
+					   m_Extender.GetName().c_str(), GetID());
 
 				// Disconnect now
 				disconnect = true;
@@ -289,8 +291,8 @@ namespace QuantumGate::Socks5Extender
 						m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(),
 												   m_Extender.TranslateWSAErrorToSocks5(m_Socket.GetIOStatus().GetErrorCode()));
 
-						LogErr(m_Extender.GetName() + L": got exception on socket %s (%s)",
-							   m_Socket.GetPeerEndpoint().GetString().c_str(),
+						LogErr(L"%s: got exception on socket %s (%s)",
+							   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
 							   GetSysErrorString(m_Socket.GetIOStatus().GetErrorCode()).c_str());
 
 						success = false;
@@ -306,8 +308,8 @@ namespace QuantumGate::Socks5Extender
 						{
 							SetStatus(Status::Connected);
 
-							LogInfo(m_Extender.GetName() + L": connected to %s for connection %llu",
-									m_Socket.GetPeerName().c_str(), GetID());
+							LogInfo(L"%s: connected to %s for connection %llu",
+									m_Extender.GetName().c_str(), m_Socket.GetPeerName().c_str(), GetID());
 
 							Socks5Protocol::AddressTypes atype{ Socks5Protocol::AddressTypes::IPv4 };
 							if (m_Socket.GetLocalEndpoint().GetIPAddress().GetFamily() == IPAddress::Family::IPv6)
@@ -324,8 +326,8 @@ namespace QuantumGate::Socks5Extender
 							}
 							else
 							{
-								LogErr(m_Extender.GetName() + L": could not send Socks5 Succeeded reply to peer %llu for connection %llu",
-									   GetPeerLUID(), GetID());
+								LogErr(L"%s: could not send Socks5 Succeeded reply to peer %llu for connection %llu",
+									   m_Extender.GetName().c_str(), GetPeerLUID(), GetID());
 								success = false;
 							}
 						}
@@ -333,8 +335,8 @@ namespace QuantumGate::Socks5Extender
 						{
 							m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(), Socks5Protocol::Replies::GeneralFailure);
 
-							LogErr(m_Extender.GetName() + L": CompleteConnect failed for socket %s",
-								   m_Socket.GetPeerName().c_str());
+							LogErr(L"%s: CompleteConnect failed for socket %s",
+								   m_Extender.GetName().c_str(), m_Socket.GetPeerName().c_str());
 							success = false;
 						}
 					}
@@ -344,8 +346,8 @@ namespace QuantumGate::Socks5Extender
 			{
 				if (m_Socket.GetIOStatus().HasException())
 				{
-					LogErr(m_Extender.GetName() + L": got exception on socket %s (%s)",
-						   m_Socket.GetPeerEndpoint().GetString().c_str(),
+					LogErr(L"%s: got exception on socket %s (%s)",
+						   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
 						   GetSysErrorString(m_Socket.GetIOStatus().GetErrorCode()).c_str());
 					success = false;
 					didwork = true;
@@ -366,8 +368,8 @@ namespace QuantumGate::Socks5Extender
 								{
 									if (m_Socket.GetIOStatus().HasException())
 									{
-										LogErr(m_Extender.GetName() + L": got exception on socket %s (%s)",
-											   m_Socket.GetPeerEndpoint().GetString().c_str(),
+										LogErr(L"%s: got exception on socket %s (%s)",
+											   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
 											   GetSysErrorString(m_Socket.GetIOStatus().GetErrorCode()).c_str());
 										success = false;
 										break;
@@ -473,8 +475,8 @@ namespace QuantumGate::Socks5Extender
 				}
 				else
 				{
-					LogErr(m_Extender.GetName() + L": received invalid number of AuthMethods on socket %s",
-						   m_Socket.GetPeerEndpoint().GetString().c_str());
+					LogErr(L"%s: received invalid number of AuthMethods on socket %s",
+						   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
 				}
 
 				// Send chosen method to client
@@ -494,15 +496,15 @@ namespace QuantumGate::Socks5Extender
 				}
 				else
 				{
-					LogErr(m_Extender.GetName() + L": did not receive any supported AuthMethods on socket %s",
-						   m_Socket.GetPeerEndpoint().GetString().c_str());
+					LogErr(L"%s: did not receive any supported AuthMethods on socket %s",
+						   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
 					success = false;
 				}
 			}
 			else
 			{
-				LogErr(m_Extender.GetName() + L": received incorrect version on socket %s",
-					   m_Socket.GetPeerEndpoint().GetString().c_str());
+				LogErr(L"%s: received incorrect version on socket %s",
+					   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
 				success = false;
 			}
 		}
@@ -546,8 +548,8 @@ namespace QuantumGate::Socks5Extender
 						}
 						else
 						{
-							LogErr(m_Extender.GetName() + L": received invalid Authentication credentials on socket %s",
-								   m_Socket.GetPeerEndpoint().GetString().c_str());
+							LogErr(L"%s: received invalid Authentication credentials on socket %s",
+								   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
 
 							reply = Socks5Protocol::Replies::ConnectionRefused;
 							success = false;
@@ -562,8 +564,8 @@ namespace QuantumGate::Socks5Extender
 
 				if (!success)
 				{
-					LogErr(m_Extender.GetName() + L": received invalid Socks5 Authentication message on socket %s",
-						   m_Socket.GetPeerEndpoint().GetString().c_str());
+					LogErr(L"%s: received invalid Socks5 Authentication message on socket %s",
+						   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
 				}
 
 				// Send authethication reply message to client
@@ -573,8 +575,8 @@ namespace QuantumGate::Socks5Extender
 			}
 			else
 			{
-				LogErr(m_Extender.GetName() + L": received incorrect Authentication message version on socket %s",
-					   m_Socket.GetPeerEndpoint().GetString().c_str());
+				LogErr(L"%s: received incorrect Authentication message version on socket %s",
+					   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
 				success = false;
 			}
 		}
@@ -621,8 +623,8 @@ namespace QuantumGate::Socks5Extender
 						{
 							SendSocks5Reply(Socks5Protocol::Replies::UnsupportedAddressType);
 
-							LogErr(m_Extender.GetName() + L": received unsupported address type on socket %s",
-								   m_Socket.GetPeerEndpoint().GetString().c_str());
+							LogErr(L"%s: received unsupported address type on socket %s",
+								   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
 							success = false;
 							break;
 						}
@@ -632,8 +634,8 @@ namespace QuantumGate::Socks5Extender
 				{
 					SendSocks5Reply(Socks5Protocol::Replies::UnsupportedCommand);
 
-					LogErr(m_Extender.GetName() + L": received incorrect command on socket %s",
-						   m_Socket.GetPeerEndpoint().GetString().c_str());
+					LogErr(L"%s: received incorrect command on socket %s",
+						   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
 					success = false;
 				}
 			}
@@ -641,8 +643,8 @@ namespace QuantumGate::Socks5Extender
 			{
 				SendSocks5Reply(Socks5Protocol::Replies::GeneralFailure);
 
-				LogErr(m_Extender.GetName() + L": received incorrect request on socket %s",
-					   m_Socket.GetPeerEndpoint().GetString().c_str());
+				LogErr(L"%s: received incorrect request on socket %s",
+					   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
 				success = false;
 			}
 		}

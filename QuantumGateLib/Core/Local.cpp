@@ -224,7 +224,7 @@ namespace QuantumGate::Implementation::Core
 		std::unique_lock<std::shared_mutex> lock(m_Mutex);
 
 		LogSys(L"QuantumGate starting...");
-		LogSys(L"Version " + GetVersionString() + L", protocol version " + GetProtocolVersionString());
+		LogSys(L"Version %s, protocol version %s", GetVersionString().c_str(), GetProtocolVersionString().c_str());
 
 		m_ShutdownEvent.Reset();
 
@@ -284,11 +284,11 @@ namespace QuantumGate::Implementation::Core
 		{
 			const auto local_env = m_LocalEnvironment.WithSharedLock();
 
-			LogSys(L"Localhost " + local_env->GetHostname() + L" (" + local_env->GetIPAddressesString() + L")");
-			LogSys(L"Running as user " + local_env->GetUsername());
+			LogSys(L"Localhost %s (%s)", local_env->GetHostname().c_str(), local_env->GetIPAddressesString().c_str());
+			LogSys(L"Running as user %s", local_env->GetUsername().c_str());
 		}
 
-		LogSys(L"Local UUID " + m_Settings.GetCache().Local.UUID.GetString());
+		LogSys(L"Local UUID %s", m_Settings.GetCache().Local.UUID.GetString().c_str());
 
 		if (!m_Settings.GetCache().Local.RequireAuthentication)
 		{

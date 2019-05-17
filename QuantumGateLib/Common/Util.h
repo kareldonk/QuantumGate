@@ -8,22 +8,58 @@
 
 namespace QuantumGate::Implementation::Util
 {
-	Export String GetCurrentLocalTime(const String& format) noexcept;
+	Export bool GetCurrentLocalTime(const WChar* format, std::array<WChar, 128>& timestr) noexcept;
+	Export String GetCurrentLocalTime(const WChar* format) noexcept;
 	Export SystemTime GetCurrentSystemTime() noexcept;
 	Export SteadyTime GetCurrentSteadyTime() noexcept;
 	SystemTime ToTime(const Time& time) noexcept;
 	Time ToTimeT(const SystemTime& time) noexcept;
 
-	Export String FormatString(const StringView format, ...) noexcept;
-	Export String FormatString(const StringView format, va_list arglist) noexcept;
+	Export String FormatString(const WChar* format, va_list arglist) noexcept;
+	Export String FormatString(const WChar* format, ...) noexcept;
 
 	template<typename T>
-	Export String ToBinaryString(const T bytes) noexcept;
+	constexpr int GetBinaryStringLength()
+	{
+		const auto numbits = CHAR_BIT * sizeof(T);
+		const auto numsep = sizeof(T) - 1;
+		return numbits + numsep + 1; // exclude space for '\0'
+	}
 
-	String ToBinaryString(const gsl::span<Byte> bytes) noexcept;
+	template<typename T>
+	constexpr std::array<WChar, GetBinaryStringLength<T>()> ToBinaryString(const T bytes) noexcept
+	{
+		static_assert(std::is_integral_v<T>, "Unsupported type.");
+
+		const auto numbits = CHAR_BIT * sizeof(T);
+		std::array<WChar, GetBinaryStringLength<T>()> txt{ 0 };
+
+		auto pos = 0u;
+		auto bitcount = 0u;
+		for (auto x = 0u; x < numbits; ++x)
+		{
+			if (bitcount == CHAR_BIT)
+			{
+				txt[txt.size() - (pos + 2)] = '\'';
+				bitcount = 0;
+				++pos;
+			}
+
+			txt[txt.size() - (pos + 2)] = static_cast<UChar>((bytes >> x) & 0x1) ? '1' : '0';
+
+			++pos;
+			++bitcount;
+		}
+
+		return txt;
+	}
+
+	Export String ToBinaryString(const gsl::span<Byte> bytes) noexcept;
 		
 	Export String ToStringW(const std::string& txt) noexcept;
+	Export ProtectedString ToProtectedStringW(const ProtectedStringA& txt) noexcept;
 	Export std::string ToStringA(const String& txt) noexcept;
+	Export ProtectedStringA ToProtectedStringA(const ProtectedString& txt) noexcept;
 
 	Export std::optional<String> GetBase64(const BufferView& buffer) noexcept;
 	Export std::optional<String> GetBase64(const Buffer& buffer) noexcept;
@@ -31,9 +67,6 @@ namespace QuantumGate::Implementation::Util
 	Export std::optional<Buffer> FromBase64(const String& b64) noexcept;
 	Export std::optional<Buffer> FromBase64(const std::string& b64) noexcept;
 	Export std::optional<ProtectedBuffer> FromBase64(const ProtectedStringA& b64) noexcept;
-
-	template<typename S, typename B>
-	bool FromBase64(const S& b64, B& buffer) noexcept;
 
 	template<typename T>
 	Vector<T> SetToVector(const Set<T>& set)
@@ -61,7 +94,7 @@ namespace QuantumGate::Implementation::Util
 
 	Export String GetSystemErrorString(const int code) noexcept;
 
-	Export void DisplayDebugMessage(const StringView format, ...) noexcept;
+	Export void DisplayDebugMessage(const WChar* format, ...) noexcept;
 }
 
 #define GetLastSysErrorString() QuantumGate::Implementation::Util::GetSystemErrorString(WSAGetLastError())

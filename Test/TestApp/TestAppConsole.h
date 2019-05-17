@@ -23,7 +23,7 @@ public:
 	}
 
 	void AddMessage(const QuantumGate::Console::MessageType type,
-					const QuantumGate::StringView message) override;
+					const QuantumGate::WChar* message) override;
 
 protected:
 	std::mutex m_Mutex;

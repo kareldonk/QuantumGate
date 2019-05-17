@@ -218,7 +218,7 @@ void Stress::MultiInstanceStressThreadProc()
 
 			if (const auto result = local.Startup(m_MultiInstanceStressData.StartupParams); result.Failed())
 			{
-				LogErr(L"Failed to start a QuantumGate instance: " + result.GetErrorString());
+				LogErr(L"Failed to start a QuantumGate instance: %s", result.GetErrorString().c_str());
 
 				error = true;
 				break;

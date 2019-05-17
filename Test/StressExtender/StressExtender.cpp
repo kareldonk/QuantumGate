@@ -40,7 +40,7 @@ namespace StressExtender
 
 	bool Extender::OnStartup()
 	{
-		LogDbg(L"Extender '" + GetName() + L"' starting...");
+		LogDbg(L"Extender '%s' starting...", GetName().c_str());
 
 		if (m_ExceptionTest.Startup) throw(std::exception("Test Startup exception"));
 
@@ -51,7 +51,7 @@ namespace StressExtender
 
 	void Extender::OnPostStartup()
 	{
-		LogDbg(L"Extender '" + GetName() + L"' running...");
+		LogDbg(L"Extender '%s' running...", GetName().c_str());
 
 		if (m_ExceptionTest.PostStartup) throw(std::exception("Test PostStartup exception"));
 	}
@@ -63,7 +63,7 @@ namespace StressExtender
 
 	void Extender::OnShutdown()
 	{
-		LogDbg(L"Extender '" + GetName() + L"' shutting down...");
+		LogDbg(L"Extender '%s' shutting down...", GetName().c_str());
 
 		if (m_ExceptionTest.Shutdown) throw(std::exception("Test Shutdown exception"));
 
@@ -77,7 +77,7 @@ namespace StressExtender
 		if (event.GetType() == PeerEventType::Connected) ev = L"Connect";
 		else if (event.GetType() == PeerEventType::Disconnected) ev = L"Disconnect";
 
-		LogInfo(L"Extender '" + GetName() + L"' got peer event: %s, Peer LUID: %llu", ev.c_str(), event.GetPeerLUID());
+		LogInfo(L"Extender '%s' got peer event: %s, Peer LUID: %llu", GetName().c_str(), ev.c_str(), event.GetPeerLUID());
 
 		if (m_ExceptionTest.PeerEvent) throw(std::exception("Test PeerEvent exception"));
 	}

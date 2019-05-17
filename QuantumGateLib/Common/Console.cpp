@@ -129,17 +129,17 @@ namespace QuantumGate::Implementation
 		return GetConsoleObject().CanAddMessage(type);
 	}
 
-	void Console::AddMessageWithArgs(const MessageType type, const StringView message, ...) noexcept
+	void Console::AddMessageWithArgs(const MessageType type, const WChar* message, ...) noexcept
 	{
 		va_list argptr = nullptr;
 		va_start(argptr, message);
 
-		AddMessageNoArgs(type, Util::FormatString(message, argptr));
+		AddMessageNoArgs(type, Util::FormatString(message, argptr).c_str());
 
 		va_end(argptr);
 	}
 
-	void Console::AddMessageNoArgs(const MessageType type, const StringView message) noexcept
+	void Console::AddMessageNoArgs(const MessageType type, const WChar* message) noexcept
 	{
 		try
 		{
@@ -304,7 +304,7 @@ namespace QuantumGate::Implementation
 		return Colors::Default;
 	}
 
-	void Console::TerminalOutput::AddMessage(const MessageType type, const StringView message)
+	void Console::TerminalOutput::AddMessage(const MessageType type, const WChar* message)
 	{
 		// Default output is cout
 		auto output = &std::wcout;
@@ -318,7 +318,12 @@ namespace QuantumGate::Implementation
 
 		if (type != MessageType::System)
 		{
-			*output << L"[" << Util::GetCurrentLocalTime(L"%d/%m/%Y %H:%M:%S") << L"] ";
+			std::array<WChar, 128> timestr{ 0 };
+			if (Util::GetCurrentLocalTime(L"%d/%m/%Y %H:%M:%S", timestr))
+			{
+				*output << L"[" << timestr.data() << L"] ";
+			}
+			else *output << L"[Unknown] ";
 		}
 
 		*output << message << GetFormat(type, Format::Reset) << L"\r\n";
@@ -341,7 +346,7 @@ namespace QuantumGate::Implementation
 		m_ConsoleWindow.reset();
 	}
 
-	void Console::WindowOutput::AddMessage(const MessageType type, const StringView message)
+	void Console::WindowOutput::AddMessage(const MessageType type, const WChar* message)
 	{
 		Console::TerminalOutput::AddMessage(type, message);
 	}
