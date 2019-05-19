@@ -134,6 +134,8 @@ void CTestAppDlgAVExtenderTab::OnDestroy()
 		m_VideoSourceReader = nullptr;
 	}
 
+	m_VideoWindow.Close();
+
 	CTabBase::OnDestroy();
 }
 
