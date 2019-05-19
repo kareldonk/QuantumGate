@@ -176,7 +176,7 @@ namespace QuantumGate::Implementation::Crypto
 						{
 							outkey.Resize(len);
 
-							Dbg(L"HKDF: %u bytes - %s", outkey.GetSize(), Util::GetBase64(outkey)->c_str());
+							Dbg(L"HKDF: %u bytes - %s", outkey.GetSize(), Util::ToBase64(outkey)->c_str());
 
 							return true;
 						}
@@ -246,7 +246,7 @@ namespace QuantumGate::Implementation::Crypto
 					{
 						pkey.Resize(pkey_len);
 
-						Dbg(L"Pubkey: %u bytes - %s", pkey.GetSize(), Util::GetBase64(pkey)->c_str());
+						Dbg(L"Pubkey: %u bytes - %s", pkey.GetSize(), Util::ToBase64(pkey)->c_str());
 
 						return { std::move(pkey) };
 					}
@@ -276,7 +276,7 @@ namespace QuantumGate::Implementation::Crypto
 					{
 						pkey.Resize(pkey_len);
 
-						Dbg(L"Privkey: %u bytes - %s", pkey.GetSize(), Util::GetBase64(pkey)->c_str());
+						Dbg(L"Privkey: %u bytes - %s", pkey.GetSize(), Util::ToBase64(pkey)->c_str());
 
 						return { std::move(pkey) };
 					}
@@ -311,7 +311,7 @@ namespace QuantumGate::Implementation::Crypto
 						pkey.Allocate(ptr->length);
 						memcpy(pkey.GetBytes(), ptr->data, ptr->length);
 
-						Dbg(L"Pubkey: %u bytes - %s", pkey.GetSize(), Util::GetBase64(pkey)->c_str());
+						Dbg(L"Pubkey: %u bytes - %s", pkey.GetSize(), Util::ToBase64(pkey)->c_str());
 
 						return { std::move(pkey) };
 					}
@@ -347,7 +347,7 @@ namespace QuantumGate::Implementation::Crypto
 						pkey.Allocate(ptr->length);
 						memcpy(pkey.GetBytes(), ptr->data, ptr->length);
 
-						Dbg(L"Privkey: %u bytes - %s", pkey.GetSize(), Util::GetBase64(pkey)->c_str());
+						Dbg(L"Privkey: %u bytes - %s", pkey.GetSize(), Util::ToBase64(pkey)->c_str());
 
 						return { std::move(pkey) };
 					}

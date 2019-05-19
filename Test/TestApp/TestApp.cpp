@@ -163,10 +163,10 @@ bool CTestAppApp::SaveKey(const String& path, const ProtectedBuffer& key) const 
 	try
 	{
 		std::ofstream file(path, std::ios::out | std::ios::binary | std::ios::trunc);
-		auto b64key = Util::GetBase64(key);
+		auto b64key = Util::ToBase64(key);
 		if (b64key)
 		{
-			auto b64keystr = Util::ToStringA(*b64key);
+			auto b64keystr = Util::ToProtectedStringA(*b64key);
 			file.write(b64keystr.data(), b64keystr.size());
 			return true;
 		}

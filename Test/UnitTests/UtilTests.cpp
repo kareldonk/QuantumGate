@@ -151,5 +151,56 @@ namespace UnitTests
 				}
 			}
 		}
+
+		template<typename S, typename B>
+		void Base64Impl()
+		{
+			{
+				const S str{ L"To disagree with three-fourths of the public is one of the first requisites of sanity." };
+				const S strb64t{
+					L"VABvACAAZABpAHMAYQBnAHIAZQBlACAAdwBpAHQAaAAgAHQAaAByAGUAZQAtAGYAbwB1AHIAdABoAHMAIABvAG"
+					"YAIAB0AGgAZQAgAHAAdQBiAGwAaQBjACAAaQBzACAAbwBuAGUAIABvAGYAIAB0AGgAZQAgAGYAaQByAHMAdAA"
+					"gAHIAZQBxAHUAaQBzAGkAdABlAHMAIABvAGYAIABzAGEAbgBpAHQAeQAuAA=="
+				};
+
+				const B buffer(reinterpret_cast<const Byte*>(str.data()), str.size() * sizeof(S::value_type));
+				const auto strb64 = Util::ToBase64(buffer);
+				Assert::AreEqual(true, strb64.has_value());
+				Assert::AreEqual(true, strb64 == strb64t);
+
+				const auto buffer2 = Util::FromBase64(*strb64);
+				Assert::AreEqual(true, buffer2.has_value());
+				Assert::AreEqual(true, buffer == buffer2);
+
+				S str2;
+				str2.resize(buffer2->GetSize() / sizeof(S::value_type));
+				memcpy(str2.data(), buffer2->GetBytes(), buffer2->GetSize());
+
+				Assert::AreEqual(true, str == str2);
+			}
+
+			{
+				const std::string str{ "To disagree with three-fourths of the public is one of the first requisites of sanity." };
+				const S strb64t{ L"VG8gZGlzYWdyZWUgd2l0aCB0aHJlZS1mb3VydGhzIG9mIHRoZSBwdWJsaWMgaXMgb25lIG9mIHRoZSBmaXJzdCByZXF1aXNpdGVzIG9mIHNhbml0eS4=" };
+
+				const auto buffer = Util::FromBase64(strb64t);
+				Assert::AreEqual(true, buffer.has_value());
+
+				std::string str2;
+				str2.resize(buffer->GetSize() / sizeof(std::string::value_type));
+				memcpy(str2.data(), buffer->GetBytes(), buffer->GetSize());
+
+				Assert::AreEqual(true, str == str2);
+
+				const auto strb64 = Util::ToBase64(*buffer);
+				Assert::AreEqual(true, strb64 == strb64t);
+			}
+		}
+
+		TEST_METHOD(Base64)
+		{
+			Base64Impl<String, Buffer>();
+			Base64Impl<ProtectedString, ProtectedBuffer>();
+		}
 	};
 }

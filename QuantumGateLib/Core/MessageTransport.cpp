@@ -129,7 +129,7 @@ namespace QuantumGate::Implementation::Core
 			{
 				rnddata = Random::GetPseudoRandomBytes(m_RandomDataSize);
 
-				Dbg(L"MsgTIHdr Random data: %d bytes - %s", rnddata.GetSize(), Util::GetBase64(rnddata)->c_str());
+				Dbg(L"MsgTIHdr Random data: %d bytes - %s", rnddata.GetSize(), Util::ToBase64(rnddata)->c_str());
 			}
 
 			Memory::BufferWriter wrt(buffer, true);
@@ -356,7 +356,7 @@ namespace QuantumGate::Implementation::Core
 			{
 				assert(msgohdr.GetHMACBuffer().GetSize() == OHeader::MessageHMACSize);
 
-				Dbg(L"MessageTransport hash: %s", Util::GetBase64(msgohdr.GetHMACBuffer())->c_str());
+				Dbg(L"MessageTransport hash: %s", Util::ToBase64(msgohdr.GetHMACBuffer())->c_str());
 
 				auto& msgbuffer = msgdatabuf;
 				msgbuffer.Clear();
@@ -367,7 +367,7 @@ namespace QuantumGate::Implementation::Core
 				{
 					msgbuffer += encrdata;
 
-					Dbg(L"Send buffer: %d bytes - %s", msgbuffer.GetSize(), Util::GetBase64(msgbuffer)->c_str());
+					Dbg(L"Send buffer: %d bytes - %s", msgbuffer.GetSize(), Util::ToBase64(msgbuffer)->c_str());
 
 					if (msgbuffer.GetSize() <= MessageTransport::MaxMessageSize)
 					{
@@ -380,7 +380,7 @@ namespace QuantumGate::Implementation::Core
 						else buffer = std::move(msgbuffer);
 
 						Dbg(L"Send buffer plus random data prefix: %d bytes - %s",
-							buffer.GetSize(), Util::GetBase64(buffer)->c_str());
+							buffer.GetSize(), Util::ToBase64(buffer)->c_str());
 
 						return true;
 					}

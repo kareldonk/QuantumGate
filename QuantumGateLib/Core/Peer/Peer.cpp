@@ -1104,7 +1104,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					auto msg = MessageTransport(m_MessageTransportDataSizeSettings, settings);
 
-					Dbg(L"Receive buffer: %d bytes - %s", msgbuf.GetSize(), Util::GetBase64(msgbuf)->c_str());
+					Dbg(L"Receive buffer: %d bytes - %s", msgbuf.GetSize(), Util::ToBase64(msgbuf)->c_str());
 
 					const auto&[retval, retry] = msg.Read(msgbuf, *symkey, nonce);
 					if (retval && msg.IsValid())
@@ -1428,7 +1428,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		assert(!endpoint.GetString().empty());
 
-		return Util::NonPersistentHash(endpoint.GetString());
+		return Util::GetNonPersistentHash(endpoint.GetString());
 	}
 
 	void Peer::OnConnecting() noexcept

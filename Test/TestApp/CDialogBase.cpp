@@ -91,7 +91,7 @@ void CDialogBase::SetValue(const int id, const Int64 val) noexcept
 
 void CDialogBase::SetValue(const int id, const UInt32 val) noexcept
 {
-	SetDlgItemTextW(id, Util::FormatString(L"%I32u", val).c_str());
+	SetDlgItemTextW(id, Util::FormatString(L"%lu", val).c_str());
 }
 
 void CDialogBase::SetValue(const int id, const UInt64 val) noexcept

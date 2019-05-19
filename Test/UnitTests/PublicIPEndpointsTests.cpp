@@ -392,7 +392,7 @@ namespace UnitTests
 
 			// Intentionally add more unique IP addresses from unique networks
 			// to overflow the maximum number of endpoints we manage
-			for (auto x = 0; x < (PublicIPEndpoints::MaxIPEndpoints + 10); ++x)
+			for (auto x = 0u; x < (PublicIPEndpoints::MaxIPEndpoints + 10); ++x)
 			{
 				auto pubip_str = Util::FormatString(L"180.100.90.%u", x);
 				auto repip_str = Util::FormatString(L"18.%u.40.100", x);

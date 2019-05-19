@@ -115,8 +115,8 @@ namespace QuantumGate::Implementation::Crypto
 										{
 											const auto tag = BufferView(encrbuf).GetFirst(taglen);
 
-											Dbg(L"Etag: %s", Util::GetBase64(tag)->c_str());
-											Dbg(L"Encr: %s", Util::GetBase64(encrbuf)->c_str());
+											Dbg(L"Etag: %s", Util::ToBase64(tag)->c_str());
+											Dbg(L"Encr: %s", Util::ToBase64(encrbuf)->c_str());
 										});
 
 										encrbuf.Resize(taglen + encrlen);
@@ -194,8 +194,8 @@ namespace QuantumGate::Implementation::Crypto
 								{
 									const auto tag = BufferView(encrbuf).GetFirst(taglen);
 
-									Dbg(L"Dtag: %s", Util::GetBase64(tag)->c_str());
-									Dbg(L"Decr: %s", Util::GetBase64(encrbuf)->c_str());
+									Dbg(L"Dtag: %s", Util::ToBase64(tag)->c_str());
+									Dbg(L"Decr: %s", Util::ToBase64(encrbuf)->c_str());
 								});
 
 								// Set expected tag value

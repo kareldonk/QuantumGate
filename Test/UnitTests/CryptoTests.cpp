@@ -239,10 +239,10 @@ namespace UnitTests
 
 					Assert::AreEqual(true, Crypto::Hash(input, houtbuf, ha));
 
-					//Dbg(L"Hash: %s", Util::GetBase64(houtbuf).second.c_str());
+					//Dbg(L"Hash: %s", Util::ToBase64(houtbuf).second.c_str());
 
 					Assert::AreEqual(true, std::find(hashes.begin(), hashes.end(),
-													 Util::GetBase64(houtbuf).value()) != hashes.end());
+													 Util::ToBase64(houtbuf).value()) != hashes.end());
 				}
 			}
 		}

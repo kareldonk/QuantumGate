@@ -623,10 +623,10 @@ void CTestAppDlg::SaveSettings()
 
 					if (!peer.PublicKey.IsEmpty())
 					{
-						const auto b64t = Util::GetBase64(peer.PublicKey);
+						const auto b64t = Util::ToBase64(peer.PublicKey);
 						if (b64t)
 						{
-							b64 = Util::ToStringA(*b64t);
+							b64 = Util::ToProtectedStringA(*b64t);
 						}
 					}
 
@@ -760,7 +760,7 @@ bool CTestAppDlg::GenerateGlobalSharedSecret(CString& passphrase, ProtectedBuffe
 		assert(!buffer.IsEmpty());
 
 		Dbg(L"Global shared secret hash: %d bytes - %s", buffer.GetSize(),
-			Util::GetBase64(buffer)->c_str());
+			Util::ToBase64(buffer)->c_str());
 
 		return true;
 	}
@@ -1547,7 +1547,7 @@ void CTestAppDlg::OnLocalEnvironmentInfo()
 				info += L"\r\n";
 
 				info += L"Number of reporting networks:\t" +
-					Util::FormatString(L"%llu", ipdetails.PublicDetails->NumReportingNetworks);
+					Util::FormatString(L"%zu", ipdetails.PublicDetails->NumReportingNetworks);
 
 				info += L"\r\n";
 
