@@ -299,7 +299,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			const BufferView seedb(reinterpret_cast<const Byte*>(&nonce_seed), sizeof(UInt32));
 			if (Crypto::Hash(seedb, nonce, ha))
 			{
-				Dbg(L"Nonce: %u bytes - %s", nonce.GetSize(), Util::GetBase64(nonce)->c_str());
+				Dbg(L"Nonce: %u bytes - %s", nonce.GetSize(), Util::ToBase64(nonce)->c_str());
 				return true;
 			}
 

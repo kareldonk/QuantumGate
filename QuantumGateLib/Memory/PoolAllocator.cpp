@@ -49,7 +49,7 @@ namespace QuantumGate::Implementation::Memory
 		{
 			for (auto it = mpdc.begin(); it != mpdc.end(); ++it)
 			{
-				output += Util::FormatString(L"Allocation size: %u bytes -> Pool size: %u, Free: %u\r\n",
+				output += Util::FormatString(L"Allocation size: %zu bytes -> Pool size: %zu, Free: %zu\r\n",
 											 it->first, it->second->MemoryPool.WithSharedLock()->size(),
 											 it->second->FreeBufferPool.WithUniqueLock()->size());
 			}

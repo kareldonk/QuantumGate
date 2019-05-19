@@ -269,7 +269,7 @@ namespace QuantumGate::Socks5Extender
 
 	UInt64 Connection::MakeKey(const PeerLUID pluid, const ConnectionID cid) noexcept
 	{
-		return Util::NonPersistentHash(Util::FormatString(L"%llu:%llu", pluid, cid));
+		return Util::GetNonPersistentHash(Util::FormatString(L"%llu:%llu", pluid, cid));
 	}
 
 	bool Connection::SendAndReceive(bool& didwork)

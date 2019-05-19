@@ -117,8 +117,8 @@ namespace QuantumGate::Implementation::Util
 		return {};
 	}
 
-	template<typename T, typename U, bool clear>
-	T ToStringWImpl(const U& txt) noexcept
+	template<typename T, bool clear>
+	T ToStringWImpl(const Char* txt) noexcept
 	{
 		T str;
 
@@ -126,19 +126,19 @@ namespace QuantumGate::Implementation::Util
 		{
 			std::array<typename T::value_type, 1024> tmp{ 0 };
 
-			const auto ret = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, txt.data(), -1, tmp.data(), static_cast<int>(tmp.size()));
+			const auto ret = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, txt, -1, tmp.data(), static_cast<int>(tmp.size()));
 			if (ret != 0)
 			{
 				str = tmp.data();
 			}
 			else if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
 			{
-				const auto len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, txt.data(), -1, nullptr, 0);
+				const auto len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, txt, -1, nullptr, 0);
 				if (len > 0)
 				{
 					str.resize(len - 1); // exclude space for '\0'
 
-					MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, txt.data(), -1, str.data(), len);
+					MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, txt, -1, str.data(), len);
 				}
 			}
 
@@ -155,16 +155,21 @@ namespace QuantumGate::Implementation::Util
 
 	Export String ToStringW(const std::string& txt) noexcept
 	{
-		return ToStringWImpl<String, std::string, false>(txt);
+		return ToStringWImpl<String, false>(txt.data());
+	}
+
+	Export String ToStringW(const Char* txt) noexcept
+	{
+		return ToStringWImpl<String, false>(txt);
 	}
 
 	Export ProtectedString ToProtectedStringW(const ProtectedStringA& txt) noexcept
 	{
-		return ToStringWImpl<ProtectedString, ProtectedStringA, true>(txt);
+		return ToStringWImpl<ProtectedString, true>(txt.data());
 	}
 
-	template<typename T, typename U, bool clear>
-	T ToStringAImpl(const U& txt) noexcept
+	template<typename T, bool clear>
+	T ToStringAImpl(const WChar* txt) noexcept
 	{
 		T str;
 
@@ -172,7 +177,7 @@ namespace QuantumGate::Implementation::Util
 		{
 			std::array<typename T::value_type, 1024> tmp{ 0 };
 
-			const auto ret = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, txt.data(), -1,
+			const auto ret = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, txt, -1,
 												 tmp.data(), static_cast<int>(tmp.size()), nullptr, nullptr);
 			if (ret != 0)
 			{
@@ -180,12 +185,12 @@ namespace QuantumGate::Implementation::Util
 			}
 			else if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) 
 			{
-				const auto len = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, txt.data(), -1, nullptr, 0, nullptr, nullptr);
+				const auto len = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, txt, -1, nullptr, 0, nullptr, nullptr);
 				if (len > 0)
 				{
 					str.resize(len - 1); // exclude space for '\0'
 
-					WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, txt.data(), -1, str.data(), len, nullptr, nullptr);
+					WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, txt, -1, str.data(), len, nullptr, nullptr);
 				}
 			}
 
@@ -202,26 +207,24 @@ namespace QuantumGate::Implementation::Util
 
 	Export std::string ToStringA(const String& txt) noexcept
 	{
-		return ToStringAImpl<std::string, String, false>(txt);
+		return ToStringAImpl<std::string, false>(txt.data());
+	}
+
+	Export std::string ToStringA(const WChar* txt) noexcept
+	{
+		return ToStringAImpl<std::string, false>(txt);
 	}
 
 	Export ProtectedStringA ToProtectedStringA(const ProtectedString& txt) noexcept
 	{
-		return ToStringAImpl<ProtectedStringA, ProtectedString, true>(txt);
+		return ToStringAImpl<ProtectedStringA, true>(txt.data());
 	}
 
-	Export std::optional<String> GetBase64(const BufferView& buffer) noexcept
+	template<typename S>
+	std::optional<S> ToBase64(const Byte* buffer, const Size len) noexcept
 	{
-		return GetBase64(buffer.GetBytes(), buffer.GetSize());
-	}
+		static_assert(std::is_same_v<S, String> || std::is_same_v<S, ProtectedString>, "Unsupported type.");
 
-	Export std::optional<String> GetBase64(const Buffer& buffer) noexcept
-	{
-		return GetBase64(buffer.GetBytes(), buffer.GetSize());
-	}
-
-	std::optional<String> GetBase64(const Byte* buffer, const Size len) noexcept
-	{
 		try
 		{
 			if (buffer != nullptr && len > 0)
@@ -247,14 +250,23 @@ namespace QuantumGate::Implementation::Util
 					BIO_get_mem_ptr(buff, &ptr);
 					if (ptr != nullptr)
 					{
+						using BufferType = std::conditional_t<std::is_same_v<S, String>, Buffer, ProtectedBuffer>;
+
 						// Copy base64 data to new buffer, extra byte for null terminator
-						Vector<Char> out(ptr->length + 1);
-						memcpy(out.data(), ptr->data, ptr->length);
+						BufferType out(ptr->length + 1);
+						memcpy(out.GetBytes(), ptr->data, ptr->length);
 
 						// Make sure string is null terminated
-						out[ptr->length] = '\0';
+						out[ptr->length] = Byte{ '\0' };
 
-						return { ToStringW(out.data()) };
+						if constexpr (std::is_same_v<S, String>)
+						{
+							return { ToStringW(reinterpret_cast<Char*>(out.GetBytes())) };
+						}
+						else
+						{
+							return { ToProtectedStringW(reinterpret_cast<Char*>(out.GetBytes())) };
+						}
 					}
 				}
 			}
@@ -262,6 +274,21 @@ namespace QuantumGate::Implementation::Util
 		catch (...) {}
 
 		return std::nullopt;
+	}
+
+	Export std::optional<String> ToBase64(const BufferView& buffer) noexcept
+	{
+		return ToBase64<String>(buffer.GetBytes(), buffer.GetSize());
+	}
+
+	Export std::optional<String> ToBase64(const Buffer& buffer) noexcept
+	{
+		return ToBase64<String>(buffer.GetBytes(), buffer.GetSize());
+	}
+
+	Export std::optional<ProtectedString> ToBase64(const ProtectedBuffer& buffer) noexcept
+	{
+		return ToBase64<ProtectedString>(buffer.GetBytes(), buffer.GetSize());
 	}
 
 	template<typename S, typename B>
@@ -320,6 +347,14 @@ namespace QuantumGate::Implementation::Util
 		return std::nullopt;
 	}
 
+	std::optional<ProtectedBuffer> FromBase64(const ProtectedString& b64) noexcept
+	{
+		// Convert to string (char*) first
+		const auto b64str = ToProtectedStringA(b64);
+
+		return FromBase64(b64str);
+	}
+
 	std::optional<ProtectedBuffer> FromBase64(const ProtectedStringA& b64) noexcept
 	{
 		try
@@ -333,12 +368,12 @@ namespace QuantumGate::Implementation::Util
 	}
 
 
-	Export UInt64 NonPersistentHash(const String& txt) noexcept
+	Export UInt64 GetNonPersistentHash(const String& txt) noexcept
 	{
 		return Hash::GetNonPersistentHash(txt);
 	}
 
-	Export UInt64 PersistentHash(const String& txt) noexcept
+	Export UInt64 GetPersistentHash(const String& txt) noexcept
 	{
 		return Hash::GetPersistentHash(txt);
 	}

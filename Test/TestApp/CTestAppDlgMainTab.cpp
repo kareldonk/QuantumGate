@@ -250,10 +250,10 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 			pitxt += Util::FormatString(L"Peer session ID:\t\t%llu\r\n", retval->PeerSessionID);
 			pitxt += Util::FormatString(L"Connected time:\t\t%llu seconds\r\n",
 										std::chrono::duration_cast<std::chrono::seconds>(retval->ConnectedTime).count());
-			pitxt += Util::FormatString(L"Bytes received:\t\t%llu\r\n", retval->BytesReceived);
-			pitxt += Util::FormatString(L"Bytes sent:\t\t%llu\r\n", retval->BytesSent);
-			pitxt += Util::FormatString(L"Extenders bytes received:\t%llu\r\n", retval->ExtendersBytesReceived);
-			pitxt += Util::FormatString(L"Extenders bytes sent:\t%llu\r\n", retval->ExtendersBytesSent);
+			pitxt += Util::FormatString(L"Bytes received:\t\t%zu\r\n", retval->BytesReceived);
+			pitxt += Util::FormatString(L"Bytes sent:\t\t%zu\r\n", retval->BytesSent);
+			pitxt += Util::FormatString(L"Extenders bytes received:\t%zu\r\n", retval->ExtendersBytesReceived);
+			pitxt += Util::FormatString(L"Extenders bytes sent:\t%zu\r\n", retval->ExtendersBytesSent);
 
 			auto roh = 0.0;
 			if (retval->BytesReceived > 0)

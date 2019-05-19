@@ -101,7 +101,7 @@ namespace QuantumGate::Implementation::Crypto
 									sig.Resize(slen);
 
 									Dbg(L"Sig: %u bytes - %s",
-										sig.GetSize(), Util::GetBase64(sig)->c_str());
+										sig.GetSize(), Util::ToBase64(sig)->c_str());
 
 									return true;
 								}
@@ -211,7 +211,7 @@ namespace QuantumGate::Implementation::Crypto
 									sig.Resize(slen);
 
 									Dbg(L"Sig: %u bytes - %s",
-										sig.GetSize(), Util::GetBase64(sig)->c_str());
+										sig.GetSize(), Util::ToBase64(sig)->c_str());
 
 									return true;
 								}

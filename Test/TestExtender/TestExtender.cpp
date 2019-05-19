@@ -79,7 +79,7 @@ namespace TestExtender
 					// Seek to beginning
 					if (fseek(m_File, 0, SEEK_SET) == 0)
 					{
-						m_ID = Util::PersistentHash(*Util::GetBase64(m_FileHash));
+						m_ID = Util::GetPersistentHash(*Util::ToBase64(m_FileHash));
 						m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
 
 						success = true;

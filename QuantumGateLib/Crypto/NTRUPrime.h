@@ -54,9 +54,9 @@ namespace QuantumGate::Implementation::Crypto
 						{
 							Dbg(L"\r\nNTRUPrime (Bob):");
 							Dbg(L"PSharedSecret: %u bytes - %s", keydata.SharedSecret.GetSize(),
-								Util::GetBase64(keydata.SharedSecret)->c_str());
+								Util::ToBase64(keydata.SharedSecret)->c_str());
 							Dbg(L"ESharedSecret: %u bytes - %s", keydata.EncryptedSharedSecret.GetSize(),
-								Util::GetBase64(keydata.EncryptedSharedSecret)->c_str());
+								Util::ToBase64(keydata.EncryptedSharedSecret)->c_str());
 							Dbg(L"\r\n");
 
 							return true;
@@ -76,9 +76,9 @@ namespace QuantumGate::Implementation::Crypto
 						{
 							Dbg(L"\r\nNTRUPrime (Alice):");
 							Dbg(L"PSharedSecret: %u bytes - %s", keydata.SharedSecret.GetSize(),
-								Util::GetBase64(keydata.SharedSecret)->c_str());
+								Util::ToBase64(keydata.SharedSecret)->c_str());
 							Dbg(L"ESharedSecret: %u bytes - %s", keydata.EncryptedSharedSecret.GetSize(),
-								Util::GetBase64(keydata.EncryptedSharedSecret)->c_str());
+								Util::ToBase64(keydata.EncryptedSharedSecret)->c_str());
 							Dbg(L"\r\n");
 
 							return true;

@@ -414,11 +414,11 @@ namespace QuantumGate::Implementation::Crypto
 
 				assert(kbuf.IsEmpty());
 
-				Dbg(L"Secret: %d bytes - %s", sharedsecret.GetSize(), Util::GetBase64(sharedsecret)->c_str());
-				Dbg(L"Enckey1: %d bytes - %s", key1.Key.GetSize(), Util::GetBase64(key1.Key)->c_str());
-				Dbg(L"Authkey1: %d bytes - %s", key1.AuthKey.GetSize(), Util::GetBase64(key1.AuthKey)->c_str());
-				Dbg(L"Enckey2: %d bytes - %s", key2.Key.GetSize(), Util::GetBase64(key2.Key)->c_str());
-				Dbg(L"Authkey2: %d bytes - %s", key2.AuthKey.GetSize(), Util::GetBase64(key2.AuthKey)->c_str());
+				Dbg(L"Secret: %d bytes - %s", sharedsecret.GetSize(), Util::ToBase64(sharedsecret)->c_str());
+				Dbg(L"Enckey1: %d bytes - %s", key1.Key.GetSize(), Util::ToBase64(key1.Key)->c_str());
+				Dbg(L"Authkey1: %d bytes - %s", key1.AuthKey.GetSize(), Util::ToBase64(key1.AuthKey)->c_str());
+				Dbg(L"Enckey2: %d bytes - %s", key2.Key.GetSize(), Util::ToBase64(key2.Key)->c_str());
+				Dbg(L"Authkey2: %d bytes - %s", key2.AuthKey.GetSize(), Util::ToBase64(key2.AuthKey)->c_str());
 
 				return true;
 			}

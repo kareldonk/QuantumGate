@@ -55,17 +55,20 @@ namespace QuantumGate::Implementation::Util
 	}
 
 	Export String ToBinaryString(const gsl::span<Byte> bytes) noexcept;
-		
+
+	Export String ToStringW(const Char* txt) noexcept;		
 	Export String ToStringW(const std::string& txt) noexcept;
 	Export ProtectedString ToProtectedStringW(const ProtectedStringA& txt) noexcept;
+	Export std::string ToStringA(const WChar* txt) noexcept;
 	Export std::string ToStringA(const String& txt) noexcept;
 	Export ProtectedStringA ToProtectedStringA(const ProtectedString& txt) noexcept;
 
-	Export std::optional<String> GetBase64(const BufferView& buffer) noexcept;
-	Export std::optional<String> GetBase64(const Buffer& buffer) noexcept;
-	Export std::optional<String> GetBase64(const Byte* buffer, const Size len) noexcept;
+	Export std::optional<String> ToBase64(const BufferView& buffer) noexcept;
+	Export std::optional<String> ToBase64(const Buffer& buffer) noexcept;
+	Export std::optional<ProtectedString> ToBase64(const ProtectedBuffer& buffer) noexcept;
 	Export std::optional<Buffer> FromBase64(const String& b64) noexcept;
 	Export std::optional<Buffer> FromBase64(const std::string& b64) noexcept;
+	Export std::optional<ProtectedBuffer> FromBase64(const ProtectedString& b64) noexcept;
 	Export std::optional<ProtectedBuffer> FromBase64(const ProtectedStringA& b64) noexcept;
 
 	template<typename T>
@@ -82,8 +85,8 @@ namespace QuantumGate::Implementation::Util
 		return vec;
 	}
 
-	Export UInt64 NonPersistentHash(const String& txt) noexcept;
-	Export UInt64 PersistentHash(const String& txt) noexcept;
+	Export UInt64 GetNonPersistentHash(const String& txt) noexcept;
+	Export UInt64 GetPersistentHash(const String& txt) noexcept;
 
 	Export bool SetThreadName(HANDLE thread, const String& name) noexcept;
 	Export bool SetCurrentThreadName(const String& name) noexcept;
