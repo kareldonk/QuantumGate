@@ -74,13 +74,20 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					case MessageType::BeginPrimaryKeyExchange:
 					{
-						if (m_Peer.SendWithRandomDelay(type, wrt.MoveWrittenBytes(),
-													   m_Peer.GetHandshakeDelayPerMessage())) return true;
+						if (m_Peer.SendWithRandomDelay(type, wrt.MoveWrittenBytes(), m_Peer.GetHandshakeDelayPerMessage()))
+						{
+							return true;
+						}
+
 						break;
 					}
 					case MessageType::BeginPrimaryKeyUpdateExchange:
 					{
-						if (m_Peer.Send(type, wrt.MoveWrittenBytes())) return true;
+						if (m_Peer.Send(type, wrt.MoveWrittenBytes()))
+						{
+							return true;
+						}
+
 						break;
 					}
 					default:
