@@ -54,15 +54,15 @@ BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 	m_VideoSourceReader = new QuantumGate::AVExtender::VideoSourceReader();
 
 	UpdateVideoDeviceCombo();
-	
+
 	RECT rect{ 0 };
 	GetDlgItem(IDC_VIDEO_PREVIEW)->GetWindowRect(&rect);
 	ScreenToClient(&rect);
 
 	if (!m_VideoWindow.Create(L"Preview", NULL, WS_CHILD, rect.left, rect.top,
 							  rect.right - rect.left, rect.bottom - rect.top, GetSafeHwnd()))
-	//if (!m_VideoWindow.Create(NULL, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-	//						  640, 480, GetSafeHwnd()))
+		//if (!m_VideoWindow.Create(NULL, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+		//						  640, 480, GetSafeHwnd()))
 	{
 
 	}
@@ -326,7 +326,7 @@ void CTestAppDlgAVExtenderTab::UpdateCallInformation(const QuantumGate::AVExtend
 
 		GetDlgItem(IDC_CALL_BUTTON)->EnableWindow(m_QuantumGate.IsRunning() && call->IsDisconnected());
 		GetDlgItem(IDC_HANGUP_BUTTON)->EnableWindow(m_QuantumGate.IsRunning() && !call->IsDisconnected());
-		
+
 		send_video_check->EnableWindow(m_QuantumGate.IsRunning());
 		if (call->GetSendVideo())
 		{
@@ -417,12 +417,12 @@ void CTestAppDlgAVExtenderTab::OnBnClickedSendAudioCheck()
 
 	if (m_SelectedPeerLUID.has_value() && m_AVExtender != nullptr)
 	{
-		m_AVExtender->GetPeers().WithSharedLock([&](const AVExtender::Peers & peers)
+		m_AVExtender->GetPeers().WithSharedLock([&](const AVExtender::Peers& peers)
 		{
 			const auto peer = peers.find(*m_SelectedPeerLUID);
 			if (peer != peers.end())
 			{
-				peer->second->Call.WithUniqueLock([&](AVExtender::Call & call)
+				peer->second->Call.WithUniqueLock([&](AVExtender::Call& call)
 				{
 					call.SetSendVideo(send_video);
 					call.SetSendAudio(send_audio);

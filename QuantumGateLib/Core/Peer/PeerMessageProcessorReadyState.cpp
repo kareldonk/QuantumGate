@@ -71,26 +71,30 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	bool MessageProcessor::SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept
 	{
-		BufferWriter wrt(true);
-		if (wrt.WriteWithPreallocation(rport, WithSize(buffer, MaxSize::_2MB)))
+		try
 		{
-			// Note that relayed data doesn't get compressed (again) because
-			// it is mostly encrypted and random looking so it wouldn't compress well
-			if (m_Peer.Send(MessageType::RelayData, wrt.MoveWrittenBytes(), 0ms, false))
+			BufferWriter wrt(true);
+			if (wrt.WriteWithPreallocation(rport, WithSize(buffer, MaxSize::_2MB)))
 			{
-				return true;
+				// Note that relayed data doesn't get compressed (again) because
+				// it is mostly encrypted and random looking so it wouldn't compress well
+				if (m_Peer.Send(MessageType::RelayData, wrt.MoveWrittenBytes(), 0ms, false))
+				{
+					return true;
+				}
+				else
+				{
+					LogDbg(L"Couldn't send RelayData message to peer %s for relay port %llu",
+						   m_Peer.GetPeerName().c_str(), rport);
+				}
 			}
 			else
 			{
-				LogDbg(L"Couldn't send RelayData message to peer %s for relay port %llu",
-						m_Peer.GetPeerName().c_str(), rport);
+				LogDbg(L"Couldn't prepare RelayData message to peer %s for relay port %llu",
+					   m_Peer.GetPeerName().c_str(), rport);
 			}
 		}
-		else
-		{
-			LogDbg(L"Couldn't prepare RelayData message to peer %s for relay port %llu",
-					m_Peer.GetPeerName().c_str(), rport);
-		}
+		catch (...) {}
 
 		return false;
 	}

@@ -177,7 +177,7 @@ namespace QuantumGate::AVExtender
 	}
 
 	bool VideoSourceReader::GetVideoCaptureDeviceInfo(IMFActivate* device,
-															VideoCaptureDevice& device_info) const noexcept
+													  VideoCaptureDevice& device_info) const noexcept
 	{
 		assert(device != nullptr);
 
@@ -331,7 +331,7 @@ namespace QuantumGate::AVExtender
 		LONG tstride{ 0 };
 
 		// Try to get the default stride from the media type
-		auto hr = type->GetUINT32(MF_MT_DEFAULT_STRIDE, (UINT32*)&tstride);
+		auto hr = type->GetUINT32(MF_MT_DEFAULT_STRIDE, (UINT32*)& tstride);
 		if (FAILED(hr))
 		{
 			// Setting this atribute to NULL we can obtain the default stride
@@ -392,7 +392,8 @@ namespace QuantumGate::AVExtender
 					// Draw the frame
 					BYTE* data{ nullptr };
 
-					DbgInvoke([&]() {
+					DbgInvoke([&]()
+					{
 						DWORD data_length{ 0 };
 						media_buffer->GetCurrentLength(&data_length);
 

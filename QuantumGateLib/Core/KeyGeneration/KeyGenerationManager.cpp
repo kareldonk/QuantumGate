@@ -95,7 +95,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 				{
 					LogDbg(L"Keymanager adding key queue for algorithm %s", Crypto::GetAlgorithmName(alg));
 
-					[[maybe_unused]] const auto[it, inserted] =
+					[[maybe_unused]] const auto [it, inserted] =
 						queues.insert({ alg, std::make_unique<KeyQueue_ThS>(alg) });
 
 					assert(inserted);
