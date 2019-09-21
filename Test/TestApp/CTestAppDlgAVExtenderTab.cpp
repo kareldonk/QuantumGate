@@ -15,10 +15,14 @@ IMPLEMENT_DYNAMIC(CTestAppDlgAVExtenderTab, CTabBase)
 
 CTestAppDlgAVExtenderTab::CTestAppDlgAVExtenderTab(QuantumGate::Local& local, CWnd* pParent /*=nullptr*/)
 	: CTabBase(IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB, pParent), m_QuantumGate(local)
-{}
+{
+	DiscardReturnValue(QuantumGate::AVExtender::CaptureDevices::Startup());
+}
 
 CTestAppDlgAVExtenderTab::~CTestAppDlgAVExtenderTab()
-{}
+{
+	DiscardReturnValue(QuantumGate::AVExtender::CaptureDevices::Shutdown());
+}
 
 void CTestAppDlgAVExtenderTab::DoDataExchange(CDataExchange* pDX)
 {
@@ -42,6 +46,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
 	ON_BN_CLICKED(IDC_SEND_AUDIO_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedSendAudioCheck)
 	ON_BN_CLICKED(IDC_CALL_BUTTON, &CTestAppDlgAVExtenderTab::OnBnClickedCallButton)
 	ON_BN_CLICKED(IDC_HANGUP_BUTTON, &CTestAppDlgAVExtenderTab::OnBnClickedHangupButton)
+	ON_BN_CLICKED(IDC_INITIALIZE_AUDIO, &CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio)
 END_MESSAGE_MAP()
 
 void CTestAppDlgAVExtenderTab::UpdateControls() noexcept
@@ -52,8 +57,10 @@ BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 	CTabBase::OnInitDialog();
 
 	m_VideoSourceReader = new QuantumGate::AVExtender::VideoSourceReader();
+	m_AudioSourceReader = new QuantumGate::AVExtender::AudioSourceReader();
 
 	UpdateVideoDeviceCombo();
+	UpdateAudioDeviceCombo();
 
 	RECT rect{ 0 };
 	GetDlgItem(IDC_VIDEO_PREVIEW)->GetWindowRect(&rect);
@@ -96,6 +103,31 @@ void CTestAppDlgAVExtenderTab::UpdateVideoDeviceCombo() noexcept
 	}
 }
 
+void CTestAppDlgAVExtenderTab::UpdateAudioDeviceCombo() noexcept
+{
+	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_AUDIO_DEVICES_COMBO);
+	vdcombo->ResetContent();
+
+	if (m_AudioSourceReader == nullptr) return;
+
+	auto result = m_AudioSourceReader->EnumCaptureDevices();
+	if (result.Succeeded())
+	{
+		m_AudioCaptureDevices = std::move(*result);
+
+		for (auto x = 0u; x < m_AudioCaptureDevices.size(); ++x)
+		{
+			const auto pos = vdcombo->AddString(m_AudioCaptureDevices[x].DeviceNameString);
+			vdcombo->SetItemData(pos, static_cast<DWORD_PTR>(x));
+		}
+
+		if (vdcombo->GetCount() > 0)
+		{
+			vdcombo->SelectString(0, m_AudioCaptureDevices[0].DeviceNameString);
+		}
+	}
+}
+
 void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 {
 	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_VIDEO_DEVICES_COMBO);
@@ -119,6 +151,30 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 	}
 }
 
+void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio()
+{
+	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_AUDIO_DEVICES_COMBO);
+	const auto sel = vdcombo->GetCurSel();
+	if (sel != CB_ERR)
+	{
+		const auto idx = vdcombo->GetItemData(sel);
+		const auto result = m_AudioSourceReader->Open(m_AudioCaptureDevices[idx]);
+		if (result.Succeeded())
+		{
+			//m_VideoPreviewTimer = SetTimer(AVEXTENDER_VIDEO_PREVIEW_TIMER, 1, NULL);
+		}
+		else
+		{
+			CString error = L"An error occured while trying to open the audio capture device '";
+			error += m_AudioCaptureDevices[idx].DeviceNameString;
+			error += L"'.\r\n\r\n";
+			error += result.GetErrorString().data();
+			AfxMessageBox(error, MB_ICONERROR);
+		}
+	}
+}
+
+
 void CTestAppDlgAVExtenderTab::OnDestroy()
 {
 	if (m_VideoPreviewTimer != 0)
@@ -132,6 +188,13 @@ void CTestAppDlgAVExtenderTab::OnDestroy()
 		m_VideoSourceReader->Close();
 		m_VideoSourceReader->Release();
 		m_VideoSourceReader = nullptr;
+	}
+
+	if (m_AudioSourceReader)
+	{
+		m_AudioSourceReader->Close();
+		m_AudioSourceReader->Release();
+		m_AudioSourceReader = nullptr;
 	}
 
 	m_VideoWindow.Close();
@@ -156,7 +219,7 @@ void CTestAppDlgAVExtenderTab::OnTimer(UINT_PTR nIDEvent)
 			m_VideoSourceReader->GetSample(bgraBuffer);
 			m_VideoWindow.Render(reinterpret_cast<Byte*>(bgraBuffer), dim.first, dim.second);
 
-			delete bgraBuffer;
+			delete [] bgraBuffer;
 		}
 	}
 
@@ -453,3 +516,4 @@ void CTestAppDlgAVExtenderTab::OnBnClickedHangupButton()
 		}
 	}
 }
+

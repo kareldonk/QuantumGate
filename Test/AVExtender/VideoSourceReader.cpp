@@ -4,17 +4,13 @@
 #include "stdafx.h"
 #include "VideoSourceReader.h"
 
-#include <shlwapi.h>
-
-#include <Common\ScopeGuard.h>
 #include <Common\Util.h>
 
 namespace QuantumGate::AVExtender
 {
 	VideoSourceReader::VideoSourceReader() noexcept
-	{
-		DiscardReturnValue(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
-	}
+		: SourceReader(CaptureDevice::Type::Video)
+	{}
 
 	VideoSourceReader::~VideoSourceReader()
 	{
@@ -43,7 +39,7 @@ namespace QuantumGate::AVExtender
 		return InterlockedIncrement(&m_RefCount);
 	}
 
-	Result<> VideoSourceReader::Open(const VideoCaptureDevice& device) noexcept
+	Result<> VideoSourceReader::Open(const CaptureDevice& device) noexcept
 	{
 		IMFAttributes* attributes{ nullptr };
 
@@ -70,7 +66,7 @@ namespace QuantumGate::AVExtender
 						auto result = CreateSourceReader(*source_reader_data);
 						if (result.Failed())
 						{
-							Close();
+							source_reader_data->Release();
 						}
 
 						return result;
@@ -92,110 +88,6 @@ namespace QuantumGate::AVExtender
 	void VideoSourceReader::Close() noexcept
 	{
 		m_SourceReader.WithUniqueLock()->Release();
-	}
-
-	Result<VideoCaptureDeviceVector> VideoSourceReader::EnumCaptureDevices() const noexcept
-	{
-		VideoCaptureDeviceVector ret_devices;
-
-		auto result = GetVideoCaptureDevices();
-		if (result.Succeeded())
-		{
-			const auto& device_count = result->first;
-			const auto& devices = result->second;
-
-			if (devices)
-			{
-				// Free memory when we leave this scope
-				const auto sg = MakeScopeGuard([&]() noexcept
-				{
-					for (UINT32 x = 0; x < result->first; ++x)
-					{
-						SafeRelease(&result->second[x]);
-					}
-
-					CoTaskMemFree(result->second);
-				});
-
-				if (device_count > 0)
-				{
-					try
-					{
-						ret_devices.reserve(device_count);
-
-						for (UINT32 x = 0; x < device_count; ++x)
-						{
-							auto& device_info = ret_devices.emplace_back();
-							if (!GetVideoCaptureDeviceInfo(devices[x], device_info))
-							{
-								return AVResultCode::Failed;
-							}
-						}
-					}
-					catch (...)
-					{
-						return AVResultCode::FailedOutOfMemory;
-					}
-				}
-			}
-
-			return std::move(ret_devices);
-		}
-		else return AVResultCode::FailedGetVideoCaptureDevices;
-
-		return AVResultCode::Failed;
-	}
-
-	Result<std::pair<UINT32, IMFActivate**>> VideoSourceReader::GetVideoCaptureDevices() const noexcept
-	{
-		IMFAttributes* attributes{ nullptr };
-
-		// Create an attribute store to specify enumeration parameters
-		auto hr = MFCreateAttributes(&attributes, 1);
-		if (SUCCEEDED(hr))
-		{
-			// Release attributes when we exit this scope
-			const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&attributes); });
-
-			// Set source type attribute
-			hr = attributes->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID);
-			if (SUCCEEDED(hr))
-			{
-				UINT32 device_count{ 0 };
-				IMFActivate** devices{ nullptr };
-
-				// Enumerate the video capture devices
-				hr = MFEnumDeviceSources(attributes, &devices, &device_count);
-				if (SUCCEEDED(hr))
-				{
-					return std::make_pair(device_count, devices);
-				}
-			}
-		}
-
-		return AVResultCode::Failed;
-	}
-
-	bool VideoSourceReader::GetVideoCaptureDeviceInfo(IMFActivate* device,
-													  VideoCaptureDevice& device_info) const noexcept
-	{
-		assert(device != nullptr);
-
-		// Get the human-friendly name of the device
-		auto hr = device->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME,
-											 &device_info.DeviceNameString, &device_info.DeviceNameStringLength);
-		if (SUCCEEDED(hr))
-		{
-			// Get symbolic link for the device
-			hr = device->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK,
-											&device_info.SymbolicLink, &device_info.SymbolicLinkLength);
-			if (SUCCEEDED(hr))
-			{
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	Result<> VideoSourceReader::CreateSourceReader(SourceReaderData& source_reader_data) noexcept
@@ -331,7 +223,7 @@ namespace QuantumGate::AVExtender
 		LONG tstride{ 0 };
 
 		// Try to get the default stride from the media type
-		auto hr = type->GetUINT32(MF_MT_DEFAULT_STRIDE, (UINT32*)& tstride);
+		auto hr = type->GetUINT32(MF_MT_DEFAULT_STRIDE, (UINT32*)&tstride);
 		if (FAILED(hr))
 		{
 			// Setting this atribute to NULL we can obtain the default stride

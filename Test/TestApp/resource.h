@@ -173,6 +173,8 @@
 #define IDC_CHECK16                     1079
 #define IDC_CALL_DURATION               1079
 #define IDC_CHECK17                     1080
+#define IDC_INITIALIZE_AV2              1080
+#define IDC_INITIALIZE_AUDIO            1080
 #define IDC_CHECK18                     1081
 #define IDC_CHECK19                     1082
 #define IDC_CHECK20                     1083

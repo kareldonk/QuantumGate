@@ -491,9 +491,12 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\AVExtender\AudioSourceReader.h" />
     <ClInclude Include="..\AVExtender\AVErrorCode.h" />
     <ClInclude Include="..\AVExtender\AVExtender.h" />
+    <ClInclude Include="..\AVExtender\CaptureDevice.h" />
     <ClInclude Include="..\AVExtender\Common.h" />
+    <ClInclude Include="..\AVExtender\SourceReader.h" />
     <ClInclude Include="..\AVExtender\VideoSourceReader.h" />
     <ClInclude Include="..\AVExtender\VideoWindow.h" />
     <ClInclude Include="..\Socks5Extender\Socks5Connection.h" />
@@ -530,9 +533,11 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\AVExtender\AudioSourceReader.cpp" />
     <ClCompile Include="..\AVExtender\AVErrorCode.cpp" />
     <ClCompile Include="..\AVExtender\AVExtender.cpp" />
     <ClCompile Include="..\AVExtender\Common.cpp" />
+    <ClCompile Include="..\AVExtender\SourceReader.cpp" />
     <ClCompile Include="..\AVExtender\VideoSourceReader.cpp" />
     <ClCompile Include="..\AVExtender\VideoWindow.cpp" />
     <ClCompile Include="..\Socks5Extender\Socks5Connection.cpp" />

@@ -8,17 +8,20 @@
 
 namespace QuantumGate::AVExtender
 {
-	class VideoSourceReader : public SourceReader
+	using namespace QuantumGate::Implementation;
+
+	class AudioSourceReader : public SourceReader
 	{
 		struct SourceReaderData
 		{
 			IMFMediaSource* Source{ nullptr };
 			IMFSourceReader* SourceReader{ nullptr };
-			GUID VideoFormat{ GUID_NULL };
-			UInt Width{ 0 };
-			UInt Height{ 0 };
-			UInt BytesPerPixel{ 0 };
-			Long Stride{ 0 };
+			GUID AudioFormat{ GUID_NULL };
+			UINT32 NumChannels{ 0 };
+			UINT32 BitsPerSample{ 0 };
+			UINT32 SamplesPerSecond{ 0 };
+			UINT32 AvgBytesPerSecond{ 0 };
+			UINT32 BlockAlignment{ 0 };
 			QuantumGate::Buffer RawData;
 
 			void Release() noexcept
@@ -31,11 +34,12 @@ namespace QuantumGate::AVExtender
 				}
 				SafeRelease(&Source);
 
-				VideoFormat = GUID_NULL;
-				Width = 0;
-				Height = 0;
-				BytesPerPixel = 0;
-				Stride = 0;
+				AudioFormat = GUID_NULL;
+				NumChannels = 0;
+				BitsPerSample = 0;
+				SamplesPerSecond = 0;
+				AvgBytesPerSecond = 0;
+				BlockAlignment = 0;
 				RawData.Clear();
 				RawData.FreeUnused();
 			}
@@ -44,19 +48,16 @@ namespace QuantumGate::AVExtender
 		using SourceReaderData_ThS = Concurrency::ThreadSafe<SourceReaderData, std::shared_mutex>;
 
 	public:
-		VideoSourceReader() noexcept;
-		VideoSourceReader(const VideoSourceReader&) = delete;
-		VideoSourceReader(VideoSourceReader&&) = delete;
-		virtual ~VideoSourceReader();
-		VideoSourceReader& operator=(const VideoSourceReader&) = delete;
-		VideoSourceReader& operator=(VideoSourceReader&&) = delete;
+		AudioSourceReader() noexcept;
+		AudioSourceReader(const AudioSourceReader&) = delete;
+		AudioSourceReader(AudioSourceReader&&) = delete;
+		virtual ~AudioSourceReader();
+		AudioSourceReader& operator=(const AudioSourceReader&) = delete;
+		AudioSourceReader& operator=(AudioSourceReader&&) = delete;
 
 		[[nodiscard]] Result<> Open(const CaptureDevice& device) noexcept;
 		[[nodiscard]] bool IsOpen() noexcept;
 		void Close() noexcept;
-
-		void GetSample(BGRAPixel* buffer) noexcept;
-		[[nodiscard]] std::pair<UInt, UInt> GetSampleDimensions() noexcept;
 
 		// Methods from IUnknown 
 		STDMETHODIMP QueryInterface(REFIID iid, void** ppv) override;
@@ -76,10 +77,9 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] Result<> SetMediaType(SourceReaderData& source_reader_data,
 											IMFMediaType* media_type, const GUID& subtype) noexcept;
 
-		[[nodiscard]] bool GetDefaultStride(IMFMediaType* type, LONG* stride) const noexcept;
-
 	private:
 		long m_RefCount{ 1 };
 		SourceReaderData_ThS m_SourceReader;
 	};
 }
+

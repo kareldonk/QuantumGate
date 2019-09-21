@@ -15,7 +15,9 @@ namespace QuantumGate::AVExtender
 		FailedCreateVideoDeviceSource = 2,
 		FailedOutOfMemory = 3,
 		FailedNoSupportedVideoMediaType = 4,
-		FailedGetVideoCaptureDevices = 5
+		FailedGetVideoCaptureDevices = 5,
+		FailedGetAudioCaptureDevices = 6,
+		FailedCreateAudioDeviceSource = 7
 	};
 
 	class AVErrorCategory final : public std::error_category
@@ -33,6 +35,8 @@ namespace QuantumGate::AVExtender
 					return "Operation failed.";
 				case AVResultCode::FailedCreateVideoDeviceSource:
 					return "Operation failed. Couldn't create a video device source.";
+				case AVResultCode::FailedCreateAudioDeviceSource:
+					return "Operation failed. Couldn't create a audio device source.";
 				case AVResultCode::FailedOutOfMemory:
 					return "Operation failed. Couldn't allocate memory.";
 				case AVResultCode::FailedNoSupportedVideoMediaType:
