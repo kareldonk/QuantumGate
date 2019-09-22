@@ -147,6 +147,12 @@
     <ClInclude Include="..\AVExtender\SourceReader.h">
       <Filter>Header Files\AVExtender</Filter>
     </ClInclude>
+    <ClInclude Include="..\AVExtender\AudioRenderer.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AVExtender\AudioResampler.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -252,6 +258,12 @@
       <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
     <ClCompile Include="..\AVExtender\SourceReader.cpp">
+      <Filter>Source Files\AVExtender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\AudioRenderer.cpp">
+      <Filter>Source Files\AVExtender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\AudioResampler.cpp">
       <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
   </ItemGroup>

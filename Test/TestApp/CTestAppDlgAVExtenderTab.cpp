@@ -161,7 +161,13 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio()
 		const auto result = m_AudioSourceReader->Open(m_AudioCaptureDevices[idx]);
 		if (result.Succeeded())
 		{
-			//m_VideoPreviewTimer = SetTimer(AVEXTENDER_VIDEO_PREVIEW_TIMER, 1, NULL);
+
+			const auto sample_settings = m_AudioSourceReader->GetSampleSettings();
+			m_AudioRenderer.Create(sample_settings);
+			
+			m_AudioPreviewTimer = SetTimer(AVEXTENDER_AUDIO_PREVIEW_TIMER, 1, NULL);
+
+			m_AudioRenderer.Play();
 		}
 		else
 		{
@@ -181,6 +187,12 @@ void CTestAppDlgAVExtenderTab::OnDestroy()
 	{
 		KillTimer(m_VideoPreviewTimer);
 		m_VideoPreviewTimer = 0;
+	}
+
+	if (m_AudioPreviewTimer != 0)
+	{
+		KillTimer(m_AudioPreviewTimer);
+		m_AudioPreviewTimer = 0;
 	}
 
 	if (m_VideoSourceReader)
@@ -221,6 +233,13 @@ void CTestAppDlgAVExtenderTab::OnTimer(UINT_PTR nIDEvent)
 
 			delete [] bgraBuffer;
 		}
+	}
+
+	if (nIDEvent == AVEXTENDER_AUDIO_PREVIEW_TIMER)
+	{
+		Buffer buffer;
+		m_AudioSourceReader->GetSample(buffer);
+		m_AudioRenderer.Render(buffer.GetBytes(), buffer.GetSize());
 	}
 
 	CTabBase::OnTimer(nIDEvent);

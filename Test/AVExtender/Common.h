@@ -6,6 +6,7 @@
 #include "AVErrorCode.h"
 
 #include <QuantumGate.h>
+#include <Concurrency\ThreadSafe.h>
 
 namespace QuantumGate::AVExtender
 {
@@ -73,4 +74,25 @@ namespace QuantumGate::AVExtender
 			catch (...) {}
 		}
 	}
+
+	struct VideoSettings
+	{
+		UINT32 Width{ 0 };
+		UINT32 Height{ 0 };
+		UINT32 BytesPerPixel{ 0 };
+		LONG Stride{ 0 };
+	};
+
+	using VideoSettings_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<VideoSettings, std::shared_mutex>;
+
+	struct AudioSettings
+	{
+		UINT32 NumChannels{ 0 };
+		UINT32 SamplesPerSecond{ 0 };
+		UINT32 AvgBytesPerSecond{ 0 };
+		UINT32 BlockAlignment{ 0 };
+		UINT32 BitsPerSample{ 0 };
+	};
+
+	using AudioSettings_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<AudioSettings, std::shared_mutex>;
 }

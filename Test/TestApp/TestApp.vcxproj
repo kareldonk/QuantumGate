@@ -491,6 +491,8 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\AVExtender\AudioRenderer.h" />
+    <ClInclude Include="..\AVExtender\AudioResampler.h" />
     <ClInclude Include="..\AVExtender\AudioSourceReader.h" />
     <ClInclude Include="..\AVExtender\AVErrorCode.h" />
     <ClInclude Include="..\AVExtender\AVExtender.h" />
@@ -533,6 +535,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\AVExtender\AudioRenderer.cpp" />
+    <ClCompile Include="..\AVExtender\AudioResampler.cpp" />
     <ClCompile Include="..\AVExtender\AudioSourceReader.cpp" />
     <ClCompile Include="..\AVExtender\AVErrorCode.cpp" />
     <ClCompile Include="..\AVExtender\AVExtender.cpp" />

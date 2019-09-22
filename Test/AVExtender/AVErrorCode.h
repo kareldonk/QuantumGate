@@ -17,7 +17,8 @@ namespace QuantumGate::AVExtender
 		FailedNoSupportedVideoMediaType = 4,
 		FailedGetVideoCaptureDevices = 5,
 		FailedGetAudioCaptureDevices = 6,
-		FailedCreateAudioDeviceSource = 7
+		FailedCreateAudioDeviceSource = 7,
+		FailedNoSupportedAudioMediaType = 8,
 	};
 
 	class AVErrorCategory final : public std::error_category
@@ -41,6 +42,8 @@ namespace QuantumGate::AVExtender
 					return "Operation failed. Couldn't allocate memory.";
 				case AVResultCode::FailedNoSupportedVideoMediaType:
 					return "Operation failed. Couldn't find a supported video media type.";
+				case AVResultCode::FailedNoSupportedAudioMediaType:
+					return "Operation failed. Couldn't find a supported audio media type.";
 				case AVResultCode::FailedGetVideoCaptureDevices:
 					return "Operation failed. Couldn't get video capture devices.";
 				default:
