@@ -21,16 +21,17 @@ namespace QuantumGate::AVExtender
 		AudioRenderer& operator=(const AudioRenderer&) = delete;
 		AudioRenderer& operator=(AudioRenderer&&) = default;
 
-		[[nodiscard]] bool Create(const AudioSettings& input_audio_settings) noexcept;
+		[[nodiscard]] bool Create(const AudioFormat& input_audio_settings) noexcept;
 		void Close() noexcept;
-		[[nodiscard]] inline bool IsOpen() const noexcept { return m_RenderClient != nullptr; }
-		
+		[[nodiscard]] inline bool IsOpen() const noexcept { return m_Open; }
+
 		[[nodiscard]] bool Play() noexcept;
-		[[nodiscard]] bool Render(const Byte* src_data, const Size src_len) noexcept;
-		[[nodiscard]] inline const AudioSettings& GetOutputAudioSettings() const noexcept { return m_OutputAudioSettings; }
+		[[nodiscard]] bool Render(const BufferView in_data) noexcept;
+
+		[[nodiscard]] inline const AudioFormat& GetOutputFormat() const noexcept { return m_OutputFormat; }
 
 	private:
-		[[nodiscard]] bool GetSupportedMixFormat(const AudioSettings& audio_settings, WAVEFORMATEX& wfmt) noexcept;
+		[[nodiscard]] bool GetSupportedMixFormat(const AudioFormat& audio_settings, WAVEFORMATEXTENSIBLE& wfmt) noexcept;
 
 	private:
 		inline static const CLSID CLSID_MMDeviceEnumerator{ __uuidof(MMDeviceEnumerator) };
@@ -39,8 +40,14 @@ namespace QuantumGate::AVExtender
 		inline static const IID IID_IAudioRenderClient{ __uuidof(IAudioRenderClient) };
 
 	private:
-		AudioResampler m_AudioSampler;
-		AudioSettings m_OutputAudioSettings;
+		bool m_Open{ false };
+
+		AudioResampler m_AudioResampler;
+
+		AudioFormat m_OutputFormat;
+		IMFSample* m_OutputSample{ nullptr };
+		IMFMediaBuffer* m_OutputBuffer{ nullptr };
+
 		REFERENCE_TIME m_BufferDuration{ 0 };
 		UINT32 m_BufferFrameCount{ 0 };
 		IMMDeviceEnumerator* m_Enumerator{ nullptr };
@@ -48,4 +55,6 @@ namespace QuantumGate::AVExtender
 		IAudioClient* m_AudioClient{ nullptr };
 		IAudioRenderClient* m_RenderClient{ nullptr };
 	};
+
+	using AudioRenderer_ThS = Concurrency::ThreadSafe<AudioRenderer, std::shared_mutex>;
 }

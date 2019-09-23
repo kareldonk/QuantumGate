@@ -205,16 +205,16 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	void VideoWindow::Render(const Byte* pixels, const UInt width, const UInt height) noexcept
+	void VideoWindow::Render(const Byte* pixels, const VideoFormat& format) noexcept
 	{
 		assert(pixels != nullptr && m_D2D1Bitmap != nullptr && m_D2D1RenderTarget != nullptr);
 
 		const auto bmsize = m_D2D1Bitmap->GetSize();
-		if (bmsize.width != static_cast<float>(width) || bmsize.height != static_cast<float>(height))
+		if (bmsize.width != static_cast<float>(format.Width) || bmsize.height != static_cast<float>(format.Height))
 		{
 			SafeRelease(&m_D2D1Bitmap);
 
-			const auto hr = m_D2D1RenderTarget->CreateBitmap(D2D1::SizeU(width, height),
+			const auto hr = m_D2D1RenderTarget->CreateBitmap(D2D1::SizeU(format.Width, format.Height),
 															 D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),
 															 &m_D2D1Bitmap);
 			if (FAILED(hr)) return;
@@ -222,10 +222,31 @@ namespace QuantumGate::AVExtender
 			ResizeDrawRect();
 		}
 
-		m_D2D1Bitmap->CopyFromMemory(nullptr, pixels, width * 4);
+		switch (format.Format)
+		{
+			case VideoFormat::PixelFormat::BGR24:
+			{
+				m_ResampleBuffer.Resize(static_cast<Size>(format.Width) *
+										static_cast<Size>(format.Height) * sizeof(BGRAPixel));
+
+				BGR24ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ResampleBuffer.GetBytes()),
+							  reinterpret_cast<const BGRPixel*>(pixels),
+							  format.Width, format.Height, format.Stride);
+
+				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ResampleBuffer.GetBytes(), format.Width * 4);
+				break;
+			}
+			case VideoFormat::PixelFormat::BGRA32:
+				m_D2D1Bitmap->CopyFromMemory(nullptr, pixels, format.Width * 4);
+				break;
+			default:
+				// Unsupported format
+				assert(false);
+				return;
+		}
 
 		m_D2D1RenderTarget->BeginDraw();
-		
+
 		// No need to clear background if we cover entire window with video bitmap later
 		if (m_RenderSize != RenderSize::Cover)
 		{
@@ -234,7 +255,7 @@ namespace QuantumGate::AVExtender
 
 		m_D2D1RenderTarget->DrawBitmap(m_D2D1Bitmap, &m_DrawRect, 1.0f,
 									   D2D1_BITMAP_INTERPOLATION_MODE::D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-		
+
 		m_D2D1RenderTarget->EndDraw();
 	}
 }

@@ -13,13 +13,16 @@ namespace QuantumGate::AVExtender
 	class SourceReader : public IMFSourceReaderCallback
 	{
 	public:
+		using SampleEventCallback = QuantumGate::Callback<void(const LONGLONG, IMFSample*)>;
+
 		struct SourceReaderData
 		{
 			IMFMediaSource* Source{ nullptr };
 			IMFSourceReader* SourceReader{ nullptr };
 			GUID Format{ GUID_NULL };
-			QuantumGate::Buffer RawData;
-			Size RawDataAvailableSize{ 0 };
+			IMFSample* Sample{ nullptr };
+			IMFMediaBuffer* Buffer{ nullptr };
+			SampleEventCallback SampleEvent{ [](const LONGLONG, IMFSample*) mutable {} };
 
 			void Release() noexcept
 			{
@@ -31,10 +34,10 @@ namespace QuantumGate::AVExtender
 				}
 				SafeRelease(&Source);
 
+				SafeRelease(&Sample);
+				SafeRelease(&Buffer);
+
 				Format = GUID_NULL;
-				RawData.Clear();
-				RawData.FreeUnused();
-				RawDataAvailableSize = 0;
 			}
 		};
 
@@ -49,7 +52,7 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] Result<CaptureDeviceVector> EnumCaptureDevices() const noexcept;
 
-		[[nodiscard]] Result<> Open(const CaptureDevice& device) noexcept;
+		[[nodiscard]] Result<> Open(const CaptureDevice& device, SampleEventCallback&& event_callback) noexcept;
 		[[nodiscard]] bool IsOpen() noexcept;
 		void Close() noexcept;
 
@@ -60,7 +63,7 @@ namespace QuantumGate::AVExtender
 		STDMETHODIMP OnFlush(DWORD dwStreamIndex) override { return S_OK; }
 
 	protected:
-		SourceReaderData_ThS& GetSourceReader() noexcept { return m_SourceReader; }
+		SourceReaderData_ThS& GetSourceReaderData() noexcept { return m_SourceReaderData; }
 
 		[[nodiscard]] virtual Result<> OnMediaTypeChanged(IMFMediaType* media_type) noexcept;
 		[[nodiscard]] virtual Result<Size> GetBufferSize(IMFMediaType* media_type) noexcept;
@@ -72,10 +75,10 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] Result<std::pair<IMFMediaType*, GUID>> GetSupportedMediaType(IMFSourceReader* source_reader) noexcept;
 
 	private:
-		CaptureDevice::Type m_Type{ CaptureDevice::Type::Unknown };
-		GUID m_SupportedFormat{ GUID_NULL };
-		GUID m_CaptureGUID{ GUID_NULL };
-		DWORD m_StreamIndex{ 0 };
-		SourceReaderData_ThS m_SourceReader;
+		const CaptureDevice::Type m_Type{ CaptureDevice::Type::Unknown };
+		const GUID m_SupportedFormat{ GUID_NULL };
+		const GUID m_CaptureGUID{ GUID_NULL };
+		const DWORD m_StreamIndex{ 0 };
+		SourceReaderData_ThS m_SourceReaderData;
 	};
 }

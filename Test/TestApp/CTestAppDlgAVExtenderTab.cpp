@@ -135,10 +135,11 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 	if (sel != CB_ERR)
 	{
 		const auto idx = vdcombo->GetItemData(sel);
-		const auto result = m_VideoSourceReader->Open(m_VideoCaptureDevices[idx]);
+		const auto result = m_VideoSourceReader->Open(m_VideoCaptureDevices[idx],
+													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnVideoSample));
 		if (result.Succeeded())
 		{
-			m_VideoPreviewTimer = SetTimer(AVEXTENDER_VIDEO_PREVIEW_TIMER, 1, NULL);
+			//m_VideoPreviewTimer = SetTimer(AVEXTENDER_VIDEO_PREVIEW_TIMER, 1, NULL);
 		}
 		else
 		{
@@ -151,6 +152,32 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 	}
 }
 
+void CTestAppDlgAVExtenderTab::OnVideoSample(const LONGLONG timestamp, IMFSample* sample)
+{
+	const auto sample_settings = m_VideoSourceReader->GetSampleFormat();
+
+	IMFMediaBuffer* media_buffer{ nullptr };
+
+	// Get the buffer from the sample
+	auto hr = sample->GetBufferByIndex(0, &media_buffer);
+	if (SUCCEEDED(hr))
+	{
+		// Release buffer when we exit this scope
+		const auto sg = MakeScopeGuard([&]() noexcept { QuantumGate::AVExtender::SafeRelease(&media_buffer); });
+
+		BYTE* in_data{ nullptr };
+		DWORD in_data_len{ 0 };
+
+		hr = media_buffer->Lock(&in_data, nullptr, &in_data_len);
+		if (SUCCEEDED(hr))
+		{
+			m_VideoWindow.Render(reinterpret_cast<Byte*>(in_data), sample_settings);
+
+			media_buffer->Unlock();
+		}
+	}
+}
+
 void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio()
 {
 	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_AUDIO_DEVICES_COMBO);
@@ -158,16 +185,16 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio()
 	if (sel != CB_ERR)
 	{
 		const auto idx = vdcombo->GetItemData(sel);
-		const auto result = m_AudioSourceReader->Open(m_AudioCaptureDevices[idx]);
+		const auto result = m_AudioSourceReader->Open(m_AudioCaptureDevices[idx],
+													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnAudioSample));
 		if (result.Succeeded())
 		{
+			auto audio_renderer = m_AudioRenderer.WithUniqueLock();
 
-			const auto sample_settings = m_AudioSourceReader->GetSampleSettings();
-			m_AudioRenderer.Create(sample_settings);
-			
-			m_AudioPreviewTimer = SetTimer(AVEXTENDER_AUDIO_PREVIEW_TIMER, 1, NULL);
-
-			m_AudioRenderer.Play();
+			if (audio_renderer->Create(m_AudioSourceReader->GetSampleFormat()))
+			{
+				DiscardReturnValue(audio_renderer->Play());
+			}
 		}
 		else
 		{
@@ -180,21 +207,36 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio()
 	}
 }
 
+void CTestAppDlgAVExtenderTab::OnAudioSample(const LONGLONG timestamp, IMFSample* sample)
+{
+	auto audio_renderer = m_AudioRenderer.WithUniqueLock();
+
+	if (!audio_renderer->IsOpen()) return;
+
+	IMFMediaBuffer* media_buffer{ nullptr };
+
+	// Get the buffer from the sample
+	auto hr = sample->GetBufferByIndex(0, &media_buffer);
+	if (SUCCEEDED(hr))
+	{
+		// Release buffer when we exit this scope
+		const auto sg = MakeScopeGuard([&]() noexcept { QuantumGate::AVExtender::SafeRelease(&media_buffer); });
+
+		BYTE* in_data{ nullptr };
+		DWORD in_data_len{ 0 };
+
+		hr = media_buffer->Lock(&in_data, nullptr, &in_data_len);
+		if (SUCCEEDED(hr))
+		{
+			DiscardReturnValue(audio_renderer->Render(BufferView(reinterpret_cast<Byte*>(in_data), in_data_len)));
+
+			media_buffer->Unlock();
+		}
+	}
+}
 
 void CTestAppDlgAVExtenderTab::OnDestroy()
 {
-	if (m_VideoPreviewTimer != 0)
-	{
-		KillTimer(m_VideoPreviewTimer);
-		m_VideoPreviewTimer = 0;
-	}
-
-	if (m_AudioPreviewTimer != 0)
-	{
-		KillTimer(m_AudioPreviewTimer);
-		m_AudioPreviewTimer = 0;
-	}
-
 	if (m_VideoSourceReader)
 	{
 		m_VideoSourceReader->Close();
@@ -222,24 +264,6 @@ void CTestAppDlgAVExtenderTab::OnTimer(UINT_PTR nIDEvent)
 		{
 			UpdatePeerActivity();
 		}
-		else if (nIDEvent == AVEXTENDER_VIDEO_PREVIEW_TIMER)
-		{
-			const auto dim = m_VideoSourceReader->GetSampleDimensions();
-
-			QuantumGate::AVExtender::BGRAPixel* bgraBuffer = new QuantumGate::AVExtender::BGRAPixel[dim.first * dim.second];
-
-			m_VideoSourceReader->GetSample(bgraBuffer);
-			m_VideoWindow.Render(reinterpret_cast<Byte*>(bgraBuffer), dim.first, dim.second);
-
-			delete [] bgraBuffer;
-		}
-	}
-
-	if (nIDEvent == AVEXTENDER_AUDIO_PREVIEW_TIMER)
-	{
-		Buffer buffer;
-		m_AudioSourceReader->GetSample(buffer);
-		m_AudioRenderer.Render(buffer.GetBytes(), buffer.GetSize());
 	}
 
 	CTabBase::OnTimer(nIDEvent);

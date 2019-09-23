@@ -12,8 +12,6 @@
 #include "..\AVExtender\AudioRenderer.h"
 
 #define AVEXTENDER_PEER_ACTIVITY_TIMER	10
-#define AVEXTENDER_VIDEO_PREVIEW_TIMER	11
-#define AVEXTENDER_AUDIO_PREVIEW_TIMER	12
 
 class CTestAppDlgAVExtenderTab : public CTabBase
 {
@@ -48,6 +46,9 @@ protected:
 	void UpdatePeerActivity() noexcept;
 	void UpdateSelectedPeer() noexcept;
 
+	void OnAudioSample(const LONGLONG timestamp, IMFSample* sample);
+	void OnVideoSample(const LONGLONG timestamp, IMFSample* sample);
+
 	virtual BOOL OnInitDialog();
 
 	afx_msg void OnBnClickedInitializeAv();
@@ -69,8 +70,6 @@ private:
 
 	std::optional<PeerLUID> m_SelectedPeerLUID;
 	UINT_PTR m_PeerActivityTimer{ 0 };
-	UINT_PTR m_VideoPreviewTimer{ 0 };
-	UINT_PTR m_AudioPreviewTimer{ 0 };
 
 	std::shared_ptr<QuantumGate::AVExtender::Extender> m_AVExtender{ nullptr };
 
@@ -80,5 +79,5 @@ private:
 
 	QuantumGate::AVExtender::AudioSourceReader* m_AudioSourceReader{ nullptr };
 	QuantumGate::AVExtender::CaptureDeviceVector m_AudioCaptureDevices;
-	QuantumGate::AVExtender::AudioRenderer m_AudioRenderer;
+	QuantumGate::AVExtender::AudioRenderer_ThS m_AudioRenderer;
 };

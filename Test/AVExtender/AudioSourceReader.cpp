@@ -40,7 +40,7 @@ namespace QuantumGate::AVExtender
 
 	Result<> AudioSourceReader::OnMediaTypeChanged(IMFMediaType* media_type) noexcept
 	{
-		auto audio_settings = m_OutputAudioSettings.WithUniqueLock();
+		auto audio_settings = m_AudioFormat.WithUniqueLock();
 
 		auto hr = media_type->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &audio_settings->NumChannels);
 		if (SUCCEEDED(hr))
@@ -67,24 +67,10 @@ namespace QuantumGate::AVExtender
 		return AVResultCode::Failed;
 	}
 
-	void AudioSourceReader::GetSample(Buffer& buffer) noexcept
-	{
-		auto source_reader = GetSourceReader().WithUniqueLock();
-
-		buffer.Resize(source_reader->RawDataAvailableSize);
-
-		if (source_reader->RawDataAvailableSize > 0)
-		{
-			memcpy(buffer.GetBytes(), source_reader->RawData.GetBytes(), buffer.GetSize());
-		}
-
-		source_reader->RawDataAvailableSize = 0;
-	}
-
 	Result<Size> AudioSourceReader::GetBufferSize(IMFMediaType* media_type) noexcept
 	{
-		const auto audio_settings = m_OutputAudioSettings.WithSharedLock();
+		const auto audio_format = m_AudioFormat.WithSharedLock();
 
-		return static_cast<Size>(audio_settings->AvgBytesPerSecond);
+		return static_cast<Size>(audio_format->AvgBytesPerSecond);
 	}
 }

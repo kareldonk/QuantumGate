@@ -17,8 +17,7 @@ namespace QuantumGate::AVExtender
 		VideoSourceReader& operator=(const VideoSourceReader&) = delete;
 		VideoSourceReader& operator=(VideoSourceReader&&) = delete;
 
-		void GetSample(BGRAPixel* buffer) noexcept;
-		[[nodiscard]] std::pair<UInt, UInt> GetSampleDimensions() noexcept;
+		[[nodiscard]] inline VideoFormat GetSampleFormat() noexcept { return *m_VideoFormat.WithSharedLock(); }
 
 		// Methods from IUnknown 
 		STDMETHODIMP QueryInterface(REFIID iid, void** ppv) override;
@@ -33,6 +32,6 @@ namespace QuantumGate::AVExtender
 
 	private:
 		long m_RefCount{ 1 };
-		VideoSettings_ThS m_VideoSettings;
+		VideoFormat_ThS m_VideoFormat;
 	};
 }

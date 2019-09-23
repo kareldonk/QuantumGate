@@ -33,7 +33,7 @@ namespace QuantumGate::AVExtender
 		inline void SetRenderSize(const RenderSize render_size) noexcept { m_RenderSize = render_size; }
 		[[nodiscard]] inline RenderSize GetRenderSize() const noexcept { return m_RenderSize; }
 
-		void Render(const Byte* pixels, const UInt width, const UInt height) noexcept;
+		void Render(const Byte* pixels, const VideoFormat& format) noexcept;
 
 		void ProcessMessages() noexcept;
 		
@@ -49,6 +49,8 @@ namespace QuantumGate::AVExtender
 		HWND m_WndHandle{ nullptr };
 		RECT m_WndClientRect{ 0 };
 		D2D_RECT_F m_DrawRect{ 0 };
+
+		Buffer m_ResampleBuffer;
 
 		ID2D1Factory* m_D2D1Factory{ nullptr };
 		ID2D1HwndRenderTarget* m_D2D1RenderTarget{ nullptr };

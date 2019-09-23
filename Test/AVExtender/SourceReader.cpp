@@ -8,25 +8,43 @@
 
 namespace QuantumGate::AVExtender
 {
-	SourceReader::SourceReader(const CaptureDevice::Type type, const GUID supported_format) noexcept :
-		m_Type(type), m_SupportedFormat(supported_format)
+	GUID GetCaptureGUID(const CaptureDevice::Type type)
 	{
-		DiscardReturnValue(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
-
-		switch (m_Type)
+		switch (type)
 		{
 			case CaptureDevice::Type::Video:
-				m_CaptureGUID = MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID;
-				m_StreamIndex = static_cast<DWORD>(MF_SOURCE_READER_FIRST_VIDEO_STREAM);
-				break;
+				return MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID;
 			case CaptureDevice::Type::Audio:
-				m_CaptureGUID = MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_GUID;
-				m_StreamIndex = static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM);
-				break;
+				return MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_GUID;
 			default:
 				assert(false);
 				break;
 		}
+
+		return GUID_NULL;
+	}
+
+	DWORD GetStreamIndex(const CaptureDevice::Type type)
+	{
+		switch (type)
+		{
+			case CaptureDevice::Type::Video:
+				return static_cast<DWORD>(MF_SOURCE_READER_FIRST_VIDEO_STREAM);
+			case CaptureDevice::Type::Audio:
+				return static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM);
+			default:
+				assert(false);
+				break;
+		}
+
+		return 0;
+	}
+
+	SourceReader::SourceReader(const CaptureDevice::Type type, const GUID supported_format) noexcept :
+		m_Type(type), m_SupportedFormat(supported_format), m_CaptureGUID(GetCaptureGUID(type)),
+		m_StreamIndex(GetStreamIndex(type))
+	{
+		DiscardReturnValue(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
 	}
 
 	SourceReader::~SourceReader()
@@ -52,7 +70,7 @@ namespace QuantumGate::AVExtender
 		return AVResultCode::Failed;
 	}
 
-	Result<> SourceReader::Open(const CaptureDevice& device) noexcept
+	Result<> SourceReader::Open(const CaptureDevice& device, SampleEventCallback&& event_callback) noexcept
 	{
 		IMFAttributes* attributes{ nullptr };
 
@@ -86,7 +104,7 @@ namespace QuantumGate::AVExtender
 
 				if (SUCCEEDED(hr))
 				{
-					auto source_reader_data = m_SourceReader.WithUniqueLock();
+					auto source_reader_data = m_SourceReaderData.WithUniqueLock();
 
 					hr = MFCreateDeviceSource(attributes, &source_reader_data->Source);
 					if (SUCCEEDED(hr))
@@ -95,6 +113,10 @@ namespace QuantumGate::AVExtender
 						if (result.Failed())
 						{
 							source_reader_data->Release();
+						}
+						else
+						{
+							source_reader_data->SampleEvent = std::move(event_callback);
 						}
 
 						return result;
@@ -113,13 +135,13 @@ namespace QuantumGate::AVExtender
 
 	bool SourceReader::IsOpen() noexcept
 	{
-		auto source_reader_data = m_SourceReader.WithSharedLock();
+		auto source_reader_data = m_SourceReaderData.WithSharedLock();
 		return (source_reader_data->SourceReader != nullptr);
 	}
 
 	void SourceReader::Close() noexcept
 	{
-		m_SourceReader.WithUniqueLock()->Release();
+		m_SourceReaderData.WithUniqueLock()->Release();
 	}
 
 	Result<> SourceReader::CreateSourceReader(SourceReaderData& source_reader_data) noexcept
@@ -191,9 +213,14 @@ namespace QuantumGate::AVExtender
 		{
 			try
 			{
-				source_reader_data.RawData.Allocate(*result);
+				auto result2 = CaptureDevices::CreateMediaSample(*result);
+				if (result2.Succeeded())
+				{
+					source_reader_data.Sample = result2->first;
+					source_reader_data.Buffer = result2->second;
 
-				return AVResultCode::Succeeded;
+					return AVResultCode::Succeeded;
+				}
 			}
 			catch (...)
 			{
@@ -219,7 +246,7 @@ namespace QuantumGate::AVExtender
 				// Release media type when we exit this scope
 				auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&media_type); });
 
-				GUID subtype{ 0 };
+				GUID subtype{ GUID_NULL };
 
 				hr = media_type->GetGUID(MF_MT_SUBTYPE, &subtype);
 				if (SUCCEEDED(hr))
@@ -256,7 +283,7 @@ namespace QuantumGate::AVExtender
 	{
 		HRESULT hr{ S_OK };
 
-		auto source_reader_data = m_SourceReader.WithUniqueLock();
+		auto source_reader_data = m_SourceReaderData.WithUniqueLock();
 
 		if (FAILED(hrStatus)) hr = hrStatus;
 
@@ -264,40 +291,11 @@ namespace QuantumGate::AVExtender
 		{
 			if (pSample)
 			{
-				IMFMediaBuffer* media_buffer{ nullptr };
-
-				// Get the video frame buffer from the sample
-				hr = pSample->GetBufferByIndex(0, &media_buffer);
-				if (SUCCEEDED(hr))
-				{
-					// Release buffer when we exit this scope
-					const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&media_buffer); });
-
-					// Draw the frame
-					BYTE* data{ nullptr };
-					DWORD data_length{ 0 };
-					media_buffer->GetCurrentLength(&data_length);
-
-					assert(data_length <= source_reader_data->RawData.GetSize());
-
-					if (data_length > source_reader_data->RawData.GetSize())
-					{
-						data_length = static_cast<DWORD>(source_reader_data->RawData.GetSize());
-					}
-
-					hr = media_buffer->Lock(&data, nullptr, nullptr);
-					if (SUCCEEDED(hr))
-					{
-						CopyMemory(source_reader_data->RawData.GetBytes(), data, data_length);
-						media_buffer->Unlock();
-
-						source_reader_data->RawDataAvailableSize = data_length;
-					}
-				}
+				source_reader_data->SampleEvent(llTimestamp, pSample);
 			}
 		}
 
-		// Request the next frame
+		// Request the next sample
 		if (SUCCEEDED(hr))
 		{
 			hr = source_reader_data->SourceReader->ReadSample(m_StreamIndex, 0, nullptr, nullptr, nullptr, nullptr);

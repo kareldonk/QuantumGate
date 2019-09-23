@@ -164,7 +164,7 @@
     <TargetName>$(ProjectName)64</TargetName>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(SolutionDir)\Dependencies\json\single_include\nlohmann;$(SolutionDir)\QuantumGateLib\API;$(SolutionDir)\QuantumGateLib;$(SolutionDir)\Dependencies\GSL\include;$(SolutionDir)\Dependencies\monocypher\src;$(SolutionDir)\Dependencies\pcg-cpp\include;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
   </PropertyGroup>

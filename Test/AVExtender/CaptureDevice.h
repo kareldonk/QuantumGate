@@ -177,6 +177,28 @@ namespace QuantumGate::AVExtender
 			return AVResultCode::Failed;
 		}
 
+		[[nodiscard]] static Result<std::pair<IMFSample*, IMFMediaBuffer*>> CreateMediaSample(const Size size) noexcept
+		{
+			IMFSample* sample{ nullptr };
+			IMFMediaBuffer* buffer{ nullptr };
+
+			auto hr = MFCreateSample(&sample);
+			if (SUCCEEDED(hr))
+			{
+				hr = MFCreateMemoryBuffer(static_cast<DWORD>(size), &buffer);
+				if (SUCCEEDED(hr))
+				{
+					hr = sample->AddBuffer(buffer);
+					if (SUCCEEDED(hr))
+					{
+						return std::make_pair(sample, buffer);
+					}
+				}
+			}
+
+			return AVResultCode::Failed;
+		}
+
 	private:
 		[[nodiscard]] static Result<std::pair<UINT32, IMFActivate**>> GetCaptureDevices(const CaptureDevice::Type type) noexcept
 		{

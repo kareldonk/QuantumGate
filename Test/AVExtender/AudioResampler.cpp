@@ -23,7 +23,7 @@ namespace QuantumGate::AVExtender
 		CoUninitialize();
 	}
 
-	bool AudioResampler::Create(const AudioSettings& in_settings, const AudioSettings& out_settings) noexcept
+	bool AudioResampler::Create(const AudioFormat& in_settings, const AudioFormat& out_settings) noexcept
 	{
 		// Close if failed
 		auto sg = MakeScopeGuard([&]() noexcept { Close(); });
@@ -58,15 +58,25 @@ namespace QuantumGate::AVExtender
 						SUCCEEDED(m_OutputMediaType->SetUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND, out_settings.AvgBytesPerSecond)) &&
 						SUCCEEDED(m_IMFTransform->SetOutputType(0, m_OutputMediaType, 0)))
 					{
-						if (SUCCEEDED(m_IMFTransform->GetInputStreamInfo(0, &m_InputStreamInfo)) &&
-							SUCCEEDED(m_IMFTransform->GetOutputStreamInfo(0, &m_OutputStreamInfo)) &&
-							SUCCEEDED(m_IMFTransform->ProcessMessage(MFT_MESSAGE_COMMAND_FLUSH, NULL)) &&
+						if (SUCCEEDED(m_IMFTransform->ProcessMessage(MFT_MESSAGE_COMMAND_FLUSH, NULL)) &&
 							SUCCEEDED(m_IMFTransform->ProcessMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, NULL)) &&
 							SUCCEEDED(m_IMFTransform->ProcessMessage(MFT_MESSAGE_NOTIFY_START_OF_STREAM, NULL)))
 						{
-							sg.Deactivate();
+							auto result = CaptureDevices::CreateMediaSample(in_settings.AvgBytesPerSecond);
+							if (result.Succeeded())
+							{
+								sg.Deactivate();
 
-							return true;
+								m_InputSample = result->first;
+								m_InputBuffer = result->second;
+
+								m_InputFormat = in_settings;
+								m_OutputFormat = out_settings;
+
+								m_Open = true;
+
+								return true;
+							}
 						}
 					}
 				}
@@ -78,9 +88,82 @@ namespace QuantumGate::AVExtender
 
 	void AudioResampler::Close() noexcept
 	{
+		m_Open = false;
+
 		SafeRelease(&m_IMFTransform);
 		SafeRelease(&m_WMResamplerProps);
 		SafeRelease(&m_InputMediaType);
 		SafeRelease(&m_OutputMediaType);
+		SafeRelease(&m_InputSample);
+		SafeRelease(&m_InputBuffer);
+	}
+
+	bool AudioResampler::Resample(const BufferView in_data, IMFSample* out_sample) noexcept
+	{
+		assert(IsOpen());
+
+		BYTE* inptr{ nullptr };
+		DWORD inmaxl{ 0 };
+		DWORD incurl{ 0 };
+
+		// First copy input data into input buffer
+		auto hr = m_InputBuffer->Lock(&inptr, &inmaxl, &incurl);
+		if (SUCCEEDED(hr))
+		{
+			assert(in_data.GetSize() <= inmaxl);
+
+			std::memcpy(inptr, in_data.GetBytes(), in_data.GetSize());
+
+			hr = m_InputBuffer->Unlock();
+			if (SUCCEEDED(hr))
+			{
+				hr = m_InputBuffer->SetCurrentLength(static_cast<DWORD>(in_data.GetSize()));
+				if (SUCCEEDED(hr))
+				{
+					return Resample(m_InputSample, out_sample);
+				}
+			}
+		}
+
+		return false;
+	}
+
+	bool AudioResampler::Resample(IMFSample* in_sample, IMFSample* out_sample) noexcept
+	{
+		assert(IsOpen());
+
+		// Transform the input sample
+		auto hr = m_IMFTransform->ProcessInput(0, in_sample, 0);
+		if (SUCCEEDED(hr))
+		{
+			IMFMediaBuffer* out_buffer{ nullptr };
+			hr = out_sample->GetBufferByIndex(0, &out_buffer);
+			if (SUCCEEDED(hr))
+			{
+				// Release when we exit
+				const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&out_buffer); });
+
+				hr = out_buffer->SetCurrentLength(0);
+				if (SUCCEEDED(hr))
+				{
+					MFT_OUTPUT_DATA_BUFFER output{ 0 };
+					output.dwStreamID = 0;
+					output.dwStatus = 0;
+					output.pEvents = nullptr;
+					output.pSample = out_sample;
+
+					DWORD status{ 0 };
+
+					// Get the transformed output sample back
+					hr = m_IMFTransform->ProcessOutput(0, 1, &output, &status);
+					if (SUCCEEDED(hr))
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
 	}
 }

@@ -39,7 +39,7 @@ namespace QuantumGate::AVExtender
 
 	Result<> VideoSourceReader::OnMediaTypeChanged(IMFMediaType* media_type) noexcept
 	{
-		auto video_settings = m_VideoSettings.WithUniqueLock();
+		auto video_settings = m_VideoFormat.WithUniqueLock();
 
 		// Get width and height
 		auto hr = MFGetAttributeSize(media_type, MF_MT_FRAME_SIZE,
@@ -51,7 +51,19 @@ namespace QuantumGate::AVExtender
 			{
 				video_settings->BytesPerPixel = std::abs(video_settings->Stride) / video_settings->Width;
 
-				return AVResultCode::Succeeded;
+				GUID subtype{ GUID_NULL };
+
+				hr = media_type->GetGUID(MF_MT_SUBTYPE, &subtype);
+				if (SUCCEEDED(hr))
+				{
+					if (subtype == MFVideoFormat_RGB24)
+					{
+						// For some reason MFVideoFormat_RGB24 has a BGR order
+						video_settings->Format = VideoFormat::PixelFormat::BGR24;
+					}
+
+					return AVResultCode::Succeeded;
+				}
 			}
 		}
 
@@ -60,11 +72,11 @@ namespace QuantumGate::AVExtender
 
 	Result<Size> VideoSourceReader::GetBufferSize(IMFMediaType* media_type) noexcept
 	{
-		const auto video_settings = m_VideoSettings.WithSharedLock();
+		const auto video_format = m_VideoFormat.WithSharedLock();
 
-		return static_cast<Size>(video_settings->Width) *
-			static_cast<Size>(video_settings->Height) *
-			static_cast<Size>(video_settings->BytesPerPixel);
+		return static_cast<Size>(video_format->Width) *
+			static_cast<Size>(video_format->Height) *
+			static_cast<Size>(video_format->BytesPerPixel);
 	}
 
 	// Calculates the default stride based on the format and size of the frames
@@ -81,7 +93,6 @@ namespace QuantumGate::AVExtender
 		}
 		else
 		{
-			// Setting this atribute to NULL we can obtain the default stride
 			GUID subtype{ GUID_NULL };
 			UINT32 width{ 0 };
 			UINT32 height{ 0 };
@@ -110,25 +121,5 @@ namespace QuantumGate::AVExtender
 		}
 
 		return false;
-	}
-
-	void VideoSourceReader::GetSample(BGRAPixel* buffer) noexcept
-	{
-		const auto video_settings = m_VideoSettings.WithSharedLock();
-		const auto source_reader = GetSourceReader().WithSharedLock();
-
-		if (source_reader->Format == MFVideoFormat_RGB24)
-		{
-			// For some reason MFVideoFormat_RGB24 has a BGR order
-			BGR24ToBGRA32(buffer, reinterpret_cast<const BGRPixel*>(source_reader->RawData.GetBytes()),
-						  video_settings->Width, video_settings->Height, video_settings->Stride);
-		}
-	}
-
-	std::pair<UInt, UInt> VideoSourceReader::GetSampleDimensions() noexcept
-	{
-		const auto video_settings = m_VideoSettings.WithSharedLock();
-
-		return std::make_pair(video_settings->Width, video_settings->Height);
 	}
 }
