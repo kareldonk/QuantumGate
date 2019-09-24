@@ -48,7 +48,7 @@ namespace QuantumGate::Socks5Extender
 
 		void SetStatus(Status status) noexcept;
 
-		bool ProcessEvents(bool& didwork);
+		void ProcessEvents(bool& didwork);
 
 		bool SendSocks5Reply(const Socks5Protocol::Replies reply);
 		bool SendSocks5Reply(const Socks5Protocol::Replies reply,
@@ -59,6 +59,7 @@ namespace QuantumGate::Socks5Extender
 
 	protected:
 		bool SendAndReceive(bool& didwork);
+		void FlushBuffers();
 
 		bool HandleReceivedSocks5Messages();
 		bool ProcessSocks5MethodIdentificationMessage();

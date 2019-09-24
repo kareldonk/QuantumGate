@@ -49,6 +49,7 @@ namespace QuantumGate::Socks5Extender
 			UnsupportedAddressType = 0x08
 		};
 
+#pragma pack(push, 1) // Disable padding bytes
 		struct MethodIdentificationMsg final
 		{
 			UInt8 Version{ 0x05 };
@@ -94,5 +95,6 @@ namespace QuantumGate::Socks5Extender
 			UInt8 Version{ 0x01 };
 			UInt8 Reply{ 0 };
 		};
+#pragma pack(pop)
 	}
 }

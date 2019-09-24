@@ -201,28 +201,16 @@ namespace QuantumGate::Socks5Extender
 		return true;
 	}
 
-	bool Connection::ProcessEvents(bool& didwork)
+	void Connection::ProcessEvents(bool& didwork)
 	{
 		assert(!IsDisconnecting() && !IsDisconnected());
 
-		auto disconnect = false;
-		auto success = true;
-
-		if (!SendAndReceive(didwork))
-		{
-			// If we have trouble sending or receiving
-			// we can disconnect immediately
-			disconnect = true;
-			success = false;
-		}
-
-		if (success && !ShouldDisconnect())
+		if (SendAndReceive(didwork) && !ShouldDisconnect())
 		{
 			if (IsInHandshake())
 			{
 				if (!HandleReceivedSocks5Messages())
 				{
-					success = false;
 					SetDisconnectCondition();
 				}
 			}
@@ -230,41 +218,52 @@ namespace QuantumGate::Socks5Extender
 			{
 				if (!RelayReceivedData())
 				{
-					success = false;
 					SetDisconnectCondition();
 				}
 			}
 		}
-
-		if (ShouldDisconnect())
+		else
 		{
-			// In handshake state we don't disconnect immediately if
-			// there is data to be sent (such as Socks5 (error) replies)
-			if (IsInHandshake() && !m_SendBuffer.IsEmpty())
-			{
-				LogDbg(L"%s: cannot yet remove connection %llu (send buffer not empty)",
-					   m_Extender.GetName().c_str(), GetID());
-			}
-			else
-			{
-				LogDbg(L"%s: will remove connection %llu marked for disconnection",
-					   m_Extender.GetName().c_str(), GetID());
+			// If we have trouble sending or receiving
+			// we can disconnect immediately
+			LogDbg(L"%s: will remove connection %llu marked for disconnection",
+					m_Extender.GetName().c_str(), GetID());
 
-				// Disconnect now
-				disconnect = true;
-			}
-		}
+			// Attempt to write the last bits of data
+			// we have if possible before disconnecting
+			FlushBuffers();
 
-		if (disconnect)
-		{
 			Disconnect();
 
 			didwork = true;
 		}
 
 		if (didwork) m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+	}
 
-		return success;
+	void Connection::FlushBuffers()
+	{
+		if (IsInHandshake() && !m_SendBuffer.IsEmpty())
+		{
+			// This should send any remaining data suck as
+			// such as Socks5 (error) replies
+			if (m_Socket.UpdateIOStatus(0ms))
+			{
+				if (!m_Socket.GetIOStatus().HasException() && m_Socket.GetIOStatus().CanWrite())
+				{
+					while (m_Socket.Send(m_SendBuffer))
+					{
+						if (m_SendBuffer.IsEmpty()) break;
+					}
+				}
+			}
+		}
+		else if (IsReady() && !m_ReceiveBuffer.IsEmpty())
+		{
+			// This should send any remaining requested
+			// data for this connection to the peer
+			RelayReceivedData();
+		}
 	}
 
 	UInt64 Connection::MakeKey(const PeerLUID pluid, const ConnectionID cid) noexcept
