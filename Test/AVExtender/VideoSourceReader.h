@@ -7,7 +7,7 @@
 
 namespace QuantumGate::AVExtender
 {
-	class VideoSourceReader : public SourceReader
+	class VideoSourceReader final : public SourceReader
 	{
 	public:
 		VideoSourceReader() noexcept;

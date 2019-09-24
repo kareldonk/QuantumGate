@@ -11,7 +11,7 @@
 
 namespace QuantumGate::AVExtender
 {
-	class AudioRenderer
+	class AudioRenderer final
 	{
 	public:
 		AudioRenderer() noexcept;

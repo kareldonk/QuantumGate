@@ -3,10 +3,8 @@
 
 #pragma once
 
-#include "VideoWindow.h"
+#include "Call.h"
 
-#include <QuantumGate.h>
-#include <Concurrency\ThreadSafe.h>
 #include <Concurrency\EventCondition.h>
 
 namespace QuantumGate::AVExtender
@@ -22,78 +20,6 @@ namespace QuantumGate::AVExtender
 		CallHangup,
 		GeneralFailure
 	};
-
-	enum class CallType : UInt16
-	{
-		None,
-		Incoming,
-		Outgoing
-	};
-
-	enum class CallStatus : UInt16
-	{
-		Disconnected,
-		NeedAccept,
-		WaitingForAccept,
-		Connected
-	};
-
-	using CallID = UInt64;
-
-	class Call final
-	{
-	public:
-		Call() noexcept {};
-		~Call() {};
-
-		[[nodiscard]] bool SetStatus(const CallStatus status) noexcept;
-		[[nodiscard]] inline const CallStatus GetStatus() const noexcept { return m_Status; }
-		[[nodiscard]] const WChar* GetStatusString() const noexcept;
-
-		[[nodiscard]] bool BeginCall() noexcept;
-		[[nodiscard]] bool CancelCall() noexcept;
-		[[nodiscard]] bool AcceptCall() noexcept;
-		[[nodiscard]] bool StopCall() noexcept;
-		[[nodiscard]] bool ProcessIncomingCall() noexcept;
-		[[nodiscard]] bool ProcessCallFailure() noexcept;
-
-		[[nodiscard]] bool IsInCall() const noexcept;
-		[[nodiscard]] bool IsCalling() const noexcept;
-		[[nodiscard]] bool IsDisconnected() const noexcept;
-		[[nodiscard]] bool IsWaitExpired() const noexcept;
-
-		void OpenVideoWindow() noexcept;
-		void CloseVideoWindow() noexcept;
-		void UpdateVideoWindow() noexcept { return m_VideoWindow.ProcessMessages(); }
-		[[nodiscard]] inline bool HasVideoWindow() const noexcept { return m_VideoWindow.IsOpen(); }
-
-		inline void SetType(const CallType type) noexcept { m_Type = type; }
-		[[nodiscard]] inline CallType GetType() const noexcept { return m_Type; }
-
-		[[nodiscard]] inline SteadyTime GetLastActiveSteadyTime() const noexcept { return m_LastActiveSteadyTime; }
-		[[nodiscard]] inline SteadyTime GetStartSteadyTime() const noexcept { return m_StartSteadyTime; }
-		[[nodiscard]] std::chrono::milliseconds GetDuration() const noexcept;
-
-		inline void SetSendVideo(const bool send) noexcept { m_SendVideo = send; }
-		[[nodiscard]] inline bool GetSendVideo() const noexcept { return m_SendVideo; }
-
-		inline void SetSendAudio(const bool send) noexcept { m_SendAudio = send; }
-		[[nodiscard]] inline bool GetSendAudio() const noexcept { return m_SendAudio; }
-
-	public:
-		static constexpr std::chrono::seconds MaxWaitTimeForAccept{ 30 };
-
-	private:
-		CallType m_Type{ CallType::None };
-		CallStatus m_Status{ CallStatus::Disconnected };
-		SteadyTime m_LastActiveSteadyTime;
-		SteadyTime m_StartSteadyTime;
-		bool m_SendVideo{ true };
-		bool m_SendAudio{ true };
-		VideoWindow m_VideoWindow;
-	};
-
-	using Call_ThS = Implementation::Concurrency::ThreadSafe<Call, std::shared_mutex>;
 
 	struct Peer final
 	{
@@ -138,7 +64,7 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] inline const Peers_ThS& GetPeers() const noexcept { return m_Peers; }
 
-		[[nodiscard]] bool BeginCall(const PeerLUID pluid) noexcept;
+		[[nodiscard]] bool BeginCall(const PeerLUID pluid, const bool send_video, const bool send_audio) noexcept;
 		[[nodiscard]] bool AcceptCall(const PeerLUID pluid) noexcept;
 		[[nodiscard]] bool DeclineCall(const PeerLUID pluid) noexcept;
 		[[nodiscard]] bool HangupCall(const PeerLUID pluid) noexcept;

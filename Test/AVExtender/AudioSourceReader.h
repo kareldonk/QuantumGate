@@ -9,7 +9,7 @@ namespace QuantumGate::AVExtender
 {
 	using namespace QuantumGate::Implementation;
 
-	class AudioSourceReader : public SourceReader
+	class AudioSourceReader final : public SourceReader
 	{
 	public:
 		AudioSourceReader() noexcept;

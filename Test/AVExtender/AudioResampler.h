@@ -10,7 +10,7 @@
 
 namespace QuantumGate::AVExtender
 {
-	class AudioResampler
+	class AudioResampler final
 	{
 	public:
 		AudioResampler() noexcept;

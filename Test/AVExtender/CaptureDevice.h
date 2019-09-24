@@ -20,7 +20,7 @@ namespace QuantumGate::AVExtender
 {
 	using namespace QuantumGate::Implementation;
 
-	struct CaptureDevice
+	struct CaptureDevice final
 	{
 		enum Type
 		{

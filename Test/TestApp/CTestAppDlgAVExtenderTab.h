@@ -11,7 +11,7 @@
 #include "..\AVExtender\AudioSourceReader.h"
 #include "..\AVExtender\AudioRenderer.h"
 
-#define AVEXTENDER_PEER_ACTIVITY_TIMER	10
+constexpr auto AVEXTENDER_PEER_ACTIVITY_TIMER = 10;
 
 class CTestAppDlgAVExtenderTab : public CTabBase
 {

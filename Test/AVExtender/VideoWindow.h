@@ -12,7 +12,7 @@
 
 namespace QuantumGate::AVExtender
 {
-	class VideoWindow
+	class VideoWindow final
 	{
 	public:
 		enum class RenderSize { Fit, Cover };

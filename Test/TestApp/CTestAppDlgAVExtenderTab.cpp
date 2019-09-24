@@ -542,7 +542,13 @@ void CTestAppDlgAVExtenderTab::OnBnClickedCallButton()
 {
 	if (m_AVExtender != nullptr && m_SelectedPeerLUID.has_value())
 	{
-		if (!m_AVExtender->BeginCall(*m_SelectedPeerLUID))
+		const auto send_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_SEND_VIDEO_CHECK));
+		const auto send_video = (send_video_check->GetCheck() == BST_CHECKED);
+
+		const auto send_audio_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_SEND_AUDIO_CHECK));
+		const auto send_audio = (send_audio_check->GetCheck() == BST_CHECKED);
+
+		if (!m_AVExtender->BeginCall(*m_SelectedPeerLUID, send_video, send_audio))
 		{
 			AfxMessageBox(L"Failed to call peer.", MB_ICONERROR);
 		}
