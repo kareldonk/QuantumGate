@@ -245,8 +245,8 @@ namespace QuantumGate::Socks5Extender
 	{
 		if (IsInHandshake() && !m_SendBuffer.IsEmpty())
 		{
-			// This should send any remaining data suck as
-			// such as Socks5 (error) replies
+			// This should send any remaining data such as
+			// Socks5 (error) replies
 			if (m_Socket.UpdateIOStatus(0ms))
 			{
 				if (!m_Socket.GetIOStatus().HasException() && m_Socket.GetIOStatus().CanWrite())
