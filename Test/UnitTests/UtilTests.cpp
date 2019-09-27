@@ -43,7 +43,8 @@ namespace UnitTests
 			}
 
 			{
-				const std::string strt{ u8"ÜüΩωЙ你月曜日a🐕èéøÞǽлљΣæča🐕🐕" };
+				const auto chars = u8"ÜüΩωЙ你月曜日a🐕èéøÞǽлљΣæča🐕🐕";
+				const std::string strt{ reinterpret_cast<const char*>(chars) };
 				const String wstrt{ L"ÜüΩωЙ你月曜日a🐕èéøÞǽлљΣæča🐕🐕" };
 				const auto wstr = Util::ToStringW(strt);
 				Assert::AreEqual(true, wstr == wstrt);
@@ -60,7 +61,8 @@ namespace UnitTests
 			}
 
 			{
-				const ProtectedStringA strt{ u8"ÜüΩωЙ你月曜日a🐕èéøÞǽлљΣæča🐕🐕" };
+				const auto chars = u8"ÜüΩωЙ你月曜日a🐕èéøÞǽлљΣæča🐕🐕";
+				const ProtectedStringA strt{ reinterpret_cast<const char*>(chars) };
 				const ProtectedString wstrt{ L"ÜüΩωЙ你月曜日a🐕èéøÞǽлљΣæča🐕🐕" };
 				const auto wstr = Util::ToProtectedStringW(strt);
 				Assert::AreEqual(true, wstr == wstrt);
