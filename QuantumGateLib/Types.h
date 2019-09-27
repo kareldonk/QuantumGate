@@ -62,7 +62,7 @@ namespace QuantumGate
 	using Path = std::filesystem::path;
 }
 
-#include "Memory\Buffer.h"
+#include "Memory\RingBuffer.h"
 #include "Memory\BufferView.h"
 
 namespace QuantumGate
@@ -70,6 +70,8 @@ namespace QuantumGate
 	using BufferView = Implementation::Memory::BufferView;
 	using Buffer = Implementation::Memory::Buffer;
 	using ProtectedBuffer = Implementation::Memory::ProtectedBuffer;
+	using RingBuffer = Implementation::Memory::RingBuffer;
+	using ProtectedRingBuffer = Implementation::Memory::ProtectedRingBuffer;
 
 	using ProtectedString = std::basic_string<wchar_t, std::char_traits<wchar_t>,
 		Implementation::Memory::ProtectedAllocator<wchar_t>>;

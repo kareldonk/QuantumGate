@@ -606,6 +606,7 @@
     <ClInclude Include="Memory\BufferWriter.h" />
     <ClInclude Include="Memory\PoolAllocator.h" />
     <ClInclude Include="Memory\ProtectedAllocator.h" />
+    <ClInclude Include="Memory\RingBuffer.h" />
     <ClInclude Include="Module.h" />
     <ClInclude Include="Network\BinaryIPAddress.h" />
     <ClInclude Include="Network\IP.h" />

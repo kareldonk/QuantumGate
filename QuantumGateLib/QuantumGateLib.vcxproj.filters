@@ -390,6 +390,9 @@
     <ClInclude Include="Network\IP.h">
       <Filter>Header Files\Network</Filter>
     </ClInclude>
+    <ClInclude Include="Memory\RingBuffer.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

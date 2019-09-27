@@ -379,6 +379,7 @@
     <ClCompile Include="PingTests.cpp" />
     <ClCompile Include="PublicIPEndpointsTests.cpp" />
     <ClCompile Include="ResultTests.cpp" />
+    <ClCompile Include="RingBufferTests.cpp" />
     <ClCompile Include="ScopeGuardTests.cpp" />
     <ClCompile Include="SocketTests.cpp" />
     <ClCompile Include="ThreadLocalCacheTests.cpp" />
