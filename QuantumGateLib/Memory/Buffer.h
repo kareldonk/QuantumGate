@@ -69,7 +69,7 @@ namespace QuantumGate::Implementation::Memory
 		inline BufferImpl& operator=(const BufferView& buffer)
 		{
 			Allocate(buffer.GetSize());
-			memcpy(GetBytes(), buffer.GetBytes(), buffer.GetSize());
+			std::memcpy(GetBytes(), buffer.GetBytes(), buffer.GetSize());
 
 			return *this;
 		}
@@ -98,7 +98,7 @@ namespace QuantumGate::Implementation::Memory
 		{
 			if (GetSize() != other.GetSize()) return false;
 
-			return (memcmp(GetBytes(), other.GetBytes(), GetSize()) == 0);
+			return (std::memcmp(GetBytes(), other.GetBytes(), GetSize()) == 0);
 		}
 
 		inline bool operator!=(const BufferImpl& other) const noexcept

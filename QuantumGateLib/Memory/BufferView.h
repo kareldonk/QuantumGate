@@ -40,7 +40,7 @@ namespace QuantumGate::Implementation::Memory
 		{
 			if (GetSize() != other.GetSize()) return false;
 
-			return (memcmp(GetBytes(), other.GetBytes(), GetSize()) == 0);
+			return (std::memcmp(GetBytes(), other.GetBytes(), GetSize()) == 0);
 		}
 
 		constexpr bool operator!=(const BufferView& other) const noexcept
