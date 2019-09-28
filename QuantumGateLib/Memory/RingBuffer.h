@@ -75,12 +75,13 @@ namespace QuantumGate::Implementation::Memory
 
 			if (out_data_size > len)
 			{
-				memcpy(out_data, m_Buffer.GetBytes() + m_ReadOffset, len);
-				memcpy(out_data + len, m_Buffer.GetBytes(), out_data_size - len);
+				// Wrap around
+				std::memcpy(out_data, m_Buffer.GetBytes() + m_ReadOffset, len);
+				std::memcpy(out_data + len, m_Buffer.GetBytes(), out_data_size - len);
 			}
 			else
 			{
-				memcpy(out_data, m_Buffer.GetBytes() + m_ReadOffset, out_data_size);
+				std::memcpy(out_data, m_Buffer.GetBytes() + m_ReadOffset, out_data_size);
 			}
 
 			m_ReadOffset = (m_ReadOffset + out_data_size) % size;
@@ -89,7 +90,8 @@ namespace QuantumGate::Implementation::Memory
 			return out_data_size;
 		}
 
-		[[nodiscard]] inline Size Write(const BufferView& in_data) noexcept
+		template<typename T> requires RingBufferTypeRequirements<T>
+		[[nodiscard]] inline Size Write(const T& in_data) noexcept
 		{
 			return Write(in_data.GetBytes(), in_data.GetSize());
 		}
@@ -113,12 +115,13 @@ namespace QuantumGate::Implementation::Memory
 
 			if (in_data_size > len)
 			{
-				memcpy(m_Buffer.GetBytes() + m_WriteOffset, in_data, len);
-				memcpy(m_Buffer.GetBytes(), in_data + len, in_data_size - len);
+				// Wrap around
+				std::memcpy(m_Buffer.GetBytes() + m_WriteOffset, in_data, len);
+				std::memcpy(m_Buffer.GetBytes(), in_data + len, in_data_size - len);
 			}
 			else
 			{
-				memcpy(m_Buffer.GetBytes() + m_WriteOffset, in_data, in_data_size);
+				std::memcpy(m_Buffer.GetBytes() + m_WriteOffset, in_data, in_data_size);
 			}
 
 			m_WriteOffset = (m_WriteOffset + in_data_size) % size;
@@ -134,10 +137,7 @@ namespace QuantumGate::Implementation::Memory
 			return m_WriteSpace;
 		}
 
-		[[nodiscard]] inline Size GetReadSize() const noexcept
-		{
-			return (GetSize() - m_WriteSpace);
-		}
+		[[nodiscard]] inline Size GetReadSize() const noexcept { return (GetSize() - m_WriteSpace); }
 
 		inline void Swap(RingBufferImpl& other) noexcept
 		{
@@ -145,6 +145,20 @@ namespace QuantumGate::Implementation::Memory
 			m_ReadOffset = std::exchange(other.m_ReadOffset, m_ReadOffset);
 			m_WriteOffset = std::exchange(other.m_WriteOffset, m_WriteOffset);
 			m_WriteSpace = std::exchange(other.m_WriteSpace, m_WriteSpace);
+		}
+
+		inline void Resize(const Size new_size)
+		{
+			if (new_size == GetSize()) return;
+
+			BufferType new_buffer(new_size);
+
+			const auto numread = Read(new_buffer);
+			m_Buffer.Swap(new_buffer);
+			
+			m_ReadOffset = 0;
+			m_WriteOffset = numread;
+			m_WriteSpace = new_size - numread;
 		}
 
 		inline void Clear() noexcept

@@ -164,8 +164,7 @@ namespace UnitTests
 			Assert::AreEqual(true, b1.GetWriteSize() == old_write_size - numwritten);
 			Assert::AreEqual(true, b1.GetReadSize() == (old_read_size - numread2) + numwritten);
 
-			// Reading more than exists in the buffer
-			// wrapping around to beginning
+			// Reading wrapping around to beginning
 			String s3;
 			s3.resize(40);
 			old_read_size = b1.GetReadSize();
@@ -175,6 +174,191 @@ namespace UnitTests
 			Assert::AreEqual(true, b1.GetReadSize() == old_read_size - numread3);
 			Assert::AreEqual(true, b1.GetWriteSize() == old_write_size + numread3);
 			Assert::AreEqual(true, s3.substr(0, 31) == L" is in chains.Man is born free;");
+		}
+
+		TEST_METHOD(WriteWrap)
+		{
+			const String txt{ L"Man is born free; and everywhere he is in chains." };
+
+			const BufferView txt_buffer(reinterpret_cast<const Byte*>(txt.data()), txt.size() * sizeof(String::value_type));
+
+			RingBuffer b1(txt_buffer.GetSize());
+			Assert::AreEqual(true, b1.GetSize() == txt_buffer.GetSize());
+			Assert::AreEqual(true, b1.GetReadSize() == 0);
+			Assert::AreEqual(true, b1.GetWriteSize() == txt_buffer.GetSize());
+
+			const WChar txt1[]{ L"Man is born free;" };
+			const auto txt1_len{ sizeof(txt1) - sizeof(WChar) }; // Not including last '\0' character
+
+			auto old_write_size = b1.GetWriteSize();
+			const auto numwritten = b1.Write(reinterpret_cast<const Byte*>(txt1), txt1_len);
+			Assert::AreEqual(true, numwritten == txt1_len);
+			Assert::AreEqual(true, b1.GetWriteSize() == old_write_size - txt1_len);
+			Assert::AreEqual(true, b1.GetReadSize() == txt1_len);
+
+			const WChar txt2[]{ L" and everywhere he" };
+			const auto txt2_len{ sizeof(txt2) - sizeof(WChar) }; // Not including last '\0' character
+
+			old_write_size = b1.GetWriteSize();
+			const auto numwritten2 = b1.Write(reinterpret_cast<const Byte*>(txt2), txt2_len);
+			Assert::AreEqual(true, numwritten2 == txt2_len);
+			Assert::AreEqual(true, b1.GetWriteSize() == old_write_size - txt2_len);
+			Assert::AreEqual(true, b1.GetReadSize() == txt1_len + txt2_len);
+
+			String s1;
+			s1.resize(17);
+			old_write_size = b1.GetWriteSize();
+			auto old_read_size = b1.GetReadSize();
+			const auto numread = b1.Read(reinterpret_cast<Byte*>(s1.data()), s1.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, numread == s1.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, b1.GetReadSize() == old_read_size - numread);
+			Assert::AreEqual(true, b1.GetWriteSize() == old_write_size + numread);
+			Assert::AreEqual(true, s1 == L"Man is born free;");
+
+			// Writing wrapping around to the beginning
+			const WChar txt3[]{ L" is in chains.Man is born free;" };
+			const auto txt3_len{ sizeof(txt3) - sizeof(WChar) }; // Not including last '\0' character
+
+			old_write_size = b1.GetWriteSize();
+			old_read_size = b1.GetReadSize();
+			const auto numwritten3 = b1.Write(reinterpret_cast<const Byte*>(txt3), txt3_len);
+			Assert::AreEqual(true, numwritten3 == txt3_len);
+			Assert::AreEqual(true, b1.GetWriteSize() == 0);
+			Assert::AreEqual(true, b1.GetReadSize() == b1.GetSize());
+		}
+
+		TEST_METHOD(ReadWriteToBuffer)
+		{
+			const String txt{ L"Man is born free; and everywhere he is in chains." };
+
+			const BufferView txt_buffer(reinterpret_cast<const Byte*>(txt.data()), txt.size() * sizeof(String::value_type));
+
+			RingBuffer b1(txt_buffer);
+			Assert::AreEqual(true, b1.GetSize() == txt_buffer.GetSize());
+			Assert::AreEqual(true, b1.GetReadSize() == b1.GetSize());
+			Assert::AreEqual(true, b1.GetWriteSize() == 0);
+
+			Buffer rb1(17);
+			const auto old_read_size = b1.GetReadSize();
+			const auto numread = b1.Read(rb1);
+			Assert::AreEqual(true, numread == rb1.GetSize());
+			Assert::AreEqual(true, b1.GetReadSize() == old_read_size - 17);
+			Assert::AreEqual(true, b1.GetWriteSize() == 17);
+			Assert::AreEqual(true, rb1 == txt_buffer.GetFirst(17));
+
+			const auto old_write_size = b1.GetWriteSize();
+			const auto numwritten = b1.Write(rb1);
+			Assert::AreEqual(true, numwritten == 17);
+			Assert::AreEqual(true, b1.GetWriteSize() == old_write_size - 17);
+			Assert::AreEqual(true, b1.GetReadSize() == b1.GetSize());
+		}
+
+		TEST_METHOD(ResizeBigger)
+		{
+			const String txt{ L"Man is born free; and everywhere he is in chains." };
+
+			const BufferView txt_buffer(reinterpret_cast<const Byte*>(txt.data()), txt.size() * sizeof(String::value_type));
+
+			RingBuffer b1(txt_buffer);
+			Assert::AreEqual(true, b1.GetSize() == txt_buffer.GetSize());
+			Assert::AreEqual(true, b1.GetReadSize() == b1.GetSize());
+			Assert::AreEqual(true, b1.GetWriteSize() == 0);
+
+			String s1;
+			s1.resize(17);
+			auto old_read_size = b1.GetReadSize();
+			const auto numread = b1.Read(reinterpret_cast<Byte*>(s1.data()), s1.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, numread == s1.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, b1.GetReadSize() == old_read_size - numread);
+			Assert::AreEqual(true, b1.GetWriteSize() == numread);
+			Assert::AreEqual(true, s1 == L"Man is born free;");
+
+			String s2;
+			s2.resize(18);
+			old_read_size = b1.GetReadSize();
+			const auto numread2 = b1.Read(reinterpret_cast<Byte*>(s2.data()), s2.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, numread2 == s2.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, b1.GetReadSize() == old_read_size - numread2);
+			Assert::AreEqual(true, b1.GetWriteSize() == numread + numread2);
+			Assert::AreEqual(true, s2 == L" and everywhere he");
+
+			auto old_write_size = b1.GetWriteSize();
+			const auto numwritten = b1.Write(reinterpret_cast<Byte*>(s1.data()), s1.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, numwritten == s1.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, b1.GetWriteSize() == old_write_size - numwritten);
+			Assert::AreEqual(true, b1.GetReadSize() == (old_read_size - numread2) + numwritten);
+
+			const auto old_size = b1.GetSize();
+			old_read_size = b1.GetReadSize();
+			old_write_size = b1.GetWriteSize();
+			b1.Resize(txt_buffer.GetSize() + 20);
+			Assert::AreEqual(true, b1.GetSize() == old_size + 20);
+			Assert::AreEqual(true, b1.GetWriteSize() == old_write_size + 20);
+			Assert::AreEqual(true, b1.GetReadSize() == old_read_size);
+
+			String s3;
+			s3.resize(40);
+			old_read_size = b1.GetReadSize();
+			old_write_size = b1.GetWriteSize();
+			const auto numread3 = b1.Read(reinterpret_cast<Byte*>(s3.data()), s3.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, numread3 == 31 * sizeof(String::value_type));
+			Assert::AreEqual(true, b1.GetReadSize() == old_read_size - numread3);
+			Assert::AreEqual(true, b1.GetWriteSize() == old_write_size + numread3);
+			Assert::AreEqual(true, s3.substr(0, 31) == L" is in chains.Man is born free;");
+		}
+
+		TEST_METHOD(ResizeSmaller)
+		{
+			const String txt{ L"Man is born free; and everywhere he is in chains." };
+
+			const BufferView txt_buffer(reinterpret_cast<const Byte*>(txt.data()), txt.size() * sizeof(String::value_type));
+
+			RingBuffer b1(txt_buffer);
+			Assert::AreEqual(true, b1.GetSize() == txt_buffer.GetSize());
+			Assert::AreEqual(true, b1.GetReadSize() == b1.GetSize());
+			Assert::AreEqual(true, b1.GetWriteSize() == 0);
+
+			String s1;
+			s1.resize(17);
+			auto old_read_size = b1.GetReadSize();
+			const auto numread = b1.Read(reinterpret_cast<Byte*>(s1.data()), s1.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, numread == s1.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, b1.GetReadSize() == old_read_size - numread);
+			Assert::AreEqual(true, b1.GetWriteSize() == numread);
+			Assert::AreEqual(true, s1 == L"Man is born free;");
+
+			String s2;
+			s2.resize(18);
+			old_read_size = b1.GetReadSize();
+			const auto numread2 = b1.Read(reinterpret_cast<Byte*>(s2.data()), s2.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, numread2 == s2.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, b1.GetReadSize() == old_read_size - numread2);
+			Assert::AreEqual(true, b1.GetWriteSize() == numread + numread2);
+			Assert::AreEqual(true, s2 == L" and everywhere he");
+
+			auto old_write_size = b1.GetWriteSize();
+			const auto numwritten = b1.Write(reinterpret_cast<Byte*>(s1.data()), s1.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, numwritten == s1.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, b1.GetWriteSize() == old_write_size - numwritten);
+			Assert::AreEqual(true, b1.GetReadSize() == (old_read_size - numread2) + numwritten);
+
+			const auto old_size = b1.GetSize();
+			old_read_size = b1.GetReadSize();
+			old_write_size = b1.GetWriteSize();
+			b1.Resize(txt_buffer.GetSize() - 40);
+			Assert::AreEqual(true, b1.GetSize() == old_size - 40);
+			Assert::AreEqual(true, b1.GetWriteSize() == 0);
+			Assert::AreEqual(true, b1.GetReadSize() == 58);
+
+			String s3;
+			s3.resize(40);
+			old_read_size = b1.GetReadSize();
+			old_write_size = b1.GetWriteSize();
+			const auto numread3 = b1.Read(reinterpret_cast<Byte*>(s3.data()), s3.size() * sizeof(String::value_type));
+			Assert::AreEqual(true, numread3 == 29 * sizeof(String::value_type));
+			Assert::AreEqual(true, b1.GetReadSize() == old_read_size - numread3);
+			Assert::AreEqual(true, b1.GetWriteSize() == old_write_size + numread3);
+			Assert::AreEqual(true, s3.substr(0, 29) == L" is in chains.Man is born fre");
 		}
 	};
 }
