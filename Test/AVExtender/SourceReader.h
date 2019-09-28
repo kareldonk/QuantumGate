@@ -13,7 +13,7 @@ namespace QuantumGate::AVExtender
 	class SourceReader : public IMFSourceReaderCallback
 	{
 	public:
-		using SampleEventCallback = QuantumGate::Callback<void(const LONGLONG, IMFSample*)>;
+		using SampleEventCallback = QuantumGate::Callback<void(const UInt64, IMFSample*)>;
 
 		struct SourceReaderData
 		{
@@ -22,7 +22,7 @@ namespace QuantumGate::AVExtender
 			GUID Format{ GUID_NULL };
 			IMFSample* Sample{ nullptr };
 			IMFMediaBuffer* Buffer{ nullptr };
-			SampleEventCallback SampleEvent{ [](const LONGLONG, IMFSample*) mutable {} };
+			SampleEventCallback SampleEvent{ [](const UInt64, IMFSample*) mutable {} };
 
 			void Release() noexcept
 			{
@@ -52,7 +52,7 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] Result<CaptureDeviceVector> EnumCaptureDevices() const noexcept;
 
-		[[nodiscard]] Result<> Open(const CaptureDevice& device, SampleEventCallback&& event_callback) noexcept;
+		[[nodiscard]] Result<> Open(const WChar* device, SampleEventCallback&& event_callback) noexcept;
 		[[nodiscard]] bool IsOpen() noexcept;
 		void Close() noexcept;
 

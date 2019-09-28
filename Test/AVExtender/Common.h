@@ -77,7 +77,7 @@ namespace QuantumGate::AVExtender
 
 	struct VideoFormat
 	{
-		enum PixelFormat { Unknown, RGB24, BGR24, BGRA32 };
+		enum PixelFormat : UInt8 { Unknown, RGB24, BGR24, BGRA32 };
 
 		PixelFormat Format{ PixelFormat::Unknown };
 		UINT32 Width{ 0 };

@@ -46,8 +46,10 @@ protected:
 	void UpdatePeerActivity() noexcept;
 	void UpdateSelectedPeer() noexcept;
 
-	void OnAudioSample(const LONGLONG timestamp, IMFSample* sample);
-	void OnVideoSample(const LONGLONG timestamp, IMFSample* sample);
+	void UpdateAVAudioDevice() noexcept;
+
+	void OnAudioSample(const UInt64 timestamp, IMFSample* sample);
+	void OnVideoSample(const UInt64 timestamp, IMFSample* sample);
 
 	virtual BOOL OnInitDialog();
 
@@ -64,6 +66,7 @@ protected:
 	afx_msg void OnBnClickedSendAudioCheck();
 	afx_msg void OnBnClickedCallButton();
 	afx_msg void OnBnClickedHangupButton();
+	afx_msg void OnCbnSelChangeAudioDevicesCombo();
 
 private:
 	QuantumGate::Local& m_QuantumGate;

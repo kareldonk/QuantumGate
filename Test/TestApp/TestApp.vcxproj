@@ -499,6 +499,7 @@
     <ClInclude Include="..\AVExtender\Call.h" />
     <ClInclude Include="..\AVExtender\CaptureDevice.h" />
     <ClInclude Include="..\AVExtender\Common.h" />
+    <ClInclude Include="..\AVExtender\Protocol.h" />
     <ClInclude Include="..\AVExtender\SourceReader.h" />
     <ClInclude Include="..\AVExtender\VideoSourceReader.h" />
     <ClInclude Include="..\AVExtender\VideoWindow.h" />

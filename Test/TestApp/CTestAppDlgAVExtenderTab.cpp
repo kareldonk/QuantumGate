@@ -47,6 +47,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
 	ON_BN_CLICKED(IDC_CALL_BUTTON, &CTestAppDlgAVExtenderTab::OnBnClickedCallButton)
 	ON_BN_CLICKED(IDC_HANGUP_BUTTON, &CTestAppDlgAVExtenderTab::OnBnClickedHangupButton)
 	ON_BN_CLICKED(IDC_INITIALIZE_AUDIO, &CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio)
+	ON_CBN_SELCHANGE(IDC_AUDIO_DEVICES_COMBO, &CTestAppDlgAVExtenderTab::OnCbnSelChangeAudioDevicesCombo)
 END_MESSAGE_MAP()
 
 void CTestAppDlgAVExtenderTab::UpdateControls() noexcept
@@ -125,6 +126,28 @@ void CTestAppDlgAVExtenderTab::UpdateAudioDeviceCombo() noexcept
 		{
 			vdcombo->SelectString(0, m_AudioCaptureDevices[0].DeviceNameString);
 		}
+
+		UpdateAVAudioDevice();
+	}
+}
+
+void CTestAppDlgAVExtenderTab::OnCbnSelChangeAudioDevicesCombo()
+{
+	UpdateAVAudioDevice();
+}
+
+void CTestAppDlgAVExtenderTab::UpdateAVAudioDevice() noexcept
+{
+	if (m_AVExtender != nullptr)
+	{
+		const auto vdcombo = (CComboBox*)GetDlgItem(IDC_AUDIO_DEVICES_COMBO);
+		const auto sel = vdcombo->GetCurSel();
+		if (sel != CB_ERR)
+		{
+			const auto idx = vdcombo->GetItemData(sel);
+			m_AVExtender->SetAudioEndpointID(m_AudioCaptureDevices[idx].EndpointID);
+		}
+		else m_AVExtender->SetAudioEndpointID(L"");
 	}
 }
 
@@ -135,7 +158,7 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 	if (sel != CB_ERR)
 	{
 		const auto idx = vdcombo->GetItemData(sel);
-		const auto result = m_VideoSourceReader->Open(m_VideoCaptureDevices[idx],
+		const auto result = m_VideoSourceReader->Open(m_VideoCaptureDevices[idx].SymbolicLink,
 													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnVideoSample));
 		if (result.Succeeded())
 		{
@@ -152,7 +175,7 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 	}
 }
 
-void CTestAppDlgAVExtenderTab::OnVideoSample(const LONGLONG timestamp, IMFSample* sample)
+void CTestAppDlgAVExtenderTab::OnVideoSample(const UInt64 timestamp, IMFSample* sample)
 {
 	const auto sample_settings = m_VideoSourceReader->GetSampleFormat();
 
@@ -185,7 +208,7 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio()
 	if (sel != CB_ERR)
 	{
 		const auto idx = vdcombo->GetItemData(sel);
-		const auto result = m_AudioSourceReader->Open(m_AudioCaptureDevices[idx],
+		const auto result = m_AudioSourceReader->Open(m_AudioCaptureDevices[idx].EndpointID,
 													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnAudioSample));
 		if (result.Succeeded())
 		{
@@ -207,7 +230,7 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio()
 	}
 }
 
-void CTestAppDlgAVExtenderTab::OnAudioSample(const LONGLONG timestamp, IMFSample* sample)
+void CTestAppDlgAVExtenderTab::OnAudioSample(const UInt64 timestamp, IMFSample* sample)
 {
 	auto audio_renderer = m_AudioRenderer.WithUniqueLock();
 
@@ -397,6 +420,8 @@ void CTestAppDlgAVExtenderTab::LoadAVExtender() noexcept
 				LogErr(L"Failed to add AVExtender");
 				m_AVExtender.reset();
 			}
+
+			UpdateAVAudioDevice();
 		}
 		catch (...)
 		{
@@ -523,18 +548,7 @@ void CTestAppDlgAVExtenderTab::OnBnClickedSendAudioCheck()
 
 	if (m_SelectedPeerLUID.has_value() && m_AVExtender != nullptr)
 	{
-		m_AVExtender->GetPeers().WithSharedLock([&](const AVExtender::Peers& peers)
-		{
-			const auto peer = peers.find(*m_SelectedPeerLUID);
-			if (peer != peers.end())
-			{
-				peer->second->Call.WithUniqueLock([&](AVExtender::Call& call)
-				{
-					call.SetSendVideo(send_video);
-					call.SetSendAudio(send_audio);
-				});
-			}
-		});
+		m_AVExtender->UpdateSendAudioVideo(*m_SelectedPeerLUID, send_video, send_audio);
 	}
 }
 
@@ -565,4 +579,3 @@ void CTestAppDlgAVExtenderTab::OnBnClickedHangupButton()
 		}
 	}
 }
-

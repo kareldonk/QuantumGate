@@ -156,6 +156,9 @@
     <ClInclude Include="..\AVExtender\Call.h">
       <Filter>Header Files\AVExtender</Filter>
     </ClInclude>
+    <ClInclude Include="..\AVExtender\Protocol.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

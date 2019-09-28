@@ -70,7 +70,7 @@ namespace QuantumGate::AVExtender
 		return AVResultCode::Failed;
 	}
 
-	Result<> SourceReader::Open(const CaptureDevice& device, SampleEventCallback&& event_callback) noexcept
+	Result<> SourceReader::Open(const WChar* device, SampleEventCallback&& event_callback) noexcept
 	{
 		IMFAttributes* attributes{ nullptr };
 
@@ -91,11 +91,11 @@ namespace QuantumGate::AVExtender
 				{
 					case CaptureDevice::Type::Video:
 						// Set symbolic link attribute
-						hr = attributes->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, device.SymbolicLink);
+						hr = attributes->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, device);
 						break;
 					case CaptureDevice::Type::Audio:
 						// Set endpoint ID attribute
-						hr = attributes->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_ENDPOINT_ID, device.EndpointID);
+						hr = attributes->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_ENDPOINT_ID, device);
 						break;
 					default:
 						assert(false);

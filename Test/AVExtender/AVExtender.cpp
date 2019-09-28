@@ -16,10 +16,9 @@ using namespace std::literals;
 namespace QuantumGate::AVExtender
 {
 	Extender::Extender(HWND hwnd) :
+		m_Window(hwnd),
 		QuantumGate::Extender(UUID, String(L"QuantumGate Audio/Video Extender"))
 	{
-		m_Window = hwnd;
-
 		if (!SetStartupCallback(MakeCallback(this, &Extender::OnStartup)) ||
 			!SetPostStartupCallback(MakeCallback(this, &Extender::OnPostStartup)) ||
 			!SetPreShutdownCallback(MakeCallback(this, &Extender::OnPreShutdown)) ||
@@ -60,6 +59,8 @@ namespace QuantumGate::AVExtender
 	void Extender::OnPreShutdown()
 	{
 		LogDbg(L"%s: will begin shutting down...", GetName().c_str());
+
+		StopAudioSourceReader();
 	}
 
 	void Extender::OnShutdown()
@@ -143,29 +144,45 @@ namespace QuantumGate::AVExtender
 
 						handled = true;
 
-						IfGetCall(event.GetPeerLUID(), [&](auto& call)
+						Buffer buffer(sizeof(CallRequestData));
+						if (rdr.Read(buffer))
 						{
-							if (call.ProcessIncomingCall())
+							IfGetCall(event.GetPeerLUID(), [&](auto& call)
 							{
-								success = true;
+								const CallRequestData* crdata = reinterpret_cast<const CallRequestData*>(buffer.GetBytes());
+								AudioFormat fmt;
+								fmt.NumChannels = crdata->AudioFormat.NumChannels;
+								fmt.SamplesPerSecond = crdata->AudioFormat.SamplesPerSecond;
+								fmt.AvgBytesPerSecond = crdata->AudioFormat.AvgBytesPerSecond;
+								fmt.BlockAlignment = crdata->AudioFormat.BlockAlignment;
+								fmt.BitsPerSample = crdata->AudioFormat.BitsPerSample;
 
-								if (m_Window != nullptr)
+								call.SetPeerSendAudio(crdata->SendAudio == 1);
+								call.SetPeerSendVideo(crdata->SendVideo == 1);
+								call.SetPeerAudioFormat(fmt);
+
+								if (call.ProcessIncomingCall())
 								{
-									// Must be deallocated in message handler
-									CallAccept* ca = new CallAccept(event.GetPeerLUID());
+									success = true;
 
-									if (!PostMessage(m_Window, static_cast<UINT>(WindowsMessage::AcceptIncomingCall),
-													 reinterpret_cast<WPARAM>(ca), 0))
+									if (m_Window != nullptr)
 									{
-										delete ca;
+										// Must be deallocated in message handler
+										CallAccept* ca = new CallAccept(event.GetPeerLUID());
+
+										if (!PostMessage(m_Window, static_cast<UINT>(WindowsMessage::AcceptIncomingCall),
+														 reinterpret_cast<WPARAM>(ca), 0))
+										{
+											delete ca;
+										}
 									}
 								}
-							}
-							else
-							{
-								DiscardReturnValue(SendGeneralFailure(event.GetPeerLUID()));
-							}
-						});
+								else
+								{
+									DiscardReturnValue(SendGeneralFailure(event.GetPeerLUID()));
+								}
+							});
+						}
 
 						if (!success)
 						{
@@ -179,21 +196,65 @@ namespace QuantumGate::AVExtender
 
 						handled = true;
 
-						IfGetCall(event.GetPeerLUID(), [&](auto& call)
+						Buffer buffer(sizeof(CallRequestData));
+						if (rdr.Read(buffer))
 						{
-							if (call.AcceptCall())
+							IfGetCall(event.GetPeerLUID(), [&](auto& call)
 							{
-								success = true;
-							}
-							else
-							{
-								DiscardReturnValue(SendGeneralFailure(event.GetPeerLUID()));
-							}
-						});
+								const CallRequestData* crdata = reinterpret_cast<const CallRequestData*>(buffer.GetBytes());
+								AudioFormat fmt;
+								fmt.NumChannels = crdata->AudioFormat.NumChannels;
+								fmt.SamplesPerSecond = crdata->AudioFormat.SamplesPerSecond;
+								fmt.AvgBytesPerSecond = crdata->AudioFormat.AvgBytesPerSecond;
+								fmt.BlockAlignment = crdata->AudioFormat.BlockAlignment;
+								fmt.BitsPerSample = crdata->AudioFormat.BitsPerSample;
+
+								call.SetPeerSendAudio(crdata->SendAudio == 1);
+								call.SetPeerSendVideo(crdata->SendVideo == 1);
+								call.SetPeerAudioFormat(fmt);
+
+								if (call.AcceptCall())
+								{
+									success = true;
+								}
+								else
+								{
+									DiscardReturnValue(SendGeneralFailure(event.GetPeerLUID()));
+								}
+							});
+						}
 
 						if (!success)
 						{
 							LogErr(L"Couldn't accept outgoing call from peer %llu", event.GetPeerLUID());
+						}
+						break;
+					}
+					case MessageType::CallAVUpdate:
+					{
+						Dbg(L"Received CallAVUpdate message from %llu", event.GetPeerLUID());
+
+						handled = true;
+
+						Buffer buffer(sizeof(CallRequestData));
+						if (rdr.Read(buffer))
+						{
+							IfGetCall(event.GetPeerLUID(), [&](auto& call)
+							{
+								const CallRequestData* crdata = reinterpret_cast<const CallRequestData*>(buffer.GetBytes());
+								AudioFormat fmt;
+								fmt.NumChannels = crdata->AudioFormat.NumChannels;
+								fmt.SamplesPerSecond = crdata->AudioFormat.SamplesPerSecond;
+								fmt.AvgBytesPerSecond = crdata->AudioFormat.AvgBytesPerSecond;
+								fmt.BlockAlignment = crdata->AudioFormat.BlockAlignment;
+								fmt.BitsPerSample = crdata->AudioFormat.BitsPerSample;
+
+								call.SetPeerSendAudio(crdata->SendAudio == 1);
+								call.SetPeerSendVideo(crdata->SendVideo == 1);
+								call.SetPeerAudioFormat(fmt);
+
+								success = true;
+							});
 						}
 						break;
 					}
@@ -237,6 +298,24 @@ namespace QuantumGate::AVExtender
 						}
 						break;
 					}
+					case MessageType::AudioSample:
+					{
+						handled = true;
+
+						UInt64 timestamp{ 0 };
+						Buffer buffer;
+
+						if (rdr.Read(timestamp, WithSize(buffer, GetMaximumMessageDataSize())))
+						{
+							IfGetCall(event.GetPeerLUID(), [&](auto& call)
+							{
+								call.OnPeerAudioSample(timestamp, buffer);
+								success = true;
+							});
+						}
+
+						break;
+					}
 					default:
 					{
 						LogInfo(L"Received unknown msgtype from %llu: %u", event.GetPeerLUID(), type);
@@ -278,18 +357,48 @@ namespace QuantumGate::AVExtender
 					}
 					else if (call->IsInCall())
 					{
-						if (!call->HasVideoWindow())
+						if (call->GetPeerSendVideo())
 						{
-							call->OpenVideoWindow();
+							if (!call->HasVideoWindow())
+							{
+								call->OpenVideoWindow();
+							}
+
+							call->UpdateVideoWindow();
+						}
+						else
+						{
+							if (call->HasVideoWindow())
+							{
+								call->CloseVideoWindow();
+							}
 						}
 
-						call->UpdateVideoWindow();
+						if (call->GetPeerSendAudio())
+						{
+							if (!call->HasAudioRenderer())
+							{
+								call->OpenAudioRenderer();
+							}
+						}
+						else
+						{
+							if (call->HasAudioRenderer())
+							{
+								call->CloseAudioRenderer();
+							}
+						}
 					}
 					else if (call->IsDisconnected())
 					{
 						if (call->HasVideoWindow())
 						{
 							call->CloseVideoWindow();
+						}
+
+						if (call->HasAudioRenderer())
+						{
+							call->CloseAudioRenderer();
 						}
 					}
 				}
@@ -308,6 +417,11 @@ namespace QuantumGate::AVExtender
 
 		IfGetCall(pluid, [&](auto& call)
 		{
+			if (send_audio)
+			{
+				StartAudioSourceReader();
+			}
+
 			call.SetSendVideo(send_video);
 			call.SetSendAudio(send_audio);
 
@@ -316,7 +430,7 @@ namespace QuantumGate::AVExtender
 				// Cancel call if we leave scope without success
 				auto sg = MakeScopeGuard([&]() noexcept { DiscardReturnValue(call.CancelCall()); });
 
-				if (SendCallRequest(pluid))
+				if (SendCallRequest(pluid, call))
 				{
 					SLogInfo(SLogFmt(FGBrightCyan) << L"Calling peer " << pluid << SLogFmt(Default));
 
@@ -335,12 +449,17 @@ namespace QuantumGate::AVExtender
 
 		IfGetCall(pluid, [&](auto& call)
 		{
+			if (call.GetSendAudio())
+			{
+				StartAudioSourceReader();
+			}
+
 			if (call.AcceptCall())
 			{
 				// Cancel call if we leave scope without success
 				auto sg = MakeScopeGuard([&]() noexcept { DiscardReturnValue(call.CancelCall()); });
 
-				if (SendCallAccept(pluid))
+				if (SendCallAccept(pluid, call))
 				{
 					SLogInfo(SLogFmt(FGBrightCyan) << L"Accepted call from peer " << pluid << SLogFmt(Default));
 
@@ -417,26 +536,52 @@ namespace QuantumGate::AVExtender
 		});
 	}
 
-	bool Extender::SendSimpleMessage(const PeerLUID pluid, const MessageType type)
+	bool Extender::SendSimpleMessage(const PeerLUID pluid, const MessageType type, const BufferView& data)
 	{
 		const UInt16 msgtype = static_cast<const UInt16>(type);
 
 		BufferWriter writer(true);
-		if (writer.WriteWithPreallocation(msgtype))
+		if (writer.WriteWithPreallocation(msgtype, data))
 		{
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
-			{
-				return true;
-			}
+			return SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded();
 		}
 		else LogErr(L"Failed to prepare message for peer %llu", pluid);
 
 		return false;
 	}
 
-	bool Extender::SendCallRequest(const PeerLUID pluid)
+	bool Extender::SendCallAVSample(const PeerLUID pluid, const MessageType type, const UInt64 timestamp, const BufferView& data)
 	{
-		if (SendSimpleMessage(pluid, MessageType::CallRequest))
+		const UInt16 msgtype = static_cast<const UInt16>(type);
+
+		BufferWriter writer(true);
+		if (writer.WriteWithPreallocation(msgtype, timestamp, WithSize(data, GetMaximumMessageDataSize())))
+		{
+			return SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded();
+		}
+		else LogErr(L"Failed to prepare message for peer %llu", pluid);
+
+		return false;
+	}
+
+	bool Extender::SendCallRequest(const PeerLUID pluid, const Call& call)
+	{
+		CallRequestData data;
+		if (call.GetSendAudio()) data.SendAudio = 1;
+		if (call.GetSendVideo()) data.SendVideo = 1;
+
+		m_AudioSource.WithUniqueLock([&](auto& as)
+		{
+			const auto fmt = as.AudioSourceReader.GetSampleFormat();
+			data.AudioFormat.NumChannels = fmt.NumChannels;
+			data.AudioFormat.SamplesPerSecond = fmt.SamplesPerSecond;
+			data.AudioFormat.AvgBytesPerSecond = fmt.AvgBytesPerSecond;
+			data.AudioFormat.BlockAlignment = fmt.BlockAlignment;
+			data.AudioFormat.BitsPerSample = fmt.BitsPerSample;
+		});
+
+		if (SendSimpleMessage(pluid, MessageType::CallRequest,
+							  BufferView(reinterpret_cast<Byte*>(&data), sizeof(data))))
 		{
 			return true;
 		}
@@ -445,13 +590,54 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	bool Extender::SendCallAccept(const PeerLUID pluid)
+	bool Extender::SendCallAccept(const PeerLUID pluid, const Call& call)
 	{
-		if (SendSimpleMessage(pluid, MessageType::CallAccept))
+		CallRequestData data;
+		if (call.GetSendAudio()) data.SendAudio = 1;
+		if (call.GetSendVideo()) data.SendVideo = 1;
+
+		m_AudioSource.WithUniqueLock([&](auto& as)
+		{
+			const auto fmt = as.AudioSourceReader.GetSampleFormat();
+			data.AudioFormat.NumChannels = fmt.NumChannels;
+			data.AudioFormat.SamplesPerSecond = fmt.SamplesPerSecond;
+			data.AudioFormat.AvgBytesPerSecond = fmt.AvgBytesPerSecond;
+			data.AudioFormat.BlockAlignment = fmt.BlockAlignment;
+			data.AudioFormat.BitsPerSample = fmt.BitsPerSample;
+		});
+
+		if (SendSimpleMessage(pluid, MessageType::CallAccept,
+							  BufferView(reinterpret_cast<Byte*>(&data), sizeof(data))))
 		{
 			return true;
 		}
 		else LogErr(L"Could not send CallAccept message to peer");
+
+		return false;
+	}
+
+	bool Extender::SendCallAVUpdate(const PeerLUID pluid, const Call& call)
+	{
+		CallRequestData data;
+		if (call.GetSendAudio()) data.SendAudio = 1;
+		if (call.GetSendVideo()) data.SendVideo = 1;
+
+		m_AudioSource.WithUniqueLock([&](auto& as)
+		{
+			const auto fmt = as.AudioSourceReader.GetSampleFormat();
+			data.AudioFormat.NumChannels = fmt.NumChannels;
+			data.AudioFormat.SamplesPerSecond = fmt.SamplesPerSecond;
+			data.AudioFormat.AvgBytesPerSecond = fmt.AvgBytesPerSecond;
+			data.AudioFormat.BlockAlignment = fmt.BlockAlignment;
+			data.AudioFormat.BitsPerSample = fmt.BitsPerSample;
+		});
+
+		if (SendSimpleMessage(pluid, MessageType::CallAVUpdate,
+							  BufferView(reinterpret_cast<Byte*>(&data), sizeof(data))))
+		{
+			return true;
+		}
+		else LogErr(L"Could not send CallAVUpdate message to peer");
 
 		return false;
 	}
@@ -476,5 +662,97 @@ namespace QuantumGate::AVExtender
 		else LogErr(L"Could not send GeneralFailure message to peer");
 
 		return false;
+	}
+
+	void Extender::StartAudioSourceReader() noexcept
+	{
+		auto audio_source = m_AudioSource.WithUniqueLock();
+		if (audio_source->AudioSourceReader.IsOpen()) return;
+
+		if (!audio_source->AudioEndpointID.empty())
+		{
+			const auto result = audio_source->AudioSourceReader.Open(audio_source->AudioEndpointID.c_str(),
+																	 QuantumGate::MakeCallback(this, &Extender::OnAudioSample));
+			if (result.Failed())
+			{
+				LogErr(L"Failed to start audio source reader; peers will not receive audio (%s)",
+					   result.GetErrorString().c_str());
+			}
+		}
+		else
+		{
+			LogErr(L"No audio device endpoint ID set; peers will not receive audio");
+		}
+	}
+
+	void Extender::StopAudioSourceReader() noexcept
+	{
+		auto audio_source = m_AudioSource.WithUniqueLock();
+		if (!audio_source->AudioSourceReader.IsOpen()) return;
+
+		audio_source->AudioSourceReader.Close();
+	}
+
+	void Extender::OnAudioSample(const UInt64 timestamp, IMFSample* sample)
+	{
+		m_Peers.WithSharedLock([&](auto& peers)
+		{
+			for (auto it = peers.begin(); it != peers.end(); ++it)
+			{
+				const Peer& peer = *it->second;
+
+				auto call = peer.Call.WithSharedLock();
+				if (call->IsInCall() && call->GetSendAudio())
+				{
+					IMFMediaBuffer* media_buffer{ nullptr };
+
+					// Get the buffer from the sample
+					auto hr = sample->GetBufferByIndex(0, &media_buffer);
+					if (SUCCEEDED(hr))
+					{
+						// Release buffer when we exit this scope
+						const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&media_buffer); });
+
+						BYTE* data{ nullptr };
+						DWORD data_len{ 0 };
+
+						hr = media_buffer->Lock(&data, nullptr, &data_len);
+						if (SUCCEEDED(hr))
+						{
+							DiscardReturnValue(SendCallAVSample(peer.ID, MessageType::AudioSample, timestamp,
+																BufferView(reinterpret_cast<Byte*>(data), data_len)));
+
+							media_buffer->Unlock();
+						}
+					}
+				}
+			}
+		});
+	}
+
+	void Extender::UpdateSendAudioVideo(const PeerLUID pluid, const bool send_video, const bool send_audio)
+	{
+		m_Peers.WithSharedLock([&](auto& peers)
+		{
+			const auto peer = peers.find(pluid);
+			if (peer != peers.end())
+			{
+				peer->second->Call.WithUniqueLock([&](auto& call)
+				{
+					call.SetSendVideo(send_video);
+					call.SetSendAudio(send_audio);
+
+					if (call.IsInCall())
+					{
+						if (send_audio)
+						{
+							StartAudioSourceReader();
+						}
+
+						DiscardReturnValue(SendCallAVUpdate(pluid, call));
+					}
+				});
+			}
+		});
 	}
 }

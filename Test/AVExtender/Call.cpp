@@ -204,15 +204,29 @@ namespace QuantumGate::AVExtender
 	void Call::OpenAudioRenderer() noexcept
 	{
 		// Use default format for now
-		if (!m_AudioRenderer.Create(AudioFormat{}))
+		if (!m_AudioRenderer.Create(m_PeerAudioFormat))
 		{
 			LogErr(L"Failed to create call audio renderer");
 		}
+		else m_AudioRenderer.Play();
 	}
 
 	void Call::CloseAudioRenderer() noexcept
 	{
 		m_AudioRenderer.Close();
+	}
+
+	void Call::SetPeerAudioFormat(const AudioFormat& format) noexcept
+	{
+		const bool changed = (std::memcmp(&m_PeerAudioFormat, &format, sizeof(AudioFormat)) != 0);
+		
+		m_PeerAudioFormat = format;
+
+		if (changed && m_AudioRenderer.IsOpen())
+		{
+			CloseAudioRenderer();
+			OpenAudioRenderer();
+		}
 	}
 
 	std::chrono::milliseconds Call::GetDuration() const noexcept
@@ -223,5 +237,13 @@ namespace QuantumGate::AVExtender
 		}
 
 		return 0ms;
+	}
+
+	void Call::OnPeerAudioSample(const UInt64 timestamp, const Buffer& sample)
+	{
+		if (m_AudioRenderer.IsOpen())
+		{
+			m_AudioRenderer.Render(sample);
+		}
 	}
 }

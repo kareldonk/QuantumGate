@@ -9,6 +9,8 @@
 #include <QuantumGate.h>
 #include <Concurrency\ThreadSafe.h>
 
+#include <queue>
+
 namespace QuantumGate::AVExtender
 {
 	using namespace QuantumGate;
@@ -30,6 +32,14 @@ namespace QuantumGate::AVExtender
 	};
 
 	using CallID = UInt64;
+
+	struct AudioPacket
+	{
+		UInt64 TimeStamp{ 0 };
+		Buffer Frames;
+	};
+
+	using AudioPacketQueue = std::queue<AudioPacket>;
 
 	class Call final
 	{
@@ -75,6 +85,16 @@ namespace QuantumGate::AVExtender
 		inline void SetSendAudio(const bool send) noexcept { m_SendAudio = send; }
 		[[nodiscard]] inline bool GetSendAudio() const noexcept { return m_SendAudio; }
 
+		inline void SetPeerSendVideo(const bool send) noexcept { m_PeerSendVideo = send; }
+		[[nodiscard]] inline bool GetPeerSendVideo() const noexcept { return m_PeerSendVideo; }
+
+		inline void SetPeerSendAudio(const bool send) noexcept { m_PeerSendAudio = send; }
+		[[nodiscard]] inline bool GetPeerSendAudio() const noexcept { return m_PeerSendAudio; }
+
+		void SetPeerAudioFormat(const AudioFormat& format) noexcept;
+
+		void OnPeerAudioSample(const UInt64 timestamp, const Buffer& sample);
+
 	public:
 		static constexpr std::chrono::seconds MaxWaitTimeForAccept{ 30 };
 
@@ -85,8 +105,14 @@ namespace QuantumGate::AVExtender
 		SteadyTime m_StartSteadyTime;
 		bool m_SendVideo{ false };
 		bool m_SendAudio{ false };
+
+		bool m_PeerSendVideo{ false };
+		bool m_PeerSendAudio{ false };
+		AudioFormat m_PeerAudioFormat;
+
 		VideoWindow m_VideoWindow;
 		AudioRenderer m_AudioRenderer;
+		AudioPacketQueue m_AudioSendQueue;
 	};
 
 	using Call_ThS = Implementation::Concurrency::ThreadSafe<Call, std::shared_mutex>;
