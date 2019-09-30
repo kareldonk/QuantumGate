@@ -15,7 +15,7 @@ namespace QuantumGate::AVExtender
 	}
 
 	bool VideoWindow::Create(const WChar* title, const DWORD dwExStyle, const DWORD dwStyle, const int x, const int y,
-							 const int width, const int height, const HWND parent) noexcept
+							 const int width, const int height, const bool visible, const HWND parent) noexcept
 	{
 		WNDCLASSEX wc{ 0 };
 		wc.cbSize = sizeof(WNDCLASSEX);
@@ -32,8 +32,11 @@ namespace QuantumGate::AVExtender
 		{
 			if (InitializeD2DRenderTarget(m_WndHandle, width, height))
 			{
-				ShowWindow(m_WndHandle, SW_SHOW);
-				UpdateWindow(m_WndHandle);
+				if (visible)
+				{
+					ShowWindow(m_WndHandle, SW_SHOW);
+					UpdateWindow(m_WndHandle);
+				}
 
 				ResizeRenderTarget();
 
@@ -56,6 +59,17 @@ namespace QuantumGate::AVExtender
 			}
 			else LogErr(L"Failed to destroy video window; GetLastError() returned %d", GetLastError());
 		}
+	}
+
+	bool VideoWindow::IsVisible() const noexcept
+	{
+		return ::IsWindowVisible(m_WndHandle);
+	}
+
+	void VideoWindow::SetWindowVisible(const bool visible) noexcept
+	{
+		ShowWindow(m_WndHandle, visible ? SW_SHOW : SW_HIDE);
+		UpdateWindow(m_WndHandle);
 	}
 
 	void VideoWindow::ProcessMessages() noexcept
@@ -191,7 +205,7 @@ namespace QuantumGate::AVExtender
 			}
 			else
 			{
-				if (rh > wnd_h && rh > 0.0f)
+				if (rh > wnd_h&& rh > 0.0f)
 				{
 					rw = rw * (wnd_h / rh);
 					rh = wnd_h;
@@ -232,7 +246,7 @@ namespace QuantumGate::AVExtender
 		{
 			case VideoFormat::PixelFormat::BGR24:
 			{
-				m_ResampleBuffer.Resize(static_cast<Size>(format.Width) *
+				m_ResampleBuffer.Resize(static_cast<Size>(format.Width)*
 										static_cast<Size>(format.Height) * sizeof(BGRAPixel));
 
 				BGR24ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ResampleBuffer.GetBytes()),

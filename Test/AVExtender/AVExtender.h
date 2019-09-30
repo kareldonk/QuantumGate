@@ -4,10 +4,6 @@
 #pragma once
 
 #include "Call.h"
-#include "AudioSourceReader.h"
-#include "VideoSourceReader.h"
-
-#include <Concurrency\EventCondition.h>
 
 namespace QuantumGate::AVExtender
 {
@@ -19,7 +15,7 @@ namespace QuantumGate::AVExtender
 		Peer(const PeerLUID pluid) noexcept : ID(pluid) {}
 
 		const PeerLUID ID{ 0 };
-		Call_ThS Call;
+		std::shared_ptr<Call_ThS> Call;
 	};
 
 	using Peers = std::unordered_map<PeerLUID, std::unique_ptr<Peer>>;
@@ -48,15 +44,7 @@ namespace QuantumGate::AVExtender
 
 	class Extender final : public QuantumGate::Extender
 	{
-		struct AVSource
-		{
-			AudioSourceReader AudioSourceReader;
-			String AudioEndpointID;
-			VideoSourceReader VideoSourceReader;
-			String VideoSymbolicLink;
-		};
-
-		using AVSource_ThS = Implementation::Concurrency::ThreadSafe<AVSource, std::shared_mutex>;
+		friend Call;
 
 	public:
 		Extender(HWND hwnd);
@@ -85,22 +73,26 @@ namespace QuantumGate::AVExtender
 		void OnPeerEvent(PeerEvent&& event);
 		const std::pair<bool, bool> OnPeerMessage(PeerEvent&& event);
 
+		[[nodiscard]] bool SendCallAVSample(const PeerLUID pluid, const MessageType type, const UInt64 timestamp,
+											const BufferView data);
+
 	private:
 		static void WorkerThreadLoop(Extender* extender);
+
+		[[nodiscard]] CallAVFormatData GetCallAVFormatData(const bool send_audio, const bool send_video);
 
 		template<typename Func>
 		void IfGetCall(const PeerLUID pluid, Func&& func) noexcept(noexcept(func(std::declval<Call&>())));
 
+		std::shared_ptr<Call_ThS> GetCall(const PeerLUID pluid) const noexcept;
+
 		[[nodiscard]] bool SendSimpleMessage(const PeerLUID pluid, const MessageType type, const BufferView data = {});
-		[[nodiscard]] bool SendCallRequest(const PeerLUID pluid, const Call& call);
-		[[nodiscard]] bool SendCallAccept(const PeerLUID pluid, const Call& call);
+		[[nodiscard]] bool SendCallRequest(const PeerLUID pluid, const bool send_audio, const bool send_video);
+		[[nodiscard]] bool SendCallAccept(const PeerLUID pluid, const bool send_audio, const bool send_video);
 		[[nodiscard]] bool SendCallHangup(const PeerLUID pluid);
 		[[nodiscard]] bool SendCallDecline(const PeerLUID pluid);
 		[[nodiscard]] bool SendGeneralFailure(const PeerLUID pluid);
-		[[nodiscard]] bool SendCallAVUpdate(const PeerLUID pluid, const Call& call,
-											const AudioFormat& audio_format, const VideoFormat& video_format);
-		[[nodiscard]] bool SendCallAVSample(const PeerLUID pluid, const MessageType type, const UInt64 timestamp,
-											const BufferView data);
+		[[nodiscard]] bool SendCallAVUpdate(const PeerLUID pluid, const bool send_audio, const bool send_video);
 
 		void StartAudioSourceReader() noexcept;
 		void StartAudioSourceReader(AVSource& avsource) noexcept;
@@ -111,10 +103,6 @@ namespace QuantumGate::AVExtender
 		void StartVideoSourceReader(AVSource& avsource) noexcept;
 		void StopVideoSourceReader() noexcept;
 		void StopVideoSourceReader(AVSource& avsource) noexcept;
-
-		void OnAudioSample(const UInt64 timestamp, IMFSample* sample);
-		void OnVideoSample(const UInt64 timestamp, IMFSample* sample);
-		void ProcessAVSample(const MessageType type, const UInt64 timestamp, IMFSample* sample);
 
 	public:
 		inline static constexpr ExtenderUUID UUID{ 0x10a86749, 0x7e9e, 0x297d, 0x1e1c3a7ddc723f66 };

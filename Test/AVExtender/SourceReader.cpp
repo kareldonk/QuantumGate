@@ -116,7 +116,10 @@ namespace QuantumGate::AVExtender
 						}
 						else
 						{
-							source_reader_data->SampleEvent = std::move(event_callback);
+							if (event_callback)
+							{
+								source_reader_data->Dispatcher.Add(std::move(event_callback));
+							}
 						}
 
 						return result;
@@ -248,6 +251,19 @@ namespace QuantumGate::AVExtender
 		return AVResultCode::Failed;
 	}
 
+	SourceReader::SampleEventDispatcher::FunctionHandle
+		SourceReader::AddSampleEventCallback(SampleEventCallback&& function) noexcept
+	{
+		auto source_reader_data = m_SourceReaderData.WithUniqueLock();
+		return source_reader_data->Dispatcher.Add(std::move(function));
+	}
+
+	void SourceReader::RemoveSampleEventCallback(SampleEventDispatcher::FunctionHandle& func_handle) noexcept
+	{
+		auto source_reader_data = m_SourceReaderData.WithUniqueLock();
+		return source_reader_data->Dispatcher.Remove(func_handle);
+	}
+
 	HRESULT SourceReader::OnReadSample(HRESULT hrStatus, DWORD dwStreamIndex, DWORD dwStreamFlags,
 									   LONGLONG llTimestamp, IMFSample* pSample)
 	{
@@ -259,7 +275,7 @@ namespace QuantumGate::AVExtender
 
 			if (pSample)
 			{
-				source_reader_data->SampleEvent(llTimestamp, pSample);
+				source_reader_data->Dispatcher(llTimestamp, pSample);
 			}
 
 			// Request the next sample

@@ -4,7 +4,9 @@
 #pragma once
 
 #include "CaptureDevice.h"
+
 #include <Concurrency\ThreadSafe.h>
+#include <Common\Dispatcher.h>
 
 namespace QuantumGate::AVExtender
 {
@@ -13,6 +15,7 @@ namespace QuantumGate::AVExtender
 	class SourceReader : public IMFSourceReaderCallback
 	{
 	public:
+		using SampleEventDispatcher = Dispatcher<void(const UInt64, IMFSample*)>;
 		using SampleEventCallback = QuantumGate::Callback<void(const UInt64, IMFSample*)>;
 
 		struct SourceReaderData
@@ -20,7 +23,7 @@ namespace QuantumGate::AVExtender
 			IMFMediaSource* Source{ nullptr };
 			IMFSourceReader* SourceReader{ nullptr };
 			GUID Format{ GUID_NULL };
-			SampleEventCallback SampleEvent{ [](const UInt64, IMFSample*) mutable {} };
+			SampleEventDispatcher Dispatcher;
 
 			void Release() noexcept
 			{
@@ -34,7 +37,7 @@ namespace QuantumGate::AVExtender
 
 				Format = GUID_NULL;
 
-				SampleEvent = { [](const UInt64, IMFSample*) mutable {} };
+				Dispatcher.Clear();
 			}
 		};
 
@@ -52,6 +55,9 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] Result<> Open(const WChar* device, SampleEventCallback&& event_callback) noexcept;
 		[[nodiscard]] bool IsOpen() const noexcept;
 		void Close() noexcept;
+
+		SampleEventDispatcher::FunctionHandle AddSampleEventCallback(SampleEventCallback&& function) noexcept;
+		void RemoveSampleEventCallback(SampleEventDispatcher::FunctionHandle& func_handle) noexcept;
 
 		// Methods from IMFSourceReaderCallback 
 		STDMETHODIMP OnReadSample(HRESULT hrStatus, DWORD dwStreamIndex, DWORD dwStreamFlags,

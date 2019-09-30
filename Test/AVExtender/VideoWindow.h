@@ -26,9 +26,12 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] bool Create(const WChar* title, const DWORD dwExStyle, const DWORD dwStyle,
 								  const int x, const int y, const int width, const int height,
-								  const HWND parent) noexcept;
+								  const bool visible, const HWND parent) noexcept;
 		void Close() noexcept;
 		[[nodiscard]] inline bool IsOpen() const noexcept { return m_WndHandle != nullptr; }
+
+		bool IsVisible() const noexcept;
+		void SetWindowVisible(const bool visible) noexcept;
 
 		inline void SetRenderSize(const RenderSize render_size) noexcept { m_RenderSize = render_size; }
 		[[nodiscard]] inline RenderSize GetRenderSize() const noexcept { return m_RenderSize; }

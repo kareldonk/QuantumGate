@@ -69,11 +69,9 @@ BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 	ScreenToClient(&rect);
 
 	if (!m_VideoWindow.Create(L"Preview", NULL, WS_CHILD, rect.left, rect.top,
-							  rect.right - rect.left, rect.bottom - rect.top, GetSafeHwnd()))
-		//if (!m_VideoWindow.Create(NULL, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-		//						  640, 480, GetSafeHwnd()))
+							  rect.right - rect.left, rect.bottom - rect.top, true, GetSafeHwnd()))
 	{
-
+		AfxMessageBox(L"Failed to create video preview window.", MB_ICONERROR);
 	}
 
 	return TRUE;  // return TRUE unless you set the focus to a control
@@ -514,7 +512,7 @@ void CTestAppDlgAVExtenderTab::UpdatePeerActivity() noexcept
 			const auto peer = peers.find(*m_SelectedPeerLUID);
 			if (peer != peers.end())
 			{
-				peer->second->Call.WithSharedLock([&](const AVExtender::Call& call)
+				peer->second->Call->WithSharedLock([&](const AVExtender::Call& call)
 				{
 					UpdateCallInformation(&call);
 				});
