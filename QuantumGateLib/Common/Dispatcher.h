@@ -51,7 +51,7 @@ namespace QuantumGate::Implementation
 			return (!m_Functions.empty());
 		}
 
-		const FunctionHandle Add(FunctionType&& function) noexcept
+		FunctionHandle Add(FunctionType&& function) noexcept
 		{
 			// If we have a valid target
 			if (function)
@@ -69,7 +69,7 @@ namespace QuantumGate::Implementation
 			return std::nullopt;
 		}
 
-		const void Remove(FunctionHandle& func_handle) noexcept
+		void Remove(FunctionHandle& func_handle) noexcept
 		{
 			if (func_handle)
 			{
