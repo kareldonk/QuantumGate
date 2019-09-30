@@ -251,23 +251,18 @@ namespace QuantumGate::AVExtender
 	HRESULT SourceReader::OnReadSample(HRESULT hrStatus, DWORD dwStreamIndex, DWORD dwStreamFlags,
 									   LONGLONG llTimestamp, IMFSample* pSample)
 	{
-		HRESULT hr{ S_OK };
-
-		auto source_reader_data = m_SourceReaderData.WithUniqueLock();
-
-		if (FAILED(hrStatus)) hr = hrStatus;
+		HRESULT hr{ hrStatus };
 
 		if (SUCCEEDED(hr))
 		{
+			auto source_reader_data = m_SourceReaderData.WithUniqueLock();
+
 			if (pSample)
 			{
 				source_reader_data->SampleEvent(llTimestamp, pSample);
 			}
-		}
 
-		// Request the next sample
-		if (SUCCEEDED(hr))
-		{
+			// Request the next sample
 			hr = source_reader_data->SourceReader->ReadSample(m_StreamIndex, 0, nullptr, nullptr, nullptr, nullptr);
 		}
 
