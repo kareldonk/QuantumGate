@@ -48,6 +48,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
 	ON_BN_CLICKED(IDC_HANGUP_BUTTON, &CTestAppDlgAVExtenderTab::OnBnClickedHangupButton)
 	ON_BN_CLICKED(IDC_INITIALIZE_AUDIO, &CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio)
 	ON_CBN_SELCHANGE(IDC_AUDIO_DEVICES_COMBO, &CTestAppDlgAVExtenderTab::OnCbnSelChangeAudioDevicesCombo)
+	ON_CBN_SELCHANGE(IDC_VIDEO_DEVICES_COMBO, &CTestAppDlgAVExtenderTab::OnCbnSelChangeVideoDevicesCombo)
 END_MESSAGE_MAP()
 
 void CTestAppDlgAVExtenderTab::UpdateControls() noexcept
@@ -128,12 +129,18 @@ void CTestAppDlgAVExtenderTab::UpdateAudioDeviceCombo() noexcept
 		}
 
 		UpdateAVAudioDevice();
+		UpdateAVVideoDevice();
 	}
 }
 
 void CTestAppDlgAVExtenderTab::OnCbnSelChangeAudioDevicesCombo()
 {
 	UpdateAVAudioDevice();
+}
+
+void CTestAppDlgAVExtenderTab::OnCbnSelChangeVideoDevicesCombo()
+{
+	UpdateAVVideoDevice();
 }
 
 void CTestAppDlgAVExtenderTab::UpdateAVAudioDevice() noexcept
@@ -151,6 +158,21 @@ void CTestAppDlgAVExtenderTab::UpdateAVAudioDevice() noexcept
 	}
 }
 
+void CTestAppDlgAVExtenderTab::UpdateAVVideoDevice() noexcept
+{
+	if (m_AVExtender != nullptr)
+	{
+		const auto vdcombo = (CComboBox*)GetDlgItem(IDC_VIDEO_DEVICES_COMBO);
+		const auto sel = vdcombo->GetCurSel();
+		if (sel != CB_ERR)
+		{
+			const auto idx = vdcombo->GetItemData(sel);
+			m_AVExtender->SetVideoSymbolicLink(m_VideoCaptureDevices[idx].SymbolicLink);
+		}
+		else m_AVExtender->SetVideoSymbolicLink(L"");
+	}
+}
+
 void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 {
 	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_VIDEO_DEVICES_COMBO);
@@ -160,11 +182,7 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 		const auto idx = vdcombo->GetItemData(sel);
 		const auto result = m_VideoSourceReader->Open(m_VideoCaptureDevices[idx].SymbolicLink,
 													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnVideoSample));
-		if (result.Succeeded())
-		{
-			//m_VideoPreviewTimer = SetTimer(AVEXTENDER_VIDEO_PREVIEW_TIMER, 1, NULL);
-		}
-		else
+		if (result.Failed())
 		{
 			CString error = L"An error occured while trying to open the video capture device '";
 			error += m_VideoCaptureDevices[idx].DeviceNameString;
@@ -194,7 +212,7 @@ void CTestAppDlgAVExtenderTab::OnVideoSample(const UInt64 timestamp, IMFSample* 
 		hr = media_buffer->Lock(&in_data, nullptr, &in_data_len);
 		if (SUCCEEDED(hr))
 		{
-			m_VideoWindow.Render(reinterpret_cast<Byte*>(in_data), sample_settings);
+			m_VideoWindow.Render(BufferView(reinterpret_cast<Byte*>(in_data), in_data_len), sample_settings);
 
 			media_buffer->Unlock();
 		}
@@ -251,7 +269,7 @@ void CTestAppDlgAVExtenderTab::OnAudioSample(const UInt64 timestamp, IMFSample* 
 		hr = media_buffer->Lock(&in_data, nullptr, &in_data_len);
 		if (SUCCEEDED(hr))
 		{
-			DiscardReturnValue(audio_renderer->Render(BufferView(reinterpret_cast<Byte*>(in_data), in_data_len)));
+			DiscardReturnValue(audio_renderer->Render(timestamp, BufferView(reinterpret_cast<Byte*>(in_data), in_data_len)));
 
 			media_buffer->Unlock();
 		}
@@ -422,6 +440,7 @@ void CTestAppDlgAVExtenderTab::LoadAVExtender() noexcept
 			}
 
 			UpdateAVAudioDevice();
+			UpdateAVVideoDevice();
 		}
 		catch (...)
 		{
@@ -579,3 +598,4 @@ void CTestAppDlgAVExtenderTab::OnBnClickedHangupButton()
 		}
 	}
 }
+

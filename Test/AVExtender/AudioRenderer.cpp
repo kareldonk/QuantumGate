@@ -114,12 +114,12 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	bool AudioRenderer::Render(const BufferView in_data) noexcept
+	bool AudioRenderer::Render(const UInt64 in_timestamp, const BufferView in_data) noexcept
 	{
 		// Nothing to render
 		if (in_data.GetSize() == 0) return true;
 
-		if (m_AudioResampler.Resample(in_data, m_OutputSample))
+		if (m_AudioResampler.Resample(in_timestamp, in_data, m_OutputSample))
 		{
 			BYTE* outptr{ nullptr };
 			DWORD outcurl{ 0 };

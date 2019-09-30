@@ -205,9 +205,15 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	void VideoWindow::Render(const Byte* pixels, const VideoFormat& format) noexcept
+	void VideoWindow::Render(const BufferView pixels, const VideoFormat& format) noexcept
 	{
-		assert(pixels != nullptr && m_D2D1Bitmap != nullptr && m_D2D1RenderTarget != nullptr);
+		assert(pixels.GetBytes() != nullptr && m_D2D1Bitmap != nullptr && m_D2D1RenderTarget != nullptr);
+
+		if (pixels.GetSize() != (format.BytesPerPixel * format.Width * format.Height))
+		{
+			assert(false);
+			return;
+		}
 
 		const auto bmsize = m_D2D1Bitmap->GetSize();
 		if (bmsize.width != static_cast<float>(format.Width) || bmsize.height != static_cast<float>(format.Height))
@@ -230,14 +236,14 @@ namespace QuantumGate::AVExtender
 										static_cast<Size>(format.Height) * sizeof(BGRAPixel));
 
 				BGR24ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ResampleBuffer.GetBytes()),
-							  reinterpret_cast<const BGRPixel*>(pixels),
+							  reinterpret_cast<const BGRPixel*>(pixels.GetBytes()),
 							  format.Width, format.Height, format.Stride);
 
 				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ResampleBuffer.GetBytes(), format.Width * 4);
 				break;
 			}
 			case VideoFormat::PixelFormat::BGRA32:
-				m_D2D1Bitmap->CopyFromMemory(nullptr, pixels, format.Width * 4);
+				m_D2D1Bitmap->CopyFromMemory(nullptr, pixels.GetBytes(), format.Width * 4);
 				break;
 			default:
 				// Unsupported format

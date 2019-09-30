@@ -14,6 +14,7 @@ namespace QuantumGate::AVExtender
 		Unknown = 0,
 		CallRequest,
 		CallAccept,
+		CallDecline,
 		CallHangup,
 		CallAVUpdate,
 		AudioSample,
@@ -22,7 +23,7 @@ namespace QuantumGate::AVExtender
 	};
 
 #pragma pack(push, 1) // Disable padding bytes
-	struct CallRequestData
+	struct CallAVFormatData
 	{
 		struct AudioFormatData
 		{
@@ -39,7 +40,7 @@ namespace QuantumGate::AVExtender
 			UInt16 Width{ 0 };
 			UInt16 Height{ 0 };
 			UInt8 BytesPerPixel{ 0 };
-			UInt16 Stride{ 0 };
+			Int32 Stride{ 0 };
 		};
 
 		UInt8 SendAudio{ 0 };

@@ -17,7 +17,7 @@ namespace QuantumGate::AVExtender
 		VideoSourceReader& operator=(const VideoSourceReader&) = delete;
 		VideoSourceReader& operator=(VideoSourceReader&&) = delete;
 
-		[[nodiscard]] inline VideoFormat GetSampleFormat() noexcept { return *m_VideoFormat.WithSharedLock(); }
+		[[nodiscard]] inline VideoFormat GetSampleFormat() const noexcept { return *m_VideoFormat.WithSharedLock(); }
 
 		// Methods from IUnknown 
 		STDMETHODIMP QueryInterface(REFIID iid, void** ppv) override;

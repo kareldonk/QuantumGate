@@ -26,7 +26,7 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] inline bool IsOpen() const noexcept { return m_Open; }
 
 		[[nodiscard]] bool Play() noexcept;
-		[[nodiscard]] bool Render(const BufferView in_data) noexcept;
+		[[nodiscard]] bool Render(const UInt64 in_timestamp, const BufferView in_data) noexcept;
 
 		[[nodiscard]] inline const AudioFormat& GetOutputFormat() const noexcept { return m_OutputFormat; }
 

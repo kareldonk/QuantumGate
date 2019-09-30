@@ -19,7 +19,7 @@ namespace QuantumGate::AVExtender
 		AudioSourceReader& operator=(const AudioSourceReader&) = delete;
 		AudioSourceReader& operator=(AudioSourceReader&&) = delete;
 
-		[[nodiscard]] inline AudioFormat GetSampleFormat() noexcept { return *m_AudioFormat.WithSharedLock(); }
+		[[nodiscard]] inline AudioFormat GetSampleFormat() const noexcept { return *m_AudioFormat.WithSharedLock(); }
 
 		// Methods from IUnknown 
 		STDMETHODIMP QueryInterface(REFIID iid, void** ppv) override;

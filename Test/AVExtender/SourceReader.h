@@ -20,8 +20,6 @@ namespace QuantumGate::AVExtender
 			IMFMediaSource* Source{ nullptr };
 			IMFSourceReader* SourceReader{ nullptr };
 			GUID Format{ GUID_NULL };
-			IMFSample* Sample{ nullptr };
-			IMFMediaBuffer* Buffer{ nullptr };
 			SampleEventCallback SampleEvent{ [](const UInt64, IMFSample*) mutable {} };
 
 			void Release() noexcept
@@ -34,10 +32,9 @@ namespace QuantumGate::AVExtender
 				}
 				SafeRelease(&Source);
 
-				SafeRelease(&Sample);
-				SafeRelease(&Buffer);
-
 				Format = GUID_NULL;
+
+				SampleEvent = { [](const UInt64, IMFSample*) mutable {} };
 			}
 		};
 
@@ -53,7 +50,7 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] Result<CaptureDeviceVector> EnumCaptureDevices() const noexcept;
 
 		[[nodiscard]] Result<> Open(const WChar* device, SampleEventCallback&& event_callback) noexcept;
-		[[nodiscard]] bool IsOpen() noexcept;
+		[[nodiscard]] bool IsOpen() const noexcept;
 		void Close() noexcept;
 
 		// Methods from IMFSourceReaderCallback 

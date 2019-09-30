@@ -21,6 +21,8 @@ namespace QuantumGate::Implementation::Memory
 		using BufferType = B;
 		using SizeType = Size;
 
+		RingBufferImpl() noexcept {}
+
 		RingBufferImpl(const Size size) :
 			m_Buffer(size),
 			m_WriteSpace(size)

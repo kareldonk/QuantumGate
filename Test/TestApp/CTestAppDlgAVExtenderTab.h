@@ -47,6 +47,7 @@ protected:
 	void UpdateSelectedPeer() noexcept;
 
 	void UpdateAVAudioDevice() noexcept;
+	void UpdateAVVideoDevice() noexcept;
 
 	void OnAudioSample(const UInt64 timestamp, IMFSample* sample);
 	void OnVideoSample(const UInt64 timestamp, IMFSample* sample);
@@ -67,6 +68,7 @@ protected:
 	afx_msg void OnBnClickedCallButton();
 	afx_msg void OnBnClickedHangupButton();
 	afx_msg void OnCbnSelChangeAudioDevicesCombo();
+	afx_msg void OnCbnSelChangeVideoDevicesCombo();
 
 private:
 	QuantumGate::Local& m_QuantumGate;

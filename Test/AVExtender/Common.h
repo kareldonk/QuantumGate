@@ -77,24 +77,24 @@ namespace QuantumGate::AVExtender
 
 	struct VideoFormat
 	{
-		enum PixelFormat : UInt8 { Unknown, RGB24, BGR24, BGRA32 };
+		enum class PixelFormat : UInt8 { Unknown, RGB24, BGR24, BGRA32 };
 
 		PixelFormat Format{ PixelFormat::Unknown };
-		UINT32 Width{ 0 };
-		UINT32 Height{ 0 };
-		UINT32 BytesPerPixel{ 0 };
-		LONG Stride{ 0 };
+		UInt32 Width{ 0 };
+		UInt32 Height{ 0 };
+		UInt32 BytesPerPixel{ 0 };
+		Long Stride{ 0 };
 	};
 
 	using VideoFormat_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<VideoFormat, std::shared_mutex>;
 
 	struct AudioFormat
 	{
-		UINT32 NumChannels{ 0 };
-		UINT32 SamplesPerSecond{ 0 };
-		UINT32 AvgBytesPerSecond{ 0 };
-		UINT32 BlockAlignment{ 0 };
-		UINT32 BitsPerSample{ 0 };
+		UInt32 NumChannels{ 0 };
+		UInt32 SamplesPerSecond{ 0 };
+		UInt32 AvgBytesPerSecond{ 0 };
+		UInt32 BlockAlignment{ 0 };
+		UInt32 BitsPerSample{ 0 };
 	};
 
 	using AudioFormat_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<AudioFormat, std::shared_mutex>;

@@ -24,7 +24,7 @@ namespace QuantumGate::AVExtender
 		void Close() noexcept;
 		[[nodiscard]] inline bool IsOpen() const noexcept { return m_Open; }
 
-		[[nodiscard]] bool Resample(const BufferView in_data, IMFSample* out_sample) noexcept;
+		[[nodiscard]] bool Resample(const UInt64 in_timestamp, const BufferView in_data, IMFSample* out_sample) noexcept;
 		[[nodiscard]] bool Resample(IMFSample* in_sample, IMFSample* out_sample) noexcept;
 
 	private:

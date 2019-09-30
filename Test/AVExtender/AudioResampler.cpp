@@ -98,7 +98,7 @@ namespace QuantumGate::AVExtender
 		SafeRelease(&m_InputBuffer);
 	}
 
-	bool AudioResampler::Resample(const BufferView in_data, IMFSample* out_sample) noexcept
+	bool AudioResampler::Resample(const UInt64 in_timestamp, const BufferView in_data, IMFSample* out_sample) noexcept
 	{
 		assert(IsOpen());
 
@@ -120,6 +120,8 @@ namespace QuantumGate::AVExtender
 				hr = m_InputBuffer->SetCurrentLength(static_cast<DWORD>(in_data.GetSize()));
 				if (SUCCEEDED(hr))
 				{
+					m_InputSample->SetSampleTime(in_timestamp);
+
 					return Resample(m_InputSample, out_sample);
 				}
 			}

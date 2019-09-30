@@ -133,7 +133,7 @@ namespace QuantumGate::AVExtender
 		return AVResultCode::Failed;
 	}
 
-	bool SourceReader::IsOpen() noexcept
+	bool SourceReader::IsOpen() const noexcept
 	{
 		auto source_reader_data = m_SourceReaderData.WithSharedLock();
 		return (source_reader_data->SourceReader != nullptr);
@@ -184,16 +184,11 @@ namespace QuantumGate::AVExtender
 
 								if (OnMediaTypeChanged(media_type).Succeeded())
 								{
-									const auto result2 = CreateReaderBuffer(source_reader_data, media_type);
-									if (result2.Succeeded())
-									{
-										// Ask for the first sample
-										hr = source_reader_data.SourceReader->ReadSample(m_StreamIndex,
-																						 0, nullptr, nullptr, nullptr, nullptr);
+									// Ask for the first sample
+									hr = source_reader_data.SourceReader->ReadSample(m_StreamIndex,
+																					 0, nullptr, nullptr, nullptr, nullptr);
 
-										if (SUCCEEDED(hr)) return AVResultCode::Succeeded;
-									}
-									else return result.GetErrorCode();
+									if (SUCCEEDED(hr)) return AVResultCode::Succeeded;
 								}
 							}
 						}
@@ -204,31 +199,6 @@ namespace QuantumGate::AVExtender
 		}
 
 		return AVResultCode::Failed;
-	}
-
-	Result<> SourceReader::CreateReaderBuffer(SourceReaderData& source_reader_data, IMFMediaType* media_type) noexcept
-	{
-		const auto result = GetBufferSize(media_type);
-		if (result.Succeeded())
-		{
-			try
-			{
-				auto result2 = CaptureDevices::CreateMediaSample(*result);
-				if (result2.Succeeded())
-				{
-					source_reader_data.Sample = result2->first;
-					source_reader_data.Buffer = result2->second;
-
-					return AVResultCode::Succeeded;
-				}
-			}
-			catch (...)
-			{
-				return AVResultCode::FailedOutOfMemory;
-			}
-		}
-
-		return result.GetErrorCode();
 	}
 
 	Result<std::pair<IMFMediaType*, GUID>> SourceReader::GetSupportedMediaType(IMFSourceReader* source_reader) noexcept

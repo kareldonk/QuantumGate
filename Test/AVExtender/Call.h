@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "Protocol.h"
 #include "VideoWindow.h"
 #include "AudioRenderer.h"
 
@@ -32,14 +33,6 @@ namespace QuantumGate::AVExtender
 	};
 
 	using CallID = UInt64;
-
-	struct AudioPacket
-	{
-		UInt64 TimeStamp{ 0 };
-		Buffer Frames;
-	};
-
-	using AudioPacketQueue = std::queue<AudioPacket>;
 
 	class Call final
 	{
@@ -91,12 +84,20 @@ namespace QuantumGate::AVExtender
 		inline void SetPeerSendAudio(const bool send) noexcept { m_PeerSendAudio = send; }
 		[[nodiscard]] inline bool GetPeerSendAudio() const noexcept { return m_PeerSendAudio; }
 
+		[[nodiscard]] bool SetPeerAVFormat(const CallAVFormatData* fmtdata) noexcept;
 		void SetPeerAudioFormat(const AudioFormat& format) noexcept;
+		void SetPeerVideoFormat(const VideoFormat& format) noexcept;
 
-		void OnPeerAudioSample(const UInt64 timestamp, const Buffer& sample);
+		void OnPeerAudioSample(const UInt64 timestamp, const Buffer& sample) noexcept;
+		void OnPeerVideoSample(const UInt64 timestamp, const Buffer& sample) noexcept;
+
+		inline Buffer& GetSampleBuffer() noexcept { return m_SampleBuffer; }
 
 	public:
 		static constexpr std::chrono::seconds MaxWaitTimeForAccept{ 30 };
+
+	private:
+		void OnDisconnected();
 
 	private:
 		CallType m_Type{ CallType::None };
@@ -109,10 +110,12 @@ namespace QuantumGate::AVExtender
 		bool m_PeerSendVideo{ false };
 		bool m_PeerSendAudio{ false };
 		AudioFormat m_PeerAudioFormat;
+		VideoFormat m_PeerVideoFormat;
 
 		VideoWindow m_VideoWindow;
 		AudioRenderer m_AudioRenderer;
-		AudioPacketQueue m_AudioSendQueue;
+
+		Buffer m_SampleBuffer;
 	};
 
 	using Call_ThS = Implementation::Concurrency::ThreadSafe<Call, std::shared_mutex>;

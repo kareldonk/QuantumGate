@@ -33,7 +33,7 @@ namespace QuantumGate::AVExtender
 		inline void SetRenderSize(const RenderSize render_size) noexcept { m_RenderSize = render_size; }
 		[[nodiscard]] inline RenderSize GetRenderSize() const noexcept { return m_RenderSize; }
 
-		void Render(const Byte* pixels, const VideoFormat& format) noexcept;
+		void Render(const BufferView pixels, const VideoFormat& format) noexcept;
 
 		void ProcessMessages() noexcept;
 		
