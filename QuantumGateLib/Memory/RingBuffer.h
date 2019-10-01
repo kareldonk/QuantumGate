@@ -134,10 +134,7 @@ namespace QuantumGate::Implementation::Memory
 
 		[[nodiscard]] inline Size GetSize() const noexcept { return m_Buffer.GetSize(); }
 		
-		[[nodiscard]] inline Size GetWriteSize() const noexcept
-		{
-			return m_WriteSpace;
-		}
+		[[nodiscard]] inline Size GetWriteSize() const noexcept { return m_WriteSpace; }
 
 		[[nodiscard]] inline Size GetReadSize() const noexcept { return (GetSize() - m_WriteSpace); }
 
