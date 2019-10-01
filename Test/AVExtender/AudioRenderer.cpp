@@ -114,57 +114,76 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	bool AudioRenderer::Render(const UInt64 in_timestamp, const BufferView in_data) noexcept
+	bool AudioRenderer::Render(const UInt64 in_timestamp, const BufferView sample_data) noexcept
 	{
 		// Nothing to render
-		if (in_data.GetSize() == 0) return true;
+		if (sample_data.GetSize() == 0) return true;
 
-		if (m_AudioResampler.Resample(in_timestamp, in_data, m_OutputSample))
+		auto sample_data2 = sample_data;
+
+		while (!sample_data2.IsEmpty())
 		{
-			BYTE* outptr{ nullptr };
-			DWORD outcurl{ 0 };
+			auto success = false;
 
-			auto hr = m_OutputBuffer->Lock(&outptr, nullptr, &outcurl);
-			if (SUCCEEDED(hr))
+			auto in_data = sample_data2;
+			if (in_data.GetSize() > m_OutputFormat.AvgBytesPerSecond)
 			{
-				UINT32 out_frames = { outcurl / m_OutputFormat.BlockAlignment };
-				UINT32 padding{ 0 };
+				in_data = in_data.GetFirst(m_OutputFormat.AvgBytesPerSecond);
+			}
 
-				// See how much buffer space is available
-				hr = m_AudioClient->GetCurrentPadding(&padding);
+			if (m_AudioResampler.Resample(in_timestamp, in_data, m_OutputSample))
+			{
+				BYTE* outptr{ nullptr };
+				DWORD outcurl{ 0 };
+
+				auto hr = m_OutputBuffer->Lock(&outptr, nullptr, &outcurl);
 				if (SUCCEEDED(hr))
 				{
-					const auto available_frames = m_BufferFrameCount - padding;
-					if (available_frames < out_frames)
-					{
-						out_frames = available_frames;
-					}
+					UINT32 out_frames = { outcurl / m_OutputFormat.BlockAlignment };
+					UINT32 padding{ 0 };
 
-					BYTE* data{ nullptr };
-
-					// Grab all the available space in the shared buffer
-					hr = m_RenderClient->GetBuffer(out_frames, &data);
+					// See how much buffer space is available
+					hr = m_AudioClient->GetCurrentPadding(&padding);
 					if (SUCCEEDED(hr))
 					{
-						const auto len = out_frames * m_OutputFormat.BlockAlignment;
+						const auto available_frames = m_BufferFrameCount - padding;
+						if (available_frames < out_frames)
+						{
+							out_frames = available_frames;
+						}
 
-						std::memcpy(data, outptr, len);
+						BYTE* data{ nullptr };
 
-						hr = m_RenderClient->ReleaseBuffer(out_frames, 0);
+						// Grab all the available space in the shared buffer
+						hr = m_RenderClient->GetBuffer(out_frames, &data);
 						if (SUCCEEDED(hr))
 						{
-							hr = m_OutputBuffer->Unlock();
+							const auto len = out_frames * m_OutputFormat.BlockAlignment;
+
+							std::memcpy(data, outptr, len);
+
+							hr = m_RenderClient->ReleaseBuffer(out_frames, 0);
 							if (SUCCEEDED(hr))
 							{
-								return true;
+								hr = m_OutputBuffer->Unlock();
+								if (SUCCEEDED(hr))
+								{
+									success = true;
+								}
 							}
 						}
 					}
 				}
 			}
+
+			if (success)
+			{
+				sample_data2.RemoveFirst(in_data.GetSize());
+			}
+			else return false;
 		}
 
-		return false;
+		return true;
 	}
 
 	bool AudioRenderer::GetSupportedMixFormat(const AudioFormat& audio_settings, WAVEFORMATEXTENSIBLE& wfmt) noexcept

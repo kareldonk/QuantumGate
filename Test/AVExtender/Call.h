@@ -45,6 +45,14 @@ namespace QuantumGate::AVExtender
 		Connected
 	};
 
+	enum class CallSetting : UInt8
+	{
+		SendAudio =		0b00000001,
+		SendVideo =		0b00000010,
+		PeerSendAudio =	0b00000100,
+		PeerSendVideo =	0b00001000,
+	};
+
 	using CallID = UInt64;
 
 	struct MediaSample
@@ -103,11 +111,11 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] inline SteadyTime GetStartSteadyTime() const noexcept { return m_StartSteadyTime; }
 		[[nodiscard]] std::chrono::milliseconds GetDuration() const noexcept;
 
-		inline void SetSendVideo(const bool send) noexcept { m_SendVideo = send; }
-		[[nodiscard]] inline bool GetSendVideo() const noexcept { return m_SendVideo; }
+		inline void SetSendVideo(const bool send) noexcept { SetSetting(CallSetting::SendVideo, send); }
+		[[nodiscard]] inline bool GetSendVideo() const noexcept { return GetSetting(CallSetting::SendVideo); }
 
-		inline void SetSendAudio(const bool send) noexcept { m_SendAudio = send; }
-		[[nodiscard]] inline bool GetSendAudio() const noexcept { return m_SendAudio; }
+		inline void SetSendAudio(const bool send) noexcept { SetSetting(CallSetting::SendAudio, send); }
+		[[nodiscard]] inline bool GetSendAudio() const noexcept { return GetSetting(CallSetting::SendAudio); }
 
 		[[nodiscard]] bool SetPeerAVFormat(const CallAVFormatData* fmtdata) noexcept;
 		void OnAVSourceChange() noexcept;
@@ -121,11 +129,27 @@ namespace QuantumGate::AVExtender
 	private:
 		[[nodiscard]] bool SetStatus(const CallStatus status) noexcept;
 
-		inline void SetPeerSendVideo(const bool send) noexcept { m_PeerSendVideo = send; }
-		[[nodiscard]] inline bool GetPeerSendVideo() const noexcept { return m_PeerSendVideo; }
+		inline void SetSetting(const CallSetting csetting, const bool state) noexcept
+		{
+			auto settings = m_Settings.load();
 
-		inline void SetPeerSendAudio(const bool send) noexcept { m_PeerSendAudio = send; }
-		[[nodiscard]] inline bool GetPeerSendAudio() const noexcept { return m_PeerSendAudio; }
+			if (state) settings |= static_cast<UInt8>(csetting);
+			else settings &= ~static_cast<UInt8>(csetting);
+			
+			m_Settings.store(settings);
+		}
+
+		inline bool GetSetting(const CallSetting csetting) const noexcept
+		{
+			const auto settings = m_Settings.load();
+			return (settings & static_cast<UInt8>(csetting));
+		}
+
+		inline void SetPeerSendVideo(const bool send) noexcept { SetSetting(CallSetting::PeerSendVideo, send); }
+		[[nodiscard]] inline bool GetPeerSendVideo() const noexcept { return GetSetting(CallSetting::PeerSendVideo); }
+
+		inline void SetPeerSendAudio(const bool send) noexcept { SetSetting(CallSetting::PeerSendAudio, send); }
+		[[nodiscard]] inline bool GetPeerSendAudio() const noexcept { return GetSetting(CallSetting::PeerSendAudio); }
 
 		void SetPeerAudioFormat(const AudioFormat& format) noexcept;
 		void SetPeerVideoFormat(const VideoFormat& format) noexcept;
@@ -151,7 +175,7 @@ namespace QuantumGate::AVExtender
 		void SetAVCallbacks() noexcept;
 		void UnsetAVCallbacks() noexcept;
 
-		void OnInputSample(const UInt64 timestamp, IMFSample* sample, MediaSample_ThS& sample_ths);
+		void OnInputSample(const UInt64 timestamp, IMFSample* sample, MediaSample_ThS& sample_ths, const bool accumulate);
 
 	private:
 		const PeerLUID m_PeerLUID{ 0 };
@@ -163,10 +187,7 @@ namespace QuantumGate::AVExtender
 		SteadyTime m_LastActiveSteadyTime;
 		SteadyTime m_StartSteadyTime;
 
-		std::atomic_bool m_SendVideo{ false };
-		std::atomic_bool m_SendAudio{ false };
-		std::atomic_bool m_PeerSendVideo{ false };
-		std::atomic_bool m_PeerSendAudio{ false };
+		std::atomic<UInt8> m_Settings{ 0 };
 
 		AudioOut_ThS m_AudioOut;
 		VideoOut_ThS m_VideoOut;

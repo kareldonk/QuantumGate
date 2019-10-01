@@ -86,21 +86,38 @@ namespace QuantumGate::AVExtender
 		// If the shutdown event is set quit the loop
 		while (!call->m_ShutdownEvent.IsSet())
 		{
-			if (call->GetSendAudio())
+			const auto settings = call->m_Settings.load();
+
+			if (settings & static_cast<UInt8>(CallSetting::SendAudio))
 			{
 				call->m_AudioInSample.WithUniqueLock([&](auto& media_sample)
 				{
 					if (media_sample.New)
 					{
-						DiscardReturnValue(call->m_Extender.SendCallAVSample(call->m_PeerLUID, MessageType::AudioSample,
-																			 media_sample.TimeStamp,
-																			 media_sample.SampleBuffer));
+						BufferView buf = media_sample.SampleBuffer;
+
+						while (!buf.IsEmpty())
+						{
+							auto buf2 = buf;
+							// TODO: 192000 needs to be avgbytespersecond of inputformat
+							if (buf2.GetSize() > 192000)
+							{
+								buf2 = buf2.GetFirst(192000);
+							}
+
+							DiscardReturnValue(call->m_Extender.SendCallAVSample(call->m_PeerLUID, MessageType::AudioSample,
+																				 media_sample.TimeStamp,
+																				 buf2));
+							buf.RemoveFirst(buf2.GetSize());
+						}
+
 						media_sample.New = false;
+						media_sample.SampleBuffer.Clear();
 					}
 				});
 			}
 
-			if (call->GetSendVideo())
+			if (settings & static_cast<UInt8>(CallSetting::SendVideo))
 			{
 				call->m_VideoInSample.WithUniqueLock([&](auto& media_sample)
 				{
@@ -110,11 +127,12 @@ namespace QuantumGate::AVExtender
 																			 media_sample.TimeStamp,
 																			 media_sample.SampleBuffer));
 						media_sample.New = false;
+						media_sample.SampleBuffer.Clear();
 					}
 				});
 			}
 
-			if (call->GetPeerSendAudio())
+			if (settings & static_cast<UInt8>(CallSetting::PeerSendAudio))
 			{
 				call->m_AudioOutSample.WithUniqueLock([&](auto& media_sample)
 				{
@@ -126,7 +144,7 @@ namespace QuantumGate::AVExtender
 				});
 			}
 
-			if (call->GetPeerSendVideo())
+			if (settings & static_cast<UInt8>(CallSetting::PeerSendAudio))
 			{
 				call->m_VideoOutSample.WithUniqueLock([&](auto& media_sample)
 				{
@@ -492,15 +510,15 @@ namespace QuantumGate::AVExtender
 
 	void Call::OnAudioSample(const UInt64 timestamp, IMFSample* sample)
 	{
-		OnInputSample(timestamp, sample, m_AudioInSample);
+		OnInputSample(timestamp, sample, m_AudioInSample, true);
 	}
 
 	void Call::OnVideoSample(const UInt64 timestamp, IMFSample* sample)
 	{
-		OnInputSample(timestamp, sample, m_VideoInSample);
+		OnInputSample(timestamp, sample, m_VideoInSample, false);
 	}
 
-	void Call::OnInputSample(const UInt64 timestamp, IMFSample* sample, MediaSample_ThS& sample_ths)
+	void Call::OnInputSample(const UInt64 timestamp, IMFSample* sample, MediaSample_ThS& sample_ths, const bool accumulate)
 	{
 		IMFMediaBuffer* media_buffer{ nullptr };
 
@@ -521,7 +539,12 @@ namespace QuantumGate::AVExtender
 				{
 					s.New = true;
 					s.TimeStamp = timestamp;
-					s.SampleBuffer = BufferView(reinterpret_cast<Byte*>(data), data_len);
+
+					if (accumulate)
+					{
+						s.SampleBuffer += BufferView(reinterpret_cast<Byte*>(data), data_len);
+					}
+					else s.SampleBuffer = BufferView(reinterpret_cast<Byte*>(data), data_len);
 				});
 
 				media_buffer->Unlock();
