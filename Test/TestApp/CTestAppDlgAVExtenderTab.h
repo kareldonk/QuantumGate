@@ -23,6 +23,8 @@ public:
 
 	void UpdateControls() noexcept;
 
+	void OnPreDeinitializeQuantumGate() noexcept;
+
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB };

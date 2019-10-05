@@ -451,6 +451,8 @@ void CTestAppDlgAVExtenderTab::UnloadAVExtender() noexcept
 {
 	if (m_AVExtender != nullptr)
 	{
+		if (m_AVExtender->IsRunning()) m_AVExtender->HangupAllCalls();
+
 		auto extp = std::static_pointer_cast<Extender>(m_AVExtender);
 		if (!m_QuantumGate.RemoveExtender(extp))
 		{
@@ -594,6 +596,14 @@ void CTestAppDlgAVExtenderTab::OnBnClickedHangupButton()
 		{
 			AfxMessageBox(L"Failed to hangup call.", MB_ICONERROR);
 		}
+	}
+}
+
+void CTestAppDlgAVExtenderTab::OnPreDeinitializeQuantumGate() noexcept
+{
+	if (m_AVExtender != nullptr)
+	{
+		m_AVExtender->HangupAllCalls();
 	}
 }
 

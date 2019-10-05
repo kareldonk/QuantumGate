@@ -685,7 +685,12 @@ void CTestAppDlg::UnloadSocks5Extender()
 
 void CTestAppDlg::OnClose()
 {
-	if (m_QuantumGate.IsRunning()) OnLocalDeinitialize();
+	if (m_QuantumGate.IsRunning())
+	{
+		m_AVExtenderTab.OnPreDeinitializeQuantumGate();
+
+		OnLocalDeinitialize();
+	}
 
 	Attacks::StopConnectGarbageAttack();
 	Attacks::StopConnectAttack();

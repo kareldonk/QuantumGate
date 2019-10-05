@@ -89,6 +89,8 @@ namespace QuantumGate::AVExtender
 
 		~Call();
 
+		[[nodiscard]] inline PeerLUID GetPeerLUID() const noexcept { return m_PeerLUID; }
+
 		[[nodiscard]] inline const CallStatus GetStatus() const noexcept { return m_Status; }
 		[[nodiscard]] const WChar* GetStatusString() const noexcept;
 

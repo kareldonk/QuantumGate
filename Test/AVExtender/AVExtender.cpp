@@ -566,44 +566,64 @@ namespace QuantumGate::AVExtender
 
 	bool Extender::HangupCall(const PeerLUID pluid) noexcept
 	{
-		auto success = false;
-
 		auto call_ths = GetCall(pluid);
 		if (call_ths != nullptr)
 		{
-			auto ishangup = true;
+			return HangupCall(call_ths);
+		}
 
-			call_ths->WithUniqueLock([&](auto& call)
-			{
-				if (call.IsInCall())
-				{
-					success = call.StopCall();
-				}
-				else if (call.IsCalling())
-				{
-					ishangup = false;
-					success = call.CancelCall();
-				}
-			});
+		return false;
+	}
 
-			if (success)
+	bool Extender::HangupCall(std::shared_ptr<Call_ThS>& call_ths) noexcept
+	{
+		auto success = false;
+		auto ishangup = true;
+		PeerLUID pluid{ 0 };
+
+		call_ths->WithUniqueLock([&](auto& call)
+		{
+			pluid = call.GetPeerLUID();
+
+			if (call.IsInCall())
 			{
-				if (ishangup)
+				success = call.StopCall();
+			}
+			else if (call.IsCalling())
+			{
+				ishangup = false;
+				success = call.CancelCall();
+			}
+		});
+
+		if (success)
+		{
+			if (ishangup)
+			{
+				if (SendCallHangup(pluid))
 				{
-					if (SendCallHangup(pluid))
-					{
-						SLogInfo(SLogFmt(FGBrightCyan) << L"Hung up call to peer " << pluid << SLogFmt(Default));
-					}
-					else success = false;
+					SLogInfo(SLogFmt(FGBrightCyan) << L"Hung up call to peer " << pluid << SLogFmt(Default));
 				}
-				else
-				{
-					SLogInfo(SLogFmt(FGBrightCyan) << L"Cancelled call to peer " << pluid << SLogFmt(Default));
-				}
+				else success = false;
+			}
+			else
+			{
+				SLogInfo(SLogFmt(FGBrightCyan) << L"Cancelled call to peer " << pluid << SLogFmt(Default));
 			}
 		}
 
 		return success;
+	}
+
+	void Extender::HangupAllCalls() noexcept
+	{
+		m_Peers.WithSharedLock([&](auto& peers)
+		{
+			for (auto it = peers.begin(); it != peers.end(); ++it)
+			{
+				DiscardReturnValue(HangupCall(it->second->Call));
+			}
+		});
 	}
 
 	template<typename Func>
