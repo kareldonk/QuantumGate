@@ -54,6 +54,7 @@
 #define IDC_SENDNOISE                   1012
 #define IDC_CONNECT_RELAY               1012
 #define IDC_EXCLUDE_OUTBOUND_CHECK      1012
+#define IDC_SEND_DELAY                  1012
 #define IDC_SENDSTRESS                  1013
 #define IDC_HANDSHAKE_DELAY             1013
 #define IDC_HAS_TEST_EXTENDER           1013
@@ -65,6 +66,7 @@
 #define IDC_NUM_IPCON_ATTEMPTS          1015
 #define IDC_LOCALPEERID                 1016
 #define IDC_IPCON_ATTEMPTS_INTERVAL     1016
+#define IDC_SEND_PRIORITY               1016
 #define IDC_SENDPEERID                  1017
 #define IDC_SENDFILE                    1017
 #define IDC_IPREP_IMPROVE_INTERVAL      1017
@@ -175,6 +177,7 @@
 #define IDC_CHECK17                     1080
 #define IDC_INITIALIZE_AV2              1080
 #define IDC_INITIALIZE_AUDIO            1080
+#define IDC_PRIORITY_COMBO              1080
 #define IDC_CHECK18                     1081
 #define IDC_CHECK19                     1082
 #define IDC_CHECK20                     1083
@@ -268,7 +271,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
 #define _APS_NEXT_COMMAND_VALUE         32852
-#define _APS_NEXT_CONTROL_VALUE         1080
+#define _APS_NEXT_CONTROL_VALUE         1081
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

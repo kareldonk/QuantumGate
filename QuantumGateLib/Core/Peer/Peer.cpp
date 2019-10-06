@@ -407,7 +407,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		// messages above
 		if (HasSendEvents())
 		{
-			if (SendFromQueue())
+			if (SendFromQueues())
 			{
 				m_PeerData.WithUniqueLock()->Cached.BytesSent = GetBytesSent();
 			}
@@ -688,7 +688,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		// Note that noise messages don't get compressed because the data
 		// is random and doesn't get any smaller with compression; in addition
 		// their length shouldn't be changed anyway
-		return Send(MessageType::Noise, std::move(data), delay, false);
+		return Send(MessageType::Noise, std::move(data), SendParameters::PriorityOption::Delayed, delay, false);
 	}
 
 	bool Peer::SendNoise(const Size maxnum, const Size minsize, const Size maxsize)
@@ -708,7 +708,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return success;
 	}
 
-	bool Peer::Send(Message&& msg, const std::chrono::milliseconds delay)
+	bool Peer::Send(Message&& msg, const SendParameters::PriorityOption priority, const std::chrono::milliseconds delay)
 	{
 		if (!msg.IsValid()) return false;
 
@@ -717,21 +717,32 @@ namespace QuantumGate::Implementation::Core::Peer
 			m_PeerData.WithUniqueLock()->ExtendersBytesSent += msg.GetMessageData().GetSize();
 		}
 
-		if (delay.count() == 0) m_SendQueue.Push(std::move(msg));
-		else
+		switch (priority)
 		{
-			m_DelayedSendQueue.Push(DelayedMessage{ std::move(msg), Util::GetCurrentSteadyTime(), delay });
+			case SendParameters::PriorityOption::Normal:
+				m_SendQueue.Push(std::move(msg));
+				break;
+			case SendParameters::PriorityOption::Delayed:
+				m_DelayedSendQueue.Push(DelayedMessage{ std::move(msg), Util::GetCurrentSteadyTime(), delay });
+				break;
+			case SendParameters::PriorityOption::Expedited:
+				m_ExpeditedSendQueue.Push(std::move(msg));
+				break;
+			default:
+				// Shouldn't get here
+				assert(false);
+				break;
 		}
 
 		return true;
 	}
 
-	bool Peer::Send(const MessageType msgtype, Buffer&& buffer,
+	bool Peer::Send(const MessageType msgtype, Buffer&& buffer, const SendParameters::PriorityOption priority,
 					const std::chrono::milliseconds delay, const bool compress)
 	{
 		if (buffer.GetSize() <= Message::MaxMessageDataSize)
 		{
-			return Send(Message(MessageOptions(msgtype, std::move(buffer), compress)), delay);
+			return Send(Message(MessageOptions(msgtype, std::move(buffer), compress)), priority, delay);
 		}
 		else
 		{
@@ -756,7 +767,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 				else fragment = MessageFragmentType::PartialEnd;
 
-				if (Send(Message(MessageOptions(msgtype, snd_buf.GetFirst(snd_size), compress, fragment)), delay))
+				if (Send(Message(MessageOptions(msgtype, snd_buf.GetFirst(snd_size), compress, fragment)), priority, delay))
 				{
 					snd_buf.RemoveFirst(snd_size);
 					if (snd_buf.IsEmpty())
@@ -771,15 +782,14 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	bool Peer::SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
-								   const std::chrono::milliseconds maxdelay)
+	bool Peer::SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer, const std::chrono::milliseconds maxdelay)
 	{
 		const auto delay = std::chrono::milliseconds(Random::GetPseudoRandomNumber(0, maxdelay.count()));
 
-		return Send(msgtype, std::move(buffer), delay);
+		return Send(msgtype, std::move(buffer), SendParameters::PriorityOption::Delayed, delay);
 	}
 
-	bool Peer::SendFromQueue()
+	bool Peer::SendFromQueues()
 	{
 		// If the send buffer isn't empty yet
 		if (!m_SendBuffer.IsEmpty())
@@ -802,21 +812,15 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Buffer sndbuf;
 
-		while (!m_SendQueue.Empty() ||
+		while (!m_SendQueue.Empty() || !m_ExpeditedSendQueue.Empty() ||
 			(!m_DelayedSendQueue.Empty() && m_DelayedSendQueue.Front().IsTime()))
 		{
 			auto msg = MessageTransport(m_MessageTransportDataSizeSettings, settings);
 
-			Buffer nonce;
-			std::shared_ptr<Crypto::SymmetricKeyData> symkey(nullptr);
-
 			// Get the last key we have available to encrypt messages;
 			// if we don't have one an autogen key will be used if it's allowed
-			auto retval = m_Keys.GetEncryptionKeyAndNonce(msg.GetMessageNonceSeed(),
-														  GetConnectionType(), IsAutoGenKeyAllowed());
-			symkey = std::move(retval.first);
-			nonce = std::move(retval.second);
-
+			const auto& [symkey, nonce] = m_Keys.GetEncryptionKeyAndNonce(msg.GetMessageNonceSeed(),
+																		  GetConnectionType(), IsAutoGenKeyAllowed());
 			if (symkey == nullptr)
 			{
 				LogErr(L"Could not get symmetric key to encrypt message");
@@ -825,7 +829,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			Buffer msgbuf;
 
-			const auto&[success, nummsg] = GetMessagesFromSendQueue(msgbuf, *symkey);
+			const auto& [success, nummsg] = GetMessagesFromSendQueues(msgbuf, *symkey);
 			if (!success) return false;
 
 			if (nummsg > 0)
@@ -900,19 +904,25 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	const std::pair<bool, Size> Peer::GetMessagesFromSendQueue(Buffer& buffer, const Crypto::SymmetricKeyData& symkey)
+	std::pair<bool, Size> Peer::GetMessagesFromSendQueues(Buffer& buffer, const Crypto::SymmetricKeyData& symkey)
 	{
+		// Expedited queue messages always go first
+		if (!m_ExpeditedSendQueue.Empty())
+		{
+			return GetMessagesFromExpeditedSendQueue(buffer, symkey);
+		}
+
 		auto success = true;
 		auto stop = false;
 		Size num{ 0 };
+
+		Buffer tempbuf;
 
 		// We keep filling the message transport buffer as much as possible
 		// for efficiency when allowed; note that priority is given to
 		// normal messages and delayed messages (noise etc.) get sent when
 		// there's room left in the message transport buffer. This is to
 		// give priority and bandwidth to real traffic when it's busy
-
-		Buffer tempbuf;
 
 		while (!m_SendQueue.Empty())
 		{
@@ -1005,6 +1015,34 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::make_pair(success, num);
 	}
 
+	std::pair<bool, Size> Peer::GetMessagesFromExpeditedSendQueue(Buffer& buffer, const Crypto::SymmetricKeyData& symkey)
+	{
+		assert(!m_ExpeditedSendQueue.Empty());
+
+		auto success = true;
+		Size num{ 0 };
+
+		// Note that we only send one message with every message transport
+		// and don't concatenate messages in order to minimize delays both
+		// in processing and in transmission. Obviously less efficient but
+		// this is a tradeoff when speed is needed such as in real-time
+		// communications
+
+		auto& msg = m_ExpeditedSendQueue.Front();
+		if (msg.Write(buffer, symkey))
+		{
+			m_ExpeditedSendQueue.Pop();
+
+			++num;
+		}
+		else
+		{
+			success = false;
+		}
+
+		return std::make_pair(success, num);
+	}
+
 	bool Peer::ReceiveAndProcess()
 	{
 		auto success = true;
@@ -1041,7 +1079,7 @@ namespace QuantumGate::Implementation::Core::Peer
 													m_MessageTransportDataSizeSettings,
 													m_ReceiveBuffer, msgbuf) == MessageTransportCheck::CompleteMessage)
 				{
-					const auto&[retval, nump, nrndplen] = ProcessMessage(msgbuf, settings);
+					const auto& [retval, nump, nrndplen] = ProcessMessage(msgbuf, settings);
 					if (retval)
 					{
 						num += nump;
@@ -1082,7 +1120,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return success;
 	}
 
-	const std::tuple<bool, Size, UInt16> Peer::ProcessMessage(const BufferView msgbuf, const Settings& settings)
+	std::tuple<bool, Size, UInt16> Peer::ProcessMessage(const BufferView msgbuf, const Settings& settings)
 	{
 		const auto nonce_seed = MessageTransport::GetNonceSeedFromBuffer(msgbuf);
 		if (nonce_seed)
@@ -1093,8 +1131,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			while (true)
 			{
-				const auto&[symkey, nonce] = m_Keys.GetDecryptionKeyAndNonce(keynum, *nonce_seed,
-																			 GetConnectionType(), IsAutoGenKeyAllowed());
+				const auto& [symkey, nonce] = m_Keys.GetDecryptionKeyAndNonce(keynum, *nonce_seed,
+																			  GetConnectionType(), IsAutoGenKeyAllowed());
 
 				// The next time we'll try the next
 				// key we have until we run out
@@ -1106,7 +1144,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 					Dbg(L"Receive buffer: %d bytes - %s", msgbuf.GetSize(), Util::ToBase64(msgbuf)->c_str());
 
-					const auto&[retval, retry] = msg.Read(msgbuf, *symkey, nonce);
+					const auto& [retval, retry] = msg.Read(msgbuf, *symkey, nonce);
 					if (retval && msg.IsValid())
 					{
 						// MessageTransport counter should match the expected message counter
@@ -1161,7 +1199,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::make_tuple(false, Size{ 0 }, UInt16{ 0 });
 	}
 
-	const std::pair<bool, Size> Peer::ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey)
+	std::pair<bool, Size> Peer::ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey)
 	{
 		auto success = true;
 		auto invalid_msg = false;
@@ -1692,7 +1730,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		GetExtenderManager().OnPeerEvent(extuuids, Event(etype, GetLUID(), GetLocalUUID()));
 	}
 
-	const std::pair<bool, bool> Peer::ProcessMessage(MessageDetails&& msg)
+	std::pair<bool, bool> Peer::ProcessMessage(MessageDetails&& msg)
 	{
 		if (IsReady() && msg.GetMessageType() == MessageType::ExtenderCommunication)
 		{

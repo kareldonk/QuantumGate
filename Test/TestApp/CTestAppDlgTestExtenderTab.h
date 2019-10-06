@@ -50,10 +50,11 @@ protected:
 	void LoadStressExtender();
 	void UnloadStressExtender();
 
-	bool SendMsgToPeer(PeerLUID pluid, CString txt);
+	bool SendMsgToPeer(const PeerLUID pluid, const std::wstring& txt,
+					   const QuantumGate::SendParameters::PriorityOption priority, const std::chrono::milliseconds delay);
 	void StartSendThread();
 	void StopSendThread();
-	static void SendThreadProc(CTestAppDlgTestExtenderTab* dlg, int interval, PeerLUID pluid, CString txt);
+	static void SendThreadProc(CTestAppDlgTestExtenderTab* dlg, const int interval, const PeerLUID pluid, const CString txt);
 
 	inline void SetStressExtenderExceptionTest(bool* test) const noexcept { *test = !(*test); }
 	void UpdateStressExtenderExceptionTest(CCmdUI* pCmdUI, const bool test) const noexcept;
@@ -104,4 +105,6 @@ private:
 
 	std::atomic_bool m_SendThreadStop{ false };
 	std::unique_ptr<std::thread> m_SendThread;
+public:
+	afx_msg void OnBnClickedSendPriority();
 };

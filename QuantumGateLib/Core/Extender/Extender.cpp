@@ -46,7 +46,17 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		assert(IsRunning());
 
-		return m_Local.load()->SendTo(GetUUID(), m_Running, pluid, std::move(buffer), compress);
+		SendParameters params;
+		params.Compress = compress;
+
+		return m_Local.load()->SendTo(GetUUID(), m_Running, pluid, std::move(buffer), params);
+	}
+
+	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const
+	{
+		assert(IsRunning());
+
+		return m_Local.load()->SendTo(GetUUID(), m_Running, pluid, std::move(buffer), params);
 	}
 
 	Result<PeerDetails> Extender::GetPeerDetails(const PeerLUID pluid) const noexcept

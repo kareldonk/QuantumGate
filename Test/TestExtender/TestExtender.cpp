@@ -789,14 +789,20 @@ namespace TestExtender
 		return false;
 	}
 
-	bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg) const
+	bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg, const SendParameters::PriorityOption priority,
+							   const std::chrono::milliseconds delay) const
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::MessageString);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, msg))
 		{
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
+			SendParameters params;
+			params.Compress = m_UseCompression;
+			params.Priority = priority;
+			params.Delay = delay;
+
+			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), params).Succeeded()) return true;
 
 			LogErr(L"Could not send message to peer");
 		}

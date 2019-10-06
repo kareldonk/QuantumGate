@@ -344,6 +344,18 @@ namespace QuantumGate
 		} Relay;
 	};
 
+	struct SendParameters
+	{
+		enum class PriorityOption : UInt8
+		{
+			Normal, Delayed, Expedited
+		};
+
+		bool Compress{ true };
+		PriorityOption Priority{ PriorityOption::Normal };
+		std::chrono::milliseconds Delay{ 0 };
+	};
+
 	struct PeerQueryParameters
 	{
 		enum class RelayOption

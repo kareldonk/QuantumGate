@@ -967,7 +967,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							 PeerLUID pluid, Buffer&& buffer, const bool compress)
+							 PeerLUID pluid, Buffer&& buffer, const SendParameters& params)
 	{
 		auto result_code = ResultCode::Failed;
 
@@ -985,7 +985,8 @@ namespace QuantumGate::Implementation::Core::Peer
 						if (running)
 						{
 							if (peer.Send(Message(MessageOptions(MessageType::ExtenderCommunication,
-																 extuuid, std::move(buffer), compress))))
+																 extuuid, std::move(buffer), params.Compress)),
+										  params.Priority, params.Delay))
 							{
 								result_code = ResultCode::Succeeded;
 							}

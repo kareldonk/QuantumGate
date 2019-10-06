@@ -111,7 +111,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		inline bool IsInHandshake() const noexcept
 		{
-			return (GetStatus() > Status::Connected && GetStatus() < Status::Ready);
+			return (GetStatus() > Status::Connected&& GetStatus() < Status::Ready);
 		}
 
 		[[nodiscard]] inline bool IsAuthenticated() const noexcept { return m_PeerData.WithSharedLock()->IsAuthenticated; }
@@ -139,8 +139,10 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		inline MessageProcessor& GetMessageProcessor() noexcept { return m_MessageProcessor; }
 
-		[[nodiscard]] bool Send(Message&& msg, const std::chrono::milliseconds delay = std::chrono::milliseconds(0));
+		[[nodiscard]] bool Send(Message&& msg, const SendParameters::PriorityOption priority = SendParameters::PriorityOption::Normal,
+								const std::chrono::milliseconds delay = std::chrono::milliseconds(0));
 		[[nodiscard]] bool Send(const MessageType msgtype, Buffer&& buffer,
+								const SendParameters::PriorityOption priority = SendParameters::PriorityOption::Normal,
 								const std::chrono::milliseconds delay = std::chrono::milliseconds(0),
 								const bool compress = true);
 		[[nodiscard]] bool SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
@@ -244,22 +246,24 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] inline bool HasSendEvents() noexcept
 		{
 			return (GetIOStatus().CanWrite() && !IsFlagSet(Flags::SendDisabled) &&
-				(m_SendBuffer.IsEventSet() || m_SendQueue.Event().IsSet() ||
+				(m_SendBuffer.IsEventSet() || m_SendQueue.Event().IsSet() || m_ExpeditedSendQueue.Event().IsSet() ||
 					(m_DelayedSendQueue.Event().IsSet() && m_DelayedSendQueue.Front().IsTime())));
 		}
 
-		[[nodiscard]] bool SendFromQueue();
-		[[nodiscard]] const std::pair<bool, Size> GetMessagesFromSendQueue(Buffer& buffer,
-																		   const Crypto::SymmetricKeyData& symkey);
+		[[nodiscard]] bool SendFromQueues();
+		[[nodiscard]] std::pair<bool, Size> GetMessagesFromSendQueues(Buffer& buffer,
+																	  const Crypto::SymmetricKeyData& symkey);
+		[[nodiscard]] std::pair<bool, Size> GetMessagesFromExpeditedSendQueue(Buffer& buffer,
+																			  const Crypto::SymmetricKeyData& symkey);
 
 		[[nodiscard]] bool ReceiveAndProcess();
-		[[nodiscard]] const std::tuple<bool, Size, UInt16> ProcessMessage(const BufferView msgbuf,
-																		  const Settings& settings);
-		[[nodiscard]] const std::pair<bool, Size> ProcessMessages(BufferView buffer,
-																  const Crypto::SymmetricKeyData& symkey);
+		[[nodiscard]] std::tuple<bool, Size, UInt16> ProcessMessage(const BufferView msgbuf,
+																	const Settings& settings);
+		[[nodiscard]] std::pair<bool, Size> ProcessMessages(BufferView buffer,
+															const Crypto::SymmetricKeyData& symkey);
 
 		[[nodiscard]] bool ProcessMessage(Message& msg);
-		[[nodiscard]] const std::pair<bool, bool> ProcessMessage(MessageDetails&& msg);
+		[[nodiscard]] std::pair<bool, bool> ProcessMessage(MessageDetails&& msg);
 
 		void ProcessEvent(const PeerEventType etype) noexcept;
 		void ProcessEvent(const Vector<ExtenderUUID>& extuuids, const PeerEventType etype) noexcept;
@@ -306,6 +310,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		ExtenderUUIDs m_PeerExtenderUUIDs;
 
 		MessageQueue m_SendQueue;
+		MessageQueue m_ExpeditedSendQueue;
 		DelayedMessageQueue m_DelayedSendQueue;
 
 		EventBuffer m_ReceiveBuffer;

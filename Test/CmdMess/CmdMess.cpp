@@ -175,17 +175,21 @@ bool Send(const shared_ptr<TestExtender::Extender>& extender, const wstring& plu
 
 	auto success = true;
 	auto begin = chrono::high_resolution_clock::now();
+	
+	String txt;
 
 	for (int x = 0; x < nmess; ++x)
 	{
-		String txt = msg;
+		txt = msg;
 
 		if (nmess > 1)
 		{
-			txt += L" " + Util::FormatString(L"#%d", x);
+			txt += Util::FormatString(L" #%d", x);
 		}
 
-		if (!extender->SendMessage(pluid, txt))
+		if (!extender->SendMessage(pluid, txt,
+								   QuantumGate::SendParameters::PriorityOption::Normal,
+								   std::chrono::milliseconds(0)))
 		{
 			LogErr(L"Could not send message %d to peer", x);
 			success = false;

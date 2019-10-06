@@ -53,6 +53,11 @@ namespace QuantumGate::API
 		return m_Extender->SendMessageTo(pluid, std::move(buffer), compress);
 	}
 
+	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const
+	{
+		return m_Extender->SendMessageTo(pluid, std::move(buffer), params);
+	}
+
 	const Size Extender::GetMaximumMessageDataSize() const noexcept
 	{
 		return m_Extender->GetMaximumMessageDataSize();

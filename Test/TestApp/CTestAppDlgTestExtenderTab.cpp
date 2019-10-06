@@ -35,6 +35,10 @@ void CTestAppDlgTestExtenderTab::UpdateControls() noexcept
 
 	GetDlgItem(IDC_SENDSTRESS)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
 	GetDlgItem(IDC_NUMSTRESSMESS)->EnableWindow(m_QuantumGate.IsRunning());
+
+	GetDlgItem(IDC_SEND_PRIORITY)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
+	GetDlgItem(IDC_PRIORITY_COMBO)->EnableWindow(m_QuantumGate.IsRunning());
+	GetDlgItem(IDC_SEND_DELAY)->EnableWindow(m_QuantumGate.IsRunning());
 }
 
 void CTestAppDlgTestExtenderTab::DoDataExchange(CDataExchange* pDX)
@@ -80,6 +84,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlgTestExtenderTab, CTabBase)
 	ON_UPDATE_COMMAND_UI(ID_EXCEPTIONTEST_PEERMESSAGE, &CTestAppDlgTestExtenderTab::OnUpdateExceptiontestPeermessage)
 	ON_BN_CLICKED(IDC_BROWSE, &CTestAppDlgTestExtenderTab::OnBnClickedBrowse)
 	ON_BN_CLICKED(IDC_AUTO_SENDFILE, &CTestAppDlgTestExtenderTab::OnBnClickedAutoSendfile)
+	ON_BN_CLICKED(IDC_SEND_PRIORITY, &CTestAppDlgTestExtenderTab::OnBnClickedSendPriority)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlgTestExtenderTab::OnInitDialog()
@@ -89,6 +94,7 @@ BOOL CTestAppDlgTestExtenderTab::OnInitDialog()
 	SetValue(IDC_SENDTEXT, L"Hello world");
 	SetValue(IDC_SENDSECONDS, L"10");
 	SetValue(IDC_NUMSTRESSMESS, L"100000");
+	SetValue(IDC_SEND_DELAY, L"2000");
 
 	auto lctrl = (CListCtrl*)GetDlgItem(IDC_FILETRANSFER_LIST);
 	lctrl->SetExtendedStyle(LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);
@@ -96,6 +102,16 @@ BOOL CTestAppDlgTestExtenderTab::OnInitDialog()
 	lctrl->InsertColumn(1, _T("Filename"), LVCFMT_LEFT, GetApp()->GetScaledWidth(200));
 	lctrl->InsertColumn(2, _T("Progress"), LVCFMT_LEFT, GetApp()->GetScaledWidth(75));
 	lctrl->InsertColumn(3, _T("Status"), LVCFMT_LEFT, GetApp()->GetScaledWidth(100));
+
+	// Init send priority combo
+	const auto tcombo = (CComboBox*)GetDlgItem(IDC_PRIORITY_COMBO);
+	auto pos = tcombo->AddString(L"Normal");
+	tcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::SendParameters::PriorityOption::Normal));
+	pos = tcombo->AddString(L"Delayed");
+	tcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::SendParameters::PriorityOption::Delayed));
+	pos = tcombo->AddString(L"Expedited");
+	tcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::SendParameters::PriorityOption::Expedited));
+	tcombo->SelectString(0, L"Normal");
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // EXCEPTION: OCX Property Pages should return FALSE
@@ -249,7 +265,31 @@ void CTestAppDlgTestExtenderTab::UpdateStressExtenderExceptionTest(CCmdUI* pCmdU
 
 void CTestAppDlgTestExtenderTab::OnBnClickedSendbutton()
 {
-	SendMsgToPeer(*m_SelectedPeerLUID, GetTextValue(IDC_SENDTEXT));
+	SendMsgToPeer(*m_SelectedPeerLUID, GetTextValue(IDC_SENDTEXT).GetString(),
+				  QuantumGate::SendParameters::PriorityOption::Normal, std::chrono::milliseconds(0));
+}
+
+void CTestAppDlgTestExtenderTab::OnBnClickedSendPriority()
+{
+	const auto combo = (CComboBox*)GetDlgItem(IDC_PRIORITY_COMBO);
+
+	const auto sel = combo->GetCurSel();
+	if (sel == CB_ERR)
+	{
+		AfxMessageBox(L"Please select a signing algorithm first.", MB_ICONINFORMATION);
+		return;
+	}
+
+	const auto priority = static_cast<QuantumGate::SendParameters::PriorityOption>(combo->GetItemData(sel));
+
+	const auto delay = GetTextValue(IDC_SEND_DELAY);
+	int ndelay{ 0 };
+	if (delay.GetLength() > 0)
+	{
+		ndelay = _wtoi((LPCWSTR)delay);
+	}
+
+	SendMsgToPeer(*m_SelectedPeerLUID, GetTextValue(IDC_SENDTEXT).GetString(), priority, std::chrono::milliseconds(ndelay));
 }
 
 void CTestAppDlgTestExtenderTab::OnBnClickedSendcheck()
@@ -296,21 +336,23 @@ void CTestAppDlgTestExtenderTab::StopSendThread()
 	}
 }
 
-void CTestAppDlgTestExtenderTab::SendThreadProc(CTestAppDlgTestExtenderTab* dlg, int interval,
-												PeerLUID pluid, CString txt)
+void CTestAppDlgTestExtenderTab::SendThreadProc(CTestAppDlgTestExtenderTab* dlg, const int interval,
+												const PeerLUID pluid, CString txt)
 {
 	while (!dlg->m_SendThreadStop)
 	{
-		dlg->SendMsgToPeer(pluid, txt);
+		dlg->SendMsgToPeer(pluid, txt.GetString(), QuantumGate::SendParameters::PriorityOption::Normal, std::chrono::milliseconds(0));
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(interval));
 	}
 }
 
-bool CTestAppDlgTestExtenderTab::SendMsgToPeer(PeerLUID pluid, CString txt)
+bool CTestAppDlgTestExtenderTab::SendMsgToPeer(const PeerLUID pluid, const std::wstring& txt,
+											   const QuantumGate::SendParameters::PriorityOption priority,
+											   const std::chrono::milliseconds delay)
 {
-	if (m_UseStressExtender) return m_StressExtender->SendMessage(pluid, txt.GetString());
-	else if (m_TestExtender != nullptr) return m_TestExtender->SendMessage(pluid, txt.GetString());
+	if (m_UseStressExtender) return m_StressExtender->SendMessage(pluid, txt, priority, delay);
+	else if (m_TestExtender != nullptr) return m_TestExtender->SendMessage(pluid, txt, priority, delay);
 
 	return false;
 }
@@ -411,7 +453,6 @@ void CTestAppDlgTestExtenderTab::OnBnClickedSendStress()
 {
 	if (m_TestExtender == nullptr) return;
 
-	CString txt;
 	const auto pluid = *m_SelectedPeerLUID;
 
 	const auto txto = GetTextValue(IDC_SENDTEXT);
@@ -425,13 +466,17 @@ void CTestAppDlgTestExtenderTab::OnBnClickedSendStress()
 
 	if (!m_TestExtender->SendBenchmarkStart(pluid)) return;
 
+	std::wstring txt;
+
 	for (int x = 0; x < nmess; ++x)
 	{
 		try
 		{
-			txt = txto + L" " + Util::FormatString(L"#%d", x).c_str();
+			txt = Util::FormatString(L"%s #%d", txto.GetString(), x);
 
-			if (!m_TestExtender->SendMessage(pluid, txt.GetString()))
+			if (!m_TestExtender->SendMessage(pluid, txt,
+											 QuantumGate::SendParameters::PriorityOption::Normal,
+											 std::chrono::milliseconds(0)))
 			{
 				LogErr(L"Could not send message %d to peer", x);
 				break;
@@ -677,3 +722,4 @@ void CTestAppDlgTestExtenderTab::OnBnClickedAutoSendfile()
 
 	m_TestExtender->SendFile(*m_SelectedPeerLUID, path.GetString(), true);
 }
+

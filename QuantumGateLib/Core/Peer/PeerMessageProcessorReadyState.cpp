@@ -78,7 +78,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				// Note that relayed data doesn't get compressed (again) because
 				// it is mostly encrypted and random looking so it wouldn't compress well
-				if (m_Peer.Send(MessageType::RelayData, wrt.MoveWrittenBytes(), 0ms, false))
+				if (m_Peer.Send(MessageType::RelayData, wrt.MoveWrittenBytes(),
+								SendParameters::PriorityOption::Normal, 0ms, false))
 				{
 					return true;
 				}

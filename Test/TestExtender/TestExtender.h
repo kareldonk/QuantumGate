@@ -143,7 +143,8 @@ namespace TestExtender
 		inline void SetUseCompression(const bool compression) noexcept { m_UseCompression = compression; }
 		inline bool IsUsingCompression() const noexcept { return m_UseCompression; }
 
-		bool SendMessage(const PeerLUID pluid, const std::wstring& msg) const;
+		bool SendMessage(const PeerLUID pluid, const std::wstring& msg, const SendParameters::PriorityOption priority,
+						 const std::chrono::milliseconds delay) const;
 
 		bool SendBenchmarkStart(const PeerLUID pluid);
 		bool SendBenchmarkEnd(const PeerLUID pluid);

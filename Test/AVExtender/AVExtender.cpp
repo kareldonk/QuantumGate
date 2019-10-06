@@ -676,7 +676,22 @@ namespace QuantumGate::AVExtender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, timestamp, WithSize(data, GetMaximumMessageDataSize())))
 		{
-			return SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded();
+			SendParameters params;
+
+			switch (type)
+			{
+				case MessageType::AudioSample:
+					params.Priority = SendParameters::PriorityOption::Expedited;
+					break;
+				case MessageType::VideoSample:
+					// default
+					break;
+				default:
+					assert(false);
+					break;
+			}
+
+			return SendMessageTo(pluid, writer.MoveWrittenBytes(), params).Succeeded();
 		}
 		else LogErr(L"Failed to prepare message for peer %llu", pluid);
 

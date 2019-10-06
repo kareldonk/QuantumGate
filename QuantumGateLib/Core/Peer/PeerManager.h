@@ -83,7 +83,7 @@ namespace QuantumGate::Implementation::Core::Peer
 								DisconnectCallback&& function) noexcept;
 
 		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-						const PeerLUID pluid, Buffer&& buffer, const bool compress);
+						const PeerLUID pluid, Buffer&& buffer, const SendParameters& params);
 
 		Result<> Broadcast(const MessageType msgtype, const Buffer& buffer, BroadcastCallback&& callback);
 

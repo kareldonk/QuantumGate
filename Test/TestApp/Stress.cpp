@@ -263,7 +263,9 @@ void Stress::MultiInstanceStressThreadProc()
 					for (Int64 y = 0; y < num_msg; ++y)
 					{
 						extenders[x]->SendMessageW(pluids[0],
-												   messages[static_cast<size_t>(Util::GetPseudoRandomNumber(0, messages.size() - 1))]);
+												   messages[static_cast<size_t>(Util::GetPseudoRandomNumber(0, messages.size() - 1))],
+												   QuantumGate::SendParameters::PriorityOption::Normal,
+												   std::chrono::milliseconds(0));
 					}
 				}
 			}

@@ -160,14 +160,20 @@ namespace StressExtender
 		return std::make_pair(handled, success);
 	}
 
-	bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg) const
+	bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg, const SendParameters::PriorityOption priority,
+							   const std::chrono::milliseconds delay) const
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::MessageString);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, msg))
 		{
-			if (const auto result = SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression); result.Failed())
+			SendParameters params;
+			params.Compress = m_UseCompression;
+			params.Priority = priority;
+			params.Delay = delay;
+
+			if (const auto result = SendMessageTo(pluid, writer.MoveWrittenBytes(), params); result.Failed())
 			{
 				LogErr(L"Could not send message to peer (%s)", result.GetErrorString().c_str());
 				return false;
@@ -240,7 +246,11 @@ namespace StressExtender
 
 		for (auto x = 0u; x < 100'000u; ++x)
 		{
-			if (!SendMessage(pluid, L"Hello world")) return false;
+			if (!SendMessage(pluid, L"Hello world",
+							 QuantumGate::SendParameters::PriorityOption::Normal, std::chrono::milliseconds(0)))
+			{
+				return false;
+			}
 		}
 
 		if (!SendBenchmarkEnd(pluid)) return false;

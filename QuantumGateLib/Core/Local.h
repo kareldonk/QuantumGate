@@ -119,7 +119,7 @@ namespace QuantumGate::Implementation::Core
 		bool ValidateSecurityParameters(const SecurityParameters& params) const noexcept;
 
 		Result<> SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running,
-						const PeerLUID id, Buffer&& buffer, const bool compress);
+						const PeerLUID id, Buffer&& buffer, const SendParameters& params);
 
 		void ProcessEvent(const Events::LocalEnvironmentChange& event) noexcept;
 		void ProcessEvent(const Events::UnhandledExtenderException& event) noexcept;
