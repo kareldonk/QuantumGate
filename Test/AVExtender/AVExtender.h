@@ -90,6 +90,8 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] bool HangupCall(std::shared_ptr<Call_ThS>& call_ths) noexcept;
 
+		void StopAllCalls() noexcept;
+
 		[[nodiscard]] bool SendSimpleMessage(const PeerLUID pluid, const MessageType type, const BufferView data = {});
 		[[nodiscard]] bool SendCallRequest(const PeerLUID pluid, const bool send_audio, const bool send_video);
 		[[nodiscard]] bool SendCallAccept(const PeerLUID pluid, const bool send_audio, const bool send_video);

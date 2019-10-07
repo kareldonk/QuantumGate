@@ -87,7 +87,10 @@ void CTestAppDlg::UpdateControls()
 {
 	m_MainTab.UpdateControls();
 	m_TestExtenderTab.UpdateControls();
+
+#ifdef INCLUDE_AVEXTENDER	
 	m_AVExtenderTab.UpdateControls();
+#endif
 }
 
 BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
@@ -231,11 +234,14 @@ void CTestAppDlg::InitializeTabCtrl()
 
 	m_MainTab.Create(IDD_QGTESTAPP_DIALOG_MAIN_TAB, tabctrl);
 	m_TestExtenderTab.Create(IDD_QGTESTAPP_DIALOG_TESTEXTENDER_TAB, tabctrl);
-	m_AVExtenderTab.Create(IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB, tabctrl);
 
 	tabctrl->InsertItem(0, L"Main");
 	tabctrl->InsertItem(1, L"Test Extender");
+
+#ifdef INCLUDE_AVEXTENDER
+	m_AVExtenderTab.Create(IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB, tabctrl);
 	tabctrl->InsertItem(2, L"AV Extender");
+#endif
 
 	UpdateTabCtrl();
 }
@@ -260,21 +266,27 @@ void CTestAppDlg::UpdateTabCtrl()
 		case 0:
 			m_MainTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_SHOWWINDOW);
 			m_TestExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
+#ifdef INCLUDE_AVEXTENDER
 			m_AVExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
+#endif
 			m_MainTab.GotoDlgCtrl(m_MainTab.GetDlgItem(IDC_SERVERPORT));
 			break;
 		case 1:
 			m_TestExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_SHOWWINDOW);
 			m_MainTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
+#ifdef INCLUDE_AVEXTENDER
 			m_AVExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
+#endif
 			m_TestExtenderTab.GotoDlgCtrl(m_TestExtenderTab.GetDlgItem(IDC_PEERLIST));
 			break;
+#ifdef INCLUDE_AVEXTENDER
 		case 2:
 			m_MainTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
 			m_TestExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
 			m_AVExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_SHOWWINDOW);
 			m_AVExtenderTab.GotoDlgCtrl(m_AVExtenderTab.GetDlgItem(IDC_PEERLIST));
 			break;
+#endif
 		default:
 			assert(false);
 			break;
@@ -294,7 +306,9 @@ BOOL CTestAppDlg::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO
 	{
 		if (m_MainTab.OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) return TRUE;
 		else if (m_TestExtenderTab.OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) return TRUE;
+#ifdef INCLUDE_AVEXTENDER
 		else if (m_AVExtenderTab.OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) return TRUE;
+#endif
 	}
 
 	return CDialogBase::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
@@ -305,7 +319,9 @@ BOOL CTestAppDlg::PreTranslateMessage(MSG* pMsg)
 	// Check first if tabs can handle the message
 	if (m_MainTab.PreTranslateMessage(pMsg)) return TRUE;
 	else if (m_TestExtenderTab.PreTranslateMessage(pMsg)) return TRUE;
+#ifdef INCLUDE_AVEXTENDER
 	else if (m_AVExtenderTab.PreTranslateMessage(pMsg)) return TRUE;
+#endif
 
 	return CDialogBase::PreTranslateMessage(pMsg);
 }
@@ -687,7 +703,9 @@ void CTestAppDlg::OnClose()
 {
 	if (m_QuantumGate.IsRunning())
 	{
+#ifdef INCLUDE_AVEXTENDER
 		m_AVExtenderTab.OnPreDeinitializeQuantumGate();
+#endif
 
 		OnLocalDeinitialize();
 	}

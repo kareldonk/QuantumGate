@@ -31,6 +31,10 @@ CTestAppApp* GetApp() noexcept { return &theApp; }
 
 BOOL CTestAppApp::InitInstance()
 {
+#ifdef INCLUDE_AVEXTENDER
+	DiscardReturnValue(QuantumGate::AVExtender::CaptureDevices::Startup());
+#endif
+
 	// InitCommonControlsEx() is required on Windows XP if an application
 	// manifest specifies use of ComCtl32.dll version 6 or later to enable
 	// visual styles.  Otherwise, any window creation will fail.
@@ -74,6 +78,10 @@ BOOL CTestAppApp::InitInstance()
 	{
 		delete pShellManager;
 	}
+
+#ifdef INCLUDE_AVEXTENDER
+	DiscardReturnValue(QuantumGate::AVExtender::CaptureDevices::Shutdown());
+#endif
 
 	// Since the dialog has been closed, return FALSE so that we exit the
 	//  application, rather than start the application's message pump.

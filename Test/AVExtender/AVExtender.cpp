@@ -60,19 +60,7 @@ namespace QuantumGate::AVExtender
 	{
 		LogDbg(L"%s: will begin shutting down...", GetName().c_str());
 
-		m_Peers.WithSharedLock([&](auto& peers)
-		{
-			for (auto it = peers.begin(); it != peers.end(); ++it)
-			{
-				const Peer& peer = *it->second;
-
-				auto call = peer.Call->WithUniqueLock();
-				if (!call->IsDisconnected())
-				{
-					DiscardReturnValue(call->StopCall());
-				}
-			}
-		});
+		StopAllCalls();
 
 		StopAudioSourceReader();
 		StopVideoSourceReader();
@@ -613,6 +601,23 @@ namespace QuantumGate::AVExtender
 		}
 
 		return success;
+	}
+
+	void Extender::StopAllCalls() noexcept
+	{
+		m_Peers.WithSharedLock([&](auto& peers)
+		{
+			for (auto it = peers.begin(); it != peers.end(); ++it)
+			{
+				Peer& peer = *it->second;
+
+				auto call = peer.Call->WithUniqueLock();
+				if (!call->IsDisconnected())
+				{
+					DiscardReturnValue(call->StopCall());
+				}
+			}
+		});
 	}
 
 	void Extender::HangupAllCalls() noexcept

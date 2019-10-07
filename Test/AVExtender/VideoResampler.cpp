@@ -12,15 +12,11 @@ namespace QuantumGate::AVExtender
 	using namespace QuantumGate::Implementation;
 
 	VideoResampler::VideoResampler() noexcept
-	{
-		DiscardReturnValue(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
-	}
+	{}
 
 	VideoResampler::~VideoResampler()
 	{
 		Close();
-
-		CoUninitialize();
 	}
 
 	bool VideoResampler::Create(const Size width, const Size height,

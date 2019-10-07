@@ -9,7 +9,10 @@
 
 #include "CTestAppDlgMainTab.h"
 #include "CTestAppDlgTestExtenderTab.h"
+
+#ifdef INCLUDE_AVEXTENDER
 #include "CTestAppDlgAVExtenderTab.h"
+#endif
 
 #define WM_UPDATE_CONTROLS	(WM_USER+100)
 
@@ -137,7 +140,10 @@ protected:
 
 	CTestAppDlgMainTab m_MainTab{ m_QuantumGate };
 	CTestAppDlgTestExtenderTab m_TestExtenderTab{ m_QuantumGate };
+
+#ifdef INCLUDE_AVEXTENDER
 	CTestAppDlgAVExtenderTab m_AVExtenderTab{ m_QuantumGate };
+#endif
 
 	std::atomic_bool m_ConnectStressThreadStop{ false };
 	std::unique_ptr<std::thread> m_ConnectStressThread;

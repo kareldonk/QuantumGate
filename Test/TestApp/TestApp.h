@@ -7,6 +7,8 @@
 	#error "include 'stdafx.h' before including this file for PCH"
 #endif
 
+#define INCLUDE_AVEXTENDER
+
 #include "resource.h"		// main symbols
 #include "QuantumGate.h"
 

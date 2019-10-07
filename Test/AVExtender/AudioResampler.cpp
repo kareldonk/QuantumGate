@@ -12,15 +12,11 @@ namespace QuantumGate::AVExtender
 	using namespace QuantumGate::Implementation;
 
 	AudioResampler::AudioResampler() noexcept
-	{
-		DiscardReturnValue(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
-	}
+	{}
 
 	AudioResampler::~AudioResampler()
 	{
 		Close();
-
-		CoUninitialize();
 	}
 
 	bool AudioResampler::Create(const AudioFormat& in_settings, const AudioFormat& out_settings) noexcept

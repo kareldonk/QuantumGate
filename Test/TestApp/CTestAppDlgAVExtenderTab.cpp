@@ -15,14 +15,10 @@ IMPLEMENT_DYNAMIC(CTestAppDlgAVExtenderTab, CTabBase)
 
 CTestAppDlgAVExtenderTab::CTestAppDlgAVExtenderTab(QuantumGate::Local& local, CWnd* pParent /*=nullptr*/)
 	: CTabBase(IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB, pParent), m_QuantumGate(local)
-{
-	DiscardReturnValue(QuantumGate::AVExtender::CaptureDevices::Startup());
-}
+{}
 
 CTestAppDlgAVExtenderTab::~CTestAppDlgAVExtenderTab()
-{
-	DiscardReturnValue(QuantumGate::AVExtender::CaptureDevices::Shutdown());
-}
+{}
 
 void CTestAppDlgAVExtenderTab::DoDataExchange(CDataExchange* pDX)
 {

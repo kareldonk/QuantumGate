@@ -42,15 +42,11 @@ namespace QuantumGate::AVExtender
 
 	SourceReader::SourceReader(const CaptureDevice::Type type) noexcept :
 		m_Type(type), m_CaptureGUID(GetCaptureGUID(type)), m_StreamIndex(GetStreamIndex(type))
-	{
-		DiscardReturnValue(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
-	}
+	{}
 
 	SourceReader::~SourceReader()
 	{
 		Close();
-
-		CoUninitialize();
 	}
 
 	Result<CaptureDeviceVector> SourceReader::EnumCaptureDevices() const noexcept

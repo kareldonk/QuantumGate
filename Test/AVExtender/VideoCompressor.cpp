@@ -12,15 +12,11 @@ namespace QuantumGate::AVExtender
 	using namespace QuantumGate::Implementation;
 
 	VideoCompressor::VideoCompressor(const Type type) noexcept : m_Type(type)
-	{
-		DiscardReturnValue(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
-	}
+	{}
 
 	VideoCompressor::~VideoCompressor()
 	{
 		Close();
-
-		CoUninitialize();
 	}
 
 	bool VideoCompressor::Create(const Size width, const Size height, const GUID video_format) noexcept
