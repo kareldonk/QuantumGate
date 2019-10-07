@@ -92,6 +92,7 @@ protected:
 	afx_msg void OnUpdateExceptiontestPeermessage(CCmdUI* pCmdUI);
 	afx_msg void OnBnClickedBrowse();
 	afx_msg void OnBnClickedAutoSendfile();
+	afx_msg void OnBnClickedSendPriority();
 
 private:
 	QuantumGate::Local& m_QuantumGate;
@@ -105,6 +106,4 @@ private:
 
 	std::atomic_bool m_SendThreadStop{ false };
 	std::unique_ptr<std::thread> m_SendThread;
-public:
-	afx_msg void OnBnClickedSendPriority();
 };

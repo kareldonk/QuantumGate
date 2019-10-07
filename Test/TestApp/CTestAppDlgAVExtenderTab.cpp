@@ -64,8 +64,6 @@ BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 	UpdateVideoDeviceCombo();
 	UpdateAudioDeviceCombo();
 
-	auto test = new int[4000];
-
 	RECT rect{ 0 };
 	GetDlgItem(IDC_VIDEO_PREVIEW)->GetWindowRect(&rect);
 	ScreenToClient(&rect);
