@@ -4,9 +4,6 @@
 #pragma once
 
 #include "..\Algorithms.h"
-#include "..\Concurrency\ThreadSafe.h"
-
-#include <shared_mutex>
 
 namespace QuantumGate::Implementation::Crypto
 {
