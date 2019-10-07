@@ -8,8 +8,7 @@
 
 namespace QuantumGate::AVExtender
 {
-	VideoSourceReader::VideoSourceReader() noexcept
-		: SourceReader(CaptureDevice::Type::Video, MFVideoFormat_RGB24)
+	VideoSourceReader::VideoSourceReader() noexcept : SourceReader(CaptureDevice::Type::Video)
 	{}
 
 	VideoSourceReader::~VideoSourceReader()
@@ -56,11 +55,7 @@ namespace QuantumGate::AVExtender
 				hr = media_type->GetGUID(MF_MT_SUBTYPE, &subtype);
 				if (SUCCEEDED(hr))
 				{
-					if (subtype == MFVideoFormat_RGB24)
-					{
-						// For some reason MFVideoFormat_RGB24 has a BGR order
-						video_settings->Format = VideoFormat::PixelFormat::BGR24;
-					}
+					video_settings->Format = CaptureDevices::GetVideoFormat(subtype);
 
 					return AVResultCode::Succeeded;
 				}

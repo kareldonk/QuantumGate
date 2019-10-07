@@ -40,9 +40,8 @@ namespace QuantumGate::AVExtender
 		return 0;
 	}
 
-	SourceReader::SourceReader(const CaptureDevice::Type type, const GUID supported_format) noexcept :
-		m_Type(type), m_SupportedFormat(supported_format), m_CaptureGUID(GetCaptureGUID(type)),
-		m_StreamIndex(GetStreamIndex(type))
+	SourceReader::SourceReader(const CaptureDevice::Type type) noexcept :
+		m_Type(type), m_CaptureGUID(GetCaptureGUID(type)), m_StreamIndex(GetStreamIndex(type))
 	{
 		DiscardReturnValue(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
 	}
@@ -70,7 +69,7 @@ namespace QuantumGate::AVExtender
 		return AVResultCode::Failed;
 	}
 
-	Result<> SourceReader::Open(const WChar* device, SampleEventCallback&& event_callback) noexcept
+	Result<> SourceReader::Open(const WChar* device, const std::vector<GUID>& supported_formats, SampleEventCallback&& event_callback) noexcept
 	{
 		IMFAttributes* attributes{ nullptr };
 
@@ -109,7 +108,7 @@ namespace QuantumGate::AVExtender
 					hr = MFCreateDeviceSource(attributes, &source_reader_data->Source);
 					if (SUCCEEDED(hr))
 					{
-						auto result = CreateSourceReader(*source_reader_data);
+						auto result = CreateSourceReader(*source_reader_data, supported_formats);
 						if (result.Failed())
 						{
 							source_reader_data->Release();
@@ -147,7 +146,8 @@ namespace QuantumGate::AVExtender
 		m_SourceReaderData.WithUniqueLock()->Release();
 	}
 
-	Result<> SourceReader::CreateSourceReader(SourceReaderData& source_reader_data) noexcept
+	Result<> SourceReader::CreateSourceReader(SourceReaderData& source_reader_data,
+											  const std::vector<GUID>& supported_formats) noexcept
 	{
 		IMFAttributes* attributes{ nullptr };
 
@@ -170,7 +170,7 @@ namespace QuantumGate::AVExtender
 															 &source_reader_data.SourceReader);
 					if (SUCCEEDED(hr))
 					{
-						auto result = GetSupportedMediaType(source_reader_data.SourceReader);
+						auto result = GetSupportedMediaType(source_reader_data.SourceReader, supported_formats);
 						if (result.Succeeded())
 						{
 							auto& media_type = result->first;
@@ -204,7 +204,8 @@ namespace QuantumGate::AVExtender
 		return AVResultCode::Failed;
 	}
 
-	Result<std::pair<IMFMediaType*, GUID>> SourceReader::GetSupportedMediaType(IMFSourceReader* source_reader) noexcept
+	Result<std::pair<IMFMediaType*, GUID>> SourceReader::GetSupportedMediaType(IMFSourceReader* source_reader,
+																			   const std::vector<GUID>& supported_formats) noexcept
 	{
 		assert(source_reader != nullptr);
 
@@ -224,13 +225,16 @@ namespace QuantumGate::AVExtender
 				hr = media_type->GetGUID(MF_MT_SUBTYPE, &subtype);
 				if (SUCCEEDED(hr))
 				{
-					if (subtype == m_SupportedFormat)
+					for (const GUID& guid : supported_formats)
 					{
-						// We'll return the media type so
-						// the caller should release it
-						sg.Deactivate();
+						if (subtype == guid)
+						{
+							// We'll return the media type so
+							// the caller should release it
+							sg.Deactivate();
 
-						return std::make_pair(media_type, subtype);
+							return std::make_pair(media_type, subtype);
+						}
 					}
 				}
 			}

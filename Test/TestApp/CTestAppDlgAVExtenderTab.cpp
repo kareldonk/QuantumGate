@@ -179,8 +179,22 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 	{
 		const auto idx = vdcombo->GetItemData(sel);
 		const auto result = m_VideoSourceReader->Open(m_VideoCaptureDevices[idx].SymbolicLink,
+													  { MFVideoFormat_NV12, MFVideoFormat_RGB24 },
 													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnVideoSample));
-		if (result.Failed())
+		if (result.Succeeded())
+		{
+			const auto sample_settings = m_VideoSourceReader->GetSampleFormat();
+
+			if (!m_VideoResampler.WithUniqueLock()->Create(sample_settings.Width, sample_settings.Height,
+														   QuantumGate::AVExtender::CaptureDevices::GetMFVideoFormat(sample_settings.Format),
+														   MFVideoFormat_RGB24))
+			{
+				m_VideoSourceReader->Close();
+
+				AfxMessageBox(L"An error occured while trying to create the video resampler.", MB_ICONERROR);
+			}
+		}
+		else
 		{
 			CString error = L"An error occured while trying to open the video capture device '";
 			error += m_VideoCaptureDevices[idx].DeviceNameString;
@@ -195,25 +209,41 @@ void CTestAppDlgAVExtenderTab::OnVideoSample(const UInt64 timestamp, IMFSample* 
 {
 	const auto sample_settings = m_VideoSourceReader->GetSampleFormat();
 
-	IMFMediaBuffer* media_buffer{ nullptr };
+	auto fmt = m_VideoResampler.WithUniqueLock()->GetOutputFormat();
+	auto size = fmt.BytesPerPixel * fmt.Width * fmt.Height;
 
-	// Get the buffer from the sample
-	auto hr = sample->GetBufferByIndex(0, &media_buffer);
-	if (SUCCEEDED(hr))
+	auto result = QuantumGate::AVExtender::CaptureDevices::CreateMediaSample(size);
+	if (result.Succeeded())
 	{
-		// Release buffer when we exit this scope
-		const auto sg = MakeScopeGuard([&]() noexcept { QuantumGate::AVExtender::SafeRelease(&media_buffer); });
+		IMFSample* out_sample = result->first;
+		IMFMediaBuffer* media_buffer = result->second;
 
-		BYTE* in_data{ nullptr };
-		DWORD in_data_len{ 0 };
-
-		hr = media_buffer->Lock(&in_data, nullptr, &in_data_len);
-		if (SUCCEEDED(hr))
+		if (m_VideoResampler.WithUniqueLock()->Resample(sample, out_sample))
 		{
-			m_VideoWindow.Render(BufferView(reinterpret_cast<Byte*>(in_data), in_data_len), sample_settings);
+			//IMFMediaBuffer* media_buffer{ nullptr };
 
-			media_buffer->Unlock();
+			// Get the buffer from the sample
+			//auto hr = sample->GetBufferByIndex(0, &media_buffer);
+			//if (SUCCEEDED(hr))
+			{
+				// Release buffer when we exit this scope
+				const auto sg = MakeScopeGuard([&]() noexcept { QuantumGate::AVExtender::SafeRelease(&media_buffer); });
+
+				BYTE* in_data{ nullptr };
+				DWORD in_data_len{ 0 };
+
+				auto hr = media_buffer->Lock(&in_data, nullptr, &in_data_len);
+				if (SUCCEEDED(hr))
+				{
+					m_VideoWindow.Render(BufferView(reinterpret_cast<Byte*>(in_data), in_data_len), fmt);
+
+					media_buffer->Unlock();
+				}
+			}
 		}
+
+		QuantumGate::AVExtender::SafeRelease(&out_sample);
+		QuantumGate::AVExtender::SafeRelease(&media_buffer);
 	}
 }
 
@@ -224,7 +254,7 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio()
 	if (sel != CB_ERR)
 	{
 		const auto idx = vdcombo->GetItemData(sel);
-		const auto result = m_AudioSourceReader->Open(m_AudioCaptureDevices[idx].EndpointID,
+		const auto result = m_AudioSourceReader->Open(m_AudioCaptureDevices[idx].EndpointID, { MFAudioFormat_Float },
 													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnAudioSample));
 		if (result.Succeeded())
 		{

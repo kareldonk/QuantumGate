@@ -501,6 +501,8 @@
     <ClInclude Include="..\AVExtender\Common.h" />
     <ClInclude Include="..\AVExtender\Protocol.h" />
     <ClInclude Include="..\AVExtender\SourceReader.h" />
+    <ClInclude Include="..\AVExtender\VideoCompressor.h" />
+    <ClInclude Include="..\AVExtender\VideoResampler.h" />
     <ClInclude Include="..\AVExtender\VideoSourceReader.h" />
     <ClInclude Include="..\AVExtender\VideoWindow.h" />
     <ClInclude Include="..\Socks5Extender\Socks5Connection.h" />
@@ -545,6 +547,8 @@
     <ClCompile Include="..\AVExtender\Call.cpp" />
     <ClCompile Include="..\AVExtender\Common.cpp" />
     <ClCompile Include="..\AVExtender\SourceReader.cpp" />
+    <ClCompile Include="..\AVExtender\VideoCompressor.cpp" />
+    <ClCompile Include="..\AVExtender\VideoResampler.cpp" />
     <ClCompile Include="..\AVExtender\VideoSourceReader.cpp" />
     <ClCompile Include="..\AVExtender\VideoWindow.cpp" />
     <ClCompile Include="..\Socks5Extender\Socks5Connection.cpp" />

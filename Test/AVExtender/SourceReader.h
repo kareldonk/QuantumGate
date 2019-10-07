@@ -43,7 +43,7 @@ namespace QuantumGate::AVExtender
 
 		using SourceReaderData_ThS = Concurrency::ThreadSafe<SourceReaderData, std::shared_mutex>;
 
-		SourceReader(const CaptureDevice::Type type, const GUID supported_format) noexcept;
+		SourceReader(const CaptureDevice::Type type) noexcept;
 		SourceReader(const SourceReader&) = delete;
 		SourceReader(SourceReader&&) = delete;
 		virtual ~SourceReader();
@@ -52,7 +52,7 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] Result<CaptureDeviceVector> EnumCaptureDevices() const noexcept;
 
-		[[nodiscard]] Result<> Open(const WChar* device, SampleEventCallback&& event_callback) noexcept;
+		[[nodiscard]] Result<> Open(const WChar* device, const std::vector<GUID>& supported_formats, SampleEventCallback&& event_callback) noexcept;
 		[[nodiscard]] bool IsOpen() const noexcept;
 		void Close() noexcept;
 
@@ -72,14 +72,15 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] virtual Result<Size> GetBufferSize(IMFMediaType* media_type) noexcept;
 
 	private:
-		[[nodiscard]] Result<> CreateSourceReader(SourceReaderData& source_reader_data) noexcept;
+		[[nodiscard]] Result<> CreateSourceReader(SourceReaderData& source_reader_data,
+												  const std::vector<GUID>& supported_formats) noexcept;
 		[[nodiscard]] Result<> CreateReaderBuffer(SourceReaderData& source_reader_data, IMFMediaType* media_type) noexcept;
 
-		[[nodiscard]] Result<std::pair<IMFMediaType*, GUID>> GetSupportedMediaType(IMFSourceReader* source_reader) noexcept;
+		[[nodiscard]] Result<std::pair<IMFMediaType*, GUID>> GetSupportedMediaType(IMFSourceReader* source_reader,
+																				   const std::vector<GUID>& supported_formats) noexcept;
 
 	private:
 		const CaptureDevice::Type m_Type{ CaptureDevice::Type::Unknown };
-		const GUID m_SupportedFormat{ GUID_NULL };
 		const GUID m_CaptureGUID{ GUID_NULL };
 		const DWORD m_StreamIndex{ 0 };
 		SourceReaderData_ThS m_SourceReaderData;

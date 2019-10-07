@@ -199,6 +199,42 @@ namespace QuantumGate::AVExtender
 			return AVResultCode::Failed;
 		}
 
+		[[nodiscard]] static GUID GetMFVideoFormat(const VideoFormat::PixelFormat fmt) noexcept
+		{
+			switch (fmt)
+			{
+				case VideoFormat::PixelFormat::RGB24:
+					return MFVideoFormat_RGB24;
+				case VideoFormat::PixelFormat::NV12:
+					return MFVideoFormat_NV12;
+				case VideoFormat::PixelFormat::RGB32:
+					return MFVideoFormat_RGB32;
+				default:
+					assert(false);
+					break;
+			}
+
+			return GUID_NULL;
+		}
+
+		[[nodiscard]] static VideoFormat::PixelFormat GetVideoFormat(const GUID subtype) noexcept
+		{
+			if (subtype == MFVideoFormat_RGB24)
+			{
+				return VideoFormat::PixelFormat::RGB24;
+			}
+			else if (subtype == MFVideoFormat_NV12)
+			{
+				return VideoFormat::PixelFormat::NV12;
+			}
+			else if (subtype == MFVideoFormat_RGB32)
+			{
+				return VideoFormat::PixelFormat::RGB32;
+			}
+
+			return VideoFormat::PixelFormat::Unknown;
+		}
+
 	private:
 		[[nodiscard]] static Result<std::pair<UINT32, IMFActivate**>> GetCaptureDevices(const CaptureDevice::Type type) noexcept
 		{

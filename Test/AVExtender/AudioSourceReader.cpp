@@ -9,8 +9,7 @@
 
 namespace QuantumGate::AVExtender
 {
-	AudioSourceReader::AudioSourceReader() noexcept
-		: SourceReader(CaptureDevice::Type::Audio, MFAudioFormat_Float)
+	AudioSourceReader::AudioSourceReader() noexcept : SourceReader(CaptureDevice::Type::Audio)
 	{}
 
 	AudioSourceReader::~AudioSourceReader()

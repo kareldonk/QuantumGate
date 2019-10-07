@@ -5,13 +5,4 @@
 #include "Common.h"
 
 namespace QuantumGate::AVExtender
-{
-	void BGR24ToBGRA32(BGRAPixel* dest_buffer, const BGRPixel* source_buffer, UInt width, UInt height, Int stride) noexcept
-	{
-		if (stride > 0)
-		{
-			BGR24ToBGRA32<true>(dest_buffer, source_buffer, width, height);
-		}
-		else BGR24ToBGRA32<false>(dest_buffer, source_buffer, width, height);
-	}
-}
+{}

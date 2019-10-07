@@ -244,21 +244,30 @@ namespace QuantumGate::AVExtender
 
 		switch (format.Format)
 		{
-			case VideoFormat::PixelFormat::BGR24:
+			case VideoFormat::PixelFormat::RGB24:
 			{
 				m_ResampleBuffer.Resize(static_cast<Size>(format.Width)*
 										static_cast<Size>(format.Height) * sizeof(BGRAPixel));
 
-				BGR24ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ResampleBuffer.GetBytes()),
+				RGB24ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ResampleBuffer.GetBytes()),
 							  reinterpret_cast<const BGRPixel*>(pixels.GetBytes()),
-							  format.Width, format.Height, format.Stride);
+							  format.Width, format.Height);
 
 				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ResampleBuffer.GetBytes(), format.Width * 4);
 				break;
 			}
-			case VideoFormat::PixelFormat::BGRA32:
-				m_D2D1Bitmap->CopyFromMemory(nullptr, pixels.GetBytes(), format.Width * 4);
+			case VideoFormat::PixelFormat::RGB32:
+			{
+				m_ResampleBuffer.Resize(static_cast<Size>(format.Width)*
+										static_cast<Size>(format.Height) * sizeof(BGRAPixel));
+
+				ARGB32ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ResampleBuffer.GetBytes()),
+							   reinterpret_cast<const BGRAPixel*>(pixels.GetBytes()),
+							   format.Width, format.Height);
+
+				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ResampleBuffer.GetBytes(), format.Width * 4);
 				break;
+			}
 			default:
 				// Unsupported format
 				assert(false);

@@ -144,7 +144,7 @@ namespace QuantumGate::AVExtender
 				});
 			}
 
-			if (settings & static_cast<UInt8>(CallSetting::PeerSendAudio))
+			if (settings & static_cast<UInt8>(CallSetting::PeerSendVideo))
 			{
 				call->m_VideoOutSample.WithUniqueLock([&](auto& media_sample)
 				{

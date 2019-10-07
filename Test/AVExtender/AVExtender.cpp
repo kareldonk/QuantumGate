@@ -811,7 +811,8 @@ namespace QuantumGate::AVExtender
 
 		if (!avsource.AudioEndpointID.empty())
 		{
-			const auto result = avsource.AudioSourceReader.Open(avsource.AudioEndpointID.c_str(), nullptr);
+			const auto result = avsource.AudioSourceReader.Open(avsource.AudioEndpointID.c_str(),
+																{ MFAudioFormat_Float }, nullptr);
 			if (result.Failed())
 			{
 				LogErr(L"Failed to start audio source reader; peers will not receive audio (%s)",
@@ -849,7 +850,8 @@ namespace QuantumGate::AVExtender
 
 		if (!avsource.VideoSymbolicLink.empty())
 		{
-			const auto result = avsource.VideoSourceReader.Open(avsource.VideoSymbolicLink.c_str(), nullptr);
+			const auto result = avsource.VideoSourceReader.Open(avsource.VideoSymbolicLink.c_str(),
+																{ MFVideoFormat_RGB24 }, nullptr);
 			if (result.Failed())
 			{
 				LogErr(L"Failed to start video source reader; peers will not receive video (%s)",

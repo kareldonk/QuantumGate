@@ -25,8 +25,7 @@ namespace QuantumGate::AVExtender
 		QuantumGate::Byte R{ 0 };
 	};
 
-	template <bool top_down>
-	inline void BGR24ToBGRA32(BGRAPixel* dest_buffer, const BGRPixel* source_buffer, UInt width, UInt height) noexcept
+	inline void RGB24ToBGRA32(BGRAPixel* dest_buffer, const BGRPixel* source_buffer, UInt width, UInt height) noexcept
 	{
 		if (dest_buffer == nullptr || source_buffer == nullptr)
 		{
@@ -35,31 +34,36 @@ namespace QuantumGate::AVExtender
 
 		const UInt num_pixels{ width * height };
 
-		if constexpr (top_down)
+		UInt c2 = num_pixels - 1;
+		for (UInt c = 0; c < num_pixels; ++c)
 		{
-			for (UInt c = 0; c < num_pixels; ++c)
-			{
-				dest_buffer[c].B = source_buffer[c].B;
-				dest_buffer[c].G = source_buffer[c].G;
-				dest_buffer[c].R = source_buffer[c].R;
-				dest_buffer[c].A = Byte{ 255 };
-			}
-		}
-		else
-		{
-			UInt c2 = num_pixels - 1;
-			for (UInt c = 0; c < num_pixels; ++c)
-			{
-				dest_buffer[c].B = source_buffer[c2].B;
-				dest_buffer[c].G = source_buffer[c2].G;
-				dest_buffer[c].R = source_buffer[c2].R;
-				dest_buffer[c].A = Byte{ 255 };
-				c2--;
-			}
+			dest_buffer[c].B = source_buffer[c2].B;
+			dest_buffer[c].G = source_buffer[c2].G;
+			dest_buffer[c].R = source_buffer[c2].R;
+			dest_buffer[c].A = Byte{ 255 };
+			c2--;
 		}
 	}
 
-	void BGR24ToBGRA32(BGRAPixel* dest_buffer, const BGRPixel* source_buffer, UInt width, UInt height, Int stride) noexcept;
+	inline void ARGB32ToBGRA32(BGRAPixel* dest_buffer, const BGRAPixel* source_buffer, UInt width, UInt height) noexcept
+	{
+		if (dest_buffer == nullptr || source_buffer == nullptr)
+		{
+			return;
+		}
+
+		const UInt num_pixels{ width * height };
+
+		UInt c2 = num_pixels - 1;
+		for (UInt c = 0; c < num_pixels; ++c)
+		{
+			dest_buffer[c].B = source_buffer[c2].B;
+			dest_buffer[c].G = source_buffer[c2].G;
+			dest_buffer[c].R = source_buffer[c2].R;
+			dest_buffer[c].A = source_buffer[c2].A;
+			c2--;
+		}
+	}
 
 	template <class T>
 	inline void SafeRelease(T** ppT) noexcept
@@ -77,7 +81,7 @@ namespace QuantumGate::AVExtender
 
 	struct VideoFormat
 	{
-		enum class PixelFormat : UInt8 { Unknown, RGB24, BGR24, BGRA32 };
+		enum class PixelFormat : UInt8 { Unknown, RGB24, RGB32, NV12 };
 
 		PixelFormat Format{ PixelFormat::Unknown };
 		UInt32 Width{ 0 };

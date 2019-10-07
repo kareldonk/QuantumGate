@@ -159,6 +159,12 @@
     <ClInclude Include="..\AVExtender\Protocol.h">
       <Filter>Header Files\AVExtender</Filter>
     </ClInclude>
+    <ClInclude Include="..\AVExtender\VideoCompressor.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AVExtender\VideoResampler.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -273,6 +279,12 @@
       <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
     <ClCompile Include="..\AVExtender\Call.cpp">
+      <Filter>Source Files\AVExtender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\VideoCompressor.cpp">
+      <Filter>Source Files\AVExtender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\VideoResampler.cpp">
       <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
   </ItemGroup>
