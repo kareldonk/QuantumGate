@@ -343,9 +343,19 @@ namespace QuantumGate::AVExtender
 		{
 			const bool visible = (vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown);
 
-			if (!vout.VideoWindow.Create(GetType() == CallType::Incoming ? L"Incoming" : L"Outgoing",
-										 NULL, WS_OVERLAPPED | WS_THICKFRAME,
-										 CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, visible, NULL))
+			if (vout.VideoWindow.Create(GetType() == CallType::Incoming ? L"Incoming" : L"Outgoing",
+										NULL, WS_OVERLAPPED | WS_THICKFRAME,
+										CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, visible, NULL))
+			{
+				if (vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown)
+				{
+					if (!vout.VideoWindow.SetInputFormat(vout.VideoFormat))
+					{
+						LogErr(L"Failed to set output format for video window");
+					}
+				}
+			}
+			else
 			{
 				LogErr(L"Failed to create call video window");
 			}
@@ -472,7 +482,20 @@ namespace QuantumGate::AVExtender
 	{
 		m_VideoOut.WithUniqueLock([&](auto& vout)
 		{
+			const bool changed = (std::memcmp(&vout.VideoFormat, &format, sizeof(AudioFormat)) != 0);
+
 			vout.VideoFormat = format;
+
+			if (changed && IsInCall())
+			{
+				if (vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown)
+				{
+					if (!vout.VideoWindow.SetInputFormat(vout.VideoFormat))
+					{
+						LogErr(L"Failed to set output format for video window");
+					}
+				}
+			}
 		});
 	}
 
@@ -503,7 +526,7 @@ namespace QuantumGate::AVExtender
 		{
 			if (vout.VideoWindow.IsOpen() && vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown)
 			{
-				DiscardReturnValue(vout.VideoWindow.Render(sample, vout.VideoFormat));
+				DiscardReturnValue(vout.VideoWindow.Render(timestamp, sample));
 			}
 		});
 	}

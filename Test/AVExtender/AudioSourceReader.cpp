@@ -65,11 +65,4 @@ namespace QuantumGate::AVExtender
 
 		return AVResultCode::Failed;
 	}
-
-	Result<Size> AudioSourceReader::GetBufferSize(IMFMediaType* media_type) noexcept
-	{
-		const auto audio_format = m_AudioFormat.WithSharedLock();
-
-		return static_cast<Size>(audio_format->AvgBytesPerSecond);
-	}
 }

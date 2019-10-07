@@ -51,11 +51,18 @@ namespace QuantumGate::AVExtender
 					{
 						m_OutputFormat = otype.GetVideoFormat();
 
-						sg.Deactivate();
+						auto result = CaptureDevices::CreateMediaSample(m_InputFormat.GetFrameSize());
+						if (result.Succeeded())
+						{
+							m_InputSample = result->first;
+							m_InputBuffer = result->second;
 
-						m_Open = true;
+							sg.Deactivate();
 
-						return true;
+							m_Open = true;
+
+							return true;
+						}
 					}
 				}
 			}
@@ -93,6 +100,40 @@ namespace QuantumGate::AVExtender
 
 		SafeRelease(&m_IMFTransform);
 		SafeRelease(&m_IMediaObject);
+		SafeRelease(&m_InputSample);
+		SafeRelease(&m_InputBuffer);
+	}
+
+	bool VideoResampler::Resample(const UInt64 in_timestamp, const BufferView in_data, IMFSample* out_sample) noexcept
+	{
+		assert(IsOpen());
+
+		BYTE* inptr{ nullptr };
+		DWORD inmaxl{ 0 };
+		DWORD incurl{ 0 };
+
+		// First copy input data into input buffer
+		auto hr = m_InputBuffer->Lock(&inptr, &inmaxl, &incurl);
+		if (SUCCEEDED(hr))
+		{
+			assert(in_data.GetSize() <= inmaxl);
+
+			std::memcpy(inptr, in_data.GetBytes(), in_data.GetSize());
+
+			hr = m_InputBuffer->Unlock();
+			if (SUCCEEDED(hr))
+			{
+				hr = m_InputBuffer->SetCurrentLength(static_cast<DWORD>(in_data.GetSize()));
+				if (SUCCEEDED(hr))
+				{
+					m_InputSample->SetSampleTime(in_timestamp);
+
+					return Resample(m_InputSample, out_sample);
+				}
+			}
+		}
+
+		return false;
 	}
 
 	bool VideoResampler::Resample(IMFSample* in_sample, IMFSample* out_sample) noexcept
@@ -110,22 +151,31 @@ namespace QuantumGate::AVExtender
 				// Release when we exit
 				const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&out_buffer); });
 
-				hr = out_buffer->SetCurrentLength(0);
+				DWORD maxlen{ 0 };
+
+				hr = out_buffer->GetMaxLength(&maxlen);
 				if (SUCCEEDED(hr))
 				{
-					MFT_OUTPUT_DATA_BUFFER output{ 0 };
-					output.dwStreamID = 0;
-					output.dwStatus = 0;
-					output.pEvents = nullptr;
-					output.pSample = out_sample;
+					// Output buffer should be large enough to hold output frame
+					assert(maxlen >= m_OutputFormat.GetFrameSize());
 
-					DWORD status{ 0 };
-
-					// Get the transformed output sample back
-					hr = m_IMFTransform->ProcessOutput(0, 1, &output, &status);
+					hr = out_buffer->SetCurrentLength(0);
 					if (SUCCEEDED(hr))
 					{
-						return true;
+						MFT_OUTPUT_DATA_BUFFER output{ 0 };
+						output.dwStreamID = 0;
+						output.dwStatus = 0;
+						output.pEvents = nullptr;
+						output.pSample = out_sample;
+
+						DWORD status{ 0 };
+
+						// Get the transformed output sample back
+						hr = m_IMFTransform->ProcessOutput(0, 1, &output, &status);
+						if (SUCCEEDED(hr))
+						{
+							return true;
+						}
 					}
 				}
 			}

@@ -75,6 +75,7 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] inline const VideoFormat& GetInputFormat() const noexcept { return m_InputFormat; }
 		[[nodiscard]] inline const VideoFormat& GetOutputFormat() const noexcept { return m_OutputFormat; }
 
+		[[nodiscard]] bool Resample(const UInt64 in_timestamp, const BufferView in_data, IMFSample* out_sample) noexcept;
 		[[nodiscard]] bool Resample(IMFSample* in_sample, IMFSample* out_sample) noexcept;
 
 	private:
@@ -88,8 +89,12 @@ namespace QuantumGate::AVExtender
 
 		IMFTransform* m_IMFTransform{ nullptr };
 		IMediaObject* m_IMediaObject{ nullptr };
+
 		VideoFormat m_InputFormat;
 		VideoFormat m_OutputFormat;
+
+		IMFSample* m_InputSample{ nullptr };
+		IMFMediaBuffer* m_InputBuffer{ nullptr };
 	};
 
 	using VideoResampler_ThS = Concurrency::ThreadSafe<VideoResampler, std::shared_mutex>;

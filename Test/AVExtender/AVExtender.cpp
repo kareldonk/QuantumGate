@@ -851,7 +851,7 @@ namespace QuantumGate::AVExtender
 		if (!avsource.VideoSymbolicLink.empty())
 		{
 			const auto result = avsource.VideoSourceReader.Open(avsource.VideoSymbolicLink.c_str(),
-																{ MFVideoFormat_RGB24 }, nullptr);
+																{ MFVideoFormat_NV12 }, nullptr);
 			if (result.Failed())
 			{
 				LogErr(L"Failed to start video source reader; peers will not receive video (%s)",

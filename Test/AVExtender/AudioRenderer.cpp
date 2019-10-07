@@ -101,6 +101,8 @@ namespace QuantumGate::AVExtender
 		SafeRelease(&m_RenderClient);
 		SafeRelease(&m_OutputSample);
 		SafeRelease(&m_OutputBuffer);
+
+		m_OutputFormat = {};
 	}
 
 	bool AudioRenderer::Play() noexcept

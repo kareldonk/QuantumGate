@@ -69,7 +69,6 @@ namespace QuantumGate::AVExtender
 		SourceReaderData_ThS& GetSourceReaderData() noexcept { return m_SourceReaderData; }
 
 		[[nodiscard]] virtual Result<> OnMediaTypeChanged(IMFMediaType* media_type) noexcept;
-		[[nodiscard]] virtual Result<Size> GetBufferSize(IMFMediaType* media_type) noexcept;
 
 	private:
 		[[nodiscard]] Result<> CreateSourceReader(SourceReaderData& source_reader_data,

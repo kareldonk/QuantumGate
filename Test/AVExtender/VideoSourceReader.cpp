@@ -65,15 +65,6 @@ namespace QuantumGate::AVExtender
 		return AVResultCode::Failed;
 	}
 
-	Result<Size> VideoSourceReader::GetBufferSize(IMFMediaType* media_type) noexcept
-	{
-		const auto video_format = m_VideoFormat.WithSharedLock();
-
-		return static_cast<Size>(video_format->Width) *
-			static_cast<Size>(video_format->Height) *
-			static_cast<Size>(video_format->BytesPerPixel);
-	}
-
 	// Calculates the default stride based on the format and size of the frames
 	bool VideoSourceReader::GetDefaultStride(IMFMediaType* type, LONG* stride) const noexcept
 	{

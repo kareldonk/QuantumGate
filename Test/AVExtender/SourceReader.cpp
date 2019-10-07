@@ -293,9 +293,4 @@ namespace QuantumGate::AVExtender
 	{
 		return AVResultCode::Failed;
 	}
-
-	Result<Size> SourceReader::GetBufferSize(IMFMediaType* media_type) noexcept
-	{
-		return AVResultCode::Failed;
-	}
 }

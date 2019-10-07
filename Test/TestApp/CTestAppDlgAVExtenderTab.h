@@ -10,7 +10,6 @@
 #include "..\AVExtender\VideoWindow.h"
 #include "..\AVExtender\AudioSourceReader.h"
 #include "..\AVExtender\AudioRenderer.h"
-#include "..\AVExtender\VideoResampler.h"
 
 constexpr auto AVEXTENDER_PEER_ACTIVITY_TIMER = 10;
 
@@ -88,5 +87,4 @@ private:
 	QuantumGate::AVExtender::AudioSourceReader* m_AudioSourceReader{ nullptr };
 	QuantumGate::AVExtender::CaptureDeviceVector m_AudioCaptureDevices;
 	QuantumGate::AVExtender::AudioRenderer_ThS m_AudioRenderer;
-	QuantumGate::AVExtender::VideoResampler_ThS m_VideoResampler;
 };

@@ -28,7 +28,6 @@ namespace QuantumGate::AVExtender
 
 	protected:
 		[[nodiscard]] Result<> OnMediaTypeChanged(IMFMediaType* media_type) noexcept override;
-		[[nodiscard]] Result<Size> GetBufferSize(IMFMediaType* media_type) noexcept override;
 
 	private:
 		long m_RefCount{ 1 };

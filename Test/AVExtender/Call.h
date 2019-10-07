@@ -7,6 +7,7 @@
 #include "AudioSourceReader.h"
 #include "VideoSourceReader.h"
 #include "VideoWindow.h"
+#include "VideoResampler.h"
 #include "AudioRenderer.h"
 
 #include <QuantumGate.h>
@@ -68,6 +69,7 @@ namespace QuantumGate::AVExtender
 	{
 		VideoFormat VideoFormat;
 		VideoWindow VideoWindow;
+		VideoResampler VideoResampler;
 	};
 
 	using VideoOut_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<VideoOut, std::shared_mutex>;

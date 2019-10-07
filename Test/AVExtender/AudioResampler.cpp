@@ -96,6 +96,9 @@ namespace QuantumGate::AVExtender
 		SafeRelease(&m_OutputMediaType);
 		SafeRelease(&m_InputSample);
 		SafeRelease(&m_InputBuffer);
+
+		m_InputFormat = {};
+		m_OutputFormat = {};
 	}
 
 	bool AudioResampler::Resample(const UInt64 in_timestamp, const BufferView in_data, IMFSample* out_sample) noexcept

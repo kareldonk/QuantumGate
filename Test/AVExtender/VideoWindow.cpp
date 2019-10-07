@@ -50,6 +50,11 @@ namespace QuantumGate::AVExtender
 	void VideoWindow::Close() noexcept
 	{
 		DeinitializeD2DRenderTarget();
+		
+		m_VideoResampler.Close();
+
+		SafeRelease(&m_OutputSample);
+		SafeRelease(&m_OutputBuffer);
 
 		if (m_WndHandle != nullptr)
 		{
@@ -219,11 +224,76 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
+	bool VideoWindow::SetInputFormat(const VideoFormat& fmt) noexcept
+	{
+		if (m_VideoResampler.IsOpen()) m_VideoResampler.Close();
+
+		if (m_VideoResampler.Create(fmt.Width, fmt.Height,
+									CaptureDevices::GetMFVideoFormat(fmt.Format),
+									MFVideoFormat_RGB24))
+		{
+			auto result = CaptureDevices::CreateMediaSample(m_VideoResampler.GetOutputFormat().GetFrameSize());
+			if (result.Succeeded())
+			{
+				m_OutputSample = result->first;
+				m_OutputBuffer = result->second;
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void VideoWindow::Render(IMFSample* in_sample) noexcept
+	{
+		if (m_VideoResampler.Resample(in_sample, m_OutputSample))
+		{
+			Render(m_OutputSample, m_VideoResampler.GetOutputFormat());
+		}
+	}
+
+	void VideoWindow::Render(const UInt64 in_timestamp, const BufferView pixels) noexcept
+	{
+		if (m_VideoResampler.Resample(in_timestamp, pixels, m_OutputSample))
+		{
+			Render(m_OutputSample, m_VideoResampler.GetOutputFormat());
+		}
+	}
+
+	void VideoWindow::Render(IMFSample* in_sample, const VideoFormat& format) noexcept
+	{
+		assert(in_sample != nullptr);
+		assert(format.Format != VideoFormat::PixelFormat::Unknown);
+
+		IMFMediaBuffer* media_buffer{ nullptr };
+
+		// Get the buffer from the sample
+		auto hr = in_sample->GetBufferByIndex(0, &media_buffer);
+		if (SUCCEEDED(hr))
+		{
+			// Release buffer when we exit this scope
+			const auto sg = MakeScopeGuard([&]() noexcept { QuantumGate::AVExtender::SafeRelease(&media_buffer); });
+
+			BYTE* in_data{ nullptr };
+			DWORD in_data_len{ 0 };
+
+			hr = media_buffer->Lock(&in_data, nullptr, &in_data_len);
+			if (SUCCEEDED(hr))
+			{
+				Render(BufferView(reinterpret_cast<Byte*>(in_data), in_data_len), format);
+
+				media_buffer->Unlock();
+			}
+		}
+	}
+
 	void VideoWindow::Render(const BufferView pixels, const VideoFormat& format) noexcept
 	{
 		assert(pixels.GetBytes() != nullptr && m_D2D1Bitmap != nullptr && m_D2D1RenderTarget != nullptr);
 
-		if (pixels.GetSize() != (format.BytesPerPixel * format.Width * format.Height))
+		// Number of bytes should match expected frame size
+		if (pixels.GetSize() != (format.GetFrameSize()))
 		{
 			assert(false);
 			return;
