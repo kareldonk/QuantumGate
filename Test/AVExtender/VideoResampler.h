@@ -8,7 +8,7 @@
 
 #include <dshow.h>
 #include <dmo.h>
-#include <Wmcodecdsp.h>
+#include <wmcodecdsp.h>
 
 #pragma comment(lib, "strmiids.lib")
 

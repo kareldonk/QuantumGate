@@ -175,7 +175,7 @@ void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 	{
 		const auto idx = vdcombo->GetItemData(sel);
 		const auto result = m_VideoSourceReader->Open(m_VideoCaptureDevices[idx].SymbolicLink,
-													  { MFVideoFormat_NV12 /*, MFVideoFormat_RGB24*/ },
+													  { MFVideoFormat_I420 /*MFVideoFormat_NV12 /*, MFVideoFormat_RGB24*/ },
 													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnVideoSample));
 		if (result.Succeeded())
 		{

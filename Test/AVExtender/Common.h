@@ -81,7 +81,7 @@ namespace QuantumGate::AVExtender
 
 	struct VideoFormat
 	{
-		enum class PixelFormat : UInt8 { Unknown, RGB24, RGB32, NV12 };
+		enum class PixelFormat : UInt8 { Unknown, RGB24, RGB32, NV12, I420 };
 
 		PixelFormat Format{ PixelFormat::Unknown };
 		UInt32 Width{ 0 };
@@ -97,6 +97,8 @@ namespace QuantumGate::AVExtender
 				case PixelFormat::RGB32:
 					return BytesPerPixel * Width * Height;
 				case PixelFormat::NV12:
+					return static_cast<Size>(1.5 * Width * Height);
+				case PixelFormat::I420:
 					return static_cast<Size>(1.5 * Width * Height);
 				default:
 					assert(false);

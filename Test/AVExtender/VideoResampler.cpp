@@ -7,6 +7,15 @@
 #include <Common\Util.h>
 #include <Common\ScopeGuard.h>
 
+// For some reason MEDIASUBTYPE_I420 gives an unresolved external linker error
+// so we define it here based on the info in wmcodecdsp.h
+
+#define AV_DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
+        EXTERN_C const GUID DECLSPEC_SELECTANY name \
+                = { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
+
+AV_DEFINE_GUID(MEDIASUBTYPE_I420, 0x30323449, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
+
 namespace QuantumGate::AVExtender
 {
 	using namespace QuantumGate::Implementation;
@@ -73,6 +82,10 @@ namespace QuantumGate::AVExtender
 		{
 			return DMOData(width, height, 24, BI_RGB, MFVideoFormat_RGB24, MEDIASUBTYPE_RGB24);
 		}
+		else if (type == MFVideoFormat_RGB32)
+		{
+			return DMOData(width, height, 32, BI_RGB, MFVideoFormat_RGB32, MEDIASUBTYPE_RGB32);
+		}
 		else if (type == MFVideoFormat_YV12)
 		{
 			return DMOData(width, height, 12, MAKEFOURCC('Y', 'V', '1', '2'), MFVideoFormat_YV12, MEDIASUBTYPE_YV12);
@@ -81,9 +94,9 @@ namespace QuantumGate::AVExtender
 		{
 			return DMOData(width, height, 12, MAKEFOURCC('N', 'V', '1', '2'), MFVideoFormat_NV12, MEDIASUBTYPE_NV12);
 		}
-		else if (type == MFVideoFormat_RGB32)
+		else if (type == MFVideoFormat_I420)
 		{
-			return DMOData(width, height, 32, BI_RGB, MFVideoFormat_RGB32, MEDIASUBTYPE_RGB32);
+			return DMOData(width, height, 12, MAKEFOURCC('I', '4', '2', '0'), MFVideoFormat_I420, MEDIASUBTYPE_I420);
 		}
 		else assert(false);
 

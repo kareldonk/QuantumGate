@@ -205,10 +205,12 @@ namespace QuantumGate::AVExtender
 			{
 				case VideoFormat::PixelFormat::RGB24:
 					return MFVideoFormat_RGB24;
-				case VideoFormat::PixelFormat::NV12:
-					return MFVideoFormat_NV12;
 				case VideoFormat::PixelFormat::RGB32:
 					return MFVideoFormat_RGB32;
+				case VideoFormat::PixelFormat::NV12:
+					return MFVideoFormat_NV12;
+				case VideoFormat::PixelFormat::I420:
+					return MFVideoFormat_I420;
 				default:
 					assert(false);
 					break;
@@ -223,13 +225,17 @@ namespace QuantumGate::AVExtender
 			{
 				return VideoFormat::PixelFormat::RGB24;
 			}
+			else if (subtype == MFVideoFormat_RGB32)
+			{
+				return VideoFormat::PixelFormat::RGB32;
+			}
 			else if (subtype == MFVideoFormat_NV12)
 			{
 				return VideoFormat::PixelFormat::NV12;
 			}
-			else if (subtype == MFVideoFormat_RGB32)
+			else if (subtype == MFVideoFormat_I420)
 			{
-				return VideoFormat::PixelFormat::RGB32;
+				return VideoFormat::PixelFormat::I420;
 			}
 
 			return VideoFormat::PixelFormat::Unknown;

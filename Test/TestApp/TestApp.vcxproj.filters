@@ -260,9 +260,6 @@
     <ClCompile Include="..\AVExtender\VideoWindow.cpp">
       <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
-    <ClCompile Include="..\AVExtender\Common.cpp">
-      <Filter>Source Files\AVExtender</Filter>
-    </ClCompile>
     <ClCompile Include="..\AVExtender\AVErrorCode.cpp">
       <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
