@@ -50,7 +50,6 @@ namespace QuantumGate::AVExtender
 				fmt.Width = VideoInfoHeader.bmiHeader.biWidth;
 				fmt.Height = VideoInfoHeader.bmiHeader.biHeight;
 				fmt.BytesPerPixel = VideoInfoHeader.bmiHeader.biBitCount / 8;
-				fmt.Stride = VideoInfoHeader.bmiHeader.biWidth * VideoInfoHeader.bmiHeader.biBitCount / 8;
 				return fmt;
 			}
 

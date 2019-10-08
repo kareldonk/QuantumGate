@@ -56,7 +56,7 @@ namespace QuantumGate::AVExtender
 					{
 						m_OutputFormat = otype.GetVideoFormat();
 
-						auto result = CaptureDevices::CreateMediaSample(m_InputFormat.GetFrameSize());
+						auto result = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(m_InputFormat));
 						if (result.Succeeded())
 						{
 							m_InputSample = result->first;
@@ -106,6 +106,9 @@ namespace QuantumGate::AVExtender
 	void VideoResampler::Close() noexcept
 	{
 		m_Open = false;
+
+		m_InputFormat = {};
+		m_OutputFormat = {};
 
 		SafeRelease(&m_IMFTransform);
 		SafeRelease(&m_IMediaObject);
@@ -166,7 +169,7 @@ namespace QuantumGate::AVExtender
 				if (SUCCEEDED(hr))
 				{
 					// Output buffer should be large enough to hold output frame
-					assert(maxlen >= m_OutputFormat.GetFrameSize());
+					assert(maxlen >= CaptureDevices::GetImageSize(m_OutputFormat));
 
 					hr = out_buffer->SetCurrentLength(0);
 					if (SUCCEEDED(hr))

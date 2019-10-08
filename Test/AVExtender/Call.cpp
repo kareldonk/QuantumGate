@@ -173,14 +173,16 @@ namespace QuantumGate::AVExtender
 		auto audiocb = QuantumGate::MakeCallback(this, &Call::OnAudioSample);
 		auto videocb = QuantumGate::MakeCallback(this, &Call::OnVideoSample);
 
-		m_AudioSampleEventFunctionHandle = m_AVSource.WithUniqueLock()->AudioSourceReader.AddSampleEventCallback(std::move(audiocb));
-		m_VideoSampleEventFunctionHandle = m_AVSource.WithUniqueLock()->VideoSourceReader.AddSampleEventCallback(std::move(videocb));
+		auto avsource = m_AVSource.WithUniqueLock();
+		m_AudioSampleEventFunctionHandle = avsource->AudioSourceReader.AddSampleEventCallback(std::move(audiocb));
+		m_VideoSampleEventFunctionHandle = avsource->VideoSourceReader.AddSampleEventCallback(std::move(videocb));
 	}
 
 	void Call::UnsetAVCallbacks() noexcept
 	{
-		m_AVSource.WithUniqueLock()->AudioSourceReader.RemoveSampleEventCallback(m_AudioSampleEventFunctionHandle);
-		m_AVSource.WithUniqueLock()->VideoSourceReader.RemoveSampleEventCallback(m_VideoSampleEventFunctionHandle);
+		auto avsource = m_AVSource.WithUniqueLock();
+		avsource->AudioSourceReader.RemoveSampleEventCallback(m_AudioSampleEventFunctionHandle);
+		avsource->VideoSourceReader.RemoveSampleEventCallback(m_VideoSampleEventFunctionHandle);
 	}
 
 	void Call::OnConnected()
@@ -435,16 +437,9 @@ namespace QuantumGate::AVExtender
 
 		if (fmtdata->SendVideo == 1)
 		{
-			if (std::abs(fmtdata->VideoFormat.Stride) !=
-				(fmtdata->VideoFormat.Width * fmtdata->VideoFormat.BytesPerPixel))
-			{
-				return false;
-			}
-
 			VideoFormat vfmt;
 			vfmt.Format = fmtdata->VideoFormat.Format;
 			vfmt.BytesPerPixel = fmtdata->VideoFormat.BytesPerPixel;
-			vfmt.Stride = fmtdata->VideoFormat.Stride;
 			vfmt.Width = fmtdata->VideoFormat.Width;
 			vfmt.Height = fmtdata->VideoFormat.Height;
 

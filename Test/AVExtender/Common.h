@@ -87,26 +87,6 @@ namespace QuantumGate::AVExtender
 		UInt32 Width{ 0 };
 		UInt32 Height{ 0 };
 		UInt32 BytesPerPixel{ 0 };
-		Long Stride{ 0 };
-
-		Size GetFrameSize() const noexcept
-		{
-			switch (Format)
-			{
-				case PixelFormat::RGB24:
-				case PixelFormat::RGB32:
-					return BytesPerPixel * Width * Height;
-				case PixelFormat::NV12:
-					return static_cast<Size>(1.5 * Width * Height);
-				case PixelFormat::I420:
-					return static_cast<Size>(1.5 * Width * Height);
-				default:
-					assert(false);
-					break;
-			}
-
-			return 0;
-		}
 	};
 
 	using VideoFormat_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<VideoFormat, std::shared_mutex>;

@@ -7,11 +7,8 @@
 #include "AudioSourceReader.h"
 #include "VideoSourceReader.h"
 #include "VideoWindow.h"
-#include "VideoResampler.h"
 #include "AudioRenderer.h"
 
-#include <QuantumGate.h>
-#include <Concurrency\ThreadSafe.h>
 #include <Concurrency\EventCondition.h>
 
 namespace QuantumGate::AVExtender

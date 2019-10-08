@@ -721,7 +721,6 @@ namespace QuantumGate::AVExtender
 			const auto vfmt = avsource.VideoSourceReader.GetSampleFormat();
 			data.VideoFormat.Format = vfmt.Format;
 			data.VideoFormat.BytesPerPixel = vfmt.BytesPerPixel;
-			data.VideoFormat.Stride = vfmt.Stride;
 			data.VideoFormat.Width = vfmt.Width;
 			data.VideoFormat.Height = vfmt.Height;
 		});
@@ -855,8 +854,10 @@ namespace QuantumGate::AVExtender
 
 		if (!avsource.VideoSymbolicLink.empty())
 		{
+			avsource.VideoSourceReader.SetSampleSize(80, 60);
+
 			const auto result = avsource.VideoSourceReader.Open(avsource.VideoSymbolicLink.c_str(),
-																{ MFVideoFormat_NV12 }, nullptr);
+																{ MFVideoFormat_NV12, MFVideoFormat_I420, MFVideoFormat_RGB24 }, nullptr);
 			if (result.Failed())
 			{
 				LogErr(L"Failed to start video source reader; peers will not receive video (%s)",

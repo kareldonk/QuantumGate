@@ -235,7 +235,7 @@ namespace QuantumGate::AVExtender
 									CaptureDevices::GetMFVideoFormat(fmt.Format),
 									MFVideoFormat_RGB24))
 		{
-			auto result = CaptureDevices::CreateMediaSample(m_VideoResampler.GetOutputFormat().GetFrameSize());
+			auto result = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(m_VideoResampler.GetOutputFormat()));
 			if (result.Succeeded())
 			{
 				m_OutputSample = result->first;
@@ -296,7 +296,7 @@ namespace QuantumGate::AVExtender
 		assert(pixels.GetBytes() != nullptr && m_D2D1Bitmap != nullptr && m_D2D1RenderTarget != nullptr);
 
 		// Number of bytes should match expected frame size
-		if (pixels.GetSize() != (format.GetFrameSize()))
+		if (pixels.GetSize() != CaptureDevices::GetImageSize(format))
 		{
 			assert(false);
 			return;

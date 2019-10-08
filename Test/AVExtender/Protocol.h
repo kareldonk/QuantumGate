@@ -40,7 +40,6 @@ namespace QuantumGate::AVExtender
 			UInt16 Width{ 0 };
 			UInt16 Height{ 0 };
 			UInt8 BytesPerPixel{ 0 };
-			Int32 Stride{ 0 };
 		};
 
 		UInt8 SendAudio{ 0 };

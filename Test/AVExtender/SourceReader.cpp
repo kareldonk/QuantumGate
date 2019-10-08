@@ -254,14 +254,12 @@ namespace QuantumGate::AVExtender
 	SourceReader::SampleEventDispatcher::FunctionHandle
 		SourceReader::AddSampleEventCallback(SampleEventCallback&& function) noexcept
 	{
-		auto source_reader_data = m_SourceReaderData.WithUniqueLock();
-		return source_reader_data->Dispatcher.Add(std::move(function));
+		return m_SourceReaderData.WithUniqueLock()->Dispatcher.Add(std::move(function));
 	}
 
 	void SourceReader::RemoveSampleEventCallback(SampleEventDispatcher::FunctionHandle& func_handle) noexcept
 	{
-		auto source_reader_data = m_SourceReaderData.WithUniqueLock();
-		return source_reader_data->Dispatcher.Remove(func_handle);
+		return m_SourceReaderData.WithUniqueLock()->Dispatcher.Remove(func_handle);
 	}
 
 	HRESULT SourceReader::OnReadSample(HRESULT hrStatus, DWORD dwStreamIndex, DWORD dwStreamFlags,
@@ -271,18 +269,26 @@ namespace QuantumGate::AVExtender
 
 		if (SUCCEEDED(hr))
 		{
-			auto source_reader_data = m_SourceReaderData.WithUniqueLock();
-
 			if (pSample)
 			{
-				source_reader_data->Dispatcher(llTimestamp, pSample);
+				auto tsample = TransformSample(pSample);
+				if (tsample)
+				{
+					m_SourceReaderData.WithUniqueLock()->Dispatcher(llTimestamp, tsample);
+				}
 			}
 
 			// Request the next sample
-			hr = source_reader_data->SourceReader->ReadSample(m_StreamIndex, 0, nullptr, nullptr, nullptr, nullptr);
+			hr = m_SourceReaderData.WithUniqueLock()->SourceReader->ReadSample(m_StreamIndex, 0,
+																			   nullptr, nullptr, nullptr, nullptr);
 		}
 
 		return hr;
+	}
+
+	IMFSample* SourceReader::TransformSample(IMFSample* pSample) noexcept
+	{
+		return pSample;
 	}
 
 	Result<> SourceReader::OnMediaTypeChanged(IMFMediaType* media_type) noexcept

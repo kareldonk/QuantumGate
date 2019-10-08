@@ -12,7 +12,35 @@ namespace QuantumGate::AVExtender
 	{}
 
 	VideoSourceReader::~VideoSourceReader()
-	{}
+	{
+		CloseVideoTransform();
+	}
+
+	void VideoSourceReader::SetSampleSize(const Size width, const Size height) noexcept
+	{
+		m_Transform = true;
+
+		auto formats = m_VideoFormatData.WithUniqueLock();
+		formats->TransformWidth = width;
+		formats->TransformHeight = height;
+	}
+
+	VideoFormat VideoSourceReader::GetSampleFormat() const noexcept
+	{
+		auto format_data = m_VideoFormatData.WithSharedLock();
+
+		if (m_Transform)
+		{
+			VideoFormat fmt;
+			fmt = format_data->ReaderFormat;
+			fmt.Width = static_cast<UInt32>(format_data->TransformWidth);
+			fmt.Height = static_cast<UInt32>(format_data->TransformHeight);
+
+			return fmt;
+		}
+
+		return format_data->ReaderFormat;
+	}
 
 	STDMETHODIMP VideoSourceReader::QueryInterface(REFIID riid, void** ppvObject)
 	{
@@ -38,31 +66,60 @@ namespace QuantumGate::AVExtender
 
 	Result<> VideoSourceReader::OnMediaTypeChanged(IMFMediaType* media_type) noexcept
 	{
-		auto video_settings = m_VideoFormat.WithUniqueLock();
+		auto format_data = m_VideoFormatData.WithUniqueLock();
 
 		// Get width and height
 		auto hr = MFGetAttributeSize(media_type, MF_MT_FRAME_SIZE,
-									 &video_settings->Width, &video_settings->Height);
+									 &format_data->ReaderFormat.Width, &format_data->ReaderFormat.Height);
 		if (SUCCEEDED(hr))
 		{
+			LONG stride{ 0 };
+
 			// Get the stride for this format so we can calculate the number of bytes per pixel
-			if (GetDefaultStride(media_type, &video_settings->Stride))
+			if (GetDefaultStride(media_type, &stride))
 			{
-				video_settings->BytesPerPixel = std::abs(video_settings->Stride) / video_settings->Width;
+				format_data->ReaderFormat.BytesPerPixel = std::abs(stride) / format_data->ReaderFormat.Width;
 
 				GUID subtype{ GUID_NULL };
 
 				hr = media_type->GetGUID(MF_MT_SUBTYPE, &subtype);
 				if (SUCCEEDED(hr))
 				{
-					video_settings->Format = CaptureDevices::GetVideoFormat(subtype);
+					format_data->ReaderFormat.Format = CaptureDevices::GetVideoFormat(subtype);
 
-					return AVResultCode::Succeeded;
+					if (m_Transform)
+					{
+						if (CreateVideoTransform(*format_data))
+						{
+							return AVResultCode::Succeeded;
+						}
+					}
+					else return AVResultCode::Succeeded;
 				}
 			}
 		}
 
 		return AVResultCode::Failed;
+	}
+
+	IMFSample* VideoSourceReader::TransformSample(IMFSample* pSample) noexcept
+	{
+		if (!m_Transform) return pSample;
+
+		auto trf = m_VideoTransform.WithUniqueLock();
+		if (trf->InVideoResampler.Resample(pSample, trf->m_OutputSample1))
+		{
+			auto rsample = trf->VideoResizer.Resize(trf->m_OutputSample1);
+			if (rsample != nullptr)
+			{
+				if (trf->OutVideoResampler.Resample(rsample, trf->m_OutputSample2))
+				{
+					return trf->m_OutputSample2;
+				}
+			}
+		}
+
+		return nullptr;
 	}
 
 	// Calculates the default stride based on the format and size of the frames
@@ -107,5 +164,52 @@ namespace QuantumGate::AVExtender
 		}
 
 		return false;
+	}
+
+	bool VideoSourceReader::CreateVideoTransform(const VideoFormatData& format_data) noexcept
+	{
+		auto trf = m_VideoTransform.WithUniqueLock();
+		if (trf->InVideoResampler.Create(format_data.ReaderFormat.Width, format_data.ReaderFormat.Height,
+										 CaptureDevices::GetMFVideoFormat(format_data.ReaderFormat.Format), MFVideoFormat_RGB24))
+		{
+			auto result = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(trf->InVideoResampler.GetOutputFormat()));
+			if (result.Succeeded())
+			{
+				trf->m_OutputSample1 = result->first;
+				trf->m_OutputBuffer1 = result->second;
+
+				if (trf->VideoResizer.Create(trf->InVideoResampler.GetOutputFormat(),
+											 format_data.TransformWidth, format_data.TransformHeight))
+				{
+					if (trf->OutVideoResampler.Create(format_data.TransformWidth, format_data.TransformHeight, MFVideoFormat_RGB24,
+													  CaptureDevices::GetMFVideoFormat(format_data.ReaderFormat.Format)))
+					{
+						auto result2 = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(trf->OutVideoResampler.GetOutputFormat()));
+						if (result2.Succeeded())
+						{
+							trf->m_OutputSample2 = result2->first;
+							trf->m_OutputBuffer2 = result2->second;
+
+							return true;
+						}
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
+	void VideoSourceReader::CloseVideoTransform() noexcept
+	{
+		auto trf = m_VideoTransform.WithUniqueLock();
+		trf->InVideoResampler.Close();
+		trf->VideoResizer.Close();
+		trf->OutVideoResampler.Close();
+
+		SafeRelease(&trf->m_OutputSample1);
+		SafeRelease(&trf->m_OutputBuffer1);
+		SafeRelease(&trf->m_OutputSample2);
+		SafeRelease(&trf->m_OutputBuffer2);
 	}
 }

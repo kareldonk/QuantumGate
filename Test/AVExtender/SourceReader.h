@@ -68,6 +68,8 @@ namespace QuantumGate::AVExtender
 	protected:
 		SourceReaderData_ThS& GetSourceReaderData() noexcept { return m_SourceReaderData; }
 
+		[[nodiscard]] virtual IMFSample* TransformSample(IMFSample* pSample) noexcept;
+
 		[[nodiscard]] virtual Result<> OnMediaTypeChanged(IMFMediaType* media_type) noexcept;
 
 	private:

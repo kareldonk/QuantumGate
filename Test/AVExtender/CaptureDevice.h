@@ -179,8 +179,17 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] static Result<std::pair<IMFSample*, IMFMediaBuffer*>> CreateMediaSample(const Size size) noexcept
 		{
+			// TODO: remove buffer?
+
 			IMFSample* sample{ nullptr };
 			IMFMediaBuffer* buffer{ nullptr };
+
+			// Free upon failure
+			auto sg = MakeScopeGuard([&]() noexcept
+			{
+				SafeRelease(&sample);
+				SafeRelease(&buffer);
+			});
 
 			auto hr = MFCreateSample(&sample);
 			if (SUCCEEDED(hr))
@@ -191,6 +200,8 @@ namespace QuantumGate::AVExtender
 					hr = sample->AddBuffer(buffer);
 					if (SUCCEEDED(hr))
 					{
+						sg.Deactivate();
+
 						return std::make_pair(sample, buffer);
 					}
 				}
@@ -239,6 +250,19 @@ namespace QuantumGate::AVExtender
 			}
 
 			return VideoFormat::PixelFormat::Unknown;
+		}
+
+		[[nodiscard]] static Size GetImageSize(const VideoFormat fmt) noexcept
+		{
+			UINT32 size{ 0 };
+			
+			if (SUCCEEDED(MFCalculateImageSize(GetMFVideoFormat(fmt.Format), fmt.Width, fmt.Height, &size)))
+			{
+				return size;
+			}
+			else assert(false);
+
+			return 0;
 		}
 
 	private:
