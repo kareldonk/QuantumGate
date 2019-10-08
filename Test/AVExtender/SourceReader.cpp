@@ -279,8 +279,12 @@ namespace QuantumGate::AVExtender
 			}
 
 			// Request the next sample
-			hr = m_SourceReaderData.WithUniqueLock()->SourceReader->ReadSample(m_StreamIndex, 0,
-																			   nullptr, nullptr, nullptr, nullptr);
+			auto source_reader_data = m_SourceReaderData.WithUniqueLock();
+			if (source_reader_data->SourceReader != nullptr)
+			{
+				hr = source_reader_data->SourceReader->ReadSample(m_StreamIndex, 0,
+																  nullptr, nullptr, nullptr, nullptr);
+			}
 		}
 
 		return hr;
