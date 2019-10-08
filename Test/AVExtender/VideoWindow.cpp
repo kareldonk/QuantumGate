@@ -138,6 +138,9 @@ namespace QuantumGate::AVExtender
 													   &m_D2D1RenderTarget);
 			if (SUCCEEDED(hr))
 			{
+				// No DPI scaling for MFC so use default (100%)
+				m_D2D1RenderTarget->SetDpi(96.f, 96.f);
+
 				m_D2D1RenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE::D2D1_ANTIALIAS_MODE_ALIASED);
 
 				hr = m_D2D1RenderTarget->CreateBitmap(size,

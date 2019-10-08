@@ -54,11 +54,11 @@ BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 {
 	CTabBase::OnInitDialog();
 
-	m_VideoSourceReader = new QuantumGate::AVExtender::VideoSourceReader();
-	m_AudioSourceReader = new QuantumGate::AVExtender::AudioSourceReader();
-
-	UpdateVideoDeviceCombo();
-	UpdateAudioDeviceCombo();
+	if (CreateVideoSourceReader() && CreateAudioSourceReader())
+	{
+		UpdateVideoDeviceCombo();
+		UpdateAudioDeviceCombo();
+	}
 
 	RECT rect{ 0 };
 	GetDlgItem(IDC_VIDEO_PREVIEW)->GetWindowRect(&rect);
@@ -72,6 +72,133 @@ BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // EXCEPTION: OCX Property Pages should return FALSE
+}
+
+bool CTestAppDlgAVExtenderTab::CreateVideoSourceReader() noexcept
+{
+	try
+	{
+		m_VideoSourceReader = new QuantumGate::AVExtender::VideoSourceReader();
+		return true;
+	}
+	catch (...) {}
+
+	return false;
+}
+
+void CTestAppDlgAVExtenderTab::CloseVideoSourceReader() noexcept
+{
+	if (m_VideoSourceReader)
+	{
+		m_VideoSourceReader->Close();
+		m_VideoSourceReader->Release();
+		m_VideoSourceReader = nullptr;
+	}
+}
+
+bool CTestAppDlgAVExtenderTab::InitVideoSourceReader() noexcept
+{
+	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_VIDEO_DEVICES_COMBO);
+	const auto sel = vdcombo->GetCurSel();
+	if (sel != CB_ERR)
+	{
+		const auto idx = vdcombo->GetItemData(sel);
+		const auto result = m_VideoSourceReader->Open(m_VideoCaptureDevices[idx].SymbolicLink,
+													  { MFVideoFormat_NV12, MFVideoFormat_I420, MFVideoFormat_RGB24 },
+													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnVideoSample));
+		if (result.Succeeded())
+		{
+			// Close upon failure
+			auto sg = MakeScopeGuard([&]() noexcept { m_VideoSourceReader->Close(); });
+
+			const auto sample_settings = m_VideoSourceReader->GetSampleFormat();
+
+			if (m_VideoWindow.SetInputFormat(sample_settings))
+			{
+				sg.Deactivate();
+
+				return true;
+			}
+			else
+			{
+				m_VideoSourceReader->Close();
+
+				AfxMessageBox(L"An error occured while trying to set the input format for the video window.", MB_ICONERROR);
+			}
+		}
+		else
+		{
+			CString error = L"An error occured while trying to open the video capture device '";
+			error += m_VideoCaptureDevices[idx].DeviceNameString;
+			error += L"'.\r\n\r\n";
+			error += result.GetErrorString().data();
+			AfxMessageBox(error, MB_ICONERROR);
+		}
+	}
+
+	return false;
+}
+
+bool CTestAppDlgAVExtenderTab::CreateAudioSourceReader() noexcept
+{
+	try
+	{
+		m_AudioSourceReader = new QuantumGate::AVExtender::AudioSourceReader();
+		return true;
+	}
+	catch (...) {}
+
+	return false;
+}
+
+void CTestAppDlgAVExtenderTab::CloseAudioSourceReader() noexcept
+{
+	if (m_AudioSourceReader)
+	{
+		m_AudioSourceReader->Close();
+		m_AudioSourceReader->Release();
+		m_AudioSourceReader = nullptr;
+	}
+}
+
+bool CTestAppDlgAVExtenderTab::InitAudioSourceReader() noexcept
+{
+	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_AUDIO_DEVICES_COMBO);
+	const auto sel = vdcombo->GetCurSel();
+	if (sel != CB_ERR)
+	{
+		const auto idx = vdcombo->GetItemData(sel);
+		const auto result = m_AudioSourceReader->Open(m_AudioCaptureDevices[idx].EndpointID, { MFAudioFormat_Float },
+													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnAudioSample));
+		if (result.Succeeded())
+		{
+			// Close upon failure
+			auto sg = MakeScopeGuard([&]() noexcept { m_AudioSourceReader->Close(); });
+
+			auto audio_renderer = m_AudioRenderer.WithUniqueLock();
+
+			if (audio_renderer->Create(m_AudioSourceReader->GetSampleFormat()))
+			{
+				if (audio_renderer->Play())
+				{
+					sg.Deactivate();
+
+					return true;
+				}
+				else audio_renderer->Close();
+			}
+		}
+		else
+		{
+			CString error = L"An error occured while trying to open the audio capture device '";
+			error += m_AudioCaptureDevices[idx].DeviceNameString;
+			error += L"'.\r\n\r\n";
+			error += result.GetErrorString().data();
+			AfxMessageBox(error, MB_ICONERROR);
+		}
+	}
+
+	return false;
 }
 
 void CTestAppDlgAVExtenderTab::UpdateVideoDeviceCombo() noexcept
@@ -139,6 +266,16 @@ void CTestAppDlgAVExtenderTab::OnCbnSelChangeVideoDevicesCombo()
 
 void CTestAppDlgAVExtenderTab::UpdateAVAudioDevice() noexcept
 {
+	if (m_AudioSourceReader != nullptr && m_AudioSourceReader->IsOpen())
+	{
+		CloseAudioSourceReader();
+
+		if (CreateAudioSourceReader())
+		{
+			DiscardReturnValue(InitAudioSourceReader());
+		}
+	}
+
 	if (m_AVExtender != nullptr)
 	{
 		const auto vdcombo = (CComboBox*)GetDlgItem(IDC_AUDIO_DEVICES_COMBO);
@@ -154,6 +291,16 @@ void CTestAppDlgAVExtenderTab::UpdateAVAudioDevice() noexcept
 
 void CTestAppDlgAVExtenderTab::UpdateAVVideoDevice() noexcept
 {
+	if (m_VideoSourceReader != nullptr && m_VideoSourceReader->IsOpen())
+	{
+		CloseVideoSourceReader();
+
+		if (CreateVideoSourceReader())
+		{
+			DiscardReturnValue(InitVideoSourceReader());
+		}
+	}
+
 	if (m_AVExtender != nullptr)
 	{
 		const auto vdcombo = (CComboBox*)GetDlgItem(IDC_VIDEO_DEVICES_COMBO);
@@ -169,34 +316,7 @@ void CTestAppDlgAVExtenderTab::UpdateAVVideoDevice() noexcept
 
 void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
 {
-	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_VIDEO_DEVICES_COMBO);
-	const auto sel = vdcombo->GetCurSel();
-	if (sel != CB_ERR)
-	{
-		const auto idx = vdcombo->GetItemData(sel);
-		const auto result = m_VideoSourceReader->Open(m_VideoCaptureDevices[idx].SymbolicLink,
-													  { MFVideoFormat_I420 /*MFVideoFormat_NV12 /*, MFVideoFormat_RGB24*/ },
-													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnVideoSample));
-		if (result.Succeeded())
-		{
-			const auto sample_settings = m_VideoSourceReader->GetSampleFormat();
-
-			if (!m_VideoWindow.SetInputFormat(sample_settings))
-			{
-				m_VideoSourceReader->Close();
-
-				AfxMessageBox(L"An error occured while trying to set the input format for the video window.", MB_ICONERROR);
-			}
-		}
-		else
-		{
-			CString error = L"An error occured while trying to open the video capture device '";
-			error += m_VideoCaptureDevices[idx].DeviceNameString;
-			error += L"'.\r\n\r\n";
-			error += result.GetErrorString().data();
-			AfxMessageBox(error, MB_ICONERROR);
-		}
-	}
+	DiscardReturnValue(InitVideoSourceReader());
 }
 
 void CTestAppDlgAVExtenderTab::OnVideoSample(const UInt64 timestamp, IMFSample* sample)
@@ -206,31 +326,7 @@ void CTestAppDlgAVExtenderTab::OnVideoSample(const UInt64 timestamp, IMFSample* 
 
 void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio()
 {
-	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_AUDIO_DEVICES_COMBO);
-	const auto sel = vdcombo->GetCurSel();
-	if (sel != CB_ERR)
-	{
-		const auto idx = vdcombo->GetItemData(sel);
-		const auto result = m_AudioSourceReader->Open(m_AudioCaptureDevices[idx].EndpointID, { MFAudioFormat_Float },
-													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnAudioSample));
-		if (result.Succeeded())
-		{
-			auto audio_renderer = m_AudioRenderer.WithUniqueLock();
-
-			if (audio_renderer->Create(m_AudioSourceReader->GetSampleFormat()))
-			{
-				DiscardReturnValue(audio_renderer->Play());
-			}
-		}
-		else
-		{
-			CString error = L"An error occured while trying to open the audio capture device '";
-			error += m_AudioCaptureDevices[idx].DeviceNameString;
-			error += L"'.\r\n\r\n";
-			error += result.GetErrorString().data();
-			AfxMessageBox(error, MB_ICONERROR);
-		}
-	}
+	DiscardReturnValue(InitAudioSourceReader());
 }
 
 void CTestAppDlgAVExtenderTab::OnAudioSample(const UInt64 timestamp, IMFSample* sample)
@@ -263,19 +359,8 @@ void CTestAppDlgAVExtenderTab::OnAudioSample(const UInt64 timestamp, IMFSample* 
 
 void CTestAppDlgAVExtenderTab::OnDestroy()
 {
-	if (m_VideoSourceReader)
-	{
-		m_VideoSourceReader->Close();
-		m_VideoSourceReader->Release();
-		m_VideoSourceReader = nullptr;
-	}
-
-	if (m_AudioSourceReader)
-	{
-		m_AudioSourceReader->Close();
-		m_AudioSourceReader->Release();
-		m_AudioSourceReader = nullptr;
-	}
+	CloseVideoSourceReader();
+	CloseAudioSourceReader();
 
 	m_VideoWindow.Close();
 

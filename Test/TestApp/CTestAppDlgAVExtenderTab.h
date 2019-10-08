@@ -40,6 +40,14 @@ protected:
 	LRESULT OnExtenderDeInit(WPARAM w, LPARAM l);
 	LRESULT OnAcceptIncomingCall(WPARAM w, LPARAM l);
 
+	[[nodiscard]] bool CreateVideoSourceReader() noexcept;
+	void CloseVideoSourceReader() noexcept;
+	[[nodiscard]] bool InitVideoSourceReader() noexcept;
+
+	[[nodiscard]] bool CreateAudioSourceReader() noexcept;
+	void CloseAudioSourceReader() noexcept;
+	[[nodiscard]] bool InitAudioSourceReader() noexcept;
+
 	void LoadAVExtender() noexcept;
 	void UnloadAVExtender() noexcept;
 	void UpdateVideoDeviceCombo() noexcept;
