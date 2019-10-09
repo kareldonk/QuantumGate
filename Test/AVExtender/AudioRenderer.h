@@ -46,7 +46,6 @@ namespace QuantumGate::AVExtender
 
 		AudioFormat m_OutputFormat;
 		IMFSample* m_OutputSample{ nullptr };
-		IMFMediaBuffer* m_OutputBuffer{ nullptr };
 
 		REFERENCE_TIME m_BufferDuration{ 0 };
 		UINT32 m_BufferFrameCount{ 0 };

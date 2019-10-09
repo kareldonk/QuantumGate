@@ -54,7 +54,6 @@ namespace QuantumGate::AVExtender
 		m_VideoResampler.Close();
 
 		SafeRelease(&m_OutputSample);
-		SafeRelease(&m_OutputBuffer);
 
 		if (m_WndHandle != nullptr)
 		{
@@ -91,6 +90,11 @@ namespace QuantumGate::AVExtender
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
+	}
+
+	void VideoWindow::Redraw() noexcept
+	{
+		RedrawWindow(m_WndHandle, nullptr, nullptr, RDW_ERASE | RDW_UPDATENOW | RDW_INVALIDATE);
 	}
 
 	LRESULT VideoWindow::WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept
@@ -238,8 +242,7 @@ namespace QuantumGate::AVExtender
 			auto result = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(m_VideoResampler.GetOutputFormat()));
 			if (result.Succeeded())
 			{
-				m_OutputSample = result->first;
-				m_OutputBuffer = result->second;
+				m_OutputSample = result.GetValue();
 
 				return true;
 			}

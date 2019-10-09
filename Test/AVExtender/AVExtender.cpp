@@ -404,26 +404,52 @@ namespace QuantumGate::AVExtender
 		// If the shutdown event is set quit the loop
 		while (!extender->m_ShutdownEvent.IsSet())
 		{
+			bool has_active_calls{ false };
+
 			extender->m_Peers.IfSharedLock([&](auto& peers)
 			{
 				for (auto it = peers.begin(); it != peers.end() && !extender->m_ShutdownEvent.IsSet(); ++it)
 				{
-					auto call = it->second->Call->WithUniqueLock();
+					bool cancel_call{ false };
+					CallType call_type{ CallType::None };
 
-					// If we've been waiting too long for a call to be
-					// accepted cancel it
-					if (call->IsCalling())
+					it->second->Call->WithSharedLock([&](auto& call)
 					{
-						if (call->IsWaitExpired())
-						{
-							LogErr(L"Cancelling expired call %s peer %llu",
-								(call->GetType() == CallType::Incoming) ? L"from" : L"to", it->second->ID);
+						call_type = call.GetType();
 
-							DiscardReturnValue(call->CancelCall());
+						// If we've been waiting too long for a call to be
+						// accepted cancel it
+						if (call.IsCalling())
+						{
+							if (call.IsWaitExpired())
+							{
+								cancel_call = true;
+							}
+							else has_active_calls = true;
 						}
+						else if (call.IsInCall()) has_active_calls = true;
+					});
+
+					if (cancel_call)
+					{
+						LogErr(L"Cancelling expired call %s peer %llu",
+							(call_type == CallType::Incoming) ? L"from" : L"to", it->second->ID);
+
+						DiscardReturnValue(it->second->Call->WithUniqueLock()->CancelCall());
 					}
 				}
 			});
+
+			bool readers_active{ false };
+			extender->m_AVSource.WithSharedLock([&](auto& avsource)
+			{
+				readers_active = avsource.AudioSourceReader.IsOpen() || avsource.VideoSourceReader.IsOpen();
+			});
+
+			if (!has_active_calls && !extender->m_Previewing && readers_active)
+			{
+				extender->StopAVSourceReaders();
+			}
 
 			// Sleep for a while or until we have to shut down
 			extender->m_ShutdownEvent.Wait(1ms);
@@ -803,21 +829,24 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	void Extender::StartAudioSourceReader() noexcept
+	bool Extender::StartAudioSourceReader() noexcept
 	{
 		auto avsource = m_AVSource.WithUniqueLock();
-		StartAudioSourceReader(*avsource);
+		return StartAudioSourceReader(*avsource);
 	}
 
-	void Extender::StartAudioSourceReader(AVSource& avsource) noexcept
+	bool Extender::StartAudioSourceReader(AVSource& avsource) noexcept
 	{
-		if (avsource.AudioSourceReader.IsOpen()) return;
+		if (avsource.AudioSourceReader.IsOpen()) return true;
+
+		LogDbg(L"Starting audio source reader...");
 
 		if (!avsource.AudioEndpointID.empty())
 		{
 			const auto result = avsource.AudioSourceReader.Open(avsource.AudioEndpointID.c_str(),
 																{ MFAudioFormat_Float }, nullptr);
-			if (result.Failed())
+			if (result.Succeeded()) return true;
+			else
 			{
 				LogErr(L"Failed to start audio source reader; peers will not receive audio (%s)",
 					   result.GetErrorString().c_str());
@@ -827,6 +856,8 @@ namespace QuantumGate::AVExtender
 		{
 			LogErr(L"No audio device endpoint ID set; peers will not receive audio");
 		}
+
+		return false;
 	}
 
 	void Extender::StopAudioSourceReader() noexcept
@@ -839,26 +870,43 @@ namespace QuantumGate::AVExtender
 	{
 		if (!avsource.AudioSourceReader.IsOpen()) return;
 
+		LogDbg(L"Stopping audio source reader...");
+
 		avsource.AudioSourceReader.Close();
 	}
 
-	void Extender::StartVideoSourceReader() noexcept
+	bool Extender::StartVideoSourceReader() noexcept
 	{
 		auto avsource = m_AVSource.WithUniqueLock();
-		StartVideoSourceReader(*avsource);
+		return StartVideoSourceReader(*avsource);
 	}
 
-	void Extender::StartVideoSourceReader(AVSource& avsource) noexcept
+	bool Extender::StartVideoSourceReader(AVSource& avsource) noexcept
 	{
-		if (avsource.VideoSourceReader.IsOpen()) return;
+		if (avsource.VideoSourceReader.IsOpen()) return true;
+
+		LogDbg(L"Starting video source reader...");
 
 		if (!avsource.VideoSymbolicLink.empty())
 		{
-			avsource.VideoSourceReader.SetSampleSize(80, 60);
-
 			const auto result = avsource.VideoSourceReader.Open(avsource.VideoSymbolicLink.c_str(),
 																{ MFVideoFormat_NV12, MFVideoFormat_I420, MFVideoFormat_RGB24 }, nullptr);
-			if (result.Failed())
+			if (result.Succeeded())
+			{
+				const auto fmt = avsource.VideoSourceReader.GetSampleFormat();
+
+				const auto width = (static_cast<double>(avsource.MaxVideoResolution) / static_cast<double>(fmt.Height)) * static_cast<double>(fmt.Width);
+
+				if (avsource.VideoSourceReader.SetSampleSize(static_cast<Size>(width), avsource.MaxVideoResolution))
+				{
+					return true;
+				}
+				else
+				{
+					LogErr(L"Failed to set sample size on video device; peers will not receive video");
+				}
+			}
+			else
 			{
 				LogErr(L"Failed to start video source reader; peers will not receive video (%s)",
 					   result.GetErrorString().c_str());
@@ -868,6 +916,8 @@ namespace QuantumGate::AVExtender
 		{
 			LogErr(L"No video device symbolic link set; peers will not receive video");
 		}
+
+		return false;
 	}
 
 	void Extender::StopVideoSourceReader() noexcept
@@ -880,7 +930,16 @@ namespace QuantumGate::AVExtender
 	{
 		if (!avsource.VideoSourceReader.IsOpen()) return;
 
+		LogDbg(L"Stopping video source reader...");
+
 		avsource.VideoSourceReader.Close();
+	}
+
+	void Extender::StopAVSourceReaders() noexcept
+	{
+		auto avsource = m_AVSource.WithUniqueLock();
+		StopAudioSourceReader(*avsource);
+		StopVideoSourceReader(*avsource);
 	}
 
 	void Extender::UpdateSendAudioVideo(const PeerLUID pluid, const bool send_video, const bool send_audio)
@@ -915,8 +974,10 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	void Extender::SetAudioEndpointID(const WCHAR* id)
+	bool Extender::SetAudioEndpointID(const WCHAR* id)
 	{
+		auto success = true;
+
 		m_AVSource.WithUniqueLock([&](auto& avsource)
 		{
 			const bool was_open = avsource.AudioSourceReader.IsOpen();
@@ -925,7 +986,10 @@ namespace QuantumGate::AVExtender
 
 			avsource.AudioEndpointID = id;
 
-			if (was_open) StartAudioSourceReader(avsource);
+			if (was_open)
+			{
+				success = StartAudioSourceReader(avsource);
+			}
 		});
 
 		m_Peers.WithSharedLock([&](auto& peers)
@@ -946,10 +1010,14 @@ namespace QuantumGate::AVExtender
 				}
 			}
 		});
+
+		return success;
 	}
 
-	void Extender::SetVideoSymbolicLink(const WCHAR* id)
+	bool Extender::SetVideoSymbolicLink(const WCHAR* id, const Size max_res)
 	{
+		auto success = true;
+
 		m_AVSource.WithUniqueLock([&](auto& avsource)
 		{
 			const bool was_open = avsource.VideoSourceReader.IsOpen();
@@ -957,8 +1025,12 @@ namespace QuantumGate::AVExtender
 			StopVideoSourceReader(avsource);
 
 			avsource.VideoSymbolicLink = id;
+			avsource.MaxVideoResolution = max_res;
 
-			if (was_open) StartVideoSourceReader(avsource);
+			if (was_open)
+			{
+				success = StartVideoSourceReader(avsource);
+			}
 		});
 
 		m_Peers.WithSharedLock([&](auto& peers)
@@ -979,5 +1051,91 @@ namespace QuantumGate::AVExtender
 				}
 			}
 		});
+
+		return success;
+	}
+
+	Result<VideoFormat> Extender::StartVideoPreview(SourceReader::SampleEventDispatcher::FunctionType&& callback) noexcept
+	{
+		auto success = false;
+		VideoFormat video_format;
+
+		m_AVSource.WithUniqueLock([&](auto& avsource)
+		{
+			success = avsource.VideoSourceReader.IsOpen();
+			if (!success)
+			{
+				success = StartVideoSourceReader(avsource);
+			}
+
+			if (success)
+			{
+				m_PreviewVideoSampleEventFunctionHandle = avsource.VideoSourceReader.AddSampleEventCallback(std::move(callback));
+				video_format = avsource.VideoSourceReader.GetSampleFormat();
+				m_Previewing = true;
+			}
+		});
+
+		if (success)
+		{
+			return video_format;
+		}
+
+		return AVResultCode::Failed;
+	}
+
+	void Extender::StopVideoPreview() noexcept
+	{
+		if (m_PreviewVideoSampleEventFunctionHandle)
+		{
+			m_AVSource.WithUniqueLock([&](auto& avsource)
+			{
+				avsource.VideoSourceReader.RemoveSampleEventCallback(m_PreviewVideoSampleEventFunctionHandle);
+			});
+
+			if (!m_PreviewAudioSampleEventFunctionHandle) m_Previewing = false;
+		}
+	}
+
+	Result<AudioFormat> Extender::StartAudioPreview(SourceReader::SampleEventDispatcher::FunctionType&& callback) noexcept
+	{
+		auto success = false;
+		AudioFormat audio_format;
+
+		m_AVSource.WithUniqueLock([&](auto& avsource)
+		{
+			success = avsource.AudioSourceReader.IsOpen();
+			if (!success)
+			{
+				success = StartAudioSourceReader(avsource);
+			}
+
+			if (success)
+			{
+				m_PreviewAudioSampleEventFunctionHandle = avsource.AudioSourceReader.AddSampleEventCallback(std::move(callback));
+				audio_format = avsource.AudioSourceReader.GetSampleFormat();
+				m_Previewing = true;
+			}
+		});
+
+		if (success)
+		{
+			return audio_format;
+		}
+
+		return AVResultCode::Failed;
+	}
+
+	void Extender::StopAudioPreview() noexcept
+	{
+		if (m_PreviewAudioSampleEventFunctionHandle)
+		{
+			m_AVSource.WithUniqueLock([&](auto& avsource)
+			{
+				avsource.AudioSourceReader.RemoveSampleEventCallback(m_PreviewAudioSampleEventFunctionHandle);
+			});
+
+			if (!m_PreviewVideoSampleEventFunctionHandle) m_Previewing = false;
+		}
 	}
 }

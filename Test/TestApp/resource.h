@@ -178,8 +178,12 @@
 #define IDC_INITIALIZE_AV2              1080
 #define IDC_INITIALIZE_AUDIO            1080
 #define IDC_PRIORITY_COMBO              1080
+#define IDC_VIDEO_DEVICES_COMBO2        1080
+#define IDC_VIDEO_SIZE_COMBO            1080
 #define IDC_CHECK18                     1081
+#define IDC_PREVIEW_VIDEO               1081
 #define IDC_CHECK19                     1082
+#define IDC_PREVIEW_AUDIO               1082
 #define IDC_CHECK20                     1083
 #define IDC_CHECK21                     1084
 #define IDC_CHECK22                     1085
@@ -271,7 +275,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
 #define _APS_NEXT_COMMAND_VALUE         32852
-#define _APS_NEXT_CONTROL_VALUE         1081
+#define _APS_NEXT_CONTROL_VALUE         1082
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

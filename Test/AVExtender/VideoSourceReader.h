@@ -18,9 +18,7 @@ namespace QuantumGate::AVExtender
 			VideoResampler OutVideoResampler;
 
 			IMFSample* m_OutputSample1{ nullptr };
-			IMFMediaBuffer* m_OutputBuffer1{ nullptr };
 			IMFSample* m_OutputSample2{ nullptr };
-			IMFMediaBuffer* m_OutputBuffer2{ nullptr };
 		};
 
 		using VideoTransform_ThS = Concurrency::ThreadSafe<VideoTransform, std::shared_mutex>;
@@ -42,7 +40,7 @@ namespace QuantumGate::AVExtender
 		VideoSourceReader& operator=(const VideoSourceReader&) = delete;
 		VideoSourceReader& operator=(VideoSourceReader&&) = delete;
 
-		void SetSampleSize(const Size width, const Size height) noexcept;
+		[[nodiscard]] bool SetSampleSize(const Size width, const Size height) noexcept;
 
 		[[nodiscard]] VideoFormat GetSampleFormat() const noexcept;
 

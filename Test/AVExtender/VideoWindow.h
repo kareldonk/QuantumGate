@@ -44,6 +44,8 @@ namespace QuantumGate::AVExtender
 		void Render(const UInt64 in_timestamp, const BufferView pixels) noexcept;
 
 		void ProcessMessages() noexcept;
+
+		void Redraw() noexcept;
 		
 	private:
 		static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept;
@@ -69,7 +71,6 @@ namespace QuantumGate::AVExtender
 		VideoResampler m_VideoResampler;
 		
 		IMFSample* m_OutputSample{ nullptr };
-		IMFMediaBuffer* m_OutputBuffer{ nullptr };
 
 		Buffer m_ResampleBuffer;
 	};

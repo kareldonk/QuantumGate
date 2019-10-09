@@ -35,18 +35,15 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 
+	void StartAudioPreview() noexcept;
+	void StopAudioPreview() noexcept;
+	void StartVideoPreview() noexcept;
+	void StopVideoPreview() noexcept;
+
 	LRESULT OnPeerEvent(WPARAM w, LPARAM l);
 	LRESULT OnExtenderInit(WPARAM w, LPARAM l);
 	LRESULT OnExtenderDeInit(WPARAM w, LPARAM l);
 	LRESULT OnAcceptIncomingCall(WPARAM w, LPARAM l);
-
-	[[nodiscard]] bool CreateVideoSourceReader() noexcept;
-	void CloseVideoSourceReader() noexcept;
-	[[nodiscard]] bool InitVideoSourceReader() noexcept;
-
-	[[nodiscard]] bool CreateAudioSourceReader() noexcept;
-	void CloseAudioSourceReader() noexcept;
-	[[nodiscard]] bool InitAudioSourceReader() noexcept;
 
 	void LoadAVExtender() noexcept;
 	void UnloadAVExtender() noexcept;
@@ -64,8 +61,6 @@ protected:
 
 	virtual BOOL OnInitDialog();
 
-	afx_msg void OnBnClickedInitializeAv();
-	afx_msg void OnBnClickedInitializeAudio();
 	afx_msg void OnDestroy();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnAVExtenderLoad();
@@ -79,6 +74,9 @@ protected:
 	afx_msg void OnBnClickedHangupButton();
 	afx_msg void OnCbnSelChangeAudioDevicesCombo();
 	afx_msg void OnCbnSelChangeVideoDevicesCombo();
+	afx_msg void OnBnClickedPreviewVideo();
+	afx_msg void OnBnClickedPreviewAudio();
+	afx_msg void OnCbnSelchangeVideoSizeCombo();
 
 private:
 	QuantumGate::Local& m_QuantumGate;
@@ -88,11 +86,9 @@ private:
 
 	std::shared_ptr<QuantumGate::AVExtender::Extender> m_AVExtender{ nullptr };
 
-	QuantumGate::AVExtender::VideoSourceReader* m_VideoSourceReader{ nullptr };
-	QuantumGate::AVExtender::VideoWindow m_VideoWindow;
+	QuantumGate::AVExtender::CaptureDeviceVector m_AudioCaptureDevices;
 	QuantumGate::AVExtender::CaptureDeviceVector m_VideoCaptureDevices;
 
-	QuantumGate::AVExtender::AudioSourceReader* m_AudioSourceReader{ nullptr };
-	QuantumGate::AVExtender::CaptureDeviceVector m_AudioCaptureDevices;
 	QuantumGate::AVExtender::AudioRenderer_ThS m_AudioRenderer;
+	QuantumGate::AVExtender::VideoWindow m_VideoWindow;
 };

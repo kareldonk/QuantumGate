@@ -48,8 +48,7 @@ namespace QuantumGate::AVExtender
 						auto result = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(m_OutputFormat));
 						if (result.Succeeded())
 						{
-							m_OutputSample = result->first;
-							m_OutputBuffer = result->second;
+							m_OutputSample = result.GetValue();
 
 							sg.Deactivate();
 
@@ -75,7 +74,6 @@ namespace QuantumGate::AVExtender
 		SafeRelease(&m_InputMediaType);
 		SafeRelease(&m_OutputMediaType);
 		SafeRelease(&m_OutputSample);
-		SafeRelease(&m_OutputBuffer);
 	}
 
 	bool VideoResizer::Resize(IMFSample* in_sample, IMFSample* out_sample) noexcept

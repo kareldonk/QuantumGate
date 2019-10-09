@@ -90,6 +90,9 @@ namespace QuantumGate::AVExtender
 
 			if (settings & static_cast<UInt8>(CallSetting::SendAudio))
 			{
+				// Try to send at most 1 second of audio data at once
+				const auto max_send = call->m_AVSource.WithSharedLock()->AudioSourceReader.GetSampleFormat().AvgBytesPerSecond;
+
 				call->m_AudioInSample.WithUniqueLock([&](auto& media_sample)
 				{
 					if (media_sample.New)
@@ -99,15 +102,13 @@ namespace QuantumGate::AVExtender
 						while (!buf.IsEmpty())
 						{
 							auto buf2 = buf;
-							// TODO: 192000 needs to be avgbytespersecond of inputformat
-							if (buf2.GetSize() > 192000)
+							if (buf2.GetSize() > max_send)
 							{
-								buf2 = buf2.GetFirst(192000);
+								buf2 = buf2.GetFirst(max_send);
 							}
 
 							DiscardReturnValue(call->m_Extender.SendCallAVSample(call->m_PeerLUID, MessageType::AudioSample,
-																				 media_sample.TimeStamp,
-																				 buf2));
+																				 media_sample.TimeStamp, buf2));
 							buf.RemoveFirst(buf2.GetSize());
 						}
 
@@ -124,8 +125,7 @@ namespace QuantumGate::AVExtender
 					if (media_sample.New)
 					{
 						DiscardReturnValue(call->m_Extender.SendCallAVSample(call->m_PeerLUID, MessageType::VideoSample,
-																			 media_sample.TimeStamp,
-																			 media_sample.SampleBuffer));
+																			 media_sample.TimeStamp, media_sample.SampleBuffer));
 						media_sample.New = false;
 						media_sample.SampleBuffer.Clear();
 					}

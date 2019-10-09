@@ -64,8 +64,16 @@ namespace QuantumGate::AVExtender
 
 		void UpdateSendAudioVideo(const PeerLUID pluid, const bool send_video, const bool send_audio);
 
-		void SetAudioEndpointID(const WCHAR* id);
-		void SetVideoSymbolicLink(const WCHAR* id);
+		[[nodiscard]] bool SetAudioEndpointID(const WCHAR* id);
+		[[nodiscard]] bool SetVideoSymbolicLink(const WCHAR* id, const Size max_res);
+
+		Result<VideoFormat> StartVideoPreview(SourceReader::SampleEventDispatcher::FunctionType&& callback) noexcept;
+		void StopVideoPreview() noexcept;
+
+		Result<AudioFormat> StartAudioPreview(SourceReader::SampleEventDispatcher::FunctionType&& callback) noexcept;
+		void StopAudioPreview() noexcept;
+
+		void StopAVSourceReaders() noexcept;
 
 	protected:
 		bool OnStartup();
@@ -100,13 +108,13 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] bool SendGeneralFailure(const PeerLUID pluid);
 		[[nodiscard]] bool SendCallAVUpdate(const PeerLUID pluid, const bool send_audio, const bool send_video);
 
-		void StartAudioSourceReader() noexcept;
-		void StartAudioSourceReader(AVSource& avsource) noexcept;
+		bool StartAudioSourceReader() noexcept;
+		bool StartAudioSourceReader(AVSource& avsource) noexcept;
 		void StopAudioSourceReader() noexcept;
 		void StopAudioSourceReader(AVSource& avsource) noexcept;
 
-		void StartVideoSourceReader() noexcept;
-		void StartVideoSourceReader(AVSource& avsource) noexcept;
+		bool StartVideoSourceReader() noexcept;
+		bool StartVideoSourceReader(AVSource& avsource) noexcept;
 		void StopVideoSourceReader() noexcept;
 		void StopVideoSourceReader(AVSource& avsource) noexcept;
 
@@ -121,6 +129,10 @@ namespace QuantumGate::AVExtender
 
 		Concurrency::EventCondition m_ShutdownEvent{ false };
 		std::thread m_Thread;
+
+		std::atomic_bool m_Previewing{ false };
+		SourceReader::SampleEventDispatcher::FunctionHandle m_PreviewAudioSampleEventFunctionHandle;
+		SourceReader::SampleEventDispatcher::FunctionHandle m_PreviewVideoSampleEventFunctionHandle;
 
 		AVSource_ThS m_AVSource;
 	};

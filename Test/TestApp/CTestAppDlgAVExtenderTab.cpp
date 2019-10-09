@@ -30,7 +30,6 @@ BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
 	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::ExtenderInit), &CTestAppDlgAVExtenderTab::OnExtenderInit)
 	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::ExtenderDeinit), &CTestAppDlgAVExtenderTab::OnExtenderDeInit)
 	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::AcceptIncomingCall), &CTestAppDlgAVExtenderTab::OnAcceptIncomingCall)
-	ON_BN_CLICKED(IDC_INITIALIZE_AV, &CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv)
 	ON_WM_DESTROY()
 	ON_WM_TIMER()
 	ON_COMMAND(ID_AVEXTENDER_LOAD, &CTestAppDlgAVExtenderTab::OnAVExtenderLoad)
@@ -42,23 +41,25 @@ BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
 	ON_BN_CLICKED(IDC_SEND_AUDIO_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedSendAudioCheck)
 	ON_BN_CLICKED(IDC_CALL_BUTTON, &CTestAppDlgAVExtenderTab::OnBnClickedCallButton)
 	ON_BN_CLICKED(IDC_HANGUP_BUTTON, &CTestAppDlgAVExtenderTab::OnBnClickedHangupButton)
-	ON_BN_CLICKED(IDC_INITIALIZE_AUDIO, &CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio)
 	ON_CBN_SELCHANGE(IDC_AUDIO_DEVICES_COMBO, &CTestAppDlgAVExtenderTab::OnCbnSelChangeAudioDevicesCombo)
 	ON_CBN_SELCHANGE(IDC_VIDEO_DEVICES_COMBO, &CTestAppDlgAVExtenderTab::OnCbnSelChangeVideoDevicesCombo)
+	ON_BN_CLICKED(IDC_PREVIEW_VIDEO, &CTestAppDlgAVExtenderTab::OnBnClickedPreviewVideo)
+	ON_BN_CLICKED(IDC_PREVIEW_AUDIO, &CTestAppDlgAVExtenderTab::OnBnClickedPreviewAudio)
+	ON_CBN_SELCHANGE(IDC_VIDEO_SIZE_COMBO, &CTestAppDlgAVExtenderTab::OnCbnSelchangeVideoSizeCombo)
 END_MESSAGE_MAP()
 
 void CTestAppDlgAVExtenderTab::UpdateControls() noexcept
-{}
+{
+	GetDlgItem(IDC_PREVIEW_VIDEO)->EnableWindow(m_AVExtender != nullptr);
+	GetDlgItem(IDC_PREVIEW_AUDIO)->EnableWindow(m_AVExtender != nullptr);
+}
 
 BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 {
 	CTabBase::OnInitDialog();
 
-	if (CreateVideoSourceReader() && CreateAudioSourceReader())
-	{
-		UpdateVideoDeviceCombo();
-		UpdateAudioDeviceCombo();
-	}
+	UpdateVideoDeviceCombo();
+	UpdateAudioDeviceCombo();
 
 	RECT rect{ 0 };
 	GetDlgItem(IDC_VIDEO_PREVIEW)->GetWindowRect(&rect);
@@ -74,131 +75,65 @@ BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 				  // EXCEPTION: OCX Property Pages should return FALSE
 }
 
-bool CTestAppDlgAVExtenderTab::CreateVideoSourceReader() noexcept
+void CTestAppDlgAVExtenderTab::StartAudioPreview() noexcept
 {
-	try
+	auto audiocb = QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnAudioSample);
+	auto result = m_AVExtender->StartAudioPreview(std::move(audiocb));
+	if (result.Succeeded())
 	{
-		m_VideoSourceReader = new QuantumGate::AVExtender::VideoSourceReader();
-		return true;
-	}
-	catch (...) {}
+		auto audio_renderer = m_AudioRenderer.WithUniqueLock();
 
-	return false;
-}
-
-void CTestAppDlgAVExtenderTab::CloseVideoSourceReader() noexcept
-{
-	if (m_VideoSourceReader)
-	{
-		m_VideoSourceReader->Close();
-		m_VideoSourceReader->Release();
-		m_VideoSourceReader = nullptr;
-	}
-}
-
-bool CTestAppDlgAVExtenderTab::InitVideoSourceReader() noexcept
-{
-	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_VIDEO_DEVICES_COMBO);
-	const auto sel = vdcombo->GetCurSel();
-	if (sel != CB_ERR)
-	{
-		const auto idx = vdcombo->GetItemData(sel);
-		const auto result = m_VideoSourceReader->Open(m_VideoCaptureDevices[idx].SymbolicLink,
-													  { MFVideoFormat_NV12, MFVideoFormat_I420, MFVideoFormat_RGB24 },
-													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnVideoSample));
-		if (result.Succeeded())
+		if (audio_renderer->Create(result.GetValue()))
 		{
-			// Close upon failure
-			auto sg = MakeScopeGuard([&]() noexcept { m_VideoSourceReader->Close(); });
-
-			const auto sample_settings = m_VideoSourceReader->GetSampleFormat();
-
-			if (m_VideoWindow.SetInputFormat(sample_settings))
+			if (audio_renderer->Play())
 			{
-				sg.Deactivate();
-
-				return true;
+				auto preview_audio_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_PREVIEW_AUDIO));
+				preview_audio_check->SetCheck(BST_CHECKED);
 			}
 			else
 			{
-				m_VideoSourceReader->Close();
-
-				AfxMessageBox(L"An error occured while trying to set the input format for the video window.", MB_ICONERROR);
+				audio_renderer->Close();
 			}
+		}
+	}
+}
+
+void CTestAppDlgAVExtenderTab::StopAudioPreview() noexcept
+{
+	m_AVExtender->StopAudioPreview();
+
+	m_AudioRenderer.WithUniqueLock()->Close();
+
+	auto preview_audio_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_PREVIEW_AUDIO));
+	preview_audio_check->SetCheck(BST_UNCHECKED);
+}
+
+void CTestAppDlgAVExtenderTab::StartVideoPreview() noexcept
+{
+	auto videocb = QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnVideoSample);
+	auto result = m_AVExtender->StartVideoPreview(std::move(videocb));
+	if (result.Succeeded())
+	{
+		if (m_VideoWindow.SetInputFormat(result.GetValue()))
+		{
+			auto preview_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_PREVIEW_VIDEO));
+			preview_video_check->SetCheck(BST_CHECKED);
 		}
 		else
 		{
-			CString error = L"An error occured while trying to open the video capture device '";
-			error += m_VideoCaptureDevices[idx].DeviceNameString;
-			error += L"'.\r\n\r\n";
-			error += result.GetErrorString().data();
-			AfxMessageBox(error, MB_ICONERROR);
+			AfxMessageBox(L"An error occured while trying to set the input format for the video window.", MB_ICONERROR);
 		}
-	}
-
-	return false;
-}
-
-bool CTestAppDlgAVExtenderTab::CreateAudioSourceReader() noexcept
-{
-	try
-	{
-		m_AudioSourceReader = new QuantumGate::AVExtender::AudioSourceReader();
-		return true;
-	}
-	catch (...) {}
-
-	return false;
-}
-
-void CTestAppDlgAVExtenderTab::CloseAudioSourceReader() noexcept
-{
-	if (m_AudioSourceReader)
-	{
-		m_AudioSourceReader->Close();
-		m_AudioSourceReader->Release();
-		m_AudioSourceReader = nullptr;
 	}
 }
 
-bool CTestAppDlgAVExtenderTab::InitAudioSourceReader() noexcept
+void CTestAppDlgAVExtenderTab::StopVideoPreview() noexcept
 {
-	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_AUDIO_DEVICES_COMBO);
-	const auto sel = vdcombo->GetCurSel();
-	if (sel != CB_ERR)
-	{
-		const auto idx = vdcombo->GetItemData(sel);
-		const auto result = m_AudioSourceReader->Open(m_AudioCaptureDevices[idx].EndpointID, { MFAudioFormat_Float },
-													  QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnAudioSample));
-		if (result.Succeeded())
-		{
-			// Close upon failure
-			auto sg = MakeScopeGuard([&]() noexcept { m_AudioSourceReader->Close(); });
+	m_AVExtender->StopVideoPreview();
 
-			auto audio_renderer = m_AudioRenderer.WithUniqueLock();
+	m_VideoWindow.Redraw();
 
-			if (audio_renderer->Create(m_AudioSourceReader->GetSampleFormat()))
-			{
-				if (audio_renderer->Play())
-				{
-					sg.Deactivate();
-
-					return true;
-				}
-				else audio_renderer->Close();
-			}
-		}
-		else
-		{
-			CString error = L"An error occured while trying to open the audio capture device '";
-			error += m_AudioCaptureDevices[idx].DeviceNameString;
-			error += L"'.\r\n\r\n";
-			error += result.GetErrorString().data();
-			AfxMessageBox(error, MB_ICONERROR);
-		}
-	}
-
-	return false;
+	auto preview_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_PREVIEW_VIDEO));
+	preview_video_check->SetCheck(BST_UNCHECKED);
 }
 
 void CTestAppDlgAVExtenderTab::UpdateVideoDeviceCombo() noexcept
@@ -206,9 +141,7 @@ void CTestAppDlgAVExtenderTab::UpdateVideoDeviceCombo() noexcept
 	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_VIDEO_DEVICES_COMBO);
 	vdcombo->ResetContent();
 
-	if (m_VideoSourceReader == nullptr) return;
-
-	auto result = m_VideoSourceReader->EnumCaptureDevices();
+	auto result = AVExtender::CaptureDevices::Enum(AVExtender::CaptureDevice::Type::Video);
 	if (result.Succeeded())
 	{
 		m_VideoCaptureDevices = std::move(*result);
@@ -224,6 +157,20 @@ void CTestAppDlgAVExtenderTab::UpdateVideoDeviceCombo() noexcept
 			vdcombo->SelectString(0, m_VideoCaptureDevices[0].DeviceNameString);
 		}
 	}
+
+	const auto vdscombo = (CComboBox*)GetDlgItem(IDC_VIDEO_SIZE_COMBO);
+	vdscombo->ResetContent();
+
+	int size{ 720 };
+	while (size >= 90)
+	{
+		const auto pos = vdscombo->AddString(Util::FormatString(L"%dp", size).c_str());
+		vdscombo->SetItemData(pos, static_cast<DWORD_PTR>(size));
+
+		size = size / 2;
+	}
+
+	vdscombo->SelectString(0, L"90p");
 }
 
 void CTestAppDlgAVExtenderTab::UpdateAudioDeviceCombo() noexcept
@@ -231,9 +178,7 @@ void CTestAppDlgAVExtenderTab::UpdateAudioDeviceCombo() noexcept
 	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_AUDIO_DEVICES_COMBO);
 	vdcombo->ResetContent();
 
-	if (m_AudioSourceReader == nullptr) return;
-
-	auto result = m_AudioSourceReader->EnumCaptureDevices();
+	auto result = AVExtender::CaptureDevices::Enum(AVExtender::CaptureDevice::Type::Audio);
 	if (result.Succeeded())
 	{
 		m_AudioCaptureDevices = std::move(*result);
@@ -264,69 +209,103 @@ void CTestAppDlgAVExtenderTab::OnCbnSelChangeVideoDevicesCombo()
 	UpdateAVVideoDevice();
 }
 
+void CTestAppDlgAVExtenderTab::OnCbnSelchangeVideoSizeCombo()
+{
+	UpdateAVVideoDevice();
+}
+
 void CTestAppDlgAVExtenderTab::UpdateAVAudioDevice() noexcept
 {
-	if (m_AudioSourceReader != nullptr && m_AudioSourceReader->IsOpen())
-	{
-		CloseAudioSourceReader();
-
-		if (CreateAudioSourceReader())
-		{
-			DiscardReturnValue(InitAudioSourceReader());
-		}
-	}
-
 	if (m_AVExtender != nullptr)
 	{
 		const auto vdcombo = (CComboBox*)GetDlgItem(IDC_AUDIO_DEVICES_COMBO);
 		const auto sel = vdcombo->GetCurSel();
 		if (sel != CB_ERR)
 		{
+			const auto preview_audio_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_PREVIEW_AUDIO));
+			const auto preview_audio = (preview_audio_check->GetCheck() == BST_CHECKED);
+
+			if (preview_audio) StopAudioPreview();
+
 			const auto idx = vdcombo->GetItemData(sel);
-			m_AVExtender->SetAudioEndpointID(m_AudioCaptureDevices[idx].EndpointID);
+			const auto success = m_AVExtender->SetAudioEndpointID(m_AudioCaptureDevices[idx].EndpointID);
+
+			if (success && preview_audio) StartAudioPreview();
 		}
-		else m_AVExtender->SetAudioEndpointID(L"");
+		else
+		{
+			DiscardReturnValue(m_AVExtender->SetAudioEndpointID(L""));
+		}
 	}
 }
 
 void CTestAppDlgAVExtenderTab::UpdateAVVideoDevice() noexcept
 {
-	if (m_VideoSourceReader != nullptr && m_VideoSourceReader->IsOpen())
-	{
-		CloseVideoSourceReader();
-
-		if (CreateVideoSourceReader())
-		{
-			DiscardReturnValue(InitVideoSourceReader());
-		}
-	}
-
 	if (m_AVExtender != nullptr)
 	{
 		const auto vdcombo = (CComboBox*)GetDlgItem(IDC_VIDEO_DEVICES_COMBO);
 		const auto sel = vdcombo->GetCurSel();
 		if (sel != CB_ERR)
 		{
-			const auto idx = vdcombo->GetItemData(sel);
-			m_AVExtender->SetVideoSymbolicLink(m_VideoCaptureDevices[idx].SymbolicLink);
+			const auto vdscombo = (CComboBox*)GetDlgItem(IDC_VIDEO_SIZE_COMBO);
+			const auto sel2 = vdscombo->GetCurSel();
+			if (sel2 != CB_ERR)
+			{
+				const auto preview_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_PREVIEW_VIDEO));
+				const auto preview_video = (preview_video_check->GetCheck() == BST_CHECKED);
+
+				if (preview_video) StopVideoPreview();
+
+				const auto idx = vdcombo->GetItemData(sel);
+				const auto size = vdscombo->GetItemData(sel2);
+
+				const auto success = m_AVExtender->SetVideoSymbolicLink(m_VideoCaptureDevices[idx].SymbolicLink, size);
+
+				if (success && preview_video) StartVideoPreview();
+			}
 		}
-		else m_AVExtender->SetVideoSymbolicLink(L"");
+		else
+		{
+			DiscardReturnValue(m_AVExtender->SetVideoSymbolicLink(L"", 0));
+		}
 	}
 }
 
-void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAv()
+void CTestAppDlgAVExtenderTab::OnBnClickedPreviewVideo()
 {
-	DiscardReturnValue(InitVideoSourceReader());
+	if (m_AVExtender != nullptr)
+	{
+		auto preview_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_PREVIEW_VIDEO));
+		if (preview_video_check->GetCheck() == BST_CHECKED)
+		{
+			StartVideoPreview();
+		}
+		else
+		{
+			StopVideoPreview();
+		}
+	}
+}
+
+void CTestAppDlgAVExtenderTab::OnBnClickedPreviewAudio()
+{
+	if (m_AVExtender != nullptr)
+	{
+		auto preview_audio_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_PREVIEW_AUDIO));
+		if (preview_audio_check->GetCheck() == BST_CHECKED)
+		{
+			StartAudioPreview();
+		}
+		else
+		{
+			StopAudioPreview();
+		}
+	}
 }
 
 void CTestAppDlgAVExtenderTab::OnVideoSample(const UInt64 timestamp, IMFSample* sample)
 {
 	m_VideoWindow.Render(sample);
-}
-
-void CTestAppDlgAVExtenderTab::OnBnClickedInitializeAudio()
-{
-	DiscardReturnValue(InitAudioSourceReader());
 }
 
 void CTestAppDlgAVExtenderTab::OnAudioSample(const UInt64 timestamp, IMFSample* sample)
@@ -359,8 +338,7 @@ void CTestAppDlgAVExtenderTab::OnAudioSample(const UInt64 timestamp, IMFSample* 
 
 void CTestAppDlgAVExtenderTab::OnDestroy()
 {
-	CloseVideoSourceReader();
-	CloseAudioSourceReader();
+	UnloadAVExtender();
 
 	m_VideoWindow.Close();
 
@@ -474,6 +452,8 @@ void CTestAppDlgAVExtenderTab::OnAVExtenderLoad()
 {
 	if (m_AVExtender == nullptr) LoadAVExtender();
 	else UnloadAVExtender();
+
+	UpdateControls();
 }
 
 void CTestAppDlgAVExtenderTab::OnUpdateAVExtenderLoad(CCmdUI* pCmdUI)
@@ -523,7 +503,12 @@ void CTestAppDlgAVExtenderTab::UnloadAVExtender() noexcept
 {
 	if (m_AVExtender != nullptr)
 	{
+		StopVideoPreview();
+		StopAudioPreview();
+
 		if (m_AVExtender->IsRunning()) m_AVExtender->HangupAllCalls();
+
+		m_AVExtender->StopAVSourceReaders();
 
 		auto extp = std::static_pointer_cast<Extender>(m_AVExtender);
 		if (!m_QuantumGate.RemoveExtender(extp))

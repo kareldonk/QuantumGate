@@ -16,13 +16,27 @@ namespace QuantumGate::AVExtender
 		CloseVideoTransform();
 	}
 
-	void VideoSourceReader::SetSampleSize(const Size width, const Size height) noexcept
+	bool VideoSourceReader::SetSampleSize(const Size width, const Size height) noexcept
 	{
+		auto format_data = m_VideoFormatData.WithUniqueLock();
+		format_data->TransformWidth = width;
+		format_data->TransformHeight = height;
+
+		if (IsOpen())
+		{
+			CloseVideoTransform();
+
+			if (!CreateVideoTransform(*format_data))
+			{
+				Close();
+
+				return false;
+			}
+		}
+
 		m_Transform = true;
 
-		auto formats = m_VideoFormatData.WithUniqueLock();
-		formats->TransformWidth = width;
-		formats->TransformHeight = height;
+		return true;
 	}
 
 	VideoFormat VideoSourceReader::GetSampleFormat() const noexcept
@@ -175,8 +189,7 @@ namespace QuantumGate::AVExtender
 			auto result = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(trf->InVideoResampler.GetOutputFormat()));
 			if (result.Succeeded())
 			{
-				trf->m_OutputSample1 = result->first;
-				trf->m_OutputBuffer1 = result->second;
+				trf->m_OutputSample1 = result.GetValue();
 
 				if (trf->VideoResizer.Create(trf->InVideoResampler.GetOutputFormat(),
 											 format_data.TransformWidth, format_data.TransformHeight))
@@ -187,8 +200,7 @@ namespace QuantumGate::AVExtender
 						auto result2 = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(trf->OutVideoResampler.GetOutputFormat()));
 						if (result2.Succeeded())
 						{
-							trf->m_OutputSample2 = result2->first;
-							trf->m_OutputBuffer2 = result2->second;
+							trf->m_OutputSample2 = result2.GetValue();
 
 							return true;
 						}
@@ -208,8 +220,6 @@ namespace QuantumGate::AVExtender
 		trf->OutVideoResampler.Close();
 
 		SafeRelease(&trf->m_OutputSample1);
-		SafeRelease(&trf->m_OutputBuffer1);
 		SafeRelease(&trf->m_OutputSample2);
-		SafeRelease(&trf->m_OutputBuffer2);
 	}
 }

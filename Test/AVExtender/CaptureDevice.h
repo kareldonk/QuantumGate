@@ -177,32 +177,29 @@ namespace QuantumGate::AVExtender
 			return AVResultCode::Failed;
 		}
 
-		[[nodiscard]] static Result<std::pair<IMFSample*, IMFMediaBuffer*>> CreateMediaSample(const Size size) noexcept
+		[[nodiscard]] static Result<IMFSample*> CreateMediaSample(const Size size) noexcept
 		{
-			// TODO: remove buffer?
-
 			IMFSample* sample{ nullptr };
 			IMFMediaBuffer* buffer{ nullptr };
-
-			// Free upon failure
-			auto sg = MakeScopeGuard([&]() noexcept
-			{
-				SafeRelease(&sample);
-				SafeRelease(&buffer);
-			});
 
 			auto hr = MFCreateSample(&sample);
 			if (SUCCEEDED(hr))
 			{
+				// Free upon failure
+				auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&sample); });
+
 				hr = MFCreateMemoryBuffer(static_cast<DWORD>(size), &buffer);
 				if (SUCCEEDED(hr))
 				{
+					// Free when we return
+					const auto sgs = MakeScopeGuard([&]() noexcept { SafeRelease(&buffer); });
+
 					hr = sample->AddBuffer(buffer);
 					if (SUCCEEDED(hr))
 					{
 						sg.Deactivate();
 
-						return std::make_pair(sample, buffer);
+						return sample;
 					}
 				}
 			}

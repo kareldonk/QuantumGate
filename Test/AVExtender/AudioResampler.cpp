@@ -63,8 +63,7 @@ namespace QuantumGate::AVExtender
 							{
 								sg.Deactivate();
 
-								m_InputSample = result->first;
-								m_InputBuffer = result->second;
+								m_InputSample = result.GetValue();
 
 								m_InputFormat = in_settings;
 								m_OutputFormat = out_settings;
@@ -91,7 +90,6 @@ namespace QuantumGate::AVExtender
 		SafeRelease(&m_InputMediaType);
 		SafeRelease(&m_OutputMediaType);
 		SafeRelease(&m_InputSample);
-		SafeRelease(&m_InputBuffer);
 
 		m_InputFormat = {};
 		m_OutputFormat = {};
@@ -106,22 +104,31 @@ namespace QuantumGate::AVExtender
 		DWORD incurl{ 0 };
 
 		// First copy input data into input buffer
-		auto hr = m_InputBuffer->Lock(&inptr, &inmaxl, &incurl);
+		IMFMediaBuffer* in_buffer{ nullptr };
+		auto hr = m_InputSample->GetBufferByIndex(0, &in_buffer);
 		if (SUCCEEDED(hr))
 		{
-			assert(in_data.GetSize() <= inmaxl);
+			// Release when we exit
+			const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&in_buffer); });
 
-			std::memcpy(inptr, in_data.GetBytes(), in_data.GetSize());
-
-			hr = m_InputBuffer->Unlock();
+			// First copy input data into input buffer
+			auto hr = in_buffer->Lock(&inptr, &inmaxl, &incurl);
 			if (SUCCEEDED(hr))
 			{
-				hr = m_InputBuffer->SetCurrentLength(static_cast<DWORD>(in_data.GetSize()));
+				assert(in_data.GetSize() <= inmaxl);
+
+				std::memcpy(inptr, in_data.GetBytes(), in_data.GetSize());
+
+				hr = in_buffer->Unlock();
 				if (SUCCEEDED(hr))
 				{
-					m_InputSample->SetSampleTime(in_timestamp);
+					hr = in_buffer->SetCurrentLength(static_cast<DWORD>(in_data.GetSize()));
+					if (SUCCEEDED(hr))
+					{
+						m_InputSample->SetSampleTime(in_timestamp);
 
-					return Resample(m_InputSample, out_sample);
+						return Resample(m_InputSample, out_sample);
+					}
 				}
 			}
 		}

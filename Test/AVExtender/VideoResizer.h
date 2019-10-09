@@ -41,7 +41,6 @@ namespace QuantumGate::AVExtender
 		IMFMediaType* m_InputMediaType{ nullptr };
 		IMFMediaType* m_OutputMediaType{ nullptr };
 		IMFSample* m_OutputSample{ nullptr };
-		IMFMediaBuffer* m_OutputBuffer{ nullptr };
 	};
 
 	using VideoResizer_ThS = Concurrency::ThreadSafe<VideoResizer, std::shared_mutex>;

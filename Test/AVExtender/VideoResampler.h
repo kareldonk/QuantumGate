@@ -93,7 +93,6 @@ namespace QuantumGate::AVExtender
 		VideoFormat m_OutputFormat;
 
 		IMFSample* m_InputSample{ nullptr };
-		IMFMediaBuffer* m_InputBuffer{ nullptr };
 	};
 
 	using VideoResampler_ThS = Concurrency::ThreadSafe<VideoResampler, std::shared_mutex>;
