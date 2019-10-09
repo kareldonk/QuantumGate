@@ -101,23 +101,31 @@ namespace QuantumGate::AVExtender
 				{
 					auto source_reader_data = m_SourceReaderData.WithUniqueLock();
 
+					// Release on failure
+					auto sg = MakeScopeGuard([&]() noexcept { source_reader_data->Release(); });
+
 					hr = MFCreateDeviceSource(attributes, &source_reader_data->Source);
 					if (SUCCEEDED(hr))
 					{
 						auto result = CreateSourceReader(*source_reader_data, supported_formats);
-						if (result.Failed())
+						if (result.Succeeded())
 						{
-							source_reader_data->Release();
+							if (OnOpen())
+							{
+								if (event_callback)
+								{
+									source_reader_data->Dispatcher.Add(std::move(event_callback));
+								}
+
+								sg.Deactivate();
+
+								return AVResultCode::Succeeded;
+							}
 						}
 						else
 						{
-							if (event_callback)
-							{
-								source_reader_data->Dispatcher.Add(std::move(event_callback));
-							}
+							return result;
 						}
-
-						return result;
 					}
 					else
 					{
@@ -140,6 +148,8 @@ namespace QuantumGate::AVExtender
 	void SourceReader::Close() noexcept
 	{
 		m_SourceReaderData.WithUniqueLock()->Release();
+
+		OnClose();
 	}
 
 	Result<> SourceReader::CreateSourceReader(SourceReaderData& source_reader_data,
@@ -294,6 +304,14 @@ namespace QuantumGate::AVExtender
 	{
 		return pSample;
 	}
+
+	bool SourceReader::OnOpen() noexcept
+	{
+		return true;
+	}
+
+	void SourceReader::OnClose() noexcept
+	{}
 
 	Result<> SourceReader::OnMediaTypeChanged(IMFMediaType* media_type) noexcept
 	{

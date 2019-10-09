@@ -242,6 +242,8 @@ namespace QuantumGate::AVExtender
 			auto result = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(m_VideoResampler.GetOutputFormat()));
 			if (result.Succeeded())
 			{
+				SafeRelease(&m_OutputSample);
+
 				m_OutputSample = result.GetValue();
 
 				return true;

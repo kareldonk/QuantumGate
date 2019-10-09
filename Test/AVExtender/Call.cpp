@@ -93,6 +93,9 @@ namespace QuantumGate::AVExtender
 				// Try to send at most 1 second of audio data at once
 				const auto max_send = call->m_AVSource.WithSharedLock()->AudioSourceReader.GetSampleFormat().AvgBytesPerSecond;
 
+				// Audio frames total size should not be larger than what we can send
+				assert(max_send <= call->m_Extender.GetMaximumMessageDataSize());
+
 				call->m_AudioInSample.WithUniqueLock([&](auto& media_sample)
 				{
 					if (media_sample.New)
@@ -124,6 +127,9 @@ namespace QuantumGate::AVExtender
 				{
 					if (media_sample.New)
 					{
+						// Video frame size should not be larger than what we can send
+						assert(media_sample.SampleBuffer.GetSize() <= call->m_Extender.GetMaximumMessageDataSize());
+
 						DiscardReturnValue(call->m_Extender.SendCallAVSample(call->m_PeerLUID, MessageType::VideoSample,
 																			 media_sample.TimeStamp, media_sample.SampleBuffer));
 						media_sample.New = false;

@@ -50,6 +50,8 @@ namespace QuantumGate::AVExtender
 		STDMETHODIMP_(ULONG) Release() override;
 
 	protected:
+		[[nodiscard]] bool OnOpen() noexcept override;
+		void OnClose() noexcept override;
 		[[nodiscard]] Result<> OnMediaTypeChanged(IMFMediaType* media_type) noexcept override;
 
 		[[nodiscard]] IMFSample* TransformSample(IMFSample* pSample) noexcept override;

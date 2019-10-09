@@ -70,6 +70,8 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] virtual IMFSample* TransformSample(IMFSample* pSample) noexcept;
 
+		[[nodiscard]] virtual bool OnOpen() noexcept;
+		virtual void OnClose() noexcept;
 		[[nodiscard]] virtual Result<> OnMediaTypeChanged(IMFMediaType* media_type) noexcept;
 
 	private:

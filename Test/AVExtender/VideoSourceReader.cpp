@@ -78,6 +78,25 @@ namespace QuantumGate::AVExtender
 		return InterlockedIncrement(&m_RefCount);
 	}
 
+	bool VideoSourceReader::OnOpen() noexcept
+	{
+		if (m_Transform)
+		{
+			auto format_data = m_VideoFormatData.WithSharedLock();
+			if (!CreateVideoTransform(*format_data))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	void VideoSourceReader::OnClose() noexcept
+	{
+		CloseVideoTransform();
+	}
+
 	Result<> VideoSourceReader::OnMediaTypeChanged(IMFMediaType* media_type) noexcept
 	{
 		auto format_data = m_VideoFormatData.WithUniqueLock();
@@ -101,14 +120,7 @@ namespace QuantumGate::AVExtender
 				{
 					format_data->ReaderFormat.Format = CaptureDevices::GetVideoFormat(subtype);
 
-					if (m_Transform)
-					{
-						if (CreateVideoTransform(*format_data))
-						{
-							return AVResultCode::Succeeded;
-						}
-					}
-					else return AVResultCode::Succeeded;
+					return AVResultCode::Succeeded;
 				}
 			}
 		}
