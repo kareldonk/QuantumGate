@@ -182,6 +182,9 @@ namespace QuantumGate::AVExtender
 		auto avsource = m_AVSource.WithUniqueLock();
 		m_AudioSampleEventFunctionHandle = avsource->AudioSourceReader.AddSampleEventCallback(std::move(audiocb));
 		m_VideoSampleEventFunctionHandle = avsource->VideoSourceReader.AddSampleEventCallback(std::move(videocb));
+
+		m_AudioInSample.WithUniqueLock()->Format = avsource->AudioSourceReader.GetSampleFormat();
+		m_VideoInSample.WithUniqueLock()->Format = avsource->VideoSourceReader.GetSampleFormat();
 	}
 
 	void Call::UnsetAVCallbacks() noexcept
@@ -477,6 +480,8 @@ namespace QuantumGate::AVExtender
 			CloseAudioRenderer();
 			OpenAudioRenderer();
 		}
+
+		m_AudioOutSample.WithUniqueLock()->Format = format;
 	}
 
 	void Call::SetPeerVideoFormat(const VideoFormat& format) noexcept
@@ -498,6 +503,8 @@ namespace QuantumGate::AVExtender
 				}
 			}
 		});
+
+		m_VideoOutSample.WithUniqueLock()->Format = format;
 	}
 
 	std::chrono::milliseconds Call::GetDuration() const noexcept
@@ -534,15 +541,27 @@ namespace QuantumGate::AVExtender
 
 	void Call::OnAudioSample(const UInt64 timestamp, IMFSample* sample)
 	{
-		OnInputSample(timestamp, sample, m_AudioInSample, true);
+		auto audioin_sample = m_AudioInSample.WithUniqueLock();
+		if (CopyInputSample(timestamp, sample, audioin_sample->SampleBuffer, nullptr, true))
+		{
+			audioin_sample->New = true;
+			audioin_sample->TimeStamp = timestamp;
+		}
 	}
 
 	void Call::OnVideoSample(const UInt64 timestamp, IMFSample* sample)
 	{
-		OnInputSample(timestamp, sample, m_VideoInSample, false);
+		auto videoin_sample = m_VideoInSample.WithUniqueLock();
+		const auto exp_size = CaptureDevices::GetImageSize(videoin_sample->Format);
+		if (CopyInputSample(timestamp, sample, videoin_sample->SampleBuffer, &exp_size, false))
+		{
+			videoin_sample->New = true;
+			videoin_sample->TimeStamp = timestamp;
+		}
 	}
 
-	void Call::OnInputSample(const UInt64 timestamp, IMFSample* sample, MediaSample_ThS& sample_ths, const bool accumulate)
+	bool Call::CopyInputSample(const UInt64 timestamp, IMFSample* sample,
+							   Buffer& sample_buffer, const Size* expected_size, const bool accumulate)
 	{
 		IMFMediaBuffer* media_buffer{ nullptr };
 
@@ -559,20 +578,27 @@ namespace QuantumGate::AVExtender
 			hr = media_buffer->Lock(&data, nullptr, &data_len);
 			if (SUCCEEDED(hr))
 			{
-				sample_ths.WithUniqueLock([&](auto& s)
+				if (expected_size != nullptr)
 				{
-					s.New = true;
-					s.TimeStamp = timestamp;
-
-					if (accumulate)
+					if (data_len != *expected_size)
 					{
-						s.SampleBuffer += BufferView(reinterpret_cast<Byte*>(data), data_len);
+						assert(false);
+						return false;
 					}
-					else s.SampleBuffer = BufferView(reinterpret_cast<Byte*>(data), data_len);
-				});
+				}
+
+				if (accumulate)
+				{
+					sample_buffer += BufferView(reinterpret_cast<Byte*>(data), data_len);
+				}
+				else sample_buffer = BufferView(reinterpret_cast<Byte*>(data), data_len);
 
 				media_buffer->Unlock();
+
+				return true;
 			}
 		}
+
+		return false;
 	}
 }

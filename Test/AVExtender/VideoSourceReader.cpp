@@ -18,18 +18,25 @@ namespace QuantumGate::AVExtender
 
 	bool VideoSourceReader::SetSampleSize(const Size width, const Size height) noexcept
 	{
-		auto format_data = m_VideoFormatData.WithUniqueLock();
-		format_data->TransformWidth = width;
-		format_data->TransformHeight = height;
+		bool was_open{ false };
 
 		if (IsOpen())
 		{
+			was_open = true;
+
 			CloseVideoTransform();
+		}
 
-			if (!CreateVideoTransform(*format_data))
+		{
+			auto format_data = m_VideoFormatData.WithUniqueLock();
+			format_data->TransformWidth = width;
+			format_data->TransformHeight = height;
+		}
+
+		if (was_open)
+		{
+			if (!CreateVideoTransform())
 			{
-				Close();
-
 				return false;
 			}
 		}
@@ -82,11 +89,7 @@ namespace QuantumGate::AVExtender
 	{
 		if (m_Transform)
 		{
-			auto format_data = m_VideoFormatData.WithSharedLock();
-			if (!CreateVideoTransform(*format_data))
-			{
-				return false;
-			}
+			return CreateVideoTransform();
 		}
 
 		return true;
@@ -95,6 +98,13 @@ namespace QuantumGate::AVExtender
 	void VideoSourceReader::OnClose() noexcept
 	{
 		CloseVideoTransform();
+
+		auto format_data = m_VideoFormatData.WithUniqueLock();
+		format_data->TransformWidth = 0;
+		format_data->TransformHeight = 0;
+		format_data->ReaderFormat = {};
+
+		m_Transform = false;
 	}
 
 	Result<> VideoSourceReader::OnMediaTypeChanged(IMFMediaType* media_type) noexcept
@@ -192,11 +202,13 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	bool VideoSourceReader::CreateVideoTransform(const VideoFormatData& format_data) noexcept
+	bool VideoSourceReader::CreateVideoTransform() noexcept
 	{
 		auto trf = m_VideoTransform.WithUniqueLock();
-		if (trf->InVideoResampler.Create(format_data.ReaderFormat.Width, format_data.ReaderFormat.Height,
-										 CaptureDevices::GetMFVideoFormat(format_data.ReaderFormat.Format), MFVideoFormat_RGB24))
+		auto format_data = m_VideoFormatData.WithSharedLock();
+
+		if (trf->InVideoResampler.Create(format_data->ReaderFormat.Width, format_data->ReaderFormat.Height,
+										 CaptureDevices::GetMFVideoFormat(format_data->ReaderFormat.Format), MFVideoFormat_RGB24))
 		{
 			auto result = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(trf->InVideoResampler.GetOutputFormat()));
 			if (result.Succeeded())
@@ -204,10 +216,10 @@ namespace QuantumGate::AVExtender
 				trf->m_OutputSample1 = result.GetValue();
 
 				if (trf->VideoResizer.Create(trf->InVideoResampler.GetOutputFormat(),
-											 format_data.TransformWidth, format_data.TransformHeight))
+											 format_data->TransformWidth, format_data->TransformHeight))
 				{
-					if (trf->OutVideoResampler.Create(format_data.TransformWidth, format_data.TransformHeight, MFVideoFormat_RGB24,
-													  CaptureDevices::GetMFVideoFormat(format_data.ReaderFormat.Format)))
+					if (trf->OutVideoResampler.Create(format_data->TransformWidth, format_data->TransformHeight, MFVideoFormat_RGB24,
+													  CaptureDevices::GetMFVideoFormat(format_data->ReaderFormat.Format)))
 					{
 						auto result2 = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(trf->OutVideoResampler.GetOutputFormat()));
 						if (result2.Succeeded())

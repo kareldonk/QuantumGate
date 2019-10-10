@@ -20,6 +20,7 @@ namespace QuantumGate::AVExtender
 
 	struct AVSource
 	{
+		bool Previewing{ false };
 		AudioSourceReader AudioSourceReader;
 		String AudioEndpointID;
 		VideoSourceReader VideoSourceReader;
@@ -54,14 +55,24 @@ namespace QuantumGate::AVExtender
 
 	using CallID = UInt64;
 
+	template<typename T>
 	struct MediaSample
 	{
 		bool New{ false };
 		UInt64 TimeStamp{ 0 };
 		Buffer SampleBuffer;
+		T Format;
+
+		void Clear() noexcept
+		{
+			New = false;
+			TimeStamp = 0;
+			SampleBuffer.Clear();
+		}
 	};
 
-	using MediaSample_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<MediaSample, std::shared_mutex>;
+	using AudioMediaSample_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<MediaSample<AudioFormat>, std::shared_mutex>;
+	using VideoMediaSample_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<MediaSample<VideoFormat>, std::shared_mutex>;
 
 	struct VideoOut
 	{
@@ -122,8 +133,8 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] bool SetPeerAVFormat(const CallAVFormatData* fmtdata) noexcept;
 		void OnAVSourceChange() noexcept;
 
-		inline MediaSample_ThS& GetAudioOutSample() noexcept { return m_AudioOutSample; }
-		inline MediaSample_ThS& GetVideoOutSample() noexcept { return m_VideoOutSample; }
+		inline AudioMediaSample_ThS& GetAudioOutSample() noexcept { return m_AudioOutSample; }
+		inline VideoMediaSample_ThS& GetVideoOutSample() noexcept { return m_VideoOutSample; }
 
 	public:
 		static constexpr std::chrono::seconds MaxWaitTimeForAccept{ 30 };
@@ -177,7 +188,8 @@ namespace QuantumGate::AVExtender
 		void SetAVCallbacks() noexcept;
 		void UnsetAVCallbacks() noexcept;
 
-		void OnInputSample(const UInt64 timestamp, IMFSample* sample, MediaSample_ThS& sample_ths, const bool accumulate);
+		[[nodiscard]] bool CopyInputSample(const UInt64 timestamp, IMFSample* sample,
+										   Buffer& sample_buffer, const Size* expected_size, const bool accumulate);
 
 	private:
 		const PeerLUID m_PeerLUID{ 0 };
@@ -194,10 +206,10 @@ namespace QuantumGate::AVExtender
 		AudioOut_ThS m_AudioOut;
 		VideoOut_ThS m_VideoOut;
 
-		MediaSample_ThS m_AudioInSample;
-		MediaSample_ThS m_AudioOutSample;
-		MediaSample_ThS m_VideoInSample;
-		MediaSample_ThS m_VideoOutSample;
+		AudioMediaSample_ThS m_AudioInSample;
+		AudioMediaSample_ThS m_AudioOutSample;
+		VideoMediaSample_ThS m_VideoInSample;
+		VideoMediaSample_ThS m_VideoOutSample;
 
 		SourceReader::SampleEventDispatcher::FunctionHandle m_AudioSampleEventFunctionHandle;
 		SourceReader::SampleEventDispatcher::FunctionHandle m_VideoSampleEventFunctionHandle;

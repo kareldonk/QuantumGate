@@ -59,7 +59,7 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] bool GetDefaultStride(IMFMediaType* type, LONG* stride) const noexcept;
 
 	private:
-		[[nodiscard]] bool CreateVideoTransform(const VideoFormatData& format_data) noexcept;
+		[[nodiscard]] bool CreateVideoTransform() noexcept;
 		void CloseVideoTransform() noexcept;
 
 	private:

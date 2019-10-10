@@ -152,6 +152,20 @@ namespace QuantumGate::AVExtender
 		OnClose();
 	}
 
+	bool SourceReader::BeginRead() noexcept
+	{
+		// Ask for the first sample
+		auto source_reader_data = m_SourceReaderData.WithUniqueLock();
+		if (source_reader_data->SourceReader != nullptr)
+		{
+			const auto hr = source_reader_data->SourceReader->ReadSample(m_StreamIndex, 0,
+																		 nullptr, nullptr, nullptr, nullptr);
+			if (SUCCEEDED(hr)) return true;
+		}
+
+		return false;
+	}
+
 	Result<> SourceReader::CreateSourceReader(SourceReaderData& source_reader_data,
 											  const std::vector<GUID>& supported_formats) noexcept
 	{
@@ -193,11 +207,7 @@ namespace QuantumGate::AVExtender
 
 								if (OnMediaTypeChanged(media_type).Succeeded())
 								{
-									// Ask for the first sample
-									hr = source_reader_data.SourceReader->ReadSample(m_StreamIndex,
-																					 0, nullptr, nullptr, nullptr, nullptr);
-
-									if (SUCCEEDED(hr)) return AVResultCode::Succeeded;
+									return AVResultCode::Succeeded;
 								}
 							}
 						}

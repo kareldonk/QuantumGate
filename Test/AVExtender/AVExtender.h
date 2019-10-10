@@ -94,10 +94,12 @@ namespace QuantumGate::AVExtender
 		template<typename Func>
 		void IfGetCall(const PeerLUID pluid, Func&& func) noexcept(noexcept(func(std::declval<Call&>())));
 
+		[[nodiscard]] bool HaveActiveCalls() const noexcept;
+
 		std::shared_ptr<Call_ThS> GetCall(const PeerLUID pluid) const noexcept;
 
 		[[nodiscard]] bool HangupCall(std::shared_ptr<Call_ThS>& call_ths) noexcept;
-
+		
 		void StopAllCalls() noexcept;
 
 		[[nodiscard]] bool SendSimpleMessage(const PeerLUID pluid, const MessageType type, const BufferView data = {});
@@ -130,7 +132,6 @@ namespace QuantumGate::AVExtender
 		Concurrency::EventCondition m_ShutdownEvent{ false };
 		std::thread m_Thread;
 
-		std::atomic_bool m_Previewing{ false };
 		SourceReader::SampleEventDispatcher::FunctionHandle m_PreviewAudioSampleEventFunctionHandle;
 		SourceReader::SampleEventDispatcher::FunctionHandle m_PreviewVideoSampleEventFunctionHandle;
 

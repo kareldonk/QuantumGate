@@ -61,9 +61,6 @@ namespace QuantumGate::AVExtender
 		LogDbg(L"%s: will begin shutting down...", GetName().c_str());
 
 		StopAllCalls();
-
-		StopAudioSourceReader();
-		StopVideoSourceReader();
 	}
 
 	void Extender::OnShutdown()
@@ -331,7 +328,7 @@ namespace QuantumGate::AVExtender
 					{
 						handled = true;
 
-						MediaSample_ThS* sample_ths{ nullptr };
+						AudioMediaSample_ThS* sample_ths{ nullptr };
 
 						IfGetCall(event.GetPeerLUID(), [&](auto& call)
 						{
@@ -359,7 +356,7 @@ namespace QuantumGate::AVExtender
 					{
 						handled = true;
 
-						MediaSample_ThS* sample_ths{ nullptr };
+						VideoMediaSample_ThS* sample_ths{ nullptr };
 
 						IfGetCall(event.GetPeerLUID(), [&](auto& call)
 						{
@@ -374,6 +371,10 @@ namespace QuantumGate::AVExtender
 
 								if (rdr.Read(timestamp, WithSize(s.SampleBuffer, GetMaximumMessageDataSize())))
 								{
+									const auto exp_size = CaptureDevices::GetImageSize(s.Format);
+
+									assert(exp_size == s.SampleBuffer.GetSize());
+
 									s.New = true;
 									s.TimeStamp = timestamp;
 
@@ -404,8 +405,6 @@ namespace QuantumGate::AVExtender
 		// If the shutdown event is set quit the loop
 		while (!extender->m_ShutdownEvent.IsSet())
 		{
-			bool has_active_calls{ false };
-
 			extender->m_Peers.IfSharedLock([&](auto& peers)
 			{
 				for (auto it = peers.begin(); it != peers.end() && !extender->m_ShutdownEvent.IsSet(); ++it)
@@ -425,9 +424,7 @@ namespace QuantumGate::AVExtender
 							{
 								cancel_call = true;
 							}
-							else has_active_calls = true;
 						}
-						else if (call.IsInCall()) has_active_calls = true;
 					});
 
 					if (cancel_call)
@@ -439,17 +436,6 @@ namespace QuantumGate::AVExtender
 					}
 				}
 			});
-
-			bool readers_active{ false };
-			extender->m_AVSource.WithSharedLock([&](auto& avsource)
-			{
-				readers_active = avsource.AudioSourceReader.IsOpen() || avsource.VideoSourceReader.IsOpen();
-			});
-
-			if (!has_active_calls && !extender->m_Previewing && readers_active)
-			{
-				extender->StopAVSourceReaders();
-			}
 
 			// Sleep for a while or until we have to shut down
 			extender->m_ShutdownEvent.Wait(1ms);
@@ -671,6 +657,27 @@ namespace QuantumGate::AVExtender
 		});
 	}
 
+	bool Extender::HaveActiveCalls() const noexcept
+	{
+		bool active_calls{ false };
+
+		m_Peers.WithSharedLock([&](auto& peers)
+		{
+			for (auto it = peers.begin(); it != peers.end(); ++it)
+			{
+				Peer& peer = *it->second;
+
+				if (!peer.Call->WithSharedLock()->IsDisconnected())
+				{
+					active_calls = true;
+					return;
+				}
+			}
+		});
+
+		return active_calls;
+	}
+
 	std::shared_ptr<Call_ThS> Extender::GetCall(const PeerLUID pluid) const noexcept
 	{
 		std::shared_ptr<Call_ThS> call;
@@ -693,7 +700,11 @@ namespace QuantumGate::AVExtender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, data))
 		{
-			return SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded();
+			SendParameters params;
+			params.Compress = m_UseCompression;
+			params.Priority = SendParameters::PriorityOption::Expedited;
+
+			return SendMessageTo(pluid, writer.MoveWrittenBytes(), params).Succeeded();
 		}
 		else LogErr(L"Failed to prepare message for peer %llu", pluid);
 
@@ -708,6 +719,7 @@ namespace QuantumGate::AVExtender
 		if (writer.WriteWithPreallocation(msgtype, timestamp, WithSize(data, GetMaximumMessageDataSize())))
 		{
 			SendParameters params;
+			params.Compress = m_UseCompression;
 
 			switch (type)
 			{
@@ -845,7 +857,10 @@ namespace QuantumGate::AVExtender
 		{
 			const auto result = avsource.AudioSourceReader.Open(avsource.AudioEndpointID.c_str(),
 																{ MFAudioFormat_Float }, nullptr);
-			if (result.Succeeded()) return true;
+			if (result.Succeeded())
+			{
+				return avsource.AudioSourceReader.BeginRead();
+			}
 			else
 			{
 				LogErr(L"Failed to start audio source reader; peers will not receive audio (%s)",
@@ -899,7 +914,7 @@ namespace QuantumGate::AVExtender
 
 				if (avsource.VideoSourceReader.SetSampleSize(static_cast<Size>(width), avsource.MaxVideoResolution))
 				{
-					return true;
+					return avsource.VideoSourceReader.BeginRead();
 				}
 				else
 				{
@@ -1001,12 +1016,12 @@ namespace QuantumGate::AVExtender
 				auto call = peer.Call->WithUniqueLock();
 				if (call->IsInCall())
 				{
-					call->OnAVSourceChange();
-
 					if (call->GetSendAudio())
 					{
 						DiscardReturnValue(SendCallAVUpdate(peer.ID, call->GetSendAudio(), call->GetSendVideo()));
 					}
+
+					call->OnAVSourceChange();
 				}
 			}
 		});
@@ -1042,12 +1057,12 @@ namespace QuantumGate::AVExtender
 				auto call = peer.Call->WithUniqueLock();
 				if (call->IsInCall())
 				{
-					call->OnAVSourceChange();
-
 					if (call->GetSendVideo())
 					{
 						DiscardReturnValue(SendCallAVUpdate(peer.ID, call->GetSendAudio(), call->GetSendVideo()));
 					}
+
+					call->OnAVSourceChange();
 				}
 			}
 		});
@@ -1072,7 +1087,7 @@ namespace QuantumGate::AVExtender
 			{
 				m_PreviewVideoSampleEventFunctionHandle = avsource.VideoSourceReader.AddSampleEventCallback(std::move(callback));
 				video_format = avsource.VideoSourceReader.GetSampleFormat();
-				m_Previewing = true;
+				avsource.Previewing = true;
 			}
 		});
 
@@ -1088,12 +1103,23 @@ namespace QuantumGate::AVExtender
 	{
 		if (m_PreviewVideoSampleEventFunctionHandle)
 		{
+			bool previewing{ true };
+
 			m_AVSource.WithUniqueLock([&](auto& avsource)
 			{
 				avsource.VideoSourceReader.RemoveSampleEventCallback(m_PreviewVideoSampleEventFunctionHandle);
+				
+				if (!m_PreviewAudioSampleEventFunctionHandle)
+				{
+					avsource.Previewing = false;
+					previewing = false;
+				}
 			});
 
-			if (!m_PreviewAudioSampleEventFunctionHandle) m_Previewing = false;
+			if (!previewing && !HaveActiveCalls())
+			{
+				StopAVSourceReaders();
+			}
 		}
 	}
 
@@ -1114,7 +1140,7 @@ namespace QuantumGate::AVExtender
 			{
 				m_PreviewAudioSampleEventFunctionHandle = avsource.AudioSourceReader.AddSampleEventCallback(std::move(callback));
 				audio_format = avsource.AudioSourceReader.GetSampleFormat();
-				m_Previewing = true;
+				avsource.Previewing = true;
 			}
 		});
 
@@ -1130,12 +1156,23 @@ namespace QuantumGate::AVExtender
 	{
 		if (m_PreviewAudioSampleEventFunctionHandle)
 		{
+			bool previewing{ true };
+
 			m_AVSource.WithUniqueLock([&](auto& avsource)
 			{
 				avsource.AudioSourceReader.RemoveSampleEventCallback(m_PreviewAudioSampleEventFunctionHandle);
+
+				if (!m_PreviewVideoSampleEventFunctionHandle)
+				{
+					avsource.Previewing = false;
+					previewing = false;
+				}
 			});
 
-			if (!m_PreviewVideoSampleEventFunctionHandle) m_Previewing = false;
+			if (!previewing && !HaveActiveCalls())
+			{
+				StopAVSourceReaders();
+			}
 		}
 	}
 }

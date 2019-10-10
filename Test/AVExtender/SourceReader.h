@@ -55,6 +55,7 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] Result<> Open(const WChar* device, const std::vector<GUID>& supported_formats, SampleEventCallback&& event_callback) noexcept;
 		[[nodiscard]] bool IsOpen() const noexcept;
 		void Close() noexcept;
+		[[nodiscard]] bool BeginRead() noexcept;
 
 		SampleEventDispatcher::FunctionHandle AddSampleEventCallback(SampleEventCallback&& function) noexcept;
 		void RemoveSampleEventCallback(SampleEventDispatcher::FunctionHandle& func_handle) noexcept;

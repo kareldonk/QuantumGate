@@ -141,6 +141,9 @@ void CTestAppDlgAVExtenderTab::UpdateVideoDeviceCombo() noexcept
 	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_VIDEO_DEVICES_COMBO);
 	vdcombo->ResetContent();
 
+	const auto vdscombo = (CComboBox*)GetDlgItem(IDC_VIDEO_SIZE_COMBO);
+	vdscombo->ResetContent();
+
 	auto result = AVExtender::CaptureDevices::Enum(AVExtender::CaptureDevice::Type::Video);
 	if (result.Succeeded())
 	{
@@ -156,21 +159,20 @@ void CTestAppDlgAVExtenderTab::UpdateVideoDeviceCombo() noexcept
 		{
 			vdcombo->SelectString(0, m_VideoCaptureDevices[0].DeviceNameString);
 		}
+
+		int size{ 720 };
+		while (size >= 90)
+		{
+			const auto pos = vdscombo->AddString(Util::FormatString(L"%dp", size).c_str());
+			vdscombo->SetItemData(pos, static_cast<DWORD_PTR>(size));
+
+			size = size / 2;
+		}
+
+		vdscombo->SelectString(0, L"90p");
 	}
 
-	const auto vdscombo = (CComboBox*)GetDlgItem(IDC_VIDEO_SIZE_COMBO);
-	vdscombo->ResetContent();
-
-	int size{ 720 };
-	while (size >= 90)
-	{
-		const auto pos = vdscombo->AddString(Util::FormatString(L"%dp", size).c_str());
-		vdscombo->SetItemData(pos, static_cast<DWORD_PTR>(size));
-
-		size = size / 2;
-	}
-
-	vdscombo->SelectString(0, L"90p");
+	UpdateAVVideoDevice();
 }
 
 void CTestAppDlgAVExtenderTab::UpdateAudioDeviceCombo() noexcept
@@ -195,7 +197,6 @@ void CTestAppDlgAVExtenderTab::UpdateAudioDeviceCombo() noexcept
 		}
 
 		UpdateAVAudioDevice();
-		UpdateAVVideoDevice();
 	}
 }
 
