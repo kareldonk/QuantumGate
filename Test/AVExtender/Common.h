@@ -87,6 +87,19 @@ namespace QuantumGate::AVExtender
 		UInt32 Width{ 0 };
 		UInt32 Height{ 0 };
 		UInt32 BytesPerPixel{ 0 };
+
+		constexpr bool operator==(const VideoFormat& other) const noexcept
+		{
+			return (Format == other.Format &&
+					Width == other.Width &&
+					Height == other.Height &&
+					BytesPerPixel == other.BytesPerPixel);
+		}
+
+		constexpr bool operator!=(const VideoFormat& other) const noexcept
+		{
+			return !(*this == other);
+		}
 	};
 
 	using VideoFormat_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<VideoFormat, std::shared_mutex>;
@@ -98,6 +111,20 @@ namespace QuantumGate::AVExtender
 		UInt32 AvgBytesPerSecond{ 0 };
 		UInt32 BlockAlignment{ 0 };
 		UInt32 BitsPerSample{ 0 };
+
+		constexpr bool operator==(const AudioFormat& other) const noexcept
+		{
+			return (NumChannels == other.NumChannels &&
+					SamplesPerSecond == other.SamplesPerSecond &&
+					AvgBytesPerSecond == other.AvgBytesPerSecond &&
+					BlockAlignment == other.BlockAlignment &&
+					BitsPerSample == other.BitsPerSample);
+		}
+
+		constexpr bool operator!=(const AudioFormat& other) const noexcept
+		{
+			return !(*this == other);
+		}
 	};
 
 	using AudioFormat_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<AudioFormat, std::shared_mutex>;

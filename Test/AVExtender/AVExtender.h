@@ -62,7 +62,8 @@ namespace QuantumGate::AVExtender
 
 		void HangupAllCalls() noexcept;
 
-		void UpdateSendAudioVideo(const PeerLUID pluid, const bool send_video, const bool send_audio);
+		void UpdateSendAudio(const PeerLUID pluid, const bool send_audio) noexcept;
+		void UpdateSendVideo(const PeerLUID pluid, const bool send_video) noexcept;
 
 		[[nodiscard]] bool SetAudioEndpointID(const WCHAR* id);
 		[[nodiscard]] bool SetVideoSymbolicLink(const WCHAR* id, const Size max_res);
@@ -83,13 +84,12 @@ namespace QuantumGate::AVExtender
 		void OnPeerEvent(PeerEvent&& event);
 		const std::pair<bool, bool> OnPeerMessage(PeerEvent&& event);
 
-		[[nodiscard]] bool SendCallAVSample(const PeerLUID pluid, const MessageType type, const UInt64 timestamp,
-											const BufferView data);
-
+		[[nodiscard]] bool SendCallAudioSample(const PeerLUID pluid, const AudioFormat& afmt,
+											   const UInt64 timestamp, const BufferView data) const noexcept;
+		[[nodiscard]] bool SendCallVideoSample(const PeerLUID pluid, const VideoFormat& vfmt,
+											   const UInt64 timestamp, const BufferView data) const noexcept;
 	private:
 		static void WorkerThreadLoop(Extender* extender);
-
-		[[nodiscard]] CallAVFormatData GetCallAVFormatData(const bool send_audio, const bool send_video);
 
 		template<typename Func>
 		void IfGetCall(const PeerLUID pluid, Func&& func) noexcept(noexcept(func(std::declval<Call&>())));
@@ -99,16 +99,16 @@ namespace QuantumGate::AVExtender
 		std::shared_ptr<Call_ThS> GetCall(const PeerLUID pluid) const noexcept;
 
 		[[nodiscard]] bool HangupCall(std::shared_ptr<Call_ThS>& call_ths) noexcept;
-		
+
 		void StopAllCalls() noexcept;
 
-		[[nodiscard]] bool SendSimpleMessage(const PeerLUID pluid, const MessageType type, const BufferView data = {});
-		[[nodiscard]] bool SendCallRequest(const PeerLUID pluid, const bool send_audio, const bool send_video);
-		[[nodiscard]] bool SendCallAccept(const PeerLUID pluid, const bool send_audio, const bool send_video);
-		[[nodiscard]] bool SendCallHangup(const PeerLUID pluid);
-		[[nodiscard]] bool SendCallDecline(const PeerLUID pluid);
-		[[nodiscard]] bool SendGeneralFailure(const PeerLUID pluid);
-		[[nodiscard]] bool SendCallAVUpdate(const PeerLUID pluid, const bool send_audio, const bool send_video);
+		[[nodiscard]] bool SendSimpleMessage(const PeerLUID pluid, const MessageType type,
+											 const SendParameters::PriorityOption priority, const BufferView data = {}) const noexcept;
+		[[nodiscard]] bool SendCallRequest(const PeerLUID pluid) const noexcept;
+		[[nodiscard]] bool SendCallAccept(const PeerLUID pluid) const noexcept;
+		[[nodiscard]] bool SendCallHangup(const PeerLUID pluid) const noexcept;
+		[[nodiscard]] bool SendCallDecline(const PeerLUID pluid) const noexcept;
+		[[nodiscard]] bool SendGeneralFailure(const PeerLUID pluid) const noexcept;
 
 		bool StartAudioSourceReader() noexcept;
 		bool StartAudioSourceReader(AVSource& avsource) noexcept;

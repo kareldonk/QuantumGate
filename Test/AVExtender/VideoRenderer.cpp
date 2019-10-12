@@ -253,23 +253,27 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	void VideoRenderer::Render(IMFSample* in_sample) noexcept
+	bool VideoRenderer::Render(IMFSample* in_sample) noexcept
 	{
 		if (m_VideoResampler.Resample(in_sample, m_OutputSample))
 		{
-			Render(m_OutputSample, m_VideoResampler.GetOutputFormat());
+			return Render(m_OutputSample, m_VideoResampler.GetOutputFormat());
 		}
+
+		return false;
 	}
 
-	void VideoRenderer::Render(const UInt64 in_timestamp, const BufferView pixels) noexcept
+	bool VideoRenderer::Render(const UInt64 in_timestamp, const BufferView pixels) noexcept
 	{
 		if (m_VideoResampler.Resample(in_timestamp, pixels, m_OutputSample))
 		{
-			Render(m_OutputSample, m_VideoResampler.GetOutputFormat());
+			return Render(m_OutputSample, m_VideoResampler.GetOutputFormat());
 		}
+
+		return false;
 	}
 
-	void VideoRenderer::Render(IMFSample* in_sample, const VideoFormat& format) noexcept
+	bool VideoRenderer::Render(IMFSample* in_sample, const VideoFormat& format) noexcept
 	{
 		assert(in_sample != nullptr);
 		assert(format.Format != VideoFormat::PixelFormat::Unknown);
@@ -289,22 +293,29 @@ namespace QuantumGate::AVExtender
 			hr = media_buffer->Lock(&in_data, nullptr, &in_data_len);
 			if (SUCCEEDED(hr))
 			{
-				Render(BufferView(reinterpret_cast<Byte*>(in_data), in_data_len), format);
+				auto success{ false };
+
+				success = Render(BufferView(reinterpret_cast<Byte*>(in_data), in_data_len), format);
 
 				media_buffer->Unlock();
+
+				return success;
 			}
 		}
+
+		return false;
 	}
 
-	void VideoRenderer::Render(const BufferView pixels, const VideoFormat& format) noexcept
+	bool VideoRenderer::Render(const BufferView pixels, const VideoFormat& format) noexcept
 	{
 		assert(pixels.GetBytes() != nullptr && m_D2D1Bitmap != nullptr && m_D2D1RenderTarget != nullptr);
+		assert(format.Format != VideoFormat::PixelFormat::Unknown);
 
 		// Number of bytes should match expected frame size
 		if (pixels.GetSize() != CaptureDevices::GetImageSize(format))
 		{
 			assert(false);
-			return;
+			return false;
 		}
 
 		const auto bmsize = m_D2D1Bitmap->GetSize();
@@ -315,7 +326,7 @@ namespace QuantumGate::AVExtender
 			const auto hr = m_D2D1RenderTarget->CreateBitmap(D2D1::SizeU(format.Width, format.Height),
 															 D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),
 															 &m_D2D1Bitmap);
-			if (FAILED(hr)) return;
+			if (FAILED(hr)) return false;
 
 			ResizeDrawRect();
 		}
@@ -331,7 +342,7 @@ namespace QuantumGate::AVExtender
 							  reinterpret_cast<const BGRPixel*>(pixels.GetBytes()),
 							  format.Width, format.Height);
 
-				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ResampleBuffer.GetBytes(), format.Width * 4);
+				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ResampleBuffer.GetBytes(), format.Width * sizeof(BGRAPixel));
 				break;
 			}
 			case VideoFormat::PixelFormat::RGB32:
@@ -343,13 +354,13 @@ namespace QuantumGate::AVExtender
 							   reinterpret_cast<const BGRAPixel*>(pixels.GetBytes()),
 							   format.Width, format.Height);
 
-				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ResampleBuffer.GetBytes(), format.Width * 4);
+				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ResampleBuffer.GetBytes(), format.Width * sizeof(BGRAPixel));
 				break;
 			}
 			default:
 				// Unsupported format
 				assert(false);
-				return;
+				return false;
 		}
 
 		m_D2D1RenderTarget->BeginDraw();
@@ -364,5 +375,7 @@ namespace QuantumGate::AVExtender
 									   D2D1_BITMAP_INTERPOLATION_MODE::D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
 
 		m_D2D1RenderTarget->EndDraw();
+
+		return true;
 	}
 }

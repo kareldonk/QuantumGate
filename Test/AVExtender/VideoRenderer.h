@@ -40,8 +40,8 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] bool SetInputFormat(const VideoFormat& fmt) noexcept;
 
-		void Render(IMFSample* in_sample) noexcept;
-		void Render(const UInt64 in_timestamp, const BufferView pixels) noexcept;
+		[[nodiscard]] bool Render(IMFSample* in_sample) noexcept;
+		[[nodiscard]] bool Render(const UInt64 in_timestamp, const BufferView pixels) noexcept;
 
 		void ProcessMessages() noexcept;
 
@@ -50,8 +50,8 @@ namespace QuantumGate::AVExtender
 	private:
 		static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept;
 
-		void Render(IMFSample* in_sample, const VideoFormat& format) noexcept;
-		void Render(const BufferView pixels, const VideoFormat& format) noexcept;
+		[[nodiscard]] bool Render(IMFSample* in_sample, const VideoFormat& format) noexcept;
+		[[nodiscard]] bool Render(const BufferView pixels, const VideoFormat& format) noexcept;
 
 		[[nodiscard]] bool InitializeD2DRenderTarget(const HWND hwnd, const UInt width, const UInt height) noexcept;
 		void DeinitializeD2DRenderTarget() noexcept;
@@ -74,4 +74,6 @@ namespace QuantumGate::AVExtender
 
 		Buffer m_ResampleBuffer;
 	};
+
+	using VideoRenderer_ThS = Concurrency::ThreadSafe<VideoRenderer, std::shared_mutex>;
 }

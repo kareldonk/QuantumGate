@@ -16,36 +16,27 @@ namespace QuantumGate::AVExtender
 		CallAccept,
 		CallDecline,
 		CallHangup,
-		CallAVUpdate,
 		AudioSample,
 		VideoSample,
 		GeneralFailure
 	};
 
 #pragma pack(push, 1) // Disable padding bytes
-	struct CallAVFormatData
+	struct AudioFormatData
 	{
-		struct AudioFormatData
-		{
-			UInt8 NumChannels{ 0 };
-			UInt32 SamplesPerSecond{ 0 };
-			UInt32 AvgBytesPerSecond{ 0 };
-			UInt8 BlockAlignment{ 0 };
-			UInt8 BitsPerSample{ 0 };
-		};
+		UInt8 NumChannels{ 0 };
+		UInt32 SamplesPerSecond{ 0 };
+		UInt32 AvgBytesPerSecond{ 0 };
+		UInt8 BlockAlignment{ 0 };
+		UInt8 BitsPerSample{ 0 };
+	};
 
-		struct VideoFormatData
-		{
-			VideoFormat::PixelFormat Format{ VideoFormat::PixelFormat::Unknown };
-			UInt16 Width{ 0 };
-			UInt16 Height{ 0 };
-			UInt8 BytesPerPixel{ 0 };
-		};
-
-		UInt8 SendAudio{ 0 };
-		AudioFormatData AudioFormat;
-		UInt8 SendVideo{ 0 };
-		VideoFormatData VideoFormat;
+	struct VideoFormatData
+	{
+		VideoFormat::PixelFormat Format{ VideoFormat::PixelFormat::Unknown };
+		UInt16 Width{ 0 };
+		UInt16 Height{ 0 };
+		UInt8 BytesPerPixel{ 0 };
 	};
 #pragma pack(pop)
 }

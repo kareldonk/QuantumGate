@@ -10,6 +10,10 @@
 #include "AudioRenderer.h"
 
 #include <Concurrency\EventCondition.h>
+#include <Concurrency\SpinMutex.h>
+#include <Concurrency\SharedSpinMutex.h>
+
+#include <queue>
 
 namespace QuantumGate::AVExtender
 {
@@ -17,18 +21,6 @@ namespace QuantumGate::AVExtender
 	using namespace QuantumGate::Implementation;
 
 	class Extender;
-
-	struct AVSource
-	{
-		bool Previewing{ false };
-		AudioSourceReader AudioSourceReader;
-		String AudioEndpointID;
-		VideoSourceReader VideoSourceReader;
-		String VideoSymbolicLink;
-		Size MaxVideoResolution{ 90 };
-	};
-
-	using AVSource_ThS = Implementation::Concurrency::ThreadSafe<AVSource, std::shared_mutex>;
 
 	enum class CallType : UInt16
 	{
@@ -48,52 +40,73 @@ namespace QuantumGate::AVExtender
 	enum class CallSetting : UInt8
 	{
 		SendAudio = 0b00000001,
-		SendVideo = 0b00000010,
-		PeerSendAudio = 0b00000100,
-		PeerSendVideo = 0b00001000,
+		SendVideo = 0b00000010
 	};
 
 	using CallID = UInt64;
 
-	template<typename T>
-	struct MediaSample
+	struct AVSource
 	{
-		bool New{ false };
-		UInt64 TimeStamp{ 0 };
-		Buffer SampleBuffer;
-		T Format;
+		bool Previewing{ false };
+		AudioSourceReader AudioSourceReader;
+		String AudioEndpointID;
+		VideoSourceReader VideoSourceReader;
+		String VideoSymbolicLink;
+		Size MaxVideoResolution{ 90 };
+	};
+
+	using AVSource_ThS = Concurrency::ThreadSafe<AVSource, std::shared_mutex>;
+
+	struct AVFormats
+	{
+		AudioFormat AudioFormat;
+		VideoFormat VideoFormat;
 
 		void Clear() noexcept
 		{
-			New = false;
-			TimeStamp = 0;
-			SampleBuffer.Clear();
+			VideoFormat = {};
+			AudioFormat = {};
 		}
 	};
 
-	using AudioMediaSample_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<MediaSample<AudioFormat>, std::shared_mutex>;
-	using VideoMediaSample_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<MediaSample<VideoFormat>, std::shared_mutex>;
+	using AVFormats_ThS = Concurrency::ThreadSafe<AVFormats, Concurrency::SpinMutex>;
 
-	struct VideoOut
+	struct SampleEventHandles
 	{
-		VideoFormat VideoFormat;
-		VideoRenderer VideoRenderer;
+		SourceReader::SampleEventDispatcher::FunctionHandle AudioSampleEventFunctionHandle;
+		SourceReader::SampleEventDispatcher::FunctionHandle VideoSampleEventFunctionHandle;
 	};
 
-	using VideoOut_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<VideoOut, std::shared_mutex>;
+	using SampleEventHandles_ThS = Concurrency::ThreadSafe<SampleEventHandles, Concurrency::SpinMutex>;
 
-	struct AudioOut
+	template<typename T>
+	struct MediaSample
 	{
-		AudioFormat AudioFormat;
-		AudioRenderer AudioRenderer;
+		T Format;
+		UInt64 TimeStamp{ 0 };
+		Buffer SampleBuffer;
+
+		MediaSample() noexcept = default;
+		MediaSample(const MediaSample&) = delete;
+		MediaSample(MediaSample&&) noexcept = default;
+		~MediaSample() = default;
+		MediaSample& operator=(const MediaSample&) = delete;
+		MediaSample& operator=(MediaSample&&) noexcept = default;
 	};
 
-	using AudioOut_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<AudioOut, std::shared_mutex>;
+	using AudioSample = MediaSample<AudioFormat>;
+	using VideoSample = MediaSample<VideoFormat>;
+
+	using AudioSampleQueue = std::queue<AudioSample>;
+	using AudioSampleQueue_ThS = Concurrency::ThreadSafe<AudioSampleQueue, Concurrency::SharedSpinMutex>;
+
+	using VideoSampleQueue = std::queue<VideoSample>;
+	using VideoSampleQueue_ThS = Concurrency::ThreadSafe<VideoSampleQueue, Concurrency::SharedSpinMutex>;
 
 	class Call final
 	{
 	public:
-		Call(Extender& extender, AVSource_ThS& avsource, const PeerLUID pluid) noexcept :
+		Call(const PeerLUID pluid, const Extender& extender, AVSource_ThS& avsource) noexcept :
 			m_PeerLUID(pluid), m_Extender(extender), m_AVSource(avsource)
 		{};
 
@@ -123,17 +136,17 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] inline SteadyTime GetStartSteadyTime() const noexcept { return m_StartSteadyTime; }
 		[[nodiscard]] std::chrono::milliseconds GetDuration() const noexcept;
 
-		inline void SetSendVideo(const bool send) noexcept { SetSetting(CallSetting::SendVideo, send); }
+		void SetSendVideo(const bool send) noexcept;
 		[[nodiscard]] inline bool GetSendVideo() const noexcept { return GetSetting(CallSetting::SendVideo); }
 
-		inline void SetSendAudio(const bool send) noexcept { SetSetting(CallSetting::SendAudio, send); }
+		void SetSendAudio(const bool send) noexcept;
 		[[nodiscard]] inline bool GetSendAudio() const noexcept { return GetSetting(CallSetting::SendAudio); }
 
-		[[nodiscard]] bool SetPeerAVFormat(const CallAVFormatData* fmtdata) noexcept;
-		void OnAVSourceChange() noexcept;
+		void OnAudioSourceChange() noexcept;
+		void OnVideoSourceChange() noexcept;
 
-		inline AudioMediaSample_ThS& GetAudioOutSample() noexcept { return m_AudioOutSample; }
-		inline VideoMediaSample_ThS& GetVideoOutSample() noexcept { return m_VideoOutSample; }
+		void OnAudioInSample(const AudioFormatData& fmt, const UInt64 timestamp, Buffer&& sample) noexcept;
+		void OnVideoInSample(const VideoFormatData& fmt, const UInt64 timestamp, Buffer&& sample) noexcept;
 
 	public:
 		static constexpr std::chrono::seconds MaxWaitTimeForAccept{ 30 };
@@ -157,42 +170,37 @@ namespace QuantumGate::AVExtender
 			return (settings & static_cast<UInt8>(csetting));
 		}
 
-		inline void SetPeerSendVideo(const bool send) noexcept { SetSetting(CallSetting::PeerSendVideo, send); }
-		[[nodiscard]] inline bool GetPeerSendVideo() const noexcept { return GetSetting(CallSetting::PeerSendVideo); }
-
-		inline void SetPeerSendAudio(const bool send) noexcept { SetSetting(CallSetting::PeerSendAudio, send); }
-		[[nodiscard]] inline bool GetPeerSendAudio() const noexcept { return GetSetting(CallSetting::PeerSendAudio); }
-
-		void SetPeerAudioFormat(const AudioFormat& format) noexcept;
-		void SetPeerVideoFormat(const VideoFormat& format) noexcept;
-
-		static void WorkerThreadLoop(Call* call);
+		static void AudioWorkerThreadLoop(Call* call);
+		static void VideoWorkerThreadLoop(Call* call);
 
 		void OnConnected();
 		void OnDisconnected();
 
-		void OnAudioSample(const UInt64 timestamp, IMFSample* sample);
-		void OnVideoSample(const UInt64 timestamp, IMFSample* sample);
-
-		void OnPeerAudioSample(const UInt64 timestamp, const Buffer& sample) noexcept;
-		void OnPeerVideoSample(const UInt64 timestamp, const Buffer& sample) noexcept;
+		void OnAudioOutSample(const UInt64 timestamp, IMFSample* sample);
+		void OnVideoOutSample(const UInt64 timestamp, IMFSample* sample);
 
 		void OpenVideoRenderer() noexcept;
 		void CloseVideoRenderer() noexcept;
 		void UpdateVideoRenderer() noexcept;
 
-		void OpenAudioRenderer() noexcept;
+		void OpenAudioRenderer(const AudioFormat& fmt) noexcept;
 		void CloseAudioRenderer() noexcept;
 
-		void SetAVCallbacks() noexcept;
+		void SetAudioCallbacks() noexcept;
+		void SetVideoCallbacks() noexcept;
 		void UnsetAVCallbacks() noexcept;
 
-		[[nodiscard]] bool CopyInputSample(const UInt64 timestamp, IMFSample* sample,
-										   Buffer& sample_buffer, const Size* expected_size, const bool accumulate);
+		template<typename T, typename U>
+		[[nodiscard]] bool AddSampleToQueue(T&& sample, U& queue_ths) noexcept;
+
+		template<typename T, typename U>
+		[[nodiscard]] T GetSampleFromQueue(U& queue_ths) noexcept;
+
+		[[nodiscard]] bool CopySample(const UInt64 timestamp, IMFSample* sample, Buffer& sample_buffer);
 
 	private:
 		const PeerLUID m_PeerLUID{ 0 };
-		Extender& m_Extender;
+		const Extender& m_Extender;
 		AVSource_ThS& m_AVSource;
 
 		CallType m_Type{ CallType::None };
@@ -202,19 +210,22 @@ namespace QuantumGate::AVExtender
 
 		std::atomic<UInt8> m_Settings{ 0 };
 
-		AudioOut_ThS m_AudioOut;
-		VideoOut_ThS m_VideoOut;
+		AudioRenderer_ThS m_AudioRenderer;
+		VideoRenderer_ThS m_VideoRenderer;
 
-		AudioMediaSample_ThS m_AudioInSample;
-		AudioMediaSample_ThS m_AudioOutSample;
-		VideoMediaSample_ThS m_VideoInSample;
-		VideoMediaSample_ThS m_VideoOutSample;
+		AVFormats_ThS m_AVInFormats;
+		AudioSampleQueue_ThS m_AudioInQueue;
+		VideoSampleQueue_ThS m_VideoInQueue;
 
-		SourceReader::SampleEventDispatcher::FunctionHandle m_AudioSampleEventFunctionHandle;
-		SourceReader::SampleEventDispatcher::FunctionHandle m_VideoSampleEventFunctionHandle;
+		AudioSampleQueue_ThS m_AudioOutQueue;
+		VideoSampleQueue_ThS m_VideoOutQueue;
 
-		Concurrency::EventCondition m_ShutdownEvent{ false };
-		std::thread m_Thread;
+		SampleEventHandles_ThS m_SampleEventHandles;
+
+		Concurrency::EventCondition m_DisconnectEvent{ false };
+		
+		std::thread m_AudioThread;
+		std::thread m_VideoThread;
 	};
 
 	using Call_ThS = Implementation::Concurrency::ThreadSafe<Call, std::shared_mutex>;

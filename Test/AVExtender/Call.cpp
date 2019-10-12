@@ -74,153 +74,355 @@ namespace QuantumGate::AVExtender
 		return success;
 	}
 
-	void Call::WorkerThreadLoop(Call* call)
+	void Call::AudioWorkerThreadLoop(Call* call)
 	{
-		LogDbg(L"Call worker thread %u starting", std::this_thread::get_id());
+		LogDbg(L"Call audio worker thread %u starting", std::this_thread::get_id());
 
-		Util::SetCurrentThreadName(L"AVExtender Call Thread");
+		Util::SetCurrentThreadName(L"AVExtender Call Audio Thread");
 
-		call->OpenVideoRenderer();
-		call->OpenAudioRenderer();
+		AudioFormat audio_in_format;
 
 		// If the shutdown event is set quit the loop
-		while (!call->m_ShutdownEvent.IsSet())
+		while (!call->m_DisconnectEvent.IsSet())
 		{
 			const auto settings = call->m_Settings.load();
 
 			if (settings & static_cast<UInt8>(CallSetting::SendAudio))
 			{
-				// Try to send at most 1 second of audio data at once
-				const auto max_send = call->m_AVSource.WithSharedLock()->AudioSourceReader.GetSampleFormat().AvgBytesPerSecond;
-
-				// Audio frames total size should not be larger than what we can send
-				assert(max_send <= call->m_Extender.GetMaximumMessageDataSize());
-
-				call->m_AudioInSample.WithUniqueLock([&](auto& media_sample)
+				auto media_sample = call->GetSampleFromQueue<AudioSample>(call->m_AudioOutQueue);
+				if (!media_sample.SampleBuffer.IsEmpty())
 				{
-					if (media_sample.New)
+					// Try to send at most 1 second of audio data at once
+					const auto max_send{ media_sample.Format.AvgBytesPerSecond };
+
+					// Audio frames total size should not be larger than what we can send
+					assert(max_send <= call->m_Extender.GetMaximumMessageDataSize());
+
+					BufferView buf{ media_sample.SampleBuffer };
+
+					while (!buf.IsEmpty())
 					{
-						BufferView buf = media_sample.SampleBuffer;
-
-						while (!buf.IsEmpty())
+						auto buf2 = buf;
+						if (buf2.GetSize() > max_send)
 						{
-							auto buf2 = buf;
-							if (buf2.GetSize() > max_send)
-							{
-								buf2 = buf2.GetFirst(max_send);
-							}
-
-							DiscardReturnValue(call->m_Extender.SendCallAVSample(call->m_PeerLUID, MessageType::AudioSample,
-																				 media_sample.TimeStamp, buf2));
-							buf.RemoveFirst(buf2.GetSize());
+							buf2 = buf2.GetFirst(max_send);
 						}
 
-						media_sample.New = false;
-						media_sample.SampleBuffer.Clear();
+						if (!call->m_Extender.SendCallAudioSample(call->m_PeerLUID, media_sample.Format,
+																  media_sample.TimeStamp, buf2))
+						{
+							LogErr(L"Failed to send audio sample to peer");
+						}
+
+						buf.RemoveFirst(buf2.GetSize());
 					}
-				});
+				}
 			}
+
+			{
+				auto media_sample = call->GetSampleFromQueue<AudioSample>(call->m_AudioInQueue);
+				if (!media_sample.SampleBuffer.IsEmpty())
+				{
+					bool changed{ false };
+
+					call->m_AudioRenderer.WithUniqueLock([&](auto& ar)
+					{
+						if (audio_in_format != media_sample.Format)
+						{
+							audio_in_format = media_sample.Format;
+							changed = true;
+						}
+					});
+
+					if (changed)
+					{
+						call->CloseAudioRenderer();
+						call->OpenAudioRenderer(audio_in_format);
+					}
+
+					call->m_AudioRenderer.WithUniqueLock([&](auto& ar)
+					{
+						if (ar.IsOpen())
+						{
+							if (!ar.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
+							{
+								LogErr(L"Failed to render audio sample");
+							}
+						}
+					});
+				}
+			}
+
+			// Sleep for a while or until we have to shut down
+			call->m_DisconnectEvent.Wait(0ms);
+		}
+
+		call->CloseAudioRenderer();
+
+		LogDbg(L"Call audio worker thread %u exiting", std::this_thread::get_id());
+	}
+
+	void Call::VideoWorkerThreadLoop(Call* call)
+	{
+		LogDbg(L"Call video worker thread %u starting", std::this_thread::get_id());
+
+		Util::SetCurrentThreadName(L"AVExtender Call Video Thread");
+
+		call->OpenVideoRenderer();
+
+		VideoFormat video_in_format;
+
+		// If the shutdown event is set quit the loop
+		while (!call->m_DisconnectEvent.IsSet())
+		{
+			const auto settings = call->m_Settings.load();
 
 			if (settings & static_cast<UInt8>(CallSetting::SendVideo))
 			{
-				call->m_VideoInSample.WithUniqueLock([&](auto& media_sample)
+				auto media_sample = call->GetSampleFromQueue<VideoSample>(call->m_VideoOutQueue);
+				if (!media_sample.SampleBuffer.IsEmpty())
 				{
-					if (media_sample.New)
-					{
-						// Video frame size should not be larger than what we can send
-						assert(media_sample.SampleBuffer.GetSize() <= call->m_Extender.GetMaximumMessageDataSize());
+					// Video frame size should not be larger than what we can send
+					assert(media_sample.SampleBuffer.GetSize() <= call->m_Extender.GetMaximumMessageDataSize());
 
-						DiscardReturnValue(call->m_Extender.SendCallAVSample(call->m_PeerLUID, MessageType::VideoSample,
-																			 media_sample.TimeStamp, media_sample.SampleBuffer));
-						media_sample.New = false;
-						media_sample.SampleBuffer.Clear();
+					if (!call->m_Extender.SendCallVideoSample(call->m_PeerLUID, media_sample.Format,
+															  media_sample.TimeStamp, media_sample.SampleBuffer))
+					{
+						LogErr(L"Failed to send video sample to peer");
 					}
-				});
+				}
 			}
 
-			if (settings & static_cast<UInt8>(CallSetting::PeerSendAudio))
 			{
-				call->m_AudioOutSample.WithUniqueLock([&](auto& media_sample)
+				auto media_sample = call->GetSampleFromQueue<VideoSample>(call->m_VideoInQueue);
+				if (!media_sample.SampleBuffer.IsEmpty())
 				{
-					if (media_sample.New)
+					call->m_VideoRenderer.WithUniqueLock([&](auto& vr)
 					{
-						call->OnPeerAudioSample(media_sample.TimeStamp, media_sample.SampleBuffer);
-						media_sample.New = false;
-					}
-				});
-			}
+						if (video_in_format != media_sample.Format)
+						{
+							video_in_format = media_sample.Format;
 
-			if (settings & static_cast<UInt8>(CallSetting::PeerSendVideo))
-			{
-				call->m_VideoOutSample.WithUniqueLock([&](auto& media_sample)
-				{
-					if (media_sample.New)
-					{
-						call->OnPeerVideoSample(media_sample.TimeStamp, media_sample.SampleBuffer);
-						media_sample.New = false;
-					}
-				});
+							if (!vr.SetInputFormat(video_in_format))
+							{
+								LogErr(L"Failed to set output format for video window");
+							}
+						}
+
+						if (vr.IsOpen())
+						{
+							if (!vr.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
+							{
+								LogErr(L"Failed to render video sample");
+							}
+						}
+					});
+				}
 			}
 
 			call->UpdateVideoRenderer();
 
 			// Sleep for a while or until we have to shut down
-			call->m_ShutdownEvent.Wait(0ms);
+			call->m_DisconnectEvent.Wait(0ms);
 		}
 
 		call->CloseVideoRenderer();
-		call->CloseAudioRenderer();
 
-		LogDbg(L"Call worker thread %u exiting", std::this_thread::get_id());
+		LogDbg(L"Call worker video thread %u exiting", std::this_thread::get_id());
 	}
 
-	void Call::SetAVCallbacks() noexcept
+	void Call::SetAudioCallbacks() noexcept
 	{
-		auto audiocb = QuantumGate::MakeCallback(this, &Call::OnAudioSample);
-		auto videocb = QuantumGate::MakeCallback(this, &Call::OnVideoSample);
-
 		auto avsource = m_AVSource.WithUniqueLock();
-		m_AudioSampleEventFunctionHandle = avsource->AudioSourceReader.AddSampleEventCallback(std::move(audiocb));
-		m_VideoSampleEventFunctionHandle = avsource->VideoSourceReader.AddSampleEventCallback(std::move(videocb));
 
-		m_AudioInSample.WithUniqueLock()->Format = avsource->AudioSourceReader.GetSampleFormat();
-		m_VideoInSample.WithUniqueLock()->Format = avsource->VideoSourceReader.GetSampleFormat();
+		if (GetSendAudio())
+		{
+			auto audiocb = QuantumGate::MakeCallback(this, &Call::OnAudioOutSample);
+			m_SampleEventHandles.WithUniqueLock()->AudioSampleEventFunctionHandle = avsource->AudioSourceReader.AddSampleEventCallback(std::move(audiocb));
+
+			m_AVInFormats.WithUniqueLock()->AudioFormat = avsource->AudioSourceReader.GetSampleFormat();
+		}
+	}
+
+	void Call::SetVideoCallbacks() noexcept
+	{
+		auto avsource = m_AVSource.WithUniqueLock();
+
+		if (GetSendVideo())
+		{
+			auto videocb = QuantumGate::MakeCallback(this, &Call::OnVideoOutSample);
+			m_SampleEventHandles.WithUniqueLock()->VideoSampleEventFunctionHandle = avsource->VideoSourceReader.AddSampleEventCallback(std::move(videocb));
+
+			m_AVInFormats.WithUniqueLock()->VideoFormat = avsource->VideoSourceReader.GetSampleFormat();
+		}
 	}
 
 	void Call::UnsetAVCallbacks() noexcept
 	{
 		auto avsource = m_AVSource.WithUniqueLock();
-		avsource->AudioSourceReader.RemoveSampleEventCallback(m_AudioSampleEventFunctionHandle);
-		avsource->VideoSourceReader.RemoveSampleEventCallback(m_VideoSampleEventFunctionHandle);
+		avsource->AudioSourceReader.RemoveSampleEventCallback(m_SampleEventHandles.WithUniqueLock()->AudioSampleEventFunctionHandle);
+		avsource->VideoSourceReader.RemoveSampleEventCallback(m_SampleEventHandles.WithUniqueLock()->VideoSampleEventFunctionHandle);
+	}
+
+	void Call::SetSendVideo(const bool send) noexcept
+	{
+		SetSetting(CallSetting::SendVideo, send);
+
+		if (IsInCall() && send)
+		{
+			auto videocb = QuantumGate::MakeCallback(this, &Call::OnVideoOutSample);
+
+			auto avsource = m_AVSource.WithUniqueLock();
+			m_SampleEventHandles.WithUniqueLock()->VideoSampleEventFunctionHandle = avsource->VideoSourceReader.AddSampleEventCallback(std::move(videocb));
+
+			m_AVInFormats.WithUniqueLock()->VideoFormat = avsource->VideoSourceReader.GetSampleFormat();
+		}
+		else
+		{
+			auto avsource = m_AVSource.WithUniqueLock();
+			avsource->VideoSourceReader.RemoveSampleEventCallback(m_SampleEventHandles.WithUniqueLock()->VideoSampleEventFunctionHandle);
+
+			m_AVInFormats.WithUniqueLock()->VideoFormat = {};
+		}
+	}
+
+	void Call::SetSendAudio(const bool send) noexcept
+	{
+		SetSetting(CallSetting::SendAudio, send);
+
+		if (IsInCall() && send)
+		{
+			auto audiocb = QuantumGate::MakeCallback(this, &Call::OnAudioOutSample);
+
+			auto avsource = m_AVSource.WithUniqueLock();
+			m_SampleEventHandles.WithUniqueLock()->AudioSampleEventFunctionHandle = avsource->AudioSourceReader.AddSampleEventCallback(std::move(audiocb));
+
+			m_AVInFormats.WithUniqueLock()->AudioFormat = avsource->AudioSourceReader.GetSampleFormat();
+		}
+		else
+		{
+			auto avsource = m_AVSource.WithUniqueLock();
+			avsource->AudioSourceReader.RemoveSampleEventCallback(m_SampleEventHandles.WithUniqueLock()->AudioSampleEventFunctionHandle);
+
+			m_AVInFormats.WithUniqueLock()->AudioFormat = {};
+		}
 	}
 
 	void Call::OnConnected()
 	{
-		SetAVCallbacks();
+		SetAudioCallbacks();
+		SetVideoCallbacks();
 
-		m_ShutdownEvent.Reset();
+		m_DisconnectEvent.Reset();
 
-		m_Thread = std::thread(Call::WorkerThreadLoop, this);
+		m_AudioThread = std::thread(Call::AudioWorkerThreadLoop, this);
+		m_VideoThread = std::thread(Call::VideoWorkerThreadLoop, this);
 	}
 
 	void Call::OnDisconnected()
 	{
 		UnsetAVCallbacks();
 
-		m_ShutdownEvent.Set();
+		m_DisconnectEvent.Set();
 
-		if (m_Thread.joinable())
+		if (m_AudioThread.joinable())
 		{
-			m_Thread.join();
+			m_AudioThread.join();
 		}
+
+		if (m_VideoThread.joinable())
+		{
+			m_VideoThread.join();
+		}
+
+		m_AVInFormats.WithUniqueLock()->Clear();
+
+		// Clear queues
+		AudioSampleQueue asqi{};
+		m_AudioInQueue.WithUniqueLock()->swap(asqi);
+
+		VideoSampleQueue vsqi{};
+		m_VideoInQueue.WithUniqueLock()->swap(vsqi);
+
+		AudioSampleQueue asqo{};
+		m_AudioOutQueue.WithUniqueLock()->swap(asqo);
+
+		VideoSampleQueue vsqo{};
+		m_VideoOutQueue.WithUniqueLock()->swap(vsqo);
 	}
 
-	void Call::OnAVSourceChange() noexcept
+	void Call::OnAudioSourceChange() noexcept
 	{
 		if (IsInCall())
 		{
-			SetAVCallbacks();
+			SetAudioCallbacks();
 		}
+	}
+
+	void Call::OnVideoSourceChange() noexcept
+	{
+		if (IsInCall())
+		{
+			SetVideoCallbacks();
+		}
+	}
+
+	template<typename T, typename U>
+	bool Call::AddSampleToQueue(T&& sample, U& queue_ths) noexcept
+	{
+		auto success{ false };
+
+		auto max_queue_size{ 4u };
+
+		if constexpr (std::is_same_v<T, AudioFormat>)
+		{
+			max_queue_size = 16u;
+		}
+
+		queue_ths.WithUniqueLock([&](auto& queue)
+		{
+			try
+			{
+				if (queue.size() <= max_queue_size)
+				{
+					queue.push(std::move(sample));
+				}
+
+				success = true;
+			}
+			catch (...) {}
+		});
+
+		if (!success)
+		{
+			if constexpr (std::is_same_v<T, AudioFormat>)
+			{
+				LogDbg(L"Audio sample queue is full");
+			}
+			else if constexpr (std::is_same_v<T, VideoFormat>)
+			{
+				LogDbg(L"Video sample queue is full");
+			}
+		}
+
+		return success;
+	}
+
+	template<typename T, typename U>
+	T Call::GetSampleFromQueue(U& queue_ths) noexcept
+	{
+		T sample;
+
+		queue_ths.WithUniqueLock([&](auto& queue)
+		{
+			if (!queue.empty())
+			{
+				sample = std::move(queue.front());
+				queue.pop();
+			}
+		});
+
+		return sample;
 	}
 
 	const WChar* Call::GetStatusString() const noexcept
@@ -350,23 +552,13 @@ namespace QuantumGate::AVExtender
 
 	void Call::OpenVideoRenderer() noexcept
 	{
-		m_VideoOut.WithUniqueLock([&](auto& vout)
+		m_VideoRenderer.WithUniqueLock([&](auto& vr)
 		{
-			const bool visible = (vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown);
+			auto title = Util::FormatString(L"%s call from peer %I64u",
+											GetType() == CallType::Incoming ? L"Incoming" : L"Outgoing", GetPeerLUID());
 
-			if (vout.VideoRenderer.Create(GetType() == CallType::Incoming ? L"Incoming" : L"Outgoing",
-										  NULL, WS_OVERLAPPED | WS_THICKFRAME,
-										  CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, visible, NULL))
-			{
-				if (vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown)
-				{
-					if (!vout.VideoRenderer.SetInputFormat(vout.VideoFormat))
-					{
-						LogErr(L"Failed to set output format for video window");
-					}
-				}
-			}
-			else
+			if (!vr.Create(title.c_str(), NULL, WS_OVERLAPPED | WS_THICKFRAME,
+						   CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, true, NULL))
 			{
 				LogErr(L"Failed to create call video window");
 			}
@@ -375,136 +567,32 @@ namespace QuantumGate::AVExtender
 
 	void Call::CloseVideoRenderer() noexcept
 	{
-		m_VideoOut.WithUniqueLock()->VideoRenderer.Close();
+		m_VideoRenderer.WithUniqueLock()->Close();
 	}
 
 	void Call::UpdateVideoRenderer() noexcept
 	{
-		m_VideoOut.WithUniqueLock([](auto& vout)
+		m_VideoRenderer.WithUniqueLock()->ProcessMessages();
+	}
+
+	void Call::OpenAudioRenderer(const AudioFormat& fmt) noexcept
+	{
+		m_AudioRenderer.WithUniqueLock([&](auto& ar)
 		{
-			if (vout.VideoFormat.Format == VideoFormat::PixelFormat::Unknown)
+			if (ar.Create(fmt))
 			{
-				vout.VideoRenderer.SetWindowVisible(false);
+				DiscardReturnValue(ar.Play());
 			}
 			else
 			{
-				vout.VideoRenderer.SetWindowVisible(true);
-			}
-
-			vout.VideoRenderer.ProcessMessages();
-		});
-	}
-
-	void Call::OpenAudioRenderer() noexcept
-	{
-		m_AudioOut.WithUniqueLock([](auto& aout)
-		{
-			if (aout.AudioFormat.NumChannels > 0)
-			{
-				if (aout.AudioRenderer.Create(aout.AudioFormat))
-				{
-					DiscardReturnValue(aout.AudioRenderer.Play());
-				}
-				else
-				{
-					LogErr(L"Failed to create call audio renderer");
-				}
+				LogErr(L"Failed to create call audio renderer");
 			}
 		});
 	}
 
 	void Call::CloseAudioRenderer() noexcept
 	{
-		m_AudioOut.WithUniqueLock()->AudioRenderer.Close();
-	}
-
-	bool Call::SetPeerAVFormat(const CallAVFormatData* fmtdata) noexcept
-	{
-		if (fmtdata->SendAudio == 1)
-		{
-			if (fmtdata->AudioFormat.AvgBytesPerSecond !=
-				(fmtdata->AudioFormat.SamplesPerSecond * fmtdata->AudioFormat.BlockAlignment))
-			{
-				return false;
-			}
-
-			AudioFormat afmt;
-			afmt.NumChannels = fmtdata->AudioFormat.NumChannels;
-			afmt.SamplesPerSecond = fmtdata->AudioFormat.SamplesPerSecond;
-			afmt.AvgBytesPerSecond = fmtdata->AudioFormat.AvgBytesPerSecond;
-			afmt.BlockAlignment = fmtdata->AudioFormat.BlockAlignment;
-			afmt.BitsPerSample = fmtdata->AudioFormat.BitsPerSample;
-
-			SetPeerSendAudio(true);
-			SetPeerAudioFormat(afmt);
-		}
-		else
-		{
-			SetPeerSendAudio(false);
-			SetPeerAudioFormat({});
-		}
-
-		if (fmtdata->SendVideo == 1)
-		{
-			VideoFormat vfmt;
-			vfmt.Format = fmtdata->VideoFormat.Format;
-			vfmt.BytesPerPixel = fmtdata->VideoFormat.BytesPerPixel;
-			vfmt.Width = fmtdata->VideoFormat.Width;
-			vfmt.Height = fmtdata->VideoFormat.Height;
-
-			SetPeerSendVideo(true);
-			SetPeerVideoFormat(vfmt);
-		}
-		else
-		{
-			SetPeerSendVideo(false);
-			SetPeerVideoFormat({});
-		}
-
-		return true;
-	}
-
-	void Call::SetPeerAudioFormat(const AudioFormat& format) noexcept
-	{
-		bool changed{ false };
-
-		m_AudioOut.WithUniqueLock([&](auto& aout)
-		{
-			changed = (std::memcmp(&aout.AudioFormat, &format, sizeof(AudioFormat)) != 0);
-
-			aout.AudioFormat = format;
-		});
-
-		if (changed && IsInCall())
-		{
-			CloseAudioRenderer();
-			OpenAudioRenderer();
-		}
-
-		m_AudioOutSample.WithUniqueLock()->Format = format;
-	}
-
-	void Call::SetPeerVideoFormat(const VideoFormat& format) noexcept
-	{
-		m_VideoOut.WithUniqueLock([&](auto& vout)
-		{
-			const bool changed = (std::memcmp(&vout.VideoFormat, &format, sizeof(AudioFormat)) != 0);
-
-			vout.VideoFormat = format;
-
-			if (changed && IsInCall())
-			{
-				if (vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown)
-				{
-					if (!vout.VideoRenderer.SetInputFormat(vout.VideoFormat))
-					{
-						LogErr(L"Failed to set output format for video window");
-					}
-				}
-			}
-		});
-
-		m_VideoOutSample.WithUniqueLock()->Format = format;
+		m_AudioRenderer.WithUniqueLock()->Close();
 	}
 
 	std::chrono::milliseconds Call::GetDuration() const noexcept
@@ -517,51 +605,58 @@ namespace QuantumGate::AVExtender
 		return 0ms;
 	}
 
-	void Call::OnPeerAudioSample(const UInt64 timestamp, const Buffer& sample) noexcept
+	void Call::OnAudioInSample(const AudioFormatData& fmt, const UInt64 timestamp, Buffer&& sample) noexcept
 	{
-		m_AudioOut.WithUniqueLock([&](auto& aout)
-		{
-			if (aout.AudioRenderer.IsOpen())
-			{
-				DiscardReturnValue(aout.AudioRenderer.Render(timestamp, sample));
-			}
-		});
+		AudioSample asample;
+		asample.Format.NumChannels = fmt.NumChannels;
+		asample.Format.BlockAlignment = fmt.BlockAlignment;
+		asample.Format.BitsPerSample = fmt.BitsPerSample;
+		asample.Format.SamplesPerSecond = fmt.SamplesPerSecond;
+		asample.Format.AvgBytesPerSecond = fmt.AvgBytesPerSecond;
+
+		asample.TimeStamp = timestamp;
+		asample.SampleBuffer = std::move(sample);
+
+		DiscardReturnValue(AddSampleToQueue(std::move(asample), m_AudioInQueue));
 	}
 
-	void Call::OnPeerVideoSample(const UInt64 timestamp, const Buffer& sample) noexcept
+	void Call::OnVideoInSample(const VideoFormatData& fmt, const UInt64 timestamp, Buffer&& sample) noexcept
 	{
-		m_VideoOut.WithUniqueLock([&](auto& vout)
-		{
-			if (vout.VideoRenderer.IsOpen() && vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown)
-			{
-				DiscardReturnValue(vout.VideoRenderer.Render(timestamp, sample));
-			}
-		});
+		VideoSample vsample;
+		vsample.Format.Format = fmt.Format;
+		vsample.Format.Width = fmt.Width;
+		vsample.Format.Height = fmt.Height;
+		vsample.Format.BytesPerPixel = fmt.BytesPerPixel;
+
+		vsample.TimeStamp = timestamp;
+		vsample.SampleBuffer = std::move(sample);
+
+		DiscardReturnValue(AddSampleToQueue(std::move(vsample), m_VideoInQueue));
 	}
 
-	void Call::OnAudioSample(const UInt64 timestamp, IMFSample* sample)
+	void Call::OnAudioOutSample(const UInt64 timestamp, IMFSample* sample)
 	{
-		auto audioin_sample = m_AudioInSample.WithUniqueLock();
-		if (CopyInputSample(timestamp, sample, audioin_sample->SampleBuffer, nullptr, true))
+		AudioSample asample;
+		asample.TimeStamp = timestamp;
+		asample.Format = m_AVInFormats.WithUniqueLock()->AudioFormat;
+		if (CopySample(timestamp, sample, asample.SampleBuffer))
 		{
-			audioin_sample->New = true;
-			audioin_sample->TimeStamp = timestamp;
+			DiscardReturnValue(AddSampleToQueue(std::move(asample), m_AudioOutQueue));
 		}
 	}
 
-	void Call::OnVideoSample(const UInt64 timestamp, IMFSample* sample)
+	void Call::OnVideoOutSample(const UInt64 timestamp, IMFSample* sample)
 	{
-		auto videoin_sample = m_VideoInSample.WithUniqueLock();
-		const auto exp_size = CaptureDevices::GetImageSize(videoin_sample->Format);
-		if (CopyInputSample(timestamp, sample, videoin_sample->SampleBuffer, &exp_size, false))
+		VideoSample vsample;
+		vsample.TimeStamp = timestamp;
+		vsample.Format = m_AVInFormats.WithUniqueLock()->VideoFormat;
+		if (CopySample(timestamp, sample, vsample.SampleBuffer))
 		{
-			videoin_sample->New = true;
-			videoin_sample->TimeStamp = timestamp;
+			DiscardReturnValue(AddSampleToQueue(std::move(vsample), m_VideoOutQueue));
 		}
 	}
 
-	bool Call::CopyInputSample(const UInt64 timestamp, IMFSample* sample,
-							   Buffer& sample_buffer, const Size* expected_size, const bool accumulate)
+	bool Call::CopySample(const UInt64 timestamp, IMFSample* sample, Buffer& sample_buffer)
 	{
 		IMFMediaBuffer* media_buffer{ nullptr };
 
@@ -578,20 +673,7 @@ namespace QuantumGate::AVExtender
 			hr = media_buffer->Lock(&data, nullptr, &data_len);
 			if (SUCCEEDED(hr))
 			{
-				if (expected_size != nullptr)
-				{
-					if (data_len != *expected_size)
-					{
-						assert(false);
-						return false;
-					}
-				}
-
-				if (accumulate)
-				{
-					sample_buffer += BufferView(reinterpret_cast<Byte*>(data), data_len);
-				}
-				else sample_buffer = BufferView(reinterpret_cast<Byte*>(data), data_len);
+				sample_buffer = BufferView(reinterpret_cast<Byte*>(data), data_len);
 
 				media_buffer->Unlock();
 

@@ -77,7 +77,7 @@ BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 
 void CTestAppDlgAVExtenderTab::StartAudioPreview() noexcept
 {
-	auto audiocb = QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnAudioSample);
+	auto audiocb = QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnAudioOutSample);
 	auto result = m_AVExtender->StartAudioPreview(std::move(audiocb));
 	if (result.Succeeded())
 	{
@@ -110,7 +110,7 @@ void CTestAppDlgAVExtenderTab::StopAudioPreview() noexcept
 
 void CTestAppDlgAVExtenderTab::StartVideoPreview() noexcept
 {
-	auto videocb = QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnVideoSample);
+	auto videocb = QuantumGate::MakeCallback(this, &CTestAppDlgAVExtenderTab::OnVideoOutSample);
 	auto result = m_AVExtender->StartVideoPreview(std::move(videocb));
 	if (result.Succeeded())
 	{
@@ -304,12 +304,12 @@ void CTestAppDlgAVExtenderTab::OnBnClickedPreviewAudio()
 	}
 }
 
-void CTestAppDlgAVExtenderTab::OnVideoSample(const UInt64 timestamp, IMFSample* sample)
+void CTestAppDlgAVExtenderTab::OnVideoOutSample(const UInt64 timestamp, IMFSample* sample)
 {
-	m_VideoRenderer.Render(sample);
+	DiscardReturnValue(m_VideoRenderer.Render(sample));
 }
 
-void CTestAppDlgAVExtenderTab::OnAudioSample(const UInt64 timestamp, IMFSample* sample)
+void CTestAppDlgAVExtenderTab::OnAudioOutSample(const UInt64 timestamp, IMFSample* sample)
 {
 	auto audio_renderer = m_AudioRenderer.WithUniqueLock();
 
@@ -612,20 +612,23 @@ void CTestAppDlgAVExtenderTab::OnLbnSelChangePeerList()
 
 void CTestAppDlgAVExtenderTab::OnBnClickedSendVideoCheck()
 {
-	OnBnClickedSendAudioCheck();
+	const auto send_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_SEND_VIDEO_CHECK));
+	const auto send_video = (send_video_check->GetCheck() == BST_CHECKED);
+
+	if (m_SelectedPeerLUID.has_value() && m_AVExtender != nullptr)
+	{
+		m_AVExtender->UpdateSendVideo(*m_SelectedPeerLUID, send_video);
+	}
 }
 
 void CTestAppDlgAVExtenderTab::OnBnClickedSendAudioCheck()
 {
-	const auto send_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_SEND_VIDEO_CHECK));
-	const auto send_video = (send_video_check->GetCheck() == BST_CHECKED);
-
 	const auto send_audio_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_SEND_AUDIO_CHECK));
 	const auto send_audio = (send_audio_check->GetCheck() == BST_CHECKED);
 
 	if (m_SelectedPeerLUID.has_value() && m_AVExtender != nullptr)
 	{
-		m_AVExtender->UpdateSendAudioVideo(*m_SelectedPeerLUID, send_video, send_audio);
+		m_AVExtender->UpdateSendAudio(*m_SelectedPeerLUID, send_audio);
 	}
 }
 

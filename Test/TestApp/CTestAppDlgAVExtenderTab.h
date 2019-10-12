@@ -56,8 +56,8 @@ protected:
 	void UpdateAVAudioDevice() noexcept;
 	void UpdateAVVideoDevice() noexcept;
 
-	void OnAudioSample(const UInt64 timestamp, IMFSample* sample);
-	void OnVideoSample(const UInt64 timestamp, IMFSample* sample);
+	void OnAudioOutSample(const UInt64 timestamp, IMFSample* sample);
+	void OnVideoOutSample(const UInt64 timestamp, IMFSample* sample);
 
 	virtual BOOL OnInitDialog();
 
