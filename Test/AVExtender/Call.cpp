@@ -80,7 +80,7 @@ namespace QuantumGate::AVExtender
 
 		Util::SetCurrentThreadName(L"AVExtender Call Thread");
 
-		call->OpenVideoWindow();
+		call->OpenVideoRenderer();
 		call->OpenAudioRenderer();
 
 		// If the shutdown event is set quit the loop
@@ -162,13 +162,13 @@ namespace QuantumGate::AVExtender
 				});
 			}
 
-			call->UpdateVideoWindow();
+			call->UpdateVideoRenderer();
 
 			// Sleep for a while or until we have to shut down
 			call->m_ShutdownEvent.Wait(0ms);
 		}
 
-		call->CloseVideoWindow();
+		call->CloseVideoRenderer();
 		call->CloseAudioRenderer();
 
 		LogDbg(L"Call worker thread %u exiting", std::this_thread::get_id());
@@ -348,19 +348,19 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	void Call::OpenVideoWindow() noexcept
+	void Call::OpenVideoRenderer() noexcept
 	{
 		m_VideoOut.WithUniqueLock([&](auto& vout)
 		{
 			const bool visible = (vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown);
 
-			if (vout.VideoWindow.Create(GetType() == CallType::Incoming ? L"Incoming" : L"Outgoing",
-										NULL, WS_OVERLAPPED | WS_THICKFRAME,
-										CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, visible, NULL))
+			if (vout.VideoRenderer.Create(GetType() == CallType::Incoming ? L"Incoming" : L"Outgoing",
+										  NULL, WS_OVERLAPPED | WS_THICKFRAME,
+										  CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, visible, NULL))
 			{
 				if (vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown)
 				{
-					if (!vout.VideoWindow.SetInputFormat(vout.VideoFormat))
+					if (!vout.VideoRenderer.SetInputFormat(vout.VideoFormat))
 					{
 						LogErr(L"Failed to set output format for video window");
 					}
@@ -373,25 +373,25 @@ namespace QuantumGate::AVExtender
 		});
 	}
 
-	void Call::CloseVideoWindow() noexcept
+	void Call::CloseVideoRenderer() noexcept
 	{
-		m_VideoOut.WithUniqueLock()->VideoWindow.Close();
+		m_VideoOut.WithUniqueLock()->VideoRenderer.Close();
 	}
 
-	void Call::UpdateVideoWindow() noexcept
+	void Call::UpdateVideoRenderer() noexcept
 	{
 		m_VideoOut.WithUniqueLock([](auto& vout)
 		{
 			if (vout.VideoFormat.Format == VideoFormat::PixelFormat::Unknown)
 			{
-				vout.VideoWindow.SetWindowVisible(false);
+				vout.VideoRenderer.SetWindowVisible(false);
 			}
 			else
 			{
-				vout.VideoWindow.SetWindowVisible(true);
+				vout.VideoRenderer.SetWindowVisible(true);
 			}
 
-			vout.VideoWindow.ProcessMessages();
+			vout.VideoRenderer.ProcessMessages();
 		});
 	}
 
@@ -496,7 +496,7 @@ namespace QuantumGate::AVExtender
 			{
 				if (vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown)
 				{
-					if (!vout.VideoWindow.SetInputFormat(vout.VideoFormat))
+					if (!vout.VideoRenderer.SetInputFormat(vout.VideoFormat))
 					{
 						LogErr(L"Failed to set output format for video window");
 					}
@@ -532,9 +532,9 @@ namespace QuantumGate::AVExtender
 	{
 		m_VideoOut.WithUniqueLock([&](auto& vout)
 		{
-			if (vout.VideoWindow.IsOpen() && vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown)
+			if (vout.VideoRenderer.IsOpen() && vout.VideoFormat.Format != VideoFormat::PixelFormat::Unknown)
 			{
-				DiscardReturnValue(vout.VideoWindow.Render(timestamp, sample));
+				DiscardReturnValue(vout.VideoRenderer.Render(timestamp, sample));
 			}
 		});
 	}

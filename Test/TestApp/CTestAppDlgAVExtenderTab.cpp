@@ -65,8 +65,8 @@ BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 	GetDlgItem(IDC_VIDEO_PREVIEW)->GetWindowRect(&rect);
 	ScreenToClient(&rect);
 
-	if (!m_VideoWindow.Create(L"Preview", NULL, WS_CHILD, rect.left, rect.top,
-							  rect.right - rect.left, rect.bottom - rect.top, true, GetSafeHwnd()))
+	if (!m_VideoRenderer.Create(L"Preview", NULL, WS_CHILD, rect.left, rect.top,
+								rect.right - rect.left, rect.bottom - rect.top, true, GetSafeHwnd()))
 	{
 		AfxMessageBox(L"Failed to create video preview window.", MB_ICONERROR);
 	}
@@ -114,7 +114,7 @@ void CTestAppDlgAVExtenderTab::StartVideoPreview() noexcept
 	auto result = m_AVExtender->StartVideoPreview(std::move(videocb));
 	if (result.Succeeded())
 	{
-		if (m_VideoWindow.SetInputFormat(result.GetValue()))
+		if (m_VideoRenderer.SetInputFormat(result.GetValue()))
 		{
 			auto preview_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_PREVIEW_VIDEO));
 			preview_video_check->SetCheck(BST_CHECKED);
@@ -130,7 +130,7 @@ void CTestAppDlgAVExtenderTab::StopVideoPreview() noexcept
 {
 	m_AVExtender->StopVideoPreview();
 
-	m_VideoWindow.Redraw();
+	m_VideoRenderer.Redraw();
 
 	auto preview_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_PREVIEW_VIDEO));
 	preview_video_check->SetCheck(BST_UNCHECKED);
@@ -306,7 +306,7 @@ void CTestAppDlgAVExtenderTab::OnBnClickedPreviewAudio()
 
 void CTestAppDlgAVExtenderTab::OnVideoSample(const UInt64 timestamp, IMFSample* sample)
 {
-	m_VideoWindow.Render(sample);
+	m_VideoRenderer.Render(sample);
 }
 
 void CTestAppDlgAVExtenderTab::OnAudioSample(const UInt64 timestamp, IMFSample* sample)
@@ -341,7 +341,7 @@ void CTestAppDlgAVExtenderTab::OnDestroy()
 {
 	UnloadAVExtender();
 
-	m_VideoWindow.Close();
+	m_VideoRenderer.Close();
 
 	CTabBase::OnDestroy();
 }

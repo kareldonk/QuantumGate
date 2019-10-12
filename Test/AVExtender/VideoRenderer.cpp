@@ -2,27 +2,27 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "stdafx.h"
-#include "VideoWindow.h"
+#include "VideoRenderer.h"
 
 namespace QuantumGate::AVExtender
 {
-	VideoWindow::VideoWindow() noexcept
+	VideoRenderer::VideoRenderer() noexcept
 	{}
 
-	VideoWindow::~VideoWindow()
+	VideoRenderer::~VideoRenderer()
 	{
 		Close();
 	}
 
-	bool VideoWindow::Create(const WChar* title, const DWORD dwExStyle, const DWORD dwStyle, const int x, const int y,
-							 const int width, const int height, const bool visible, const HWND parent) noexcept
+	bool VideoRenderer::Create(const WChar* title, const DWORD dwExStyle, const DWORD dwStyle, const int x, const int y,
+							   const int width, const int height, const bool visible, const HWND parent) noexcept
 	{
 		WNDCLASSEX wc{ 0 };
 		wc.cbSize = sizeof(WNDCLASSEX);
 		wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_BACKGROUND);
 		wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-		wc.lpfnWndProc = VideoWindow::WndProc;
-		wc.lpszClassName = TEXT("VideoWindowClass");
+		wc.lpfnWndProc = VideoRenderer::WndProc;
+		wc.lpszClassName = TEXT("VideoRendererClass");
 		wc.style = CS_VREDRAW | CS_HREDRAW;
 
 		RegisterClassEx(&wc);
@@ -47,10 +47,10 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	void VideoWindow::Close() noexcept
+	void VideoRenderer::Close() noexcept
 	{
 		DeinitializeD2DRenderTarget();
-		
+
 		m_VideoResampler.Close();
 
 		SafeRelease(&m_OutputSample);
@@ -65,18 +65,18 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	bool VideoWindow::IsVisible() const noexcept
+	bool VideoRenderer::IsVisible() const noexcept
 	{
 		return ::IsWindowVisible(m_WndHandle);
 	}
 
-	void VideoWindow::SetWindowVisible(const bool visible) noexcept
+	void VideoRenderer::SetWindowVisible(const bool visible) noexcept
 	{
 		ShowWindow(m_WndHandle, visible ? SW_SHOW : SW_HIDE);
 		UpdateWindow(m_WndHandle);
 	}
 
-	void VideoWindow::ProcessMessages() noexcept
+	void VideoRenderer::ProcessMessages() noexcept
 	{
 		MSG msg{ 0 };
 
@@ -92,23 +92,23 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	void VideoWindow::Redraw() noexcept
+	void VideoRenderer::Redraw() noexcept
 	{
 		RedrawWindow(m_WndHandle, nullptr, nullptr, RDW_ERASE | RDW_UPDATENOW | RDW_INVALIDATE);
 	}
 
-	LRESULT VideoWindow::WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept
+	LRESULT VideoRenderer::WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept
 	{
-		VideoWindow* vwnd{ nullptr };
+		VideoRenderer* vwnd{ nullptr };
 
 		if (msg == WM_CREATE)
 		{
-			vwnd = static_cast<VideoWindow*>(reinterpret_cast<LPCREATESTRUCT>(lparam)->lpCreateParams);
+			vwnd = static_cast<VideoRenderer*>(reinterpret_cast<LPCREATESTRUCT>(lparam)->lpCreateParams);
 			SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(vwnd));
 		}
 		else
 		{
-			vwnd = reinterpret_cast<VideoWindow*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+			vwnd = reinterpret_cast<VideoRenderer*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
 		}
 
 		switch (msg)
@@ -127,7 +127,7 @@ namespace QuantumGate::AVExtender
 		return DefWindowProc(hwnd, msg, wparam, lparam);
 	}
 
-	bool VideoWindow::InitializeD2DRenderTarget(const HWND hwnd, const UInt width, const UInt height) noexcept
+	bool VideoRenderer::InitializeD2DRenderTarget(const HWND hwnd, const UInt width, const UInt height) noexcept
 	{
 		auto hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_D2D1Factory);
 		if (SUCCEEDED(hr))
@@ -162,14 +162,14 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	void VideoWindow::DeinitializeD2DRenderTarget() noexcept
+	void VideoRenderer::DeinitializeD2DRenderTarget() noexcept
 	{
 		SafeRelease(&m_D2D1Factory);
 		SafeRelease(&m_D2D1RenderTarget);
 		SafeRelease(&m_D2D1Bitmap);
 	}
 
-	void VideoWindow::ResizeRenderTarget() noexcept
+	void VideoRenderer::ResizeRenderTarget() noexcept
 	{
 		if (!m_D2D1RenderTarget) return;
 
@@ -178,7 +178,7 @@ namespace QuantumGate::AVExtender
 											   m_WndClientRect.bottom - m_WndClientRect.top));
 	}
 
-	void VideoWindow::ResizeDrawRect() noexcept
+	void VideoRenderer::ResizeDrawRect() noexcept
 	{
 		if (!m_D2D1Bitmap) return;
 
@@ -231,7 +231,7 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	bool VideoWindow::SetInputFormat(const VideoFormat& fmt) noexcept
+	bool VideoRenderer::SetInputFormat(const VideoFormat& fmt) noexcept
 	{
 		if (m_VideoResampler.IsOpen()) m_VideoResampler.Close();
 
@@ -253,7 +253,7 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	void VideoWindow::Render(IMFSample* in_sample) noexcept
+	void VideoRenderer::Render(IMFSample* in_sample) noexcept
 	{
 		if (m_VideoResampler.Resample(in_sample, m_OutputSample))
 		{
@@ -261,7 +261,7 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	void VideoWindow::Render(const UInt64 in_timestamp, const BufferView pixels) noexcept
+	void VideoRenderer::Render(const UInt64 in_timestamp, const BufferView pixels) noexcept
 	{
 		if (m_VideoResampler.Resample(in_timestamp, pixels, m_OutputSample))
 		{
@@ -269,7 +269,7 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	void VideoWindow::Render(IMFSample* in_sample, const VideoFormat& format) noexcept
+	void VideoRenderer::Render(IMFSample* in_sample, const VideoFormat& format) noexcept
 	{
 		assert(in_sample != nullptr);
 		assert(format.Format != VideoFormat::PixelFormat::Unknown);
@@ -296,7 +296,7 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	void VideoWindow::Render(const BufferView pixels, const VideoFormat& format) noexcept
+	void VideoRenderer::Render(const BufferView pixels, const VideoFormat& format) noexcept
 	{
 		assert(pixels.GetBytes() != nullptr && m_D2D1Bitmap != nullptr && m_D2D1RenderTarget != nullptr);
 

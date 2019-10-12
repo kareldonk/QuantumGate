@@ -14,17 +14,17 @@
 
 namespace QuantumGate::AVExtender
 {
-	class VideoWindow final
+	class VideoRenderer final
 	{
 	public:
 		enum class RenderSize { Fit, Cover };
 
-		VideoWindow() noexcept;
-		VideoWindow(const VideoWindow&) = delete;
-		VideoWindow(VideoWindow&&) = default;
-		~VideoWindow();
-		VideoWindow& operator=(const VideoWindow&) = delete;
-		VideoWindow& operator=(VideoWindow&&) = default;
+		VideoRenderer() noexcept;
+		VideoRenderer(const VideoRenderer&) = delete;
+		VideoRenderer(VideoRenderer&&) = default;
+		~VideoRenderer();
+		VideoRenderer& operator=(const VideoRenderer&) = delete;
+		VideoRenderer& operator=(VideoRenderer&&) = default;
 
 		[[nodiscard]] bool Create(const WChar* title, const DWORD dwExStyle, const DWORD dwStyle,
 								  const int x, const int y, const int width, const int height,
@@ -46,7 +46,7 @@ namespace QuantumGate::AVExtender
 		void ProcessMessages() noexcept;
 
 		void Redraw() noexcept;
-		
+
 	private:
 		static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept;
 
@@ -69,7 +69,7 @@ namespace QuantumGate::AVExtender
 		ID2D1Bitmap* m_D2D1Bitmap{ nullptr };
 
 		VideoResampler m_VideoResampler;
-		
+
 		IMFSample* m_OutputSample{ nullptr };
 
 		Buffer m_ResampleBuffer;

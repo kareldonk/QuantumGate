@@ -7,7 +7,7 @@
 
 #include "..\AVExtender\AVExtender.h"
 #include "..\AVExtender\VideoSourceReader.h"
-#include "..\AVExtender\VideoWindow.h"
+#include "..\AVExtender\VideoRenderer.h"
 #include "..\AVExtender\AudioSourceReader.h"
 #include "..\AVExtender\AudioRenderer.h"
 
@@ -25,7 +25,7 @@ public:
 
 	void OnPreDeinitializeQuantumGate() noexcept;
 
-// Dialog Data
+	// Dialog Data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB };
 #endif
@@ -90,5 +90,5 @@ private:
 	QuantumGate::AVExtender::CaptureDeviceVector m_VideoCaptureDevices;
 
 	QuantumGate::AVExtender::AudioRenderer_ThS m_AudioRenderer;
-	QuantumGate::AVExtender::VideoWindow m_VideoWindow;
+	QuantumGate::AVExtender::VideoRenderer m_VideoRenderer;
 };

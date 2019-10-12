@@ -6,7 +6,7 @@
 #include "Protocol.h"
 #include "AudioSourceReader.h"
 #include "VideoSourceReader.h"
-#include "VideoWindow.h"
+#include "VideoRenderer.h"
 #include "AudioRenderer.h"
 
 #include <Concurrency\EventCondition.h>
@@ -47,10 +47,10 @@ namespace QuantumGate::AVExtender
 
 	enum class CallSetting : UInt8
 	{
-		SendAudio =		0b00000001,
-		SendVideo =		0b00000010,
-		PeerSendAudio =	0b00000100,
-		PeerSendVideo =	0b00001000,
+		SendAudio = 0b00000001,
+		SendVideo = 0b00000010,
+		PeerSendAudio = 0b00000100,
+		PeerSendVideo = 0b00001000,
 	};
 
 	using CallID = UInt64;
@@ -77,8 +77,7 @@ namespace QuantumGate::AVExtender
 	struct VideoOut
 	{
 		VideoFormat VideoFormat;
-		VideoWindow VideoWindow;
-		VideoResampler VideoResampler;
+		VideoRenderer VideoRenderer;
 	};
 
 	using VideoOut_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<VideoOut, std::shared_mutex>;
@@ -148,7 +147,7 @@ namespace QuantumGate::AVExtender
 
 			if (state) settings |= static_cast<UInt8>(csetting);
 			else settings &= ~static_cast<UInt8>(csetting);
-			
+
 			m_Settings.store(settings);
 		}
 
@@ -178,9 +177,9 @@ namespace QuantumGate::AVExtender
 		void OnPeerAudioSample(const UInt64 timestamp, const Buffer& sample) noexcept;
 		void OnPeerVideoSample(const UInt64 timestamp, const Buffer& sample) noexcept;
 
-		void OpenVideoWindow() noexcept;
-		void CloseVideoWindow() noexcept;
-		void UpdateVideoWindow() noexcept;
+		void OpenVideoRenderer() noexcept;
+		void CloseVideoRenderer() noexcept;
+		void UpdateVideoRenderer() noexcept;
 
 		void OpenAudioRenderer() noexcept;
 		void CloseAudioRenderer() noexcept;

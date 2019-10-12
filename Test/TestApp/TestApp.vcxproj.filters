@@ -162,10 +162,10 @@
     <ClInclude Include="..\AVExtender\VideoSourceReader.h">
       <Filter>Header Files\AVExtender</Filter>
     </ClInclude>
-    <ClInclude Include="..\AVExtender\VideoWindow.h">
+    <ClInclude Include="..\AVExtender\VideoResizer.h">
       <Filter>Header Files\AVExtender</Filter>
     </ClInclude>
-    <ClInclude Include="..\AVExtender\VideoResizer.h">
+    <ClInclude Include="..\AVExtender\VideoRenderer.h">
       <Filter>Header Files\AVExtender</Filter>
     </ClInclude>
   </ItemGroup>
@@ -260,9 +260,6 @@
     <ClCompile Include="CTabBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\AVExtender\VideoWindow.cpp">
-      <Filter>Source Files\AVExtender</Filter>
-    </ClCompile>
     <ClCompile Include="..\AVExtender\AVErrorCode.cpp">
       <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
@@ -288,6 +285,9 @@
       <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
     <ClCompile Include="..\AVExtender\VideoResizer.cpp">
+      <Filter>Source Files\AVExtender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\VideoRenderer.cpp">
       <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
   </ItemGroup>

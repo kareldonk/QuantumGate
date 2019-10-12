@@ -505,7 +505,7 @@
     <ClInclude Include="..\AVExtender\VideoResampler.h" />
     <ClInclude Include="..\AVExtender\VideoResizer.h" />
     <ClInclude Include="..\AVExtender\VideoSourceReader.h" />
-    <ClInclude Include="..\AVExtender\VideoWindow.h" />
+    <ClInclude Include="..\AVExtender\VideoRenderer.h" />
     <ClInclude Include="..\Socks5Extender\Socks5Connection.h" />
     <ClInclude Include="..\Socks5Extender\Socks5Extender.h" />
     <ClInclude Include="..\Socks5Extender\Socks5Protocol.h" />
@@ -551,7 +551,7 @@
     <ClCompile Include="..\AVExtender\VideoResampler.cpp" />
     <ClCompile Include="..\AVExtender\VideoResizer.cpp" />
     <ClCompile Include="..\AVExtender\VideoSourceReader.cpp" />
-    <ClCompile Include="..\AVExtender\VideoWindow.cpp" />
+    <ClCompile Include="..\AVExtender\VideoRenderer.cpp" />
     <ClCompile Include="..\Socks5Extender\Socks5Connection.cpp" />
     <ClCompile Include="..\Socks5Extender\Socks5Extender.cpp" />
     <ClCompile Include="..\StressExtender\StressExtender.cpp" />
