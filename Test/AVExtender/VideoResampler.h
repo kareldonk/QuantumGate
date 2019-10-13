@@ -74,7 +74,8 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] inline const VideoFormat& GetInputFormat() const noexcept { return m_InputFormat; }
 		[[nodiscard]] inline const VideoFormat& GetOutputFormat() const noexcept { return m_OutputFormat; }
 
-		[[nodiscard]] bool Resample(const UInt64 in_timestamp, const BufferView in_data, IMFSample* out_sample) noexcept;
+		[[nodiscard]] bool Resample(const UInt64 in_timestamp, const UInt64 in_duration,
+									const BufferView in_data, IMFSample* out_sample) noexcept;
 		[[nodiscard]] bool Resample(IMFSample* in_sample, IMFSample* out_sample) noexcept;
 
 	private:

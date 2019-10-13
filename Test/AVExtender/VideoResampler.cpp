@@ -114,41 +114,14 @@ namespace QuantumGate::AVExtender
 		SafeRelease(&m_InputSample);
 	}
 
-	bool VideoResampler::Resample(const UInt64 in_timestamp, const BufferView in_data, IMFSample* out_sample) noexcept
+	bool VideoResampler::Resample(const UInt64 in_timestamp, const UInt64 in_duration,
+								  const BufferView in_data, IMFSample* out_sample) noexcept
 	{
 		assert(IsOpen());
 
-		BYTE* inptr{ nullptr };
-		DWORD inmaxl{ 0 };
-		DWORD incurl{ 0 };
-
-		// First copy input data into input buffer
-		IMFMediaBuffer* in_buffer{ nullptr };
-		auto hr = m_InputSample->GetBufferByIndex(0, &in_buffer);
-		if (SUCCEEDED(hr))
+		if (CaptureDevices::CopyToMediaSample(in_timestamp, in_duration, in_data, m_InputSample))
 		{
-			// Release when we exit
-			const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&in_buffer); });
-
-			hr = in_buffer->Lock(&inptr, &inmaxl, &incurl);
-			if (SUCCEEDED(hr))
-			{
-				assert(in_data.GetSize() <= inmaxl);
-
-				std::memcpy(inptr, in_data.GetBytes(), in_data.GetSize());
-
-				hr = in_buffer->Unlock();
-				if (SUCCEEDED(hr))
-				{
-					hr = in_buffer->SetCurrentLength(static_cast<DWORD>(in_data.GetSize()));
-					if (SUCCEEDED(hr))
-					{
-						m_InputSample->SetSampleTime(in_timestamp);
-
-						return Resample(m_InputSample, out_sample);
-					}
-				}
-			}
+			return Resample(m_InputSample, out_sample);
 		}
 
 		return false;

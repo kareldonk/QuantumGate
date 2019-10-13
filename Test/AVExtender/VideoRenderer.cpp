@@ -147,13 +147,7 @@ namespace QuantumGate::AVExtender
 
 				m_D2D1RenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE::D2D1_ANTIALIAS_MODE_ALIASED);
 
-				hr = m_D2D1RenderTarget->CreateBitmap(size,
-													  D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),
-													  &m_D2D1Bitmap);
-				if (SUCCEEDED(hr))
-				{
-					return true;
-				}
+				return CreateD2DRenderTargetBitmap(size);
 			}
 		}
 
@@ -167,6 +161,29 @@ namespace QuantumGate::AVExtender
 		SafeRelease(&m_D2D1Factory);
 		SafeRelease(&m_D2D1RenderTarget);
 		SafeRelease(&m_D2D1Bitmap);
+	}
+
+	bool VideoRenderer::CreateD2DRenderTargetBitmap(const D2D1_SIZE_U& size) noexcept
+	{
+		SafeRelease(&m_D2D1Bitmap);
+
+		const auto hr = m_D2D1RenderTarget->CreateBitmap(size,
+														 D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
+																								  D2D1_ALPHA_MODE_IGNORE)),
+														 &m_D2D1Bitmap);
+		if (SUCCEEDED(hr))
+		{
+			try
+			{
+				m_ConversionBuffer.Resize(static_cast<Size>(size.width)*
+										  static_cast<Size>(size.height) * sizeof(BGRAPixel));
+
+				return true;
+			}
+			catch (...) {}
+		}
+
+		return false;
 	}
 
 	void VideoRenderer::ResizeRenderTarget() noexcept
@@ -265,7 +282,7 @@ namespace QuantumGate::AVExtender
 
 	bool VideoRenderer::Render(const UInt64 in_timestamp, const BufferView pixels) noexcept
 	{
-		if (m_VideoResampler.Resample(in_timestamp, pixels, m_OutputSample))
+		if (m_VideoResampler.Resample(in_timestamp, 333333, pixels, m_OutputSample))
 		{
 			return Render(m_OutputSample, m_VideoResampler.GetOutputFormat());
 		}
@@ -321,12 +338,7 @@ namespace QuantumGate::AVExtender
 		const auto bmsize = m_D2D1Bitmap->GetSize();
 		if (bmsize.width != static_cast<float>(format.Width) || bmsize.height != static_cast<float>(format.Height))
 		{
-			SafeRelease(&m_D2D1Bitmap);
-
-			const auto hr = m_D2D1RenderTarget->CreateBitmap(D2D1::SizeU(format.Width, format.Height),
-															 D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),
-															 &m_D2D1Bitmap);
-			if (FAILED(hr)) return false;
+			if (!CreateD2DRenderTargetBitmap(D2D1::SizeU(format.Width, format.Height))) return false;
 
 			ResizeDrawRect();
 		}
@@ -335,26 +347,20 @@ namespace QuantumGate::AVExtender
 		{
 			case VideoFormat::PixelFormat::RGB24:
 			{
-				m_ResampleBuffer.Resize(static_cast<Size>(format.Width)*
-										static_cast<Size>(format.Height) * sizeof(BGRAPixel));
-
-				RGB24ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ResampleBuffer.GetBytes()),
+				RGB24ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ConversionBuffer.GetBytes()),
 							  reinterpret_cast<const BGRPixel*>(pixels.GetBytes()),
 							  format.Width, format.Height);
 
-				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ResampleBuffer.GetBytes(), format.Width * sizeof(BGRAPixel));
+				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ConversionBuffer.GetBytes(), format.Width * sizeof(BGRAPixel));
 				break;
 			}
 			case VideoFormat::PixelFormat::RGB32:
 			{
-				m_ResampleBuffer.Resize(static_cast<Size>(format.Width)*
-										static_cast<Size>(format.Height) * sizeof(BGRAPixel));
-
-				ARGB32ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ResampleBuffer.GetBytes()),
+				ARGB32ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ConversionBuffer.GetBytes()),
 							   reinterpret_cast<const BGRAPixel*>(pixels.GetBytes()),
 							   format.Width, format.Height);
 
-				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ResampleBuffer.GetBytes(), format.Width * sizeof(BGRAPixel));
+				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ConversionBuffer.GetBytes(), format.Width * sizeof(BGRAPixel));
 				break;
 			}
 			default:

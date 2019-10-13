@@ -21,6 +21,8 @@ namespace QuantumGate::AVExtender
 
 	bool AudioRenderer::Create(const AudioFormat& input_audio_settings) noexcept
 	{
+		assert(!IsOpen());
+
 		// Close if failed
 		auto sg = MakeScopeGuard([&]() noexcept { Close(); });
 
@@ -101,6 +103,8 @@ namespace QuantumGate::AVExtender
 
 	bool AudioRenderer::Play() noexcept
 	{
+		assert(IsOpen());
+
 		const auto hr = m_AudioClient->Start();
 		if (SUCCEEDED(hr))
 		{
@@ -112,6 +116,8 @@ namespace QuantumGate::AVExtender
 
 	bool AudioRenderer::Render(const UInt64 in_timestamp, const BufferView sample_data) noexcept
 	{
+		assert(IsOpen());
+
 		// Nothing to render
 		if (sample_data.GetSize() == 0) return true;
 

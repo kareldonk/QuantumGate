@@ -9,6 +9,7 @@
 
 #include <Windows.h>
 #include <d2d1_1.h>
+#include <d2d1helper.h>
 
 #pragma comment(lib, "d2d1.lib")
 
@@ -55,6 +56,7 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] bool InitializeD2DRenderTarget(const HWND hwnd, const UInt width, const UInt height) noexcept;
 		void DeinitializeD2DRenderTarget() noexcept;
+		[[nodiscard]] bool CreateD2DRenderTargetBitmap(const D2D1_SIZE_U& size) noexcept;
 		void ResizeRenderTarget() noexcept;
 		void ResizeDrawRect() noexcept;
 
@@ -72,7 +74,7 @@ namespace QuantumGate::AVExtender
 
 		IMFSample* m_OutputSample{ nullptr };
 
-		Buffer m_ResampleBuffer;
+		Buffer m_ConversionBuffer;
 	};
 
 	using VideoRenderer_ThS = Concurrency::ThreadSafe<VideoRenderer, std::shared_mutex>;

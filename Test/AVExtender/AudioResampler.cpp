@@ -21,6 +21,8 @@ namespace QuantumGate::AVExtender
 
 	bool AudioResampler::Create(const AudioFormat& in_settings, const AudioFormat& out_settings) noexcept
 	{
+		assert(!IsOpen());
+
 		// Close if failed
 		auto sg = MakeScopeGuard([&]() noexcept { Close(); });
 
@@ -99,38 +101,12 @@ namespace QuantumGate::AVExtender
 	{
 		assert(IsOpen());
 
-		BYTE* inptr{ nullptr };
-		DWORD inmaxl{ 0 };
-		DWORD incurl{ 0 };
+		const auto duration = static_cast<LONGLONG>((static_cast<double>(in_data.GetSize()) /
+													 static_cast<double>(m_InputFormat.SamplesPerSecond)) * 10000000.0);
 
-		// First copy input data into input buffer
-		IMFMediaBuffer* in_buffer{ nullptr };
-		auto hr = m_InputSample->GetBufferByIndex(0, &in_buffer);
-		if (SUCCEEDED(hr))
+		if (CaptureDevices::CopyToMediaSample(in_timestamp, duration, in_data, m_InputSample))
 		{
-			// Release when we exit
-			const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&in_buffer); });
-
-			// First copy input data into input buffer
-			auto hr = in_buffer->Lock(&inptr, &inmaxl, &incurl);
-			if (SUCCEEDED(hr))
-			{
-				assert(in_data.GetSize() <= inmaxl);
-
-				std::memcpy(inptr, in_data.GetBytes(), in_data.GetSize());
-
-				hr = in_buffer->Unlock();
-				if (SUCCEEDED(hr))
-				{
-					hr = in_buffer->SetCurrentLength(static_cast<DWORD>(in_data.GetSize()));
-					if (SUCCEEDED(hr))
-					{
-						m_InputSample->SetSampleTime(in_timestamp);
-
-						return Resample(m_InputSample, out_sample);
-					}
-				}
-			}
+			return Resample(m_InputSample, out_sample);
 		}
 
 		return false;

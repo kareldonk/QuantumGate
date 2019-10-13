@@ -21,6 +21,8 @@ namespace QuantumGate::AVExtender
 
 	bool VideoResizer::Create(const VideoFormat& in_video_format, const Size out_width, const Size out_height) noexcept
 	{
+		assert(!IsOpen());
+
 		// Close if failed
 		auto sg = MakeScopeGuard([&]() noexcept { Close(); });
 

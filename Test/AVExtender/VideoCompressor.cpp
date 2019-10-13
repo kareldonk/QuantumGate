@@ -23,6 +23,8 @@ namespace QuantumGate::AVExtender
 
 	bool VideoCompressor::Create(const Size width, const Size height, const GUID video_format) noexcept
 	{
+		assert(!IsOpen());
+
 		// Close if failed
 		auto sg = MakeScopeGuard([&]() noexcept { Close(); });
 
@@ -128,6 +130,8 @@ namespace QuantumGate::AVExtender
 
 	bool VideoCompressor::AddInput(const UInt64 in_timestamp, const BufferView data) noexcept
 	{
+		assert(IsOpen());
+
 		auto result = CaptureDevices::CreateMediaSample(data.GetSize());
 		if (result.Succeeded())
 		{
@@ -136,7 +140,7 @@ namespace QuantumGate::AVExtender
 			// Release in case of failure
 			const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&in_sample); });
 
-			const auto duration = static_cast<LONGLONG>((1.0 / static_cast<double>(m_FrameRate)) * 10000000.0);
+			const auto duration = static_cast<LONGLONG>((1.0 / static_cast<double>(m_FrameRate)) * 10'000'000.0);
 
 			if (CaptureDevices::CopyToMediaSample(in_timestamp, duration, data, in_sample))
 			{
@@ -152,6 +156,8 @@ namespace QuantumGate::AVExtender
 
 	bool VideoCompressor::AddInput(IMFSample* in_sample) noexcept
 	{
+		assert(IsOpen());
+
 		auto hr = m_IMFTransform->ProcessInput(0, in_sample, 0);
 		if (SUCCEEDED(hr))
 		{
@@ -163,6 +169,8 @@ namespace QuantumGate::AVExtender
 
 	IMFSample* VideoCompressor::GetOutput() noexcept
 	{
+		assert(IsOpen());
+
 		if (m_Type == Type::Encoder)
 		{
 			DWORD flags{ 0 };
@@ -214,6 +222,8 @@ namespace QuantumGate::AVExtender
 
 	bool VideoCompressor::GetOutput(Buffer& buffer) noexcept
 	{
+		assert(IsOpen());
+
 		auto out_sample = GetOutput();
 		if (out_sample != nullptr)
 		{
