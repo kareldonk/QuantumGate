@@ -10,6 +10,7 @@
 #include <mfidl.h>
 #include <mfapi.h>
 #include <mfreadwrite.h>
+#include <mferror.h>
 
 #pragma comment(lib, "mf.lib")
 #pragma comment(lib, "mfplat.lib")
@@ -207,6 +208,81 @@ namespace QuantumGate::AVExtender
 			return AVResultCode::Failed;
 		}
 
+		[[nodiscard]] static bool CopyToMediaSample(const UInt64 in_timestamp, const UInt64 in_duration,
+													const BufferView in_data, IMFSample* out_sample) noexcept
+		{
+			IMFMediaBuffer* media_buffer{ nullptr };
+
+			// Get the buffer from the sample
+			auto hr = out_sample->GetBufferByIndex(0, &media_buffer);
+			if (SUCCEEDED(hr))
+			{
+				// Release buffer when we exit this scope
+				const auto sg2 = MakeScopeGuard([&]() noexcept { SafeRelease(&media_buffer); });
+
+				BYTE* out_data{ nullptr };
+				DWORD max_out_data_len{ 0 };
+
+				hr = media_buffer->Lock(&out_data, &max_out_data_len, nullptr);
+				if (SUCCEEDED(hr))
+				{
+					assert(in_data.GetSize() <= max_out_data_len);
+
+					std::memcpy(out_data, in_data.GetBytes(), in_data.GetSize());
+
+					if (SUCCEEDED(media_buffer->Unlock()))
+					{
+						hr = media_buffer->SetCurrentLength(static_cast<DWORD>(in_data.GetSize()));
+						if (SUCCEEDED(hr))
+						{
+							if (SUCCEEDED(out_sample->SetSampleTime(in_timestamp)) &&
+								SUCCEEDED(out_sample->SetSampleDuration(in_duration)))
+							{
+								return true;
+							}
+						}
+					}
+				}
+			}
+
+			return false;
+		}
+
+		[[nodiscard]] static bool CopyFromMediaSample(IMFSample* in_sample, Buffer& out_buffer) noexcept
+		{
+			IMFMediaBuffer* media_buffer{ nullptr };
+
+			// Get the buffer from the sample
+			auto hr = in_sample->GetBufferByIndex(0, &media_buffer);
+			if (SUCCEEDED(hr))
+			{
+				// Release buffer when we exit this scope
+				const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&media_buffer); });
+
+				BYTE* in_data{ nullptr };
+				DWORD in_data_len{ 0 };
+
+				hr = media_buffer->Lock(&in_data, nullptr, &in_data_len);
+				if (SUCCEEDED(hr))
+				{
+					// Unlock when we exit this scope
+					auto sg2 = MakeScopeGuard([&]() noexcept { media_buffer->Unlock(); });
+
+					try
+					{
+						out_buffer.Resize(in_data_len);
+
+						std::memcpy(out_buffer.GetBytes(), in_data, in_data_len);
+
+						return true;
+					}
+					catch (...) {}
+				}
+			}
+
+			return false;
+		}
+
 		[[nodiscard]] static GUID GetMFVideoFormat(const VideoFormat::PixelFormat fmt) noexcept
 		{
 			switch (fmt)
@@ -252,8 +328,21 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] static Size GetImageSize(const VideoFormat fmt) noexcept
 		{
 			UINT32 size{ 0 };
-			
+
 			if (SUCCEEDED(MFCalculateImageSize(GetMFVideoFormat(fmt.Format), fmt.Width, fmt.Height, &size)))
+			{
+				return size;
+			}
+			else assert(false);
+
+			return 0;
+		}
+
+		[[nodiscard]] static Size GetImageSize(const GUID fmt, const Size width, const Size height) noexcept
+		{
+			UINT32 size{ 0 };
+
+			if (SUCCEEDED(MFCalculateImageSize(fmt, static_cast<UINT32>(width), static_cast<UINT32>(height), &size)))
 			{
 				return size;
 			}

@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "Call.h"
 #include "AVExtender.h"
+#include "VideoCompressor.h"
 
 #include <Common\Util.h>
 
@@ -170,7 +171,11 @@ namespace QuantumGate::AVExtender
 
 		call->OpenVideoRenderer();
 
-		VideoFormat video_in_format;
+		VideoFormat snd_video_in_format;
+		VideoFormat rcv_video_in_format;
+
+		VideoCompressor video_compressor{ VideoCompressor::Type::Encoder };
+		VideoCompressor video_decompressor{ VideoCompressor::Type::Decoder };
 
 		// If the shutdown event is set quit the loop
 		while (!call->m_DisconnectEvent.IsSet())
@@ -182,13 +187,33 @@ namespace QuantumGate::AVExtender
 				auto media_sample = call->GetSampleFromQueue<VideoSample>(call->m_VideoOutQueue);
 				if (!media_sample.SampleBuffer.IsEmpty())
 				{
-					// Video frame size should not be larger than what we can send
-					assert(media_sample.SampleBuffer.GetSize() <= call->m_Extender.GetMaximumMessageDataSize());
-
-					if (!call->m_Extender.SendCallVideoSample(call->m_PeerLUID, media_sample.Format,
-															  media_sample.TimeStamp, media_sample.SampleBuffer))
+					if (snd_video_in_format != media_sample.Format)
 					{
-						LogErr(L"Failed to send video sample to peer");
+						snd_video_in_format = media_sample.Format;
+
+						video_compressor.Close();
+
+						if (!video_compressor.Create(snd_video_in_format.Width, snd_video_in_format.Height,
+													 CaptureDevices::GetMFVideoFormat(snd_video_in_format.Format)))
+						{
+							LogErr(L"Failed to create video compressor");
+						}
+					}
+
+					if (video_compressor.IsOpen())
+					{
+						DiscardReturnValue(video_compressor.AddInput(media_sample.TimeStamp, media_sample.SampleBuffer));
+						while (video_compressor.GetOutput(media_sample.SampleBuffer))
+						{
+							// Video frame size should not be larger than what we can send
+							assert(media_sample.SampleBuffer.GetSize() <= call->m_Extender.GetMaximumMessageDataSize());
+
+							if (!call->m_Extender.SendCallVideoSample(call->m_PeerLUID, media_sample.Format,
+																	  media_sample.TimeStamp, media_sample.SampleBuffer))
+							{
+								LogErr(L"Failed to send video sample to peer");
+							}
+						}
 					}
 				}
 			}
@@ -199,11 +224,19 @@ namespace QuantumGate::AVExtender
 				{
 					call->m_VideoRenderer.WithUniqueLock([&](auto& vr)
 					{
-						if (video_in_format != media_sample.Format)
+						if (rcv_video_in_format != media_sample.Format)
 						{
-							video_in_format = media_sample.Format;
+							rcv_video_in_format = media_sample.Format;
 
-							if (!vr.SetInputFormat(video_in_format))
+							video_decompressor.Close();
+
+							if (!video_decompressor.Create(rcv_video_in_format.Width, rcv_video_in_format.Height,
+														   CaptureDevices::GetMFVideoFormat(rcv_video_in_format.Format)))
+							{
+								LogErr(L"Failed to create video decompressor");
+							}
+
+							if (!vr.SetInputFormat(rcv_video_in_format))
 							{
 								LogErr(L"Failed to set output format for video window");
 							}
@@ -211,9 +244,16 @@ namespace QuantumGate::AVExtender
 
 						if (vr.IsOpen())
 						{
-							if (!vr.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
+							if (video_decompressor.IsOpen())
 							{
-								LogErr(L"Failed to render video sample");
+								DiscardReturnValue(video_decompressor.AddInput(media_sample.TimeStamp, media_sample.SampleBuffer));
+								while (video_decompressor.GetOutput(media_sample.SampleBuffer))
+								{
+									if (!vr.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
+									{
+										LogErr(L"Failed to render video sample");
+									}
+								}
 							}
 						}
 					});
@@ -225,6 +265,9 @@ namespace QuantumGate::AVExtender
 			// Sleep for a while or until we have to shut down
 			call->m_DisconnectEvent.Wait(0ms);
 		}
+
+		video_compressor.Close();
+		video_decompressor.Close();
 
 		call->CloseVideoRenderer();
 

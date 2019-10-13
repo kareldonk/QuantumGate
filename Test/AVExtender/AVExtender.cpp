@@ -851,7 +851,8 @@ namespace QuantumGate::AVExtender
 			{
 				const auto fmt = avsource.VideoSourceReader.GetSampleFormat();
 
-				const auto width = (static_cast<double>(avsource.MaxVideoResolution) / static_cast<double>(fmt.Height))* static_cast<double>(fmt.Width);
+				auto width = static_cast<Size>((static_cast<double>(avsource.MaxVideoResolution) / static_cast<double>(fmt.Height)) * static_cast<double>(fmt.Width));
+				width = width - (width % 16);
 
 				if (avsource.VideoSourceReader.SetSampleSize(static_cast<Size>(width), avsource.MaxVideoResolution))
 				{

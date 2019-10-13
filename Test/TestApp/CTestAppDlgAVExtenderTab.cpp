@@ -160,16 +160,17 @@ void CTestAppDlgAVExtenderTab::UpdateVideoDeviceCombo() noexcept
 			vdcombo->SelectString(0, m_VideoCaptureDevices[0].DeviceNameString);
 		}
 
-		int size{ 720 };
-		while (size >= 90)
+		int size{ 1088 };
+		while (size >= 80)
 		{
 			const auto pos = vdscombo->AddString(Util::FormatString(L"%dp", size).c_str());
 			vdscombo->SetItemData(pos, static_cast<DWORD_PTR>(size));
 
-			size = size / 2;
+			size = static_cast<int>(static_cast<float>(size) * (2.f/3.f));
+			size = size - (size % 16);
 		}
 
-		vdscombo->SelectString(0, L"90p");
+		vdscombo->SelectString(0, L"80p");
 	}
 
 	UpdateAVVideoDevice();
