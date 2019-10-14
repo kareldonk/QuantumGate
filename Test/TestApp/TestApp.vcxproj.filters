@@ -168,6 +168,12 @@
     <ClInclude Include="..\AVExtender\VideoRenderer.h">
       <Filter>Header Files\AVExtender</Filter>
     </ClInclude>
+    <ClInclude Include="..\AVExtender\AudioCompressor.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AVExtender\Compressor.h">
+      <Filter>Header Files\AVExtender</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -288,6 +294,12 @@
       <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
     <ClCompile Include="..\AVExtender\VideoRenderer.cpp">
+      <Filter>Source Files\AVExtender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\AudioCompressor.cpp">
+      <Filter>Source Files\AVExtender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AVExtender\Compressor.cpp">
       <Filter>Source Files\AVExtender</Filter>
     </ClCompile>
   </ItemGroup>

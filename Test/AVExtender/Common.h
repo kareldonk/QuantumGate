@@ -7,6 +7,7 @@
 
 #include <QuantumGate.h>
 #include <Concurrency\ThreadSafe.h>
+#include <Concurrency\ThreadLocalCache.h>
 
 namespace QuantumGate::AVExtender
 {
@@ -128,4 +129,14 @@ namespace QuantumGate::AVExtender
 	};
 
 	using AudioFormat_ThS = QuantumGate::Implementation::Concurrency::ThreadSafe<AudioFormat, std::shared_mutex>;
+
+	struct Settings
+	{
+		bool UseCompression{ true };
+		bool UseVideoCompression{ true };
+		bool UseAudioCompression{ true };
+		bool FillVideoScreen{ false };
+	};
+
+	using Settings_ThS = QuantumGate::Implementation::Concurrency::ThreadLocalCache<Settings>;
 }

@@ -46,12 +46,36 @@ BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
 	ON_BN_CLICKED(IDC_PREVIEW_VIDEO, &CTestAppDlgAVExtenderTab::OnBnClickedPreviewVideo)
 	ON_BN_CLICKED(IDC_PREVIEW_AUDIO, &CTestAppDlgAVExtenderTab::OnBnClickedPreviewAudio)
 	ON_CBN_SELCHANGE(IDC_VIDEO_SIZE_COMBO, &CTestAppDlgAVExtenderTab::OnCbnSelchangeVideoSizeCombo)
+	ON_BN_CLICKED(IDC_VIDEO_COMPRESSION_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedVideoCompressionCheck)
+	ON_BN_CLICKED(IDC_VIDEO_FILL_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedVideoFillCheck)
+	ON_BN_CLICKED(IDC_AUDIO_COMPRESSION_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedAudioCompressionCheck)
 END_MESSAGE_MAP()
 
 void CTestAppDlgAVExtenderTab::UpdateControls() noexcept
 {
 	GetDlgItem(IDC_PREVIEW_VIDEO)->EnableWindow(m_AVExtender != nullptr);
 	GetDlgItem(IDC_PREVIEW_AUDIO)->EnableWindow(m_AVExtender != nullptr);
+
+	GetDlgItem(IDC_VIDEO_COMPRESSION_CHECK)->EnableWindow(m_AVExtender != nullptr);
+	GetDlgItem(IDC_AUDIO_COMPRESSION_CHECK)->EnableWindow(m_AVExtender != nullptr);
+	GetDlgItem(IDC_VIDEO_FILL_CHECK)->EnableWindow(m_AVExtender != nullptr);
+
+	const auto compress_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_VIDEO_COMPRESSION_CHECK));
+	const auto fill_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_VIDEO_FILL_CHECK));
+	const auto compress_audio_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_AUDIO_COMPRESSION_CHECK));
+
+	if (m_AVExtender != nullptr)
+	{
+		compress_video_check->SetCheck(m_AVExtender->IsUsingVideoCompression() ? BST_CHECKED : BST_UNCHECKED);
+		compress_audio_check->SetCheck(m_AVExtender->IsUsingAudioCompression() ? BST_CHECKED : BST_UNCHECKED);
+		fill_video_check->SetCheck(m_AVExtender->GetFillVideoScreen() ? BST_CHECKED : BST_UNCHECKED);
+	}
+	else
+	{
+		compress_video_check->SetCheck(BST_UNCHECKED);
+		compress_audio_check->SetCheck(BST_UNCHECKED);
+		fill_video_check->SetCheck(BST_UNCHECKED);
+	}
 }
 
 BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
@@ -490,6 +514,8 @@ void CTestAppDlgAVExtenderTab::LoadAVExtender() noexcept
 				LogErr(L"Failed to add AVExtender");
 				m_AVExtender.reset();
 			}
+			
+			UpdateControls();
 
 			UpdateAVAudioDevice();
 			UpdateAVVideoDevice();
@@ -518,6 +544,8 @@ void CTestAppDlgAVExtenderTab::UnloadAVExtender() noexcept
 			LogErr(L"Failed to remove AVExtender");
 		}
 		else m_AVExtender.reset();
+
+		UpdateControls();
 	}
 }
 
@@ -669,3 +697,38 @@ void CTestAppDlgAVExtenderTab::OnPreDeinitializeQuantumGate() noexcept
 	}
 }
 
+void CTestAppDlgAVExtenderTab::OnBnClickedVideoCompressionCheck()
+{
+	if (m_AVExtender != nullptr)
+	{
+		const auto compress_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_VIDEO_COMPRESSION_CHECK));
+		const auto compress_video = (compress_video_check->GetCheck() == BST_CHECKED);
+
+		m_AVExtender->SetUseVideoCompression(compress_video);
+	}
+}
+
+void CTestAppDlgAVExtenderTab::OnBnClickedVideoFillCheck()
+{
+	if (m_AVExtender != nullptr)
+	{
+		const auto fill_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_VIDEO_FILL_CHECK));
+		const auto fill_video = (fill_video_check->GetCheck() == BST_CHECKED);
+
+		m_AVExtender->SetFillVideoScreen(fill_video);
+
+		m_VideoRenderer.SetRenderSize(fill_video ? AVExtender::VideoRenderer::RenderSize::Cover :
+									  AVExtender::VideoRenderer::RenderSize::Fit);
+	}
+}
+
+void CTestAppDlgAVExtenderTab::OnBnClickedAudioCompressionCheck()
+{
+	if (m_AVExtender != nullptr)
+	{
+		const auto compress_audio_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_AUDIO_COMPRESSION_CHECK));
+		const auto compress_audio = (compress_audio_check->GetCheck() == BST_CHECKED);
+
+		m_AVExtender->SetUseAudioCompression(compress_audio);
+	}
+}

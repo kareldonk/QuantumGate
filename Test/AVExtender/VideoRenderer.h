@@ -36,7 +36,7 @@ namespace QuantumGate::AVExtender
 		bool IsVisible() const noexcept;
 		void SetWindowVisible(const bool visible) noexcept;
 
-		inline void SetRenderSize(const RenderSize render_size) noexcept { m_RenderSize = render_size; }
+		void SetRenderSize(const RenderSize render_size) noexcept;
 		[[nodiscard]] inline RenderSize GetRenderSize() const noexcept { return m_RenderSize; }
 
 		[[nodiscard]] bool SetInputFormat(const VideoFormat& fmt) noexcept;

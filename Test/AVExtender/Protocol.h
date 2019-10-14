@@ -29,6 +29,7 @@ namespace QuantumGate::AVExtender
 		UInt32 AvgBytesPerSecond{ 0 };
 		UInt8 BlockAlignment{ 0 };
 		UInt8 BitsPerSample{ 0 };
+		bool Compressed{ false };
 	};
 
 	struct VideoFormatData
@@ -37,6 +38,7 @@ namespace QuantumGate::AVExtender
 		UInt16 Width{ 0 };
 		UInt16 Height{ 0 };
 		UInt8 BytesPerPixel{ 0 };
+		bool Compressed{ false };
 	};
 #pragma pack(pop)
 }

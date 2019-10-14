@@ -13,261 +13,110 @@ namespace QuantumGate::AVExtender
 {
 	using namespace QuantumGate::Implementation;
 
-	VideoCompressor::VideoCompressor(const Type type) noexcept : m_Type(type)
+	VideoCompressor::VideoCompressor(const Type type) noexcept :
+		Compressor(type, CLSID_CMSH264EncoderMFT, CLSID_CMSH264DecoderMFT)
 	{}
 
 	VideoCompressor::~VideoCompressor()
+	{}
+
+	void VideoCompressor::SetFormat(const UInt16 width, const UInt16 height, const GUID& video_format) noexcept
 	{
-		Close();
+		m_Width = width;
+		m_Height = height;
+		m_VideoFormat = video_format;
 	}
 
-	bool VideoCompressor::Create(const Size width, const Size height, const GUID video_format) noexcept
+	void VideoCompressor::OnClose() noexcept
 	{
-		assert(!IsOpen());
+		SafeRelease(&m_ICodecAPI);
+	}
 
-		// Close if failed
-		auto sg = MakeScopeGuard([&]() noexcept { Close(); });
+	UInt64 VideoCompressor::GetDuration(const Size sample_size) noexcept
+	{
+		return static_cast<LONGLONG>((1.0 / static_cast<double>(m_FrameRate)) * 10'000'000.0);
+	}
 
-		HRESULT hr{ E_FAIL };
+	bool VideoCompressor::OnCreateMediaTypes(IMFMediaType* input_type, IMFMediaType* output_type) noexcept
+	{
+		auto intype = input_type;
+		auto outtype = output_type;
 
-		switch (m_Type)
+		if (GetType() == Type::Decoder)
 		{
-			case Type::Encoder:
-				hr = CoCreateInstance(CLSID_CMSH264EncoderMFT, nullptr, CLSCTX_ALL,
-									  IID_IMFTransform, (void**)&m_IMFTransform);
-				break;
-			case Type::Decoder:
-				hr = CoCreateInstance(CLSID_CMSH264DecoderMFT, nullptr, CLSCTX_ALL,
-									  IID_IMFTransform, (void**)&m_IMFTransform);
-				break;
-			default:
-				assert(false);
-				break;
+			intype = output_type;
+			outtype = input_type;
 		}
 
+		if (SUCCEEDED(intype->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video)) &&
+			SUCCEEDED(intype->SetGUID(MF_MT_SUBTYPE, m_VideoFormat)) &&
+			SUCCEEDED(MFSetAttributeSize(intype, MF_MT_FRAME_SIZE, static_cast<UINT32>(m_Width), static_cast<UINT32>(m_Height))) &&
+			SUCCEEDED(MFSetAttributeRatio(intype, MF_MT_FRAME_RATE, m_FrameRate, 1)) &&
+			SUCCEEDED(MFSetAttributeRatio(intype, MF_MT_PIXEL_ASPECT_RATIO, 1, 1)) &&
+			SUCCEEDED(intype->SetUINT32(MF_MT_INTERLACE_MODE, 2)))
+		{
+			if (SUCCEEDED(outtype->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video)) &&
+				SUCCEEDED(outtype->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_H264)) &&
+				SUCCEEDED(outtype->SetUINT32(MF_MT_AVG_BITRATE, 240000)) &&
+				SUCCEEDED(MFSetAttributeSize(outtype, MF_MT_FRAME_SIZE, static_cast<UINT32>(m_Width), static_cast<UINT32>(m_Height))) &&
+				SUCCEEDED(MFSetAttributeRatio(outtype, MF_MT_FRAME_RATE, m_FrameRate, 1)) &&
+				SUCCEEDED(MFSetAttributeRatio(outtype, MF_MT_PIXEL_ASPECT_RATIO, 1, 1)) &&
+				SUCCEEDED(outtype->SetUINT32(MF_MT_INTERLACE_MODE, 2)) &&
+				SUCCEEDED(outtype->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE)))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool VideoCompressor::OnSetMediaTypes(IMFTransform* transform, IMFMediaType* input_type, IMFMediaType* output_type) noexcept
+	{
+		auto hr = transform->QueryInterface(&m_ICodecAPI);
 		if (SUCCEEDED(hr))
 		{
-			hr = m_IMFTransform->QueryInterface(&m_ICodecAPI);
-			if (SUCCEEDED(hr))
+			switch (GetType())
 			{
-				if (CreateMediaTypes(width, height, video_format))
-				{
-					switch (m_Type)
-					{
-						case Type::Encoder:
-							VARIANT var;
-							var.vt = VT_BOOL;
-							var.boolVal = VARIANT_TRUE;
+				case Type::Encoder:
+					VARIANT var;
+					var.vt = VT_BOOL;
+					var.boolVal = VARIANT_TRUE;
 
-							hr = m_ICodecAPI->SetValue(&CODECAPI_AVLowLatencyMode, &var);
-							if (SUCCEEDED(hr))
-							{
-								var.vt = VT_UI4;
-								var.ulVal = 0;
-
-								hr = m_ICodecAPI->SetValue(&CODECAPI_AVEncCommonQualityVsSpeed, &var);
-								if (SUCCEEDED(hr))
-								{
-									// Need to set output type first and then the input type
-									hr = m_IMFTransform->SetOutputType(0, m_OutputMediaType, 0);
-									if (SUCCEEDED(hr))
-									{
-										hr = m_IMFTransform->SetInputType(0, m_InputMediaType, 0);
-									}
-								}
-							}
-							break;
-						case Type::Decoder:
-							// Need to set input type first and then the output type
-							hr = m_IMFTransform->SetInputType(0, m_InputMediaType, 0);
-							if (SUCCEEDED(hr))
-							{
-								hr = m_IMFTransform->SetOutputType(0, m_OutputMediaType, 0);
-							}
-							break;
-						default:
-							assert(false);
-							break;
-					}
-
+					hr = m_ICodecAPI->SetValue(&CODECAPI_AVLowLatencyMode, &var);
 					if (SUCCEEDED(hr))
 					{
-						DWORD status{ 0 };
+						var.vt = VT_UI4;
+						var.ulVal = 0;
 
-						if (SUCCEEDED(m_IMFTransform->GetInputStatus(0, &status)))
+						hr = m_ICodecAPI->SetValue(&CODECAPI_AVEncCommonQualityVsSpeed, &var);
+						if (SUCCEEDED(hr))
 						{
-							if (status == MFT_INPUT_STATUS_ACCEPT_DATA)
+							// Need to set output type first and then the input type
+							hr = transform->SetOutputType(0, output_type, 0);
+							if (SUCCEEDED(hr))
 							{
-								if (SUCCEEDED(m_IMFTransform->ProcessMessage(MFT_MESSAGE_COMMAND_FLUSH, NULL)) &&
-									SUCCEEDED(m_IMFTransform->ProcessMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, NULL)) &&
-									SUCCEEDED(m_IMFTransform->ProcessMessage(MFT_MESSAGE_NOTIFY_START_OF_STREAM, NULL)))
-								{
-									sg.Deactivate();
-
-									m_Open = true;
-
-									return true;
-								}
+								hr = transform->SetInputType(0, input_type, 0);
 							}
 						}
 					}
-				}
+					break;
+				case Type::Decoder:
+					// Need to set input type first and then the output type
+					hr = transform->SetInputType(0, input_type, 0);
+					if (SUCCEEDED(hr))
+					{
+						hr = transform->SetOutputType(0, output_type, 0);
+					}
+					break;
+				default:
+					assert(false);
+					break;
 			}
-		}
 
-		return false;
-	}
-
-	void VideoCompressor::Close() noexcept
-	{
-		m_Open = false;
-
-		SafeRelease(&m_IMFTransform);
-		SafeRelease(&m_ICodecAPI);
-		SafeRelease(&m_InputMediaType);
-		SafeRelease(&m_OutputMediaType);
-	}
-
-	bool VideoCompressor::AddInput(const UInt64 in_timestamp, const BufferView data) noexcept
-	{
-		assert(IsOpen());
-
-		auto result = CaptureDevices::CreateMediaSample(data.GetSize());
-		if (result.Succeeded())
-		{
-			auto in_sample = result.GetValue();
-
-			// Release in case of failure
-			const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&in_sample); });
-
-			const auto duration = static_cast<LONGLONG>((1.0 / static_cast<double>(m_FrameRate)) * 10'000'000.0);
-
-			if (CaptureDevices::CopyToMediaSample(in_timestamp, duration, data, in_sample))
-			{
-				if (AddInput(in_sample))
-				{
-					return true;
-				}
-			}
-		}
-
-		return false;
-	}
-
-	bool VideoCompressor::AddInput(IMFSample* in_sample) noexcept
-	{
-		assert(IsOpen());
-
-		auto hr = m_IMFTransform->ProcessInput(0, in_sample, 0);
-		if (SUCCEEDED(hr))
-		{
-			return true;
-		}
-
-		return false;
-	}
-
-	IMFSample* VideoCompressor::GetOutput() noexcept
-	{
-		assert(IsOpen());
-
-		if (m_Type == Type::Encoder)
-		{
-			DWORD flags{ 0 };
-
-			auto hr = m_IMFTransform->GetOutputStatus(&flags);
 			if (SUCCEEDED(hr))
 			{
-				if (flags != MFT_OUTPUT_STATUS_SAMPLE_READY)
-				{
-					return nullptr;
-				}
-			}
-			else return nullptr;
-		}
-
-		MFT_OUTPUT_STREAM_INFO osinfo{ 0 };
-
-		auto hr = m_IMFTransform->GetOutputStreamInfo(0, &osinfo);
-		if (SUCCEEDED(hr))
-		{
-			auto result = CaptureDevices::CreateMediaSample(osinfo.cbSize);
-			if (result.Succeeded())
-			{
-				auto out_sample = result.GetValue();
-
-				// Release in case of failure
-				auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&out_sample); });
-
-				MFT_OUTPUT_DATA_BUFFER output{ 0 };
-				output.dwStreamID = 0;
-				output.dwStatus = 0;
-				output.pEvents = nullptr;
-				output.pSample = out_sample;
-
-				DWORD status{ 0 };
-
-				hr = m_IMFTransform->ProcessOutput(0, 1, &output, &status);
-				if (SUCCEEDED(hr))
-				{
-					sg.Deactivate();
-
-					return out_sample;
-				}
-			}
-		}
-
-		return nullptr;
-	}
-
-	bool VideoCompressor::GetOutput(Buffer& buffer) noexcept
-	{
-		assert(IsOpen());
-
-		auto out_sample = GetOutput();
-		if (out_sample != nullptr)
-		{
-			// Release when we exit this scope
-			auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&out_sample); });
-
-			return CaptureDevices::CopyFromMediaSample(out_sample, buffer);
-		}
-
-		return false;
-	}
-
-	bool VideoCompressor::CreateMediaTypes(const Size width, const Size height, const GUID video_format) noexcept
-	{
-		if (SUCCEEDED(MFCreateMediaType(&m_InputMediaType)) &&
-			SUCCEEDED(MFCreateMediaType(&m_OutputMediaType)))
-		{
-			auto intype = m_InputMediaType;
-			auto outtype = m_OutputMediaType;
-
-			if (m_Type == Type::Decoder)
-			{
-				intype = m_OutputMediaType;
-				outtype = m_InputMediaType;
-			}
-
-			if (SUCCEEDED(intype->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video)) &&
-				SUCCEEDED(intype->SetGUID(MF_MT_SUBTYPE, video_format)) &&
-				SUCCEEDED(MFSetAttributeSize(intype, MF_MT_FRAME_SIZE, static_cast<UINT32>(width), static_cast<UINT32>(height))) &&
-				SUCCEEDED(MFSetAttributeRatio(intype, MF_MT_FRAME_RATE, m_FrameRate, 1)) &&
-				SUCCEEDED(MFSetAttributeRatio(intype, MF_MT_PIXEL_ASPECT_RATIO, 1, 1)) &&
-				SUCCEEDED(intype->SetUINT32(MF_MT_INTERLACE_MODE, 2)))
-			{
-				if (SUCCEEDED(outtype->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video)) &&
-					SUCCEEDED(outtype->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_H264)) &&
-					SUCCEEDED(outtype->SetUINT32(MF_MT_AVG_BITRATE, 240000)) &&
-					SUCCEEDED(MFSetAttributeSize(outtype, MF_MT_FRAME_SIZE, static_cast<UINT32>(width), static_cast<UINT32>(height))) &&
-					SUCCEEDED(MFSetAttributeRatio(outtype, MF_MT_FRAME_RATE, m_FrameRate, 1)) &&
-					SUCCEEDED(MFSetAttributeRatio(outtype, MF_MT_PIXEL_ASPECT_RATIO, 1, 1)) &&
-					SUCCEEDED(outtype->SetUINT32(MF_MT_INTERLACE_MODE, 2)) &&
-					SUCCEEDED(outtype->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE)))
-				{
-					return true;
-				}
+				return true;
 			}
 		}
 

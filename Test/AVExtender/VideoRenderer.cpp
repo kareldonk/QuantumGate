@@ -76,6 +76,16 @@ namespace QuantumGate::AVExtender
 		UpdateWindow(m_WndHandle);
 	}
 
+	void VideoRenderer::SetRenderSize(const RenderSize render_size) noexcept
+	{
+		m_RenderSize = render_size;
+
+		if (m_WndHandle != nullptr)
+		{
+			ResizeDrawRect();
+		}
+	}
+
 	void VideoRenderer::ProcessMessages() noexcept
 	{
 		MSG msg{ 0 };

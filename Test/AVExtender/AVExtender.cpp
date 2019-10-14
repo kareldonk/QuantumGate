@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "AVExtender.h"
+#include "AudioCompressor.h"
 
 #include <Common\Util.h>
 #include <Common\ScopeGuard.h>
@@ -32,6 +33,38 @@ namespace QuantumGate::AVExtender
 
 	Extender::~Extender()
 	{}
+
+	void Extender::SetUseCompression(const bool compression) noexcept
+	{
+		m_Settings.UpdateValue([&](auto& settings)
+		{
+			settings.UseCompression = compression;
+		});
+	}
+
+	void Extender::SetUseAudioCompression(const bool compression) noexcept
+	{
+		m_Settings.UpdateValue([&](auto& settings)
+		{
+			settings.UseAudioCompression = compression;
+		});
+	}
+
+	void Extender::SetUseVideoCompression(const bool compression) noexcept
+	{
+		m_Settings.UpdateValue([&](auto& settings)
+		{
+			settings.UseVideoCompression = compression;
+		});
+	}
+
+	void Extender::SetFillVideoScreen(const bool fill) noexcept
+	{
+		m_Settings.UpdateValue([&](auto& settings)
+		{
+			settings.FillVideoScreen = fill;
+		});
+	}
 
 	bool Extender::OnStartup()
 	{
@@ -93,7 +126,7 @@ namespace QuantumGate::AVExtender
 			ev = L"Connect";
 
 			auto peer = std::make_unique<Peer>(event.GetPeerLUID());
-			peer->Call = std::make_shared<Call_ThS>(event.GetPeerLUID(), *this, m_AVSource);
+			peer->Call = std::make_shared<Call_ThS>(event.GetPeerLUID(), *this, m_Settings, m_AVSource);
 
 			m_Peers.WithUniqueLock()->insert({ event.GetPeerLUID(), std::move(peer) });
 		}
@@ -648,7 +681,7 @@ namespace QuantumGate::AVExtender
 			if (writer.WriteWithPreallocation(msgtype, data))
 			{
 				SendParameters params;
-				params.Compress = m_UseCompression;
+				params.Compress = m_Settings->UseCompression;
 				params.Priority = priority;
 
 				return SendMessageTo(pluid, writer.MoveWrittenBytes(), params).Succeeded();
@@ -664,7 +697,7 @@ namespace QuantumGate::AVExtender
 	}
 
 	bool Extender::SendCallAudioSample(const PeerLUID pluid, const AudioFormat& afmt, const UInt64 timestamp,
-									   const BufferView data) const noexcept
+									   const BufferView data, const bool compressed) const noexcept
 	{
 		try
 		{
@@ -676,6 +709,7 @@ namespace QuantumGate::AVExtender
 			fmt_data.BlockAlignment = afmt.BlockAlignment;
 			fmt_data.BitsPerSample = afmt.BitsPerSample;
 			fmt_data.AvgBytesPerSecond = afmt.AvgBytesPerSecond;
+			fmt_data.Compressed = compressed;
 
 			BufferWriter writer(true);
 			if (writer.WriteWithPreallocation(msgtype, timestamp,
@@ -683,7 +717,7 @@ namespace QuantumGate::AVExtender
 											  WithSize(data, GetMaximumMessageDataSize())))
 			{
 				SendParameters params;
-				params.Compress = m_UseCompression;
+				params.Compress = m_Settings->UseCompression;
 				params.Priority = SendParameters::PriorityOption::Expedited;
 
 				return SendMessageTo(pluid, writer.MoveWrittenBytes(), params).Succeeded();
@@ -696,7 +730,7 @@ namespace QuantumGate::AVExtender
 	}
 
 	bool Extender::SendCallVideoSample(const PeerLUID pluid, const VideoFormat& vfmt, const UInt64 timestamp,
-									   const BufferView data) const noexcept
+									   const BufferView data, const bool compressed) const noexcept
 	{
 		try
 		{
@@ -707,6 +741,7 @@ namespace QuantumGate::AVExtender
 			fmt_data.Width = vfmt.Width;
 			fmt_data.Height = vfmt.Height;
 			fmt_data.BytesPerPixel = vfmt.BytesPerPixel;
+			fmt_data.Compressed = compressed;
 
 			BufferWriter writer(true);
 			if (writer.WriteWithPreallocation(msgtype, timestamp,
@@ -714,7 +749,7 @@ namespace QuantumGate::AVExtender
 											  WithSize(data, GetMaximumMessageDataSize())))
 			{
 				SendParameters params;
-				params.Compress = m_UseCompression;
+				params.Compress = m_Settings->UseCompression;
 				params.Priority = SendParameters::PriorityOption::Normal;
 
 				return SendMessageTo(pluid, writer.MoveWrittenBytes(), params).Succeeded();
@@ -800,7 +835,14 @@ namespace QuantumGate::AVExtender
 																{ MFAudioFormat_Float }, nullptr);
 			if (result.Succeeded())
 			{
-				return avsource.AudioSourceReader.BeginRead();
+				if (avsource.AudioSourceReader.SetSampleFormat(AudioCompressor::GetEncoderInputFormat()))
+				{
+					return avsource.AudioSourceReader.BeginRead();
+				}
+				else
+				{
+					LogErr(L"Failed to set sample format on audio device; peers will not receive audio");
+				}
 			}
 			else
 			{
@@ -851,7 +893,7 @@ namespace QuantumGate::AVExtender
 			{
 				const auto fmt = avsource.VideoSourceReader.GetSampleFormat();
 
-				auto width = static_cast<Size>((static_cast<double>(avsource.MaxVideoResolution) / static_cast<double>(fmt.Height)) * static_cast<double>(fmt.Width));
+				auto width = static_cast<Size>((static_cast<double>(avsource.MaxVideoResolution) / static_cast<double>(fmt.Height))* static_cast<double>(fmt.Width));
 				width = width - (width % 16);
 
 				if (avsource.VideoSourceReader.SetSampleSize(static_cast<Size>(width), avsource.MaxVideoResolution))

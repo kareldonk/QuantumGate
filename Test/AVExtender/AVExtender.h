@@ -50,8 +50,17 @@ namespace QuantumGate::AVExtender
 		Extender(HWND hwnd);
 		virtual ~Extender();
 
-		inline void SetUseCompression(const bool compression) noexcept { m_UseCompression = compression; }
-		[[nodiscard]] inline bool IsUsingCompression() const noexcept { return m_UseCompression; }
+		void SetUseCompression(const bool compression) noexcept;
+		[[nodiscard]] inline bool IsUsingCompression() const noexcept { return m_Settings->UseCompression; }
+
+		void SetUseAudioCompression(const bool compression) noexcept;
+		[[nodiscard]] inline bool IsUsingAudioCompression() const noexcept { return m_Settings->UseAudioCompression; }
+
+		void SetUseVideoCompression(const bool compression) noexcept;
+		[[nodiscard]] inline bool IsUsingVideoCompression() const noexcept { return m_Settings->UseVideoCompression; }
+
+		void SetFillVideoScreen(const bool fill) noexcept;
+		[[nodiscard]] inline bool GetFillVideoScreen() const noexcept { return m_Settings->FillVideoScreen; }
 
 		[[nodiscard]] inline const Peers_ThS& GetPeers() const noexcept { return m_Peers; }
 
@@ -84,10 +93,10 @@ namespace QuantumGate::AVExtender
 		void OnPeerEvent(PeerEvent&& event);
 		const std::pair<bool, bool> OnPeerMessage(PeerEvent&& event);
 
-		[[nodiscard]] bool SendCallAudioSample(const PeerLUID pluid, const AudioFormat& afmt,
-											   const UInt64 timestamp, const BufferView data) const noexcept;
-		[[nodiscard]] bool SendCallVideoSample(const PeerLUID pluid, const VideoFormat& vfmt,
-											   const UInt64 timestamp, const BufferView data) const noexcept;
+		[[nodiscard]] bool SendCallAudioSample(const PeerLUID pluid, const AudioFormat& afmt, const UInt64 timestamp,
+											   const BufferView data, const bool compressed) const noexcept;
+		[[nodiscard]] bool SendCallVideoSample(const PeerLUID pluid, const VideoFormat& vfmt, const UInt64 timestamp,
+											   const BufferView data, const bool compressed) const noexcept;
 	private:
 		static void WorkerThreadLoop(Extender* extender);
 
@@ -124,17 +133,16 @@ namespace QuantumGate::AVExtender
 		inline static constexpr ExtenderUUID UUID{ 0x10a86749, 0x7e9e, 0x297d, 0x1e1c3a7ddc723f66 };
 
 	private:
-		std::atomic_bool m_UseCompression{ true };
-
 		const HWND m_Window{ nullptr };
+		Settings_ThS m_Settings;
 		Peers_ThS m_Peers;
+
+		AVSource_ThS m_AVSource;
 
 		Concurrency::EventCondition m_ShutdownEvent{ false };
 		std::thread m_Thread;
 
 		SourceReader::SampleEventDispatcher::FunctionHandle m_PreviewAudioSampleEventFunctionHandle;
 		SourceReader::SampleEventDispatcher::FunctionHandle m_PreviewVideoSampleEventFunctionHandle;
-
-		AVSource_ThS m_AVSource;
 	};
 }

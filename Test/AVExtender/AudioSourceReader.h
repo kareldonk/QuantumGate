@@ -4,6 +4,7 @@
 #pragma once
 
 #include "SourceReader.h"
+#include "AudioResampler.h"
 
 namespace QuantumGate::AVExtender
 {
@@ -11,6 +12,23 @@ namespace QuantumGate::AVExtender
 
 	class AudioSourceReader final : public SourceReader
 	{
+		struct AudioTransform
+		{
+			AudioResampler InAudioResampler;
+
+			IMFSample* m_OutputSample{ nullptr };
+		};
+
+		using AudioTransform_ThS = Concurrency::ThreadSafe<AudioTransform, std::shared_mutex>;
+
+		struct AudioFormatData
+		{
+			AudioFormat ReaderFormat;
+			AudioFormat TransformFormat;
+		};
+
+		using AudioFormatData_ThS = Concurrency::ThreadSafe<AudioFormatData, std::shared_mutex>;
+
 	public:
 		AudioSourceReader() noexcept;
 		AudioSourceReader(const AudioSourceReader&) = delete;
@@ -19,7 +37,9 @@ namespace QuantumGate::AVExtender
 		AudioSourceReader& operator=(const AudioSourceReader&) = delete;
 		AudioSourceReader& operator=(AudioSourceReader&&) = delete;
 
-		[[nodiscard]] inline AudioFormat GetSampleFormat() const noexcept { return *m_AudioFormat.WithSharedLock(); }
+		[[nodiscard]] bool SetSampleFormat(const AudioFormat fmt) noexcept;
+
+		[[nodiscard]] AudioFormat GetSampleFormat() const noexcept;
 
 		// Methods from IUnknown 
 		STDMETHODIMP QueryInterface(REFIID iid, void** ppv) override;
@@ -27,11 +47,21 @@ namespace QuantumGate::AVExtender
 		STDMETHODIMP_(ULONG) Release() override;
 
 	protected:
+		[[nodiscard]] bool OnOpen() noexcept override;
+		void OnClose() noexcept override;
 		[[nodiscard]] Result<> OnMediaTypeChanged(IMFMediaType* media_type) noexcept override;
+
+		[[nodiscard]] IMFSample* TransformSample(IMFSample* pSample) noexcept override;
+
+	private:
+		[[nodiscard]] bool CreateAudioTransform() noexcept;
+		void CloseAudioTransform() noexcept;
 
 	private:
 		long m_RefCount{ 1 };
-		AudioFormat_ThS m_AudioFormat;
+		std::atomic_bool m_Transform{ false };
+		AudioFormatData_ThS m_AudioFormatData;
+		AudioTransform_ThS m_AudioTransform;
 	};
 }
 

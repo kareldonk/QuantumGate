@@ -491,6 +491,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\AVExtender\AudioCompressor.h" />
     <ClInclude Include="..\AVExtender\AudioRenderer.h" />
     <ClInclude Include="..\AVExtender\AudioResampler.h" />
     <ClInclude Include="..\AVExtender\AudioSourceReader.h" />
@@ -499,6 +500,7 @@
     <ClInclude Include="..\AVExtender\Call.h" />
     <ClInclude Include="..\AVExtender\CaptureDevice.h" />
     <ClInclude Include="..\AVExtender\Common.h" />
+    <ClInclude Include="..\AVExtender\Compressor.h" />
     <ClInclude Include="..\AVExtender\Protocol.h" />
     <ClInclude Include="..\AVExtender\SourceReader.h" />
     <ClInclude Include="..\AVExtender\VideoCompressor.h" />
@@ -540,12 +542,14 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\AVExtender\AudioCompressor.cpp" />
     <ClCompile Include="..\AVExtender\AudioRenderer.cpp" />
     <ClCompile Include="..\AVExtender\AudioResampler.cpp" />
     <ClCompile Include="..\AVExtender\AudioSourceReader.cpp" />
     <ClCompile Include="..\AVExtender\AVErrorCode.cpp" />
     <ClCompile Include="..\AVExtender\AVExtender.cpp" />
     <ClCompile Include="..\AVExtender\Call.cpp" />
+    <ClCompile Include="..\AVExtender\Compressor.cpp" />
     <ClCompile Include="..\AVExtender\SourceReader.cpp" />
     <ClCompile Include="..\AVExtender\VideoCompressor.cpp" />
     <ClCompile Include="..\AVExtender\VideoResampler.cpp" />

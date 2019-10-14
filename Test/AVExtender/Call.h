@@ -84,6 +84,7 @@ namespace QuantumGate::AVExtender
 	{
 		T Format;
 		UInt64 TimeStamp{ 0 };
+		bool Compressed{ false };
 		Buffer SampleBuffer;
 
 		MediaSample() noexcept = default;
@@ -106,8 +107,8 @@ namespace QuantumGate::AVExtender
 	class Call final
 	{
 	public:
-		Call(const PeerLUID pluid, const Extender& extender, AVSource_ThS& avsource) noexcept :
-			m_PeerLUID(pluid), m_Extender(extender), m_AVSource(avsource)
+		Call(const PeerLUID pluid, const Extender& extender, const Settings_ThS& settings, AVSource_ThS& avsource) noexcept :
+			m_PeerLUID(pluid), m_Extender(extender), m_ExtenderSettings(settings), m_AVSource(avsource)
 		{};
 
 		~Call();
@@ -201,6 +202,7 @@ namespace QuantumGate::AVExtender
 	private:
 		const PeerLUID m_PeerLUID{ 0 };
 		const Extender& m_Extender;
+		const Settings_ThS& m_ExtenderSettings;
 		AVSource_ThS& m_AVSource;
 
 		CallType m_Type{ CallType::None };
