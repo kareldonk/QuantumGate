@@ -53,6 +53,10 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] IMFSample* TransformSample(IMFSample* pSample) noexcept override;
 
+		[[nodiscard]] Result<std::pair<IMFMediaType*, GUID>> GetSupportedMediaType(IMFSourceReader* source_reader,
+																				   const DWORD stream_index,
+																				   const std::vector<GUID>& supported_formats) noexcept override;
+
 	private:
 		[[nodiscard]] bool CreateAudioTransform() noexcept;
 		void CloseAudioTransform() noexcept;

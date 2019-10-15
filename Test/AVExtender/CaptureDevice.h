@@ -5,6 +5,7 @@
 
 #include "Common.h"
 
+#include <Common\Util.h>
 #include <Common\ScopeGuard.h>
 
 #include <mfidl.h>
@@ -178,6 +179,94 @@ namespace QuantumGate::AVExtender
 			return AVResultCode::Failed;
 		}
 
+		[[nodiscard]] static String GetSupportedMediaTypes(IMFSourceReader* source_reader,
+														   const DWORD stream_index) noexcept
+		{
+			assert(source_reader != nullptr);
+
+			String types;
+
+			for (DWORD i = 0; ; ++i)
+			{
+				IMFMediaType* media_type{ nullptr };
+
+				auto hr = source_reader->GetNativeMediaType(stream_index, i, &media_type);
+				if (SUCCEEDED(hr))
+				{
+					// Release media type when we exit this scope
+					auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&media_type); });
+
+					GUID majortype{ GUID_NULL };
+					GUID subtype{ GUID_NULL };
+
+					hr = media_type->GetGUID(MF_MT_MAJOR_TYPE, &majortype);
+					if (SUCCEEDED(hr))
+					{
+						hr = media_type->GetGUID(MF_MT_SUBTYPE, &subtype);
+						if (SUCCEEDED(hr))
+						{
+							try
+							{
+								if (!types.empty()) types += L", ";
+
+								if (majortype == MFMediaType_Video)
+								{
+									UINT32 width{ 0 };
+									UINT32 height{ 0 };
+
+									MFGetAttributeSize(media_type, MF_MT_FRAME_SIZE, &width, &height);
+
+									types += Util::FormatString(L"%s (%u x %u)", GetMediaTypeName(subtype), width, height);
+								}
+								else if (majortype == MFMediaType_Audio)
+								{
+									UINT32 channels{ 0 };
+									UINT32 samples{ 0 };
+									UINT32 bits{ 0 };
+
+									media_type->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &channels);
+									media_type->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &samples);
+									media_type->GetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, &bits);
+
+									types += Util::FormatString(L"%s (%u channels, %u Hz, %u bits)",
+																GetMediaTypeName(subtype), channels, samples, bits);
+								}
+							}
+							catch (...) {}
+						}
+					}
+				}
+				else break;
+			}
+
+			return types;
+		}
+
+		[[nodiscard]] static const WChar* GetMediaTypeName(const GUID type) noexcept
+		{
+			if (type == MFVideoFormat_IYUV) return L"MFVideoFormat_IYUV";
+			else if (type == MFVideoFormat_NV12) return L"MFVideoFormat_NV12";
+			else if (type == MFVideoFormat_YUY2) return L"MFVideoFormat_YUY2";
+			else if (type == MFVideoFormat_YV12) return L"MFVideoFormat_YV12";
+			else if (type == MFVideoFormat_UYVY) return L"MFVideoFormat_UYVY";
+			else if (type == MFVideoFormat_AYUV) return L"MFVideoFormat_AYUV";
+			else if (type == MFVideoFormat_I420) return L"MFVideoFormat_I420";
+			else if (type == MFVideoFormat_AI44) return L"MFVideoFormat_AI44";
+			else if (type == MFVideoFormat_NV11) return L"MFVideoFormat_NV11";
+			else if (type == MFVideoFormat_Y41P) return L"MFVideoFormat_Y41P";
+			else if (type == MFVideoFormat_Y41T) return L"MFVideoFormat_Y41T";
+			else if (type == MFVideoFormat_Y42T) return L"MFVideoFormat_Y42T";
+			else if (type == MFVideoFormat_YVU9) return L"MFVideoFormat_YVU9";
+			else if (type == MFVideoFormat_YVYU) return L"MFVideoFormat_YVYU";
+			else if (type == MFVideoFormat_RGB32) return L"MFVideoFormat_RGB32";
+			else if (type == MFVideoFormat_RGB24) return L"MFVideoFormat_RGB24";
+			else if (type == MFVideoFormat_RGB8) return L"MFVideoFormat_RGB8";
+			else if (type == MFAudioFormat_Float) return L"MFAudioFormat_Float";
+			else if (type == MFAudioFormat_PCM) return L"MFAudioFormat_PCM";
+
+			return L"Unknown";
+		}
+
 		[[nodiscard]] static Result<IMFSample*> CreateMediaSample(const Size size) noexcept
 		{
 			IMFSample* sample{ nullptr };
@@ -228,11 +317,14 @@ namespace QuantumGate::AVExtender
 				{
 					assert(in_data.GetSize() <= max_out_data_len);
 
-					std::memcpy(out_data, in_data.GetBytes(), in_data.GetSize());
+					DWORD cpylen = static_cast<DWORD>(in_data.GetSize());
+					if (cpylen > max_out_data_len) cpylen = max_out_data_len;
+
+					std::memcpy(out_data, in_data.GetBytes(), cpylen);
 
 					if (SUCCEEDED(media_buffer->Unlock()))
 					{
-						hr = media_buffer->SetCurrentLength(static_cast<DWORD>(in_data.GetSize()));
+						hr = media_buffer->SetCurrentLength(cpylen);
 						if (SUCCEEDED(hr))
 						{
 							if (SUCCEEDED(out_sample->SetSampleTime(in_timestamp)) &&
@@ -293,6 +385,8 @@ namespace QuantumGate::AVExtender
 					return MFVideoFormat_RGB32;
 				case VideoFormat::PixelFormat::NV12:
 					return MFVideoFormat_NV12;
+				case VideoFormat::PixelFormat::YV12:
+					return MFVideoFormat_YV12;
 				case VideoFormat::PixelFormat::I420:
 					return MFVideoFormat_I420;
 				default:
@@ -316,6 +410,10 @@ namespace QuantumGate::AVExtender
 			else if (subtype == MFVideoFormat_NV12)
 			{
 				return VideoFormat::PixelFormat::NV12;
+			}
+			else if (subtype == MFVideoFormat_YV12)
+			{
+				return VideoFormat::PixelFormat::YV12;
 			}
 			else if (subtype == MFVideoFormat_I420)
 			{

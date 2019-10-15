@@ -135,6 +135,50 @@ namespace QuantumGate::AVExtender
 		return nullptr;
 	}
 
+	Result<std::pair<IMFMediaType*, GUID>> AudioSourceReader::GetSupportedMediaType(IMFSourceReader* source_reader,
+																					const DWORD stream_index,
+																					const std::vector<GUID>& supported_formats) noexcept
+	{
+		assert(source_reader != nullptr);
+
+		LogDbg(L"Supported audio media formats: %s",
+			   CaptureDevices::GetSupportedMediaTypes(source_reader, stream_index).c_str());
+
+		// Try to find a suitable output type
+		for (const GUID& guid : supported_formats)
+		{
+			for (DWORD i = 0; ; ++i)
+			{
+				IMFMediaType* media_type{ nullptr };
+
+				auto hr = source_reader->GetNativeMediaType(stream_index, i, &media_type);
+				if (SUCCEEDED(hr))
+				{
+					// Release media type when we exit this scope
+					auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&media_type); });
+
+					GUID subtype{ GUID_NULL };
+
+					hr = media_type->GetGUID(MF_MT_SUBTYPE, &subtype);
+					if (SUCCEEDED(hr))
+					{
+						if (subtype == guid)
+						{
+							// We'll return the media type so
+							// the caller should release it
+							sg.Deactivate();
+
+							return std::make_pair(media_type, subtype);
+						}
+					}
+				}
+				else break;
+			}
+		}
+
+		return AVResultCode::FailedNoSupportedAudioMediaType;
+	}
+
 	bool AudioSourceReader::CreateAudioTransform() noexcept
 	{
 		auto trf = m_AudioTransform.WithUniqueLock();

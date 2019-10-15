@@ -25,8 +25,8 @@ namespace QuantumGate::AVExtender
 
 		struct VideoFormatData
 		{
-			Size TransformWidth{ 0 };
-			Size TransformHeight{ 0 };
+			UInt16 TransformWidth{ 0 };
+			UInt16 TransformHeight{ 0 };
 			VideoFormat ReaderFormat;
 		};
 
@@ -40,7 +40,8 @@ namespace QuantumGate::AVExtender
 		VideoSourceReader& operator=(const VideoSourceReader&) = delete;
 		VideoSourceReader& operator=(VideoSourceReader&&) = delete;
 
-		[[nodiscard]] bool SetSampleSize(const Size width, const Size height) noexcept;
+		[[nodiscard]] void SetPreferredSize(const UInt16 width, const UInt16 height) noexcept;
+		[[nodiscard]] bool SetSampleSize(const UInt16 width, const UInt16 height) noexcept;
 
 		[[nodiscard]] VideoFormat GetSampleFormat() const noexcept;
 
@@ -58,12 +59,19 @@ namespace QuantumGate::AVExtender
 
 		[[nodiscard]] bool GetDefaultStride(IMFMediaType* type, LONG* stride) const noexcept;
 
+		[[nodiscard]] Result<std::pair<IMFMediaType*, GUID>> GetSupportedMediaType(IMFSourceReader* source_reader,
+																				   const DWORD stream_index,
+																				   const std::vector<GUID>& supported_formats) noexcept override;
+
 	private:
 		[[nodiscard]] bool CreateVideoTransform() noexcept;
 		void CloseVideoTransform() noexcept;
 
 	private:
 		long m_RefCount{ 1 };
+		std::atomic_uint16_t m_PreferredWidth{ 0 };
+		std::atomic_uint16_t m_PreferredHeight{ 0 };
+
 		std::atomic_bool m_Transform{ false };
 		VideoFormatData_ThS m_VideoFormatData;
 		VideoTransform_ThS m_VideoTransform;

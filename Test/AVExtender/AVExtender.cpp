@@ -832,7 +832,7 @@ namespace QuantumGate::AVExtender
 		if (!avsource.AudioEndpointID.empty())
 		{
 			const auto result = avsource.AudioSourceReader.Open(avsource.AudioEndpointID.c_str(),
-																{ MFAudioFormat_Float }, nullptr);
+																{ MFAudioFormat_PCM, MFAudioFormat_Float }, nullptr);
 			if (result.Succeeded())
 			{
 				if (avsource.AudioSourceReader.SetSampleFormat(AudioCompressor::GetEncoderInputFormat()))
@@ -887,23 +887,33 @@ namespace QuantumGate::AVExtender
 
 		if (!avsource.VideoSymbolicLink.empty())
 		{
+			auto width = static_cast<UInt16>((static_cast<double>(avsource.MaxVideoResolution) / 3.0) * 4.0);
+			width = width - (width % 16);
+
+			avsource.VideoSourceReader.SetPreferredSize(width, avsource.MaxVideoResolution);
+
 			const auto result = avsource.VideoSourceReader.Open(avsource.VideoSymbolicLink.c_str(),
 																{ MFVideoFormat_NV12, MFVideoFormat_I420, MFVideoFormat_RGB24 }, nullptr);
 			if (result.Succeeded())
 			{
 				const auto fmt = avsource.VideoSourceReader.GetSampleFormat();
 
-				auto width = static_cast<Size>((static_cast<double>(avsource.MaxVideoResolution) / static_cast<double>(fmt.Height))* static_cast<double>(fmt.Width));
-				width = width - (width % 16);
+				// Make dimensions multiples of 16 for H.256
+				// compression without artifacts
+				{
+					if (fmt.Height % 16 != 0 || fmt.Width % 16 != 0)
+					{
+						auto swidth = fmt.Width - (fmt.Width % 16);
+						auto sheight = fmt.Height - (fmt.Height % 16);
 
-				if (avsource.VideoSourceReader.SetSampleSize(static_cast<Size>(width), avsource.MaxVideoResolution))
-				{
-					return avsource.VideoSourceReader.BeginRead();
+						if (!avsource.VideoSourceReader.SetSampleSize(swidth, sheight))
+						{
+							LogErr(L"Failed to set sample size on video device");
+						}
+					}
 				}
-				else
-				{
-					LogErr(L"Failed to set sample size on video device; peers will not receive video");
-				}
+
+				return avsource.VideoSourceReader.BeginRead();
 			}
 			else
 			{

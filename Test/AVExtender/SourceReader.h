@@ -75,13 +75,14 @@ namespace QuantumGate::AVExtender
 		virtual void OnClose() noexcept;
 		[[nodiscard]] virtual Result<> OnMediaTypeChanged(IMFMediaType* media_type) noexcept;
 
+		[[nodiscard]] virtual Result<std::pair<IMFMediaType*, GUID>> GetSupportedMediaType(IMFSourceReader* source_reader,
+																						   const DWORD stream_index,
+																						   const std::vector<GUID>& supported_formats) noexcept;
+
 	private:
 		[[nodiscard]] Result<> CreateSourceReader(SourceReaderData& source_reader_data,
 												  const std::vector<GUID>& supported_formats) noexcept;
 		[[nodiscard]] Result<> CreateReaderBuffer(SourceReaderData& source_reader_data, IMFMediaType* media_type) noexcept;
-
-		[[nodiscard]] Result<std::pair<IMFMediaType*, GUID>> GetSupportedMediaType(IMFSourceReader* source_reader,
-																				   const std::vector<GUID>& supported_formats) noexcept;
 
 	private:
 		const CaptureDevice::Type m_Type{ CaptureDevice::Type::Unknown };

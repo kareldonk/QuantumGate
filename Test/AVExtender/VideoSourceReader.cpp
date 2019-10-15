@@ -16,7 +16,13 @@ namespace QuantumGate::AVExtender
 		CloseVideoTransform();
 	}
 
-	bool VideoSourceReader::SetSampleSize(const Size width, const Size height) noexcept
+	void VideoSourceReader::SetPreferredSize(const UInt16 width, const UInt16 height) noexcept
+	{
+		m_PreferredWidth = width;
+		m_PreferredHeight = height;
+	}
+
+	bool VideoSourceReader::SetSampleSize(const UInt16 width, const UInt16 height) noexcept
 	{
 		bool was_open{ false };
 
@@ -202,13 +208,137 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
+	Result<std::pair<IMFMediaType*, GUID>> VideoSourceReader::GetSupportedMediaType(IMFSourceReader* source_reader,
+																					const DWORD stream_index,
+																					const std::vector<GUID>& supported_formats) noexcept
+	{
+		assert(source_reader != nullptr);
+
+		LogDbg(L"Supported video media formats: %s",
+			   CaptureDevices::GetSupportedMediaTypes(source_reader, stream_index).c_str());
+
+		struct VideoRes
+		{
+			DWORD Idx{ 0 };
+			UINT32 Width{ 0 };
+			UINT32 Height{ 0 };
+		};
+
+		// Try to find a suitable output type
+		for (const GUID& guid : supported_formats)
+		{
+			Vector<VideoRes> resolutions;
+
+			for (DWORD i = 0; ; ++i)
+			{
+				IMFMediaType* media_type{ nullptr };
+
+				auto hr = source_reader->GetNativeMediaType(stream_index, i, &media_type);
+				if (SUCCEEDED(hr))
+				{
+					// Release media type when we exit this scope
+					auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&media_type); });
+
+					GUID subtype{ GUID_NULL };
+
+					hr = media_type->GetGUID(MF_MT_SUBTYPE, &subtype);
+					if (SUCCEEDED(hr))
+					{
+						if (subtype == guid)
+						{
+							UINT32 width{ 0 };
+							UINT32 height{ 0 };
+
+							hr = MFGetAttributeSize(media_type, MF_MT_FRAME_SIZE, &width, &height);
+							if (SUCCEEDED(hr))
+							{
+								auto& vidtype = resolutions.emplace_back();
+								vidtype.Idx = i;
+								vidtype.Width = width;
+								vidtype.Height = height;
+							}
+						}
+					}
+				}
+				else break;
+			}
+
+			if (!resolutions.empty())
+			{
+				// Sort based on height from small to big
+				std::sort(resolutions.begin(), resolutions.end(),
+						  [](const VideoRes& a, const VideoRes& b)
+				{
+					return a.Height < b.Height;
+				});
+				
+				UINT32 height = resolutions[0].Height;
+
+				for (auto& res : resolutions)
+				{
+					if (res.Height > m_PreferredHeight)
+					{
+						break;
+					}
+					else height = res.Height;
+				}
+
+				Vector<VideoRes> resolutions2;
+				std::copy_if(resolutions.begin(), resolutions.end(), std::back_inserter(resolutions2),
+							 [&](const VideoRes& a)
+				{
+					return a.Height == height;
+				});
+
+				if (!resolutions2.empty())
+				{
+					// Sort based on width from small to big
+					std::sort(resolutions2.begin(), resolutions2.end(),
+							  [](const VideoRes& a, const VideoRes& b)
+					{
+						return a.Width < b.Width;
+					});
+
+					DWORD idx = resolutions2[0].Idx;
+
+					for (auto& res : resolutions2)
+					{
+						if (res.Width > m_PreferredWidth)
+						{
+							break;
+						}
+						else idx = res.Idx;
+					}
+
+					IMFMediaType* media_type{ nullptr };
+
+					auto hr = source_reader->GetNativeMediaType(stream_index, idx, &media_type);
+					if (SUCCEEDED(hr))
+					{
+						GUID subtype{ GUID_NULL };
+
+						hr = media_type->GetGUID(MF_MT_SUBTYPE, &subtype);
+						if (SUCCEEDED(hr))
+						{
+							// We'll return the media type so
+							// the caller should release it
+							return std::make_pair(media_type, subtype);
+						}
+					}
+				}
+			}
+		}
+
+		return AVResultCode::FailedNoSupportedVideoMediaType;
+	}
+
 	bool VideoSourceReader::CreateVideoTransform() noexcept
 	{
 		auto trf = m_VideoTransform.WithUniqueLock();
 		auto format_data = m_VideoFormatData.WithSharedLock();
 
 		if (trf->InVideoResampler.Create(format_data->ReaderFormat.Width, format_data->ReaderFormat.Height,
-										 CaptureDevices::GetMFVideoFormat(format_data->ReaderFormat.Format), MFVideoFormat_RGB24))
+										 CaptureDevices::GetMFVideoFormat(format_data->ReaderFormat.Format), MFVideoFormat_YV12))
 		{
 			auto result = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(trf->InVideoResampler.GetOutputFormat()));
 			if (result.Succeeded())
@@ -218,7 +348,7 @@ namespace QuantumGate::AVExtender
 				if (trf->VideoResizer.Create(trf->InVideoResampler.GetOutputFormat(),
 											 format_data->TransformWidth, format_data->TransformHeight))
 				{
-					if (trf->OutVideoResampler.Create(format_data->TransformWidth, format_data->TransformHeight, MFVideoFormat_RGB24,
+					if (trf->OutVideoResampler.Create(format_data->TransformWidth, format_data->TransformHeight, MFVideoFormat_YV12,
 													  CaptureDevices::GetMFVideoFormat(format_data->ReaderFormat.Format)))
 					{
 						auto result2 = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(trf->OutVideoResampler.GetOutputFormat()));

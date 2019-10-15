@@ -367,10 +367,10 @@ namespace QuantumGate::AVExtender
 
 		if (GetSendAudio())
 		{
+			m_AVInFormats.WithUniqueLock()->AudioFormat = avsource->AudioSourceReader.GetSampleFormat();
+
 			auto audiocb = QuantumGate::MakeCallback(this, &Call::OnAudioOutSample);
 			m_SampleEventHandles.WithUniqueLock()->AudioSampleEventFunctionHandle = avsource->AudioSourceReader.AddSampleEventCallback(std::move(audiocb));
-
-			m_AVInFormats.WithUniqueLock()->AudioFormat = avsource->AudioSourceReader.GetSampleFormat();
 		}
 	}
 
@@ -380,10 +380,10 @@ namespace QuantumGate::AVExtender
 
 		if (GetSendVideo())
 		{
+			m_AVInFormats.WithUniqueLock()->VideoFormat = avsource->VideoSourceReader.GetSampleFormat();
+
 			auto videocb = QuantumGate::MakeCallback(this, &Call::OnVideoOutSample);
 			m_SampleEventHandles.WithUniqueLock()->VideoSampleEventFunctionHandle = avsource->VideoSourceReader.AddSampleEventCallback(std::move(videocb));
-
-			m_AVInFormats.WithUniqueLock()->VideoFormat = avsource->VideoSourceReader.GetSampleFormat();
 		}
 	}
 
@@ -400,12 +400,12 @@ namespace QuantumGate::AVExtender
 
 		if (IsInCall() && send)
 		{
+			auto avsource = m_AVSource.WithUniqueLock();
+			m_AVInFormats.WithUniqueLock()->VideoFormat = avsource->VideoSourceReader.GetSampleFormat();
+
 			auto videocb = QuantumGate::MakeCallback(this, &Call::OnVideoOutSample);
 
-			auto avsource = m_AVSource.WithUniqueLock();
 			m_SampleEventHandles.WithUniqueLock()->VideoSampleEventFunctionHandle = avsource->VideoSourceReader.AddSampleEventCallback(std::move(videocb));
-
-			m_AVInFormats.WithUniqueLock()->VideoFormat = avsource->VideoSourceReader.GetSampleFormat();
 		}
 		else
 		{
@@ -422,12 +422,12 @@ namespace QuantumGate::AVExtender
 
 		if (IsInCall() && send)
 		{
+			auto avsource = m_AVSource.WithUniqueLock();
+			m_AVInFormats.WithUniqueLock()->AudioFormat = avsource->AudioSourceReader.GetSampleFormat();
+
 			auto audiocb = QuantumGate::MakeCallback(this, &Call::OnAudioOutSample);
 
-			auto avsource = m_AVSource.WithUniqueLock();
 			m_SampleEventHandles.WithUniqueLock()->AudioSampleEventFunctionHandle = avsource->AudioSourceReader.AddSampleEventCallback(std::move(audiocb));
-
-			m_AVInFormats.WithUniqueLock()->AudioFormat = avsource->AudioSourceReader.GetSampleFormat();
 		}
 		else
 		{

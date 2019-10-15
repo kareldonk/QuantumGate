@@ -190,7 +190,8 @@ namespace QuantumGate::AVExtender
 															 &source_reader_data.SourceReader);
 					if (SUCCEEDED(hr))
 					{
-						auto result = GetSupportedMediaType(source_reader_data.SourceReader, supported_formats);
+						auto result = GetSupportedMediaType(source_reader_data.SourceReader,
+															m_StreamIndex, supported_formats);
 						if (result.Succeeded())
 						{
 							auto& media_type = result->first;
@@ -221,53 +222,9 @@ namespace QuantumGate::AVExtender
 	}
 
 	Result<std::pair<IMFMediaType*, GUID>> SourceReader::GetSupportedMediaType(IMFSourceReader* source_reader,
+																			   const DWORD stream_index,
 																			   const std::vector<GUID>& supported_formats) noexcept
 	{
-		assert(source_reader != nullptr);
-
-		// Try to find a suitable output type
-		for (DWORD i = 0; ; ++i)
-		{
-			IMFMediaType* media_type{ nullptr };
-
-			auto hr = source_reader->GetNativeMediaType(m_StreamIndex, i, &media_type);
-			if (SUCCEEDED(hr))
-			{
-				// Release media type when we exit this scope
-				auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&media_type); });
-
-				GUID subtype{ GUID_NULL };
-
-				hr = media_type->GetGUID(MF_MT_SUBTYPE, &subtype);
-				if (SUCCEEDED(hr))
-				{
-					for (const GUID& guid : supported_formats)
-					{
-						if (subtype == guid)
-						{
-							// We'll return the media type so
-							// the caller should release it
-							sg.Deactivate();
-
-							return std::make_pair(media_type, subtype);
-						}
-					}
-				}
-			}
-			else break;
-		}
-
-		switch (m_Type)
-		{
-			case CaptureDevice::Type::Video:
-				return AVResultCode::FailedNoSupportedVideoMediaType;
-			case CaptureDevice::Type::Audio:
-				return AVResultCode::FailedNoSupportedAudioMediaType;
-			default:
-				assert(false);
-				break;
-		}
-
 		return AVResultCode::Failed;
 	}
 
