@@ -26,12 +26,15 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] inline bool IsOpen() const noexcept { return m_Open; }
 
 		[[nodiscard]] bool Play() noexcept;
+		[[nodiscard]] bool Render(IMFSample* in_sample) noexcept;
 		[[nodiscard]] bool Render(const UInt64 in_timestamp, const BufferView sample_data) noexcept;
 
 		[[nodiscard]] inline const AudioFormat& GetOutputFormat() const noexcept { return m_OutputFormat; }
 
 	private:
 		[[nodiscard]] bool GetSupportedMixFormat(const AudioFormat& audio_settings, WAVEFORMATEXTENSIBLE& wfmt) noexcept;
+
+		[[nodiscard]] bool CreateAudioResampler(const AudioFormat& in_format, const AudioFormat& out_format) noexcept;
 
 	private:
 		inline static const CLSID CLSID_MMDeviceEnumerator{ __uuidof(MMDeviceEnumerator) };
@@ -42,6 +45,7 @@ namespace QuantumGate::AVExtender
 	private:
 		bool m_Open{ false };
 
+		bool m_UseResampler{ false };
 		AudioResampler m_AudioResampler;
 
 		AudioFormat m_OutputFormat;

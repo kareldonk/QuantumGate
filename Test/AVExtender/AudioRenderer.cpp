@@ -66,7 +66,7 @@ namespace QuantumGate::AVExtender
 									{
 										m_OutputSample = result.GetValue();
 
-										if (m_AudioResampler.Create(input_audio_settings, m_OutputFormat))
+										if (CreateAudioResampler(input_audio_settings, m_OutputFormat))
 										{
 											sg.Deactivate();
 
@@ -86,6 +86,23 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
+	bool AudioRenderer::CreateAudioResampler(const AudioFormat& in_format, const AudioFormat& out_format) noexcept
+	{
+		if (in_format == out_format)
+		{
+			m_UseResampler = false;
+			return true;
+		}
+
+		if (m_AudioResampler.Create(in_format, out_format))
+		{
+			m_UseResampler = true;
+			return true;
+		}
+
+		return false;
+	}
+
 	void AudioRenderer::Close() noexcept
 	{
 		m_Open = false;
@@ -98,6 +115,7 @@ namespace QuantumGate::AVExtender
 		SafeRelease(&m_RenderClient);
 		SafeRelease(&m_OutputSample);
 
+		m_UseResampler = false;
 		m_OutputFormat = {};
 	}
 
@@ -109,6 +127,40 @@ namespace QuantumGate::AVExtender
 		if (SUCCEEDED(hr))
 		{
 			return true;
+		}
+
+		return false;
+	}
+
+	bool AudioRenderer::Render(IMFSample* in_sample) noexcept
+	{
+		IMFMediaBuffer* media_buffer{ nullptr };
+
+		// Get the buffer from the sample
+		auto hr = in_sample->GetBufferByIndex(0, &media_buffer);
+		if (SUCCEEDED(hr))
+		{
+			// Release buffer when we exit this scope
+			const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&media_buffer); });
+
+			BYTE* in_data{ nullptr };
+			DWORD in_data_len{ 0 };
+
+			hr = media_buffer->Lock(&in_data, nullptr, &in_data_len);
+			if (SUCCEEDED(hr))
+			{
+				// Unlock when we exit this scope
+				const auto sg = MakeScopeGuard([&]() noexcept { media_buffer->Unlock(); });
+
+				LONGLONG sample_time{ 0 };
+
+				hr = in_sample->GetSampleTime(&sample_time);
+				if (SUCCEEDED(hr))
+				{
+					return Render(sample_time,
+								  BufferView(reinterpret_cast<Byte*>(in_data), in_data_len));
+				}
+			}
 		}
 
 		return false;
@@ -133,52 +185,61 @@ namespace QuantumGate::AVExtender
 				in_data = in_data.GetFirst(m_OutputFormat.AvgBytesPerSecond);
 			}
 
-			if (m_AudioResampler.Resample(in_timestamp, in_data, m_OutputSample))
+			if (m_UseResampler)
 			{
-				BYTE* outptr{ nullptr };
-				DWORD outcurl{ 0 };
+				if (!m_AudioResampler.Resample(in_timestamp, in_data, m_OutputSample)) return false;
+			}
+			else
+			{
+				const auto duration = static_cast<LONGLONG>((static_cast<double>(in_data.GetSize()) /
+															 static_cast<double>(m_OutputFormat.SamplesPerSecond)) * 10'000'000.0);
 
-				IMFMediaBuffer* out_buffer{ nullptr };
-				auto hr = m_OutputSample->GetBufferByIndex(0, &out_buffer);
+				if (!CaptureDevices::CopyToMediaSample(in_timestamp, duration, in_data, m_OutputSample)) return false;
+			}
+
+			BYTE* outptr{ nullptr };
+			DWORD outcurl{ 0 };
+
+			IMFMediaBuffer* out_buffer{ nullptr };
+			auto hr = m_OutputSample->GetBufferByIndex(0, &out_buffer);
+			if (SUCCEEDED(hr))
+			{
+				// Release when we exit
+				const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&out_buffer); });
+
+				hr = out_buffer->Lock(&outptr, nullptr, &outcurl);
 				if (SUCCEEDED(hr))
 				{
-					// Release when we exit
-					const auto sg = MakeScopeGuard([&]() noexcept { SafeRelease(&out_buffer); });
+					UINT32 out_frames = { outcurl / m_OutputFormat.BlockAlignment };
+					UINT32 padding{ 0 };
 
-					auto hr = out_buffer->Lock(&outptr, nullptr, &outcurl);
+					// See how much buffer space is available
+					hr = m_AudioClient->GetCurrentPadding(&padding);
 					if (SUCCEEDED(hr))
 					{
-						UINT32 out_frames = { outcurl / m_OutputFormat.BlockAlignment };
-						UINT32 padding{ 0 };
+						const auto available_frames = m_BufferFrameCount - padding;
+						if (available_frames < out_frames)
+						{
+							out_frames = available_frames;
+						}
 
-						// See how much buffer space is available
-						hr = m_AudioClient->GetCurrentPadding(&padding);
+						BYTE* data{ nullptr };
+
+						// Grab all the available space in the shared buffer
+						hr = m_RenderClient->GetBuffer(out_frames, &data);
 						if (SUCCEEDED(hr))
 						{
-							const auto available_frames = m_BufferFrameCount - padding;
-							if (available_frames < out_frames)
-							{
-								out_frames = available_frames;
-							}
+							const auto len = out_frames * m_OutputFormat.BlockAlignment;
 
-							BYTE* data{ nullptr };
+							std::memcpy(data, outptr, len);
 
-							// Grab all the available space in the shared buffer
-							hr = m_RenderClient->GetBuffer(out_frames, &data);
+							hr = m_RenderClient->ReleaseBuffer(out_frames, 0);
 							if (SUCCEEDED(hr))
 							{
-								const auto len = out_frames * m_OutputFormat.BlockAlignment;
-
-								std::memcpy(data, outptr, len);
-
-								hr = m_RenderClient->ReleaseBuffer(out_frames, 0);
+								hr = out_buffer->Unlock();
 								if (SUCCEEDED(hr))
 								{
-									hr = out_buffer->Unlock();
-									if (SUCCEEDED(hr))
-									{
-										success = true;
-									}
+									success = true;
 								}
 							}
 						}

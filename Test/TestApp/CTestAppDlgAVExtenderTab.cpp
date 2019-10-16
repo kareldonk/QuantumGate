@@ -340,26 +340,7 @@ void CTestAppDlgAVExtenderTab::OnAudioOutSample(const UInt64 timestamp, IMFSampl
 
 	if (!audio_renderer->IsOpen()) return;
 
-	IMFMediaBuffer* media_buffer{ nullptr };
-
-	// Get the buffer from the sample
-	auto hr = sample->GetBufferByIndex(0, &media_buffer);
-	if (SUCCEEDED(hr))
-	{
-		// Release buffer when we exit this scope
-		const auto sg = MakeScopeGuard([&]() noexcept { QuantumGate::AVExtender::SafeRelease(&media_buffer); });
-
-		BYTE* in_data{ nullptr };
-		DWORD in_data_len{ 0 };
-
-		hr = media_buffer->Lock(&in_data, nullptr, &in_data_len);
-		if (SUCCEEDED(hr))
-		{
-			DiscardReturnValue(audio_renderer->Render(timestamp, BufferView(reinterpret_cast<Byte*>(in_data), in_data_len)));
-
-			media_buffer->Unlock();
-		}
-	}
+	DiscardReturnValue(audio_renderer->Render(sample));
 }
 
 void CTestAppDlgAVExtenderTab::OnDestroy()
