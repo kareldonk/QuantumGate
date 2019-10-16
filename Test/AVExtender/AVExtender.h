@@ -105,6 +105,9 @@ namespace QuantumGate::AVExtender
 											   const BufferView data, const bool compressed) const noexcept;
 		[[nodiscard]] bool SendCallVideoSample(const PeerLUID pluid, const VideoFormat& vfmt, const UInt64 timestamp,
 											   const BufferView data, const bool compressed) const noexcept;
+
+		void CheckStopAVReaders() noexcept;
+
 	private:
 		static void WorkerThreadLoop(Extender* extender);
 
@@ -146,6 +149,8 @@ namespace QuantumGate::AVExtender
 		Peers_ThS m_Peers;
 
 		AVSource_ThS m_AVSource;
+
+		std::atomic_bool m_CheckStopAVReaders{ false };
 
 		Concurrency::EventCondition m_ShutdownEvent{ false };
 		std::thread m_Thread;

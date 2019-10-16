@@ -135,6 +135,8 @@ namespace QuantumGate::AVExtender
 			ev = L"Disconnect";
 
 			m_Peers.WithUniqueLock()->erase(event.GetPeerLUID());
+
+			m_CheckStopAVReaders = true;
 		}
 
 		LogInfo(L"%s: got peer event: %s, Peer LUID: %llu", GetName().c_str(), ev.c_str(), event.GetPeerLUID());
@@ -262,6 +264,7 @@ namespace QuantumGate::AVExtender
 							{
 								if (call.StopCall())
 								{
+									m_CheckStopAVReaders = true;
 									success = true;
 								}
 							}
@@ -287,6 +290,7 @@ namespace QuantumGate::AVExtender
 							{
 								if (call.StopCall())
 								{
+									m_CheckStopAVReaders = true;
 									success = true;
 								}
 							}
@@ -311,6 +315,7 @@ namespace QuantumGate::AVExtender
 
 							if (call.ProcessCallFailure())
 							{
+								m_CheckStopAVReaders = true;
 								success = true;
 							}
 						});
@@ -333,9 +338,17 @@ namespace QuantumGate::AVExtender
 						{
 							IfGetCall(event.GetPeerLUID(), [&](auto& call)
 							{
-								const AudioFormatData* fmtdata = reinterpret_cast<const AudioFormatData*>(fmt_buffer.GetBytes());
+								if (call.IsInCall())
+								{
+									const AudioFormatData* fmtdata = reinterpret_cast<const AudioFormatData*>(fmt_buffer.GetBytes());
 
-								call.OnAudioInSample(*fmtdata, timestamp, std::move(buffer));
+									call.OnAudioInSample(*fmtdata, timestamp, std::move(buffer));
+								}
+
+								// Audio samples can still arrive after call has stopped;
+								// here we'd need a check to make sure they don't arrive
+								// too much later after the call (or no call) because
+								// that might be abuse
 								success = true;
 							});
 						}
@@ -353,9 +366,17 @@ namespace QuantumGate::AVExtender
 						{
 							IfGetCall(event.GetPeerLUID(), [&](auto& call)
 							{
-								const VideoFormatData* fmtdata = reinterpret_cast<const VideoFormatData*>(fmt_buffer.GetBytes());
+								if (call.IsInCall())
+								{
+									const VideoFormatData* fmtdata = reinterpret_cast<const VideoFormatData*>(fmt_buffer.GetBytes());
 
-								call.OnVideoInSample(*fmtdata, timestamp, std::move(buffer));
+									call.OnVideoInSample(*fmtdata, timestamp, std::move(buffer));
+								}
+
+								// Video samples can still arrive after call has stopped;
+								// here we'd need a check to make sure they don't arrive
+								// too much later after the call (or no call) because
+								// that might be abuse
 								success = true;
 							});
 						}
@@ -414,6 +435,13 @@ namespace QuantumGate::AVExtender
 				}
 			});
 
+			if (extender->m_CheckStopAVReaders)
+			{
+				extender->m_CheckStopAVReaders = false;
+
+				extender->CheckStopAVReaders();
+			}
+
 			// Sleep for a while or until we have to shut down
 			extender->m_ShutdownEvent.Wait(1ms);
 		}
@@ -467,8 +495,8 @@ namespace QuantumGate::AVExtender
 		auto call_ths = GetCall(pluid);
 		if (call_ths != nullptr)
 		{
-			auto send_audio = false;
-			auto send_video = false;
+			auto send_audio{ false };
+			auto send_video{ false };
 
 			call_ths->WithUniqueLock([&](auto& call)
 			{
@@ -477,8 +505,7 @@ namespace QuantumGate::AVExtender
 				{
 					send_audio = call.GetSendAudio();
 					send_video = call.GetSendVideo();
-
-					success = call.AcceptCall();
+					success = true;
 				}
 			});
 
@@ -491,15 +518,18 @@ namespace QuantumGate::AVExtender
 				auto sg = MakeScopeGuard([&]() noexcept
 				{
 					DiscardReturnValue(call_ths->WithUniqueLock()->CancelCall());
+					success = false;
 				});
 
-				if (SendCallAccept(pluid))
+				if (call_ths->WithUniqueLock()->AcceptCall())
 				{
-					SLogInfo(SLogFmt(FGBrightCyan) << L"Accepted call from peer " << pluid << SLogFmt(Default));
+					if (SendCallAccept(pluid))
+					{
+						SLogInfo(SLogFmt(FGBrightCyan) << L"Accepted call from peer " << pluid << SLogFmt(Default));
 
-					sg.Deactivate();
+						sg.Deactivate();
+					}
 				}
-				else success = false;
 			}
 
 			if (!success)
@@ -908,8 +938,8 @@ namespace QuantumGate::AVExtender
 				if (avsource.ForceMaxVideoResolution)
 				{
 					const auto fheight = avsource.MaxVideoResolution;
-					const auto fwidth = static_cast<Size>((static_cast<double>(avsource.MaxVideoResolution) /
-														   static_cast<double>(sheight))* static_cast<double>(swidth));
+					const auto fwidth = static_cast<UInt16>((static_cast<double>(avsource.MaxVideoResolution) /
+															 static_cast<double>(sheight))* static_cast<double>(swidth));
 
 					if (swidth != fwidth || sheight != fheight)
 					{
@@ -968,6 +998,16 @@ namespace QuantumGate::AVExtender
 		LogDbg(L"Stopping video source reader...");
 
 		avsource.VideoSourceReader.Close();
+	}
+
+	void Extender::CheckStopAVReaders() noexcept
+	{
+		const auto previewing = m_AVSource.WithSharedLock()->Previewing;
+
+		if (!previewing && !HaveActiveCalls())
+		{
+			StopAVSourceReaders();
+		}
 	}
 
 	void Extender::StopAVSourceReaders() noexcept
@@ -1134,8 +1174,6 @@ namespace QuantumGate::AVExtender
 
 		if (preview_handlers->VideoSampleEventFunctionHandle)
 		{
-			bool previewing{ true };
-
 			m_AVSource.WithUniqueLock([&](auto& avsource)
 			{
 				avsource.VideoSourceReader.RemoveSampleEventCallback(preview_handlers->VideoSampleEventFunctionHandle);
@@ -1143,14 +1181,10 @@ namespace QuantumGate::AVExtender
 				if (!preview_handlers->AudioSampleEventFunctionHandle)
 				{
 					avsource.Previewing = false;
-					previewing = false;
 				}
 			});
 
-			if (!previewing && !HaveActiveCalls())
-			{
-				StopAVSourceReaders();
-			}
+			CheckStopAVReaders();
 		}
 	}
 
@@ -1191,8 +1225,6 @@ namespace QuantumGate::AVExtender
 
 		if (preview_handlers->AudioSampleEventFunctionHandle)
 		{
-			bool previewing{ true };
-
 			m_AVSource.WithUniqueLock([&](auto& avsource)
 			{
 				avsource.AudioSourceReader.RemoveSampleEventCallback(preview_handlers->AudioSampleEventFunctionHandle);
@@ -1200,14 +1232,10 @@ namespace QuantumGate::AVExtender
 				if (!preview_handlers->VideoSampleEventFunctionHandle)
 				{
 					avsource.Previewing = false;
-					previewing = false;
 				}
 			});
 
-			if (!previewing && !HaveActiveCalls())
-			{
-				StopAVSourceReaders();
-			}
+			CheckStopAVReaders();
 		}
 	}
 }
