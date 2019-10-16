@@ -25,6 +25,11 @@ namespace QuantumGate::Implementation::Concurrency
 			return m_Queue.empty();
 		}
 
+		inline Size GetSize() const noexcept
+		{
+			return m_Queue.size();
+		}
+
 		void Clear() noexcept
 		{
 			std::queue<T> empty;
