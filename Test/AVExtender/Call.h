@@ -52,6 +52,7 @@ namespace QuantumGate::AVExtender
 		VideoSourceReader VideoSourceReader;
 		String VideoSymbolicLink;
 		UInt16 MaxVideoResolution{ 90 };
+		bool ForceMaxVideoResolution{ false };
 	};
 
 	using AVSource_ThS = Concurrency::ThreadSafe<AVSource, std::shared_mutex>;

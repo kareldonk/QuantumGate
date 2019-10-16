@@ -80,6 +80,7 @@ protected:
 	afx_msg void OnBnClickedVideoCompressionCheck();
 	afx_msg void OnBnClickedVideoFillCheck();
 	afx_msg void OnBnClickedAudioCompressionCheck();
+	afx_msg void OnBnClickedVideoSizeForce();
 
 private:
 	QuantumGate::Local& m_QuantumGate;

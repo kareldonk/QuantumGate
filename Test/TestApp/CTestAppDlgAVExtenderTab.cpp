@@ -49,6 +49,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
 	ON_BN_CLICKED(IDC_VIDEO_COMPRESSION_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedVideoCompressionCheck)
 	ON_BN_CLICKED(IDC_VIDEO_FILL_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedVideoFillCheck)
 	ON_BN_CLICKED(IDC_AUDIO_COMPRESSION_CHECK, &CTestAppDlgAVExtenderTab::OnBnClickedAudioCompressionCheck)
+	ON_BN_CLICKED(IDC_VIDEO_SIZE_FORCE, &CTestAppDlgAVExtenderTab::OnBnClickedVideoSizeForce)
 END_MESSAGE_MAP()
 
 void CTestAppDlgAVExtenderTab::UpdateControls() noexcept
@@ -240,6 +241,11 @@ void CTestAppDlgAVExtenderTab::OnCbnSelchangeVideoSizeCombo()
 	UpdateAVVideoDevice();
 }
 
+void CTestAppDlgAVExtenderTab::OnBnClickedVideoSizeForce()
+{
+	UpdateAVVideoDevice();
+}
+
 void CTestAppDlgAVExtenderTab::UpdateAVAudioDevice() noexcept
 {
 	if (m_AVExtender != nullptr)
@@ -277,6 +283,9 @@ void CTestAppDlgAVExtenderTab::UpdateAVVideoDevice() noexcept
 			const auto sel2 = vdscombo->GetCurSel();
 			if (sel2 != CB_ERR)
 			{
+				const auto force_videosize_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_VIDEO_SIZE_FORCE));
+				const auto force_videosize = (force_videosize_check->GetCheck() == BST_CHECKED);
+
 				const auto preview_video_check = reinterpret_cast<CButton*>(GetDlgItem(IDC_PREVIEW_VIDEO));
 				const auto preview_video = (preview_video_check->GetCheck() == BST_CHECKED);
 
@@ -286,14 +295,14 @@ void CTestAppDlgAVExtenderTab::UpdateAVVideoDevice() noexcept
 				const auto size = vdscombo->GetItemData(sel2);
 
 				const auto success = m_AVExtender->SetVideoSymbolicLink(m_VideoCaptureDevices[idx].SymbolicLink,
-																		static_cast<UInt16>(size));
+																		static_cast<UInt16>(size), force_videosize);
 
 				if (success && preview_video) StartVideoPreview();
 			}
 		}
 		else
 		{
-			DiscardReturnValue(m_AVExtender->SetVideoSymbolicLink(L"", 0));
+			DiscardReturnValue(m_AVExtender->SetVideoSymbolicLink(L"", 0, false));
 		}
 	}
 }
@@ -714,3 +723,4 @@ void CTestAppDlgAVExtenderTab::OnBnClickedAudioCompressionCheck()
 		m_AVExtender->SetUseAudioCompression(compress_audio);
 	}
 }
+

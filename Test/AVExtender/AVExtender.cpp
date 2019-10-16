@@ -898,19 +898,39 @@ namespace QuantumGate::AVExtender
 			{
 				const auto fmt = avsource.VideoSourceReader.GetSampleFormat();
 
+				auto resample{ false };
+
+				auto swidth = fmt.Width;
+				auto sheight = fmt.Height;
+
+				LogInfo(L"Camera video resolution is %u x %u", swidth, sheight);
+
+				if (avsource.ForceMaxVideoResolution)
+				{
+					sheight = avsource.MaxVideoResolution;
+					swidth = static_cast<Size>((static_cast<double>(avsource.MaxVideoResolution) /
+												static_cast<double>(fmt.Height))* static_cast<double>(fmt.Width));
+					
+					LogWarn(L"Forcing video resolution to %u x %u", swidth, sheight);
+
+					resample = true;
+				}
+
 				// Make dimensions multiples of 16 for H.256
 				// compression without artifacts
+				if (swidth % 16 != 0 || sheight % 16 != 0)
 				{
-					if (fmt.Height % 16 != 0 || fmt.Width % 16 != 0)
-					{
-						auto swidth = fmt.Width - (fmt.Width % 16);
-						auto sheight = fmt.Height - (fmt.Height % 16);
+					swidth = swidth - (swidth % 16);
+					sheight = sheight - (sheight % 16);
 
-						if (!avsource.VideoSourceReader.SetSampleSize(swidth, sheight))
-						{
-							LogErr(L"Failed to set sample size on video device");
-						}
-					}
+					LogWarn(L"Changing video resolution to %u x %u for compression", swidth, sheight);
+
+					resample = true;
+				}
+
+				if (resample && !avsource.VideoSourceReader.SetSampleSize(swidth, sheight))
+				{
+					LogErr(L"Failed to set sample size on video device");
 				}
 
 				return avsource.VideoSourceReader.BeginRead();
@@ -1034,7 +1054,7 @@ namespace QuantumGate::AVExtender
 		return success;
 	}
 
-	bool Extender::SetVideoSymbolicLink(const WCHAR* id, const UInt16 max_res)
+	bool Extender::SetVideoSymbolicLink(const WCHAR* id, const UInt16 max_res, const bool force_res)
 	{
 		auto success = true;
 
@@ -1046,6 +1066,7 @@ namespace QuantumGate::AVExtender
 
 			avsource.VideoSymbolicLink = id;
 			avsource.MaxVideoResolution = max_res;
+			avsource.ForceMaxVideoResolution = force_res;
 
 			if (was_open)
 			{

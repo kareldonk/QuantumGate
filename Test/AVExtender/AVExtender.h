@@ -83,7 +83,7 @@ namespace QuantumGate::AVExtender
 		void UpdateSendVideo(const PeerLUID pluid, const bool send_video) noexcept;
 
 		[[nodiscard]] bool SetAudioEndpointID(const WCHAR* id);
-		[[nodiscard]] bool SetVideoSymbolicLink(const WCHAR* id, const UInt16 max_res);
+		[[nodiscard]] bool SetVideoSymbolicLink(const WCHAR* id, const UInt16 max_res, const bool force_res);
 
 		Result<VideoFormat> StartVideoPreview(SourceReader::SampleEventDispatcher::FunctionType&& callback) noexcept;
 		void StopVideoPreview() noexcept;

@@ -189,6 +189,7 @@
 #define IDC_AUDIO_COMPRESSION_CHECK     1084
 #define IDC_CHECK22                     1085
 #define IDC_VIDEO_FILL_CHECK            1085
+#define IDC_VIDEO_SIZE_FORCE            1086
 #define ID_CONSOLE_ENABLED              32771
 #define ID_CONSOLE_TERMINALWINDOW       32772
 #define ID_LOCAL_SECURITYLEVEL          32773
