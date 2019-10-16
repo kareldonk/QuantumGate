@@ -1034,7 +1034,7 @@ namespace QuantumGate::AVExtender
 		return success;
 	}
 
-	bool Extender::SetVideoSymbolicLink(const WCHAR* id, const Size max_res)
+	bool Extender::SetVideoSymbolicLink(const WCHAR* id, const UInt16 max_res)
 	{
 		auto success = true;
 
@@ -1075,6 +1075,8 @@ namespace QuantumGate::AVExtender
 		auto success = false;
 		VideoFormat video_format;
 
+		auto preview_handlers = m_PreviewEventHandlers.WithUniqueLock();
+
 		m_AVSource.WithUniqueLock([&](auto& avsource)
 		{
 			success = avsource.VideoSourceReader.IsOpen();
@@ -1085,7 +1087,7 @@ namespace QuantumGate::AVExtender
 
 			if (success)
 			{
-				m_PreviewVideoSampleEventFunctionHandle = avsource.VideoSourceReader.AddSampleEventCallback(std::move(callback));
+				preview_handlers->VideoSampleEventFunctionHandle = avsource.VideoSourceReader.AddSampleEventCallback(std::move(callback));
 				video_format = avsource.VideoSourceReader.GetSampleFormat();
 				avsource.Previewing = true;
 			}
@@ -1101,15 +1103,17 @@ namespace QuantumGate::AVExtender
 
 	void Extender::StopVideoPreview() noexcept
 	{
-		if (m_PreviewVideoSampleEventFunctionHandle)
+		auto preview_handlers = m_PreviewEventHandlers.WithUniqueLock();
+
+		if (preview_handlers->VideoSampleEventFunctionHandle)
 		{
 			bool previewing{ true };
 
 			m_AVSource.WithUniqueLock([&](auto& avsource)
 			{
-				avsource.VideoSourceReader.RemoveSampleEventCallback(m_PreviewVideoSampleEventFunctionHandle);
+				avsource.VideoSourceReader.RemoveSampleEventCallback(preview_handlers->VideoSampleEventFunctionHandle);
 
-				if (!m_PreviewAudioSampleEventFunctionHandle)
+				if (!preview_handlers->AudioSampleEventFunctionHandle)
 				{
 					avsource.Previewing = false;
 					previewing = false;
@@ -1128,6 +1132,8 @@ namespace QuantumGate::AVExtender
 		auto success = false;
 		AudioFormat audio_format;
 
+		auto preview_handlers = m_PreviewEventHandlers.WithUniqueLock();
+
 		m_AVSource.WithUniqueLock([&](auto& avsource)
 		{
 			success = avsource.AudioSourceReader.IsOpen();
@@ -1138,7 +1144,7 @@ namespace QuantumGate::AVExtender
 
 			if (success)
 			{
-				m_PreviewAudioSampleEventFunctionHandle = avsource.AudioSourceReader.AddSampleEventCallback(std::move(callback));
+				preview_handlers->AudioSampleEventFunctionHandle = avsource.AudioSourceReader.AddSampleEventCallback(std::move(callback));
 				audio_format = avsource.AudioSourceReader.GetSampleFormat();
 				avsource.Previewing = true;
 			}
@@ -1154,15 +1160,17 @@ namespace QuantumGate::AVExtender
 
 	void Extender::StopAudioPreview() noexcept
 	{
-		if (m_PreviewAudioSampleEventFunctionHandle)
+		auto preview_handlers = m_PreviewEventHandlers.WithUniqueLock();
+
+		if (preview_handlers->AudioSampleEventFunctionHandle)
 		{
 			bool previewing{ true };
 
 			m_AVSource.WithUniqueLock([&](auto& avsource)
 			{
-				avsource.AudioSourceReader.RemoveSampleEventCallback(m_PreviewAudioSampleEventFunctionHandle);
+				avsource.AudioSourceReader.RemoveSampleEventCallback(preview_handlers->AudioSampleEventFunctionHandle);
 
-				if (!m_PreviewVideoSampleEventFunctionHandle)
+				if (!preview_handlers->VideoSampleEventFunctionHandle)
 				{
 					avsource.Previewing = false;
 					previewing = false;

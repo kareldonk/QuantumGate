@@ -46,6 +46,14 @@ namespace QuantumGate::AVExtender
 	{
 		friend Call;
 
+		struct PreviewEventHandlers
+		{
+			SourceReader::SampleEventDispatcher::FunctionHandle AudioSampleEventFunctionHandle;
+			SourceReader::SampleEventDispatcher::FunctionHandle VideoSampleEventFunctionHandle;
+		};
+
+		using PreviewEventHandlers_ThS = Concurrency::ThreadSafe<PreviewEventHandlers, std::shared_mutex>;
+
 	public:
 		Extender(HWND hwnd);
 		virtual ~Extender();
@@ -75,7 +83,7 @@ namespace QuantumGate::AVExtender
 		void UpdateSendVideo(const PeerLUID pluid, const bool send_video) noexcept;
 
 		[[nodiscard]] bool SetAudioEndpointID(const WCHAR* id);
-		[[nodiscard]] bool SetVideoSymbolicLink(const WCHAR* id, const Size max_res);
+		[[nodiscard]] bool SetVideoSymbolicLink(const WCHAR* id, const UInt16 max_res);
 
 		Result<VideoFormat> StartVideoPreview(SourceReader::SampleEventDispatcher::FunctionType&& callback) noexcept;
 		void StopVideoPreview() noexcept;
@@ -142,7 +150,6 @@ namespace QuantumGate::AVExtender
 		Concurrency::EventCondition m_ShutdownEvent{ false };
 		std::thread m_Thread;
 
-		SourceReader::SampleEventDispatcher::FunctionHandle m_PreviewAudioSampleEventFunctionHandle;
-		SourceReader::SampleEventDispatcher::FunctionHandle m_PreviewVideoSampleEventFunctionHandle;
+		PreviewEventHandlers_ThS m_PreviewEventHandlers;
 	};
 }

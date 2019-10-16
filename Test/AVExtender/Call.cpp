@@ -76,17 +76,149 @@ namespace QuantumGate::AVExtender
 		return success;
 	}
 
-	void Call::AudioWorkerThreadLoop(Call* call)
+	void Call::StartAVThreads() noexcept
 	{
-		LogDbg(L"Call audio worker thread %u starting", std::this_thread::get_id());
+		m_DisconnectEvent.Reset();
 
-		Util::SetCurrentThreadName(L"AVExtender Call Audio Thread");
+		m_AudioInQueue.WithUniqueLock()->Event().Reset();
+		m_AudioOutQueue.WithUniqueLock()->Event().Reset();
+		m_VideoInQueue.WithUniqueLock()->Event().Reset();
+		m_VideoOutQueue.WithUniqueLock()->Event().Reset();
+
+		m_AudioInThread = std::thread(Call::AudioInWorkerThreadLoop, this);
+		m_AudioOutThread = std::thread(Call::AudioOutWorkerThreadLoop, this);
+		m_VideoInThread = std::thread(Call::VideoInWorkerThreadLoop, this);
+		m_VideoOutThread = std::thread(Call::VideoOutWorkerThreadLoop, this);
+	}
+
+	void Call::StopAVThreads() noexcept
+	{
+		// Set shutdown event to let the
+		// threads begin exiting 
+		m_DisconnectEvent.Set();
+
+		m_AudioInQueue.WithUniqueLock()->Event().Set();
+		if (m_AudioInThread.joinable())
+		{
+			m_AudioInThread.join();
+		}
+
+		m_AudioOutQueue.WithUniqueLock()->Event().Set();
+		if (m_AudioOutThread.joinable())
+		{
+			m_AudioOutThread.join();
+		}
+
+		m_VideoInQueue.WithUniqueLock()->Event().Set();
+		if (m_VideoInThread.joinable())
+		{
+			m_VideoInThread.join();
+		}
+
+		m_VideoOutQueue.WithUniqueLock()->Event().Set();
+		if (m_VideoOutThread.joinable())
+		{
+			m_VideoOutThread.join();
+		}
+
+		m_AVInFormats.WithUniqueLock()->Clear();
+
+		// Clear queues
+		m_AudioInQueue.WithUniqueLock()->Clear();
+		m_VideoInQueue.WithUniqueLock()->Clear();
+		m_AudioOutQueue.WithUniqueLock()->Clear();
+		m_VideoOutQueue.WithUniqueLock()->Clear();
+	}
+
+	void Call::AudioInWorkerThreadLoop(Call* call)
+	{
+		LogDbg(L"Call audio in worker thread %u starting for peer %llu", std::this_thread::get_id(), call->GetPeerLUID());
+
+		Util::SetCurrentThreadName(L"AVExtender Call AudioIn Thread");
+
+		AudioFormat rcv_audio_in_format;
+		AudioCompressor audio_decompressor{ AudioCompressor::Type::Decoder };
+
+		auto& event = call->m_AudioInQueue.WithUniqueLock()->Event();
+
+		while (true)
+		{
+			// Wait for work
+			event.Wait();
+
+			// If the shutdown event is set quit the loop
+			if (call->m_DisconnectEvent.IsSet()) break;
+
+			auto optsample = call->GetSampleFromQueue<AudioSample>(call->m_AudioInQueue);
+			if (optsample.has_value())
+			{
+				auto& media_sample = optsample.value();
+
+				bool changed{ false };
+
+				call->m_AudioRenderer.WithUniqueLock([&](auto& ar)
+				{
+					if (rcv_audio_in_format != media_sample.Format)
+					{
+						rcv_audio_in_format = media_sample.Format;
+						changed = true;
+					}
+				});
+
+				if (changed)
+				{
+					audio_decompressor.Close();
+					if (!audio_decompressor.Create())
+					{
+						LogErr(L"Failed to create audio decompressor; cannot play compressed audio from peer");
+					}
+
+					call->CloseAudioRenderer();
+					call->OpenAudioRenderer(rcv_audio_in_format);
+				}
+
+				call->m_AudioRenderer.WithUniqueLock([&](auto& ar)
+				{
+					if (ar.IsOpen())
+					{
+						if (media_sample.Compressed && audio_decompressor.IsOpen())
+						{
+							DiscardReturnValue(audio_decompressor.AddInput(media_sample.TimeStamp, media_sample.SampleBuffer));
+							while (audio_decompressor.GetOutput(media_sample.SampleBuffer))
+							{
+								if (!ar.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
+								{
+									LogErr(L"Failed to render audio sample");
+								}
+							}
+						}
+						else if (!media_sample.Compressed)
+						{
+							if (!ar.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
+							{
+								LogErr(L"Failed to render audio sample");
+							}
+						}
+					}
+				});
+			}
+		}
+
+		audio_decompressor.Close();
+
+		call->CloseAudioRenderer();
+
+		LogDbg(L"Call audio in worker thread %u exiting for peer %llu", std::this_thread::get_id(), call->GetPeerLUID());
+	}
+
+	void Call::AudioOutWorkerThreadLoop(Call* call)
+	{
+		LogDbg(L"Call audio out worker thread %u starting for peer %llu", std::this_thread::get_id(), call->GetPeerLUID());
+
+		Util::SetCurrentThreadName(L"AVExtender Call AudioOut Thread");
 
 		AudioFormat snd_audio_in_format;
-		AudioFormat rcv_audio_in_format;
-
 		AudioCompressor audio_compressor{ AudioCompressor::Type::Encoder };
-		AudioCompressor audio_decompressor{ AudioCompressor::Type::Decoder };
 
 		auto send_audio = [](Call* call, AudioSample& media_sample)
 		{
@@ -116,30 +248,39 @@ namespace QuantumGate::AVExtender
 			}
 		};
 
-		// If the shutdown event is set quit the loop
-		while (!call->m_DisconnectEvent.IsSet())
+		auto& event = call->m_AudioOutQueue.WithUniqueLock()->Event();
+
+		while (true)
 		{
-			const auto extender_settings = *call->m_ExtenderSettings;
+			// Wait for work
+			event.Wait();
+
+			// If the shutdown event is set quit the loop
+			if (call->m_DisconnectEvent.IsSet()) break;
+
 			const auto settings = call->m_Settings.load();
 
 			if (settings & static_cast<UInt8>(CallSetting::SendAudio))
 			{
-				auto media_sample = call->GetSampleFromQueue<AudioSample>(call->m_AudioOutQueue);
-				if (!media_sample.SampleBuffer.IsEmpty())
+				auto optsample = call->GetSampleFromQueue<AudioSample>(call->m_AudioOutQueue);
+				if (optsample.has_value())
 				{
+					auto& media_sample = optsample.value();
+
 					if (snd_audio_in_format != media_sample.Format)
 					{
 						snd_audio_in_format = media_sample.Format;
 
 						audio_compressor.Close();
-
 						if (!audio_compressor.Create())
 						{
 							LogErr(L"Failed to create audio compressor; cannot send compressed audio to peer");
 						}
 					}
 
-					if (extender_settings.UseAudioCompression && audio_compressor.IsOpen())
+					const auto use_compression = call->m_ExtenderSettings->UseAudioCompression;
+
+					if (use_compression && audio_compressor.IsOpen())
 					{
 						DiscardReturnValue(audio_compressor.AddInput(media_sample.TimeStamp, media_sample.SampleBuffer));
 						while (audio_compressor.GetOutput(media_sample.SampleBuffer))
@@ -148,91 +289,119 @@ namespace QuantumGate::AVExtender
 							send_audio(call, media_sample);
 						}
 					}
-					else if (!extender_settings.UseAudioCompression)
+					else if (!use_compression)
 					{
 						send_audio(call, media_sample);
 					}
 				}
 			}
-
-			{
-				auto media_sample = call->GetSampleFromQueue<AudioSample>(call->m_AudioInQueue);
-				if (!media_sample.SampleBuffer.IsEmpty())
-				{
-					bool changed{ false };
-
-					call->m_AudioRenderer.WithUniqueLock([&](auto& ar)
-					{
-						if (rcv_audio_in_format != media_sample.Format)
-						{
-							rcv_audio_in_format = media_sample.Format;
-							changed = true;
-						}
-					});
-
-					if (changed)
-					{
-						audio_decompressor.Close();
-
-						if (!audio_decompressor.Create())
-						{
-							LogErr(L"Failed to create audio decompressor; cannot play compressed audio from peer");
-						}
-
-						call->CloseAudioRenderer();
-						call->OpenAudioRenderer(rcv_audio_in_format);
-					}
-
-					call->m_AudioRenderer.WithUniqueLock([&](auto& ar)
-					{
-						if (ar.IsOpen())
-						{
-							if (media_sample.Compressed && audio_decompressor.IsOpen())
-							{
-								DiscardReturnValue(audio_decompressor.AddInput(media_sample.TimeStamp, media_sample.SampleBuffer));
-								while (audio_decompressor.GetOutput(media_sample.SampleBuffer))
-								{
-									if (!ar.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
-									{
-										LogErr(L"Failed to render audio sample");
-									}
-								}
-							}
-							else if (!media_sample.Compressed)
-							{
-								if (!ar.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
-								{
-									LogErr(L"Failed to render audio sample");
-								}
-							}
-						}
-					});
-				}
-			}
-
-			// Sleep for a while or until we have to shut down
-			call->m_DisconnectEvent.Wait(0ms);
 		}
 
-		call->CloseAudioRenderer();
+		audio_compressor.Close();
 
-		LogDbg(L"Call audio worker thread %u exiting", std::this_thread::get_id());
+		LogDbg(L"Call audio out worker thread %u exiting for peer %llu", std::this_thread::get_id(), call->GetPeerLUID());
 	}
 
-	void Call::VideoWorkerThreadLoop(Call* call)
+	void Call::VideoInWorkerThreadLoop(Call* call)
 	{
-		LogDbg(L"Call video worker thread %u starting", std::this_thread::get_id());
+		LogDbg(L"Call video in worker thread %u starting for peer %llu", std::this_thread::get_id(), call->GetPeerLUID());
 
-		Util::SetCurrentThreadName(L"AVExtender Call Video Thread");
+		Util::SetCurrentThreadName(L"AVExtender Call VideoIn Thread");
 
 		call->OpenVideoRenderer();
 
 		bool video_fill{ false };
-		VideoFormat snd_video_in_format;
 		VideoFormat rcv_video_in_format;
-
-		VideoCompressor video_compressor{ VideoCompressor::Type::Encoder };
 		VideoCompressor video_decompressor{ VideoCompressor::Type::Decoder };
+
+		auto& event = call->m_VideoInQueue.WithUniqueLock()->Event();
+
+		while (true)
+		{
+			// Wait for work for a brief period
+			// to allow updating video window
+			event.Wait(100ms);
+
+			// If the shutdown event is set quit the loop
+			if (call->m_DisconnectEvent.IsSet()) break;
+
+			auto optsample = call->GetSampleFromQueue<VideoSample>(call->m_VideoInQueue);
+			if (optsample.has_value())
+			{
+				auto& media_sample = optsample.value();
+
+				call->m_VideoRenderer.WithUniqueLock([&](auto& vr)
+				{
+					if (rcv_video_in_format != media_sample.Format)
+					{
+						rcv_video_in_format = media_sample.Format;
+
+						video_decompressor.Close();
+						video_decompressor.SetFormat(rcv_video_in_format.Width, rcv_video_in_format.Height,
+													 CaptureDevices::GetMFVideoFormat(rcv_video_in_format.Format));
+						if (!video_decompressor.Create())
+						{
+							LogErr(L"Failed to create video decompressor; cannot display compressed video from peer");
+						}
+
+						if (!vr.SetInputFormat(rcv_video_in_format))
+						{
+							LogErr(L"Failed to set output format for video window");
+						}
+					}
+
+					if (vr.IsOpen())
+					{
+						const auto fill_screen = call->m_ExtenderSettings->FillVideoScreen;
+
+						if (video_fill != fill_screen)
+						{
+							video_fill = fill_screen;
+
+							vr.SetRenderSize(video_fill ? AVExtender::VideoRenderer::RenderSize::Cover :
+											 AVExtender::VideoRenderer::RenderSize::Fit);
+						}
+
+						if (media_sample.Compressed && video_decompressor.IsOpen())
+						{
+							DiscardReturnValue(video_decompressor.AddInput(media_sample.TimeStamp, media_sample.SampleBuffer));
+							while (video_decompressor.GetOutput(media_sample.SampleBuffer))
+							{
+								if (!vr.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
+								{
+									LogErr(L"Failed to render video sample");
+								}
+							}
+						}
+						else if (!media_sample.Compressed)
+						{
+							if (!vr.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
+							{
+								LogErr(L"Failed to render video sample");
+							}
+						}
+					}
+				});
+			}
+
+			call->UpdateVideoRenderer();
+		}
+
+		video_decompressor.Close();
+
+		call->CloseVideoRenderer();
+
+		LogDbg(L"Call video in worker thread %u exiting for peer %llu", std::this_thread::get_id(), call->GetPeerLUID());
+	}
+
+	void Call::VideoOutWorkerThreadLoop(Call* call)
+	{
+		LogDbg(L"Call video out worker thread %u starting for peer %llu", std::this_thread::get_id(), call->GetPeerLUID());
+
+		Util::SetCurrentThreadName(L"AVExtender Call VideoOut Thread");
+
+		VideoFormat snd_video_in_format;
+		VideoCompressor video_compressor{ VideoCompressor::Type::Encoder };
 
 		auto send_video = [](Call* call, VideoSample& media_sample)
 		{
@@ -247,33 +416,41 @@ namespace QuantumGate::AVExtender
 			}
 		};
 
-		// If the shutdown event is set quit the loop
-		while (!call->m_DisconnectEvent.IsSet())
+		auto& event = call->m_VideoOutQueue.WithUniqueLock()->Event();
+
+		while (true)
 		{
-			const auto extender_settings = *call->m_ExtenderSettings;
+			// Wait for work
+			event.Wait();
+
+			// If the shutdown event is set quit the loop
+			if (call->m_DisconnectEvent.IsSet()) break;
+
 			const auto settings = call->m_Settings.load();
 
 			if (settings & static_cast<UInt8>(CallSetting::SendVideo))
 			{
-				auto media_sample = call->GetSampleFromQueue<VideoSample>(call->m_VideoOutQueue);
-				if (!media_sample.SampleBuffer.IsEmpty())
+				auto optsample = call->GetSampleFromQueue<VideoSample>(call->m_VideoOutQueue);
+				if (optsample.has_value())
 				{
+					auto& media_sample = optsample.value();
+
 					if (snd_video_in_format != media_sample.Format)
 					{
 						snd_video_in_format = media_sample.Format;
 
 						video_compressor.Close();
-
 						video_compressor.SetFormat(snd_video_in_format.Width, snd_video_in_format.Height,
 												   CaptureDevices::GetMFVideoFormat(snd_video_in_format.Format));
-
 						if (!video_compressor.Create())
 						{
 							LogErr(L"Failed to create video compressor; cannot send compressed video to peer");
 						}
 					}
 
-					if (extender_settings.UseVideoCompression && video_compressor.IsOpen())
+					const auto use_compression = call->m_ExtenderSettings->UseVideoCompression;
+
+					if (use_compression && video_compressor.IsOpen())
 					{
 						DiscardReturnValue(video_compressor.AddInput(media_sample.TimeStamp, media_sample.SampleBuffer));
 						while (video_compressor.GetOutput(media_sample.SampleBuffer))
@@ -282,83 +459,17 @@ namespace QuantumGate::AVExtender
 							send_video(call, media_sample);
 						}
 					}
-					else if (!extender_settings.UseVideoCompression)
+					else if (!use_compression)
 					{
 						send_video(call, media_sample);
 					}
 				}
 			}
-
-			{
-				auto media_sample = call->GetSampleFromQueue<VideoSample>(call->m_VideoInQueue);
-				if (!media_sample.SampleBuffer.IsEmpty())
-				{
-					call->m_VideoRenderer.WithUniqueLock([&](auto& vr)
-					{
-						if (rcv_video_in_format != media_sample.Format)
-						{
-							rcv_video_in_format = media_sample.Format;
-
-							video_decompressor.Close();
-
-							video_decompressor.SetFormat(rcv_video_in_format.Width, rcv_video_in_format.Height,
-														 CaptureDevices::GetMFVideoFormat(rcv_video_in_format.Format));
-							if (!video_decompressor.Create())
-							{
-								LogErr(L"Failed to create video decompressor; cannot display compressed video from peer");
-							}
-
-							if (!vr.SetInputFormat(rcv_video_in_format))
-							{
-								LogErr(L"Failed to set output format for video window");
-							}
-						}
-
-						if (vr.IsOpen())
-						{
-							if (video_fill != extender_settings.FillVideoScreen)
-							{
-								video_fill = extender_settings.FillVideoScreen;
-
-								vr.SetRenderSize(video_fill ? AVExtender::VideoRenderer::RenderSize::Cover :
-												 AVExtender::VideoRenderer::RenderSize::Fit);
-							}
-
-							if (media_sample.Compressed && video_decompressor.IsOpen())
-							{
-								DiscardReturnValue(video_decompressor.AddInput(media_sample.TimeStamp, media_sample.SampleBuffer));
-								while (video_decompressor.GetOutput(media_sample.SampleBuffer))
-								{
-									if (!vr.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
-									{
-										LogErr(L"Failed to render video sample");
-									}
-								}
-							}
-							else if (!media_sample.Compressed)
-							{
-								if (!vr.Render(media_sample.TimeStamp, media_sample.SampleBuffer))
-								{
-									LogErr(L"Failed to render video sample");
-								}
-							}
-						}
-					});
-				}
-			}
-
-			call->UpdateVideoRenderer();
-
-			// Sleep for a while or until we have to shut down
-			call->m_DisconnectEvent.Wait(0ms);
 		}
 
 		video_compressor.Close();
-		video_decompressor.Close();
 
-		call->CloseVideoRenderer();
-
-		LogDbg(L"Call worker video thread %u exiting", std::this_thread::get_id());
+		LogDbg(L"Call video out worker thread %u exiting for peer %llu", std::this_thread::get_id(), call->GetPeerLUID());
 	}
 
 	void Call::SetAudioCallbacks() noexcept
@@ -443,42 +554,14 @@ namespace QuantumGate::AVExtender
 		SetAudioCallbacks();
 		SetVideoCallbacks();
 
-		m_DisconnectEvent.Reset();
-
-		m_AudioThread = std::thread(Call::AudioWorkerThreadLoop, this);
-		m_VideoThread = std::thread(Call::VideoWorkerThreadLoop, this);
+		StartAVThreads();
 	}
 
 	void Call::OnDisconnected()
 	{
 		UnsetAVCallbacks();
 
-		m_DisconnectEvent.Set();
-
-		if (m_AudioThread.joinable())
-		{
-			m_AudioThread.join();
-		}
-
-		if (m_VideoThread.joinable())
-		{
-			m_VideoThread.join();
-		}
-
-		m_AVInFormats.WithUniqueLock()->Clear();
-
-		// Clear queues
-		AudioSampleQueue asqi{};
-		m_AudioInQueue.WithUniqueLock()->swap(asqi);
-
-		VideoSampleQueue vsqi{};
-		m_VideoInQueue.WithUniqueLock()->swap(vsqi);
-
-		AudioSampleQueue asqo{};
-		m_AudioOutQueue.WithUniqueLock()->swap(asqo);
-
-		VideoSampleQueue vsqo{};
-		m_VideoOutQueue.WithUniqueLock()->swap(vsqo);
+		StopAVThreads();
 	}
 
 	void Call::OnAudioSourceChange() noexcept
@@ -513,9 +596,9 @@ namespace QuantumGate::AVExtender
 		{
 			try
 			{
-				if (queue.size() <= max_queue_size)
+				if (queue.GetSize() <= max_queue_size)
 				{
-					queue.push(std::move(sample));
+					queue.Push(std::move(sample));
 				}
 
 				success = true;
@@ -539,20 +622,17 @@ namespace QuantumGate::AVExtender
 	}
 
 	template<typename T, typename U>
-	T Call::GetSampleFromQueue(U& queue_ths) noexcept
+	std::optional<T> Call::GetSampleFromQueue(U& queue_ths) noexcept
 	{
-		T sample;
-
-		queue_ths.WithUniqueLock([&](auto& queue)
+		auto queue = queue_ths.WithUniqueLock();
+		if (!queue->Empty())
 		{
-			if (!queue.empty())
-			{
-				sample = std::move(queue.front());
-				queue.pop();
-			}
-		});
+			T sample = std::move(queue->Front());
+			queue->Pop();
+			return sample;
+		}
 
-		return sample;
+		return std::nullopt;
 	}
 
 	const WChar* Call::GetStatusString() const noexcept
@@ -684,13 +764,13 @@ namespace QuantumGate::AVExtender
 	{
 		m_VideoRenderer.WithUniqueLock([&](auto& vr)
 		{
-			auto title = Util::FormatString(L"%s call from peer %I64u",
+			auto title = Util::FormatString(L"%s call from peer %llu",
 											GetType() == CallType::Incoming ? L"Incoming" : L"Outgoing", GetPeerLUID());
 
 			if (!vr.Create(title.c_str(), NULL, WS_OVERLAPPED | WS_THICKFRAME,
 						   CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, true, NULL))
 			{
-				LogErr(L"Failed to create call video window");
+				LogErr(L"Failed to create call video window; cannot display video from peer");
 			}
 		});
 	}
@@ -715,7 +795,7 @@ namespace QuantumGate::AVExtender
 			}
 			else
 			{
-				LogErr(L"Failed to create call audio renderer");
+				LogErr(L"Failed to create call audio renderer; cannot play audio from peer");
 			}
 		});
 	}

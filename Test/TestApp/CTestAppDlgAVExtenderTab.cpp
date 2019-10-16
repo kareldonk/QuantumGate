@@ -190,7 +190,7 @@ void CTestAppDlgAVExtenderTab::UpdateVideoDeviceCombo() noexcept
 			const auto pos = vdscombo->AddString(Util::FormatString(L"%dp", size).c_str());
 			vdscombo->SetItemData(pos, static_cast<DWORD_PTR>(size));
 
-			size = static_cast<int>(static_cast<float>(size) * (2.f/3.f));
+			size = static_cast<int>(static_cast<float>(size)* (2.f/3.f));
 			size = size - (size % 16);
 		}
 
@@ -285,7 +285,8 @@ void CTestAppDlgAVExtenderTab::UpdateAVVideoDevice() noexcept
 				const auto idx = vdcombo->GetItemData(sel);
 				const auto size = vdscombo->GetItemData(sel2);
 
-				const auto success = m_AVExtender->SetVideoSymbolicLink(m_VideoCaptureDevices[idx].SymbolicLink, size);
+				const auto success = m_AVExtender->SetVideoSymbolicLink(m_VideoCaptureDevices[idx].SymbolicLink,
+																		static_cast<UInt16>(size));
 
 				if (success && preview_video) StartVideoPreview();
 			}
@@ -495,7 +496,7 @@ void CTestAppDlgAVExtenderTab::LoadAVExtender() noexcept
 				LogErr(L"Failed to add AVExtender");
 				m_AVExtender.reset();
 			}
-			
+
 			UpdateControls();
 
 			UpdateAVAudioDevice();

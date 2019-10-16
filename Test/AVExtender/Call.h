@@ -12,8 +12,7 @@
 #include <Concurrency\EventCondition.h>
 #include <Concurrency\SpinMutex.h>
 #include <Concurrency\SharedSpinMutex.h>
-
-#include <queue>
+#include <Concurrency\Queue.h>
 
 namespace QuantumGate::AVExtender
 {
@@ -98,10 +97,10 @@ namespace QuantumGate::AVExtender
 	using AudioSample = MediaSample<AudioFormat>;
 	using VideoSample = MediaSample<VideoFormat>;
 
-	using AudioSampleQueue = std::queue<AudioSample>;
+	using AudioSampleQueue = Concurrency::Queue<AudioSample>;
 	using AudioSampleQueue_ThS = Concurrency::ThreadSafe<AudioSampleQueue, Concurrency::SharedSpinMutex>;
 
-	using VideoSampleQueue = std::queue<VideoSample>;
+	using VideoSampleQueue = Concurrency::Queue<VideoSample>;
 	using VideoSampleQueue_ThS = Concurrency::ThreadSafe<VideoSampleQueue, Concurrency::SharedSpinMutex>;
 
 	class Call final
@@ -171,8 +170,13 @@ namespace QuantumGate::AVExtender
 			return (settings & static_cast<UInt8>(csetting));
 		}
 
-		static void AudioWorkerThreadLoop(Call* call);
-		static void VideoWorkerThreadLoop(Call* call);
+		void StartAVThreads() noexcept;
+		void StopAVThreads() noexcept;
+
+		static void AudioInWorkerThreadLoop(Call* call);
+		static void AudioOutWorkerThreadLoop(Call* call);
+		static void VideoInWorkerThreadLoop(Call* call);
+		static void VideoOutWorkerThreadLoop(Call* call);
 
 		void OnConnected();
 		void OnDisconnected();
@@ -195,7 +199,7 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] bool AddSampleToQueue(T&& sample, U& queue_ths) noexcept;
 
 		template<typename T, typename U>
-		[[nodiscard]] T GetSampleFromQueue(U& queue_ths) noexcept;
+		[[nodiscard]] std::optional<T> GetSampleFromQueue(U& queue_ths) noexcept;
 
 		[[nodiscard]] bool CopySample(const UInt64 timestamp, IMFSample* sample, Buffer& sample_buffer);
 
@@ -226,8 +230,10 @@ namespace QuantumGate::AVExtender
 
 		Concurrency::EventCondition m_DisconnectEvent{ false };
 
-		std::thread m_AudioThread;
-		std::thread m_VideoThread;
+		std::thread m_AudioInThread;
+		std::thread m_AudioOutThread;
+		std::thread m_VideoInThread;
+		std::thread m_VideoOutThread;
 	};
 
 	using Call_ThS = Implementation::Concurrency::ThreadSafe<Call, std::shared_mutex>;
