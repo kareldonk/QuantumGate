@@ -907,13 +907,19 @@ namespace QuantumGate::AVExtender
 
 				if (avsource.ForceMaxVideoResolution)
 				{
-					sheight = avsource.MaxVideoResolution;
-					swidth = static_cast<Size>((static_cast<double>(avsource.MaxVideoResolution) /
-												static_cast<double>(fmt.Height))* static_cast<double>(fmt.Width));
-					
-					LogWarn(L"Forcing video resolution to %u x %u", swidth, sheight);
+					const auto fheight = avsource.MaxVideoResolution;
+					const auto fwidth = static_cast<Size>((static_cast<double>(avsource.MaxVideoResolution) /
+														   static_cast<double>(sheight))* static_cast<double>(swidth));
 
-					resample = true;
+					if (swidth != fwidth || sheight != fheight)
+					{
+						swidth = fwidth;
+						sheight = fheight;
+
+						LogWarn(L"Forcing video resolution to %u x %u", swidth, sheight);
+
+						resample = true;
+					}
 				}
 
 				// Make dimensions multiples of 16 for H.256
