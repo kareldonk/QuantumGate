@@ -24,6 +24,7 @@ namespace QuantumGate::Implementation
 		NotAllowed = 5,
 		TimedOut = 6,
 		Aborted = 7,
+		OutOfMemory = 8,
 
 		FailedListenerManagerStartup = 10,
 		FailedPeerManagerStartup = 11,
@@ -37,6 +38,7 @@ namespace QuantumGate::Implementation
 		PeerNotReady = 101,
 		PeerNoExtender = 102,
 		PeerAlreadyExists = 103,
+		PeerSendBufferFull = 104,
 
 		AddressInvalid = 200,
 		AddressMaskInvalid = 201,

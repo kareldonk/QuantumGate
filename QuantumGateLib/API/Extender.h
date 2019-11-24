@@ -46,8 +46,8 @@ namespace QuantumGate::API
 		Result<> DisconnectFrom(const PeerLUID pluid) noexcept;
 		Result<> DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept;
 
-		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress = true) const;
-		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const;
+		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress = true) const noexcept;
+		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const noexcept;
 
 		[[nodiscard]] const Size GetMaximumMessageDataSize() const noexcept;
 

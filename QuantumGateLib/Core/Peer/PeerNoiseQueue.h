@@ -27,7 +27,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			return false;
 		}
 
-		inline const Concurrency::EventCondition& GetEvent() const noexcept { return m_NoiseQueue.Event(); }
+		inline bool IsEmpty() const noexcept { return m_NoiseQueue.Empty(); }
 
 	private:
 		NoiseItemQueue m_NoiseQueue{ &NoiseItem::Compare };

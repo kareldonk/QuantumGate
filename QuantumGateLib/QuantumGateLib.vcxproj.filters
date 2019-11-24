@@ -393,6 +393,9 @@
     <ClInclude Include="Memory\RingBuffer.h">
       <Filter>Header Files\Memory</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Peer\PeerSendQueues.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -565,6 +568,9 @@
     </ClCompile>
     <ClCompile Include="Network\IP.cpp">
       <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerSendQueues.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

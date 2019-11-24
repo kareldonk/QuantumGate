@@ -39,8 +39,8 @@ namespace QuantumGate::Implementation::Core::Extender
 		Result<> DisconnectFrom(const PeerLUID pluid) noexcept;
 		Result<> DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept;
 
-		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress) const;
-		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const;
+		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress) const noexcept;
+		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const noexcept;
 
 		inline const Size GetMaximumMessageDataSize() const noexcept { return Message::MaxMessageDataSize; }
 

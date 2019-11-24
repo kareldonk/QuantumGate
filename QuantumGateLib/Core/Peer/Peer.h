@@ -5,11 +5,9 @@
 
 #include "..\..\Version.h"
 #include "..\..\Common\Dispatcher.h"
-#include "..\..\Concurrency\Queue.h"
 #include "..\..\Concurrency\RecursiveSharedMutex.h"
 #include "..\KeyGeneration\KeyGenerationManager.h"
 #include "..\Access\AccessManager.h"
-#include "..\Message.h"
 #include "..\Extender\ExtenderManager.h"
 #include "PeerData.h"
 #include "PeerGate.h"
@@ -17,6 +15,7 @@
 #include "PeerKeyUpdate.h"
 #include "PeerMessageProcessor.h"
 #include "PeerNoiseQueue.h"
+#include "PeerSendQueues.h"
 
 #include <bitset>
 
@@ -39,23 +38,6 @@ namespace QuantumGate::Implementation::Core::Peer
 			SendDisabled,
 			NeedsExtenderUpdate
 		};
-
-		struct DelayedMessage final
-		{
-			[[nodiscard]] inline bool IsTime() const noexcept
-			{
-				if ((Util::GetCurrentSteadyTime() - ScheduleSteadyTime) >= Delay) return true;
-
-				return false;
-			}
-
-			Message Message;
-			SteadyTime ScheduleSteadyTime;
-			std::chrono::milliseconds Delay{ 0 };
-		};
-
-		using MessageQueue = Concurrency::Queue<Message>;
-		using DelayedMessageQueue = Concurrency::Queue<DelayedMessage>;
 
 		class EventBuffer final : public Buffer
 		{
@@ -139,14 +121,14 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		inline MessageProcessor& GetMessageProcessor() noexcept { return m_MessageProcessor; }
 
-		[[nodiscard]] bool Send(Message&& msg, const SendParameters::PriorityOption priority = SendParameters::PriorityOption::Normal,
-								const std::chrono::milliseconds delay = std::chrono::milliseconds(0));
-		[[nodiscard]] bool Send(const MessageType msgtype, Buffer&& buffer,
-								const SendParameters::PriorityOption priority = SendParameters::PriorityOption::Normal,
-								const std::chrono::milliseconds delay = std::chrono::milliseconds(0),
-								const bool compress = true);
-		[[nodiscard]] bool SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
-											   const std::chrono::milliseconds maxdelay);
+		[[nodiscard]] Result<> Send(Message&& msg, const SendParameters::PriorityOption priority = SendParameters::PriorityOption::Normal,
+									const std::chrono::milliseconds delay = std::chrono::milliseconds(0)) noexcept;
+		[[nodiscard]] Result<> Send(const MessageType msgtype, Buffer&& buffer,
+									const SendParameters::PriorityOption priority = SendParameters::PriorityOption::Normal,
+									const std::chrono::milliseconds delay = std::chrono::milliseconds(0),
+									const bool compress = true) noexcept;
+		[[nodiscard]] Result<> SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
+												   const std::chrono::milliseconds maxdelay) noexcept;
 
 		std::chrono::milliseconds GetHandshakeDelayPerMessage() const noexcept;
 
@@ -234,9 +216,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		void DisableSend() noexcept;
 		void DisableSend(const std::chrono::milliseconds duration) noexcept;
 
-		[[nodiscard]] bool SendNoise(const Size minsize, const Size maxsize,
-									 const std::chrono::milliseconds delay = std::chrono::milliseconds(0));
-		[[nodiscard]] bool SendNoise(const Size maxnum, const Size minsize, const Size maxsize);
+		[[nodiscard]] Result<> SendNoise(const Size minsize, const Size maxsize,
+										 const std::chrono::milliseconds delay = std::chrono::milliseconds(0));
+		[[nodiscard]] Result<> SendNoise(const Size maxnum, const Size minsize, const Size maxsize);
 
 		[[nodiscard]] inline bool HasReceiveEvents() noexcept
 		{
@@ -246,15 +228,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] inline bool HasSendEvents() noexcept
 		{
 			return (GetIOStatus().CanWrite() && !IsFlagSet(Flags::SendDisabled) &&
-				(m_SendBuffer.IsEventSet() || m_SendQueue.Event().IsSet() || m_ExpeditedSendQueue.Event().IsSet() ||
-					(m_DelayedSendQueue.Event().IsSet() && m_DelayedSendQueue.Front().IsTime())));
+				(m_SendBuffer.IsEventSet() || m_SendQueues.HaveMessages()));
 		}
 
 		[[nodiscard]] bool SendFromQueues();
-		[[nodiscard]] std::pair<bool, Size> GetMessagesFromSendQueues(Buffer& buffer,
-																	  const Crypto::SymmetricKeyData& symkey);
-		[[nodiscard]] std::pair<bool, Size> GetMessagesFromExpeditedSendQueue(Buffer& buffer,
-																			  const Crypto::SymmetricKeyData& symkey);
 
 		[[nodiscard]] bool ReceiveAndProcess();
 		[[nodiscard]] std::tuple<bool, Size, UInt16> ProcessMessage(const BufferView msgbuf,
@@ -290,6 +267,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	private:
 		static constexpr Size NumHandshakeDelayMessages{ 8 };
 
+	private:
 		Manager& m_PeerManager;
 
 		Data_ThS m_PeerData;
@@ -309,9 +287,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		ExtenderUUIDs m_PeerExtenderUUIDs;
 
-		MessageQueue m_SendQueue;
-		MessageQueue m_ExpeditedSendQueue;
-		DelayedMessageQueue m_DelayedSendQueue;
+		PeerSendQueues m_SendQueues;
 
 		EventBuffer m_ReceiveBuffer;
 		EventBuffer m_SendBuffer;

@@ -348,7 +348,7 @@ namespace QuantumGate
 	{
 		enum class PriorityOption : UInt8
 		{
-			Normal, Delayed, Expedited
+			Normal, Expedited, Delayed
 		};
 
 		bool Compress{ true };

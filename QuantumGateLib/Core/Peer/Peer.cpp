@@ -268,10 +268,9 @@ namespace QuantumGate::Implementation::Core::Peer
 				EnableSend();
 			}
 
-			if (noise_enabled && !m_NoiseQueue.GetEvent().IsSet())
+			if (noise_enabled && m_NoiseQueue.IsEmpty())
 			{
-				// If noise event isn't set that means the 
-				// queue is empty; queue more noise
+				// Queue more noise
 				const auto inhandshake = (status < Status::Ready);
 				if (!m_NoiseQueue.QueueNoise(GetSettings(), inhandshake)) return false;
 			}
@@ -379,7 +378,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		// Prepare and add noise messages to the send queue
-		if (m_NoiseQueue.GetEvent().IsSet())
+		if (!m_NoiseQueue.IsEmpty())
 		{
 			if (!SendFromNoiseQueue())
 			{
@@ -678,7 +677,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	bool Peer::SendNoise(const Size minsize, const Size maxsize, const std::chrono::milliseconds delay)
+	Result<> Peer::SendNoise(const Size minsize, const Size maxsize, const std::chrono::milliseconds delay)
 	{
 		const auto datasize = std::abs(Random::GetPseudoRandomNumber(minsize, maxsize));
 		auto data = Random::GetPseudoRandomBytes(static_cast<Size>(datasize));
@@ -691,54 +690,46 @@ namespace QuantumGate::Implementation::Core::Peer
 		return Send(MessageType::Noise, std::move(data), SendParameters::PriorityOption::Delayed, delay, false);
 	}
 
-	bool Peer::SendNoise(const Size maxnum, const Size minsize, const Size maxsize)
+	Result<> Peer::SendNoise(const Size maxnum, const Size minsize, const Size maxsize)
 	{
 		auto success = true;
 		const auto max = static_cast<Size>(Random::GetPseudoRandomNumber(0, maxnum));
 
 		for (Size x = 0; x < max; ++x)
 		{
-			if (!SendNoise(minsize, maxsize))
+			auto result = SendNoise(minsize, maxsize);
+			if (result.Failed())
 			{
-				success = false;
-				break;
+				return result;
 			}
 		}
 
-		return success;
+		return ResultCode::Succeeded;
 	}
 
-	bool Peer::Send(Message&& msg, const SendParameters::PriorityOption priority, const std::chrono::milliseconds delay)
+	Result<> Peer::Send(Message&& msg, const SendParameters::PriorityOption priority,
+						const std::chrono::milliseconds delay) noexcept
 	{
-		if (!msg.IsValid()) return false;
+		assert(msg.IsValid());
+
+		Size msg_size{ 0 };
 
 		if (msg.GetMessageType() == MessageType::ExtenderCommunication)
 		{
-			m_PeerData.WithUniqueLock()->ExtendersBytesSent += msg.GetMessageData().GetSize();
+			msg_size = msg.GetMessageData().GetSize();
 		}
 
-		switch (priority)
+		auto result = m_SendQueues.AddMessage(std::move(msg), priority, delay);
+		if (result.Succeeded() && msg_size > 0)
 		{
-			case SendParameters::PriorityOption::Normal:
-				m_SendQueue.Push(std::move(msg));
-				break;
-			case SendParameters::PriorityOption::Delayed:
-				m_DelayedSendQueue.Push(DelayedMessage{ std::move(msg), Util::GetCurrentSteadyTime(), delay });
-				break;
-			case SendParameters::PriorityOption::Expedited:
-				m_ExpeditedSendQueue.Push(std::move(msg));
-				break;
-			default:
-				// Shouldn't get here
-				assert(false);
-				break;
+			m_PeerData.WithUniqueLock()->ExtendersBytesSent += msg_size;
 		}
 
-		return true;
+		return result;
 	}
 
-	bool Peer::Send(const MessageType msgtype, Buffer&& buffer, const SendParameters::PriorityOption priority,
-					const std::chrono::milliseconds delay, const bool compress)
+	Result<> Peer::Send(const MessageType msgtype, Buffer&& buffer, const SendParameters::PriorityOption priority,
+						const std::chrono::milliseconds delay, const bool compress) noexcept
 	{
 		if (buffer.GetSize() <= Message::MaxMessageDataSize)
 		{
@@ -767,22 +758,36 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 				else fragment = MessageFragmentType::PartialEnd;
 
-				if (Send(Message(MessageOptions(msgtype, snd_buf.GetFirst(snd_size), compress, fragment)), priority, delay))
+				try
 				{
-					snd_buf.RemoveFirst(snd_size);
-					if (snd_buf.IsEmpty())
+					auto result = Send(Message(MessageOptions(msgtype, snd_buf.GetFirst(snd_size), compress, fragment)),
+									   priority, delay);
+					if (result.Succeeded())
 					{
-						return true;
+						snd_buf.RemoveFirst(snd_size);
+						if (snd_buf.IsEmpty())
+						{
+							return ResultCode::Succeeded;
+						}
+					}
+					else
+					{
+						return result;
 					}
 				}
-				else break;
+				catch (...)
+				{
+					// Likely out of memory
+					return ResultCode::OutOfMemory;
+				}
 			}
 		}
 
-		return false;
+		return ResultCode::Failed;
 	}
 
-	bool Peer::SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer, const std::chrono::milliseconds maxdelay)
+	Result<> Peer::SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
+									   const std::chrono::milliseconds maxdelay) noexcept
 	{
 		const auto delay = std::chrono::milliseconds(Random::GetPseudoRandomNumber(0, maxdelay.count()));
 
@@ -812,8 +817,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Buffer sndbuf;
 
-		while (!m_SendQueue.Empty() || !m_ExpeditedSendQueue.Empty() ||
-			(!m_DelayedSendQueue.Empty() && m_DelayedSendQueue.Front().IsTime()))
+		while (m_SendQueues.HaveMessages())
 		{
 			auto msg = MessageTransport(m_MessageTransportDataSizeSettings, settings);
 
@@ -829,7 +833,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			Buffer msgbuf;
 
-			const auto& [success, nummsg] = GetMessagesFromSendQueues(msgbuf, *symkey);
+			const auto& [success, nummsg] = m_SendQueues.GetMessages(msgbuf, *symkey, IsFlagSet(Flags::ConcatenateMessages));
 			if (!success) return false;
 
 			if (nummsg > 0)
@@ -871,8 +875,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					m_NextLocalRandomDataPrefixLength = nrdplen;
 				}
 
-				if (msg.IsValid() &&
-					msg.Write(sndbuf, *symkey, nonce))
+				if (msg.IsValid() && msg.Write(sndbuf, *symkey, nonce))
 				{
 					if (!Gate::Send(sndbuf))
 					{
@@ -902,145 +905,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		return true;
-	}
-
-	std::pair<bool, Size> Peer::GetMessagesFromSendQueues(Buffer& buffer, const Crypto::SymmetricKeyData& symkey)
-	{
-		// Expedited queue messages always go first
-		if (!m_ExpeditedSendQueue.Empty())
-		{
-			return GetMessagesFromExpeditedSendQueue(buffer, symkey);
-		}
-
-		auto success = true;
-		auto stop = false;
-		Size num{ 0 };
-
-		Buffer tempbuf;
-
-		// We keep filling the message transport buffer as much as possible
-		// for efficiency when allowed; note that priority is given to
-		// normal messages and delayed messages (noise etc.) get sent when
-		// there's room left in the message transport buffer. This is to
-		// give priority and bandwidth to real traffic when it's busy
-
-		while (!m_SendQueue.Empty())
-		{
-			auto& msg = m_SendQueue.Front();
-			if (msg.Write(tempbuf, symkey))
-			{
-				if (buffer.GetSize() + tempbuf.GetSize() <= MessageTransport::MaxMessageDataSize)
-				{
-					buffer += tempbuf;
-					m_SendQueue.Pop();
-
-					++num;
-
-					// Only one message gets written if we shouldn't
-					// concatenate messages (yet)
-					if (!IsFlagSet(Flags::ConcatenateMessages))
-					{
-						stop = true;
-						break;
-					}
-				}
-				else
-				{
-					// Message buffer is full
-					stop = true;
-					break;
-				}
-			}
-			else
-			{
-				// Write error
-				success = false;
-				break;
-			}
-		}
-
-		if (success && !stop)
-		{
-			while (!m_DelayedSendQueue.Empty())
-			{
-				auto& dmsg = m_DelayedSendQueue.Front();
-				if (dmsg.IsTime())
-				{
-					if (dmsg.Message.Write(tempbuf, symkey))
-					{
-						if (buffer.GetSize() + tempbuf.GetSize() <= MessageTransport::MaxMessageDataSize)
-						{
-							buffer += tempbuf;
-							m_DelayedSendQueue.Pop();
-
-							++num;
-
-							// Only one message gets written if we shouldn't
-							// concatenate messages (yet)
-							if (!IsFlagSet(Flags::ConcatenateMessages))
-							{
-								break;
-							}
-						}
-						else
-						{
-							// Message buffer is full
-							break;
-						}
-					}
-					else
-					{
-						// Write error
-						success = false;
-						break;
-					}
-				}
-				else
-				{
-					// It's not time yet to send delayed message;
-					// we'll come back later
-					break;
-				}
-			}
-		}
-
-		DbgInvoke([&]()
-		{
-			if (num > 1)
-			{
-				LogDbg(L"Sent %llu messages in one transport", num);
-			}
-		});
-
-		return std::make_pair(success, num);
-	}
-
-	std::pair<bool, Size> Peer::GetMessagesFromExpeditedSendQueue(Buffer& buffer, const Crypto::SymmetricKeyData& symkey)
-	{
-		assert(!m_ExpeditedSendQueue.Empty());
-
-		auto success = true;
-		Size num{ 0 };
-
-		// Note that we only send one message with every message transport
-		// and don't concatenate messages in order to minimize delays both
-		// in processing and in transmission. Obviously less efficient but
-		// this is a tradeoff when speed is needed such as in real-time
-		// communications
-
-		auto& msg = m_ExpeditedSendQueue.Front();
-		if (msg.Write(buffer, symkey))
-		{
-			m_ExpeditedSendQueue.Pop();
-
-			++num;
-		}
-		else
-		{
-			success = false;
-		}
-
-		return std::make_pair(success, num);
 	}
 
 	bool Peer::ReceiveAndProcess()

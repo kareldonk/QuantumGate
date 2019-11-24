@@ -482,7 +482,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				try
 				{
 					// If this fails there was already a peer in the map (this should not happen)
-					[[maybe_unused]] const auto[it, inserted] =
+					[[maybe_unused]] const auto [it, inserted] =
 						m_AllPeers.Map.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
 
 					assert(inserted);
@@ -521,7 +521,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				try
 				{
 					// If this fails there was already a peer in the map (this should not happen)
-					[[maybe_unused]] const auto[it, inserted] =
+					[[maybe_unused]] const auto [it, inserted] =
 						thpit->second->GetData().PeerCollection.Map.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
 
 					assert(inserted);
@@ -945,7 +945,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						{
 							// Note the copy
 							auto bbuffer = buffer;
-							if (!peer.Send(msgtype, std::move(bbuffer)))
+							if (peer.Send(msgtype, std::move(bbuffer)).Failed())
 							{
 								broadcast_result = BroadcastResult::SendFailure;
 							}
@@ -967,9 +967,9 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							 PeerLUID pluid, Buffer&& buffer, const SendParameters& params)
+							 PeerLUID pluid, Buffer&& buffer, const SendParameters& params) noexcept
 	{
-		auto result_code = ResultCode::Failed;
+		Result<> result{ ResultCode::Failed };
 
 		if (auto peerths = Get(pluid); peerths != nullptr)
 		{
@@ -984,23 +984,20 @@ namespace QuantumGate::Implementation::Core::Peer
 						// If local extender is still running
 						if (running)
 						{
-							if (peer.Send(Message(MessageOptions(MessageType::ExtenderCommunication,
-																 extuuid, std::move(buffer), params.Compress)),
-										  params.Priority, params.Delay))
-							{
-								result_code = ResultCode::Succeeded;
-							}
+							result = peer.Send(Message(MessageOptions(MessageType::ExtenderCommunication,
+																	  extuuid, std::move(buffer), params.Compress)),
+											   params.Priority, params.Delay);
 						}
-						else result_code = ResultCode::NotRunning;
+						else result = ResultCode::NotRunning;
 					}
-					else result_code = ResultCode::PeerNoExtender;
+					else result = ResultCode::PeerNoExtender;
 				}
-				else result_code = ResultCode::PeerNotReady;
+				else result = ResultCode::PeerNotReady;
 			});
 		}
-		else result_code = ResultCode::PeerNotFound;
+		else result = ResultCode::PeerNotFound;
 
-		return result_code;
+		return result;
 	}
 
 	Result<Buffer> Manager::GetExtenderUpdateData() const noexcept

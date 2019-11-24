@@ -1082,7 +1082,7 @@ namespace QuantumGate::Implementation::Core
 	}
 
 	Result<> Local::SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running,
-						   const PeerLUID id, Buffer&& buffer, const SendParameters& params)
+						   const PeerLUID id, Buffer&& buffer, const SendParameters& params) noexcept
 	{
 		if (IsRunning()) return m_PeerManager.SendTo(uuid, running, id, std::move(buffer), params);
 

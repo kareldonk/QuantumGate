@@ -42,7 +42,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		return m_Local.load()->DisconnectFrom(pluid, std::move(function));
 	}
 
-	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress) const
+	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress) const noexcept
 	{
 		assert(IsRunning());
 
@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		return m_Local.load()->SendTo(GetUUID(), m_Running, pluid, std::move(buffer), params);
 	}
 
-	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const
+	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const noexcept
 	{
 		assert(IsRunning());
 

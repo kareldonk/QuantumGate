@@ -758,10 +758,10 @@ namespace QuantumGate::Implementation::Core::Peer
 										{
 											success = m_Peer.SendWithRandomDelay(MessageType::EndPrimaryKeyExchange,
 																				 wrt.MoveWrittenBytes(),
-																				 m_Peer.GetHandshakeDelayPerMessage());
+																				 m_Peer.GetHandshakeDelayPerMessage()).Succeeded();
 										}
 										else success = m_Peer.Send(MessageType::EndPrimaryKeyUpdateExchange,
-																   wrt.MoveWrittenBytes());
+																   wrt.MoveWrittenBytes()).Succeeded();
 
 										if (!success)
 										{
@@ -828,10 +828,10 @@ namespace QuantumGate::Implementation::Core::Peer
 										{
 											success = m_Peer.SendWithRandomDelay(MessageType::BeginSecondaryKeyExchange,
 																				 wrt.MoveWrittenBytes(),
-																				 m_Peer.GetHandshakeDelayPerMessage());
+																				 m_Peer.GetHandshakeDelayPerMessage()).Succeeded();
 										}
 										else success = m_Peer.Send(MessageType::BeginSecondaryKeyUpdateExchange,
-																   wrt.MoveWrittenBytes());
+																   wrt.MoveWrittenBytes()).Succeeded();
 
 										if (!success)
 										{
@@ -898,10 +898,10 @@ namespace QuantumGate::Implementation::Core::Peer
 										{
 											success = m_Peer.SendWithRandomDelay(MessageType::EndSecondaryKeyExchange,
 																				 wrt.MoveWrittenBytes(),
-																				 m_Peer.GetHandshakeDelayPerMessage());
+																				 m_Peer.GetHandshakeDelayPerMessage()).Succeeded();
 										}
 										else success = m_Peer.Send(MessageType::EndSecondaryKeyUpdateExchange,
-																   wrt.MoveWrittenBytes());
+																   wrt.MoveWrittenBytes()).Succeeded();
 
 										if (!success)
 										{

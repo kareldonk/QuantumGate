@@ -32,6 +32,8 @@ namespace QuantumGate::Implementation
 					return "Operation timed out.";
 				case ResultCode::Aborted:
 					return "Operation was aborted.";
+				case ResultCode::OutOfMemory:
+					return "Operation failed. There was not enough memory available.";
 				case ResultCode::FailedListenerManagerStartup:
 					return "Operation failed. Listenermanager startup failed.";
 				case ResultCode::FailedPeerManagerStartup:
@@ -52,6 +54,8 @@ namespace QuantumGate::Implementation
 					return "Operation failed. The peer doesn't have the extender active or installed.";
 				case ResultCode::PeerAlreadyExists:
 					return "Operation failed. The peer already exists.";
+				case ResultCode::PeerSendBufferFull:
+					return "Operation failed. The peer send buffer is full.";
 				case ResultCode::AddressInvalid:
 					return "Operation failed. The address wasn't recognized and may be invalid.";
 				case ResultCode::AddressMaskInvalid:
