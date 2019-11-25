@@ -81,11 +81,14 @@ namespace QuantumGate::Implementation::Memory
 							if (GetCurrentProcessWorkingSetSize(nmin, nmax))
 							{
 								Size nmin2 = nmin * 2;
-								Size nmax2 = nmax * 2;
-
 								if (nmin + len > nmin2)
 								{
 									nmin2 = nmin + len;
+								}
+
+								Size nmax2 = nmax;
+								if (nmax2 <= nmin2)
+								{
 									nmax2 = nmin2 * 2;
 								}
 

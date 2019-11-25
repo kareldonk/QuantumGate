@@ -14,6 +14,7 @@ namespace QuantumGate::Implementation::Memory
 	static constexpr const std::size_t PoolAllocationMinimumSize{ MaxSize::_65KB };
 	static constexpr const std::size_t PoolAllocationMaximumSize{ MaxSize::_4MB };
 	static constexpr const std::size_t MaximumFreeBufferPoolSize{ MaxSize::_16MB };
+	static constexpr const std::size_t MaximumFreeBuffersPerPool{ 20 };
 
 	using PoolVector = std::vector<Byte, Allocator<Byte>>;
 	using MemoryPool_T = std::map<std::uintptr_t, PoolVector>;
@@ -22,12 +23,12 @@ namespace QuantumGate::Implementation::Memory
 	using FreeBufferPool_T = std::list<std::uintptr_t>;
 	using FreeBufferPool_ThS = Concurrency::ThreadSafe<FreeBufferPool_T, Concurrency::SpinMutex>;
 
-	struct PoolAllocStatsT final
+	struct PoolAllocStats_T final
 	{
 		std::set<std::size_t> Sizes;
 	};
 
-	using PoolAllocStats_ThS = Concurrency::ThreadSafe<PoolAllocStatsT, Concurrency::SharedSpinMutex>;
+	using PoolAllocStats_ThS = Concurrency::ThreadSafe<PoolAllocStats_T, Concurrency::SharedSpinMutex>;
 
 	struct MemoryPoolData final
 	{
@@ -57,7 +58,7 @@ namespace QuantumGate::Implementation::Memory
 
 		DbgInvoke([&]()
 		{
-			PoolAllocStats.WithSharedLock([&](const PoolAllocStatsT& stats)
+			PoolAllocStats.WithSharedLock([&](const PoolAllocStats_T& stats)
 			{
 				output += L"\r\nPoolAllocator allocation sizes:\r\n";
 
@@ -96,7 +97,7 @@ namespace QuantumGate::Implementation::Memory
 	{
 		void* retbuf{ nullptr };
 
-		const auto[manage, len] = GetAllocationDetails(n);
+		const auto [manage, len] = GetAllocationDetails(n);
 
 		if (manage)
 		{
@@ -115,7 +116,7 @@ namespace QuantumGate::Implementation::Memory
 					// allocate a new one
 					try
 					{
-						const auto[it2, inserted] = mpdc.insert({ len, std::make_unique<MemoryPoolData>() });
+						const auto [it2, inserted] = mpdc.insert({ len, std::make_unique<MemoryPoolData>() });
 						if (inserted)
 						{
 							mpd = it2->second.get();
@@ -179,7 +180,7 @@ namespace QuantumGate::Implementation::Memory
 	{
 		auto found = false;
 
-		const auto[manage, len] = GetAllocationDetails(n);
+		const auto [manage, len] = GetAllocationDetails(n);
 
 		if (manage)
 		{
@@ -216,7 +217,7 @@ namespace QuantumGate::Implementation::Memory
 						{
 							// If we have too many free buffers
 							// don't reuse this one
-							if (fbp.size() < 20 &&
+							if (fbp.size() <= MaximumFreeBuffersPerPool &&
 								(fbp.size() * len <= MaximumFreeBufferPoolSize))
 							{
 								fbp.emplace_front(reinterpret_cast<std::uintptr_t>(p));
