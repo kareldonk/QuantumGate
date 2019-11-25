@@ -101,10 +101,10 @@ namespace QuantumGate::AVExtender
 		void OnPeerEvent(PeerEvent&& event);
 		const std::pair<bool, bool> OnPeerMessage(PeerEvent&& event);
 
-		[[nodiscard]] bool SendCallAudioSample(const PeerLUID pluid, const AudioFormat& afmt, const UInt64 timestamp,
-											   const BufferView data, const bool compressed) const noexcept;
-		[[nodiscard]] bool SendCallVideoSample(const PeerLUID pluid, const VideoFormat& vfmt, const UInt64 timestamp,
-											   const BufferView data, const bool compressed) const noexcept;
+		[[nodiscard]] Result<> SendCallAudioSample(const PeerLUID pluid, const AudioFormat& afmt, const UInt64 timestamp,
+												   const BufferView data, const bool compressed) const noexcept;
+		[[nodiscard]] Result<> SendCallVideoSample(const PeerLUID pluid, const VideoFormat& vfmt, const UInt64 timestamp,
+												   const BufferView data, const bool compressed) const noexcept;
 
 		void CheckStopAVReaders() noexcept;
 
@@ -122,13 +122,23 @@ namespace QuantumGate::AVExtender
 
 		void StopAllCalls() noexcept;
 
-		[[nodiscard]] bool SendSimpleMessage(const PeerLUID pluid, const MessageType type,
-											 const SendParameters::PriorityOption priority, const BufferView data = {}) const noexcept;
+		[[nodiscard]] Result<> SendSimpleMessage(const PeerLUID pluid, const MessageType type,
+												 const SendParameters::PriorityOption priority, const BufferView data = {}) const noexcept;
 		[[nodiscard]] bool SendCallRequest(const PeerLUID pluid) const noexcept;
 		[[nodiscard]] bool SendCallAccept(const PeerLUID pluid) const noexcept;
 		[[nodiscard]] bool SendCallHangup(const PeerLUID pluid) const noexcept;
 		[[nodiscard]] bool SendCallDecline(const PeerLUID pluid) const noexcept;
 		[[nodiscard]] bool SendGeneralFailure(const PeerLUID pluid) const noexcept;
+
+		[[nodiscard]] bool HandleCallRequest(const PeerLUID pluid);
+		[[nodiscard]] bool HandleCallAccept(const PeerLUID pluid);
+		[[nodiscard]] bool HandleCallHangup(const PeerLUID pluid);
+		[[nodiscard]] bool HandleCallDecline(const PeerLUID pluid);
+		[[nodiscard]] bool HandleCallFailure(const PeerLUID pluid);
+		[[nodiscard]] bool HandleCallAudioSample(const PeerLUID pluid, const UInt64 timestamp,
+												 const AudioFormatData& fmtdata, Buffer&& sample);
+		[[nodiscard]] bool HandleCallVideoSample(const PeerLUID pluid, const UInt64 timestamp,
+												 const VideoFormatData& fmtdata, Buffer&& sample);
 
 		bool StartAudioSourceReader() noexcept;
 		bool StartAudioSourceReader(AVSource& avsource) noexcept;

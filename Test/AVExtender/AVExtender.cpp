@@ -176,154 +176,32 @@ namespace QuantumGate::AVExtender
 				{
 					case MessageType::CallRequest:
 					{
-						Dbg(L"Received CallRequest message from %llu", event.GetPeerLUID());
-
 						handled = true;
-
-						IfGetCall(event.GetPeerLUID(), [&](auto& call)
-						{
-							if (call.IsDisconnected())
-							{
-								SLogInfo(SLogFmt(FGBrightCyan) << L"Incoming call from peer " << event.GetPeerLUID() << SLogFmt(Default));
-
-								if (call.ProcessIncomingCall())
-								{
-									success = true;
-
-									if (m_Window != nullptr)
-									{
-										// Must be deallocated in message handler
-										CallAccept* ca = new CallAccept(event.GetPeerLUID());
-
-										if (!PostMessage(m_Window, static_cast<UINT>(WindowsMessage::AcceptIncomingCall),
-														 reinterpret_cast<WPARAM>(ca), 0))
-										{
-											delete ca;
-										}
-									}
-								}
-
-								if (!success)
-								{
-									DiscardReturnValue(SendGeneralFailure(event.GetPeerLUID()));
-								}
-							}
-						});
-
-						if (!success)
-						{
-							LogErr(L"Couldn't process incoming call from peer %llu", event.GetPeerLUID());
-						}
+						success = HandleCallRequest(event.GetPeerLUID());
 						break;
 					}
 					case MessageType::CallAccept:
 					{
-						Dbg(L"Received CallAccept message from %llu", event.GetPeerLUID());
-
 						handled = true;
-
-						auto call_ths = GetCall(event.GetPeerLUID());
-						if (call_ths != nullptr)
-						{
-							call_ths->WithUniqueLock([&](auto& call)
-							{
-								if (call.IsCalling())
-								{
-									SLogInfo(SLogFmt(FGBrightCyan) << L"Peer " << event.GetPeerLUID() << L" accepted call" << SLogFmt(Default));
-
-									if (call.AcceptCall())
-									{
-										success = true;
-									}
-
-									if (!success)
-									{
-										DiscardReturnValue(SendGeneralFailure(event.GetPeerLUID()));
-									}
-								}
-							});
-						}
-
-						if (!success)
-						{
-							LogErr(L"Couldn't accept outgoing call from peer %llu", event.GetPeerLUID());
-						}
+						success = HandleCallAccept(event.GetPeerLUID());
 						break;
 					}
 					case MessageType::CallHangup:
 					{
-						Dbg(L"Received CallHangup message from %llu", event.GetPeerLUID());
-
 						handled = true;
-
-						IfGetCall(event.GetPeerLUID(), [&](auto& call)
-						{
-							SLogInfo(SLogFmt(FGBrightCyan) << L"Peer " << event.GetPeerLUID() << L" hung up" << SLogFmt(Default));
-
-							if (call.IsInCall())
-							{
-								if (call.StopCall())
-								{
-									m_CheckStopAVReaders = true;
-									success = true;
-								}
-							}
-						});
-
-						if (!success)
-						{
-							LogErr(L"Couldn't hangup call from peer %llu", event.GetPeerLUID());
-						}
+						success = HandleCallHangup(event.GetPeerLUID());
 						break;
 					}
 					case MessageType::CallDecline:
 					{
-						Dbg(L"Received CallDecline message from %llu", event.GetPeerLUID());
-
 						handled = true;
-
-						IfGetCall(event.GetPeerLUID(), [&](auto& call)
-						{
-							SLogInfo(SLogFmt(FGBrightCyan) << L"Peer " << event.GetPeerLUID() << L" declined call" << SLogFmt(Default));
-
-							if (call.IsCalling())
-							{
-								if (call.StopCall())
-								{
-									m_CheckStopAVReaders = true;
-									success = true;
-								}
-							}
-						});
-
-						if (!success)
-						{
-							LogErr(L"Couldn't process call decline from peer %llu", event.GetPeerLUID());
-						}
+						success = HandleCallDecline(event.GetPeerLUID());
 						break;
 					}
 					case MessageType::GeneralFailure:
 					{
-						Dbg(L"Received GeneralFailure message from %llu", event.GetPeerLUID());
-
 						handled = true;
-
-						IfGetCall(event.GetPeerLUID(), [&](auto& call)
-						{
-							SLogInfo(SLogFmt(FGBrightCyan) << L"Call with Peer " << event.GetPeerLUID() << SLogFmt(FGBrightRed)
-									 << L" failed" << SLogFmt(Default));
-
-							if (call.ProcessCallFailure())
-							{
-								m_CheckStopAVReaders = true;
-								success = true;
-							}
-						});
-
-						if (!success)
-						{
-							LogErr(L"Couldn't process call failure from peer %llu", event.GetPeerLUID());
-						}
+						success = HandleCallFailure(event.GetPeerLUID());
 						break;
 					}
 					case MessageType::AudioSample:
@@ -336,55 +214,31 @@ namespace QuantumGate::AVExtender
 
 						if (rdr.Read(timestamp, fmt_buffer, WithSize(buffer, GetMaximumMessageDataSize())))
 						{
-							IfGetCall(event.GetPeerLUID(), [&](auto& call)
-							{
-								if (call.IsInCall())
-								{
-									const AudioFormatData* fmtdata = reinterpret_cast<const AudioFormatData*>(fmt_buffer.GetBytes());
+							const AudioFormatData* fmtdata = reinterpret_cast<const AudioFormatData*>(fmt_buffer.GetBytes());
 
-									call.OnAudioInSample(*fmtdata, timestamp, std::move(buffer));
-								}
-
-								// Audio samples can still arrive after call has stopped;
-								// here we'd need a check to make sure they don't arrive
-								// too much later after the call (or no call) because
-								// that might be abuse
-								success = true;
-							});
+							success = HandleCallAudioSample(event.GetPeerLUID(), timestamp, *fmtdata, std::move(buffer));
 						}
 						break;
 					}
 					case MessageType::VideoSample:
 					{
 						handled = true;
-
+						
 						UInt64 timestamp{ 0 };
 						Buffer fmt_buffer(sizeof(VideoFormatData));
 						Buffer buffer;
 
 						if (rdr.Read(timestamp, fmt_buffer, WithSize(buffer, GetMaximumMessageDataSize())))
 						{
-							IfGetCall(event.GetPeerLUID(), [&](auto& call)
-							{
-								if (call.IsInCall())
-								{
-									const VideoFormatData* fmtdata = reinterpret_cast<const VideoFormatData*>(fmt_buffer.GetBytes());
+							const VideoFormatData* fmtdata = reinterpret_cast<const VideoFormatData*>(fmt_buffer.GetBytes());
 
-									call.OnVideoInSample(*fmtdata, timestamp, std::move(buffer));
-								}
-
-								// Video samples can still arrive after call has stopped;
-								// here we'd need a check to make sure they don't arrive
-								// too much later after the call (or no call) because
-								// that might be abuse
-								success = true;
-							});
+							success = HandleCallVideoSample(event.GetPeerLUID(), timestamp, *fmtdata, std::move(buffer));
 						}
 						break;
 					}
 					default:
 					{
-						LogInfo(L"Received unknown msgtype from %llu: %u", event.GetPeerLUID(), type);
+						LogErr(L"Received unknown message type from peer %llu: %u", event.GetPeerLUID(), type);
 						break;
 					}
 				}
@@ -392,6 +246,212 @@ namespace QuantumGate::AVExtender
 		}
 
 		return std::make_pair(handled, success);
+	}
+
+	bool Extender::HandleCallRequest(const PeerLUID pluid)
+	{
+		auto success = false;
+
+		Dbg(L"Received CallRequest message from %llu", pluid);
+
+		IfGetCall(pluid, [&](auto& call)
+		{
+			if (call.IsDisconnected())
+			{
+				SLogInfo(SLogFmt(FGBrightCyan) << L"Incoming call from peer " << pluid << SLogFmt(Default));
+
+				if (call.ProcessIncomingCall())
+				{
+					success = true;
+
+					if (m_Window != nullptr)
+					{
+						// Must be deallocated in message handler
+						CallAccept* ca = new CallAccept(pluid);
+
+						if (!PostMessage(m_Window, static_cast<UINT>(WindowsMessage::AcceptIncomingCall),
+										 reinterpret_cast<WPARAM>(ca), 0))
+						{
+							delete ca;
+						}
+					}
+				}
+
+				if (!success)
+				{
+					DiscardReturnValue(SendGeneralFailure(pluid));
+				}
+			}
+		});
+
+		if (!success)
+		{
+			LogErr(L"Couldn't process incoming call from peer %llu", pluid);
+		}
+
+		return success;
+	}
+
+	bool Extender::HandleCallAccept(const PeerLUID pluid)
+	{
+		auto success = false;
+
+		Dbg(L"Received CallAccept message from %llu", pluid);
+
+		auto call_ths = GetCall(pluid);
+		if (call_ths != nullptr)
+		{
+			call_ths->WithUniqueLock([&](auto& call)
+			{
+				if (call.IsCalling())
+				{
+					SLogInfo(SLogFmt(FGBrightCyan) << L"Peer " << pluid << L" accepted call" << SLogFmt(Default));
+
+					if (call.AcceptCall())
+					{
+						success = true;
+					}
+
+					if (!success)
+					{
+						DiscardReturnValue(SendGeneralFailure(pluid));
+					}
+				}
+			});
+		}
+
+		if (!success)
+		{
+			LogErr(L"Couldn't accept outgoing call from peer %llu", pluid);
+		}
+
+		return success;
+	}
+
+	bool Extender::HandleCallHangup(const PeerLUID pluid)
+	{
+		auto success = false;
+
+		Dbg(L"Received CallHangup message from %llu", pluid);
+
+		IfGetCall(pluid, [&](auto& call)
+		{
+			SLogInfo(SLogFmt(FGBrightCyan) << L"Peer " << pluid << L" hung up" << SLogFmt(Default));
+
+			if (call.IsInCall())
+			{
+				if (call.StopCall())
+				{
+					m_CheckStopAVReaders = true;
+					success = true;
+				}
+			}
+		});
+
+		if (!success)
+		{
+			LogErr(L"Couldn't hangup call from peer %llu", pluid);
+		}
+
+		return success;
+	}
+
+	bool Extender::HandleCallDecline(const PeerLUID pluid)
+	{
+		auto success = false;
+
+		Dbg(L"Received CallDecline message from %llu", pluid);
+
+		IfGetCall(pluid, [&](auto& call)
+		{
+			SLogInfo(SLogFmt(FGBrightCyan) << L"Peer " << pluid << L" declined call" << SLogFmt(Default));
+
+			if (call.IsCalling())
+			{
+				if (call.StopCall())
+				{
+					m_CheckStopAVReaders = true;
+					success = true;
+				}
+			}
+		});
+
+		if (!success)
+		{
+			LogErr(L"Couldn't process call decline from peer %llu", pluid);
+		}
+
+		return success;
+	}
+
+	bool Extender::HandleCallFailure(const PeerLUID pluid)
+	{
+		auto success = false;
+
+		Dbg(L"Received GeneralFailure message from %llu", pluid);
+
+		IfGetCall(pluid, [&](auto& call)
+		{
+			SLogInfo(SLogFmt(FGBrightCyan) << L"Call with Peer " << pluid << SLogFmt(FGBrightRed)
+					 << L" failed" << SLogFmt(Default));
+
+			if (call.ProcessCallFailure())
+			{
+				m_CheckStopAVReaders = true;
+				success = true;
+			}
+		});
+
+		if (!success)
+		{
+			LogErr(L"Couldn't process call failure from peer %llu", pluid);
+		}
+
+		return success;
+	}
+
+	bool Extender::HandleCallAudioSample(const PeerLUID pluid, const UInt64 timestamp,
+										 const AudioFormatData& fmtdata, Buffer&& sample)
+	{
+		auto success = false;
+
+		IfGetCall(pluid, [&](auto& call)
+		{
+			if (call.IsInCall())
+			{
+				call.OnAudioInSample(fmtdata, timestamp, std::move(sample));
+			}
+
+			// Audio samples can still arrive after call has stopped;
+			// here we'd need a check to make sure they don't arrive
+			// too much later after the call (or no call) because
+			// that might be abuse
+			success = true;
+		});
+
+		return success;
+	}
+
+	bool Extender::HandleCallVideoSample(const PeerLUID pluid, const UInt64 timestamp,
+										 const VideoFormatData& fmtdata, Buffer&& sample)
+	{
+		auto success = false;
+
+		IfGetCall(pluid, [&](auto& call)
+		{
+			if (call.IsInCall())
+			{
+				call.OnVideoInSample(fmtdata, timestamp, std::move(sample));
+			}
+
+			// Video samples can still arrive after call has stopped;
+			// here we'd need a check to make sure they don't arrive
+			// too much later after the call (or no call) because
+			// that might be abuse
+			success = true;
+		});
+
+		return success;
 	}
 
 	void Extender::WorkerThreadLoop(Extender* extender)
@@ -700,115 +760,99 @@ namespace QuantumGate::AVExtender
 		return call;
 	}
 
-	bool Extender::SendSimpleMessage(const PeerLUID pluid, const MessageType type,
-									 const SendParameters::PriorityOption priority, const BufferView data) const noexcept
+	Result<> Extender::SendSimpleMessage(const PeerLUID pluid, const MessageType type,
+										 const SendParameters::PriorityOption priority, const BufferView data) const noexcept
 	{
-		try
-		{
-			const UInt16 msgtype = static_cast<const UInt16>(type);
+		const UInt16 msgtype = static_cast<const UInt16>(type);
 
-			BufferWriter writer(true);
-			if (writer.WriteWithPreallocation(msgtype, data))
-			{
-				SendParameters params;
-				params.Compress = m_Settings->UseCompression;
-				params.Priority = priority;
-
-				return SendMessageTo(pluid, writer.MoveWrittenBytes(), params).Succeeded();
-			}
-			else LogErr(L"Failed to prepare message for peer %llu", pluid);
-		}
-		catch (...)
+		BufferWriter writer(true);
+		if (writer.WriteWithPreallocation(msgtype, data))
 		{
-			LogErr(L"Failed to send message ID %u to peer %llu due to exception", type, pluid);
+			SendParameters params;
+			params.Compress = m_Settings->UseCompression;
+			params.Priority = priority;
+
+			return SendMessageTo(pluid, writer.MoveWrittenBytes(), params);
 		}
 
-		return false;
+		return AVResultCode::FailedPrepareMessage;
 	}
 
-	bool Extender::SendCallAudioSample(const PeerLUID pluid, const AudioFormat& afmt, const UInt64 timestamp,
-									   const BufferView data, const bool compressed) const noexcept
+	Result<> Extender::SendCallAudioSample(const PeerLUID pluid, const AudioFormat& afmt, const UInt64 timestamp,
+										   const BufferView data, const bool compressed) const noexcept
 	{
-		try
+		const UInt16 msgtype = static_cast<const UInt16>(MessageType::AudioSample);
+
+		AudioFormatData fmt_data;
+		fmt_data.NumChannels = afmt.NumChannels;
+		fmt_data.SamplesPerSecond = afmt.SamplesPerSecond;
+		fmt_data.BlockAlignment = afmt.BlockAlignment;
+		fmt_data.BitsPerSample = afmt.BitsPerSample;
+		fmt_data.AvgBytesPerSecond = afmt.AvgBytesPerSecond;
+		fmt_data.Compressed = compressed;
+
+		BufferWriter writer(true);
+		if (writer.WriteWithPreallocation(msgtype, timestamp,
+										  BufferView(reinterpret_cast<const Byte*>(&fmt_data), sizeof(AudioFormatData)),
+										  WithSize(data, GetMaximumMessageDataSize())))
 		{
-			const UInt16 msgtype = static_cast<const UInt16>(MessageType::AudioSample);
+			SendParameters params;
+			params.Compress = m_Settings->UseCompression;
+			params.Priority = SendParameters::PriorityOption::Expedited;
 
-			AudioFormatData fmt_data;
-			fmt_data.NumChannels = afmt.NumChannels;
-			fmt_data.SamplesPerSecond = afmt.SamplesPerSecond;
-			fmt_data.BlockAlignment = afmt.BlockAlignment;
-			fmt_data.BitsPerSample = afmt.BitsPerSample;
-			fmt_data.AvgBytesPerSecond = afmt.AvgBytesPerSecond;
-			fmt_data.Compressed = compressed;
-
-			BufferWriter writer(true);
-			if (writer.WriteWithPreallocation(msgtype, timestamp,
-											  BufferView(reinterpret_cast<const Byte*>(&fmt_data), sizeof(AudioFormatData)),
-											  WithSize(data, GetMaximumMessageDataSize())))
-			{
-				SendParameters params;
-				params.Compress = m_Settings->UseCompression;
-				params.Priority = SendParameters::PriorityOption::Expedited;
-
-				return SendMessageTo(pluid, writer.MoveWrittenBytes(), params).Succeeded();
-			}
-			else LogErr(L"Failed to prepare audio sample message for peer %llu", pluid);
+			return SendMessageTo(pluid, writer.MoveWrittenBytes(), params);
 		}
-		catch (...) {}
 
-		return false;
+		return AVResultCode::FailedPrepareMessage;
 	}
 
-	bool Extender::SendCallVideoSample(const PeerLUID pluid, const VideoFormat& vfmt, const UInt64 timestamp,
-									   const BufferView data, const bool compressed) const noexcept
+	Result<> Extender::SendCallVideoSample(const PeerLUID pluid, const VideoFormat& vfmt, const UInt64 timestamp,
+										   const BufferView data, const bool compressed) const noexcept
 	{
-		try
+		const UInt16 msgtype = static_cast<const UInt16>(MessageType::VideoSample);
+
+		VideoFormatData fmt_data;
+		fmt_data.Format = vfmt.Format;
+		fmt_data.Width = vfmt.Width;
+		fmt_data.Height = vfmt.Height;
+		fmt_data.BytesPerPixel = vfmt.BytesPerPixel;
+		fmt_data.Compressed = compressed;
+
+		BufferWriter writer(true);
+		if (writer.WriteWithPreallocation(msgtype, timestamp,
+										  BufferView(reinterpret_cast<const Byte*>(&fmt_data), sizeof(VideoFormatData)),
+										  WithSize(data, GetMaximumMessageDataSize())))
 		{
-			const UInt16 msgtype = static_cast<const UInt16>(MessageType::VideoSample);
+			SendParameters params;
+			params.Compress = m_Settings->UseCompression;
+			params.Priority = SendParameters::PriorityOption::Normal;
 
-			VideoFormatData fmt_data;
-			fmt_data.Format = vfmt.Format;
-			fmt_data.Width = vfmt.Width;
-			fmt_data.Height = vfmt.Height;
-			fmt_data.BytesPerPixel = vfmt.BytesPerPixel;
-			fmt_data.Compressed = compressed;
-
-			BufferWriter writer(true);
-			if (writer.WriteWithPreallocation(msgtype, timestamp,
-											  BufferView(reinterpret_cast<const Byte*>(&fmt_data), sizeof(VideoFormatData)),
-											  WithSize(data, GetMaximumMessageDataSize())))
-			{
-				SendParameters params;
-				params.Compress = m_Settings->UseCompression;
-				params.Priority = SendParameters::PriorityOption::Normal;
-
-				return SendMessageTo(pluid, writer.MoveWrittenBytes(), params).Succeeded();
-			}
-			else LogErr(L"Failed to prepare video sample message for peer %llu", pluid);
+			return SendMessageTo(pluid, writer.MoveWrittenBytes(), params);
 		}
-		catch (...) {}
 
-		return false;
+		return AVResultCode::FailedPrepareMessage;
 	}
 
 	bool Extender::SendCallRequest(const PeerLUID pluid) const noexcept
 	{
-		if (SendSimpleMessage(pluid, MessageType::CallRequest, SendParameters::PriorityOption::Normal))
+		const auto result = SendSimpleMessage(pluid, MessageType::CallRequest, SendParameters::PriorityOption::Normal);
+		if (result.Succeeded())
 		{
 			return true;
 		}
-		else LogErr(L"Could not send CallRequest message to peer");
+		else LogErr(L"Could not send CallRequest message to peer: %s", result.GetErrorDescription().c_str());
 
 		return false;
 	}
 
 	bool Extender::SendCallAccept(const PeerLUID pluid) const noexcept
 	{
-		if (SendSimpleMessage(pluid, MessageType::CallAccept, SendParameters::PriorityOption::Normal))
+		const auto result = SendSimpleMessage(pluid, MessageType::CallAccept, SendParameters::PriorityOption::Normal);
+		if (result.Succeeded())
 		{
 			return true;
 		}
-		else LogErr(L"Could not send CallAccept message to peer");
+		else LogErr(L"Could not send CallAccept message to peer: %s", result.GetErrorDescription().c_str());
 
 		return false;
 	}
@@ -816,33 +860,36 @@ namespace QuantumGate::AVExtender
 
 	bool Extender::SendCallHangup(const PeerLUID pluid) const noexcept
 	{
-		if (SendSimpleMessage(pluid, MessageType::CallHangup, SendParameters::PriorityOption::Normal))
+		const auto result = SendSimpleMessage(pluid, MessageType::CallHangup, SendParameters::PriorityOption::Normal);
+		if (result.Succeeded())
 		{
 			return true;
 		}
-		else LogErr(L"Could not send CallHangup message to peer");
+		else LogErr(L"Could not send CallHangup message to peer: %s", result.GetErrorDescription().c_str());
 
 		return false;
 	}
 
 	bool Extender::SendCallDecline(const PeerLUID pluid) const noexcept
 	{
-		if (SendSimpleMessage(pluid, MessageType::CallDecline, SendParameters::PriorityOption::Normal))
+		const auto result = SendSimpleMessage(pluid, MessageType::CallDecline, SendParameters::PriorityOption::Normal);
+		if (result.Succeeded())
 		{
 			return true;
 		}
-		else LogErr(L"Could not send CallDecline message to peer");
+		else LogErr(L"Could not send CallDecline message to peer: %s", result.GetErrorDescription().c_str());
 
 		return false;
 	}
 
 	bool Extender::SendGeneralFailure(const PeerLUID pluid) const noexcept
 	{
-		if (SendSimpleMessage(pluid, MessageType::GeneralFailure, SendParameters::PriorityOption::Normal))
+		const auto result = SendSimpleMessage(pluid, MessageType::GeneralFailure, SendParameters::PriorityOption::Normal);
+		if (result.Succeeded())
 		{
 			return true;
 		}
-		else LogErr(L"Could not send GeneralFailure message to peer");
+		else LogErr(L"Could not send GeneralFailure message to peer: %s", result.GetErrorDescription().c_str());
 
 		return false;
 	}

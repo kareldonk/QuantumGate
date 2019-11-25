@@ -19,6 +19,7 @@ namespace QuantumGate::AVExtender
 		FailedGetAudioCaptureDevices = 6,
 		FailedCreateAudioDeviceSource = 7,
 		FailedNoSupportedAudioMediaType = 8,
+		FailedPrepareMessage = 9
 	};
 
 	class AVErrorCategory final : public std::error_category
@@ -46,6 +47,8 @@ namespace QuantumGate::AVExtender
 					return "Operation failed. Couldn't find a supported audio media type.";
 				case AVResultCode::FailedGetVideoCaptureDevices:
 					return "Operation failed. Couldn't get video capture devices.";
+				case AVResultCode::FailedPrepareMessage:
+					return "Operation failed. Couldn't prepare message for peer.";
 				default:
 					// Shouldn't get here
 					assert(false);

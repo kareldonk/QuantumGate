@@ -238,10 +238,11 @@ namespace QuantumGate::AVExtender
 					buf2 = buf2.GetFirst(max_send);
 				}
 
-				if (!call->m_Extender.SendCallAudioSample(call->m_PeerLUID, media_sample.Format,
-														  media_sample.TimeStamp, buf2, media_sample.Compressed))
+				const auto result = call->m_Extender.SendCallAudioSample(call->m_PeerLUID, media_sample.Format,
+																		 media_sample.TimeStamp, buf2, media_sample.Compressed);
+				if (result.Failed())
 				{
-					LogErr(L"Failed to send audio sample to peer");
+					LogErr(L"Failed to send audio sample to peer: %s", result.GetErrorDescription().c_str());
 				}
 
 				buf.RemoveFirst(buf2.GetSize());
@@ -408,11 +409,12 @@ namespace QuantumGate::AVExtender
 			// Video frame size should not be larger than what we can send
 			assert(media_sample.SampleBuffer.GetSize() <= call->m_Extender.GetMaximumMessageDataSize());
 
-			if (!call->m_Extender.SendCallVideoSample(call->m_PeerLUID, media_sample.Format,
-													  media_sample.TimeStamp, media_sample.SampleBuffer,
-													  media_sample.Compressed))
+			const auto result = call->m_Extender.SendCallVideoSample(call->m_PeerLUID, media_sample.Format,
+																	 media_sample.TimeStamp, media_sample.SampleBuffer,
+																	 media_sample.Compressed);
+			if (result.Failed())
 			{
-				LogErr(L"Failed to send video sample to peer");
+				LogErr(L"Failed to send video sample to peer: %s", result.GetErrorDescription().c_str());
 			}
 		};
 
