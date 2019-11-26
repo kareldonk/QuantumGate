@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include "Allocator.h"
-
 namespace QuantumGate::Implementation::Memory
 {
 	class Export PoolAllocatorBase
@@ -18,12 +16,12 @@ namespace QuantumGate::Implementation::Memory
 		[[nodiscard]] static bool FreeToPool(void* p, const std::size_t n) noexcept;
 	};
 
-	template<class T>
-	class PoolAllocator: public PoolAllocatorBase
+	template<typename T>
+	class PoolAllocator final : public PoolAllocatorBase
 	{
 	public:
 		using value_type = T;
-		using pointer = T * ;
+		using pointer = T*;
 		using propagate_on_container_move_assignment = std::true_type;
 		using propagate_on_container_copy_assignment = std::false_type;
 		using propagate_on_container_swap = std::false_type;
@@ -31,7 +29,7 @@ namespace QuantumGate::Implementation::Memory
 
 		PoolAllocator() noexcept = default;
 
-		template<class Other>
+		template<typename Other>
 		PoolAllocator(const PoolAllocator<Other>&) noexcept {}
 
 		PoolAllocator(const PoolAllocator&) = default;
@@ -40,13 +38,13 @@ namespace QuantumGate::Implementation::Memory
 		PoolAllocator& operator=(const PoolAllocator&) = default;
 		PoolAllocator& operator=(PoolAllocator&&) = default;
 
-		template<class Other>
+		template<typename Other>
 		inline bool operator==(const PoolAllocator<Other>&) const noexcept
 		{
 			return true;
 		}
 
-		template<class Other>
+		template<typename Other>
 		inline bool operator!=(const PoolAllocator<Other>&) const noexcept
 		{
 			return false;

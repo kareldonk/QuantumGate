@@ -5,12 +5,12 @@
 
 namespace QuantumGate::Implementation::Memory
 {
-	template<class T>
-	class Allocator
+	template<typename T>
+	class Allocator final
 	{
 	public:
 		using value_type = T;
-		using pointer = T* ;
+		using pointer = T*;
 		using propagate_on_container_move_assignment = std::true_type;
 		using propagate_on_container_copy_assignment = std::false_type;
 		using propagate_on_container_swap = std::false_type;
@@ -18,7 +18,7 @@ namespace QuantumGate::Implementation::Memory
 
 		Allocator() noexcept = default;
 
-		template<class Other>
+		template<typename Other>
 		Allocator(const Allocator<Other>&) noexcept {}
 
 		Allocator(const Allocator&) = default;
@@ -27,13 +27,13 @@ namespace QuantumGate::Implementation::Memory
 		Allocator& operator=(const Allocator&) = default;
 		Allocator& operator=(Allocator&&) = default;
 
-		template<class Other>
+		template<typename Other>
 		inline bool operator==(const Allocator<Other>&) const noexcept
 		{
 			return true;
 		}
 
-		template<class Other>
+		template<typename Other>
 		inline bool operator!=(const Allocator<Other>&) const noexcept
 		{
 			return false;

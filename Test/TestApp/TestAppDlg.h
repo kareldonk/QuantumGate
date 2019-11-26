@@ -123,7 +123,7 @@ protected:
 	afx_msg void OnStressMultipleInstances();
 	afx_msg void OnUpdateStressMultipleInstances(CCmdUI* pCmdUI);
 	afx_msg void OnBenchmarksMemory();
-	afx_msg void OnUtilsLogPoolAllocatorStatistics();
+	afx_msg void OnUtilsLogAllocatorStatistics();
 	afx_msg void OnLocalIPReputations();
 	afx_msg void OnAttacksConnectAndDisconnect();
 	afx_msg void OnAttacksConnectAndWait();

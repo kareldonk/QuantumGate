@@ -5,8 +5,6 @@
 
 #include "Allocator.h"
 
-#include <mutex>
-
 namespace QuantumGate::Implementation::Memory
 {
 	class BadAllocException final : public std::exception
@@ -17,13 +15,16 @@ namespace QuantumGate::Implementation::Memory
 
 	class Export ProtectedAllocatorBase
 	{
+	public:
+		static void LogStatistics() noexcept;
+
 	protected:
 		void* Allocate(const Size len);
 		void Deallocate(void* p, const Size len) noexcept;
 	};
 
 	template<class T>
-	class ProtectedAllocator: private ProtectedAllocatorBase
+	class ProtectedAllocator final : public ProtectedAllocatorBase
 	{
 	public:
 		using value_type = T;
@@ -44,7 +45,7 @@ namespace QuantumGate::Implementation::Memory
 		ProtectedAllocator& operator=(const ProtectedAllocator&) = default;
 		ProtectedAllocator& operator=(ProtectedAllocator&&) = default;
 
-		template<class Other> 
+		template<class Other>
 		inline bool operator==(const ProtectedAllocator<Other>&) const noexcept
 		{
 			return true;

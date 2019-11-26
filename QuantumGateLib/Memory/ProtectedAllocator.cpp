@@ -3,6 +3,9 @@
 
 #include "stdafx.h"
 #include "ProtectedAllocator.h"
+#include "AllocatorStats.h"
+
+#include <mutex>
 
 namespace QuantumGate::Implementation::Memory
 {
@@ -44,6 +47,20 @@ namespace QuantumGate::Implementation::Memory
 					static_cast<UInt64>(minsize), static_cast<UInt64>(maxsize));
 
 		return false;
+	}
+
+	static AllocatorStats_ThS ProtectedAllocStats;
+
+	void ProtectedAllocatorBase::LogStatistics() noexcept
+	{
+		DbgInvoke([&]()
+		{
+			auto output = ProtectedAllocStats.WithSharedLock()->GetAllSizes(L"\r\n\r\nProtectedAllocator allocation sizes:\r\n-------------------------------------\r\n");
+			output += ProtectedAllocStats.WithSharedLock()->GetMemoryInUse(L"\r\nProtectedAllocator memory in use:\r\n-------------------------------------\r\n");
+			output += L"\r\n";
+
+			SLogInfo(output);
+		});
 	}
 
 	void* ProtectedAllocatorBase::Allocate(const Size len)
@@ -127,6 +144,16 @@ namespace QuantumGate::Implementation::Memory
 			throw BadAllocException(error.c_str());
 		}
 
+		DbgInvoke([&]()
+		{
+			ProtectedAllocStats.WithUniqueLock([&](auto& stats)
+			{
+				stats.Sizes.insert(len);
+
+				if (memaddr != nullptr) stats.MemoryInUse.insert({ reinterpret_cast<std::uintptr_t>(memaddr), len });
+			});
+		});
+
 		return memaddr;
 	}
 
@@ -138,5 +165,13 @@ namespace QuantumGate::Implementation::Memory
 		// Unlock and free
 		::VirtualUnlock(p, len);
 		::VirtualFree(p, 0, MEM_RELEASE);
+
+		DbgInvoke([&]()
+		{
+			ProtectedAllocStats.WithUniqueLock([&](auto& stats)
+			{
+				stats.MemoryInUse.erase(reinterpret_cast<std::uintptr_t>(p));
+			});
+		});
 	}
 }

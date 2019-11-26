@@ -890,7 +890,7 @@ BEGIN
     POPUP "&Utils"
     BEGIN
         MENUITEM "&UUID Generation and Validation...", ID_UTILS_UUIDGENERATIONANDVALIDATION
-        MENUITEM "&Log PoolAllocator Statistics", ID_UTILS_LOGPOOLALLOCATORSTATISTICS
+        MENUITEM "&Log Allocator Statistics",   ID_UTILS_LOGPOOLALLOCATORSTATISTICS
         MENUITEM "&Ping...",                    ID_UTILS_PING
     END
     POPUP "&Console"

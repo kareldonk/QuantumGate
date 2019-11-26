@@ -164,7 +164,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_COMMAND(ID_STRESS_MULTIPLEINSTANCES, &CTestAppDlg::OnStressMultipleInstances)
 	ON_UPDATE_COMMAND_UI(ID_STRESS_MULTIPLEINSTANCES, &CTestAppDlg::OnUpdateStressMultipleInstances)
 	ON_COMMAND(ID_BENCHMARKS_MEMORY, &CTestAppDlg::OnBenchmarksMemory)
-	ON_COMMAND(ID_UTILS_LOGPOOLALLOCATORSTATISTICS, &CTestAppDlg::OnUtilsLogPoolAllocatorStatistics)
+	ON_COMMAND(ID_UTILS_LOGPOOLALLOCATORSTATISTICS, &CTestAppDlg::OnUtilsLogAllocatorStatistics)
 	ON_COMMAND(ID_LOCAL_IPREPUTATIONS, &CTestAppDlg::OnLocalIPReputations)
 	ON_COMMAND(ID_ATTACKS_CONNECTANDDISCONNECT, &CTestAppDlg::OnAttacksConnectAndDisconnect)
 	ON_COMMAND(ID_ATTACKS_CONNECTANDWAIT, &CTestAppDlg::OnAttacksConnectAndWait)
@@ -1484,9 +1484,10 @@ void CTestAppDlg::OnBenchmarksMemory()
 	Benchmarks::BenchmarkMemory();
 }
 
-void CTestAppDlg::OnUtilsLogPoolAllocatorStatistics()
+void CTestAppDlg::OnUtilsLogAllocatorStatistics()
 {
 	QuantumGate::Implementation::Memory::PoolAllocator<void>::LogStatistics();
+	QuantumGate::Implementation::Memory::ProtectedAllocator<void>::LogStatistics();
 }
 
 void CTestAppDlg::OnLocalIPReputations()

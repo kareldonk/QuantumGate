@@ -3,11 +3,9 @@
 
 #include "stdafx.h"
 #include "PoolAllocator.h"
+#include "AllocatorStats.h"
+#include "Allocator.h"
 #include "BufferIO.h"
-#include "..\Concurrency\ThreadSafe.h"
-#include "..\Concurrency\SharedSpinMutex.h"
-
-#include <map>
 
 namespace QuantumGate::Implementation::Memory
 {
@@ -16,23 +14,16 @@ namespace QuantumGate::Implementation::Memory
 	static constexpr const std::size_t MaximumFreeBufferPoolSize{ MaxSize::_16MB };
 	static constexpr const std::size_t MaximumFreeBuffersPerPool{ 20 };
 
-	using PoolVector = std::vector<Byte, Allocator<Byte>>;
-	using MemoryPool_T = std::map<std::uintptr_t, PoolVector>;
-	using MemoryPool_ThS = Concurrency::ThreadSafe<MemoryPool_T, Concurrency::SharedSpinMutex>;
+	using MemoryBuffer = std::vector<Byte, Allocator<Byte>>;
+	using MemoryBufferPool_T = std::map<std::uintptr_t, MemoryBuffer>;
+	using MemoryBufferPool_ThS = Concurrency::ThreadSafe<MemoryBufferPool_T, Concurrency::SharedSpinMutex>;
 
 	using FreeBufferPool_T = std::list<std::uintptr_t>;
 	using FreeBufferPool_ThS = Concurrency::ThreadSafe<FreeBufferPool_T, Concurrency::SpinMutex>;
 
-	struct PoolAllocStats_T final
-	{
-		std::set<std::size_t> Sizes;
-	};
-
-	using PoolAllocStats_ThS = Concurrency::ThreadSafe<PoolAllocStats_T, Concurrency::SharedSpinMutex>;
-
 	struct MemoryPoolData final
 	{
-		MemoryPool_ThS MemoryPool;
+		MemoryBufferPool_ThS MemoryBufferPool;
 		FreeBufferPool_ThS FreeBufferPool;
 	};
 
@@ -40,33 +31,36 @@ namespace QuantumGate::Implementation::Memory
 	using MemoryPoolMap_ThS = Concurrency::ThreadSafe<MemoryPoolMap_T, Concurrency::SharedSpinMutex>;
 
 	static MemoryPoolMap_ThS MemoryPoolMap;
-	static PoolAllocStats_ThS PoolAllocStats;
+	static Allocator<Byte> UnmanagedAllocator;
+
+	static AllocatorStats_ThS PoolAllocStats;
 
 	void PoolAllocatorBase::LogStatistics() noexcept
 	{
-		String output{ L"\r\n\r\nPoolAllocator statistics:\r\n\r\n" };
+		String output{ L"\r\n\r\nPoolAllocator statistics:\r\n-------------------------------------\r\n" };
 
 		MemoryPoolMap.WithSharedLock([&](const MemoryPoolMap_T& mpdc)
 		{
+			Size total{ 0 };
+
 			for (auto it = mpdc.begin(); it != mpdc.end(); ++it)
 			{
+				const auto pool_size = it->second->MemoryBufferPool.WithSharedLock()->size();
+
 				output += Util::FormatString(L"Allocation size: %zu bytes -> Pool size: %zu, Free: %zu\r\n",
-											 it->first, it->second->MemoryPool.WithSharedLock()->size(),
+											 it->first, pool_size,
 											 it->second->FreeBufferPool.WithUniqueLock()->size());
+
+				total += it->first * pool_size;
 			}
+
+			output += Util::FormatString(L"\r\nTotal in managed pools: %u bytes\r\n", total);
 		});
 
 		DbgInvoke([&]()
 		{
-			PoolAllocStats.WithSharedLock([&](const PoolAllocStats_T& stats)
-			{
-				output += L"\r\nPoolAllocator allocation sizes:\r\n";
-
-				for (const auto size : stats.Sizes)
-				{
-					output += Util::FormatString(L"%u\r\n", size);
-				}
-			});
+			output += PoolAllocStats.WithSharedLock()->GetAllSizes(L"\r\nPoolAllocator allocation sizes:\r\n-------------------------------------\r\n");
+			output += PoolAllocStats.WithSharedLock()->GetMemoryInUse(L"\r\nPoolAllocator memory in use:\r\n-------------------------------------\r\n");
 		});
 
 		output += L"\r\n";
@@ -144,12 +138,12 @@ namespace QuantumGate::Implementation::Memory
 					// try to allocate a new one
 					try
 					{
-						PoolVector buffer(len, Byte{ 0 });
+						MemoryBuffer buffer(len, Byte{ 0 });
 
-						mpd->MemoryPool.WithUniqueLock([&](MemoryPool_T& mp)
+						mpd->MemoryBufferPool.WithUniqueLock([&](MemoryBufferPool_T& mbp)
 						{
 							retbuf = buffer.data();
-							mp.emplace(reinterpret_cast<std::uintptr_t>(retbuf), std::move(buffer));
+							mbp.emplace(reinterpret_cast<std::uintptr_t>(retbuf), std::move(buffer));
 						});
 					}
 					catch (...)
@@ -163,14 +157,19 @@ namespace QuantumGate::Implementation::Memory
 		{
 			try
 			{
-				retbuf = ::operator new(len);
+				retbuf = UnmanagedAllocator.allocate(len);
 			}
 			catch (...) {}
 		}
 
 		DbgInvoke([&]()
 		{
-			PoolAllocStats.WithUniqueLock()->Sizes.insert(n);
+			PoolAllocStats.WithUniqueLock([&](auto& stats)
+			{
+				stats.Sizes.insert(n);
+				
+				if (retbuf != nullptr) stats.MemoryInUse.insert({ reinterpret_cast<std::uintptr_t>(retbuf), len });
+			});
 		});
 
 		return retbuf;
@@ -196,9 +195,9 @@ namespace QuantumGate::Implementation::Memory
 
 			if (mpd != nullptr)
 			{
-				mpd->MemoryPool.WithSharedLock([&](const MemoryPool_T& mp)
+				mpd->MemoryBufferPool.WithSharedLock([&](const MemoryBufferPool_T& mbp)
 				{
-					if (const auto it = mp.find(reinterpret_cast<std::uintptr_t>(p)); it != mp.end())
+					if (const auto it = mbp.find(reinterpret_cast<std::uintptr_t>(p)); it != mbp.end())
 					{
 						found = true;
 					}
@@ -206,9 +205,6 @@ namespace QuantumGate::Implementation::Memory
 
 				if (found)
 				{
-					// Note that we don't clear the memory in this case because
-					// PoolVector's allocator will do that for us upon release
-
 					auto reused = false;
 
 					try
@@ -230,20 +226,28 @@ namespace QuantumGate::Implementation::Memory
 					if (!reused)
 					{
 						// Reuse conditions were not met or exception was thrown; release the memory
-						mpd->MemoryPool.WithUniqueLock()->erase(reinterpret_cast<std::uintptr_t>(p));
+						mpd->MemoryBufferPool.WithUniqueLock()->erase(reinterpret_cast<std::uintptr_t>(p));
 					}
 				}
 			}
 		}
 		else
 		{
-			// Clear memory
-			MemClear(p, len);
-
-			::operator delete(p);
+			UnmanagedAllocator.deallocate(static_cast<Byte*>(p), len);
 
 			found = true;
 		}
+
+		DbgInvoke([&]()
+		{
+			if (found)
+			{
+				PoolAllocStats.WithUniqueLock([&](auto& stats)
+				{
+					stats.MemoryInUse.erase(reinterpret_cast<std::uintptr_t>(p));
+				});
+			}
+		});
 
 		return found;
 	}

@@ -600,6 +600,7 @@
     <ClInclude Include="Crypto\OpenSSLSign.h" />
     <ClInclude Include="Crypto\OpenSSLSymmetric.h" />
     <ClInclude Include="Memory\Allocator.h" />
+    <ClInclude Include="Memory\AllocatorStats.h" />
     <ClInclude Include="Memory\Buffer.h" />
     <ClInclude Include="Memory\BufferIO.h" />
     <ClInclude Include="Memory\BufferReader.h" />

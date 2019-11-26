@@ -396,6 +396,9 @@
     <ClInclude Include="Core\Peer\PeerSendQueues.h">
       <Filter>Header Files\Core\Peer</Filter>
     </ClInclude>
+    <ClInclude Include="Memory\AllocatorStats.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
