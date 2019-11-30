@@ -216,6 +216,23 @@ void Stress::MultiInstanceStressThreadProc()
 
 			local.GetAccessManager().SetPeerAccessDefault(QuantumGate::PeerAccessDefault::Allowed);
 
+			// For testing purposes we allow all IP addresses to connect
+			if (const auto result = local.GetAccessManager().AddIPFilter(L"0.0.0.0/0", QuantumGate::IPFilterType::Allowed); result.Failed())
+			{
+				LogErr(L"Failed to add an IP filter for a QuantumGate instance: %s", result.GetErrorString().c_str());
+
+				error = true;
+				break;
+			}
+
+			if (const auto result = local.GetAccessManager().AddIPFilter(L"::/0", QuantumGate::IPFilterType::Allowed); result.Failed())
+			{
+				LogErr(L"Failed to add an IP filter for a QuantumGate instance: %s", result.GetErrorString().c_str());
+
+				error = true;
+				break;
+			}
+
 			if (const auto result = local.Startup(m_MultiInstanceStressData.StartupParams); result.Failed())
 			{
 				LogErr(L"Failed to start a QuantumGate instance: %s", result.GetErrorString().c_str());

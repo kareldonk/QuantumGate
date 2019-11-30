@@ -17,13 +17,19 @@ namespace QuantumGate::Implementation::Core::Access
 
 	void IPAccessDetails::ImproveReputation(const std::chrono::seconds interval) noexcept
 	{
-		auto seconds = std::chrono::duration_cast<std::chrono::seconds>(
+		const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(
 			Util::GetCurrentSteadyTime() - m_Reputation.LastImproveSteadyTime);
 
 		if (seconds >= interval)
 		{
-			Int64 new_score = static_cast<Int64>(m_Reputation.Score) +
-				(static_cast<Int64>(IPReputationUpdate::ImproveMinimal) * (seconds.count() / interval.count()));
+			Int64 factor{ 1 };
+			if (interval.count() > 0)
+			{
+				factor = seconds.count() / interval.count();
+			}
+
+			Int64 new_score{ static_cast<Int64>(m_Reputation.Score) +
+				(static_cast<Int64>(IPReputationUpdate::ImproveMinimal)* factor) };
 
 			if (new_score > IPReputation::ScoreLimits::Maximum)
 			{
