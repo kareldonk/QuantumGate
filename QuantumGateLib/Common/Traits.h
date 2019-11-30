@@ -27,7 +27,7 @@ namespace QuantumGate::Implementation
 		template<template<typename...> typename D, typename... T>
 		struct IsDetected<std::void_t<D<T...>>, D, T...> : std::true_type {};
 
-		template <template<typename...> typename D, typename... T>
+		template<template<typename...> typename D, typename... T>
 		static constexpr bool IsDetectedV = IsDetected<void, D, T...>::value;
 	}
 
