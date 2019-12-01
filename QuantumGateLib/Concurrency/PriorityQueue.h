@@ -10,15 +10,17 @@
 namespace QuantumGate::Implementation::Concurrency
 {
 	template<typename T, typename F>
-	class PriorityQueue
+	class PriorityQueue final
 	{
 	public:
+		using QueueType = std::priority_queue<T, Vector<T>, F>;
+
 		PriorityQueue() = delete;
 		PriorityQueue(F&& function) noexcept(std::is_nothrow_constructible_v<T, F>) :
 			m_Queue(std::forward<F>(function)) {}
 		PriorityQueue(const PriorityQueue&) = delete;
 		PriorityQueue(PriorityQueue&&) = default;
-		virtual ~PriorityQueue() {}
+		~PriorityQueue() = default;
 		PriorityQueue& operator=(const PriorityQueue&) = delete;
 		PriorityQueue& operator=(PriorityQueue&&) = default;
 
@@ -29,7 +31,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 		void Clear() noexcept
 		{
-			std::priority_queue<T> empty;
+			QueueType empty;
 			m_Queue.swap(empty);
 
 			m_Event.Reset();
@@ -61,19 +63,19 @@ namespace QuantumGate::Implementation::Concurrency
 			if (Empty()) m_Event.Reset();
 		}
 
-		inline Concurrency::EventCondition& Event() noexcept
+		inline EventCondition& Event() noexcept
 		{
 			return m_Event;
 		}
 
-		inline const Concurrency::EventCondition& Event() const noexcept
+		inline const EventCondition& Event() const noexcept
 		{
 			return m_Event;
 		}
 
 	private:
-		std::priority_queue<T, Vector<T>, F> m_Queue;
-		Concurrency::EventCondition m_Event{ false };
+		QueueType m_Queue;
+		EventCondition m_Event{ false };
 	};
 }
 

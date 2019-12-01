@@ -105,10 +105,10 @@ namespace QuantumGate::Implementation::Core
 
 		using DataVerification_ThS = Concurrency::ThreadSafe<DataVerification, std::shared_mutex>;
 
-		using IPEndpointsMap = std::unordered_map<BinaryIPAddress, PublicIPEndpointDetails>;
+		using IPEndpointsMap = Containers::UnorderedMap<BinaryIPAddress, PublicIPEndpointDetails>;
 		using IPEndpointsMap_ThS = Concurrency::ThreadSafe<IPEndpointsMap, std::shared_mutex>;
 
-		using ReportingNetworkMap = std::unordered_map<BinaryIPAddress, SteadyTime>;
+		using ReportingNetworkMap = Containers::UnorderedMap<BinaryIPAddress, SteadyTime>;
 
 		using ThreadPool = Concurrency::ThreadPool<>;
 

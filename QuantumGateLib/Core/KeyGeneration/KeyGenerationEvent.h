@@ -3,10 +3,9 @@
 
 #pragma once
 
+#include "..\..\Common\Containers.h"
 #include "..\..\Crypto\KeyData.h"
 #include "..\..\Concurrency\SharedSpinMutex.h"
-
-#include <queue>
 
 namespace QuantumGate::Implementation::Core::KeyGeneration
 {
@@ -15,7 +14,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		KeyQueue(const Algorithm::Asymmetric alg) noexcept : Algorithm(alg) {}
 
 		Algorithm::Asymmetric Algorithm{ Algorithm::Asymmetric::Unknown };
-		std::queue<Crypto::AsymmetricKeyData> Queue;
+		Containers::Queue<Crypto::AsymmetricKeyData> Queue;
 		Size NumPendingEvents{ 0 };
 		bool Active{ true };
 	};

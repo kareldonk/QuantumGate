@@ -532,6 +532,7 @@
     <ClInclude Include="API\Result.h" />
     <ClInclude Include="Common\Callback.h" />
     <ClInclude Include="Common\Console.h" />
+    <ClInclude Include="Common\Containers.h" />
     <ClInclude Include="Common\Dispatcher.h" />
     <ClInclude Include="Common\Endian.h" />
     <ClInclude Include="Common\Hash.h" />
@@ -599,6 +600,7 @@
     <ClInclude Include="Crypto\OpenSSL.h" />
     <ClInclude Include="Crypto\OpenSSLSign.h" />
     <ClInclude Include="Crypto\OpenSSLSymmetric.h" />
+    <ClInclude Include="Memory\Allocator.h" />
     <ClInclude Include="Memory\FreeStoreAllocator.h" />
     <ClInclude Include="Memory\AllocatorStats.h" />
     <ClInclude Include="Memory\Buffer.h" />

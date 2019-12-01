@@ -50,7 +50,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		using Peer_ThS = Concurrency::ThreadSafe<Peer, Concurrency::SpinMutex>;
 
-		using PeerMap = std::unordered_map<PeerLUID, std::shared_ptr<Peer_ThS>>;
+		using PeerMap = Containers::UnorderedMap<PeerLUID, std::shared_ptr<Peer_ThS>>;
 
 		using Queue = Concurrency::Queue<std::shared_ptr<Peer_ThS>>;
 		using Queue_ThS = Concurrency::ThreadSafe<Queue, Concurrency::SpinMutex>;
@@ -62,7 +62,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
-		using ThreadPoolMap = std::unordered_map<UInt64, std::unique_ptr<ThreadPool>>;
+		using ThreadPoolMap = Containers::UnorderedMap<UInt64, std::unique_ptr<ThreadPool>>;
 
 	public:
 		enum class Status { Startup, Running, Shutdown, Stopped };

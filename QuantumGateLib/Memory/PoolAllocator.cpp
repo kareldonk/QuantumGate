@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Memory::PoolAllocator
 	template<typename Type>
 	void AllocatorBase<Type>::LogStatistics() noexcept
 	{
-		auto output = Util::FormatString(L"\r\n\r\n%s statistics:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
+		auto output = AllocatorStats::FormatString(L"\r\n\r\n%s statistics:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
 
 		GetMemoryPoolMap<Type>().WithSharedLock([&](const auto& mpm)
 		{
@@ -20,23 +20,23 @@ namespace QuantumGate::Implementation::Memory::PoolAllocator
 			{
 				const auto pool_size = it->second->MemoryBufferPool.WithSharedLock()->size();
 
-				output += Util::FormatString(L"Allocation size: %zu bytes -> Pool size: %zu, Free: %zu\r\n",
-											 it->first, pool_size,
-											 it->second->FreeBufferPool.WithUniqueLock()->size());
+				output += AllocatorStats::FormatString(L"Allocation size: %8zu bytes -> Pool size: %8zu (%zu free)\r\n",
+													   it->first, pool_size,
+													   it->second->FreeBufferPool.WithUniqueLock()->size());
 
 				total += it->first * pool_size;
 			}
 
-			output += Util::FormatString(L"\r\nTotal in managed pools: %u bytes\r\n", total);
+			output += AllocatorStats::FormatString(L"\r\nTotal in managed pools: %zu bytes\r\n", total);
 		});
 
 		DbgInvoke([&]()
 		{
 			auto& pas = GetAllocatorStats<Type>();
 
-			output += Util::FormatString(L"\r\n%s allocation sizes:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
+			output += AllocatorStats::FormatString(L"\r\n%s allocation sizes:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
 			output += pas.WithSharedLock()->GetAllSizes();
-			output += Util::FormatString(L"\r\n%s memory in use:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
+			output += AllocatorStats::FormatString(L"\r\n%s memory in use:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
 			output += pas.WithSharedLock()->GetMemoryInUse();
 		});
 
@@ -51,7 +51,7 @@ namespace QuantumGate::Implementation::Memory::PoolAllocator
 		auto len = n;
 		auto manage = false;
 
-		if (n >= AllocatorConstants<Type>::PoolAllocationMinimumSize &&
+		if (n >= AllocatorConstants<Type>::PoolAllocationMinimumSize&&
 			n <= AllocatorConstants<Type>::PoolAllocationMaximumSize)
 		{
 			manage = true;
@@ -108,7 +108,7 @@ namespace QuantumGate::Implementation::Memory::PoolAllocator
 			};
 
 			auto mpm = GetMemoryPoolMap<Type>().WithSharedLock();
-			
+
 			// Get the pool for the allocation size
 			if (const auto it = mpm->find(len); it != mpm->end())
 			{
@@ -150,14 +150,7 @@ namespace QuantumGate::Implementation::Memory::PoolAllocator
 
 		DbgInvoke([&]()
 		{
-			auto& pas = GetAllocatorStats<Type>();
-
-			pas.WithUniqueLock([&](auto& stats)
-			{
-				stats.Sizes.insert(n);
-				
-				if (retbuf != nullptr) stats.MemoryInUse.insert({ reinterpret_cast<std::uintptr_t>(retbuf), len });
-			});
+			GetAllocatorStats<Type>().WithUniqueLock()->AddAllocation(retbuf, len);
 		});
 
 		return retbuf;
@@ -232,12 +225,7 @@ namespace QuantumGate::Implementation::Memory::PoolAllocator
 		{
 			if (found)
 			{
-				auto& pas = GetAllocatorStats<Type>();
-
-				pas.WithUniqueLock([&](auto& stats)
-				{
-					stats.MemoryInUse.erase(reinterpret_cast<std::uintptr_t>(p));
-				});
+				GetAllocatorStats<Type>().WithUniqueLock()->RemoveAllocation(p, len);
 			}
 		});
 

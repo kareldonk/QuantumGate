@@ -56,9 +56,6 @@ namespace QuantumGate
 	using SystemTime = std::chrono::time_point<std::chrono::system_clock>;
 	using SteadyTime = std::chrono::time_point<std::chrono::steady_clock>;
 
-	using String = std::wstring;
-	using StringView = std::wstring_view;
-
 	using Path = std::filesystem::path;
 }
 
@@ -73,16 +70,20 @@ namespace QuantumGate
 	using RingBuffer = Implementation::Memory::RingBuffer;
 	using ProtectedRingBuffer = Implementation::Memory::ProtectedRingBuffer;
 
+	using String = std::basic_string<wchar_t, std::char_traits<wchar_t>,
+		Implementation::Memory::DefaultAllocator<wchar_t>>;
+	using StringView = std::wstring_view;
+
 	using ProtectedString = std::basic_string<wchar_t, std::char_traits<wchar_t>,
-		Implementation::Memory::PoolAllocator::ProtectedAllocator<wchar_t>>;
+		Implementation::Memory::DefaultProtectedAllocator<wchar_t>>;
 	using ProtectedStringA = std::basic_string<char, std::char_traits<char>,
-		Implementation::Memory::PoolAllocator::ProtectedAllocator<char>>;
+		Implementation::Memory::DefaultProtectedAllocator<char>>;
 
 	template<typename T>
-	using Vector = std::vector<T>;
+	using Vector = std::vector<T, Implementation::Memory::DefaultAllocator<T>>;
 
-	template<typename T>
-	using Set = std::set<T>;
+	template<typename T, typename C = std::less<T>>
+	using Set = std::set<T, C, Implementation::Memory::DefaultAllocator<T>>;
 
 	struct PeerKeys
 	{

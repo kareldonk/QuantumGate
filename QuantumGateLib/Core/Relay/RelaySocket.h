@@ -3,9 +3,8 @@
 
 #pragma once
 
+#include "..\..\Common\Containers.h"
 #include "..\..\Network\SocketBase.h"
-
-#include <queue>
 
 namespace QuantumGate::Implementation::Core::Relay
 {
@@ -13,7 +12,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		friend class Manager;
 
-		using RelayDataQueue = std::queue<Buffer>;
+		using RelayDataQueue = Containers::Queue<Buffer>;
 
 	public:
 		Socket() noexcept;

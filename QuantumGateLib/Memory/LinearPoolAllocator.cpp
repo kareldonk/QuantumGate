@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Memory::LinearPoolAllocator
 	template<typename Type>
 	void AllocatorBase<Type>::LogStatistics() noexcept
 	{
-		auto output = Util::FormatString(L"\r\n\r\n%s statistics:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
+		auto output = AllocatorStats::FormatString(L"\r\n\r\n%s statistics:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
 
 		GetMemoryPool<Type>().WithUniqueLock([&](const auto& mp)
 		{
@@ -20,9 +20,9 @@ namespace QuantumGate::Implementation::Memory::LinearPoolAllocator
 			{
 				const auto pool_size = it->Buffer.size();
 
-				output += Util::FormatString(L"Pool size: %zu bytes, Free: %zu bytes, Num allocs in use: %zu\r\n",
-											 it->Buffer.size(), it->Buffer.size() - it->FreeOffset,
-											 it->Allocations.size());
+				output += AllocatorStats::FormatString(L"Pool size: %8zu bytes, Free: %8zu bytes, Num allocs in use: %zu\r\n",
+													   it->Buffer.size(), it->Buffer.size() - it->FreeOffset,
+													   it->Allocations.size());
 			}
 		});
 
@@ -30,9 +30,9 @@ namespace QuantumGate::Implementation::Memory::LinearPoolAllocator
 		{
 			auto& as = GetAllocatorStats<Type>();
 
-			output += Util::FormatString(L"\r\n%s allocation sizes:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
+			output += AllocatorStats::FormatString(L"\r\n%s allocation sizes:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
 			output += as.WithSharedLock()->GetAllSizes();
-			output += Util::FormatString(L"\r\n%s memory in use:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
+			output += AllocatorStats::FormatString(L"\r\n%s memory in use:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
 			output += as.WithSharedLock()->GetMemoryInUse();
 		});
 
@@ -107,14 +107,7 @@ namespace QuantumGate::Implementation::Memory::LinearPoolAllocator
 
 		DbgInvoke([&]()
 		{
-			auto& as = GetAllocatorStats<Type>();
-
-			as.WithUniqueLock([&](auto& stats)
-			{
-				stats.Sizes.insert(len);
-
-				if (retbuf != nullptr) stats.MemoryInUse.insert({ reinterpret_cast<std::uintptr_t>(retbuf), len });
-			});
+			GetAllocatorStats<Type>().WithUniqueLock()->AddAllocation(retbuf, len);
 		});
 
 		return retbuf;
@@ -160,12 +153,7 @@ namespace QuantumGate::Implementation::Memory::LinearPoolAllocator
 		{
 			if (found)
 			{
-				auto& as = GetAllocatorStats<Type>();
-
-				as.WithUniqueLock([&](auto& stats)
-				{
-					stats.MemoryInUse.erase(reinterpret_cast<std::uintptr_t>(p));
-				});
+				GetAllocatorStats<Type>().WithUniqueLock()->RemoveAllocation(p, len);
 			}
 		});
 	}

@@ -3,10 +3,9 @@
 
 #pragma once
 
+#include "..\..\Common\Containers.h"
 #include "..\..\Network\IPAddress.h"
 #include "..\..\Concurrency\ThreadSafe.h"
-
-#include <unordered_map>
 
 namespace QuantumGate::Implementation::Core::Access
 {
@@ -20,7 +19,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Network::BinaryIPAddress EndAddress; // Network byte order (big endian)
 	};
 
-	using IPFilterMap = std::unordered_map<IPFilterID, IPFilterImpl>;
+	using IPFilterMap = Containers::UnorderedMap<IPFilterID, IPFilterImpl>;
 
 	class Export IPFilters final
 	{

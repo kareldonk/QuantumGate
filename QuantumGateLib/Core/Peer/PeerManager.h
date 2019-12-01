@@ -18,7 +18,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		friend class Peer;
 		friend class Relay::Manager;
 
-		using PeerMap = std::unordered_map<PeerLUID, std::shared_ptr<Peer_ThS>>;
+		using PeerMap = Containers::UnorderedMap<PeerLUID, std::shared_ptr<Peer_ThS>>;
 		using PeerMap_ThS = Concurrency::ThreadSafe<PeerMap, Concurrency::RecursiveSharedMutex>;
 		using PeerQueue = Concurrency::Queue<std::shared_ptr<Peer_ThS>>;
 		using PeerQueue_ThS = Concurrency::ThreadSafe<PeerQueue, Concurrency::SpinMutex>;
@@ -41,7 +41,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
-		using ThreadPoolMap = std::unordered_map<UInt64, std::unique_ptr<ThreadPool>>;
+		using ThreadPoolMap = Containers::UnorderedMap<UInt64, std::unique_ptr<ThreadPool>>;
 
 	public:
 		Manager() = delete;

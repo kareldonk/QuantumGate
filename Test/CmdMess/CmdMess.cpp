@@ -107,7 +107,7 @@ int main()
 							wchar_t* end = nullptr;
 							auto port = wcstoul(m[2].str().c_str(), &end, 10);
 
-							if (!m_QuantumGate.ConnectTo({ IPEndpoint(IPAddress(m[1].str()), static_cast<UInt16>(port)) }))
+							if (!m_QuantumGate.ConnectTo({ IPEndpoint(IPAddress(m[1].str().c_str()), static_cast<UInt16>(port)) }))
 							{
 								LogErr(L"Failed to connect");
 							}

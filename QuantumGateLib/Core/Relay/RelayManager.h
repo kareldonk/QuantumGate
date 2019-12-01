@@ -17,15 +17,15 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		using EventQueue = Concurrency::Queue<Event>;
 		using EventQueue_ThS = Concurrency::ThreadSafe<EventQueue, std::shared_mutex>;
-		using EventQueueMap = std::unordered_map<ThreadKey, std::unique_ptr<EventQueue_ThS>>;
+		using EventQueueMap = Containers::UnorderedMap<ThreadKey, std::unique_ptr<EventQueue_ThS>>;
 
-		using RelayPortToThreadKeyMap = std::unordered_map<RelayPort, ThreadKey>;
+		using RelayPortToThreadKeyMap = Containers::UnorderedMap<RelayPort, ThreadKey>;
 		using RelayPortToThreadKeyMap_ThS = Concurrency::ThreadSafe<RelayPortToThreadKeyMap, Concurrency::SharedSpinMutex>;
 
-		using ThreadKeyToLinkTotalMap = std::unordered_map<ThreadKey, Size>;
+		using ThreadKeyToLinkTotalMap = Containers::UnorderedMap<ThreadKey, Size>;
 		using ThreadKeyToLinkTotalMap_ThS = Concurrency::ThreadSafe<ThreadKeyToLinkTotalMap, Concurrency::SharedSpinMutex>;
 
-		using LinkMap = std::unordered_map<RelayPort, std::unique_ptr<Link_ThS>>;
+		using LinkMap = Containers::UnorderedMap<RelayPort, std::unique_ptr<Link_ThS>>;
 		using LinkMap_ThS = Concurrency::ThreadSafe<LinkMap, std::shared_mutex>;
 
 		struct ThreadData final

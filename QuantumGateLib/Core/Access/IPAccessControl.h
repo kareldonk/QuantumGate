@@ -3,9 +3,8 @@
 
 #pragma once
 
+#include "..\..\Common\Containers.h"
 #include "..\..\Network\IPAddress.h"
-
-#include <unordered_map>
 
 namespace QuantumGate::Implementation::Core::Access
 {
@@ -68,7 +67,7 @@ namespace QuantumGate::Implementation::Core::Access
 		ConnectionAttempts m_RelayConnectionAttempts;
 	};
 
-	using IPAccessDetailsMap = std::unordered_map<Network::BinaryIPAddress, IPAccessDetails>;
+	using IPAccessDetailsMap = Containers::UnorderedMap<Network::BinaryIPAddress, IPAccessDetails>;
 
 	class IPAccessControl final
 	{

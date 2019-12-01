@@ -3,10 +3,8 @@
 
 #pragma once
 
+#include "..\..\Common\Containers.h"
 #include "..\..\Network\IPAddress.h"
-
-#include <map>
-#include <unordered_map>
 
 namespace QuantumGate::Implementation::Core::Access
 {
@@ -25,7 +23,7 @@ namespace QuantumGate::Implementation::Core::Access
 		}
 	};
 
-	using IPSubnetLimitMap = std::map<UInt8, IPSubnetLimitImpl, decltype(&IPSubnetLimitImpl::Compare)>;
+	using IPSubnetLimitMap = Containers::Map<UInt8, IPSubnetLimitImpl, decltype(&IPSubnetLimitImpl::Compare)>;
 
 	struct IPSubnetLimitDetail final
 	{
@@ -37,7 +35,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Size CurrentConnections{ 0 };
 	};
 
-	using IPSubnetLimitDetailMap = std::unordered_map<Network::BinaryIPAddress, IPSubnetLimitDetail>;
+	using IPSubnetLimitDetailMap = Containers::UnorderedMap<Network::BinaryIPAddress, IPSubnetLimitDetail>;
 
 	struct IPSubnetConnection final
 	{
@@ -45,7 +43,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Size CurrentConnections{ 0 };
 	};
 
-	using IPSubnetConnectionMap = std::unordered_map<Network::BinaryIPAddress, IPSubnetConnection>;
+	using IPSubnetConnectionMap = Containers::UnorderedMap<Network::BinaryIPAddress, IPSubnetConnection>;
 
 	struct IPSubnetAF final
 	{

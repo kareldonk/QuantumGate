@@ -3,8 +3,7 @@
 
 #pragma once
 
-#include "PoolAllocator.h"
-#include "ProtectedFreeStoreAllocator.h"
+#include "Allocator.h"
 #include "BufferView.h"
 
 #include <cassert> 
@@ -12,11 +11,11 @@
 
 namespace QuantumGate::Implementation::Memory
 {
-	template<typename A = FreeStoreAllocator<Byte>>
+	template<template<typename> typename A = FreeStoreAllocator>
 	class BufferImpl
 	{
 	public:
-		using VectorType = std::vector<Byte, A>;
+		using VectorType = std::vector<Byte, A<Byte>>;
 		using SizeType = Size;
 
 		BufferImpl() noexcept {}
@@ -168,6 +167,6 @@ namespace QuantumGate::Implementation::Memory
 	};
 
 	using FreeBuffer = BufferImpl<>;
-	using Buffer = BufferImpl<PoolAllocator::Allocator<Byte>>;
-	using ProtectedBuffer = BufferImpl<PoolAllocator::ProtectedAllocator<Byte>>;
+	using Buffer = BufferImpl<DefaultAllocator>;
+	using ProtectedBuffer = BufferImpl<DefaultProtectedAllocator>;
 }

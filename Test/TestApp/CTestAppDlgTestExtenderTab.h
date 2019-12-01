@@ -50,7 +50,7 @@ protected:
 	void LoadStressExtender();
 	void UnloadStressExtender();
 
-	bool SendMsgToPeer(const PeerLUID pluid, const std::wstring& txt,
+	bool SendMsgToPeer(const PeerLUID pluid, const String& txt,
 					   const QuantumGate::SendParameters::PriorityOption priority, const std::chrono::milliseconds delay);
 	void StartSendThread();
 	void StopSendThread();

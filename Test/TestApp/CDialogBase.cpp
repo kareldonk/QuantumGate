@@ -123,7 +123,7 @@ void CDialogBase::SetValue(const int id, const std::chrono::milliseconds val) no
 	SetValue(id, static_cast<Size>(val.count()));
 }
 
-void CDialogBase::SetValue(const int id, const std::wstring& val) noexcept
+void CDialogBase::SetValue(const int id, const String& val) noexcept
 {
 	SetValue(id, CString(val.c_str()));
 }

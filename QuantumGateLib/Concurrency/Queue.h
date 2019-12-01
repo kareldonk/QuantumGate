@@ -4,20 +4,21 @@
 #pragma once
 
 #include "EventCondition.h"
-
-#include <queue>
+#include "..\Common\Containers.h"
 
 namespace QuantumGate::Implementation::Concurrency
 {
 	template<typename T>
-	class Queue
+	class Queue final
 	{
 	public:
+		using QueueType = Containers::Queue<T>;
+	
 		Queue() noexcept {}
 		Queue(const Queue&) = delete;
 		Queue(Queue&&) = default;
 		Queue& operator=(const Queue&) = delete;
-		virtual ~Queue() = default;
+		~Queue() = default;
 		Queue& operator=(Queue&&) = default;
 
 		inline bool Empty() const noexcept
@@ -32,7 +33,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 		void Clear() noexcept
 		{
-			std::queue<T> empty;
+			QueueType empty;
 			m_Queue.swap(empty);
 
 			m_Event.Reset();
@@ -90,19 +91,19 @@ namespace QuantumGate::Implementation::Concurrency
 			if (Empty()) m_Event.Reset();
 		}
 
-		inline Concurrency::EventCondition& Event() noexcept
+		inline EventCondition& Event() noexcept
 		{
 			return m_Event;
 		}
 
-		inline const Concurrency::EventCondition& Event() const noexcept
+		inline const EventCondition& Event() const noexcept
 		{
 			return m_Event;
 		}
 
 	private:
-		std::queue<T> m_Queue;
-		Concurrency::EventCondition m_Event{ false };
+		QueueType m_Queue;
+		EventCondition m_Event{ false };
 	};
 }
 

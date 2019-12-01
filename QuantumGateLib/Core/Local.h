@@ -23,7 +23,7 @@ namespace QuantumGate::Implementation::Core
 	{
 		friend class Extender::Extender;
 
-		using ExtenderModuleMap = std::unordered_map<Extender::ExtenderModuleID, Extender::Module>;
+		using ExtenderModuleMap = Containers::UnorderedMap<Extender::ExtenderModuleID, Extender::Module>;
 
 		using Event = std::variant<Events::LocalEnvironmentChange, Events::UnhandledExtenderException>;
 		using EventQueue = Concurrency::Queue<Event>;

@@ -11,7 +11,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 {
 	class Manager final
 	{
-		using KeyQueueMap = std::unordered_map<Algorithm::Asymmetric, std::unique_ptr<KeyQueue_ThS>>;
+		using KeyQueueMap = Containers::UnorderedMap<Algorithm::Asymmetric, std::unique_ptr<KeyQueue_ThS>>;
 		using KeyQueueMap_ThS = Concurrency::ThreadSafe<KeyQueueMap, Concurrency::SharedSpinMutex>;
 
 		using EventQueue = Concurrency::Queue<Event>;

@@ -105,8 +105,8 @@ namespace StressExtender
 					{
 						handled = true;
 
-						std::wstring str;
-						str.resize((msgdata->GetSize() - sizeof(UInt16)) / sizeof(std::wstring::value_type));
+						String str;
+						str.resize((msgdata->GetSize() - sizeof(UInt16)) / sizeof(String::value_type));
 
 						if (rdr.Read(str))
 						{
@@ -160,7 +160,7 @@ namespace StressExtender
 		return std::make_pair(handled, success);
 	}
 
-	bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg, const SendParameters::PriorityOption priority,
+	bool Extender::SendMessage(const PeerLUID pluid, const String& msg, const SendParameters::PriorityOption priority,
 							   const std::chrono::milliseconds delay) const
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::MessageString);

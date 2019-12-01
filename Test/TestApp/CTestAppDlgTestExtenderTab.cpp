@@ -347,7 +347,7 @@ void CTestAppDlgTestExtenderTab::SendThreadProc(CTestAppDlgTestExtenderTab* dlg,
 	}
 }
 
-bool CTestAppDlgTestExtenderTab::SendMsgToPeer(const PeerLUID pluid, const std::wstring& txt,
+bool CTestAppDlgTestExtenderTab::SendMsgToPeer(const PeerLUID pluid, const String& txt,
 											   const QuantumGate::SendParameters::PriorityOption priority,
 											   const std::chrono::milliseconds delay)
 {
@@ -466,7 +466,7 @@ void CTestAppDlgTestExtenderTab::OnBnClickedSendStress()
 
 	if (!m_TestExtender->SendBenchmarkStart(pluid)) return;
 
-	std::wstring txt;
+	String txt;
 
 	for (int x = 0; x < nmess; ++x)
 	{

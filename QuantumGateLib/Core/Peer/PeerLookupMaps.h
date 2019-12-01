@@ -5,8 +5,6 @@
 
 #include "Peer.h"
 
-#include <unordered_map>
-
 namespace QuantumGate::Implementation::Core::Peer
 {
 	class Manager;
@@ -17,16 +15,16 @@ namespace QuantumGate::Implementation::Core::Peer
 		using LUIDVector = Vector<PeerLUID>;
 
 		// One to one relationship between PeerData and PeerLUID
-		using PeerDataMap = std::unordered_map<PeerLUID, const Data_ThS&>;
+		using PeerDataMap = Containers::UnorderedMap<PeerLUID, const Data_ThS&>;
 
 		// One to many relationship between UUID and PeerLUID
-		using UUIDMap = std::unordered_map<PeerUUID, LUIDVector>;
+		using UUIDMap = Containers::UnorderedMap<PeerUUID, LUIDVector>;
 
 		// One to many relationship between IP address and PeerLUID
-		using IPMap = std::unordered_map<BinaryIPAddress, LUIDVector>;
+		using IPMap = Containers::UnorderedMap<BinaryIPAddress, LUIDVector>;
 
 		// One to many relationship between IP address and port and PeerLUID
-		using IPPortMap = std::unordered_map<UInt64, LUIDVector>;
+		using IPPortMap = Containers::UnorderedMap<UInt64, LUIDVector>;
 
 		inline const PeerDataMap& GetPeerDataMap() const noexcept { return m_PeerDataMap; }
 		inline const UUIDMap& GetUUIDMap() const noexcept { return m_UUIDMap; }

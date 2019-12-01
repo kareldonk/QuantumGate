@@ -192,7 +192,7 @@ bool CTestAppApp::SaveKey(const String& path, const ProtectedBuffer& key) const 
 	return false;
 }
 
-const std::wstring& CTestAppApp::GetFolder() noexcept
+const String& CTestAppApp::GetFolder() noexcept
 {
 	if (m_AppFolder.empty())
 	{
@@ -204,7 +204,7 @@ const std::wstring& CTestAppApp::GetFolder() noexcept
 			m_AppFolder = pModuleFile;
 
 			const auto pos = m_AppFolder.rfind(L"\\");
-			if (pos != std::wstring::npos)
+			if (pos != String::npos)
 			{
 				m_AppFolder = m_AppFolder.substr(0, pos + 1);
 			}

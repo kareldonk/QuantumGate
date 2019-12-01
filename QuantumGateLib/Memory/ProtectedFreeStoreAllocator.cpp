@@ -60,7 +60,7 @@ namespace QuantumGate::Implementation::Memory
 	{
 		DbgInvoke([&]()
 		{
-			String output{ L"\r\n\r\nProtectedFreeStoreAllocator allocation sizes:\r\n-----------------------------------------------\r\n" };
+			std::wstring output{ L"\r\n\r\nProtectedFreeStoreAllocator allocation sizes:\r\n-----------------------------------------------\r\n" };
 			output += GetProtectedFreeStoreAllocatorStats().WithSharedLock()->GetAllSizes();
 			output += L"\r\nProtectedFreeStoreAllocator memory in use:\r\n-----------------------------------------------\r\n";
 			output += GetProtectedFreeStoreAllocatorStats().WithSharedLock()->GetMemoryInUse();
@@ -153,12 +153,7 @@ namespace QuantumGate::Implementation::Memory
 
 		DbgInvoke([&]()
 		{
-			GetProtectedFreeStoreAllocatorStats().WithUniqueLock([&](auto& stats)
-			{
-				stats.Sizes.insert(len);
-
-				if (memaddr != nullptr) stats.MemoryInUse.insert({ reinterpret_cast<std::uintptr_t>(memaddr), len });
-			});
+			GetProtectedFreeStoreAllocatorStats().WithUniqueLock()->AddAllocation(memaddr, len);
 		});
 
 		return memaddr;
@@ -175,10 +170,7 @@ namespace QuantumGate::Implementation::Memory
 
 		DbgInvoke([&]()
 		{
-			GetProtectedFreeStoreAllocatorStats().WithUniqueLock([&](auto& stats)
-			{
-				stats.MemoryInUse.erase(reinterpret_cast<std::uintptr_t>(p));
-			});
+			GetProtectedFreeStoreAllocatorStats().WithUniqueLock()->RemoveAllocation(p, len);
 		});
 	}
 }

@@ -8,8 +8,6 @@
 #include "..\Peer\PeerExtenderUUIDs.h"
 #include "ExtenderControl.h"
 
-#include <unordered_map> 
-
 namespace QuantumGate::Implementation::Core::Extender
 {
 	struct ActiveExtenderUUIDs final
@@ -24,7 +22,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		friend class Control;
 
-		using ExtenderMap = std::unordered_map<ExtenderUUID, std::unique_ptr<Control_ThS>>;
+		using ExtenderMap = Containers::UnorderedMap<ExtenderUUID, std::unique_ptr<Control_ThS>>;
 		using ExtenderMap_ThS = Concurrency::ThreadSafe<ExtenderMap, std::shared_mutex>;
 
 	public:

@@ -190,7 +190,7 @@ void Stress::MultiInstanceStressThreadProc()
 	LogWarn(L"Multi instance stress starting for endpoint %s:%u...",
 			m_MultiInstanceStressData.IP.c_str(), m_MultiInstanceStressData.Port);
 
-	const std::array<std::wstring, 5> messages =
+	const std::array<String, 5> messages =
 	{
 		L"What is contrary to the visible truth must change or disappear -- that's the law of life",
 		L"I shall never believe that what is founded on lies can endure for ever. I believe in truth. I'm sure that, in the long run, truth must be victorious.",

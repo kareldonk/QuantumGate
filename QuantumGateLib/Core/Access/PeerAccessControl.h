@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <unordered_map>
+#include "..\..\Common\Containers.h"
 
 namespace QuantumGate::Implementation::Core::Access
 {
@@ -15,7 +15,7 @@ namespace QuantumGate::Implementation::Core::Access
 			bool AccessAllowed{ false };
 		};
 
-		using PeerAccessDetailsMap = std::unordered_map<PeerUUID, PeerAccessDetails>;
+		using PeerAccessDetailsMap = Containers::UnorderedMap<PeerUUID, PeerAccessDetails>;
 
 	public:
 		PeerAccessControl() = delete;

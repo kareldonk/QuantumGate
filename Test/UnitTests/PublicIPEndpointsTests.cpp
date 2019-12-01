@@ -12,7 +12,7 @@ using namespace std::literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace QuantumGate::Implementation::Core;
 
-bool CheckIPs(const std::vector<BinaryIPAddress>& ips, const std::vector<BinaryIPAddress>& exp_ips)
+bool CheckIPs(const Vector<BinaryIPAddress>& ips, const std::vector<BinaryIPAddress>& exp_ips)
 {
 	for (const auto& ip : ips)
 	{
@@ -197,7 +197,7 @@ namespace UnitTests
 				{
 					BinaryIPAddress IPAddress;
 					bool Trusted{ false };
-					std::set<UInt16> Ports;
+					Set<UInt16> Ports;
 					Size NumReportingPeerNetworks{ 0 };
 				};
 
@@ -512,7 +512,7 @@ namespace UnitTests
 				IPAddress(L"199.111.110.30").GetBinary()
 			};
 
-			std::vector<BinaryIPAddress> ips;
+			Vector<BinaryIPAddress> ips;
 			const auto result = pubendp.AddIPAddresses(ips, false);
 			Assert::AreEqual(true, result.Succeeded());
 			Assert::AreEqual(true, CheckIPs(ips, expected_ips));

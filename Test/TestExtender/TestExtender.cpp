@@ -395,8 +395,8 @@ namespace TestExtender
 						{
 							handled = true;
 
-							std::wstring str;
-							str.resize((msgdata->GetSize() - sizeof(UInt16)) / sizeof(std::wstring::value_type));
+							String str;
+							str.resize((msgdata->GetSize() - sizeof(UInt16)) / sizeof(String::value_type));
 
 							if (rdr.Read(str))
 							{
@@ -789,7 +789,7 @@ namespace TestExtender
 		return false;
 	}
 
-	bool Extender::SendMessage(const PeerLUID pluid, const std::wstring& msg, const SendParameters::PriorityOption priority,
+	bool Extender::SendMessage(const PeerLUID pluid, const String& msg, const SendParameters::PriorityOption priority,
 							   const std::chrono::milliseconds delay) const
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::MessageString);
@@ -891,8 +891,8 @@ namespace TestExtender
 
 	bool Extender::SendFileTransferStart(const PeerLUID pluid, FileTransfer& ft)
 	{
-		Path fp(ft.GetFileName());
-		String filename = fp.filename().wstring();
+		Path fp{ ft.GetFileName() };
+		String filename{ fp.filename().wstring().c_str() };
 
 		// Filename may not be longer than 256 bytes (128 wide characters)
 		filename = filename.substr(0, 128);

@@ -27,7 +27,7 @@ public:
 	void SetValue(const int id, const bool val) noexcept;
 	void SetValue(const int id, const std::chrono::seconds val) noexcept;
 	void SetValue(const int id, const std::chrono::milliseconds val) noexcept;
-	void SetValue(const int id, const std::wstring& val) noexcept;
+	void SetValue(const int id, const String& val) noexcept;
 	void SetValue(const int id, const std::string& val) noexcept;
 	void SetValue(const int id, const wchar_t* val) noexcept;
 

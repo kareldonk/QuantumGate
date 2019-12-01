@@ -19,7 +19,7 @@ class CTestAppApp final : public CWinApp
 public:
 	CTestAppApp();
 	
-	const std::wstring& GetFolder() noexcept;
+	const String& GetFolder() noexcept;
 
 	std::optional<CString> BrowseForFile(HWND hwnd, const bool save) const noexcept;
 
@@ -35,7 +35,7 @@ public:
 	DECLARE_MESSAGE_MAP()
 
 private:
-	std::wstring m_AppFolder;
+	String m_AppFolder;
 };
 
 CTestAppApp* GetApp() noexcept;
