@@ -3,21 +3,25 @@
 
 #pragma once
 
-#include "LinearPoolAllocator.h"
+#include "ProtectedFreeStoreAllocator.h"
 
-namespace QuantumGate::Implementation::Memory::PoolAllocator
+namespace QuantumGate::Implementation::Memory
+{
+	struct NormalPool final {};
+	struct ProtectedPool final {};
+}
+
+namespace QuantumGate::Implementation::Memory::LinearPoolAllocator
 {
 	template<typename Type>
 	class Export AllocatorBase
 	{
 	public:
 		static void LogStatistics() noexcept;
-		static void FreeUnused() noexcept;
 
 	protected:
-		static std::pair<bool, std::size_t> GetAllocationDetails(const std::size_t n) noexcept;
-		[[nodiscard]] static void* AllocateFromPool(const std::size_t n) noexcept;
-		[[nodiscard]] static bool FreeToPool(void* p, const std::size_t n) noexcept;
+		[[nodiscard]] void* Allocate(const std::size_t len);
+		void Deallocate(void* p, const std::size_t len);
 	};
 
 	template<typename T, typename Type = NormalPool>
@@ -54,22 +58,16 @@ namespace QuantumGate::Implementation::Memory::PoolAllocator
 			return false;
 		}
 
-		[[nodiscard]] inline pointer allocate(const std::size_t n)
+		[[nodiscard]] pointer allocate(const std::size_t n)
 		{
-			auto retval = this->AllocateFromPool(n * sizeof(T));
-			if (retval == nullptr) throw std::bad_alloc();
-
-			return static_cast<T*>(retval);
+			return static_cast<pointer>(this->Allocate(n * sizeof(T)));
 		}
 
-		inline void deallocate(pointer p, const std::size_t n)
+		void deallocate(pointer p, const std::size_t n) noexcept
 		{
 			assert(p != nullptr);
 
-			if (!this->FreeToPool(p, n * sizeof(T)))
-			{
-				throw std::invalid_argument("Trying to free memory that wasn't allocated with this allocator.");
-			}
+			this->Deallocate(p, n * sizeof(T));
 		}
 	};
 

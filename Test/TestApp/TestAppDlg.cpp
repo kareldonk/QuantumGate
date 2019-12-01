@@ -9,6 +9,7 @@
 #include "Crypto\Crypto.h"
 #include "Common\Endian.h"
 #include "Network\Ping.h"
+#include "Memory\LinearPoolAllocator.h"
 
 #include "Benchmarks.h"
 #include "Attacks.h"
@@ -1486,8 +1487,15 @@ void CTestAppDlg::OnBenchmarksMemory()
 
 void CTestAppDlg::OnUtilsLogAllocatorStatistics()
 {
-	QuantumGate::Implementation::Memory::PoolAllocator<void>::LogStatistics();
-	QuantumGate::Implementation::Memory::ProtectedAllocator<void>::LogStatistics();
+	QuantumGate::Implementation::Memory::PoolAllocator::Allocator<void>::LogStatistics();
+	QuantumGate::Implementation::Memory::LinearPoolAllocator::Allocator<void>::LogStatistics();
+
+	QuantumGate::Implementation::Memory::PoolAllocator::ProtectedAllocator<void>::LogStatistics();
+	QuantumGate::Implementation::Memory::LinearPoolAllocator::ProtectedAllocator<void>::LogStatistics();
+	QuantumGate::Implementation::Memory::ProtectedFreeStoreAllocator<void>::LogStatistics();
+
+	QuantumGate::Implementation::Memory::PoolAllocator::Allocator<void>::FreeUnused();
+	QuantumGate::Implementation::Memory::PoolAllocator::ProtectedAllocator<void>::FreeUnused();
 }
 
 void CTestAppDlg::OnLocalIPReputations()

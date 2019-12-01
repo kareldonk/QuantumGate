@@ -234,9 +234,6 @@
     <ClInclude Include="Concurrency\Queue.h">
       <Filter>Header Files\Concurrency</Filter>
     </ClInclude>
-    <ClInclude Include="Memory\Allocator.h">
-      <Filter>Header Files\Memory</Filter>
-    </ClInclude>
     <ClInclude Include="Memory\Buffer.h">
       <Filter>Header Files\Memory</Filter>
     </ClInclude>
@@ -250,9 +247,6 @@
       <Filter>Header Files\Memory</Filter>
     </ClInclude>
     <ClInclude Include="Memory\BufferWriter.h">
-      <Filter>Header Files\Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory\ProtectedAllocator.h">
       <Filter>Header Files\Memory</Filter>
     </ClInclude>
     <ClInclude Include="Core\Extender\ExtenderManager.h">
@@ -399,6 +393,21 @@
     <ClInclude Include="Memory\AllocatorStats.h">
       <Filter>Header Files\Memory</Filter>
     </ClInclude>
+    <ClInclude Include="Memory\LinearPoolAllocator.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\LinearPoolAllocatorImpl.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\PoolAllocatorImpl.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\FreeStoreAllocator.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\ProtectedFreeStoreAllocator.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -533,9 +542,6 @@
     <ClCompile Include="Core\KeyGeneration\KeyGenerationManager.cpp">
       <Filter>Source Files\Core\KeyGeneration</Filter>
     </ClCompile>
-    <ClCompile Include="Memory\ProtectedAllocator.cpp">
-      <Filter>Source Files\Memory</Filter>
-    </ClCompile>
     <ClCompile Include="Core\LocalEnvironment.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
@@ -574,6 +580,15 @@
     </ClCompile>
     <ClCompile Include="Core\Peer\PeerSendQueues.cpp">
       <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\LinearPoolAllocator.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\CommonStatic.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\ProtectedFreeStoreAllocator.cpp">
+      <Filter>Source Files\Memory</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

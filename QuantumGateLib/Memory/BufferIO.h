@@ -11,6 +11,19 @@
 
 namespace QuantumGate::Implementation::Memory
 {
+	struct MemorySize final
+	{
+		static constexpr Size _1B{ 0x00000001UL };
+		static constexpr Size _256B{ 0x00000100UL };
+		static constexpr Size _1KB{ 0x00000400UL };
+		static constexpr Size _65KB{ 0x00010000UL };
+		static constexpr Size _1MB{ 0x00100000UL };
+		static constexpr Size _2MB{ 0x00200000UL };
+		static constexpr Size _4MB{ 0x00400000UL };
+		static constexpr Size _8MB{ 0x00800000UL };
+		static constexpr Size _16MB{ 0x01000000UL };
+	};
+
 	class MaxSize final
 	{
 	public:
@@ -18,9 +31,9 @@ namespace QuantumGate::Implementation::Memory
 
 		constexpr Size GetSize() const noexcept { return m_Size; }
 
-		static constexpr Size UInt8{ std::numeric_limits<QuantumGate::UInt8>::max() };
-		static constexpr Size UInt16{ std::numeric_limits<QuantumGate::UInt16>::max() };
-		static constexpr Size UInt32{ std::numeric_limits<QuantumGate::UInt32>::max() };
+		static constexpr Size UInt8{ std::numeric_limits<UInt8>::max() };
+		static constexpr Size UInt16{ std::numeric_limits<UInt16>::max() };
+		static constexpr Size UInt32{ std::numeric_limits<UInt32>::max() };
 
 		static constexpr Size _256B{ UInt8 };
 		static constexpr Size _1KB{ 0x00000400UL };
@@ -29,7 +42,7 @@ namespace QuantumGate::Implementation::Memory
 		static constexpr Size _2MB{ 0x00200000UL };
 		static constexpr Size _4MB{ 0x00400000UL };
 		static constexpr Size _8MB{ 0x00800000UL };
-		static constexpr Size _16MB{ 0x01000000UL };
+		static constexpr Size _16MB{ 0x00ffffffUL };
 		static constexpr Size _4GB{ UInt32 };
 
 #ifdef _WIN64

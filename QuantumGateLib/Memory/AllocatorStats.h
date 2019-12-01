@@ -15,11 +15,9 @@ namespace QuantumGate::Implementation::Memory
 		std::set<Size> Sizes;
 		std::map<std::uintptr_t, Size> MemoryInUse;
 
-		String GetMemoryInUse(const WChar* header) const
+		[[nodiscard]] String GetMemoryInUse() const
 		{
-			assert(header != nullptr);
-
-			String output{ header };
+			String output;
 
 			Size total{ 0 };
 
@@ -34,11 +32,9 @@ namespace QuantumGate::Implementation::Memory
 			return output;
 		}
 
-		String GetAllSizes(const WChar* header) const
+		[[nodiscard]] String GetAllSizes() const
 		{
-			assert(header != nullptr);
-
-			String output{ header };
+			String output;
 
 			for (const auto size : Sizes)
 			{
@@ -49,5 +45,5 @@ namespace QuantumGate::Implementation::Memory
 		}
 	};
 
-	using AllocatorStats_ThS = Concurrency::ThreadSafe<AllocatorStats, Concurrency::SharedSpinMutex>;
+	using AllocatorStats_ThS = Concurrency::ThreadSafe<AllocatorStats, std::shared_mutex>;
 }

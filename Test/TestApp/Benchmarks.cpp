@@ -399,7 +399,7 @@ void Benchmarks::BenchmarkMemory()
 
 		DoBenchmark(std::wstring(L"Pool Allocator"), maxtr, [&]()
 		{
-			using PBuffer = BufferImpl<PoolAllocator<Byte>>;
+			using PBuffer = BufferImpl<PoolAllocator::Allocator<Byte>>;
 
 			PBuffer buf;
 			buf.Allocate(len);

@@ -74,9 +74,9 @@ namespace QuantumGate
 	using ProtectedRingBuffer = Implementation::Memory::ProtectedRingBuffer;
 
 	using ProtectedString = std::basic_string<wchar_t, std::char_traits<wchar_t>,
-		Implementation::Memory::ProtectedAllocator<wchar_t>>;
+		Implementation::Memory::PoolAllocator::ProtectedAllocator<wchar_t>>;
 	using ProtectedStringA = std::basic_string<char, std::char_traits<char>,
-		Implementation::Memory::ProtectedAllocator<char>>;
+		Implementation::Memory::PoolAllocator::ProtectedAllocator<char>>;
 
 	template<typename T>
 	using Vector = std::vector<T>;

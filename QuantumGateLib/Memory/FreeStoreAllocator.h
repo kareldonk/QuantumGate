@@ -6,7 +6,7 @@
 namespace QuantumGate::Implementation::Memory
 {
 	template<typename T>
-	class Allocator final
+	class FreeStoreAllocator final
 	{
 	public:
 		using value_type = T;
@@ -16,25 +16,25 @@ namespace QuantumGate::Implementation::Memory
 		using propagate_on_container_swap = std::false_type;
 		using is_always_equal = std::true_type;
 
-		Allocator() noexcept = default;
+		FreeStoreAllocator() noexcept = default;
 
 		template<typename Other>
-		Allocator(const Allocator<Other>&) noexcept {}
+		FreeStoreAllocator(const FreeStoreAllocator<Other>&) noexcept {}
 
-		Allocator(const Allocator&) = default;
-		Allocator(Allocator&&) = default;
-		virtual ~Allocator() = default;
-		Allocator& operator=(const Allocator&) = default;
-		Allocator& operator=(Allocator&&) = default;
+		FreeStoreAllocator(const FreeStoreAllocator&) = default;
+		FreeStoreAllocator(FreeStoreAllocator&&) = default;
+		~FreeStoreAllocator() = default;
+		FreeStoreAllocator& operator=(const FreeStoreAllocator&) = default;
+		FreeStoreAllocator& operator=(FreeStoreAllocator&&) = default;
 
 		template<typename Other>
-		inline bool operator==(const Allocator<Other>&) const noexcept
+		inline bool operator==(const FreeStoreAllocator<Other>&) const noexcept
 		{
 			return true;
 		}
 
 		template<typename Other>
-		inline bool operator!=(const Allocator<Other>&) const noexcept
+		inline bool operator!=(const FreeStoreAllocator<Other>&) const noexcept
 		{
 			return false;
 		}
@@ -54,17 +54,17 @@ namespace QuantumGate::Implementation::Memory
 			::operator delete(p);
 		}
 
-		inline static void MemInit(void* dst, const Size len) noexcept
+		inline static void MemInit(void* dst, const std::size_t len) noexcept
 		{
 			memset(dst, 0, len);
 		}
 
-		inline static void MemClear(void* dst, const Size len) noexcept
+		inline static void MemClear(void* dst, const std::size_t len) noexcept
 		{
 			::SecureZeroMemory(dst, len);
 		}
 	};
 }
 
-#define MemInit(a, l) QuantumGate::Implementation::Memory::Allocator<void>::MemInit(a, l)
-#define MemClear(a, l) QuantumGate::Implementation::Memory::Allocator<void>::MemClear(a, l)
+#define MemInit(a, l) QuantumGate::Implementation::Memory::FreeStoreAllocator<void>::MemInit(a, l)
+#define MemClear(a, l) QuantumGate::Implementation::Memory::FreeStoreAllocator<void>::MemClear(a, l)

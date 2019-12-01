@@ -3,47 +3,20 @@
 
 #include "stdafx.h"
 #include "PoolAllocator.h"
-#include "AllocatorStats.h"
-#include "Allocator.h"
-#include "BufferIO.h"
+#include "PoolAllocatorImpl.h"
 
-namespace QuantumGate::Implementation::Memory
+namespace QuantumGate::Implementation::Memory::PoolAllocator
 {
-	static constexpr const std::size_t PoolAllocationMinimumSize{ MaxSize::_65KB };
-	static constexpr const std::size_t PoolAllocationMaximumSize{ MaxSize::_4MB };
-	static constexpr const std::size_t MaximumFreeBufferPoolSize{ MaxSize::_16MB };
-	static constexpr const std::size_t MaximumFreeBuffersPerPool{ 20 };
-
-	using MemoryBuffer = std::vector<Byte, Allocator<Byte>>;
-	using MemoryBufferPool_T = std::map<std::uintptr_t, MemoryBuffer>;
-	using MemoryBufferPool_ThS = Concurrency::ThreadSafe<MemoryBufferPool_T, Concurrency::SharedSpinMutex>;
-
-	using FreeBufferPool_T = std::list<std::uintptr_t>;
-	using FreeBufferPool_ThS = Concurrency::ThreadSafe<FreeBufferPool_T, Concurrency::SpinMutex>;
-
-	struct MemoryPoolData final
+	template<typename Type>
+	void AllocatorBase<Type>::LogStatistics() noexcept
 	{
-		MemoryBufferPool_ThS MemoryBufferPool;
-		FreeBufferPool_ThS FreeBufferPool;
-	};
+		auto output = Util::FormatString(L"\r\n\r\n%s statistics:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
 
-	using MemoryPoolMap_T = std::map<std::size_t, std::unique_ptr<MemoryPoolData>>;
-	using MemoryPoolMap_ThS = Concurrency::ThreadSafe<MemoryPoolMap_T, Concurrency::SharedSpinMutex>;
-
-	static MemoryPoolMap_ThS MemoryPoolMap;
-	static Allocator<Byte> UnmanagedAllocator;
-
-	static AllocatorStats_ThS PoolAllocStats;
-
-	void PoolAllocatorBase::LogStatistics() noexcept
-	{
-		String output{ L"\r\n\r\nPoolAllocator statistics:\r\n-------------------------------------\r\n" };
-
-		MemoryPoolMap.WithSharedLock([&](const MemoryPoolMap_T& mpdc)
+		GetMemoryPoolMap<Type>().WithSharedLock([&](const auto& mpm)
 		{
-			Size total{ 0 };
+			std::size_t total{ 0 };
 
-			for (auto it = mpdc.begin(); it != mpdc.end(); ++it)
+			for (auto it = mpm.begin(); it != mpm.end(); ++it)
 			{
 				const auto pool_size = it->second->MemoryBufferPool.WithSharedLock()->size();
 
@@ -59,8 +32,12 @@ namespace QuantumGate::Implementation::Memory
 
 		DbgInvoke([&]()
 		{
-			output += PoolAllocStats.WithSharedLock()->GetAllSizes(L"\r\nPoolAllocator allocation sizes:\r\n-------------------------------------\r\n");
-			output += PoolAllocStats.WithSharedLock()->GetMemoryInUse(L"\r\nPoolAllocator memory in use:\r\n-------------------------------------\r\n");
+			auto& pas = GetAllocatorStats<Type>();
+
+			output += Util::FormatString(L"\r\n%s allocation sizes:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
+			output += pas.WithSharedLock()->GetAllSizes();
+			output += Util::FormatString(L"\r\n%s memory in use:\r\n-----------------------------------------------\r\n", GetAllocatorName<Type>());
+			output += pas.WithSharedLock()->GetMemoryInUse();
 		});
 
 		output += L"\r\n";
@@ -68,15 +45,17 @@ namespace QuantumGate::Implementation::Memory
 		SLogInfo(output);
 	}
 
-	std::pair<bool, std::size_t> PoolAllocatorBase::GetAllocationDetails(const std::size_t n) noexcept
+	template<typename Type>
+	std::pair<bool, std::size_t> AllocatorBase<Type>::GetAllocationDetails(const std::size_t n) noexcept
 	{
 		auto len = n;
 		auto manage = false;
 
-		if (n >= PoolAllocationMinimumSize && n <= PoolAllocationMaximumSize)
+		if (n >= AllocatorConstants<Type>::PoolAllocationMinimumSize &&
+			n <= AllocatorConstants<Type>::PoolAllocationMaximumSize)
 		{
 			manage = true;
-			len = PoolAllocationMinimumSize;
+			len = AllocatorConstants<Type>::PoolAllocationMinimumSize;
 
 			while (n > len)
 			{
@@ -87,7 +66,8 @@ namespace QuantumGate::Implementation::Memory
 		return std::make_pair(manage, len);
 	}
 
-	void* PoolAllocatorBase::AllocateFromPool(const std::size_t n) noexcept
+	template<typename Type>
+	void* AllocatorBase<Type>::AllocateFromPool(const std::size_t n) noexcept
 	{
 		void* retbuf{ nullptr };
 
@@ -95,14 +75,53 @@ namespace QuantumGate::Implementation::Memory
 
 		if (manage)
 		{
-			MemoryPoolData* mpd{ nullptr };
-
-			MemoryPoolMap.WithUniqueLock([&](MemoryPoolMap_T& mpdc)
+			const auto GetBuffer = [](MemoryPoolData<Type>* mpd, const std::size_t len) -> void*
 			{
-				// Get the pool for the allocation size
-				if (const auto it = mpdc.find(len); it != mpdc.end())
+				// If we have free buffers reuse one
 				{
-					mpd = it->second.get();
+					auto fbp = mpd->FreeBufferPool.WithUniqueLock();
+					if (!fbp->empty())
+					{
+						auto bufptr = reinterpret_cast<void*>(fbp->front());
+						fbp->pop_front();
+
+						return bufptr;
+					}
+				}
+
+				// No free buffers were available so we
+				// try to allocate a new one
+				try
+				{
+					typename MemoryPoolData<Type>::MemoryBufferType buffer(len, Byte{ 0 });
+
+					void* bufptr = buffer.data();
+
+					mpd->MemoryBufferPool.WithUniqueLock()->emplace(reinterpret_cast<std::uintptr_t>(bufptr),
+																	std::move(buffer));
+
+					return bufptr;
+				}
+				catch (...) {}
+
+				return nullptr;
+			};
+
+			auto mpm = GetMemoryPoolMap<Type>().WithSharedLock();
+			
+			// Get the pool for the allocation size
+			if (const auto it = mpm->find(len); it != mpm->end())
+			{
+				retbuf = GetBuffer(it->second.get(), len);
+			}
+			else
+			{
+				mpm.UnlockShared();
+
+				auto mpm2 = GetMemoryPoolMap<Type>().WithUniqueLock();
+				if (const auto it2 = mpm2->find(len); it2 != mpm2->end())
+				{
+					retbuf = GetBuffer(it2->second.get(), len);
 				}
 				else
 				{
@@ -110,46 +129,13 @@ namespace QuantumGate::Implementation::Memory
 					// allocate a new one
 					try
 					{
-						const auto [it2, inserted] = mpdc.insert({ len, std::make_unique<MemoryPoolData>() });
+						const auto [it3, inserted] = mpm2->insert({ len, std::make_unique<MemoryPoolData<Type>>() });
 						if (inserted)
 						{
-							mpd = it2->second.get();
+							retbuf = GetBuffer(it3->second.get(), len);
 						}
 					}
 					catch (...) {}
-				}
-			});
-
-			if (mpd != nullptr)
-			{
-				// If we have free buffers reuse one
-				mpd->FreeBufferPool.WithUniqueLock([&](FreeBufferPool_T& fbp)
-				{
-					if (!fbp.empty())
-					{
-						retbuf = reinterpret_cast<void*>(fbp.front());
-						fbp.pop_front();
-					}
-				});
-
-				if (retbuf == nullptr)
-				{
-					// No free buffers were available so we
-					// try to allocate a new one
-					try
-					{
-						MemoryBuffer buffer(len, Byte{ 0 });
-
-						mpd->MemoryBufferPool.WithUniqueLock([&](MemoryBufferPool_T& mbp)
-						{
-							retbuf = buffer.data();
-							mbp.emplace(reinterpret_cast<std::uintptr_t>(retbuf), std::move(buffer));
-						});
-					}
-					catch (...)
-					{
-						retbuf = nullptr;
-					}
 				}
 			}
 		}
@@ -157,14 +143,16 @@ namespace QuantumGate::Implementation::Memory
 		{
 			try
 			{
-				retbuf = UnmanagedAllocator.allocate(len);
+				retbuf = GetUnmanagedAllocator<Type>().allocate(len);
 			}
 			catch (...) {}
 		}
 
 		DbgInvoke([&]()
 		{
-			PoolAllocStats.WithUniqueLock([&](auto& stats)
+			auto& pas = GetAllocatorStats<Type>();
+
+			pas.WithUniqueLock([&](auto& stats)
 			{
 				stats.Sizes.insert(n);
 				
@@ -175,7 +163,8 @@ namespace QuantumGate::Implementation::Memory
 		return retbuf;
 	}
 
-	bool PoolAllocatorBase::FreeToPool(void* p, const std::size_t n) noexcept
+	template<typename Type>
+	bool AllocatorBase<Type>::FreeToPool(void* p, const std::size_t n) noexcept
 	{
 		auto found = false;
 
@@ -183,19 +172,13 @@ namespace QuantumGate::Implementation::Memory
 
 		if (manage)
 		{
-			MemoryPoolData* mpd{ nullptr };
+			const auto mpm = GetMemoryPoolMap<Type>().WithSharedLock();
 
-			MemoryPoolMap.WithSharedLock([&](const MemoryPoolMap_T& mpdc)
+			if (const auto it = mpm->find(len); it != mpm->end())
 			{
-				if (const auto it = mpdc.find(len); it != mpdc.end())
-				{
-					mpd = it->second.get();
-				}
-			});
+				MemoryPoolData<Type>* mpd = it->second.get();
 
-			if (mpd != nullptr)
-			{
-				mpd->MemoryBufferPool.WithSharedLock([&](const MemoryBufferPool_T& mbp)
+				mpd->MemoryBufferPool.WithSharedLock([&](const auto& mbp)
 				{
 					if (const auto it = mbp.find(reinterpret_cast<std::uintptr_t>(p)); it != mbp.end())
 					{
@@ -209,15 +192,20 @@ namespace QuantumGate::Implementation::Memory
 
 					try
 					{
-						mpd->FreeBufferPool.WithUniqueLock([&](FreeBufferPool_T& fbp)
+						mpd->FreeBufferPool.WithUniqueLock([&](auto& fbp)
 						{
-							// If we have too many free buffers
-							// don't reuse this one
-							if (fbp.size() <= MaximumFreeBuffersPerPool &&
-								(fbp.size() * len <= MaximumFreeBufferPoolSize))
+							// If we have too many free buffers don't reuse this one
+							if (fbp.size() <= AllocatorConstants<Type>::MaximumFreeBuffersPerPool &&
+								(fbp.size() * len <= AllocatorConstants<Type>::MaximumFreeBufferPoolSize))
 							{
 								fbp.emplace_front(reinterpret_cast<std::uintptr_t>(p));
 								reused = true;
+
+								if constexpr (std::is_same_v<Type, ProtectedPool>)
+								{
+									// Wipe all data from used memory
+									MemClear(p, len);
+								}
 							}
 						});
 					}
@@ -226,6 +214,7 @@ namespace QuantumGate::Implementation::Memory
 					if (!reused)
 					{
 						// Reuse conditions were not met or exception was thrown; release the memory
+						// Memory buffer allocator will wipe memory so we don't do that here
 						mpd->MemoryBufferPool.WithUniqueLock()->erase(reinterpret_cast<std::uintptr_t>(p));
 					}
 				}
@@ -233,7 +222,8 @@ namespace QuantumGate::Implementation::Memory
 		}
 		else
 		{
-			UnmanagedAllocator.deallocate(static_cast<Byte*>(p), len);
+			// Unmanaged allocator will wipe memory so we don't do that here
+			GetUnmanagedAllocator<Type>().deallocate(static_cast<Byte*>(p), len);
 
 			found = true;
 		}
@@ -242,7 +232,9 @@ namespace QuantumGate::Implementation::Memory
 		{
 			if (found)
 			{
-				PoolAllocStats.WithUniqueLock([&](auto& stats)
+				auto& pas = GetAllocatorStats<Type>();
+
+				pas.WithUniqueLock([&](auto& stats)
 				{
 					stats.MemoryInUse.erase(reinterpret_cast<std::uintptr_t>(p));
 				});
@@ -251,4 +243,62 @@ namespace QuantumGate::Implementation::Memory
 
 		return found;
 	}
+
+	template<typename Type>
+	void AllocatorBase<Type>::FreeUnused() noexcept
+	{
+		auto mpm = GetMemoryPoolMap<Type>().WithUniqueLock();
+
+		for (auto it = mpm->begin(); it != mpm->end();)
+		{
+			MemoryPoolData<Type>* mpd = it->second.get();
+
+			auto remove = false;
+
+			auto mbp = mpd->MemoryBufferPool.WithUniqueLock();
+			auto fbp = mpd->FreeBufferPool.WithUniqueLock();
+
+			if (mbp->size() == fbp->size())
+			{
+				// All buffers in the pool are free
+				// so we can remove the pool
+				remove = true;
+			}
+			else
+			{
+				// Remove all free buffers from the pool
+				for (auto it2 = fbp->begin(); it2 != fbp->end(); ++it2)
+				{
+					if (const auto it3 = mbp->find(*it2); it3 != mbp->end())
+					{
+						mbp->erase(it3);
+					}
+					else
+					{
+						// If we don't find the free buffer
+						// in the pool something is wrong
+						assert(false);
+					}
+				}
+
+				fbp->clear();
+
+				if (mbp->size() == 0) remove = true;
+			}
+
+			if (remove) it = mpm->erase(it);
+			else ++it;
+		}
+	}
+
+	// Specific instantiations
+	template Export void AllocatorBase<NormalPool>::LogStatistics() noexcept;
+	template Export void AllocatorBase<NormalPool>::FreeUnused() noexcept;
+	template Export void* AllocatorBase<NormalPool>::AllocateFromPool(const std::size_t n) noexcept;
+	template Export bool AllocatorBase<NormalPool>::FreeToPool(void* p, const std::size_t n) noexcept;
+
+	template Export void AllocatorBase<ProtectedPool>::LogStatistics() noexcept;
+	template Export void AllocatorBase<ProtectedPool>::FreeUnused() noexcept;
+	template Export void* AllocatorBase<ProtectedPool>::AllocateFromPool(const std::size_t n) noexcept;
+	template Export bool AllocatorBase<ProtectedPool>::FreeToPool(void* p, const std::size_t n) noexcept;
 }

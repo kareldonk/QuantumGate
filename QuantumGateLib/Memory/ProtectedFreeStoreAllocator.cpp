@@ -2,20 +2,27 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "stdafx.h"
-#include "ProtectedAllocator.h"
+#include "ProtectedFreeStoreAllocator.h"
 #include "AllocatorStats.h"
 
 #include <mutex>
 
 namespace QuantumGate::Implementation::Memory
 {
-	std::mutex& GetProtectedAllocatorMutex() noexcept
+	extern AllocatorStats_ThS ProtectedFreeStoreAllocatorStats;
+
+	auto& GetProtectedFreeStoreAllocatorStats() noexcept
+	{
+		return ProtectedFreeStoreAllocatorStats;
+	}
+
+	auto& GetProtectedFreeStoreAllocatorMutex() noexcept
 	{
 		static std::mutex mutex;
 		return mutex;
 	}
 
-	bool GetCurrentProcessWorkingSetSize(Size& minsize, Size& maxsize) noexcept
+	bool GetCurrentProcessWorkingSetSize(std::size_t& minsize, std::size_t& maxsize) noexcept
 	{
 		SIZE_T tminsize{ 0 };
 		SIZE_T tmaxsize{ 0 };
@@ -35,7 +42,7 @@ namespace QuantumGate::Implementation::Memory
 		return false;
 	}
 
-	bool SetCurrentProcessWorkingSetSize(const Size minsize, const Size maxsize) noexcept
+	bool SetCurrentProcessWorkingSetSize(const std::size_t minsize, const std::size_t maxsize) noexcept
 	{
 		if (::SetProcessWorkingSetSize(::GetCurrentProcess(), minsize, maxsize))
 		{
@@ -49,21 +56,21 @@ namespace QuantumGate::Implementation::Memory
 		return false;
 	}
 
-	static AllocatorStats_ThS ProtectedAllocStats;
-
-	void ProtectedAllocatorBase::LogStatistics() noexcept
+	void ProtectedFreeStoreAllocatorBase::LogStatistics() noexcept
 	{
 		DbgInvoke([&]()
 		{
-			auto output = ProtectedAllocStats.WithSharedLock()->GetAllSizes(L"\r\n\r\nProtectedAllocator allocation sizes:\r\n-------------------------------------\r\n");
-			output += ProtectedAllocStats.WithSharedLock()->GetMemoryInUse(L"\r\nProtectedAllocator memory in use:\r\n-------------------------------------\r\n");
+			String output{ L"\r\n\r\nProtectedFreeStoreAllocator allocation sizes:\r\n-----------------------------------------------\r\n" };
+			output += GetProtectedFreeStoreAllocatorStats().WithSharedLock()->GetAllSizes();
+			output += L"\r\nProtectedFreeStoreAllocator memory in use:\r\n-----------------------------------------------\r\n";
+			output += GetProtectedFreeStoreAllocatorStats().WithSharedLock()->GetMemoryInUse();
 			output += L"\r\n";
 
 			SLogInfo(output);
 		});
 	}
 
-	void* ProtectedAllocatorBase::Allocate(const Size len)
+	void* ProtectedFreeStoreAllocatorBase::Allocate(const std::size_t len)
 	{
 		auto memaddr = ::VirtualAlloc(NULL, len, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 		if (memaddr != NULL)
@@ -77,7 +84,7 @@ namespace QuantumGate::Implementation::Memory
 				// we try to increase it if possible
 				if (::GetLastError() == ERROR_WORKING_SET_QUOTA)
 				{
-					GetProtectedAllocatorMutex().lock();
+					GetProtectedFreeStoreAllocatorMutex().lock();
 
 					// Previous lock may have caused a delay while other threads
 					// increased the working set size; so try again before
@@ -90,20 +97,20 @@ namespace QuantumGate::Implementation::Memory
 					{
 						auto retry = 0u;
 
-						Size nmin{ 0 };
-						Size nmax{ 0 };
+						std::size_t nmin{ 0 };
+						std::size_t nmax{ 0 };
 
 						do
 						{
 							if (GetCurrentProcessWorkingSetSize(nmin, nmax))
 							{
-								Size nmin2 = nmin * 2;
+								std::size_t nmin2 = nmin * 2;
 								if (nmin + len > nmin2)
 								{
 									nmin2 = nmin + len;
 								}
 
-								Size nmax2 = nmax;
+								std::size_t nmax2 = nmax;
 								if (nmax2 <= nmin2)
 								{
 									nmax2 = nmin2 * 2;
@@ -126,7 +133,7 @@ namespace QuantumGate::Implementation::Memory
 						while (retry < 3);
 					}
 
-					GetProtectedAllocatorMutex().unlock();
+					GetProtectedFreeStoreAllocatorMutex().unlock();
 				}
 
 				if (!succeeded)
@@ -146,7 +153,7 @@ namespace QuantumGate::Implementation::Memory
 
 		DbgInvoke([&]()
 		{
-			ProtectedAllocStats.WithUniqueLock([&](auto& stats)
+			GetProtectedFreeStoreAllocatorStats().WithUniqueLock([&](auto& stats)
 			{
 				stats.Sizes.insert(len);
 
@@ -157,7 +164,7 @@ namespace QuantumGate::Implementation::Memory
 		return memaddr;
 	}
 
-	void ProtectedAllocatorBase::Deallocate(void* p, const Size len) noexcept
+	void ProtectedFreeStoreAllocatorBase::Deallocate(void* p, const std::size_t len) noexcept
 	{
 		// Wipe all data from used memory
 		MemClear(p, len);
@@ -168,7 +175,7 @@ namespace QuantumGate::Implementation::Memory
 
 		DbgInvoke([&]()
 		{
-			ProtectedAllocStats.WithUniqueLock([&](auto& stats)
+			GetProtectedFreeStoreAllocatorStats().WithUniqueLock([&](auto& stats)
 			{
 				stats.MemoryInUse.erase(reinterpret_cast<std::uintptr_t>(p));
 			});
