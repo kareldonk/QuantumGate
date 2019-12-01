@@ -240,8 +240,14 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 
 				if (active)
 				{
-					auto numkeys = GetSettings().Local.NumPreGeneratedKeysPerAlgorithm -
-						(queue_size + num_pending_events);
+					Size numkeys{ 0 };
+					Size pending{ queue_size + num_pending_events };
+					Size numpregen{ GetSettings().Local.NumPreGeneratedKeysPerAlgorithm };
+
+					if (pending < numpregen)
+					{
+						numkeys = numpregen - pending;
+					}
 
 					if (numkeys > 0)
 					{
