@@ -167,8 +167,13 @@ namespace QuantumGate::Implementation
 		{
 			try
 			{
-				return GetErrorCategory() + L" : " + std::to_wstring(GetErrorValue()) +
-					L" : " + GetErrorDescription();
+				String str{ GetErrorCategory() };
+				str += L" : ";
+				str += std::to_wstring(GetErrorValue()).c_str();
+				str += L" : ";
+				str += GetErrorDescription();
+
+				return str;
 			}
 			catch (...) {}
 
