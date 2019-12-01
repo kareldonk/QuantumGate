@@ -291,7 +291,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			LogErr(L"Could not generate autogen symmetric key");
 
 			// Should return nullptr for symmetric key to indicate failure
-			return make_pair(nullptr, Buffer());
+			return std::make_pair(nullptr, Buffer());
 		}
 
 		[[nodiscard]] static bool GetNonce(const UInt32 nonce_seed, Buffer& nonce, const Algorithm::Hash ha) noexcept
