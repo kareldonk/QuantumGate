@@ -3,7 +3,9 @@
 
 #pragma once
 
+#include "Containers.h"
 #include "Callback.h"
+
 #include <optional>
 
 namespace QuantumGate::Implementation
@@ -14,7 +16,7 @@ namespace QuantumGate::Implementation
 	public:
 		using FunctionType = Callback<Sig>;
 	private:
-		using FunctionList = std::list<FunctionType>;
+		using FunctionList = Containers::List<FunctionType>;
 	public:
 		using FunctionHandle = std::optional<typename FunctionList::const_iterator>;
 
@@ -81,6 +83,6 @@ namespace QuantumGate::Implementation
 		void Clear() noexcept { m_Functions.clear(); }
 
 	private:
-		std::list<FunctionType> m_Functions;
+		FunctionList m_Functions;
 	};
 }

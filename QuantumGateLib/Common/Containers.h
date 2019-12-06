@@ -7,6 +7,7 @@
 
 #include <queue>
 #include <map>
+#include <list>
 #include <unordered_map>
 
 namespace QuantumGate::Implementation::Containers
@@ -22,4 +23,7 @@ namespace QuantumGate::Implementation::Containers
 
 	template<typename Key, typename T, typename Hash = std::hash<Key>, typename KeyEqual = std::equal_to<Key>>
 	using UnorderedMap = std::unordered_map<Key, T, Hash, KeyEqual, Memory::DefaultAllocator<std::pair<const Key, T>>>;
+
+	template<typename T>
+	using List = std::list<T, Memory::DefaultAllocator<T>>;
 }

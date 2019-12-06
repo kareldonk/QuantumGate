@@ -83,7 +83,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		[[nodiscard]] bool Accept(const Events::Connect& rcevent, const PeerLUID out_peer) noexcept;
 
 		[[nodiscard]] bool Add(const RelayPort rport, std::unique_ptr<Link_ThS>&& rl) noexcept;
-		void Remove(const std::list<RelayPort>& rlist) noexcept;
+		void Remove(const Containers::List<RelayPort>& rlist) noexcept;
 		void DisconnectAndRemoveAll() noexcept;
 
 		void GetUniqueLocks(PeerDetails& ipeer, Peer::Peer_ThS::UniqueLockedType& in_peer,

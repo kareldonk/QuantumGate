@@ -268,7 +268,7 @@ namespace QuantumGate::Implementation::Core::Peer
 																const Concurrency::EventCondition& shutdown_event)
 	{
 		auto didwork = false;
-		std::list<std::shared_ptr<Peer_ThS>> remove_list;
+		Containers::List<std::shared_ptr<Peer_ThS>> remove_list;
 
 		const auto& settings = GetSettings();
 		const auto noise_enabled = settings.Noise.Enabled;
@@ -564,7 +564,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	void Manager::Remove(const std::list<std::shared_ptr<Peer_ThS>>& peerlist) noexcept
+	void Manager::Remove(const Containers::List<std::shared_ptr<Peer_ThS>>& peerlist) noexcept
 	{
 		m_AllPeers.Map.WithUniqueLock([&](PeerMap& peers)
 		{

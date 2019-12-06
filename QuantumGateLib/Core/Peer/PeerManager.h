@@ -117,7 +117,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		bool Add(std::shared_ptr<Peer_ThS>& peerths) noexcept;
 		void Remove(const Peer& peer) noexcept;
-		void Remove(const std::list<std::shared_ptr<Peer_ThS>>& peerlist) noexcept;
+		void Remove(const Containers::List<std::shared_ptr<Peer_ThS>>& peerlist) noexcept;
 		void RemoveAll() noexcept;
 
 		bool DirectConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept;

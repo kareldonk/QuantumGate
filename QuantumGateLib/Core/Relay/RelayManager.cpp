@@ -408,7 +408,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return success;
 	}
 
-	void Manager::Remove(const std::list<RelayPort>& rlist) noexcept
+	void Manager::Remove(const Containers::List<RelayPort>& rlist) noexcept
 	{
 		try
 		{
@@ -432,7 +432,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		try
 		{
-			std::list<RelayPort> remove_list;
+			Containers::List<RelayPort> remove_list;
 
 			m_RelayLinks.WithUniqueLock([&](LinkMap& relays)
 			{
@@ -564,7 +564,7 @@ namespace QuantumGate::Implementation::Core::Relay
 																const Concurrency::EventCondition& shutdown_event)
 	{
 		auto didwork = false;
-		std::list<RelayPort> remove_list;
+		Containers::List<RelayPort> remove_list;
 
 		const auto max_connect_duration = GetSettings().Relay.ConnectTimeout;
 		const auto closed_grace_period = GetSettings().Relay.GracePeriod;

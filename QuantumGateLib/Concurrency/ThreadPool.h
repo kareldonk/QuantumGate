@@ -6,6 +6,8 @@
 #include "EventCondition.h"
 #include "..\Common\Console.h"
 #include "..\Common\Callback.h"
+#include "..\Common\Containers.h"
+#include "..\Common\Util.h"
 
 #include <list>
 #include <thread>
@@ -69,8 +71,8 @@ namespace QuantumGate::Implementation::Concurrency
 			std::thread Thread;
 		};
 
-		using ThreadList = std::list<ThreadCtrl>;
-		using ThreadIterator = typename std::list<ThreadCtrl>::iterator;
+		using ThreadList = Containers::List<ThreadCtrl>;
+		using ThreadIterator = typename ThreadList::iterator;
 
 	public:
 		class Thread final
