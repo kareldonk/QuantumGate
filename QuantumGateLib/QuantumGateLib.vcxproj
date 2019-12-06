@@ -613,6 +613,7 @@
     <ClInclude Include="Memory\ProtectedFreeStoreAllocator.h" />
     <ClInclude Include="Memory\LinearPoolAllocator.h" />
     <ClInclude Include="Memory\PoolAllocator.h" />
+    <ClInclude Include="Memory\ProtectedFreeStoreAllocatorImpl.h" />
     <ClInclude Include="Memory\RingBuffer.h" />
     <ClInclude Include="Module.h" />
     <ClInclude Include="Network\BinaryIPAddress.h" />
@@ -704,9 +705,6 @@
     <ClCompile Include="Memory\BufferReader.cpp" />
     <ClCompile Include="Memory\BufferWriter.cpp" />
     <ClCompile Include="Memory\CommonStatic.cpp" />
-    <ClCompile Include="Memory\LinearPoolAllocator.cpp" />
-    <ClCompile Include="Memory\PoolAllocator.cpp" />
-    <ClCompile Include="Memory\ProtectedFreeStoreAllocator.cpp" />
     <ClCompile Include="Module.cpp" />
     <ClCompile Include="Network\BinaryIPAddress.cpp" />
     <ClCompile Include="Network\IP.cpp" />

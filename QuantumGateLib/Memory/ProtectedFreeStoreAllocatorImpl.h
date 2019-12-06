@@ -9,9 +9,9 @@
 
 namespace QuantumGate::Implementation::Memory
 {
-	extern AllocatorStats_ThS ProtectedFreeStoreAllocatorStats;
+	static AllocatorStats_ThS ProtectedFreeStoreAllocatorStats;
 
-	auto& GetProtectedFreeStoreAllocatorStats() noexcept
+	inline auto& GetProtectedFreeStoreAllocatorStats() noexcept
 	{
 		return ProtectedFreeStoreAllocatorStats;
 	}
@@ -22,7 +22,7 @@ namespace QuantumGate::Implementation::Memory
 		return mutex;
 	}
 
-	bool GetCurrentProcessWorkingSetSize(std::size_t& minsize, std::size_t& maxsize) noexcept
+	inline bool GetCurrentProcessWorkingSetSize(std::size_t& minsize, std::size_t& maxsize) noexcept
 	{
 		SIZE_T tminsize{ 0 };
 		SIZE_T tmaxsize{ 0 };
@@ -42,7 +42,7 @@ namespace QuantumGate::Implementation::Memory
 		return false;
 	}
 
-	bool SetCurrentProcessWorkingSetSize(const std::size_t minsize, const std::size_t maxsize) noexcept
+	inline bool SetCurrentProcessWorkingSetSize(const std::size_t minsize, const std::size_t maxsize) noexcept
 	{
 		if (::SetProcessWorkingSetSize(::GetCurrentProcess(), minsize, maxsize))
 		{

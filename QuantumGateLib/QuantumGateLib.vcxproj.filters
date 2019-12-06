@@ -414,6 +414,9 @@
     <ClInclude Include="Memory\Allocator.h">
       <Filter>Header Files\Memory</Filter>
     </ClInclude>
+    <ClInclude Include="Memory\ProtectedFreeStoreAllocatorImpl.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -566,9 +569,6 @@
     <ClCompile Include="Network\BinaryIPAddress.cpp">
       <Filter>Source Files\Network</Filter>
     </ClCompile>
-    <ClCompile Include="Memory\PoolAllocator.cpp">
-      <Filter>Source Files\Memory</Filter>
-    </ClCompile>
     <ClCompile Include="Module.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -587,13 +587,7 @@
     <ClCompile Include="Core\Peer\PeerSendQueues.cpp">
       <Filter>Source Files\Core\Peer</Filter>
     </ClCompile>
-    <ClCompile Include="Memory\LinearPoolAllocator.cpp">
-      <Filter>Source Files\Memory</Filter>
-    </ClCompile>
     <ClCompile Include="Memory\CommonStatic.cpp">
-      <Filter>Source Files\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="Memory\ProtectedFreeStoreAllocator.cpp">
       <Filter>Source Files\Memory</Filter>
     </ClCompile>
   </ItemGroup>
