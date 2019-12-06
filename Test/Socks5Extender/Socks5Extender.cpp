@@ -224,7 +224,7 @@ namespace QuantumGate::Socks5Extender
 		{
 			for (const auto net : allowed_nets)
 			{
-				const auto result = filters.AddFilter(net, IPFilterType::Allowed);
+				const auto result = filters.AddFilter(net, QuantumGate::Access::IPFilterType::Allowed);
 				if (result.Failed())
 				{
 					LogErr(L"%s: could not add %s to IP filters", GetName().c_str(), net);
@@ -237,7 +237,7 @@ namespace QuantumGate::Socks5Extender
 			{
 				for (const auto net : internal_nets)
 				{
-					const auto result = filters.AddFilter(net, IPFilterType::Blocked);
+					const auto result = filters.AddFilter(net, QuantumGate::Access::IPFilterType::Blocked);
 					if (result.Failed())
 					{
 						LogErr(L"%s: could not add %s to IP filters", GetName().c_str(), net);
@@ -333,7 +333,7 @@ namespace QuantumGate::Socks5Extender
 
 		switch (event.GetType())
 		{
-			case PeerEventType::Connected:
+			case PeerEvent::Type::Connected:
 			{
 				ev = L"Connect";
 
@@ -344,7 +344,7 @@ namespace QuantumGate::Socks5Extender
 
 				break;
 			}
-			case PeerEventType::Disconnected:
+			case PeerEvent::Type::Disconnected:
 			{
 				ev = L"Disconnect";
 
@@ -366,7 +366,7 @@ namespace QuantumGate::Socks5Extender
 
 	const std::pair<bool, bool> Extender::OnPeerMessage(PeerEvent&& event)
 	{
-		assert(event.GetType() == PeerEventType::Message);
+		assert(event.GetType() == PeerEvent::Type::Message);
 
 		auto handled = false;
 		auto success = false;

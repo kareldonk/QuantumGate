@@ -4,15 +4,18 @@
 #pragma once
 
 #include "..\MessageDetails.h"
+#include "..\..\API\Extender.h"
 
 namespace QuantumGate::Implementation::Core::Peer
 {
 	class Event final
 	{
 	public:
+		using Type = QuantumGate::API::Extender::PeerEvent::Type;
+
 		Event() = default;
-		Event(PeerEventType type, PeerLUID pluid, PeerUUID puuid) noexcept;
-		Event(PeerEventType type, PeerLUID pluid, PeerUUID puuid, MessageDetails&& msg) noexcept;
+		Event(Type type, PeerLUID pluid, PeerUUID puuid) noexcept;
+		Event(Type type, PeerLUID pluid, PeerUUID puuid, MessageDetails&& msg) noexcept;
 		Event(const Event& other) noexcept;
 		Event(Event&& other) noexcept;
 		~Event() = default;
@@ -23,7 +26,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		explicit operator bool() const noexcept;
 
-		inline const PeerEventType GetType() const noexcept { return m_Type; }
+		inline const Type GetType() const noexcept { return m_Type; }
 		inline const PeerLUID GetPeerLUID() const noexcept { return m_PeerLUID; }
 		inline const PeerUUID& GetPeerUUID() const noexcept { return m_PeerUUID; }
 
@@ -31,7 +34,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		const Buffer* GetMessageData() const noexcept;
 
 	private:
-		PeerEventType m_Type{ PeerEventType::Unknown };
+		Type m_Type{ Type::Unknown };
 		PeerLUID m_PeerLUID{ 0 };
 		PeerUUID m_PeerUUID;
 		std::optional<MessageDetails> m_Message;

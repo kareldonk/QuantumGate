@@ -7,6 +7,7 @@
 #include "..\..\Common\ScopeGuard.h"
 #include "..\..\Memory\BufferReader.h"
 #include "..\..\Memory\BufferWriter.h"
+#include "..\..\API\AccessManager.h"
 
 using namespace std::literals;
 
@@ -654,7 +655,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		auto result_code = ResultCode::Failed;
 
 		if (const auto allowed = m_AccessManager.IsIPConnectionAllowed(params.PeerIPEndpoint.GetIPAddress(),
-																	   AccessCheck::All); allowed && *allowed)
+																	   Access::CheckType::All); allowed && *allowed)
 		{
 			if (params.Relay.Hops == 0)
 			{
@@ -1111,7 +1112,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		switch (event.GetType())
 		{
-			case PeerEventType::Connected:
+			case Event::Type::Connected:
 			{
 				// Add new peer to lookup maps
 				if (!m_LookupMaps.WithUniqueLock()->AddPeerData(peer.GetPeerData()))
@@ -1122,7 +1123,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				break;
 			}
-			case PeerEventType::Disconnected:
+			case Event::Type::Disconnected:
 			{
 				// Remove peer from lookup maps
 				if (!m_LookupMaps.WithUniqueLock()->RemovePeerData(peer.GetPeerData()))

@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "ListenerManager.h"
+#include "..\API\AccessManager.h"
 
 using namespace std::literals;
 using namespace QuantumGate::Implementation::Network;
@@ -389,7 +390,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		if (m_AccessManager.AddIPConnectionAttempt(ipaddr))
 		{
 			// Check if IP is allowed through filters/limits and if it has acceptible reputation
-			if (const auto result = m_AccessManager.IsIPConnectionAllowed(ipaddr, AccessCheck::All); result.Succeeded())
+			if (const auto result = m_AccessManager.IsIPConnectionAllowed(ipaddr, Access::CheckType::All); result.Succeeded())
 			{
 				return *result;
 			}

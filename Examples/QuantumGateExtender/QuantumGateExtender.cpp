@@ -148,11 +148,11 @@ int main()
 	QuantumGate::Local qg;
 
 	// For testing purposes we allow access by default
-	qg.GetAccessManager().SetPeerAccessDefault(QuantumGate::PeerAccessDefault::Allowed);
+	qg.GetAccessManager().SetPeerAccessDefault(QuantumGate::Access::PeerAccessDefault::Allowed);
 
 	// For testing purposes we allow all IP addresses to connect
-	if (!qg.GetAccessManager().AddIPFilter(L"0.0.0.0/0", QuantumGate::IPFilterType::Allowed) ||
-		!qg.GetAccessManager().AddIPFilter(L"::/0", QuantumGate::IPFilterType::Allowed))
+	if (!qg.GetAccessManager().AddIPFilter(L"0.0.0.0/0", QuantumGate::Access::IPFilterType::Allowed) ||
+		!qg.GetAccessManager().AddIPFilter(L"::/0", QuantumGate::Access::IPFilterType::Allowed))
 	{
 		std::wcout << L"Failed to add an IP filter\r\n";
 		return -1;

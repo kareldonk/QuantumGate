@@ -382,7 +382,7 @@ LRESULT CTestAppDlgAVExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 	// Make sure we delete the event when we return
 	const auto sg = MakeScopeGuard([&]() noexcept { delete event; });
 
-	if (event->Type == PeerEventType::Connected)
+	if (event->Type == QuantumGate::Extender::PeerEvent::Type::Connected)
 	{
 		auto lbox = reinterpret_cast<CListBox*>(GetDlgItem(IDC_PEERLIST));
 		lbox->InsertString(-1, Util::FormatString(L"%llu", event->PeerLUID).c_str());
@@ -391,7 +391,7 @@ LRESULT CTestAppDlgAVExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 		UpdateControls();
 		UpdatePeerActivity();
 	}
-	else if (event->Type == PeerEventType::Disconnected)
+	else if (event->Type == QuantumGate::Extender::PeerEvent::Type::Disconnected)
 	{
 		CString pluid = Util::FormatString(L"%llu", event->PeerLUID).c_str();
 

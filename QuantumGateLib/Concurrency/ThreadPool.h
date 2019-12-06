@@ -9,7 +9,6 @@
 #include "..\Common\Containers.h"
 #include "..\Common\Util.h"
 
-#include <list>
 #include <thread>
 
 namespace QuantumGate::Implementation::Concurrency

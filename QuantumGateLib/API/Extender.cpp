@@ -93,32 +93,32 @@ namespace QuantumGate::API
 		return m_Extender->QueryPeers(params, pluids);
 	}
 
-	Result<> Extender::SetStartupCallback(ExtenderStartupCallback&& function) noexcept
+	Result<> Extender::SetStartupCallback(StartupCallback&& function) noexcept
 	{
 		return m_Extender->SetStartupCallback(std::move(function));
 	}
 
-	Result<> Extender::SetPostStartupCallback(ExtenderPostStartupCallback && function) noexcept
+	Result<> Extender::SetPostStartupCallback(PostStartupCallback && function) noexcept
 	{
 		return m_Extender->SetPostStartupCallback(std::move(function));
 	}
 
-	Result<> Extender::SetPreShutdownCallback(ExtenderPreShutdownCallback && function) noexcept
+	Result<> Extender::SetPreShutdownCallback(PreShutdownCallback && function) noexcept
 	{
 		return m_Extender->SetPreShutdownCallback(std::move(function));
 	}
 
-	Result<> Extender::SetShutdownCallback(ExtenderShutdownCallback&& function) noexcept
+	Result<> Extender::SetShutdownCallback(ShutdownCallback&& function) noexcept
 	{
 		return m_Extender->SetShutdownCallback(std::move(function));
 	}
 
-	Result<> Extender::SetPeerEventCallback(ExtenderPeerEventCallback&& function) noexcept
+	Result<> Extender::SetPeerEventCallback(PeerEventCallback&& function) noexcept
 	{
 		return m_Extender->SetPeerEventCallback(std::move(function));
 	}
 
-	Result<> Extender::SetPeerMessageCallback(ExtenderPeerMessageCallback&& function) noexcept
+	Result<> Extender::SetPeerMessageCallback(PeerMessageCallback&& function) noexcept
 	{
 		return m_Extender->SetPeerMessageCallback(std::move(function));
 	}

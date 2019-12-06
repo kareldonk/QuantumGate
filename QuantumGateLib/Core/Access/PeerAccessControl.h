@@ -3,10 +3,13 @@
 
 #pragma once
 
+#include "..\..\API\AccessManager.h"
 #include "..\..\Common\Containers.h"
 
 namespace QuantumGate::Implementation::Core::Access
 {
+	using namespace QuantumGate::API::Access;
+
 	class PeerAccessControl final
 	{
 		struct PeerAccessDetails final
@@ -26,8 +29,8 @@ namespace QuantumGate::Implementation::Core::Access
 		PeerAccessControl& operator=(const PeerAccessControl&) = delete;
 		PeerAccessControl& operator=(PeerAccessControl&&) = default;
 
-		Result<> AddPeer(PeerAccessSettings&& pas) noexcept;
-		Result<> UpdatePeer(PeerAccessSettings&& pas) noexcept;
+		Result<> AddPeer(PeerSettings&& pas) noexcept;
+		Result<> UpdatePeer(PeerSettings&& pas) noexcept;
 		Result<> RemovePeer(const PeerUUID& puuid) noexcept;
 
 		Result<bool> IsAllowed(const PeerUUID& puuid) const noexcept;
@@ -39,10 +42,10 @@ namespace QuantumGate::Implementation::Core::Access
 
 		void Clear() noexcept;
 
-		Result<Vector<PeerAccessSettings>> GetPeers() const noexcept;
+		Result<Vector<PeerSettings>> GetPeers() const noexcept;
 
 	private:
-		bool ValidatePeerAccessSettings(const PeerAccessSettings& pas) const noexcept;
+		bool ValidatePeerAccessSettings(const PeerSettings& pas) const noexcept;
 
 	private:
 		const Settings_CThS& m_Settings;

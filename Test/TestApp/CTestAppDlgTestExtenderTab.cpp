@@ -504,7 +504,7 @@ LRESULT CTestAppDlgTestExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 	// Make sure we delete the event when we return
 	const auto sg = MakeScopeGuard([&]() noexcept { delete event; });
 
-	if (event->Type == PeerEventType::Connected)
+	if (event->Type == QuantumGate::Extender::PeerEvent::Type::Connected)
 	{
 		LogInfo(L"Peer %llu connected", event->PeerLUID);
 
@@ -515,7 +515,7 @@ LRESULT CTestAppDlgTestExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 		UpdateControls();
 		UpdatePeerActivity();
 	}
-	else if (event->Type == PeerEventType::Disconnected)
+	else if (event->Type == QuantumGate::Extender::PeerEvent::Type::Disconnected)
 	{
 		LogInfo(L"Peer %llu disconnected", event->PeerLUID);
 

@@ -117,12 +117,6 @@
     <ClInclude Include="API\Extender.h">
       <Filter>Header Files\API</Filter>
     </ClInclude>
-    <ClInclude Include="API\AccessManager.h">
-      <Filter>Header Files\API</Filter>
-    </ClInclude>
-    <ClInclude Include="API\PeerEvent.h">
-      <Filter>Header Files\API</Filter>
-    </ClInclude>
     <ClInclude Include="Compression\Compression.h">
       <Filter>Header Files\Compression</Filter>
     </ClInclude>
@@ -417,6 +411,9 @@
     <ClInclude Include="Memory\ProtectedFreeStoreAllocatorImpl.h">
       <Filter>Header Files\Memory</Filter>
     </ClInclude>
+    <ClInclude Include="API\AccessManager.h">
+      <Filter>Header Files\API</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -429,12 +426,6 @@
       <Filter>Source Files\API</Filter>
     </ClCompile>
     <ClCompile Include="API\Extender.cpp">
-      <Filter>Source Files\API</Filter>
-    </ClCompile>
-    <ClCompile Include="API\AccessManager.cpp">
-      <Filter>Source Files\API</Filter>
-    </ClCompile>
-    <ClCompile Include="API\PeerEvent.cpp">
       <Filter>Source Files\API</Filter>
     </ClCompile>
     <ClCompile Include="Compression\Compression.cpp">
@@ -589,6 +580,12 @@
     </ClCompile>
     <ClCompile Include="Memory\CommonStatic.cpp">
       <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="API\ExtenderPeerEvent.cpp">
+      <Filter>Source Files\API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\AccessManager.cpp">
+      <Filter>Source Files\API</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

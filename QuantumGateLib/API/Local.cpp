@@ -151,7 +151,7 @@ namespace QuantumGate::API
 		return Local::Environment(&m_Local->GetEnvironment());
 	}
 
-	AccessManager& Local::GetAccessManager() noexcept
+	Access::Manager& Local::GetAccessManager() noexcept
 	{
 		return m_AccessManager;
 	}

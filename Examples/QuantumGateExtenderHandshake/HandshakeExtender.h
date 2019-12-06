@@ -7,6 +7,7 @@
 #include <QuantumGate.h>
 
 #include <atomic>
+#include <shared_mutex>
 
 class HandshakeExtender final : public QuantumGate::Extender
 {
@@ -67,8 +68,8 @@ protected:
 	void OnPostStartup();
 	void OnPreShutdown();
 	void OnShutdown();
-	void OnPeerEvent(QuantumGate::PeerEvent&& event);
-	const std::pair<bool, bool> OnPeerMessage(QuantumGate::PeerEvent&& event);
+	void OnPeerEvent(QuantumGate::Extender::PeerEvent&& event);
+	const std::pair<bool, bool> OnPeerMessage(QuantumGate::Extender::PeerEvent&& event);
 
 private:
 	bool GetRandomBytes(std::byte* buffer, const std::size_t buffer_len);

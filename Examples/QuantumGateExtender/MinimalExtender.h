@@ -17,7 +17,7 @@ protected:
 	void OnPostStartup();
 	void OnPreShutdown();
 	void OnShutdown();
-	void OnPeerEvent(QuantumGate::PeerEvent&& event);
-	const std::pair<bool, bool> OnPeerMessage(QuantumGate::PeerEvent&& event);
+	void OnPeerEvent(QuantumGate::Extender::PeerEvent&& event);
+	const std::pair<bool, bool> OnPeerMessage(QuantumGate::Extender::PeerEvent&& event);
 };
 

@@ -67,21 +67,21 @@ void MinimalExtender::OnShutdown()
 	std::wcout << L"MinimalExtender::OnShutdown() called...\r\n";
 }
 
-void MinimalExtender::OnPeerEvent(QuantumGate::PeerEvent&& event)
+void MinimalExtender::OnPeerEvent(QuantumGate::Extender::PeerEvent&& event)
 {
 	// This callback function gets called by the QuantumGate instance to notify an
 	// extender of a peer event
 
 	std::wstring ev(L"Unknown");
 
-	if (event.GetType() == QuantumGate::PeerEventType::Connected) ev = L"Connect";
-	else if (event.GetType() == QuantumGate::PeerEventType::Disconnected) ev = L"Disconnect";
+	if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Connected) ev = L"Connect";
+	else if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Disconnected) ev = L"Disconnect";
 
 	std::wcout << L"MinimalExtender::OnPeerEvent() got peer event '" << ev <<
 		L"' for peer LUID " << event.GetPeerLUID() << L"\r\n";
 
 	// Send a simple hello message to the peer
-	if (event.GetType() == QuantumGate::PeerEventType::Connected)
+	if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Connected)
 	{
 		const wchar_t msg[]{ L"Hello peer, welcome!" };
 		QuantumGate::Buffer msg_buf(reinterpret_cast<const QuantumGate::Byte*>(&msg), sizeof(msg));
@@ -99,7 +99,7 @@ void MinimalExtender::OnPeerEvent(QuantumGate::PeerEvent&& event)
 	}
 }
 
-const std::pair<bool, bool> MinimalExtender::OnPeerMessage(QuantumGate::PeerEvent&& event)
+const std::pair<bool, bool> MinimalExtender::OnPeerMessage(QuantumGate::Extender::PeerEvent&& event)
 {
 	// This callback function gets called by the QuantumGate instance to notify an
 	// extender of a peer message event

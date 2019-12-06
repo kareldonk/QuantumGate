@@ -7,7 +7,7 @@
 #include "Concurrency\EventCondition.h"
 #include "Concurrency\ThreadSafe.h"
 #include "Concurrency\ThreadPool.h"
-
+#include "Core\Access\IPFilters.h"
 #include "Socks5Connection.h"
 
 namespace QuantumGate::Socks5Extender

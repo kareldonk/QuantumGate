@@ -3,11 +3,14 @@
 
 #pragma once
 
+#include "..\..\API\AccessManager.h"
 #include "..\..\Common\Containers.h"
 #include "..\..\Network\IPAddress.h"
+#include "..\..\Concurrency\ThreadSafe.h"
 
 namespace QuantumGate::Implementation::Core::Access
 {
+	using namespace QuantumGate::API::Access;
 	using namespace QuantumGate::Implementation::Network;
 
 	struct IPSubnetLimitImpl final

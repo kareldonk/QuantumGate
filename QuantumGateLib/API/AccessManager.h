@@ -3,27 +3,79 @@
 
 #pragma once
 
-#include "..\Core\Access\IPFilters.h"
+namespace QuantumGate::API::Access
+{
+	using IPFilterID = UInt64;
+
+	enum class IPFilterType : UInt16
+	{
+		Allowed, Blocked
+	};
+
+	struct IPFilter
+	{
+		IPFilterID ID{ 0 };
+		IPFilterType Type{ IPFilterType::Blocked };
+		IPAddress Address;
+		IPAddress Mask;
+	};
+
+	struct IPSubnetLimit
+	{
+		IPAddress::Family AddressFamily{ IPAddress::Family::Unspecified };
+		String CIDRLeadingBits;
+		Size MaximumConnections{ 0 };
+	};
+
+	struct IPReputation
+	{
+		struct ScoreLimits final
+		{
+			static constexpr const Int16 Minimum{ -3000 };
+			static constexpr const Int16 Base{ 0 };
+			static constexpr const Int16 Maximum{ 100 };
+		};
+
+		IPAddress Address;
+		Int16 Score{ ScoreLimits::Minimum };
+		std::optional<Time> LastUpdateTime;
+	};
+
+	enum class CheckType : UInt16
+	{
+		IPFilters, IPReputations, IPSubnetLimits, All
+	};
+
+	enum class PeerAccessDefault : UInt16
+	{
+		Allowed, NotAllowed
+	};
+
+	struct PeerSettings
+	{
+		PeerUUID UUID;
+		ProtectedBuffer PublicKey;
+		bool AccessAllowed{ false };
+	};
+}
 
 namespace QuantumGate::Implementation::Core::Access
 {
 	class Manager;
 }
 
-namespace QuantumGate::API
+namespace QuantumGate::API::Access
 {
-	using namespace QuantumGate::Implementation::Network;
-
-	class Export AccessManager final
+	class Export Manager final
 	{
 	public:
-		AccessManager() = delete;
-		AccessManager(QuantumGate::Implementation::Core::Access::Manager* accessmgr) noexcept;
-		AccessManager(const AccessManager&) = delete;
-		AccessManager(AccessManager&&) = default;
-		virtual ~AccessManager() = default;
-		AccessManager& operator=(const AccessManager&) = delete;
-		AccessManager& operator=(AccessManager&&) = default;
+		Manager() = delete;
+		Manager(QuantumGate::Implementation::Core::Access::Manager* accessmgr) noexcept;
+		Manager(const Manager&) = delete;
+		Manager(Manager&&) = default;
+		virtual ~Manager() = default;
+		Manager& operator=(const Manager&) = delete;
+		Manager& operator=(Manager&&) = default;
 
 		Result<IPFilterID> AddIPFilter(const WChar* ip_cidr,
 									   const IPFilterType type) noexcept;
@@ -51,12 +103,12 @@ namespace QuantumGate::API
 		void ResetAllIPReputations() noexcept;
 		Result<Vector<IPReputation>> GetAllIPReputations() const noexcept;
 
-		Result<bool> IsIPAllowed(const WChar* ip_str, const AccessCheck check) const noexcept;
-		Result<bool> IsIPAllowed(const String& ip_str, const AccessCheck check) const noexcept;
-		Result<bool> IsIPAllowed(const IPAddress& ip, const AccessCheck check) const noexcept;
+		Result<bool> IsIPAllowed(const WChar* ip_str, const CheckType check) const noexcept;
+		Result<bool> IsIPAllowed(const String& ip_str, const CheckType check) const noexcept;
+		Result<bool> IsIPAllowed(const IPAddress& ip, const CheckType check) const noexcept;
 
-		Result<> AddPeer(PeerAccessSettings&& pas) noexcept;
-		Result<> UpdatePeer(PeerAccessSettings&& pas) noexcept;
+		Result<> AddPeer(PeerSettings&& pas) noexcept;
+		Result<> UpdatePeer(PeerSettings&& pas) noexcept;
 		Result<> RemovePeer(const PeerUUID& puuid) noexcept;
 		void RemoveAllPeers() noexcept;
 
@@ -65,7 +117,7 @@ namespace QuantumGate::API
 		void SetPeerAccessDefault(const PeerAccessDefault pad) noexcept;
 		[[nodiscard]] const PeerAccessDefault GetPeerAccessDefault() const noexcept;
 
-		Result<Vector<PeerAccessSettings>> GetAllPeers() const noexcept;
+		Result<Vector<PeerSettings>> GetAllPeers() const noexcept;
 
 	private:
 		QuantumGate::Implementation::Core::Access::Manager* m_AccessManager{ nullptr };

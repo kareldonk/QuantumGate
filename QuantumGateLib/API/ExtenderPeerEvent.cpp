@@ -2,7 +2,7 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "stdafx.h"
-#include "PeerEvent.h"
+#include "Extender.h"
 #include "..\Core\Peer\PeerEvent.h"
 
 namespace QuantumGate::API
@@ -27,7 +27,7 @@ namespace QuantumGate::API
 	// Size of event object plus one byte to use as a flag
 	static constexpr int MinimumPeerEventStorageSize{ sizeof(QuantumGate::Implementation::Core::Peer::Event) + 1 };
 
-	PeerEvent::PeerEvent(QuantumGate::Implementation::Core::Peer::Event&& event) noexcept
+	Extender::PeerEvent::PeerEvent(QuantumGate::Implementation::Core::Peer::Event&& event) noexcept
 	{
 		static_assert(sizeof(m_PeerEvent) >= MinimumPeerEventStorageSize,
 					  "Storage size is too small; increase size of m_PeerEvent in header file");
@@ -36,39 +36,39 @@ namespace QuantumGate::API
 		SetHasEvent(true);
 	}
 
-	PeerEvent::PeerEvent(PeerEvent&& other) noexcept :
+	Extender::PeerEvent::PeerEvent(PeerEvent&& other) noexcept :
 		m_PeerEvent(other.m_PeerEvent)
 	{
 		other.SetHasEvent(false);
 	}
 
-	PeerEvent::~PeerEvent()
+	Extender::PeerEvent::~PeerEvent()
 	{
 		Reset();
 	}
 
-	inline void PeerEvent::SetHasEvent(const bool flag) noexcept
+	inline void Extender::PeerEvent::SetHasEvent(const bool flag) noexcept
 	{
 		reinterpret_cast<Byte*>(&m_PeerEvent)[0] = flag ? Byte{ 1 } : Byte{ 0 };
 	}
 
-	inline bool PeerEvent::HasEvent() const noexcept
+	inline bool Extender::PeerEvent::HasEvent() const noexcept
 	{
 		return (reinterpret_cast<const Byte*>(&m_PeerEvent)[0] == Byte{ 1 });
 	}
 
-	inline QuantumGate::Implementation::Core::Peer::Event* PeerEvent::GetEvent() noexcept
+	inline QuantumGate::Implementation::Core::Peer::Event* Extender::PeerEvent::GetEvent() noexcept
 	{
 		return const_cast<QuantumGate::Implementation::Core::Peer::Event*>(const_cast<const PeerEvent*>(this)->GetEvent());
 	}
 
-	inline const QuantumGate::Implementation::Core::Peer::Event* PeerEvent::GetEvent() const noexcept
+	inline const QuantumGate::Implementation::Core::Peer::Event* Extender::PeerEvent::GetEvent() const noexcept
 	{
 		return reinterpret_cast<const QuantumGate::Implementation::Core::Peer::Event*>(
 			reinterpret_cast<const Byte*>(&m_PeerEvent) + 1);
 	}
 
-	inline void PeerEvent::Reset() noexcept
+	inline void Extender::PeerEvent::Reset() noexcept
 	{
 		if (HasEvent())
 		{
@@ -81,7 +81,7 @@ namespace QuantumGate::API
 		}
 	}
 
-	PeerEvent& PeerEvent::operator=(PeerEvent&& other) noexcept
+	Extender::PeerEvent& Extender::PeerEvent::operator=(PeerEvent&& other) noexcept
 	{
 		Reset();
 
@@ -94,35 +94,35 @@ namespace QuantumGate::API
 		return *this;
 	}
 
-	PeerEvent::operator bool() const noexcept
+	Extender::PeerEvent::operator bool() const noexcept
 	{
 		assert(HasEvent());
 
 		return GetEvent()->operator bool();
 	}
 
-	const PeerEventType PeerEvent::GetType() const noexcept
+	const Extender::PeerEvent::Type Extender::PeerEvent::GetType() const noexcept
 	{
 		assert(HasEvent());
 
 		return GetEvent()->GetType();
 	}
 
-	const PeerLUID PeerEvent::GetPeerLUID() const noexcept
+	const PeerLUID Extender::PeerEvent::GetPeerLUID() const noexcept
 	{
 		assert(HasEvent());
 
 		return GetEvent()->GetPeerLUID();
 	}
 
-	const PeerUUID& PeerEvent::GetPeerUUID() const noexcept
+	const PeerUUID& Extender::PeerEvent::GetPeerUUID() const noexcept
 	{
 		assert(HasEvent());
 
 		return GetEvent()->GetPeerUUID();
 	}
 
-	const Buffer* PeerEvent::GetMessageData() const noexcept
+	const Buffer* Extender::PeerEvent::GetMessageData() const noexcept
 	{
 		assert(HasEvent());
 

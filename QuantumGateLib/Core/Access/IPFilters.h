@@ -3,12 +3,15 @@
 
 #pragma once
 
+#include "..\..\API\AccessManager.h"
 #include "..\..\Common\Containers.h"
 #include "..\..\Network\IPAddress.h"
 #include "..\..\Concurrency\ThreadSafe.h"
 
 namespace QuantumGate::Implementation::Core::Access
 {
+	using namespace QuantumGate::API::Access;
+
 	struct IPFilterImpl final
 	{
 		IPFilterID ID{ 0 };

@@ -64,13 +64,13 @@ namespace QuantumGate::Implementation::Core::Access
 		[[nodiscard]] bool AddIPConnection(const IPAddress& ip) noexcept;
 		[[nodiscard]] bool RemoveIPConnection(const IPAddress& ip) noexcept;
 
-		Result<bool> IsIPAllowed(const WChar* ip_str, const AccessCheck check) noexcept;
-		Result<bool> IsIPAllowed(const IPAddress& ip, const AccessCheck check) noexcept;
+		Result<bool> IsIPAllowed(const WChar* ip_str, const CheckType check) noexcept;
+		Result<bool> IsIPAllowed(const IPAddress& ip, const CheckType check) noexcept;
 
-		Result<bool> IsIPConnectionAllowed(const IPAddress& ip, const AccessCheck check) noexcept;
+		Result<bool> IsIPConnectionAllowed(const IPAddress& ip, const CheckType check) noexcept;
 
-		Result<> AddPeer(PeerAccessSettings&& pas) noexcept;
-		Result<> UpdatePeer(PeerAccessSettings&& pas) noexcept;
+		Result<> AddPeer(PeerSettings&& pas) noexcept;
+		Result<> UpdatePeer(PeerSettings&& pas) noexcept;
 		Result<> RemovePeer(const PeerUUID& puuid) noexcept;
 		void RemoveAllPeers() noexcept;
 
@@ -81,7 +81,7 @@ namespace QuantumGate::Implementation::Core::Access
 		void SetPeerAccessDefault(const PeerAccessDefault pad) noexcept;
 		[[nodiscard]] const PeerAccessDefault GetPeerAccessDefault() const noexcept;
 
-		Result<Vector<PeerAccessSettings>> GetAllPeers() const noexcept;
+		Result<Vector<PeerSettings>> GetAllPeers() const noexcept;
 
 		inline AccessUpdateCallbacks_ThS& GetAccessUpdateCallbacks() noexcept { return m_AccessUpdateCallbacks; }
 

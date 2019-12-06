@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Core::Access
 		m_Settings(settings)
 	{}
 
-	Result<> PeerAccessControl::AddPeer(PeerAccessSettings&& pas) noexcept
+	Result<> PeerAccessControl::AddPeer(PeerSettings&& pas) noexcept
 	{
 		if (!ValidatePeerAccessSettings(pas)) return ResultCode::InvalidArgument;
 
@@ -33,7 +33,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return ResultCode::Failed;
 	}
 
-	Result<> PeerAccessControl::UpdatePeer(PeerAccessSettings&& pas) noexcept
+	Result<> PeerAccessControl::UpdatePeer(PeerSettings&& pas) noexcept
 	{
 		if (!ValidatePeerAccessSettings(pas)) return ResultCode::InvalidArgument;
 
@@ -115,11 +115,11 @@ namespace QuantumGate::Implementation::Core::Access
 		m_PeerAccessDetails.clear();
 	}
 
-	Result<Vector<PeerAccessSettings>> PeerAccessControl::GetPeers() const noexcept
+	Result<Vector<PeerSettings>> PeerAccessControl::GetPeers() const noexcept
 	{
 		try
 		{
-			Vector<PeerAccessSettings> peers;
+			Vector<PeerSettings> peers;
 
 			for (const auto& peer : m_PeerAccessDetails)
 			{
@@ -136,7 +136,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return ResultCode::Failed;
 	}
 
-	bool PeerAccessControl::ValidatePeerAccessSettings(const PeerAccessSettings& pas) const noexcept
+	bool PeerAccessControl::ValidatePeerAccessSettings(const PeerSettings& pas) const noexcept
 	{
 		if (!pas.UUID.IsValid()) return false;
 

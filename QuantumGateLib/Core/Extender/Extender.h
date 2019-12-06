@@ -4,6 +4,7 @@
 #pragma once
 
 #include "..\Message.h"
+#include "..\..\API\Extender.h"
 
 namespace QuantumGate::Implementation::Core
 {
@@ -14,6 +15,13 @@ namespace QuantumGate::Implementation::Core::Extender
 {
 	class Extender final
 	{
+		using StartupCallback = QuantumGate::API::Extender::StartupCallback;
+		using PostStartupCallback = QuantumGate::API::Extender::PostStartupCallback;
+		using PreShutdownCallback = QuantumGate::API::Extender::PreShutdownCallback;
+		using ShutdownCallback = QuantumGate::API::Extender::ShutdownCallback;
+		using PeerEventCallback = QuantumGate::API::Extender::PeerEventCallback;
+		using PeerMessageCallback = QuantumGate::API::Extender::PeerMessageCallback;
+
 	public:
 		Extender() = delete;
 		Extender(const ExtenderUUID& uuid, const String& name) noexcept;
@@ -51,32 +59,32 @@ namespace QuantumGate::Implementation::Core::Extender
 		inline void SetLocal(Local* local) noexcept { assert(local != nullptr); m_Local = local; }
 		inline void ResetLocal() noexcept { m_Local = nullptr; }
 
-		inline const Result<> SetStartupCallback(ExtenderStartupCallback&& function) noexcept
+		inline const Result<> SetStartupCallback(StartupCallback&& function) noexcept
 		{
 			return SetCallback(m_StartupCallback, std::move(function));
 		}
 
-		inline const Result<> SetPostStartupCallback(ExtenderPostStartupCallback&& function) noexcept
+		inline const Result<> SetPostStartupCallback(PostStartupCallback&& function) noexcept
 		{
 			return SetCallback(m_PostStartupCallback, std::move(function));
 		}
 
-		inline const Result<> SetPreShutdownCallback(ExtenderPreShutdownCallback&& function) noexcept
+		inline const Result<> SetPreShutdownCallback(PreShutdownCallback&& function) noexcept
 		{
 			return SetCallback(m_PreShutdownCallback, std::move(function));
 		}
 
-		inline const Result<> SetShutdownCallback(ExtenderShutdownCallback&& function) noexcept
+		inline const Result<> SetShutdownCallback(ShutdownCallback&& function) noexcept
 		{
 			return SetCallback(m_ShutdownCallback, std::move(function));
 		}
 
-		inline const Result<> SetPeerEventCallback(ExtenderPeerEventCallback&& function) noexcept
+		inline const Result<> SetPeerEventCallback(PeerEventCallback&& function) noexcept
 		{
 			return SetCallback(m_PeerEventCallback, std::move(function));
 		}
 
-		inline const Result<> SetPeerMessageCallback(ExtenderPeerMessageCallback&& function) noexcept
+		inline const Result<> SetPeerMessageCallback(PeerMessageCallback&& function) noexcept
 		{
 			return SetCallback(m_PeerMessageCallback, std::move(function));
 		}
@@ -116,14 +124,14 @@ namespace QuantumGate::Implementation::Core::Extender
 			catch (...) { OnException(); }
 		}
 
-		inline void OnPeerEvent(QuantumGate::API::PeerEvent&& event) noexcept
+		inline void OnPeerEvent(QuantumGate::API::Extender::PeerEvent&& event) noexcept
 		{
 			try { m_PeerEventCallback(std::move(event)); }
 			catch (const std::exception& e) { OnException(e); }
 			catch (...) { OnException(); }
 		}
 
-		[[nodiscard]] inline const std::pair<bool, bool> OnPeerMessage(QuantumGate::API::PeerEvent&& event) noexcept
+		[[nodiscard]] inline const std::pair<bool, bool> OnPeerMessage(QuantumGate::API::Extender::PeerEvent&& event) noexcept
 		{
 			try { return m_PeerMessageCallback(std::move(event)); }
 			catch (const std::exception& e) { OnException(e); }
@@ -161,12 +169,12 @@ namespace QuantumGate::Implementation::Core::Extender
 		const ExtenderUUID m_UUID;
 		const String m_Name{ L"Unknown" };
 
-		ExtenderStartupCallback m_StartupCallback{ []() mutable -> bool { return true; } };
-		ExtenderPostStartupCallback m_PostStartupCallback{ []() mutable {} };
-		ExtenderPreShutdownCallback m_PreShutdownCallback{ []() mutable {} };
-		ExtenderShutdownCallback m_ShutdownCallback{ []() mutable {} };
-		ExtenderPeerEventCallback m_PeerEventCallback{ [](QuantumGate::API::PeerEvent&&) mutable {} };
-		ExtenderPeerMessageCallback m_PeerMessageCallback
-		{ [](QuantumGate::API::PeerEvent&&) mutable -> const std::pair<bool, bool> { return std::make_pair(false, false); } };
+		StartupCallback m_StartupCallback{ []() mutable -> bool { return true; } };
+		PostStartupCallback m_PostStartupCallback{ []() mutable {} };
+		PreShutdownCallback m_PreShutdownCallback{ []() mutable {} };
+		ShutdownCallback m_ShutdownCallback{ []() mutable {} };
+		PeerEventCallback m_PeerEventCallback{ [](QuantumGate::API::Extender::PeerEvent&&) mutable {} };
+		PeerMessageCallback m_PeerMessageCallback
+		{ [](QuantumGate::API::Extender::PeerEvent&&) mutable -> const std::pair<bool, bool> { return std::make_pair(false, false); } };
 	};
 }

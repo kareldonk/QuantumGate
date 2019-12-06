@@ -121,7 +121,7 @@ namespace QuantumGate::AVExtender
 	{
 		String ev(L"Unknown");
 
-		if (event.GetType() == PeerEventType::Connected)
+		if (event.GetType() == PeerEvent::Type::Connected)
 		{
 			ev = L"Connect";
 
@@ -130,7 +130,7 @@ namespace QuantumGate::AVExtender
 
 			m_Peers.WithUniqueLock()->insert({ event.GetPeerLUID(), std::move(peer) });
 		}
-		else if (event.GetType() == PeerEventType::Disconnected)
+		else if (event.GetType() == PeerEvent::Type::Disconnected)
 		{
 			ev = L"Disconnect";
 
@@ -157,7 +157,7 @@ namespace QuantumGate::AVExtender
 
 	const std::pair<bool, bool> Extender::OnPeerMessage(PeerEvent&& event)
 	{
-		assert(event.GetType() == PeerEventType::Message);
+		assert(event.GetType() == PeerEvent::Type::Message);
 
 		auto handled = false;
 		auto success = false;

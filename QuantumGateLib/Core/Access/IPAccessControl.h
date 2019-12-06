@@ -3,11 +3,14 @@
 
 #pragma once
 
+#include "..\..\API\AccessManager.h"
 #include "..\..\Common\Containers.h"
 #include "..\..\Network\IPAddress.h"
 
 namespace QuantumGate::Implementation::Core::Access
 {
+	using namespace QuantumGate::API::Access;
+
 	enum class IPReputationUpdate : Int16
 	{
 		None = 0,

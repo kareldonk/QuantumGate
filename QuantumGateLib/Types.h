@@ -112,11 +112,6 @@ namespace QuantumGate
 		Unknown, Inbound, Outbound
 	};
 
-	enum class PeerEventType : UInt16
-	{
-		Unknown, Connected, Disconnected, Message
-	};
-
 	using Implementation::UUID;
 
 	using PeerLUID = UInt64;
@@ -129,7 +124,6 @@ namespace QuantumGate
 
 #include "Algorithms.h"
 #include "API\Result.h"
-#include "API\PeerEvent.h"
 #include "API\Callback.h"
 #include "Network\IPEndpoint.h"
 
@@ -139,59 +133,6 @@ namespace QuantumGate
 	using BinaryIPAddress = Implementation::Network::BinaryIPAddress;
 
 	using IPEndpoint = Implementation::Network::IPEndpoint;
-
-	using IPFilterID = UInt64;
-
-	enum class IPFilterType : UInt16
-	{
-		Allowed, Blocked
-	};
-
-	struct IPFilter
-	{
-		IPFilterID ID{ 0 };
-		IPFilterType Type{ IPFilterType::Blocked };
-		IPAddress Address;
-		IPAddress Mask;
-	};
-
-	struct IPSubnetLimit
-	{
-		IPAddress::Family AddressFamily{ IPAddress::Family::Unspecified };
-		String CIDRLeadingBits;
-		Size MaximumConnections{ 0 };
-	};
-
-	struct IPReputation
-	{
-		struct ScoreLimits final
-		{
-			static constexpr const Int16 Minimum{ -3000 };
-			static constexpr const Int16 Base{ 0 };
-			static constexpr const Int16 Maximum{ 100 };
-		};
-
-		IPAddress Address;
-		Int16 Score{ ScoreLimits::Minimum };
-		std::optional<Time> LastUpdateTime;
-	};
-
-	enum class AccessCheck : UInt16
-	{
-		IPFilters, IPReputations, IPSubnetLimits, All
-	};
-
-	enum class PeerAccessDefault : UInt16
-	{
-		Allowed, NotAllowed
-	};
-
-	struct PeerAccessSettings
-	{
-		PeerUUID UUID;
-		ProtectedBuffer PublicKey;
-		bool AccessAllowed{ false };
-	};
 
 	struct PublicIPAddressDetails
 	{
@@ -325,13 +266,6 @@ namespace QuantumGate
 
 	using ConnectCallback = Callback<void(PeerLUID, Result<ConnectDetails> result)>;
 	using DisconnectCallback = Callback<void(PeerLUID, PeerUUID)>;
-
-	using ExtenderStartupCallback = Callback<bool(void)>;
-	using ExtenderPostStartupCallback = Callback<void(void)>;
-	using ExtenderPreShutdownCallback = Callback<void(void)>;
-	using ExtenderShutdownCallback = Callback<void(void)>;
-	using ExtenderPeerEventCallback = Callback<void(QuantumGate::API::PeerEvent&&)>;
-	using ExtenderPeerMessageCallback = Callback<const std::pair<bool, bool>(QuantumGate::API::PeerEvent&&)>;
 
 	struct ConnectParameters
 	{

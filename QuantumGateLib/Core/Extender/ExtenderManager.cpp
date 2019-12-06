@@ -4,7 +4,6 @@
 #include "stdafx.h"
 #include "ExtenderManager.h"
 #include "..\Peer\PeerManager.h"
-#include "..\..\API\PeerEvent.h"
 
 using namespace std::literals;
 
@@ -598,8 +597,8 @@ namespace QuantumGate::Implementation::Core::Extender
 
 	void Manager::OnPeerEvent(const Vector<ExtenderUUID>& extuuids, Peer::Event&& event) noexcept
 	{
-		assert(event.GetType() == PeerEventType::Connected ||
-			   event.GetType() == PeerEventType::Disconnected);
+		assert(event.GetType() == Peer::Event::Type::Connected ||
+			   event.GetType() == Peer::Event::Type::Disconnected);
 
 		m_Extenders.WithSharedLock([&](const ExtenderMap& extenders) noexcept
 		{
@@ -628,7 +627,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 	const std::pair<bool, bool> Manager::OnPeerMessage(Peer::Event&& event) noexcept
 	{
-		assert(event.GetType() == PeerEventType::Message);
+		assert(event.GetType() == Peer::Event::Type::Message);
 
 		// Default return value (not handled, unsuccessful)
 		auto retval = std::make_pair(false, false);

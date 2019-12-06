@@ -39,7 +39,7 @@ namespace UnitTests
 
 			// Add peer
 			{
-				PeerAccessSettings pas;
+				PeerSettings pas;
 				pas.UUID.Set(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54");
 				pas.AccessAllowed = true;
 				String pub_key_b64 = L"LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFV01PK3NIWGJDM3pmV0ZNbGYwUXB5TjlkejEvUwpZM3hlRFJFR24xN3F5OGJYbDk1YU9hbzk5Mzh5QzRETmxXSkMxL1crMnVaSGRxWGpWVExUZEJQNkFRPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==";
@@ -55,7 +55,7 @@ namespace UnitTests
 
 			// Add peer invalid/unset UUID
 			{
-				PeerAccessSettings pas;
+				PeerSettings pas;
 				pas.AccessAllowed = true;
 				String pub_key_b64 = L"LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFYmlreXZ1a2JXVzBHcWhXRU0wUzdyOXR5Mk5zegphUjl3TGlDd1RackNPbGlMSVoxc1poU3ZJMUxXRU1XbGd4dHhMYlRibHdCckxKRlZZcmU1ZDhNaGZnPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==";
 				const auto buffer = Util::FromBase64(pub_key_b64);
@@ -67,7 +67,7 @@ namespace UnitTests
 
 			// Add peer UUID and public key mismatch
 			{
-				PeerAccessSettings pas;
+				PeerSettings pas;
 				pas.UUID.Set(L"e938194b-52c1-69d4-0b84-75d3d11dbfad");
 				pas.AccessAllowed = true;
 				String pub_key_b64 = L"LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFYmlreXZ1a2JXVzBHcWhXRU0wUzdyOXR5Mk5zegphUjl3TGlDd1RackNPbGlMSVoxc1poU3ZJMUxXRU1XbGd4dHhMYlRibHdCckxKRlZZcmU1ZDhNaGZnPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==";
@@ -80,7 +80,7 @@ namespace UnitTests
 
 			// Add peer
 			{
-				PeerAccessSettings pas;
+				PeerSettings pas;
 				pas.UUID.Set(L"e938164b-52c1-69d4-0b84-75d3d11dbfad");
 				pas.AccessAllowed = true;
 				String pub_key_b64 = L"LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFYmlreXZ1a2JXVzBHcWhXRU0wUzdyOXR5Mk5zegphUjl3TGlDd1RackNPbGlMSVoxc1poU3ZJMUxXRU1XbGd4dHhMYlRibHdCckxKRlZZcmU1ZDhNaGZnPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==";
@@ -93,7 +93,7 @@ namespace UnitTests
 
 			// Add peer that already exists
 			{
-				PeerAccessSettings pas;
+				PeerSettings pas;
 				pas.UUID.Set(L"e938164b-52c1-69d4-0b84-75d3d11dbfad");
 				pas.AccessAllowed = true;
 				String pub_key_b64 = L"LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFYmlreXZ1a2JXVzBHcWhXRU0wUzdyOXR5Mk5zegphUjl3TGlDd1RackNPbGlMSVoxc1poU3ZJMUxXRU1XbGd4dHhMYlRibHdCckxKRlZZcmU1ZDhNaGZnPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==";
@@ -110,7 +110,7 @@ namespace UnitTests
 
 			// Update peer that already exists
 			{
-				PeerAccessSettings pas;
+				PeerSettings pas;
 				pas.UUID.Set(L"e938164b-52c1-69d4-0b84-75d3d11dbfad");
 				pas.AccessAllowed = false;
 
@@ -123,7 +123,7 @@ namespace UnitTests
 
 			// Update peer that doesn't exists
 			{
-				PeerAccessSettings pas;
+				PeerSettings pas;
 				pas.UUID.Set(L"e938194b-52c1-69d4-0b84-75d3d11dbfad");
 				pas.AccessAllowed = false;
 
@@ -149,7 +149,7 @@ namespace UnitTests
 
 			// Add peer again
 			{
-				PeerAccessSettings pas;
+				PeerSettings pas;
 				pas.UUID.Set(L"e938164b-52c1-69d4-0b84-75d3d11dbfad");
 				pas.AccessAllowed = true;
 				String pub_key_b64 = L"LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFYmlreXZ1a2JXVzBHcWhXRU0wUzdyOXR5Mk5zegphUjl3TGlDd1RackNPbGlMSVoxc1poU3ZJMUxXRU1XbGd4dHhMYlRibHdCckxKRlZZcmU1ZDhNaGZnPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==";
@@ -197,7 +197,7 @@ namespace UnitTests
 
 			// Add peer
 			{
-				PeerAccessSettings pas;
+				PeerSettings pas;
 				pas.UUID.Set(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54");
 				pas.AccessAllowed = true;
 				String pub_key_b64 = L"LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFV01PK3NIWGJDM3pmV0ZNbGYwUXB5TjlkejEvUwpZM3hlRFJFR24xN3F5OGJYbDk1YU9hbzk5Mzh5QzRETmxXSkMxL1crMnVaSGRxWGpWVExUZEJQNkFRPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==";
@@ -215,7 +215,7 @@ namespace UnitTests
 
 			// Add peer that's not allowed
 			{
-				PeerAccessSettings pas;
+				PeerSettings pas;
 				pas.UUID.Set(L"e938164b-52c1-69d4-0b84-75d3d11dbfad");
 				pas.AccessAllowed = false;
 				String pub_key_b64 = L"LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFYmlreXZ1a2JXVzBHcWhXRU0wUzdyOXR5Mk5zegphUjl3TGlDd1RackNPbGlMSVoxc1poU3ZJMUxXRU1XbGd4dHhMYlRibHdCckxKRlZZcmU1ZDhNaGZnPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==";
@@ -240,7 +240,7 @@ namespace UnitTests
 
 			// Update peer settings to allow but without public key
 			{
-				PeerAccessSettings pas;
+				PeerSettings pas;
 				pas.UUID.Set(L"e938164b-52c1-69d4-0b84-75d3d11dbfad");
 				pas.AccessAllowed = true;
 

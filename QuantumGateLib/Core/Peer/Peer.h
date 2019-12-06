@@ -242,8 +242,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] bool ProcessMessage(Message& msg);
 		[[nodiscard]] std::pair<bool, bool> ProcessMessage(MessageDetails&& msg);
 
-		void ProcessEvent(const PeerEventType etype) noexcept;
-		void ProcessEvent(const Vector<ExtenderUUID>& extuuids, const PeerEventType etype) noexcept;
+		void ProcessEvent(const Event::Type etype) noexcept;
+		void ProcessEvent(const Vector<ExtenderUUID>& extuuids, const Event::Type etype) noexcept;
 
 		[[nodiscard]] bool CheckAndProcessKeyUpdate() noexcept;
 

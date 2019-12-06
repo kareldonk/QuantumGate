@@ -8,6 +8,11 @@ namespace QuantumGate::Implementation::Core
 	class Local;
 }
 
+namespace QuantumGate::Implementation::Core::Peer
+{
+	class Event;
+}
+
 namespace QuantumGate::Implementation::Core::Extender
 {
 	class Extender;
@@ -24,6 +29,52 @@ namespace QuantumGate::API
 		friend class QuantumGate::Implementation::Core::Extender::Control;
 
 	public:
+		class Export PeerEvent final
+		{
+			friend class QuantumGate::Implementation::Core::Extender::Control;
+
+		public:
+			enum class Type : UInt16
+			{
+				Unknown, Connected, Disconnected, Message
+			};
+
+			PeerEvent() = delete;
+			PeerEvent(const PeerEvent&) = delete;
+			PeerEvent(PeerEvent&& other) noexcept;
+			~PeerEvent();
+			PeerEvent& operator=(const PeerEvent&) = delete;
+			PeerEvent& operator=(PeerEvent&& other) noexcept;
+
+			explicit operator bool() const noexcept;
+
+			[[nodiscard]] const Type GetType() const noexcept;
+			[[nodiscard]] const PeerLUID GetPeerLUID() const noexcept;
+			[[nodiscard]] const PeerUUID& GetPeerUUID() const noexcept;
+			[[nodiscard]] const Buffer* GetMessageData() const noexcept;
+
+		private:
+			PeerEvent(QuantumGate::Implementation::Core::Peer::Event&& event) noexcept;
+
+			[[nodiscard]] QuantumGate::Implementation::Core::Peer::Event* GetEvent() noexcept;
+			[[nodiscard]] const QuantumGate::Implementation::Core::Peer::Event* GetEvent() const noexcept;
+
+			[[nodiscard]] bool HasEvent() const noexcept;
+			void SetHasEvent(const bool flag) noexcept;
+
+			void Reset() noexcept;
+
+		private:
+			typename std::aligned_storage<128>::type m_PeerEvent{ 0 };
+		};
+
+		using StartupCallback = Callback<bool(void)>;
+		using PostStartupCallback = Callback<void(void)>;
+		using PreShutdownCallback = Callback<void(void)>;
+		using ShutdownCallback = Callback<void(void)>;
+		using PeerEventCallback = Callback<void(PeerEvent&&)>;
+		using PeerMessageCallback = Callback<const std::pair<bool, bool>(PeerEvent&&)>;
+
 		Extender() = delete;
 		Extender(const Extender&) = delete;
 		Extender(Extender&&) = default;
@@ -55,12 +106,12 @@ namespace QuantumGate::API
 		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
 
-		Result<> SetStartupCallback(ExtenderStartupCallback&& function) noexcept;
-		Result<> SetPostStartupCallback(ExtenderPostStartupCallback&& function) noexcept;
-		Result<> SetPreShutdownCallback(ExtenderPreShutdownCallback&& function) noexcept;
-		Result<> SetShutdownCallback(ExtenderShutdownCallback&& function) noexcept;
-		Result<> SetPeerEventCallback(ExtenderPeerEventCallback&& function) noexcept;
-		Result<> SetPeerMessageCallback(ExtenderPeerMessageCallback&& function) noexcept;
+		Result<> SetStartupCallback(StartupCallback&& function) noexcept;
+		Result<> SetPostStartupCallback(PostStartupCallback&& function) noexcept;
+		Result<> SetPreShutdownCallback(PreShutdownCallback&& function) noexcept;
+		Result<> SetShutdownCallback(ShutdownCallback&& function) noexcept;
+		Result<> SetPeerEventCallback(PeerEventCallback&& function) noexcept;
+		Result<> SetPeerMessageCallback(PeerMessageCallback&& function) noexcept;
 
 	protected:
 		Extender(const ExtenderUUID& uuid, const String& name);

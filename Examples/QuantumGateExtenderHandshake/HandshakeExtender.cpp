@@ -95,20 +95,20 @@ void HandshakeExtender::OnShutdown()
 	std::wcout << L"HandshakeExtender::OnShutdown() called...\r\n";
 }
 
-void HandshakeExtender::OnPeerEvent(QuantumGate::PeerEvent&& event)
+void HandshakeExtender::OnPeerEvent(QuantumGate::Extender::PeerEvent&& event)
 {
 	// This callback function gets called by the QuantumGate instance to notify an
 	// extender of a peer event
 
 	std::wstring ev(L"Unknown");
 
-	if (event.GetType() == QuantumGate::PeerEventType::Connected) ev = L"Connect";
-	else if (event.GetType() == QuantumGate::PeerEventType::Disconnected) ev = L"Disconnect";
+	if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Connected) ev = L"Connect";
+	else if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Disconnected) ev = L"Disconnect";
 
 	std::wcout << L"HandshakeExtender::OnPeerEvent() got peer event '" << ev <<
 		L"' for peer LUID " << event.GetPeerLUID() << L"\r\n";
 
-	if (event.GetType() == QuantumGate::PeerEventType::Connected)
+	if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Connected)
 	{
 		// Add connected peer
 		if (const auto result = GetPeerDetails(event.GetPeerLUID()); result.Succeeded())
@@ -128,7 +128,7 @@ void HandshakeExtender::OnPeerEvent(QuantumGate::PeerEvent&& event)
 			m_Peers.insert({ event.GetPeerLUID(), std::move(peer) });
 		}
 	}
-	else if (event.GetType() == QuantumGate::PeerEventType::Disconnected)
+	else if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Disconnected)
 	{
 		// Remove disconnected peer
 		std::unique_lock<std::shared_mutex> lock(m_PeersMutex);
@@ -151,7 +151,7 @@ void HandshakeExtender::OnPeerEvent(QuantumGate::PeerEvent&& event)
 	}
 }
 
-const std::pair<bool, bool> HandshakeExtender::OnPeerMessage(QuantumGate::PeerEvent&& event)
+const std::pair<bool, bool> HandshakeExtender::OnPeerMessage(QuantumGate::Extender::PeerEvent&& event)
 {
 	// This callback function gets called by the QuantumGate instance to notify an
 	// extender of a peer message event

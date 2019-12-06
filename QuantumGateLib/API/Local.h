@@ -65,7 +65,7 @@ namespace QuantumGate::API
 
 		[[nodiscard]] const Environment GetEnvironment() const noexcept;
 
-		[[nodiscard]] AccessManager& GetAccessManager() noexcept;
+		[[nodiscard]] Access::Manager& GetAccessManager() noexcept;
 
 		[[nodiscard]] std::tuple<UInt, UInt, UInt, UInt> GetVersion() const noexcept;
 		[[nodiscard]] String GetVersionString() const noexcept;
@@ -100,6 +100,6 @@ namespace QuantumGate::API
 
 	private:
 		std::shared_ptr<QuantumGate::Implementation::Core::Local> m_Local{ nullptr };
-		AccessManager m_AccessManager;
+		Access::Manager m_AccessManager;
 	};
 }

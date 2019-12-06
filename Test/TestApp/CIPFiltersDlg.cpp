@@ -33,7 +33,7 @@ BEGIN_MESSAGE_MAP(CIPFiltersDlg, CDialogBase)
 	ON_NOTIFY(NM_DBLCLK, IDC_IPFILTERS_LIST, &CIPFiltersDlg::OnNMDblclkIpfiltersList)
 END_MESSAGE_MAP()
 
-void CIPFiltersDlg::SetAccessManager(QuantumGate::AccessManager* am) noexcept
+void CIPFiltersDlg::SetAccessManager(QuantumGate::Access::Manager* am) noexcept
 {
 	m_AccessManager = am;
 }
@@ -45,9 +45,9 @@ BOOL CIPFiltersDlg::OnInitDialog()
 	// Init filter type combo
 	auto tcombo = (CComboBox*)GetDlgItem(IDC_TYPECOMBO);
 	auto pos = tcombo->AddString(L"Allowed");
-	tcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::IPFilterType::Allowed));
+	tcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::Access::IPFilterType::Allowed));
 	pos = tcombo->AddString(L"Blocked");
-	tcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::IPFilterType::Blocked));
+	tcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::Access::IPFilterType::Blocked));
 
 	// Init filter list
 	auto flctrl = (CListCtrl*)GetDlgItem(IDC_IPFILTERS_LIST);
@@ -78,7 +78,7 @@ void CIPFiltersDlg::UpdateIPFilterList() noexcept
 				flctrl->SetItemText(pos, 1, flt.Mask.GetString().c_str());
 
 				CString type = L"Allowed";
-				if (flt.Type == QuantumGate::IPFilterType::Blocked) type = L"Blocked";
+				if (flt.Type == QuantumGate::Access::IPFilterType::Blocked) type = L"Blocked";
 				flctrl->SetItemText(pos, 2, type);
 
 				flctrl->SetItemText(pos, 3, std::to_wstring(flt.ID).c_str());
@@ -181,7 +181,7 @@ void CIPFiltersDlg::OnBnClickedAddfilter()
 	const auto ip = GetTextValue(IDC_IP);
 	const auto mask = GetTextValue(IDC_MASK);
 	const auto sel = ((CComboBox*)GetDlgItem(IDC_TYPECOMBO))->GetCurSel();
-	const auto type = static_cast<QuantumGate::IPFilterType>(((CComboBox*)GetDlgItem(IDC_TYPECOMBO))->GetItemData(sel));
+	const auto type = static_cast<QuantumGate::Access::IPFilterType>(((CComboBox*)GetDlgItem(IDC_TYPECOMBO))->GetItemData(sel));
 
 	const auto result = m_AccessManager->AddIPFilter((LPCTSTR)ip, (LPCTSTR)mask, type);
 	if (result.Failed())
@@ -207,7 +207,7 @@ void CIPFiltersDlg::OnEnChangeTestIp()
 void CIPFiltersDlg::OnBnClickedTestButton()
 {
 	auto ip = GetTextValue(IDC_TEST_IP);
-	const auto result = m_AccessManager->IsIPAllowed((LPCTSTR)ip, QuantumGate::AccessCheck::IPFilters);
+	const auto result = m_AccessManager->IsIPAllowed((LPCTSTR)ip, QuantumGate::Access::CheckType::IPFilters);
 	if (result.Succeeded())
 	{
 		if (*result)
@@ -237,8 +237,8 @@ void CIPFiltersDlg::OnBnClickedRemovefilter()
 		const auto type = flctrl->GetItemText(pos, 2);
 		const auto id = flctrl->GetItemText(pos, 3);
 
-		auto ftype = QuantumGate::IPFilterType::Allowed;
-		if (type == L"Blocked") ftype = QuantumGate::IPFilterType::Blocked;
+		auto ftype = QuantumGate::Access::IPFilterType::Allowed;
+		if (type == L"Blocked") ftype = QuantumGate::Access::IPFilterType::Blocked;
 
 		if (m_AccessManager->RemoveIPFilter(std::stoull(id.GetString()), ftype) != QuantumGate::ResultCode::Succeeded)
 		{

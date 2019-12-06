@@ -5,6 +5,7 @@
 #include "Peer.h"
 #include "PeerManager.h"
 #include "..\..\Common\Random.h"
+#include "..\..\API\AccessManager.h"
 
 #include <thread>
 #include <chrono>
@@ -174,7 +175,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				if (GetPeerExtenderUUIDs().HasExtender(extuuid))
 				{
-					ProcessEvent({ extuuid }, PeerEventType::Connected);
+					ProcessEvent({ extuuid }, Event::Type::Connected);
 				}
 			}
 		}
@@ -198,8 +199,8 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (updates.Succeeded())
 				{
 					// Notify local extenders of changes in peer extender support
-					if (!updates->first.empty()) ProcessEvent(updates->first, PeerEventType::Connected);
-					if (!updates->second.empty()) ProcessEvent(updates->second, PeerEventType::Disconnected);
+					if (!updates->first.empty()) ProcessEvent(updates->first, Event::Type::Connected);
+					if (!updates->second.empty()) ProcessEvent(updates->second, Event::Type::Disconnected);
 					success = true;
 				}
 
@@ -612,7 +613,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					}
 
 					// Notify extenders of connected peer
-					ProcessEvent(PeerEventType::Connected);
+					ProcessEvent(Event::Type::Connected);
 				}
 
 				break;
@@ -642,7 +643,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (old_status == Status::Ready)
 				{
 					// Notify extenders of disconnected peer
-					ProcessEvent(PeerEventType::Disconnected);
+					ProcessEvent(Event::Type::Disconnected);
 				}
 
 				break;
@@ -1580,7 +1581,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::nullopt;
 	}
 
-	void Peer::ProcessEvent(const PeerEventType etype) noexcept
+	void Peer::ProcessEvent(const Event::Type etype) noexcept
 	{
 		// Notify peer manager of new peer event
 		GetPeerManager().OnPeerEvent(*this, Event(etype, GetLUID(), GetLocalUUID()));
@@ -1589,7 +1590,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		ProcessEvent(GetPeerExtenderUUIDs().Current(), etype);
 	}
 
-	void Peer::ProcessEvent(const Vector<ExtenderUUID>& extuuids, const PeerEventType etype) noexcept
+	void Peer::ProcessEvent(const Vector<ExtenderUUID>& extuuids, const Event::Type etype) noexcept
 	{
 		GetExtenderManager().OnPeerEvent(extuuids, Event(etype, GetLUID(), GetLocalUUID()));
 	}
@@ -1606,7 +1607,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				m_PeerData.WithUniqueLock()->ExtendersBytesReceived += msg.GetMessageData().GetSize();
 
 				// Allow extenders to process received message
-				const auto retval = GetExtenderManager().OnPeerMessage(Event(PeerEventType::Message, GetLUID(),
+				const auto retval = GetExtenderManager().OnPeerMessage(Event(Event::Type::Message, GetLUID(),
 																			 GetLocalUUID(), std::move(msg)));
 				if (!retval.first)
 				{
@@ -1655,7 +1656,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		LogDbg(L"Checking access for peer %s", GetPeerName().c_str());
 
 		// Check if peer IP is still allowed access
-		const auto result = GetAccessManager().IsIPAllowed(GetPeerIPAddress(), AccessCheck::All);
+		const auto result = GetAccessManager().IsIPAllowed(GetPeerIPAddress(), Access::CheckType::All);
 		if (!result || !(*result))
 		{
 			// Peer IP isn't allowed anymore; disconnect the peer as soon as possible

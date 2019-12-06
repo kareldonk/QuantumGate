@@ -199,7 +199,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return m_SubnetLimits.WithSharedLock()->GetLimits();
 	}
 
-	Result<bool> Manager::IsIPAllowed(const WChar* ip_str, const AccessCheck check) noexcept
+	Result<bool> Manager::IsIPAllowed(const WChar* ip_str, const CheckType check) noexcept
 	{
 		IPAddress ipaddr;
 		if (IPAddress::TryParse(ip_str, ipaddr))
@@ -210,23 +210,23 @@ namespace QuantumGate::Implementation::Core::Access
 		return ResultCode::AddressInvalid;
 	}
 
-	Result<bool> Manager::IsIPAllowed(const IPAddress& ip, const AccessCheck check) noexcept
+	Result<bool> Manager::IsIPAllowed(const IPAddress& ip, const CheckType check) noexcept
 	{
 		switch (check)
 		{
-			case AccessCheck::IPFilters:
+			case CheckType::IPFilters:
 			{
 				return m_IPFilters.WithSharedLock()->IsAllowed(ip);
 			}
-			case AccessCheck::IPReputations:
+			case CheckType::IPReputations:
 			{
 				return m_IPAccessControl.WithUniqueLock()->HasAcceptableReputation(ip);
 			}
-			case AccessCheck::IPSubnetLimits:
+			case CheckType::IPSubnetLimits:
 			{
 				return !m_SubnetLimits.WithSharedLock()->HasConnectionOverflow(ip);
 			}
-			case AccessCheck::All:
+			case CheckType::All:
 			{
 				if (const auto result = m_IPFilters.WithSharedLock()->IsAllowed(ip); result)
 				{
@@ -251,23 +251,23 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	Result<bool> Manager::IsIPConnectionAllowed(const IPAddress& ip, const AccessCheck check) noexcept
+	Result<bool> Manager::IsIPConnectionAllowed(const IPAddress& ip, const CheckType check) noexcept
 	{
 		switch (check)
 		{
-			case AccessCheck::IPFilters:
+			case CheckType::IPFilters:
 			{
 				return m_IPFilters.WithSharedLock()->IsAllowed(ip);
 			}
-			case AccessCheck::IPReputations:
+			case CheckType::IPReputations:
 			{
 				return m_IPAccessControl.WithUniqueLock()->HasAcceptableReputation(ip);
 			}
-			case AccessCheck::IPSubnetLimits:
+			case CheckType::IPSubnetLimits:
 			{
 				return m_SubnetLimits.WithSharedLock()->CanAcceptConnection(ip);
 			}
-			case AccessCheck::All:
+			case CheckType::All:
 			{
 				if (const auto result = m_IPFilters.WithSharedLock()->IsAllowed(ip); result)
 				{
@@ -292,7 +292,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	Result<> Manager::AddPeer(PeerAccessSettings&& pas) noexcept
+	Result<> Manager::AddPeer(PeerSettings&& pas) noexcept
 	{
 		auto result = m_PeerAccessControl.WithUniqueLock()->AddPeer(std::move(pas));
 		if (result.Succeeded())
@@ -303,7 +303,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	Result<> Manager::UpdatePeer(PeerAccessSettings&& pas) noexcept
+	Result<> Manager::UpdatePeer(PeerSettings&& pas) noexcept
 	{
 		auto result = m_PeerAccessControl.WithUniqueLock()->UpdatePeer(std::move(pas));
 		if (result.Succeeded())
@@ -352,7 +352,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return m_PeerAccessControl.WithSharedLock()->GetAccessDefault();
 	}
 
-	Result<Vector<PeerAccessSettings>> Manager::GetAllPeers() const noexcept
+	Result<Vector<PeerSettings>> Manager::GetAllPeers() const noexcept
 	{
 		return m_PeerAccessControl.WithSharedLock()->GetPeers();
 	}

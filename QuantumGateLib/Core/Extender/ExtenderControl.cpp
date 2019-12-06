@@ -4,7 +4,6 @@
 #include "stdafx.h"
 #include "ExtenderControl.h"
 #include "ExtenderManager.h"
-#include "..\..\API\PeerEvent.h"
 
 namespace QuantumGate::Implementation::Core::Extender
 {
@@ -171,7 +170,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 				if (event)
 				{
-					GetExtender().OnPeerEvent(QuantumGate::API::PeerEvent(std::move(event)));
+					GetExtender().OnPeerEvent(QuantumGate::API::Extender::PeerEvent(std::move(event)));
 				}
 				else break;
 			}
@@ -193,7 +192,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				if (event)
 				{
 					const auto pluid = event.GetPeerLUID();
-					const auto retval = GetExtender().OnPeerMessage(QuantumGate::API::PeerEvent(std::move(event)));
+					const auto retval = GetExtender().OnPeerMessage(QuantumGate::API::Extender::PeerEvent(std::move(event)));
 					if ((!retval.first || !retval.second) &&
 						!GetExtender().HadException())
 					{
@@ -227,13 +226,13 @@ namespace QuantumGate::Implementation::Core::Extender
 
 	bool Control::AddPeerEvent(Core::Peer::Event&& event) noexcept
 	{
-		assert(event.GetType() != PeerEventType::Unknown);
+		assert(event.GetType() != Core::Peer::Event::Type::Unknown);
 
 		try
 		{
 			std::shared_ptr<Peer_ThS> peerctrl = nullptr;
 
-			if (event.GetType() == PeerEventType::Connected)
+			if (event.GetType() == Core::Peer::Event::Type::Connected)
 			{
 				// Connect event means we should add a new peer;
 				// get the threadpool with the least amount of peers so
@@ -281,7 +280,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 				assert(peerctrl != nullptr);
 
-				if (event.GetType() == PeerEventType::Disconnected)
+				if (event.GetType() == Core::Peer::Event::Type::Disconnected)
 				{
 					peerctrl->WithUniqueLock()->Status = Peer::Status::Disconnected;
 					m_Peers.erase(event.GetPeerLUID());
@@ -295,7 +294,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			{
 				thpoolkey = peer.ThreadPoolKey;
 
-				if (event.GetType() == PeerEventType::Message)
+				if (event.GetType() == Core::Peer::Event::Type::Message)
 				{
 					peer.MessageQueue.Push(std::move(event));
 				}

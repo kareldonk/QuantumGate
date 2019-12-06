@@ -38,7 +38,7 @@ namespace QuantumGate::AVExtender
 
 	struct Event final
 	{
-		PeerEventType Type{ PeerEventType::Unknown };
+		QuantumGate::Extender::PeerEvent::Type Type{ QuantumGate::Extender::PeerEvent::Type::Unknown };
 		PeerLUID PeerLUID{ 0 };
 	};
 

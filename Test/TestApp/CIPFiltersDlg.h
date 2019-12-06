@@ -13,7 +13,7 @@ public:
 
 	enum { IDD = IDD_IPFILTERS };
 
-	void SetAccessManager(QuantumGate::AccessManager* am) noexcept;
+	void SetAccessManager(QuantumGate::Access::Manager* am) noexcept;
 
 protected:
 	virtual BOOL OnInitDialog();
@@ -39,6 +39,6 @@ private:
 	void UpdateIPRange() noexcept;
 
 private:
-	QuantumGate::AccessManager* m_AccessManager{ nullptr };
+	QuantumGate::Access::Manager* m_AccessManager{ nullptr };
 };
 

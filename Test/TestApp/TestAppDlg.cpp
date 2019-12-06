@@ -382,7 +382,7 @@ void CTestAppDlg::LoadSettings()
 				if (set.find("PeerAccessDefaultAllowed") != set.end())
 				{
 					m_QuantumGate.GetAccessManager().SetPeerAccessDefault(set["PeerAccessDefaultAllowed"].get<bool>() ?
-																		  PeerAccessDefault::Allowed : PeerAccessDefault::NotAllowed);
+																		  Access::PeerAccessDefault::Allowed : Access::PeerAccessDefault::NotAllowed);
 				}
 
 				if (set.find("ConnectIP") != set.end())
@@ -421,8 +421,8 @@ void CTestAppDlg::LoadSettings()
 						flt.find("Mask") != flt.end() &&
 						flt.find("Allowed") != flt.end())
 					{
-						auto type = QuantumGate::IPFilterType::Allowed;
-						if (!flt["Allowed"].get<bool>()) type = QuantumGate::IPFilterType::Blocked;
+						auto type = QuantumGate::Access::IPFilterType::Allowed;
+						if (!flt["Allowed"].get<bool>()) type = QuantumGate::Access::IPFilterType::Blocked;
 
 						const auto result = m_QuantumGate.GetAccessManager().AddIPFilter(Util::ToStringW(flt["Address"].get<std::string>()),
 																						 Util::ToStringW(flt["Mask"].get<std::string>()),
@@ -500,7 +500,7 @@ void CTestAppDlg::LoadSettings()
 						peer.find("PublicKey") != peer.end() &&
 						peer.find("AccessAllowed") != peer.end())
 					{
-						PeerAccessSettings pas;
+						Access::PeerSettings pas;
 						pas.AccessAllowed = peer["AccessAllowed"].get<bool>();
 
 						if (QuantumGate::UUID::TryParse(Util::ToStringW(peer["UUID"].get<std::string>()), pas.UUID))
@@ -557,7 +557,7 @@ void CTestAppDlg::SaveSettings()
 			j["Settings"]["RelayIPv4ExcludedNetworksCIDRLeadingBits"] = m_StartupParameters.Relays.IPv4ExcludedNetworksCIDRLeadingBits;
 			j["Settings"]["RelayIPv6ExcludedNetworksCIDRLeadingBits"] = m_StartupParameters.Relays.IPv6ExcludedNetworksCIDRLeadingBits;
 
-			if (m_QuantumGate.GetAccessManager().GetPeerAccessDefault() == PeerAccessDefault::Allowed)
+			if (m_QuantumGate.GetAccessManager().GetPeerAccessDefault() == Access::PeerAccessDefault::Allowed)
 			{
 				j["Settings"]["PeerAccessDefaultAllowed"] = true;
 			}
@@ -586,7 +586,7 @@ void CTestAppDlg::SaveSettings()
 					jflt["Mask"] = Util::ToStringA(flt.Mask.GetString().c_str());
 
 					auto allowed = true;
-					if (flt.Type == QuantumGate::IPFilterType::Blocked) allowed = false;
+					if (flt.Type == QuantumGate::Access::IPFilterType::Blocked) allowed = false;
 
 					jflt["Allowed"] = allowed;
 

@@ -74,8 +74,8 @@ namespace StressExtender
 	{
 		String ev(L"Unknown");
 
-		if (event.GetType() == PeerEventType::Connected) ev = L"Connect";
-		else if (event.GetType() == PeerEventType::Disconnected) ev = L"Disconnect";
+		if (event.GetType() == PeerEvent::Type::Connected) ev = L"Connect";
+		else if (event.GetType() == PeerEvent::Type::Disconnected) ev = L"Disconnect";
 
 		LogInfo(L"Extender '%s' got peer event: %s, Peer LUID: %llu", GetName().c_str(), ev.c_str(), event.GetPeerLUID());
 
@@ -89,7 +89,7 @@ namespace StressExtender
 		auto handled = false;
 		auto success = false;
 
-		if (event.GetType() == PeerEventType::Message)
+		if (event.GetType() == PeerEvent::Type::Message)
 		{
 			auto msgdata = event.GetMessageData();
 			if (msgdata != nullptr)
