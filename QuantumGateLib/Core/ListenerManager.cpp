@@ -79,7 +79,7 @@ namespace QuantumGate::Implementation::Core::Listener
 	}
 
 	// Starts listening on all active interfaces
-	bool Manager::Startup(const Vector<EthernetInterface>& interfaces) noexcept
+	bool Manager::Startup(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept
 	{
 		if (m_Running) return true;
 
@@ -191,7 +191,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		return next_thread;
 	}
 
-	bool Manager::Update(const Vector<EthernetInterface>& interfaces) noexcept
+	bool Manager::Update(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept
 	{
 		if (!m_Running) return false;
 

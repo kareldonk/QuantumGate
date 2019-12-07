@@ -36,8 +36,8 @@ namespace QuantumGate::Implementation::Core
 
 		inline const String& GetHostname() const noexcept { return m_Hostname; }
 		inline const String& GetUsername() const noexcept { return m_Username; }
-		Result<Vector<IPAddressDetails>> GetIPAddresses() const noexcept;
-		inline const Vector<EthernetInterface>& GetEthernetInterfaces() const noexcept { return m_EthernetInterfaces; }
+		Result<Vector<API::Local::Environment::IPAddressDetails>> GetIPAddresses() const noexcept;
+		inline const Vector<API::Local::Environment::EthernetInterface>& GetEthernetInterfaces() const noexcept { return m_EthernetInterfaces; }
 
 		const Vector<BinaryIPAddress>* GetTrustedAndVerifiedIPAddresses() const noexcept;
 
@@ -63,7 +63,7 @@ namespace QuantumGate::Implementation::Core
 
 		static Result<String> OSGetHostname() noexcept;
 		static Result<String> OSGetUsername() noexcept;
-		static Result<Vector<EthernetInterface>> OSGetEthernetInterfaces() noexcept;
+		static Result<Vector<API::Local::Environment::EthernetInterface>> OSGetEthernetInterfaces() noexcept;
 		static Result<Vector<BinaryIPAddress>> OSGetIPAddresses(const String& hostname) noexcept;
 
 	private:
@@ -75,7 +75,7 @@ namespace QuantumGate::Implementation::Core
 
 		String m_Hostname;
 		String m_Username;
-		Vector<EthernetInterface> m_EthernetInterfaces;
+		Vector<API::Local::Environment::EthernetInterface> m_EthernetInterfaces;
 
 		PublicIPEndpoints m_PublicIPEndpoints;
 

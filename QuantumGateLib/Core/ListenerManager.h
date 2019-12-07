@@ -44,14 +44,14 @@ namespace QuantumGate::Implementation::Core::Listener
 		Manager& operator=(Manager&&) = default;
 
 		[[nodiscard]] bool Startup() noexcept;
-		[[nodiscard]] bool Startup(const Vector<EthernetInterface>& interfaces) noexcept;
+		[[nodiscard]] bool Startup(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept;
 		void Shutdown() noexcept;
 		[[nodiscard]] inline bool IsRunning() const noexcept { return m_Running; }
 
 		[[nodiscard]] bool AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
 											  const bool cond_accept, const bool nat_traversal) noexcept;
 		std::optional<ThreadPool::Thread> RemoveListenerThread(ThreadPool::Thread&& thread) noexcept;
-		[[nodiscard]] bool Update(const Vector<EthernetInterface>& interfaces) noexcept;
+		[[nodiscard]] bool Update(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept;
 
 	private:
 		void PreStartup() noexcept;

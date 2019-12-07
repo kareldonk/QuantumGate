@@ -134,30 +134,6 @@ namespace QuantumGate
 
 	using IPEndpoint = Implementation::Network::IPEndpoint;
 
-	struct PublicIPAddressDetails
-	{
-		bool ReportedByPeers{ false };
-		bool ReportedByTrustedPeers{ false };
-		Size NumReportingNetworks{ 0 };
-		bool Verified{ false };
-	};
-
-	struct IPAddressDetails
-	{
-		IPAddress IPAddress;
-		bool BoundToLocalEthernetInterface{ false };
-		std::optional<PublicIPAddressDetails> PublicDetails;
-	};
-
-	struct EthernetInterface
-	{
-		String Name;
-		String Description;
-		String MACAddress;
-		bool Operational{ false };
-		Vector<IPAddress> IPAddresses;
-	};
-
 	struct Algorithms
 	{
 		Set<Algorithm::Hash> Hash;

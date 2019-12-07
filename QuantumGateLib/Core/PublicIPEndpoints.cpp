@@ -747,7 +747,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	Result<> PublicIPEndpoints::AddIPAddresses(Vector<IPAddressDetails>& ips) const noexcept
+	Result<> PublicIPEndpoints::AddIPAddresses(Vector<API::Local::Environment::IPAddressDetails>& ips) const noexcept
 	{
 		try
 		{

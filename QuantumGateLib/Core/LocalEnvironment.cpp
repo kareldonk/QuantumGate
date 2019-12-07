@@ -174,7 +174,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	Result<Vector<EthernetInterface>> LocalEnvironment::OSGetEthernetInterfaces() noexcept
+	Result<Vector<API::Local::Environment::EthernetInterface>> LocalEnvironment::OSGetEthernetInterfaces() noexcept
 	{
 		try
 		{
@@ -195,7 +195,7 @@ namespace QuantumGate::Implementation::Core
 												  &buflen);
 			if (ret == NO_ERROR)
 			{
-				Vector<EthernetInterface> allifs;
+				Vector<API::Local::Environment::EthernetInterface> allifs;
 
 				auto address = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(addresses.get());
 
@@ -413,11 +413,11 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	Result<Vector<IPAddressDetails>> LocalEnvironment::GetIPAddresses() const noexcept
+	Result<Vector<API::Local::Environment::IPAddressDetails>> LocalEnvironment::GetIPAddresses() const noexcept
 	{
 		try
 		{
-			Vector<IPAddressDetails> allips;
+			Vector<API::Local::Environment::IPAddressDetails> allips;
 
 			// First add the local IP addresses configured on the host
 			for (const auto& ifs : m_EthernetInterfaces)

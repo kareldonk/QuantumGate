@@ -21,6 +21,30 @@ namespace QuantumGate::API
 			friend class Local;
 
 		public:
+			struct PublicIPAddressDetails
+			{
+				bool ReportedByPeers{ false };
+				bool ReportedByTrustedPeers{ false };
+				Size NumReportingNetworks{ 0 };
+				bool Verified{ false };
+			};
+
+			struct IPAddressDetails
+			{
+				IPAddress IPAddress;
+				bool BoundToLocalEthernetInterface{ false };
+				std::optional<PublicIPAddressDetails> PublicDetails;
+			};
+
+			struct EthernetInterface
+			{
+				String Name;
+				String Description;
+				String MACAddress;
+				bool Operational{ false };
+				Vector<IPAddress> IPAddresses;
+			};
+
 			Environment() = delete;
 			Environment(const Environment&) = delete;
 			Environment(Environment&&) = default;

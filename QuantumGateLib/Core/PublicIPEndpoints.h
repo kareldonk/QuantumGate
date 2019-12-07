@@ -6,8 +6,7 @@
 #include "..\Concurrency\ThreadPool.h"
 #include "..\Concurrency\Queue.h"
 #include "..\Network\Socket.h"
-
-#include <unordered_set>
+#include "..\API\Local.h"
 
 namespace QuantumGate::Implementation::Core
 {
@@ -49,7 +48,7 @@ namespace QuantumGate::Implementation::Core
 
 		struct HopVerification final
 		{
-			std::unordered_set<BinaryIPAddress> Set;
+			Containers::UnorderedSet<BinaryIPAddress> Set;
 			HopVerificationQueue Queue;
 
 			inline void Clear() noexcept
@@ -93,7 +92,7 @@ namespace QuantumGate::Implementation::Core
 
 		struct DataVerification final
 		{
-			std::unordered_set<BinaryIPAddress> Set;
+			Containers::UnorderedSet<BinaryIPAddress> Set;
 			DataVerificationQueue Queue;
 
 			inline void Clear() noexcept
@@ -135,7 +134,7 @@ namespace QuantumGate::Implementation::Core
 		inline IPEndpointsMap_ThS& GetIPEndpoints() noexcept { return m_IPEndpoints; }
 
 		Result<> AddIPAddresses(Vector<BinaryIPAddress>& ips, const bool only_trusted_verified) const noexcept;
-		Result<> AddIPAddresses(Vector<IPAddressDetails>& ips) const noexcept;
+		Result<> AddIPAddresses(Vector<API::Local::Environment::IPAddressDetails>& ips) const noexcept;
 
 		void SetLocallyBoundPublicIPAddress(const bool flag) noexcept { m_HasLocallyBoundPublicIPAddress = flag; }
 		bool HasLocallyBoundPublicIPAddress() const noexcept { return m_HasLocallyBoundPublicIPAddress; }
