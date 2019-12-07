@@ -112,7 +112,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		}
 
 		[[nodiscard]] bool AddPeerEvent(Core::Peer::Event&& event) noexcept;
-		
+
 		[[nodiscard]] bool StartupExtenderThreadPools() noexcept;
 		void ShutdownExtenderThreadPools() noexcept;
 
@@ -120,8 +120,8 @@ namespace QuantumGate::Implementation::Core::Extender
 		void PreStartupExtenderThreadPools() noexcept;
 		void ResetState() noexcept;
 
-		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata,
-														  const Concurrency::EventCondition& shutdown_event);
+		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
+															   const Concurrency::EventCondition& shutdown_event);
 
 	private:
 		Manager& m_ExtenderManager;

@@ -141,10 +141,10 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<Buffer> GetExtenderUpdateData() const noexcept;
 
-		const std::pair<bool, bool> PrimaryThreadProcessor(ThreadPoolData& thpdata,
-														   const Concurrency::EventCondition& shutdown_event);
-		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata,
-														  const Concurrency::EventCondition& shutdown_event);
+		ThreadPool::ThreadCallbackResult PrimaryThreadProcessor(ThreadPoolData& thpdata,
+																const Concurrency::EventCondition& shutdown_event);
+		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
+															   const Concurrency::EventCondition& shutdown_event);
 
 	private:
 		std::atomic_bool m_Running{ false };

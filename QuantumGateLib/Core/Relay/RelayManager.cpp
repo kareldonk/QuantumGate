@@ -135,7 +135,7 @@ namespace QuantumGate::Implementation::Core::Relay
 						// Add entry for the total number of relay links this thread is handling
 						m_ThreadPool.GetData().ThreadKeyToLinkTotals.WithUniqueLock([&](ThreadKeyToLinkTotalMap& link_totals)
 						{
-							[[maybe_unused]] const auto[it, inserted] = link_totals.insert({ x, 0 });
+							[[maybe_unused]] const auto [it, inserted] = link_totals.insert({ x, 0 });
 							if (!inserted)
 							{
 								error = true;
@@ -388,7 +388,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			m_RelayLinks.WithUniqueLock([&](LinkMap& relays)
 			{
 				auto pair = std::make_pair(rport, std::move(rl));
-				[[maybe_unused]] const auto[it, retval] = relays.insert(std::move(pair));
+				[[maybe_unused]] const auto [it, retval] = relays.insert(std::move(pair));
 
 				if (retval)
 				{
@@ -560,10 +560,11 @@ namespace QuantumGate::Implementation::Core::Relay
 		return const_cast<Link_ThS*>(const_cast<const Manager*>(this)->Get(rport));
 	}
 
-	const std::pair<bool, bool> Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																const Concurrency::EventCondition& shutdown_event)
+	Manager::ThreadPool::ThreadCallbackResult Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+																			  const Concurrency::EventCondition& shutdown_event)
 	{
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
+
 		Containers::List<RelayPort> remove_list;
 
 		const auto max_connect_duration = GetSettings().Relay.ConnectTimeout;
@@ -600,7 +601,7 @@ namespace QuantumGate::Implementation::Core::Relay
 							}
 
 							rc.UpdateStatus(Status::Exception, exception);
-							didwork = true;
+							result.DidWork = true;
 						}
 						else if (!out_peer)
 						{
@@ -624,7 +625,7 @@ namespace QuantumGate::Implementation::Core::Relay
 							}
 
 							rc.UpdateStatus(Status::Exception, exception);
-							didwork = true;
+							result.DidWork = true;
 						}
 						else // Both peers are present
 						{
@@ -635,7 +636,7 @@ namespace QuantumGate::Implementation::Core::Relay
 								LogErr(L"Relay link on port %llu timed out; will remove", rc.GetPort());
 
 								rc.UpdateStatus(Status::Exception, Exception::TimedOut);
-								didwork = true;
+								result.DidWork = true;
 							}
 							else if (rc.GetStatus() == Status::Connect)
 							{
@@ -648,7 +649,7 @@ namespace QuantumGate::Implementation::Core::Relay
 								else
 								{
 									ProcessRelayConnect(rc, in_peer, out_peer);
-									didwork = true;
+									result.DidWork = true;
 								}
 							}
 						}
@@ -656,7 +657,7 @@ namespace QuantumGate::Implementation::Core::Relay
 						if (rc.GetStatus() == Status::Disconnected || rc.GetStatus() == Status::Exception)
 						{
 							ProcessRelayDisconnect(rc, in_peer, out_peer);
-							didwork = true;
+							result.DidWork = true;
 						}
 					}
 					else if (rc.GetStatus() == Status::Closed &&
@@ -676,17 +677,17 @@ namespace QuantumGate::Implementation::Core::Relay
 			Remove(remove_list);
 
 			remove_list.clear();
-			didwork = true;
+			result.DidWork = true;
 		}
 
-		return std::make_pair(true, didwork);
+		return result;
 	}
 
-	const std::pair<bool, bool> Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   ThreadData& thdata,
-															   const Concurrency::EventCondition& shutdown_event)
+	Manager::ThreadPool::ThreadCallbackResult Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
+																			 ThreadData& thdata,
+																			 const Concurrency::EventCondition& shutdown_event)
 	{
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
 		std::optional<Event> event;
 
@@ -699,7 +700,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 				// We had events in the queue
 				// so we did work
-				didwork = true;
+				result.DidWork = true;
 			}
 		});
 
@@ -720,7 +721,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			else assert(false);
 		}
 
-		return std::make_pair(true, didwork);
+		return result;
 	}
 
 	bool Manager::ProcessRelayConnect(Link& rl,

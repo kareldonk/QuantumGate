@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Core::Extender
 {
-	Control::Control(Manager & mgr, const std::shared_ptr<QuantumGate::API::Extender>& extender,
+	Control::Control(Manager& mgr, const std::shared_ptr<QuantumGate::API::Extender>& extender,
 					 const ExtenderModuleID moduleid) noexcept :
 		m_ExtenderManager(mgr), m_Extender(extender), m_ExtenderModuleID(moduleid)
 	{
@@ -124,10 +124,11 @@ namespace QuantumGate::Implementation::Core::Extender
 		ResetState();
 	}
 
-	const std::pair<bool, bool> Control::WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   const Concurrency::EventCondition& shutdown_event)
+	Control::ThreadPool::ThreadCallbackResult Control::WorkerThreadProcessor(ThreadPoolData& thpdata,
+																			 const Concurrency::EventCondition& shutdown_event)
 	{
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
+
 		auto addtoqueue = false;
 
 		std::shared_ptr<Peer_ThS> peerctrl = nullptr;
@@ -142,7 +143,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				queue.Pop();
 
 				// We had peers in the queue so we did work
-				didwork = true;
+				result.DidWork = true;
 			}
 		});
 
@@ -192,12 +193,12 @@ namespace QuantumGate::Implementation::Core::Extender
 				if (event)
 				{
 					const auto pluid = event.GetPeerLUID();
-					const auto result = GetExtender().OnPeerMessage(QuantumGate::API::Extender::PeerEvent(std::move(event)));
-					if ((!result.Handled || !result.Success) &&
+					const auto evresult = GetExtender().OnPeerMessage(QuantumGate::API::Extender::PeerEvent(std::move(event)));
+					if ((!evresult.Handled || !evresult.Success) &&
 						!GetExtender().HadException())
 					{
 						m_ExtenderManager.GetUnhandledExtenderMessageCallbacks().WithUniqueLock()(GetExtender().GetUUID(),
-																								  pluid, result);
+																								  pluid, evresult);
 						break;
 					}
 				}
@@ -221,7 +222,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		if (addtoqueue) thpdata.Queue.WithUniqueLock()->Push(peerctrl);
 
-		return std::make_pair(true, didwork);
+		return result;
 	}
 
 	bool Control::AddPeerEvent(Core::Peer::Event&& event) noexcept
@@ -249,7 +250,7 @@ namespace QuantumGate::Implementation::Core::Extender
 													  thpit->second->GetData().PeerCount, Peer::Status::Connected);
 
 				// If this fails there was already a peer in the map; this should not happen
-				[[maybe_unused]] const auto[it, inserted] = m_Peers.insert({ event.GetPeerLUID(), peerctrl });
+				[[maybe_unused]] const auto [it, inserted] = m_Peers.insert({ event.GetPeerLUID(), peerctrl });
 
 				assert(inserted);
 

@@ -91,7 +91,7 @@ namespace QuantumGate::Implementation::Core
 
 		Result<PeerUUID> GetUUID() const noexcept;
 		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
-		
+
 		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
 
@@ -124,8 +124,8 @@ namespace QuantumGate::Implementation::Core
 		void ProcessEvent(const Events::LocalEnvironmentChange& event) noexcept;
 		void ProcessEvent(const Events::UnhandledExtenderException& event) noexcept;
 
-		const std::pair<bool, bool> WorkerThreadProcessor(ThreadPoolData& thpdata,
-														  const Concurrency::EventCondition& shutdown_event);
+		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
+															   const Concurrency::EventCondition& shutdown_event);
 
 	private:
 		std::atomic_bool m_Running{ false };

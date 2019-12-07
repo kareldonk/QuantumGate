@@ -84,7 +84,7 @@ namespace QuantumGate::Socks5Extender
 		void ShutdownThreadPool() noexcept;
 
 		static void ListenerThreadLoop(Extender* extender);
-		const std::pair<bool, bool> MainWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event);
+		ThreadPool::ThreadCallbackResult MainWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event);
 
 		std::optional<IPAddress> ResolveDomainIP(const String& domain) const noexcept;
 		const Socks5Protocol::Replies TranslateWSAErrorToSocks5(Int errorcode) const noexcept;

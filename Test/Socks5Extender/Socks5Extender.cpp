@@ -794,9 +794,10 @@ namespace QuantumGate::Socks5Extender
 		LogDbg(L"%s: listener thread %u exiting", extname.c_str(), std::this_thread::get_id());
 	}
 
-	const std::pair<bool, bool> Extender::MainWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event)
+	Extender::ThreadPool::ThreadCallbackResult Extender::MainWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event)
 	{
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
+
 		std::vector<UInt64> rlist;
 
 		m_Connections.IfSharedLock([&](const Connections& connections)
@@ -807,7 +808,7 @@ namespace QuantumGate::Socks5Extender
 				{
 					if (connection.IsActive())
 					{
-						connection.ProcessEvents(didwork);
+						connection.ProcessEvents(result.DidWork);
 
 						if (connection.IsTimedOut())
 						{
@@ -838,10 +839,10 @@ namespace QuantumGate::Socks5Extender
 			});
 
 			rlist.clear();
-			didwork = true;
+			result.DidWork = true;
 		}
 
-		return std::make_pair(true, didwork);
+		return result;
 	}
 
 	void Extender::AcceptIncomingConnection()

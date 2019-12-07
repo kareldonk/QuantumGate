@@ -19,6 +19,14 @@ namespace QuantumGate::Implementation::Concurrency
 	template<typename ThPData = NoThreadPoolData, typename ThData = NoThreadData>
 	class ThreadPool
 	{
+	public:
+		struct ThreadCallbackResult
+		{
+			bool Success{ false };
+			bool DidWork{ false };
+		};
+
+	private:
 		template<typename U>
 		static constexpr bool has_threadpool_data = !std::is_same_v<std::remove_cv_t<std::decay_t<U>>, NoThreadPoolData>;
 
@@ -28,29 +36,31 @@ namespace QuantumGate::Implementation::Concurrency
 		template<bool thpdata = has_threadpool_data<ThPData>, bool thdata = has_thread_data<ThData>>
 		struct thread_callback
 		{
-			using type = Callback<const std::pair<bool, bool>(const EventCondition&)>;
+			using type = Callback<ThreadCallbackResult(const EventCondition&)>;
 		};
 
 		template<>
 		struct thread_callback<true, false>
 		{
-			using type = Callback<const std::pair<bool, bool>(ThPData&, const EventCondition&)>;
+			using type = Callback<ThreadCallbackResult(ThPData&, const EventCondition&)>;
 		};
 
 		template<>
 		struct thread_callback<false, true>
 		{
-			using type = Callback<const std::pair<bool, bool>(ThData&, const EventCondition&)>;
+			using type = Callback<ThreadCallbackResult(ThData&, const EventCondition&)>;
 		};
 
 		template<>
 		struct thread_callback<true, true>
 		{
-			using type = Callback<const std::pair<bool, bool>(ThPData&, ThData&, const EventCondition&)>;
+			using type = Callback<ThreadCallbackResult(ThPData&, ThData&, const EventCondition&)>;
 		};
 
+	public:
 		using ThreadCallbackType = typename thread_callback<>::type;
 
+	private:
 		struct ThreadCtrl final
 		{
 			ThreadCtrl(const String& thname, ThreadCallbackType&& thcallback,
@@ -301,7 +311,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 			auto sleepms = std::chrono::milliseconds(1);
 			Size workburst{ 0 };
-			std::pair<bool, bool> result{ false, false };
+			ThreadCallbackResult result;
 
 			while (true)
 			{
@@ -328,7 +338,7 @@ namespace QuantumGate::Implementation::Concurrency
 					}
 					else result = thctrl.ThreadCallback(*thctrl.ShutdownEvent);
 
-					if (!result.first)
+					if (!result.Success)
 					{
 						// An error occured; exit the thread
 						break;
@@ -336,7 +346,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 					// If we did work that means it's busy so sleep
 					// less, otherwise sleep increasingly longer
-					if (result.second)
+					if (result.DidWork)
 					{
 						sleepms = std::chrono::milliseconds(1);
 						++workburst;

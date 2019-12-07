@@ -428,10 +428,10 @@ namespace QuantumGate::Implementation::Core
 		m_ThreadPool.Clear();
 	}
 
-	const std::pair<bool, bool> Local::WorkerThreadProcessor(ThreadPoolData& thpdata,
-															 const Concurrency::EventCondition& shutdown_event)
+	Local::ThreadPool::ThreadCallbackResult Local::WorkerThreadProcessor(ThreadPoolData& thpdata,
+																		 const Concurrency::EventCondition& shutdown_event)
 	{
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
 		std::optional<Event> event;
 
@@ -444,7 +444,7 @@ namespace QuantumGate::Implementation::Core
 
 				// We had events in the queue
 				// so we did work
-				didwork = true;
+				result.DidWork = true;
 			}
 		});
 
@@ -461,7 +461,7 @@ namespace QuantumGate::Implementation::Core
 			else assert(false);
 		}
 
-		return std::make_pair(true, didwork);
+		return result;
 	}
 
 	void Local::ProcessEvent(const Events::LocalEnvironmentChange& event) noexcept
@@ -776,7 +776,7 @@ namespace QuantumGate::Implementation::Core
 
 						if (success)
 						{
-							[[maybe_unused]] const auto[mit, inserted] =
+							[[maybe_unused]] const auto [mit, inserted] =
 								m_ExtenderModules.insert({ module.GetID(), std::move(module) });
 
 							assert(inserted);

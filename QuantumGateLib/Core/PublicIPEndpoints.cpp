@@ -327,9 +327,10 @@ namespace QuantumGate::Implementation::Core
 		m_ReportingNetworks.clear();
 	}
 
-	const std::pair<bool, bool> PublicIPEndpoints::DataVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event)
+	PublicIPEndpoints::ThreadPool::ThreadCallbackResult
+		PublicIPEndpoints::DataVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event)
 	{
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
 		std::optional<DataVerificationDetails> data_verification;
 
@@ -342,7 +343,7 @@ namespace QuantumGate::Implementation::Core
 
 				// We had data in the queue
 				// so we did work
-				didwork = true;
+				result.DidWork = true;
 			}
 		});
 
@@ -387,12 +388,13 @@ namespace QuantumGate::Implementation::Core
 			}
 		}
 
-		return std::make_pair(true, didwork);
+		return result;
 	}
 
-	const std::pair<bool, bool> PublicIPEndpoints::HopVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event)
+	PublicIPEndpoints::ThreadPool::ThreadCallbackResult
+		PublicIPEndpoints::HopVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event)
 	{
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
 		std::optional<HopVerificationDetails> hop_verification;
 
@@ -405,7 +407,7 @@ namespace QuantumGate::Implementation::Core
 
 				// We had data in the queue
 				// so we did work
-				didwork = true;
+				result.DidWork = true;
 			}
 		});
 
@@ -439,7 +441,7 @@ namespace QuantumGate::Implementation::Core
 			});
 		}
 
-		return std::make_pair(true, didwork);
+		return result;
 	}
 
 	bool PublicIPEndpoints::AddIPAddressDataVerification(const BinaryIPAddress& ip) noexcept
@@ -542,7 +544,7 @@ namespace QuantumGate::Implementation::Core
 
 						auto ipendpoints = m_IPEndpoints.WithUniqueLock();
 
-						const auto[pub_ipd, new_insert] =
+						const auto [pub_ipd, new_insert] =
 							GetIPEndpointDetails(pub_endpoint.GetIPAddress().GetBinary(), *ipendpoints);
 						if (pub_ipd != nullptr)
 						{
@@ -624,7 +626,7 @@ namespace QuantumGate::Implementation::Core
 			{
 				try
 				{
-					const auto[iti, inserted] = ipendpoints.emplace(
+					const auto [iti, inserted] = ipendpoints.emplace(
 						std::make_pair(pub_ip, PublicIPEndpointDetails{}));
 
 					pub_ipd = &iti->second;
@@ -660,10 +662,10 @@ namespace QuantumGate::Implementation::Core
 				{
 					temp_endp.emplace_back(
 						MinimalIPEndpointDetails{
-						it.first,
-						it.second.IsVerified(),
-						it.second.IsTrusted(),
-						it.second.LastUpdateSteadyTime });
+							it.first,
+							it.second.IsVerified(),
+							it.second.IsTrusted(),
+							it.second.LastUpdateSteadyTime });
 				});
 
 				// Sort by least trusted and least recent

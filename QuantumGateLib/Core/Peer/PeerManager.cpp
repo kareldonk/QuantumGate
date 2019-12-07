@@ -265,10 +265,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	const std::pair<bool, bool> Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata,
-																const Concurrency::EventCondition& shutdown_event)
+	Manager::ThreadPool::ThreadCallbackResult Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata,
+																			  const Concurrency::EventCondition& shutdown_event)
 	{
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
+
 		Containers::List<std::shared_ptr<Peer_ThS>> remove_list;
 
 		const auto& settings = GetSettings();
@@ -317,7 +318,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 							thpdata.Queue.WithUniqueLock()->Push(peerths, [&]() noexcept { peer.SetInQueue(true); });
 
-							didwork = true;
+							result.DidWork = true;
 						}
 					}
 
@@ -340,16 +341,16 @@ namespace QuantumGate::Implementation::Core::Peer
 			Remove(remove_list);
 
 			remove_list.clear();
-			didwork = true;
+			result.DidWork = true;
 		}
 
-		return std::make_pair(true, didwork);
+		return result;
 	}
 
-	const std::pair<bool, bool> Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   const Concurrency::EventCondition& shutdown_event)
+	Manager::ThreadPool::ThreadCallbackResult Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
+																			 const Concurrency::EventCondition& shutdown_event)
 	{
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
 		std::shared_ptr<Peer_ThS> peerths = nullptr;
 
@@ -361,7 +362,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				queue.Pop();
 
 				// We had peers in the queue so we did work
-				didwork = true;
+				result.DidWork = true;
 			}
 		});
 
@@ -386,7 +387,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			});
 		}
 
-		return std::make_pair(true, didwork);
+		return result;
 	}
 
 	std::shared_ptr<Peer_ThS> Manager::Get(const PeerLUID pluid) const noexcept

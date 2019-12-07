@@ -178,7 +178,7 @@ namespace QuantumGate::Implementation::Core::Listener
 	{
 		const IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
 
-		const auto[success, next_thread] = m_ListenerThreadPool.RemoveThread(std::move(thread));
+		const auto [success, next_thread] = m_ListenerThreadPool.RemoveThread(std::move(thread));
 		if (success)
 		{
 			LogSys(L"Stopped listening on endpoint %s", endpoint.GetString().c_str());
@@ -297,11 +297,10 @@ namespace QuantumGate::Implementation::Core::Listener
 		m_ListenerThreadPool.Clear();
 	}
 
-	const std::pair<bool, bool> Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-															   const Concurrency::EventCondition& shutdown_event)
+	Manager::ThreadPool::ThreadCallbackResult Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
+																			 const Concurrency::EventCondition& shutdown_event)
 	{
-		auto success = true;
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
 		// Check if we have a read event waiting for us
 		if (thdata.Socket.UpdateIOStatus(0ms,
@@ -316,7 +315,7 @@ namespace QuantumGate::Implementation::Core::Listener
 
 				AcceptConnection(thdata.Socket, thdata.UseConditionalAcceptFunction);
 
-				didwork = true;
+				result.DidWork = true;
 			}
 			else if (thdata.Socket.GetIOStatus().HasException())
 			{
@@ -324,7 +323,7 @@ namespace QuantumGate::Implementation::Core::Listener
 					   thdata.Socket.GetLocalEndpoint().GetString().c_str(),
 					   GetSysErrorString(thdata.Socket.GetIOStatus().GetErrorCode()).c_str());
 
-				success = false;
+				result.Success = false;
 			}
 		}
 		else
@@ -332,10 +331,10 @@ namespace QuantumGate::Implementation::Core::Listener
 			LogErr(L"Could not get status of listener socket for endpoint %s",
 				   thdata.Socket.GetLocalEndpoint().GetString().c_str());
 
-			success = false;
+			result.Success = false;
 		}
 
-		return std::make_pair(success, didwork);
+		return result;
 	}
 
 	void Manager::AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept

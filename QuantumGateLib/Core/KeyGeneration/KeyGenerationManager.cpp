@@ -212,10 +212,11 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		return keydata;
 	}
 
-	const std::pair<bool, bool> Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata,
-																const Concurrency::EventCondition& shutdown_event)
+	Manager::ThreadPool::ThreadCallbackResult Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata,
+																			  const Concurrency::EventCondition& shutdown_event)
 	{
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
+
 		auto has_inactive = false;
 
 		m_KeyQueues.WithSharedLock([&](const KeyQueueMap& queues)
@@ -260,7 +261,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 							--numkeys;
 						}
 
-						didwork = true;
+						result.DidWork = true;
 					}
 				}
 				else
@@ -295,16 +296,16 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 				}
 			});
 
-			didwork = true;
+			result.DidWork = true;
 		}
 
-		return std::make_pair(true, didwork);
+		return result;
 	}
 
-	const std::pair<bool, bool> Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   const Concurrency::EventCondition& shutdown_event)
+	Manager::ThreadPool::ThreadCallbackResult Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
+																			 const Concurrency::EventCondition& shutdown_event)
 	{
-		auto didwork = false;
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
 		Event event;
 		m_ThreadPool.GetData().KeyGenEventQueue.IfUniqueLock([&](auto& queue)
@@ -316,7 +317,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 
 				// We had items in the queue
 				// so we did work
-				didwork = true;
+				result.DidWork = true;
 			}
 		});
 
@@ -351,6 +352,6 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			}
 		}
 
-		return std::make_pair(true, didwork);
+		return result;
 	}
 }
