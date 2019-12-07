@@ -192,12 +192,12 @@ namespace QuantumGate::Implementation::Core::Extender
 				if (event)
 				{
 					const auto pluid = event.GetPeerLUID();
-					const auto retval = GetExtender().OnPeerMessage(QuantumGate::API::Extender::PeerEvent(std::move(event)));
-					if ((!retval.first || !retval.second) &&
+					const auto result = GetExtender().OnPeerMessage(QuantumGate::API::Extender::PeerEvent(std::move(event)));
+					if ((!result.Handled || !result.Success) &&
 						!GetExtender().HadException())
 					{
 						m_ExtenderManager.GetUnhandledExtenderMessageCallbacks().WithUniqueLock()(GetExtender().GetUUID(),
-																								  pluid, retval);
+																								  pluid, result);
 						break;
 					}
 				}

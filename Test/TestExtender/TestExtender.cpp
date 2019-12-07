@@ -372,10 +372,9 @@ namespace TestExtender
 		}
 	}
 
-	const std::pair<bool, bool> Extender::OnPeerMessage(PeerEvent&& event)
+	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(PeerEvent&& event)
 	{
-		auto handled = false;
-		auto success = false;
+		PeerEvent::Result result;
 
 		if (event.GetType() == PeerEvent::Type::Message)
 		{
@@ -393,7 +392,7 @@ namespace TestExtender
 					{
 						case MessageType::MessageString:
 						{
-							handled = true;
+							result.Handled = true;
 
 							String str;
 							str.resize((msgdata->GetSize() - sizeof(UInt16)) / sizeof(String::value_type));
@@ -403,13 +402,13 @@ namespace TestExtender
 								SLogInfo(L"Message from " << event.GetPeerLUID() << L": " <<
 										 SLogFmt(FGBrightGreen) << str << SLogFmt(Default));
 
-								success = true;
+								result.Success = true;
 							}
 							break;
 						}
 						case MessageType::BenchmarkStart:
 						{
-							handled = true;
+							result.Handled = true;
 
 							if (m_IsPeerBenchmarking)
 							{
@@ -419,13 +418,13 @@ namespace TestExtender
 							{
 								m_IsPeerBenchmarking = true;
 								m_PeerBenchmarkStart = std::chrono::high_resolution_clock::now();
-								success = true;
+								result.Success = true;
 							}
 							break;
 						}
 						case MessageType::BenchmarkEnd:
 						{
-							handled = true;
+							result.Handled = true;
 
 							if (!m_IsPeerBenchmarking)
 							{
@@ -437,13 +436,13 @@ namespace TestExtender
 								auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_PeerBenchmarkStart.load());
 
 								LogSys(L"Peer %s benchmark result: %dms", GetName().c_str(), ms.count());
-								success = true;
+								result.Success = true;
 							}
 							break;
 						}
 						case MessageType::FileTransferStart:
 						{
-							handled = true;
+							result.Handled = true;
 
 							FileTransferID fid{ 0 };
 							UInt64 fsize = 0;
@@ -476,7 +475,7 @@ namespace TestExtender
 															 [&](FileTransfers& filetransfers)
 										{
 											auto retval = filetransfers.insert({ fid, std::move(ft) });
-											success = true;
+											result.Success = true;
 											auto error = false;
 
 											if (m_Window != nullptr && autotrf == 0)
@@ -528,7 +527,7 @@ namespace TestExtender
 						}
 						case MessageType::FileTransferAccept:
 						{
-							handled = true;
+							result.Handled = true;
 
 							FileTransferID ftid{ 0 };
 
@@ -540,14 +539,14 @@ namespace TestExtender
 								{
 									ft.SetStatus(FileTransferStatus::Transfering);
 
-									success = SendFileData(event.GetPeerLUID(), ft);
+									result.Success = SendFileData(event.GetPeerLUID(), ft);
 								});
 							}
 							break;
 						}
 						case MessageType::FileTransferCancel:
 						{
-							handled = true;
+							result.Handled = true;
 
 							FileTransferID ftid{ 0 };
 
@@ -558,14 +557,14 @@ namespace TestExtender
 								IfHasFileTransfer(event.GetPeerLUID(), ftid, [&](FileTransfer& ft) noexcept
 								{
 									ft.SetStatus(FileTransferStatus::Cancelled);
-									success = true;
+									result.Success = true;
 								});
 							}
 							break;
 						}
 						case MessageType::FileTransferData:
 						{
-							handled = true;
+							result.Handled = true;
 
 							FileTransferID ftid{ 0 };
 
@@ -581,11 +580,11 @@ namespace TestExtender
 									{
 										if (ft.WriteToFile(buffer.GetBytes(), buffer.GetSize()))
 										{
-											success = SendFileDataAck(event.GetPeerLUID(), ft);
+											result.Success = SendFileDataAck(event.GetPeerLUID(), ft);
 										}
 										else
 										{
-											success = SendFileTransferCancel(event.GetPeerLUID(), ft);
+											result.Success = SendFileTransferCancel(event.GetPeerLUID(), ft);
 										}
 									}
 								});
@@ -594,7 +593,7 @@ namespace TestExtender
 						}
 						case MessageType::FileTransferDataAck:
 						{
-							handled = true;
+							result.Handled = true;
 
 							FileTransferID ftid{ 0 };
 
@@ -607,9 +606,9 @@ namespace TestExtender
 									if (ft.GetNumBytesTransferred() == ft.GetFileSize())
 									{
 										ft.SetStatus(FileTransferStatus::Succeeded);
-										success = true;
+										result.Success = true;
 									}
-									else success = SendFileData(event.GetPeerLUID(), ft);
+									else result.Success = SendFileData(event.GetPeerLUID(), ft);
 								});
 							}
 							break;
@@ -628,7 +627,7 @@ namespace TestExtender
 			LogWarn(L"Unknown peer event from %llu: %d", event.GetPeerLUID(), event.GetType());
 		}
 
-		return std::make_pair(handled, success);
+		return result;
 	}
 
 	void Extender::WorkerThreadLoop(Extender* extender)

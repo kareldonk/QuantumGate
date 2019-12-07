@@ -31,7 +31,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		using ExtenderUpdateCallbacks_ThS = Concurrency::ThreadSafe<ExtenderUpdateCallbacks, std::shared_mutex>;
 
 		using UnhandledExtenderMessageCallbacks = Dispatcher<void(const ExtenderUUID&, const PeerLUID,
-																  const std::pair<bool, bool>&) noexcept>;
+																  const API::Extender::PeerEvent::Result&) noexcept>;
 		using UnhandledExtenderMessageCallbackHandle = UnhandledExtenderMessageCallbacks::FunctionHandle;
 		using UnhandledExtenderMessageCallbacks_ThS = Concurrency::ThreadSafe<UnhandledExtenderMessageCallbacks, std::mutex>;
 

@@ -1685,9 +1685,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	void Peer::OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const std::pair<bool, bool>& result) noexcept
+	void Peer::OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const API::Extender::PeerEvent::Result& result) noexcept
 	{
-		if (!result.first)
+		if (!result.Handled)
 		{
 			// Message was not handled or unrecognized by an extender; if the peer is still
 			// connected then disconnect it as soon as possible (may be misbehaving)
@@ -1698,7 +1698,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			UpdateReputation(Access::IPReputationUpdate::DeteriorateModerate);
 		}
-		else if (!result.second)
+		else if (!result.Success)
 		{
 			// Message was recognized but wasn't handled successfully for some reason
 			LogWarn(L"Message from peer %s was not successfully handled by extender with UUID %s",

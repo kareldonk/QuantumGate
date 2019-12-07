@@ -195,7 +195,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		inline void SetNeedsExtenderUpdate() noexcept { SetFlag(Flags::NeedsExtenderUpdate, true); }
 		[[nodiscard]] inline bool NeedsExtenderUpdate() const noexcept { return IsFlagSet(Flags::NeedsExtenderUpdate); }
 
-		void OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const std::pair<bool, bool>& result) noexcept;
+		void OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const API::Extender::PeerEvent::Result& result) noexcept;
 
 	protected:
 		void OnConnecting() noexcept override;

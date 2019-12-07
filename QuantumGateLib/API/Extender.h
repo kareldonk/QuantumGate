@@ -29,7 +29,7 @@ namespace QuantumGate::API
 		friend class QuantumGate::Implementation::Core::Extender::Control;
 
 	public:
-		class Export PeerEvent final
+		class Export PeerEvent
 		{
 			friend class QuantumGate::Implementation::Core::Extender::Control;
 
@@ -37,6 +37,12 @@ namespace QuantumGate::API
 			enum class Type : UInt16
 			{
 				Unknown, Connected, Disconnected, Message
+			};
+
+			struct Result
+			{
+				bool Handled{ false };
+				bool Success{ false };
 			};
 
 			PeerEvent() = delete;
@@ -73,7 +79,7 @@ namespace QuantumGate::API
 		using PreShutdownCallback = Callback<void(void)>;
 		using ShutdownCallback = Callback<void(void)>;
 		using PeerEventCallback = Callback<void(PeerEvent&&)>;
-		using PeerMessageCallback = Callback<const std::pair<bool, bool>(PeerEvent&&)>;
+		using PeerMessageCallback = Callback<PeerEvent::Result(PeerEvent&&)>;
 
 		Extender() = delete;
 		Extender(const Extender&) = delete;

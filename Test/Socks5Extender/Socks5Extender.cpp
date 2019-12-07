@@ -364,12 +364,11 @@ namespace QuantumGate::Socks5Extender
 				GetName().c_str(), ev.c_str(), event.GetPeerLUID());
 	}
 
-	const std::pair<bool, bool> Extender::OnPeerMessage(PeerEvent&& event)
+	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(PeerEvent&& event)
 	{
 		assert(event.GetType() == PeerEvent::Type::Message);
 
-		auto handled = false;
-		auto success = false;
+		PeerEvent::Result result;
 
 		auto msgdata = event.GetMessageData();
 		if (msgdata != nullptr)
@@ -384,7 +383,7 @@ namespace QuantumGate::Socks5Extender
 				{
 					case MessageType::ConnectDomain:
 					{
-						handled = true;
+						result.Handled = true;
 
 						ConnectionID cid{ 0 };
 						String domain;
@@ -392,7 +391,7 @@ namespace QuantumGate::Socks5Extender
 
 						if (rdr.Read(cid, WithSize(domain, MaxSize::_1KB), port))
 						{
-							success = HandleConnectDomainPeerMessage(event.GetPeerLUID(), cid, domain, port);
+							result.Success = HandleConnectDomainPeerMessage(event.GetPeerLUID(), cid, domain, port);
 						}
 						else LogErr(L"%s: could not read ConnectDomain message from peer %llu",
 									GetName().c_str(), event.GetPeerLUID());
@@ -401,7 +400,7 @@ namespace QuantumGate::Socks5Extender
 					}
 					case MessageType::ConnectIP:
 					{
-						handled = true;
+						result.Handled = true;
 
 						ConnectionID cid{ 0 };
 						SerializedBinaryIPAddress ip;
@@ -409,7 +408,7 @@ namespace QuantumGate::Socks5Extender
 
 						if (rdr.Read(cid, ip, port))
 						{
-							success = HandleConnectIPPeerMessage(event.GetPeerLUID(), cid, ip, port);
+							result.Success = HandleConnectIPPeerMessage(event.GetPeerLUID(), cid, ip, port);
 						}
 						else LogErr(L"%s: could not read ConnectIP message from peer %llu",
 									GetName().c_str(), event.GetPeerLUID());
@@ -418,7 +417,7 @@ namespace QuantumGate::Socks5Extender
 					}
 					case MessageType::Socks5ReplyRelay:
 					{
-						handled = true;
+						result.Handled = true;
 
 						ConnectionID cid{ 0 };
 						Socks5Protocol::Replies reply{ Socks5Protocol::Replies::GeneralFailure };
@@ -428,9 +427,9 @@ namespace QuantumGate::Socks5Extender
 
 						if (rdr.Read(cid, reply, atype, ip, port))
 						{
-							success = HandleSocks5ReplyRelayPeerMessage(event.GetPeerLUID(), cid, reply, atype,
-																		BufferView(reinterpret_cast<Byte*>(&ip.Bytes),
-																				   sizeof(SerializedBinaryIPAddress::Bytes)), port);
+							result.Success = HandleSocks5ReplyRelayPeerMessage(event.GetPeerLUID(), cid, reply, atype,
+																			   BufferView(reinterpret_cast<Byte*>(&ip.Bytes),
+																						  sizeof(SerializedBinaryIPAddress::Bytes)), port);
 						}
 						else LogErr(L"%s: could not read Socks5ReplyRelay message from peer %llu",
 									GetName().c_str(), event.GetPeerLUID());
@@ -439,7 +438,7 @@ namespace QuantumGate::Socks5Extender
 					}
 					case MessageType::DataRelay:
 					{
-						handled = true;
+						result.Handled = true;
 
 						ConnectionID cid{ 0 };
 						Buffer data;
@@ -458,7 +457,7 @@ namespace QuantumGate::Socks5Extender
 									}
 								});
 
-								success = true;
+								result.Success = true;
 							}
 							else
 							{
@@ -473,7 +472,7 @@ namespace QuantumGate::Socks5Extender
 					}
 					case MessageType::Disconnect:
 					{
-						handled = true;
+						result.Handled = true;
 
 						ConnectionID cid{ 0 };
 
@@ -490,7 +489,7 @@ namespace QuantumGate::Socks5Extender
 									SendDisconnectAck(event.GetPeerLUID(), cid);
 								});
 
-								success = true;
+								result.Success = true;
 							}
 							else
 							{
@@ -505,7 +504,7 @@ namespace QuantumGate::Socks5Extender
 					}
 					case MessageType::DisconnectAck:
 					{
-						handled = true;
+						result.Handled = true;
 
 						ConnectionID cid{ 0 };
 
@@ -520,7 +519,7 @@ namespace QuantumGate::Socks5Extender
 									connection.SetStatus(Connection::Status::Disconnected);
 								});
 
-								success = true;
+								result.Success = true;
 							}
 							else
 							{
@@ -543,7 +542,7 @@ namespace QuantumGate::Socks5Extender
 			}
 		}
 
-		return std::make_pair(handled, success);
+		return result;
 	}
 
 	bool Extender::HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
@@ -671,7 +670,7 @@ namespace QuantumGate::Socks5Extender
 		{
 			auto key = c->WithSharedLock()->GetKey();
 
-			[[maybe_unused]] const auto[it, inserted] = connections.insert({ key, std::move(c) });
+			[[maybe_unused]] const auto [it, inserted] = connections.insert({ key, std::move(c) });
 
 			assert(inserted);
 			success = inserted;

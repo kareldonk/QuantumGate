@@ -82,12 +82,11 @@ namespace StressExtender
 		if (m_ExceptionTest.PeerEvent) throw(std::exception("Test PeerEvent exception"));
 	}
 
-	const std::pair<bool, bool> Extender::OnPeerMessage(PeerEvent&& event)
+	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(PeerEvent&& event)
 	{
 		if (m_ExceptionTest.PeerMessage) throw(std::exception("Test PeerMessage exception"));
 
-		auto handled = false;
-		auto success = false;
+		PeerEvent::Result result;
 
 		if (event.GetType() == PeerEvent::Type::Message)
 		{
@@ -103,7 +102,7 @@ namespace StressExtender
 					const auto type = static_cast<MessageType>(mtype);
 					if (type == MessageType::MessageString)
 					{
-						handled = true;
+						result.Handled = true;
 
 						String str;
 						str.resize((msgdata->GetSize() - sizeof(UInt16)) / sizeof(String::value_type));
@@ -113,12 +112,12 @@ namespace StressExtender
 							SLogInfo(L"Message from " << event.GetPeerLUID() << L": " <<
 									 SLogFmt(FGBrightCyan) << str << SLogFmt(Default));
 
-							success = true;
+							result.Success = true;
 						}
 					}
 					else if (type == MessageType::BenchmarkStart)
 					{
-						handled = true;
+						result.Handled = true;
 
 						if (m_IsPeerBenchmarking)
 						{
@@ -128,12 +127,12 @@ namespace StressExtender
 						{
 							m_IsPeerBenchmarking = true;
 							m_PeerBenchmarkStart = std::chrono::high_resolution_clock::now();
-							success = true;
+							result.Success = true;
 						}
 					}
 					else if (type == MessageType::BenchmarkEnd)
 					{
-						handled = true;
+						result.Handled = true;
 
 						if (!m_IsPeerBenchmarking)
 						{
@@ -145,7 +144,7 @@ namespace StressExtender
 							auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_PeerBenchmarkStart);
 
 							LogSys(L"Peer %s benchmark result: %dms", GetName().c_str(), ms.count());
-							success = true;
+							result.Success = true;
 						}
 					}
 					else LogErr(L"Received unknown msgtype from %llu: %u", event.GetPeerLUID(), type);
@@ -157,7 +156,7 @@ namespace StressExtender
 			LogErr(L"Unknown peer event from %llu: %d", event.GetPeerLUID(), event.GetType());
 		}
 
-		return std::make_pair(handled, success);
+		return result;
 	}
 
 	bool Extender::SendMessage(const PeerLUID pluid, const String& msg, const SendParameters::PriorityOption priority,

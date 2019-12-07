@@ -1094,7 +1094,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	void Manager::OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const PeerLUID pluid,
-											 const std::pair<bool, bool>& result) noexcept
+											 const API::Extender::PeerEvent::Result& result) noexcept
 	{
 		assert(m_Running);
 

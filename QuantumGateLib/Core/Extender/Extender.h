@@ -131,13 +131,14 @@ namespace QuantumGate::Implementation::Core::Extender
 			catch (...) { OnException(); }
 		}
 
-		[[nodiscard]] inline const std::pair<bool, bool> OnPeerMessage(QuantumGate::API::Extender::PeerEvent&& event) noexcept
+		[[nodiscard]] inline QuantumGate::API::Extender::PeerEvent::Result
+			OnPeerMessage(QuantumGate::API::Extender::PeerEvent&& event) noexcept
 		{
 			try { return m_PeerMessageCallback(std::move(event)); }
 			catch (const std::exception& e) { OnException(e); }
 			catch (...) { OnException(); }
 
-			return std::make_pair(false, false);
+			return {};
 		}
 
 	private:
@@ -175,6 +176,6 @@ namespace QuantumGate::Implementation::Core::Extender
 		ShutdownCallback m_ShutdownCallback{ []() mutable {} };
 		PeerEventCallback m_PeerEventCallback{ [](QuantumGate::API::Extender::PeerEvent&&) mutable {} };
 		PeerMessageCallback m_PeerMessageCallback
-		{ [](QuantumGate::API::Extender::PeerEvent&&) mutable -> const std::pair<bool, bool> { return std::make_pair(false, false); } };
+		{ [](QuantumGate::API::Extender::PeerEvent&&) mutable -> QuantumGate::API::Extender::PeerEvent::Result { return {}; } };
 	};
 }

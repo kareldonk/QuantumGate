@@ -133,7 +133,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		void OnAccessUpdate() noexcept;
 		void OnLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids, const bool added);
 		void OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const PeerLUID pluid,
-										const std::pair<bool, bool>& result) noexcept;
+										const API::Extender::PeerEvent::Result& result) noexcept;
 		void OnPeerEvent(const Peer& peer, const Event&& event) noexcept;
 
 		void AddReportedPublicIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,

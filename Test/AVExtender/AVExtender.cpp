@@ -155,12 +155,11 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	const std::pair<bool, bool> Extender::OnPeerMessage(PeerEvent&& event)
+	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(PeerEvent&& event)
 	{
 		assert(event.GetType() == PeerEvent::Type::Message);
 
-		auto handled = false;
-		auto success = false;
+		PeerEvent::Result result;
 
 		auto msgdata = event.GetMessageData();
 		if (msgdata != nullptr)
@@ -176,37 +175,37 @@ namespace QuantumGate::AVExtender
 				{
 					case MessageType::CallRequest:
 					{
-						handled = true;
-						success = HandleCallRequest(event.GetPeerLUID());
+						result.Handled = true;
+						result.Success = HandleCallRequest(event.GetPeerLUID());
 						break;
 					}
 					case MessageType::CallAccept:
 					{
-						handled = true;
-						success = HandleCallAccept(event.GetPeerLUID());
+						result.Handled = true;
+						result.Success = HandleCallAccept(event.GetPeerLUID());
 						break;
 					}
 					case MessageType::CallHangup:
 					{
-						handled = true;
-						success = HandleCallHangup(event.GetPeerLUID());
+						result.Handled = true;
+						result.Success = HandleCallHangup(event.GetPeerLUID());
 						break;
 					}
 					case MessageType::CallDecline:
 					{
-						handled = true;
-						success = HandleCallDecline(event.GetPeerLUID());
+						result.Handled = true;
+						result.Success = HandleCallDecline(event.GetPeerLUID());
 						break;
 					}
 					case MessageType::GeneralFailure:
 					{
-						handled = true;
-						success = HandleCallFailure(event.GetPeerLUID());
+						result.Handled = true;
+						result.Success = HandleCallFailure(event.GetPeerLUID());
 						break;
 					}
 					case MessageType::AudioSample:
 					{
-						handled = true;
+						result.Handled = true;
 
 						UInt64 timestamp{ 0 };
 						Buffer fmt_buffer(sizeof(AudioFormatData));
@@ -216,13 +215,13 @@ namespace QuantumGate::AVExtender
 						{
 							const AudioFormatData* fmtdata = reinterpret_cast<const AudioFormatData*>(fmt_buffer.GetBytes());
 
-							success = HandleCallAudioSample(event.GetPeerLUID(), timestamp, *fmtdata, std::move(buffer));
+							result.Success = HandleCallAudioSample(event.GetPeerLUID(), timestamp, *fmtdata, std::move(buffer));
 						}
 						break;
 					}
 					case MessageType::VideoSample:
 					{
-						handled = true;
+						result.Handled = true;
 						
 						UInt64 timestamp{ 0 };
 						Buffer fmt_buffer(sizeof(VideoFormatData));
@@ -232,7 +231,7 @@ namespace QuantumGate::AVExtender
 						{
 							const VideoFormatData* fmtdata = reinterpret_cast<const VideoFormatData*>(fmt_buffer.GetBytes());
 
-							success = HandleCallVideoSample(event.GetPeerLUID(), timestamp, *fmtdata, std::move(buffer));
+							result.Success = HandleCallVideoSample(event.GetPeerLUID(), timestamp, *fmtdata, std::move(buffer));
 						}
 						break;
 					}
@@ -245,7 +244,7 @@ namespace QuantumGate::AVExtender
 			}
 		}
 
-		return std::make_pair(handled, success);
+		return result;
 	}
 
 	bool Extender::HandleCallRequest(const PeerLUID pluid)

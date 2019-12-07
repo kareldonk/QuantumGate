@@ -159,7 +159,7 @@ namespace TestExtender
 		void OnPostStartup();
 		void OnShutdown();
 		void OnPeerEvent(PeerEvent&& event);
-		const std::pair<bool, bool> OnPeerMessage(PeerEvent&& event);
+		QuantumGate::Extender::PeerEvent::Result OnPeerMessage(PeerEvent&& event);
 
 	private:
 		static void WorkerThreadLoop(Extender* extender);

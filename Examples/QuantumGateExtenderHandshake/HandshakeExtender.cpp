@@ -151,15 +151,17 @@ void HandshakeExtender::OnPeerEvent(QuantumGate::Extender::PeerEvent&& event)
 	}
 }
 
-const std::pair<bool, bool> HandshakeExtender::OnPeerMessage(QuantumGate::Extender::PeerEvent&& event)
+QuantumGate::Extender::PeerEvent::Result HandshakeExtender::OnPeerMessage(QuantumGate::Extender::PeerEvent&& event)
 {
 	// This callback function gets called by the QuantumGate instance to notify an
 	// extender of a peer message event
 
 	std::wcout << L"HandshakeExtender::OnPeerMessage() called...\r\n";
 
-	auto handled = false; // Should be true if message was recognized, otherwise false
-	auto success = false; // Should be true if message was handled successfully, otherwise false
+	QuantumGate::Extender::PeerEvent::Result result;
+
+	// result.Handled should be true if message was recognized, otherwise false
+	// result.Success should be true if message was handled successfully, otherwise false
 
 	if (const auto msgdata = event.GetMessageData(); msgdata != nullptr)
 	{
@@ -170,20 +172,20 @@ const std::pair<bool, bool> HandshakeExtender::OnPeerMessage(QuantumGate::Extend
 			{
 				case MessageType::PublicKey:
 				{
-					handled = true;
-					success = ProcessPublicKeyMessage(event.GetPeerLUID(), msgdata);
+					result.Handled = true;
+					result.Success = ProcessPublicKeyMessage(event.GetPeerLUID(), msgdata);
 					break;
 				}
 				case MessageType::Ready:
 				{
-					handled = true;
-					success = ProcessReadyMessage(event.GetPeerLUID(), msgdata);
+					result.Handled = true;
+					result.Success = ProcessReadyMessage(event.GetPeerLUID(), msgdata);
 					break;
 				}
 				case MessageType::Chat:
 				{
-					handled = true;
-					success = ProcessChatMessage(event.GetPeerLUID(), msgdata);
+					result.Handled = true;
+					result.Success = ProcessChatMessage(event.GetPeerLUID(), msgdata);
 					break;
 				}
 				default:
@@ -196,10 +198,10 @@ const std::pair<bool, bool> HandshakeExtender::OnPeerMessage(QuantumGate::Extend
 		}
 	}
 
-	// If we return false for handled and success too often,
+	// If we return false for Handled and Success too often,
 	// QuantumGate will disconnect the misbehaving peer eventually
 	// as its reputation declines
-	return std::make_pair(handled, success);
+	return result;
 }
 
 bool HandshakeExtender::ProcessPublicKeyMessage(const QuantumGate::PeerLUID pluid, const QuantumGate::Buffer* msgdata)

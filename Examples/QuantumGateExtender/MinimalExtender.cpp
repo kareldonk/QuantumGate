@@ -99,27 +99,26 @@ void MinimalExtender::OnPeerEvent(QuantumGate::Extender::PeerEvent&& event)
 	}
 }
 
-const std::pair<bool, bool> MinimalExtender::OnPeerMessage(QuantumGate::Extender::PeerEvent&& event)
+QuantumGate::Extender::PeerEvent::Result MinimalExtender::OnPeerMessage(QuantumGate::Extender::PeerEvent&& event)
 {
 	// This callback function gets called by the QuantumGate instance to notify an
 	// extender of a peer message event
 
 	std::wcout << L"MinimalExtender::OnPeerMessage() called...\r\n";
 
-	auto handled = false; // Should be true if message was recognized, otherwise false
-	auto success = false; // Should be true if message was handled successfully, otherwise false
+	QuantumGate::Extender::PeerEvent::Result result;
 
 	if (event.GetMessageData())
 	{
 		std::wcout << L"MinimalExtender received message from peer LUID " << event.GetPeerLUID() <<
 			L": " << reinterpret_cast<const wchar_t*>(event.GetMessageData()->GetBytes()) << L"\r\n";
 
-		handled = true;
-		success = true;
+		result.Handled = true; // Should be true if message was recognized, otherwise false
+		result.Success = true; // Should be true if message was handled successfully, otherwise false
 	}
 
-	// If we return false for handled and success too often,
+	// If we return false for Handled and Success too often,
 	// QuantumGate will disconnect the misbehaving peer eventually
 	// as its reputation declines
-	return std::make_pair(handled, success);
+	return result;
 }

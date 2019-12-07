@@ -74,7 +74,7 @@ namespace QuantumGate::Socks5Extender
 		void OnPreShutdown();
 		void OnShutdown();
 		void OnPeerEvent(PeerEvent&& event);
-		const std::pair<bool, bool> OnPeerMessage(PeerEvent&& event);
+		QuantumGate::Extender::PeerEvent::Result OnPeerMessage(PeerEvent&& event);
 
 		bool InitializeIPFilters();
 		void DeInitializeIPFilters() noexcept;
