@@ -100,10 +100,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const std::pair<bool, bool> MessageProcessor::ProcessMessageReadyState(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageReadyState(const MessageDetails& msg) const
 	{
-		auto handled = false;
-		auto success = false;
+		MessageProcessor::Result result;
 
 		switch (msg.GetMessageType())
 		{
@@ -111,7 +110,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				Dbg(L"*********** ExtenderUpdate ***********");
 
-				handled = true;
+				result.Handled = true;
 
 				if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 				{
@@ -124,7 +123,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 						if (auto pextlist = ValidateExtenderUUIDs(psextlist); pextlist.has_value())
 						{
-							success = m_Peer.ProcessPeerExtenderUpdate(std::move(*pextlist));
+							result.Success = m_Peer.ProcessPeerExtenderUpdate(std::move(*pextlist));
 						}
 						else LogDbg(L"Invalid ExtenderUpdate message from peer %s; invalid UUID(s)",
 									m_Peer.GetPeerName().c_str());
@@ -140,7 +139,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				Dbg(L"*********** RelayCreate ***********");
 
-				handled = true;
+				result.Handled = true;
 
 				if (m_Peer.GetRelayManager().IsRunning())
 				{
@@ -168,7 +167,7 @@ namespace QuantumGate::Implementation::Core::Peer
 								SendRelayStatus(rport, RelayStatusUpdate::GeneralFailure);
 							}
 
-							success = true;
+							result.Success = true;
 						}
 						else LogDbg(L"Invalid RelayCreate message from peer %s; couldn't read message data",
 									m_Peer.GetPeerName().c_str());
@@ -184,7 +183,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				Dbg(L"*********** RelayStatus ***********");
 
-				handled = true;
+				result.Handled = true;
 
 				if (m_Peer.GetRelayManager().IsRunning())
 				{
@@ -208,7 +207,7 @@ namespace QuantumGate::Implementation::Core::Peer
 								LogErr(L"Could not add relay event for port %llu", rport);
 							}
 
-							success = true;
+							result.Success = true;
 						}
 						else LogDbg(L"Invalid RelayStatus message from peer %s; couldn't read message data",
 									m_Peer.GetPeerName().c_str());
@@ -224,7 +223,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				Dbg(L"*********** RelayData ***********");
 
-				handled = true;
+				result.Handled = true;
 
 				if (m_Peer.GetRelayManager().IsRunning())
 				{
@@ -246,7 +245,7 @@ namespace QuantumGate::Implementation::Core::Peer
 								LogErr(L"Could not add relay event for port %llu", rport);
 							}
 
-							success = true;
+							result.Success = true;
 						}
 						else LogDbg(L"Invalid RelayData message from peer %s; couldn't read message data",
 									m_Peer.GetPeerName().c_str());
@@ -266,11 +265,10 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						if (m_Peer.InitializeKeyExchange())
 						{
-							const auto retval = ProcessKeyExchange(msg);
-							if (retval.first && retval.second)
+							result = ProcessKeyExchange(msg);
+							if (result.Handled && result.Success)
 							{
-								handled = true;
-								success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::SecondaryExchange);
+								result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::SecondaryExchange);
 							}
 						}
 					}
@@ -283,11 +281,10 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::PrimaryExchange &&
 					m_Peer.GetConnectionType() == PeerConnectionType::Inbound)
 				{
-					const auto retval = ProcessKeyExchange(msg);
-					if (retval.first && retval.second)
+					result = ProcessKeyExchange(msg);
+					if (result.Handled && result.Success)
 					{
-						handled = true;
-						success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::SecondaryExchange);
+						result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::SecondaryExchange);
 					}
 				}
 
@@ -298,11 +295,10 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::SecondaryExchange &&
 					m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
 				{
-					const auto retval = ProcessKeyExchange(msg);
-					if (retval.first && retval.second)
+					result = ProcessKeyExchange(msg);
+					if (result.Handled && result.Success)
 					{
-						handled = true;
-						success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::ReadyWait);
+						result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::ReadyWait);
 					}
 				}
 
@@ -313,15 +309,13 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::SecondaryExchange &&
 					m_Peer.GetConnectionType() == PeerConnectionType::Inbound)
 				{
-					const auto retval = ProcessKeyExchange(msg);
-					if (retval.first && retval.second)
+					result = ProcessKeyExchange(msg);
+					if (result.Handled && result.Success)
 					{
-						handled = true;
-
 						if (m_Peer.Send(MessageType::KeyUpdateReady, Buffer()))
 						{
-							success = (m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::ReadyWait) &&
-									   m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::UpdateWait));
+							result.Success = (m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::ReadyWait) &&
+											  m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::UpdateWait));
 						}
 						else LogDbg(L"Couldn't send KeyUpdateReady message to peer %s",
 									m_Peer.GetPeerName().c_str());
@@ -335,7 +329,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::ReadyWait &&
 					m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
 				{
-					handled = true;
+					result.Handled = true;
 
 					if (auto& buffer = msg.GetMessageData(); buffer.IsEmpty())
 					{
@@ -343,7 +337,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						// secondary symmetric key-pair
 						m_Peer.GetKeyExchange().StartUsingSecondarySymmetricKeyPairForEncryption();
 
-						success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::UpdateWait);
+						result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::UpdateWait);
 					}
 					else LogDbg(L"Invalid KeyUpdateReady message from peer %s; no data expected",
 								m_Peer.GetPeerName().c_str());
@@ -358,6 +352,6 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 		}
 
-		return std::make_pair(handled, success);
+		return result;
 	}
 }

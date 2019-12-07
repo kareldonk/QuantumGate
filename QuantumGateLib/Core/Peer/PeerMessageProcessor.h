@@ -13,6 +13,12 @@ namespace QuantumGate::Implementation::Core::Peer
 	class MessageProcessor final
 	{
 	public:
+		struct Result
+		{
+			bool Handled{ false };
+			bool Success{ false };
+		};
+
 		MessageProcessor() = delete;
 		MessageProcessor(Peer& peer) noexcept : m_Peer(peer) {}
 		MessageProcessor(const MessageProcessor&) = delete;
@@ -31,20 +37,20 @@ namespace QuantumGate::Implementation::Core::Peer
 		bool SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept;
 		bool SendEndRelay(const RelayPort rport) const noexcept;
 
-		const std::pair<bool, bool> ProcessMessage(const MessageDetails& msg) const;
+		Result ProcessMessage(const MessageDetails& msg) const;
 
 	private:
 		bool SendBeginPrimaryKeyExchange() const noexcept;
 		bool SendBeginKeyExchange(const MessageType type) const noexcept;
 
-		const std::pair<bool, bool> ProcessMessageMetaExchange(const MessageDetails& msg) const;
-		const std::pair<bool, bool> ProcessMessagePrimaryKeyExchange(const MessageDetails& msg) const;
-		const std::pair<bool, bool> ProcessMessageSecondaryKeyExchange(const MessageDetails& msg) const;
-		const std::pair<bool, bool> ProcessMessageAuthentication(const MessageDetails& msg) const;
-		const std::pair<bool, bool> ProcessMessageSessionInit(const MessageDetails& msg) const;
-		const std::pair<bool, bool> ProcessMessageReadyState(const MessageDetails& msg) const;
-
-		const std::pair<bool, bool> ProcessKeyExchange(const MessageDetails& msg) const;
+		Result ProcessMessageMetaExchange(const MessageDetails& msg) const;
+		Result ProcessMessagePrimaryKeyExchange(const MessageDetails& msg) const;
+		Result ProcessMessageSecondaryKeyExchange(const MessageDetails& msg) const;
+		Result ProcessMessageAuthentication(const MessageDetails& msg) const;
+		Result ProcessMessageSessionInit(const MessageDetails& msg) const;
+		Result ProcessMessageReadyState(const MessageDetails& msg) const;
+		
+		Result ProcessKeyExchange(const MessageDetails& msg) const;
 
 		bool GetSignature(Buffer& sig) const;
 

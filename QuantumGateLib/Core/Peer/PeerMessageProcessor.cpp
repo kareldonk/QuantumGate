@@ -108,7 +108,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const std::pair<bool, bool> MessageProcessor::ProcessMessage(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessage(const MessageDetails& msg) const
 	{
 		switch (m_Peer.GetStatus())
 		{
@@ -129,20 +129,19 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		// Not handled, unsuccessful
-		return std::make_pair(false, false);
+		return MessageProcessor::Result{ .Handled = false, .Success = false };
 	}
 
-	const std::pair<bool, bool> MessageProcessor::ProcessMessageMetaExchange(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageMetaExchange(const MessageDetails& msg) const
 	{
-		auto handled = false;
-		auto success = false;
+		MessageProcessor::Result result;
 
 		if (msg.GetMessageType() == MessageType::BeginMetaExchange &&
 			m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
 		{
 			Dbg(L"*********** BeginMetaExchange ***********");
 
-			handled = true;
+			result.Handled = true;
 
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
@@ -182,7 +181,7 @@ namespace QuantumGate::Implementation::Core::Peer
 							if (m_Peer.SendWithRandomDelay(MessageType::EndMetaExchange, wrt.MoveWrittenBytes(),
 														   m_Peer.GetHandshakeDelayPerMessage()))
 							{
-								success = m_Peer.SetStatus(Status::PrimaryKeyExchange);
+								result.Success = m_Peer.SetStatus(Status::PrimaryKeyExchange);
 							}
 							else LogDbg(L"Couldn't send EndMetaExchange message to peer %s", m_Peer.GetPeerName().c_str());
 						}
@@ -200,7 +199,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			Dbg(L"*********** EndMetaExchange ***********");
 
-			handled = true;
+			result.Handled = true;
 
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
@@ -225,7 +224,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						if (SendBeginPrimaryKeyExchange())
 						{
-							success = m_Peer.SetStatus(Status::PrimaryKeyExchange);
+							result.Success = m_Peer.SetStatus(Status::PrimaryKeyExchange);
 						}
 					}
 					else LogDbg(L"Couldn't set encryption algorithms for peer %s", m_Peer.GetPeerName().c_str());
@@ -236,44 +235,44 @@ namespace QuantumGate::Implementation::Core::Peer
 			else LogDbg(L"Invalid EndMetaExchange message from peer %s; data expected", m_Peer.GetPeerName().c_str());
 		}
 
-		return std::make_pair(handled, success);
+		return result;
 	}
 
-	const std::pair<bool, bool> MessageProcessor::ProcessMessagePrimaryKeyExchange(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessagePrimaryKeyExchange(const MessageDetails& msg) const
 	{
-		auto retval = std::make_pair(false, false);
+		MessageProcessor::Result result;
 
 		if (msg.GetMessageType() == MessageType::BeginPrimaryKeyExchange ||
 			msg.GetMessageType() == MessageType::EndPrimaryKeyExchange)
 		{
-			retval = ProcessKeyExchange(msg);
-			if (retval.first && retval.second)
+			result = ProcessKeyExchange(msg);
+			if (result.Handled && result.Success)
 			{
-				retval.second = m_Peer.SetStatus(Status::SecondaryKeyExchange);
+				result.Success = m_Peer.SetStatus(Status::SecondaryKeyExchange);
 			}
 		}
 
-		return retval;
+		return result;
 	}
 
-	const std::pair<bool, bool> MessageProcessor::ProcessMessageSecondaryKeyExchange(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageSecondaryKeyExchange(const MessageDetails& msg) const
 	{
-		auto retval = std::make_pair(false, false);
+		MessageProcessor::Result result;
 
 		if (msg.GetMessageType() == MessageType::BeginSecondaryKeyExchange)
 		{
-			retval = ProcessKeyExchange(msg);
-			if (retval.first && retval.second)
+			result = ProcessKeyExchange(msg);
+			if (result.Handled && result.Success)
 			{
-				retval.second = m_Peer.SetStatus(Status::Authentication);
+				result.Success = m_Peer.SetStatus(Status::Authentication);
 			}
 		}
 		else if (msg.GetMessageType() == MessageType::EndSecondaryKeyExchange)
 		{
-			retval = ProcessKeyExchange(msg);
-			if (retval.first && retval.second)
+			result = ProcessKeyExchange(msg);
+			if (result.Handled && result.Success)
 			{
-				retval.second = false;
+				result.Success = false;
 				auto sent = false;
 
 				Buffer sig;
@@ -287,7 +286,7 @@ namespace QuantumGate::Implementation::Core::Peer
 													   m_Peer.GetHandshakeDelayPerMessage()))
 						{
 							sent = true;
-							retval.second = m_Peer.SetStatus(Status::Authentication);
+							result.Success = m_Peer.SetStatus(Status::Authentication);
 						}
 					}
 				}
@@ -300,20 +299,19 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 		}
 
-		return retval;
+		return result;
 	}
 
-	const std::pair<bool, bool> MessageProcessor::ProcessMessageAuthentication(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageAuthentication(const MessageDetails& msg) const
 	{
-		auto handled = false;
-		auto success = false;
+		MessageProcessor::Result result;
 
 		if (msg.GetMessageType() == MessageType::BeginAuthentication &&
 			m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
 		{
 			Dbg(L"*********** BeginAuthentication ***********");
 
-			handled = true;
+			result.Handled = true;
 
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
@@ -347,12 +345,12 @@ namespace QuantumGate::Implementation::Core::Peer
 									if (m_Peer.SendWithRandomDelay(MessageType::EndAuthentication, wrt.MoveWrittenBytes(),
 																   m_Peer.GetHandshakeDelayPerMessage()))
 									{
-										success = m_Peer.SetStatus(Status::SessionInit);
+										result.Success = m_Peer.SetStatus(Status::SessionInit);
 									}
 								}
 							}
 
-							if (!success)
+							if (!result.Success)
 							{
 								LogDbg(L"Couldn't send EndAuthentication message to peer %s",
 									   m_Peer.GetPeerName().c_str());
@@ -362,7 +360,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						{
 							// Peer could not be authenticated; disconnect asap
 							m_Peer.SetDisconnectCondition(DisconnectCondition::PeerNotAllowed);
-							success = true;
+							result.Success = true;
 						}
 					}
 					else LogDbg(L"Invalid BeginAuthentication message from peer %s; invalid UUID",
@@ -378,7 +376,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			Dbg(L"*********** EndAuthentication ***********");
 
-			handled = true;
+			result.Handled = true;
 
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
@@ -413,11 +411,11 @@ namespace QuantumGate::Implementation::Core::Peer
 							{
 								if (m_Peer.Send(MessageType::BeginSessionInit, wrt.MoveWrittenBytes()))
 								{
-									success = m_Peer.SetStatus(Status::SessionInit);
+									result.Success = m_Peer.SetStatus(Status::SessionInit);
 								}
 							}
 
-							if (!success)
+							if (!result.Success)
 							{
 								LogDbg(L"Couldn't send BeginSessionInit message to peer %s",
 									   m_Peer.GetPeerName().c_str());
@@ -427,7 +425,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						{
 							// Peer could not be authenticated; disconnect asap
 							m_Peer.SetDisconnectCondition(DisconnectCondition::PeerNotAllowed);
-							success = true;
+							result.Success = true;
 						}
 					}
 					else LogDbg(L"Invalid EndAuthentication message from peer %s; invalid UUID",
@@ -439,20 +437,19 @@ namespace QuantumGate::Implementation::Core::Peer
 			else LogDbg(L"Invalid EndAuthentication message from peer %s; data expected", m_Peer.GetPeerName().c_str());
 		}
 
-		return std::make_pair(handled, success);
+		return result;
 	}
 
-	const std::pair<bool, bool> MessageProcessor::ProcessMessageSessionInit(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageSessionInit(const MessageDetails& msg) const
 	{
-		auto handled = false;
-		auto success = false;
+		MessageProcessor::Result result;
 
 		if (msg.GetMessageType() == MessageType::BeginSessionInit &&
 			m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
 		{
 			Dbg(L"*********** BeginSessionInit ***********");
 
-			handled = true;
+			result.Handled = true;
 
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
@@ -487,11 +484,11 @@ namespace QuantumGate::Implementation::Core::Peer
 								{
 									if (m_Peer.Send(MessageType::EndSessionInit, wrt.MoveWrittenBytes()))
 									{
-										success = m_Peer.SetStatus(Status::Ready);
+										result.Success = m_Peer.SetStatus(Status::Ready);
 									}
 								}
 
-								if (!success)
+								if (!result.Success)
 								{
 									LogDbg(L"Couldn't send EndSessionInit message to peer %s",
 										   m_Peer.GetPeerName().c_str());
@@ -514,7 +511,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			Dbg(L"*********** EndSessionInit ***********");
 
-			handled = true;
+			result.Handled = true;
 
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
@@ -533,7 +530,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						{
 							if (m_Peer.ProcessPeerExtenderUpdate(std::move(*pextlist)))
 							{
-								success = m_Peer.SetStatus(Status::Ready);
+								result.Success = m_Peer.SetStatus(Status::Ready);
 							}
 						}
 						else LogDbg(L"Invalid EndSessionInit message from peer %s; invalid extender UUID(s)",
@@ -548,7 +545,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			else LogDbg(L"Invalid EndSessionInit message from peer %s; data expected", m_Peer.GetPeerName().c_str());
 		}
 
-		return std::make_pair(handled, success);
+		return result;
 	}
 
 	bool MessageProcessor::GetSignature(Buffer& sig) const
@@ -713,10 +710,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::nullopt;
 	}
 
-	const std::pair<bool, bool> MessageProcessor::ProcessKeyExchange(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessKeyExchange(const MessageDetails& msg) const
 	{
-		auto handled = false;
-		auto success = false;
+		MessageProcessor::Result result;
 
 		if ((msg.GetMessageType() == MessageType::BeginPrimaryKeyExchange ||
 			 msg.GetMessageType() == MessageType::BeginPrimaryKeyUpdateExchange) &&
@@ -724,7 +720,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			Dbg(L"*********** BeginPrimaryKey(*)Exchange ***********");
 
-			handled = true;
+			result.Handled = true;
 
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
@@ -756,14 +752,14 @@ namespace QuantumGate::Implementation::Core::Peer
 									{
 										if (msg.GetMessageType() == MessageType::BeginPrimaryKeyExchange)
 										{
-											success = m_Peer.SendWithRandomDelay(MessageType::EndPrimaryKeyExchange,
-																				 wrt.MoveWrittenBytes(),
-																				 m_Peer.GetHandshakeDelayPerMessage()).Succeeded();
+											result.Success = m_Peer.SendWithRandomDelay(MessageType::EndPrimaryKeyExchange,
+																						wrt.MoveWrittenBytes(),
+																						m_Peer.GetHandshakeDelayPerMessage()).Succeeded();
 										}
-										else success = m_Peer.Send(MessageType::EndPrimaryKeyUpdateExchange,
-																   wrt.MoveWrittenBytes()).Succeeded();
+										else result.Success = m_Peer.Send(MessageType::EndPrimaryKeyUpdateExchange,
+																		  wrt.MoveWrittenBytes()).Succeeded();
 
-										if (!success)
+										if (!result.Success)
 										{
 											LogDbg(L"Couldn't send EndPrimaryKey(*)Exchange message to peer %s",
 												   m_Peer.GetPeerName().c_str());
@@ -792,7 +788,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			Dbg(L"*********** EndPrimaryKey(*)Exchange ***********");
 
-			handled = true;
+			result.Handled = true;
 
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
@@ -826,14 +822,14 @@ namespace QuantumGate::Implementation::Core::Peer
 									{
 										if (msg.GetMessageType() == MessageType::EndPrimaryKeyExchange)
 										{
-											success = m_Peer.SendWithRandomDelay(MessageType::BeginSecondaryKeyExchange,
-																				 wrt.MoveWrittenBytes(),
-																				 m_Peer.GetHandshakeDelayPerMessage()).Succeeded();
+											result.Success = m_Peer.SendWithRandomDelay(MessageType::BeginSecondaryKeyExchange,
+																						wrt.MoveWrittenBytes(),
+																						m_Peer.GetHandshakeDelayPerMessage()).Succeeded();
 										}
-										else success = m_Peer.Send(MessageType::BeginSecondaryKeyUpdateExchange,
-																   wrt.MoveWrittenBytes()).Succeeded();
+										else result.Success = m_Peer.Send(MessageType::BeginSecondaryKeyUpdateExchange,
+																		  wrt.MoveWrittenBytes()).Succeeded();
 
-										if (!success)
+										if (!result.Success)
 										{
 											LogDbg(L"Couldn't send BeginSecondaryKey(*)Exchange message to peer %s",
 												   m_Peer.GetPeerName().c_str());
@@ -862,7 +858,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			Dbg(L"*********** BeginSecondaryKey(*)Exchange ***********");
 
-			handled = true;
+			result.Handled = true;
 
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
@@ -896,14 +892,14 @@ namespace QuantumGate::Implementation::Core::Peer
 									{
 										if (msg.GetMessageType() == MessageType::BeginSecondaryKeyExchange)
 										{
-											success = m_Peer.SendWithRandomDelay(MessageType::EndSecondaryKeyExchange,
-																				 wrt.MoveWrittenBytes(),
-																				 m_Peer.GetHandshakeDelayPerMessage()).Succeeded();
+											result.Success = m_Peer.SendWithRandomDelay(MessageType::EndSecondaryKeyExchange,
+																						wrt.MoveWrittenBytes(),
+																						m_Peer.GetHandshakeDelayPerMessage()).Succeeded();
 										}
-										else success = m_Peer.Send(MessageType::EndSecondaryKeyUpdateExchange,
-																   wrt.MoveWrittenBytes()).Succeeded();
+										else result.Success = m_Peer.Send(MessageType::EndSecondaryKeyUpdateExchange,
+																		  wrt.MoveWrittenBytes()).Succeeded();
 
-										if (!success)
+										if (!result.Success)
 										{
 											LogDbg(L"Couldn't send EndSecondaryKey(*)Exchange message to peer %s",
 												   m_Peer.GetPeerName().c_str());
@@ -932,7 +928,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			Dbg(L"*********** EndSecondaryKey(*)Exchange ***********");
 
-			handled = true;
+			result.Handled = true;
 
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
@@ -956,7 +952,7 @@ namespace QuantumGate::Implementation::Core::Peer
 								// symmetric key-pair, which the other peer already has
 								m_Peer.GetKeyExchange().StartUsingSecondarySymmetricKeyPairForEncryption();
 
-								success = true;
+								result.Success = true;
 							}
 							else LogDbg(L"Couldn't add symmetric keys for peer %s", m_Peer.GetPeerName().c_str());
 						}
@@ -971,6 +967,6 @@ namespace QuantumGate::Implementation::Core::Peer
 						m_Peer.GetPeerName().c_str());
 		}
 
-		return std::make_pair(handled, success);
+		return result;
 	}
 }

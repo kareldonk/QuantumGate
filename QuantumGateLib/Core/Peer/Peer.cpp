@@ -1231,14 +1231,14 @@ namespace QuantumGate::Implementation::Core::Peer
 														  msg.MoveMessageData()));
 			});
 
-			if (!result.first)
+			if (!result.Handled)
 			{
 				// Message wasn't recognized; this is a fatal problem and may be an attack
 				// so the peer should get disconnected asap
 				LogErr(L"Message from peer %s was not recognized", GetPeerName().c_str());
 				return false;
 			}
-			else if (!result.second && GetStatus() < Status::Ready)
+			else if (!result.Success && GetStatus() < Status::Ready)
 			{
 				// Message wasn't handled successfully and we're probably in handshake 
 				// state; this is a fatal problem and may be an attack so the peer
@@ -1595,7 +1595,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		GetExtenderManager().OnPeerEvent(extuuids, Event(etype, GetLUID(), GetLocalUUID()));
 	}
 
-	std::pair<bool, bool> Peer::ProcessMessage(MessageDetails&& msg)
+	MessageProcessor::Result Peer::ProcessMessage(MessageDetails&& msg)
 	{
 		if (IsReady() && msg.GetMessageType() == MessageType::ExtenderCommunication)
 		{
@@ -1616,7 +1616,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					UpdateReputation(Access::IPReputationUpdate::DeteriorateModerate);
 				}
 
-				return retval;
+				return MessageProcessor::Result{ .Handled = retval.first, .Success = retval.second };
 			}
 			else
 			{
@@ -1624,25 +1624,25 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				UpdateReputation(Access::IPReputationUpdate::DeteriorateModerate);
 
-				return std::make_pair(false, false);
+				return MessageProcessor::Result{ .Handled = false, .Success = false };
 			}
 		}
 		else
 		{
-			const auto retval = m_MessageProcessor.ProcessMessage(msg);
-			if (!retval.first)
+			const auto result = m_MessageProcessor.ProcessMessage(msg);
+			if (!result.Handled)
 			{
 				// Unhandled message; the message may not have been recognized;
 				// this could be an attack
 				UpdateReputation(Access::IPReputationUpdate::DeteriorateSevere);
 			}
-			else if (!retval.second)
+			else if (!result.Success)
 			{
 				// Message was not successfully handled
 				UpdateReputation(Access::IPReputationUpdate::DeteriorateModerate);
 			}
 
-			return retval;
+			return result;
 		}
 	}
 

@@ -240,7 +240,7 @@ namespace QuantumGate::Implementation::Core::Peer
 															const Crypto::SymmetricKeyData& symkey);
 
 		[[nodiscard]] bool ProcessMessage(Message& msg);
-		[[nodiscard]] std::pair<bool, bool> ProcessMessage(MessageDetails&& msg);
+		[[nodiscard]] MessageProcessor::Result ProcessMessage(MessageDetails&& msg);
 
 		void ProcessEvent(const Event::Type etype) noexcept;
 		void ProcessEvent(const Vector<ExtenderUUID>& extuuids, const Event::Type etype) noexcept;
