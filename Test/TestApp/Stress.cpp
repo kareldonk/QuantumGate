@@ -118,7 +118,7 @@ void Stress::ConnectStressThreadProc(Local* qg)
 			params.PeerIPEndpoint = IPEndpoint(IPAddress(m_ConnectStressData.IP), m_ConnectStressData.Port);
 			params.GlobalSharedSecret = m_ConnectStressData.GlobalSharedSecret;
 			params.Relay.Hops = m_ConnectStressData.Hops;
-			params.Relay.ViaPeer = m_ConnectStressData.RelayPeer;
+			params.Relay.GatewayPeer = m_ConnectStressData.RelayPeer;
 
 			const auto connect_result = qg->ConnectTo(std::move(params));
 			if (connect_result.Succeeded())

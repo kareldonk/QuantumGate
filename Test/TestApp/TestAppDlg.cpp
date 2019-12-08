@@ -1355,7 +1355,7 @@ void CTestAppDlg::OnLocalConnectRelayed()
 		ConnectParameters params;
 		params.PeerIPEndpoint = IPEndpoint(IPAddress(m_DefaultIP), m_DefaultPort);
 		params.Relay.Hops = dlg.GetRelayHops();
-		params.Relay.ViaPeer = dlg.GetRelayPeer();
+		params.Relay.GatewayPeer = dlg.GetRelayPeer();
 
 		params.GlobalSharedSecret.emplace();
 

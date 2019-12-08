@@ -781,10 +781,10 @@ namespace QuantumGate::Implementation::Core::Peer
 						{
 							if (!result.GetValue())
 							{
-								if (params.Relay.ViaPeer)
+								if (params.Relay.GatewayPeer)
 								{
 									LogWarn(L"Ignoring via_peer parameter (LUID %llu) for relay link to peer %s because of single hop",
-											params.Relay.ViaPeer.value(), params.PeerIPEndpoint.GetString().c_str());
+											params.Relay.GatewayPeer.value(), params.PeerIPEndpoint.GetString().c_str());
 								}
 
 								// Connect to specific endpoint for final hop 0; if we're
@@ -811,32 +811,32 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						Vector<BinaryIPAddress> excl_addr2{ params.PeerIPEndpoint.GetIPAddress().GetBinary() };
 
-						if (params.Relay.ViaPeer)
+						if (params.Relay.GatewayPeer)
 						{
-							if (const auto via_peerths = Get(*params.Relay.ViaPeer); via_peerths != nullptr)
+							if (const auto gateway_peerths = Get(*params.Relay.GatewayPeer); gateway_peerths != nullptr)
 							{
-								const auto via_peer_ip =
-									via_peerths->WithSharedLock()->GetPeerEndpoint().GetIPAddress().GetBinary();
+								const auto gateway_peer_ip =
+									gateway_peerths->WithSharedLock()->GetPeerEndpoint().GetIPAddress().GetBinary();
 
 								// Don't include addresses/network of local instance
-								const auto result1 = AreRelayIPsInSameNetwork(via_peer_ip, *excl_addr1);
+								const auto result1 = AreRelayIPsInSameNetwork(gateway_peer_ip, *excl_addr1);
 
 								// Don't include the final endpoint/network
-								const auto result2 = AreRelayIPsInSameNetwork(via_peer_ip, excl_addr2);
+								const auto result2 = AreRelayIPsInSameNetwork(gateway_peer_ip, excl_addr2);
 
 								if (result1.Succeeded() && result2.Succeeded())
 								{
 									if (!result1.GetValue() && !result2.GetValue())
 									{
-										out_peer = params.Relay.ViaPeer;
+										out_peer = params.Relay.GatewayPeer;
 									}
 									else error_details = Util::FormatString(L"cannot go through peer LUID %llu because it's on the same network as the local or destination endpoint",
-																			params.Relay.ViaPeer.value());
+																			params.Relay.GatewayPeer.value());
 								}
 								else error_details = Util::FormatString(L"couldn't check if peer LUID %llu is on the same network as the local or destination endpoint",
-																		params.Relay.ViaPeer.value());
+																		params.Relay.GatewayPeer.value());
 							}
-							else error_details = Util::FormatString(L"a peer with LUID %llu wasn't found", params.Relay.ViaPeer.value());
+							else error_details = Util::FormatString(L"a peer with LUID %llu wasn't found", params.Relay.GatewayPeer.value());
 						}
 						else
 						{

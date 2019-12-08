@@ -251,7 +251,7 @@ namespace QuantumGate
 		struct
 		{
 			UInt8 Hops{ 0 };								// Number of hops to relay the connection through
-			std::optional<PeerLUID> ViaPeer;				// An already connected peer to attempt to relay through
+			std::optional<PeerLUID> GatewayPeer;			// An already connected peer to attempt to relay through
 		} Relay;
 	};
 
