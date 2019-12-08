@@ -221,7 +221,7 @@ namespace QuantumGate::Implementation
 
 		template<typename F>
 		std::enable_if_t<!IsDetectedV<NoArgumentFunction, F>, void>
-			Succeeded(F&& function) const noexcept(noexcept(function(*this)))
+			Succeeded(F&& function) noexcept(noexcept(function(*this)))
 		{
 			if (Succeeded())
 			{
@@ -243,7 +243,7 @@ namespace QuantumGate::Implementation
 
 		template<typename F>
 		std::enable_if_t<!IsDetectedV<NoArgumentFunction, F>, void>
-			Failed(F&& function) const noexcept(noexcept(function(*this)))
+			Failed(F&& function) noexcept(noexcept(function(*this)))
 		{
 			if (Failed())
 			{
@@ -280,22 +280,8 @@ namespace QuantumGate::Implementation
 		std::optional<T> m_Value;
 	};
 
-	template<typename E, E DefaultErrorCode, typename T = void>
-	class[[nodiscard]] ResultBase final : public ResultImpl<E, DefaultErrorCode, T>
-	{
-	public:
-		using ResultImpl<E, DefaultErrorCode, T>::ResultImpl;
-	};
-
-	template<typename E, E DefaultErrorCode>
-	class[[nodiscard]] ResultBase<E, DefaultErrorCode, void> final : public ResultImpl<E, DefaultErrorCode, NoResultValue>
-	{
-	public:
-		using ResultImpl<E, DefaultErrorCode, NoResultValue>::ResultImpl;
-	};
-
 	template<typename T = void>
-	using Result = ResultBase<ResultCode, ResultCode::Failed, T>;
+	using Result = ResultImpl<ResultCode, ResultCode::Failed, std::conditional_t<std::is_same_v<T, void>, NoResultValue, T>>;
 }
 
 namespace std
