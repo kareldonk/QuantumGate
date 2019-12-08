@@ -2,7 +2,7 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "stdafx.h"
-#include "AccessManager.h"
+#include "Access.h"
 #include "..\Core\Access\AccessManager.h"
 
 namespace QuantumGate::API::Access

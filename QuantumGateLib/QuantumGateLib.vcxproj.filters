@@ -411,7 +411,10 @@
     <ClInclude Include="Memory\ProtectedFreeStoreAllocatorImpl.h">
       <Filter>Header Files\Memory</Filter>
     </ClInclude>
-    <ClInclude Include="API\AccessManager.h">
+    <ClInclude Include="API\Peer.h">
+      <Filter>Header Files\API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Access.h">
       <Filter>Header Files\API</Filter>
     </ClInclude>
   </ItemGroup>
@@ -584,7 +587,10 @@
     <ClCompile Include="API\ExtenderPeerEvent.cpp">
       <Filter>Source Files\API</Filter>
     </ClCompile>
-    <ClCompile Include="API\AccessManager.cpp">
+    <ClCompile Include="API\Peer.cpp">
+      <Filter>Source Files\API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Access.cpp">
       <Filter>Source Files\API</Filter>
     </ClCompile>
   </ItemGroup>

@@ -5,7 +5,7 @@
 #include "Peer.h"
 #include "PeerManager.h"
 #include "..\..\Common\Random.h"
-#include "..\..\API\AccessManager.h"
+#include "..\..\API\Access.h"
 
 #include <thread>
 #include <chrono>

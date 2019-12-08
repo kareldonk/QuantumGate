@@ -301,24 +301,5 @@ namespace QuantumGate
 			IncludeOption Include{ IncludeOption::NoneOf };
 		} Extenders;
 	};
-
-	struct PeerDetails
-	{
-		PeerUUID PeerUUID;
-		PeerConnectionType ConnectionType{ PeerConnectionType::Unknown };
-		bool IsAuthenticated{ false };
-		bool IsRelayed{ false };
-		bool IsUsingGlobalSharedSecret{ false };
-		IPEndpoint LocalIPEndpoint;
-		IPEndpoint PeerIPEndpoint;
-		std::pair<UInt8, UInt8> PeerProtocolVersion{ 0, 0 };
-		UInt64 LocalSessionID{ 0 };
-		UInt64 PeerSessionID{ 0 };
-		std::chrono::milliseconds ConnectedTime{ 0 };
-		Size BytesReceived{ 0 };
-		Size BytesSent{ 0 };
-		Size ExtendersBytesReceived{ 0 };
-		Size ExtendersBytesSent{ 0 };
-	};
 }
 

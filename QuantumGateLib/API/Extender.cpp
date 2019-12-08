@@ -78,9 +78,9 @@ namespace QuantumGate::API
 		return m_Extender->GetLocalUUID();
 	}
 
-	Result<PeerDetails> Extender::GetPeerDetails(const PeerLUID pluid) const noexcept
+	Result<API::Peer> Extender::GetPeer(const PeerLUID pluid) const noexcept
 	{
-		return m_Extender->GetPeerDetails(pluid);
+		return m_Extender->GetPeer(pluid);
 	}
 
 	Result<Vector<PeerLUID>> Extender::QueryPeers(const PeerQueryParameters& params) const noexcept

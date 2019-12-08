@@ -85,6 +85,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		inline const Data_ThS& GetPeerData() const noexcept { return m_PeerData; }
 
+		inline Result<API::Peer::Details> GetPeerDetails() const noexcept { return m_PeerData.WithSharedLock()->GetDetails(); }
+
 		[[nodiscard]] bool SetStatus(const Status status) noexcept;
 		inline const Status GetStatus() const noexcept { return m_PeerData.WithSharedLock()->Status; }
 

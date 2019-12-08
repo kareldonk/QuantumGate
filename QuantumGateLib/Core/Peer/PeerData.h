@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "..\..\API\Peer.h"
+
 namespace QuantumGate::Implementation::Core::Peer
 {
 	// States are in chronological order; Disconnected should be last
@@ -47,6 +49,36 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			ExtenderUUIDs PeerExtenderUUIDs;
 		} Cached;
+
+		Result<API::Peer::Details> GetDetails() const noexcept
+		{
+			// Only if peer status is ready (handshake succeeded, etc.)
+			if (Status == Status::Ready)
+			{
+				API::Peer::Details pdetails;
+
+				pdetails.PeerUUID = PeerUUID;
+				pdetails.ConnectionType = Type;
+				pdetails.IsRelayed = IsRelayed;
+				pdetails.IsAuthenticated = IsAuthenticated;
+				pdetails.IsUsingGlobalSharedSecret = IsUsingGlobalSharedSecret;
+				pdetails.LocalIPEndpoint = Cached.LocalEndpoint;
+				pdetails.PeerIPEndpoint = Cached.PeerEndpoint;
+				pdetails.PeerProtocolVersion = PeerProtocolVersion;
+				pdetails.LocalSessionID = LocalSessionID;
+				pdetails.PeerSessionID = PeerSessionID;
+				pdetails.ConnectedTime = std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() -
+																							   Cached.ConnectedSteadyTime);
+				pdetails.BytesReceived = Cached.BytesReceived;
+				pdetails.BytesSent = Cached.BytesSent;
+				pdetails.ExtendersBytesReceived = ExtendersBytesReceived;
+				pdetails.ExtendersBytesSent = ExtendersBytesSent;
+
+				return std::move(pdetails);
+			}
+
+			return ResultCode::PeerNotReady;
+		}
 
 		Result<PeerLUID> MatchQuery(const PeerQueryParameters& params) const noexcept
 		{

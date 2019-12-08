@@ -244,44 +244,14 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::Failed;
 	}
 
-	Result<PeerDetails> LookupMaps::GetPeerDetails(const PeerLUID pluid) const noexcept
+	Result<API::Peer::Details> LookupMaps::GetPeerDetails(const PeerLUID pluid) const noexcept
 	{
-		auto result_code = ResultCode::Failed;
-		PeerDetails pdetails;
-
 		if (const auto pdataths = GetPeerData(pluid); pdataths != nullptr)
 		{
-			pdataths->WithSharedLock([&](const Data& peer_data)
-			{
-				// Only if peer status is ready (handshake succeeded, etc.)
-				if (peer_data.Status == Status::Ready)
-				{
-					pdetails.PeerUUID = peer_data.PeerUUID;
-					pdetails.ConnectionType = peer_data.Type;
-					pdetails.IsRelayed = peer_data.IsRelayed;
-					pdetails.IsAuthenticated = peer_data.IsAuthenticated;
-					pdetails.IsUsingGlobalSharedSecret = peer_data.IsUsingGlobalSharedSecret;
-					pdetails.LocalIPEndpoint = peer_data.Cached.LocalEndpoint;
-					pdetails.PeerIPEndpoint = peer_data.Cached.PeerEndpoint;
-					pdetails.PeerProtocolVersion = peer_data.PeerProtocolVersion;
-					pdetails.LocalSessionID = peer_data.LocalSessionID;
-					pdetails.PeerSessionID = peer_data.PeerSessionID;
-					pdetails.ConnectedTime = std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() -
-																								   peer_data.Cached.ConnectedSteadyTime);
-					pdetails.BytesReceived = peer_data.Cached.BytesReceived;
-					pdetails.BytesSent = peer_data.Cached.BytesSent;
-					pdetails.ExtendersBytesReceived = peer_data.ExtendersBytesReceived;
-					pdetails.ExtendersBytesSent = peer_data.ExtendersBytesSent;
-
-					result_code = ResultCode::Succeeded;
-				}
-				else result_code = ResultCode::PeerNotReady;
-			});
+			return pdataths->WithSharedLock()->GetDetails();
 		}
-		else result_code = ResultCode::PeerNotFound;
-
-		if (result_code == ResultCode::Succeeded) return std::move(pdetails);
-		return result_code;
+	
+		return ResultCode::PeerNotFound;
 	}
 
 	bool LookupMaps::HasLUID(const PeerLUID pluid, const Vector<PeerLUID>& pluids) noexcept

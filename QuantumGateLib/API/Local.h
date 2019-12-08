@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "AccessManager.h"
+#include "Access.h"
 #include "Extender.h"
 
 namespace QuantumGate::Implementation::Core
@@ -97,7 +97,8 @@ namespace QuantumGate::API
 		[[nodiscard]] String GetProtocolVersionString() const noexcept;
 
 		Result<PeerUUID> GetUUID() const noexcept;
-		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
+
+		Result<Peer> GetPeer(const PeerLUID pluid) const noexcept;
 
 		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& peers) const noexcept;

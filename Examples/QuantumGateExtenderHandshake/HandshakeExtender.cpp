@@ -111,22 +111,25 @@ void HandshakeExtender::OnPeerEvent(QuantumGate::Extender::PeerEvent&& event)
 	if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Connected)
 	{
 		// Add connected peer
-		if (const auto result = GetPeerDetails(event.GetPeerLUID()); result.Succeeded())
+		GetPeer(event.GetPeerLUID()).Succeeded([&](QuantumGate::Result<QuantumGate::Peer>& peer)
 		{
-			auto peer = std::make_unique<Peer>();
-			peer->LUID = event.GetPeerLUID();
-			peer->ConnectionType = result->ConnectionType;
-			peer->ConnectedSteadyTime = std::chrono::steady_clock::now();
-
-			if (GenerateDHKeyPair(*peer))
+			if (const auto result = peer->GetDetails(); result.Succeeded())
 			{
-				peer->Status = Peer::Status::Connected;
-			}
-			else peer->Status = Peer::Status::Exception;
+				auto peer = std::make_unique<Peer>();
+				peer->LUID = event.GetPeerLUID();
+				peer->ConnectionType = result->ConnectionType;
+				peer->ConnectedSteadyTime = std::chrono::steady_clock::now();
 
-			std::unique_lock<std::shared_mutex> lock(m_PeersMutex);
-			m_Peers.insert({ event.GetPeerLUID(), std::move(peer) });
-		}
+				if (GenerateDHKeyPair(*peer))
+				{
+					peer->Status = Peer::Status::Connected;
+				}
+				else peer->Status = Peer::Status::Exception;
+
+				std::unique_lock<std::shared_mutex> lock(m_PeersMutex);
+				m_Peers.insert({ event.GetPeerLUID(), std::move(peer) });
+			}
+		});
 	}
 	else if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Disconnected)
 	{

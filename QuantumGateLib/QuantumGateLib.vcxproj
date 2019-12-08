@@ -522,11 +522,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Algorithms.h" />
-    <ClInclude Include="API\AccessManager.h" />
+    <ClInclude Include="API\Access.h" />
     <ClInclude Include="API\Callback.h" />
     <ClInclude Include="API\Console.h" />
     <ClInclude Include="API\Extender.h" />
     <ClInclude Include="API\Local.h" />
+    <ClInclude Include="API\Peer.h" />
     <ClInclude Include="API\QuantumGate.h" />
     <ClInclude Include="API\Result.h" />
     <ClInclude Include="Common\Callback.h" />
@@ -630,10 +631,11 @@
     <ClInclude Include="Version.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="API\AccessManager.cpp" />
+    <ClCompile Include="API\Access.cpp" />
     <ClCompile Include="API\Extender.cpp" />
     <ClCompile Include="API\Local.cpp" />
     <ClCompile Include="API\ExtenderPeerEvent.cpp" />
+    <ClCompile Include="API\Peer.cpp" />
     <ClCompile Include="Common\Console.cpp" />
     <ClCompile Include="Common\Hash.cpp" />
     <ClCompile Include="Common\Random.cpp" />

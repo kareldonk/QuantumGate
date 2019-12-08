@@ -7,7 +7,7 @@
 #include "..\..\Common\ScopeGuard.h"
 #include "..\..\Memory\BufferReader.h"
 #include "..\..\Memory\BufferWriter.h"
-#include "..\..\API\AccessManager.h"
+#include "..\..\API\Access.h"
 
 using namespace std::literals;
 
@@ -403,7 +403,17 @@ namespace QuantumGate::Implementation::Core::Peer
 		return rval;
 	}
 
-	Result<PeerLUID> Manager::GetRelayGatewayPeer(const Vector<BinaryIPAddress>& excl_addr1,
+	Result<API::Peer> Manager::GetPeer(const PeerLUID pluid) const noexcept
+	{
+		if (auto peerths = Get(pluid); peerths != nullptr)
+		{
+			return API::Peer(pluid, &peerths);
+		}
+
+		return ResultCode::PeerNotFound;
+	}
+
+	Result<PeerLUID> Manager::GetRelayPeer(const Vector<BinaryIPAddress>& excl_addr1,
 										   const Vector<BinaryIPAddress>& excl_addr2) const noexcept
 	{
 		const auto& settings = GetSettings();
@@ -842,7 +852,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						{
 							// Try to get a (random) peer for the hop in between
 							// and don't include endpoints on excluded networks
-							const auto result = GetRelayGatewayPeer(*excl_addr1, excl_addr2);
+							const auto result = GetRelayPeer(*excl_addr1, excl_addr2);
 							if (result.Succeeded())
 							{
 								out_peer = result.GetValue();
@@ -923,11 +933,6 @@ namespace QuantumGate::Implementation::Core::Peer
 	Result<> Manager::QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept
 	{
 		return m_LookupMaps.WithSharedLock()->QueryPeers(params, pluids);
-	}
-
-	Result<PeerDetails> Manager::GetPeerDetails(const PeerLUID pluid) const noexcept
-	{
-		return m_LookupMaps.WithSharedLock()->GetPeerDetails(pluid);
 	}
 
 	Result<> Manager::Broadcast(const MessageType msgtype, const Buffer& buffer, BroadcastCallback&& callback)

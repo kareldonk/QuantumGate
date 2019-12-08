@@ -3,7 +3,7 @@
 
 #include "stdafx.h"
 #include "ListenerManager.h"
-#include "..\API\AccessManager.h"
+#include "..\API\Access.h"
 
 using namespace std::literals;
 using namespace QuantumGate::Implementation::Network;

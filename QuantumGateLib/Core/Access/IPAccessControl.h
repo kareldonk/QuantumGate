@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "..\..\API\AccessManager.h"
+#include "..\..\API\Access.h"
 #include "..\..\Common\Containers.h"
 #include "..\..\Network\IPAddress.h"
 

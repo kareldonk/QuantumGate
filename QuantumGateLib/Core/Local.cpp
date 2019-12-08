@@ -924,22 +924,27 @@ namespace QuantumGate::Implementation::Core
 				else
 				{
 					// Reused connection; get connection details and return them
-					const auto result2 = GetPeerDetails(result->first);
-					if (result2.Succeeded())
+					const auto result1 = GetPeer(result->first);
+					if (result1.Succeeded())
 					{
-						ConnectDetails cdetails;
-						cdetails.PeerLUID = result->first;
-						cdetails.PeerUUID = result2->PeerUUID;
-						cdetails.IsAuthenticated = result2->IsAuthenticated;
-						cdetails.IsUsingGlobalSharedSecret = result2->IsUsingGlobalSharedSecret;
-						cdetails.IsRelayed = result2->IsRelayed;
+						const auto result2 = result1->GetDetails();
+						if (result2.Succeeded())
+						{
+							ConnectDetails cdetails;
+							cdetails.PeerLUID = result1->GetLUID();
+							cdetails.PeerUUID = result2->PeerUUID;
+							cdetails.IsAuthenticated = result2->IsAuthenticated;
+							cdetails.IsUsingGlobalSharedSecret = result2->IsUsingGlobalSharedSecret;
+							cdetails.IsRelayed = result2->IsRelayed;
 
-						return cdetails;
+							return cdetails;
+						}
 					}
-					else return ResultCode::FailedRetry;
+					
+					return ResultCode::FailedRetry;
 				}
 			}
-
+			
 			return result.GetErrorCode();
 		}
 
@@ -995,9 +1000,9 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::NotRunning;
 	}
 
-	Result<PeerDetails> Local::GetPeerDetails(const PeerLUID pluid) const noexcept
+	Result<API::Peer> Local::GetPeer(const PeerLUID pluid) const noexcept
 	{
-		if (IsRunning()) return m_PeerManager.GetPeerDetails(pluid);
+		if (IsRunning()) return m_PeerManager.GetPeer(pluid);
 
 		return ResultCode::NotRunning;
 	}

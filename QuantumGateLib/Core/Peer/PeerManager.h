@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "..\..\API\Peer.h"
 #include "..\LocalEnvironment.h"
 #include "..\..\Settings.h"
 #include "..\..\Concurrency\Queue.h"
@@ -65,9 +66,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] inline bool AreRelaysRunning() const noexcept { return m_RelayManager.IsRunning(); }
 
 		std::shared_ptr<Peer_ThS> Get(const PeerLUID pluid) const noexcept;
+		Result<API::Peer> GetPeer(const PeerLUID pluid) const noexcept;
 
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
-		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
 
 		std::shared_ptr<Peer_ThS> Create(const PeerConnectionType pctype,
 										 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
@@ -108,7 +109,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		inline Relay::Manager& GetRelayManager() noexcept { return m_RelayManager; }
 
-		Result<PeerLUID> GetRelayGatewayPeer(const Vector<BinaryIPAddress>& excl_addr1,
+		Result<PeerLUID> GetRelayPeer(const Vector<BinaryIPAddress>& excl_addr1,
 									  const Vector<BinaryIPAddress>& excl_addr2) const noexcept;
 
 		Result<bool> AreRelayIPsInSameNetwork(const BinaryIPAddress& ip1, const BinaryIPAddress& ip2) const noexcept;

@@ -59,11 +59,11 @@ namespace QuantumGate::Implementation::Core::Extender
 		return m_Local.load()->SendTo(GetUUID(), m_Running, pluid, std::move(buffer), params);
 	}
 
-	Result<PeerDetails> Extender::GetPeerDetails(const PeerLUID pluid) const noexcept
+	Result<API::Peer> Extender::GetPeer(const PeerLUID pluid) const noexcept
 	{
 		assert(IsRunning());
 
-		return m_Local.load()->GetPeerDetails(pluid);
+		return m_Local.load()->GetPeer(pluid);
 	}
 
 	Result<Vector<PeerLUID>> Extender::QueryPeers(const PeerQueryParameters& params) const noexcept

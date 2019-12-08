@@ -52,7 +52,8 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		inline const Size GetMaximumMessageDataSize() const noexcept { return Message::MaxMessageDataSize; }
 
-		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
+		Result<API::Peer> GetPeer(const PeerLUID pluid) const noexcept;
+
 		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
 

@@ -232,9 +232,9 @@ namespace QuantumGate::API
 		return m_Local->GetUUID();
 	}
 
-	Result<PeerDetails> Local::GetPeerDetails(const PeerLUID pluid) const noexcept
+	Result<Peer> Local::GetPeer(const PeerLUID pluid) const noexcept
 	{
-		return m_Local->GetPeerDetails(pluid);
+		return m_Local->GetPeer(pluid);
 	}
 
 	Result<Vector<PeerLUID>> Local::QueryPeers(const PeerQueryParameters& params) const noexcept

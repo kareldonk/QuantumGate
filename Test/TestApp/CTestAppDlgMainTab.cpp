@@ -108,37 +108,40 @@ void CTestAppDlgMainTab::UpdatePeers()
 
 		for (const auto& pluid : m_PeerLUIDs)
 		{
-			const auto retval = m_QuantumGate.GetPeerDetails(pluid);
-			if (retval.Succeeded())
+			m_QuantumGate.GetPeer(pluid).Succeeded([&](auto& result)
 			{
-				auto index = GetPeerIndex(pluid);
-				if (index == -1)
+				const auto retval = result->GetDetails();
+				if (retval.Succeeded())
 				{
-					const auto pluidstr = Util::FormatString(L"%llu", pluid);
-					const auto relayed = retval->IsRelayed ? L"Yes" : L"No";
-					const auto auth = retval->IsAuthenticated ? L"Yes" : L"No";
-
-					const auto pos = lctrl->InsertItem(0, pluidstr.c_str());
-					if (pos != -1)
+					auto index = GetPeerIndex(pluid);
+					if (index == -1)
 					{
-						lctrl->SetItemText(pos, 1, relayed);
-						lctrl->SetItemText(pos, 2, auth);
-						lctrl->SetItemText(pos, 3, retval->PeerIPEndpoint.GetString().c_str());
+						const auto pluidstr = Util::FormatString(L"%llu", pluid);
+						const auto relayed = retval->IsRelayed ? L"Yes" : L"No";
+						const auto auth = retval->IsAuthenticated ? L"Yes" : L"No";
+
+						const auto pos = lctrl->InsertItem(0, pluidstr.c_str());
+						if (pos != -1)
+						{
+							lctrl->SetItemText(pos, 1, relayed);
+							lctrl->SetItemText(pos, 2, auth);
+							lctrl->SetItemText(pos, 3, retval->PeerIPEndpoint.GetString().c_str());
+						}
+
+						index = pos;
 					}
 
-					index = pos;
+					if (index != -1)
+					{
+						lctrl->SetItemText(index, 4,
+										   Util::FormatString(L"%.2lf KB",
+															  static_cast<double>(retval->BytesSent) / 1024.0).c_str());
+						lctrl->SetItemText(index, 5,
+										   Util::FormatString(L"%.2lf KB",
+															  static_cast<double>(retval->BytesReceived) / 1024.0).c_str());
+					}
 				}
-
-				if (index != -1)
-				{
-					lctrl->SetItemText(index, 4,
-									   Util::FormatString(L"%.2lf KB",
-														  static_cast<double>(retval->BytesSent) / 1024.0).c_str());
-					lctrl->SetItemText(index, 5,
-									   Util::FormatString(L"%.2lf KB",
-														  static_cast<double>(retval->BytesReceived) / 1024.0).c_str());
-				}
-			}
+			});
 		}
 
 		for (int x = 0; x < lctrl->GetItemCount(); ++x)
@@ -227,59 +230,62 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 	const auto pluid = GetSelectedPeerLUID();
 	if (pluid > 0)
 	{
-		const auto retval = m_QuantumGate.GetPeerDetails(pluid);
-		if (retval.Succeeded())
+		m_QuantumGate.GetPeer(pluid).Succeeded([&](auto& result)
 		{
-			String pitxt;
-			pitxt += Util::FormatString(L"Peer LUID:\t\t%llu\r\n", pluid);
-			pitxt += Util::FormatString(L"Peer UUID:\t\t%s\r\n\r\n", retval->PeerUUID.GetString().c_str());
-
-			pitxt += Util::FormatString(L"Authenticated:\t\t%s\r\n",
-										retval->IsAuthenticated ? L"Yes" : L"No");
-			pitxt += Util::FormatString(L"Relayed:\t\t\t%s\r\n",
-										retval->IsRelayed ? L"Yes" : L"No");
-			pitxt += Util::FormatString(L"Global shared secret:\t%s\r\n\r\n",
-										retval->IsUsingGlobalSharedSecret ? L"Yes" : L"No");
-
-			pitxt += Util::FormatString(L"Connection type:\t\t%s\r\n",
-										retval->ConnectionType == PeerConnectionType::Inbound ? L"Inbound" : L"Outbound");
-			pitxt += Util::FormatString(L"Local endpoint:\t\t%s\r\n",
-										retval->LocalIPEndpoint.GetString().c_str());
-			pitxt += Util::FormatString(L"Peer endpoint:\t\t%s\r\n",
-										retval->PeerIPEndpoint.GetString().c_str());
-			pitxt += Util::FormatString(L"Peer protocol version:\t%u.%u\r\n",
-										retval->PeerProtocolVersion.first, retval->PeerProtocolVersion.second);
-			pitxt += Util::FormatString(L"Local session ID:\t\t%llu\r\n", retval->LocalSessionID);
-			pitxt += Util::FormatString(L"Peer session ID:\t\t%llu\r\n", retval->PeerSessionID);
-			pitxt += Util::FormatString(L"Connected time:\t\t%llu seconds\r\n",
-										std::chrono::duration_cast<std::chrono::seconds>(retval->ConnectedTime).count());
-			pitxt += Util::FormatString(L"Bytes received:\t\t%zu\r\n", retval->BytesReceived);
-			pitxt += Util::FormatString(L"Bytes sent:\t\t%zu\r\n", retval->BytesSent);
-			pitxt += Util::FormatString(L"Extenders bytes received:\t%zu\r\n", retval->ExtendersBytesReceived);
-			pitxt += Util::FormatString(L"Extenders bytes sent:\t%zu\r\n", retval->ExtendersBytesSent);
-
-			auto roh = 0.0;
-			if (retval->BytesReceived > 0)
+			const auto retval = result->GetDetails();
+			if (retval.Succeeded())
 			{
-				roh = (((double)retval->BytesReceived - (double)retval->ExtendersBytesReceived) /
-					(double)retval->BytesReceived) * 100.0;
+				String pitxt;
+				pitxt += Util::FormatString(L"Peer LUID:\t\t%llu\r\n", pluid);
+				pitxt += Util::FormatString(L"Peer UUID:\t\t%s\r\n\r\n", retval->PeerUUID.GetString().c_str());
+
+				pitxt += Util::FormatString(L"Authenticated:\t\t%s\r\n",
+											retval->IsAuthenticated ? L"Yes" : L"No");
+				pitxt += Util::FormatString(L"Relayed:\t\t\t%s\r\n",
+											retval->IsRelayed ? L"Yes" : L"No");
+				pitxt += Util::FormatString(L"Global shared secret:\t%s\r\n\r\n",
+											retval->IsUsingGlobalSharedSecret ? L"Yes" : L"No");
+
+				pitxt += Util::FormatString(L"Connection type:\t\t%s\r\n",
+											retval->ConnectionType == PeerConnectionType::Inbound ? L"Inbound" : L"Outbound");
+				pitxt += Util::FormatString(L"Local endpoint:\t\t%s\r\n",
+											retval->LocalIPEndpoint.GetString().c_str());
+				pitxt += Util::FormatString(L"Peer endpoint:\t\t%s\r\n",
+											retval->PeerIPEndpoint.GetString().c_str());
+				pitxt += Util::FormatString(L"Peer protocol version:\t%u.%u\r\n",
+											retval->PeerProtocolVersion.first, retval->PeerProtocolVersion.second);
+				pitxt += Util::FormatString(L"Local session ID:\t\t%llu\r\n", retval->LocalSessionID);
+				pitxt += Util::FormatString(L"Peer session ID:\t\t%llu\r\n", retval->PeerSessionID);
+				pitxt += Util::FormatString(L"Connected time:\t\t%llu seconds\r\n",
+											std::chrono::duration_cast<std::chrono::seconds>(retval->ConnectedTime).count());
+				pitxt += Util::FormatString(L"Bytes received:\t\t%zu\r\n", retval->BytesReceived);
+				pitxt += Util::FormatString(L"Bytes sent:\t\t%zu\r\n", retval->BytesSent);
+				pitxt += Util::FormatString(L"Extenders bytes received:\t%zu\r\n", retval->ExtendersBytesReceived);
+				pitxt += Util::FormatString(L"Extenders bytes sent:\t%zu\r\n", retval->ExtendersBytesSent);
+
+				auto roh = 0.0;
+				if (retval->BytesReceived > 0)
+				{
+					roh = (((double)retval->BytesReceived - (double)retval->ExtendersBytesReceived) /
+						(double)retval->BytesReceived) * 100.0;
+				}
+
+				auto soh = 0.0;
+				if (retval->BytesSent > 0)
+				{
+					soh = (((double)retval->BytesSent - (double)retval->ExtendersBytesSent) /
+						(double)retval->BytesSent) * 100.0;
+				}
+
+				pitxt += Util::FormatString(L"Receive overhead:\t\t%.2lf%%\r\n", roh);
+				pitxt += Util::FormatString(L"Send overhead:\t\t%.2lf%%\r\n", soh);
+
+				CInformationDlg dlg;
+				dlg.SetWindowTitle(L"Peer Information");
+				dlg.SetInformationText(pitxt.c_str());
+				dlg.DoModal();
 			}
-
-			auto soh = 0.0;
-			if (retval->BytesSent > 0)
-			{
-				soh = (((double)retval->BytesSent - (double)retval->ExtendersBytesSent) /
-					(double)retval->BytesSent) * 100.0;
-			}
-
-			pitxt += Util::FormatString(L"Receive overhead:\t\t%.2lf%%\r\n", roh);
-			pitxt += Util::FormatString(L"Send overhead:\t\t%.2lf%%\r\n", soh);
-
-			CInformationDlg dlg;
-			dlg.SetWindowTitle(L"Peer Information");
-			dlg.SetInformationText(pitxt.c_str());
-			dlg.DoModal();
-		}
+		});
 	}
 }
 

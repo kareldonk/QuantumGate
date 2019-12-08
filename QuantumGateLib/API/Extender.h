@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "Peer.h"
+
 namespace QuantumGate::Implementation::Core
 {
 	class Local;
@@ -108,7 +110,8 @@ namespace QuantumGate::API
 
 		[[nodiscard]] const Size GetMaximumMessageDataSize() const noexcept;
 
-		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
+		Result<API::Peer> GetPeer(const PeerLUID pluid) const noexcept;
+
 		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
 

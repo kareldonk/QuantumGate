@@ -90,7 +90,8 @@ namespace QuantumGate::Implementation::Core
 		String GetProtocolVersionString() const noexcept;
 
 		Result<PeerUUID> GetUUID() const noexcept;
-		Result<PeerDetails> GetPeerDetails(const PeerLUID pluid) const noexcept;
+
+		Result<API::Peer> GetPeer(const PeerLUID pluid) const noexcept;
 
 		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
