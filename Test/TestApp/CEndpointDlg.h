@@ -17,7 +17,7 @@ public:
 
 	inline void SetPort(const UInt16 port) noexcept { m_Port = port; }
 	inline void SetRelayHops(const RelayHop hops) noexcept { m_Hops = hops; }
-	inline void SetRelayPeer(const PeerLUID pluid) noexcept { m_RelayPeer = pluid; }
+	inline void SetRelayGatewayPeer(const PeerLUID pluid) noexcept { m_RelayGatewayPeer = pluid; }
 
 	inline void SetShowRelay(const bool show) noexcept { m_ShowRelay = show; }
 
@@ -25,7 +25,7 @@ public:
 	inline const UInt16 GetPort() const noexcept { return m_Port; }
 	inline const CString& GetPassPhrase() const noexcept { return m_PassPhrase; }
 	inline const RelayHop GetRelayHops() const noexcept { return m_Hops; }
-	inline const std::optional<PeerLUID>& GetRelayPeer() const noexcept { return m_RelayPeer; }
+	inline const std::optional<PeerLUID>& GetRelayGatewayPeer() const noexcept { return m_RelayGatewayPeer; }
 
 protected:
 	virtual BOOL OnInitDialog();
@@ -40,7 +40,7 @@ private:
 	UInt16 m_Port{ 9000 };
 	CString m_PassPhrase;
 	RelayHop m_Hops{ 0 };
-	std::optional<PeerLUID> m_RelayPeer;
+	std::optional<PeerLUID> m_RelayGatewayPeer;
 	bool m_ShowRelay{ false };
 };
 

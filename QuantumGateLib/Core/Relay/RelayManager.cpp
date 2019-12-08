@@ -960,7 +960,7 @@ namespace QuantumGate::Implementation::Core::Relay
 						connect_event.Endpoint.GetIPAddress().GetBinary()
 					};
 
-					const auto result = m_Peers.GetRelayPeer(*excl_addr1, excl_addr2);
+					const auto result = m_Peers.GetRelayGatewayPeer(*excl_addr1, excl_addr2);
 					if (result.Succeeded())
 					{
 						out_peer = result.GetValue();

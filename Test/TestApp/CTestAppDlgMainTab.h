@@ -46,6 +46,7 @@ protected:
 	afx_msg void OnNMRClickAllPeersList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnNMDblclkAllPeersList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnPeerlistDisconnect();
+	afx_msg void OnPeerlistCreateRelay();
 	afx_msg void OnConsoleEnabled();
 	afx_msg void OnUpdateConsoleEnabled(CCmdUI* pCmdUI);
 	afx_msg void OnConsoleTerminalwindow();
@@ -70,6 +71,7 @@ protected:
 	afx_msg void OnBnClickedCreateUuid();
 	afx_msg void OnBnClickedHasTestExtender();
 	afx_msg void OnBnClickedHasStressExtender();
+	afx_msg void OnUpdatePeerlistCreateRelay(CCmdUI* pCmdUI);
 
 private:
 	QuantumGate::Local& m_QuantumGate;

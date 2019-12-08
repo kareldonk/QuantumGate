@@ -1060,7 +1060,7 @@ void CTestAppDlg::OnStressConnectAndDisconnect()
 			}
 
 			Stress::StartConnectStress(m_QuantumGate, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort(),
-									   dlg.GetRelayHops(), dlg.GetRelayPeer(), gsecret);
+									   dlg.GetRelayHops(), dlg.GetRelayGatewayPeer(), gsecret);
 		}
 	}
 	else Stress::StopConnectStress();
@@ -1341,9 +1341,17 @@ void CTestAppDlg::OnPeerConnected(PeerLUID pluid, Result<ConnectDetails> result)
 
 void CTestAppDlg::OnLocalConnectRelayed()
 {
+	CreateRelayedConnection({ std::nullopt });
+}
+
+void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway_pluid)
+{
 	CEndpointDlg dlg;
 	dlg.SetIPAddress(m_DefaultIP);
 	dlg.SetPort(m_DefaultPort);
+
+	if (gateway_pluid) dlg.SetRelayGatewayPeer(*gateway_pluid);
+
 	dlg.SetShowRelay(true);
 
 	if (dlg.DoModal() == IDOK)
@@ -1355,7 +1363,7 @@ void CTestAppDlg::OnLocalConnectRelayed()
 		ConnectParameters params;
 		params.PeerIPEndpoint = IPEndpoint(IPAddress(m_DefaultIP), m_DefaultPort);
 		params.Relay.Hops = dlg.GetRelayHops();
-		params.Relay.GatewayPeer = dlg.GetRelayPeer();
+		params.Relay.GatewayPeer = dlg.GetRelayGatewayPeer();
 
 		params.GlobalSharedSecret.emplace();
 

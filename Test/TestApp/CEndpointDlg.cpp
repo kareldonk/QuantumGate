@@ -19,7 +19,7 @@ BEGIN_MESSAGE_MAP(CEndpointDlg, CDialogBase)
 	ON_BN_CLICKED(IDOK, &CEndpointDlg::OnBnClickedOk)
 END_MESSAGE_MAP()
 
-void CEndpointDlg::SetIPAddress(const String & ip) noexcept
+void CEndpointDlg::SetIPAddress(const String& ip) noexcept
 {
 	if (!IPAddress::TryParse(ip, m_IPAddress)) AfxMessageBox(L"Invalid IP address.", MB_ICONERROR);
 }
@@ -31,7 +31,7 @@ BOOL CEndpointDlg::OnInitDialog()
 	SetValue(IDC_IP, m_IPAddress.GetString());
 	SetValue(IDC_PORT, m_Port);
 	SetValue(IDC_HOPS, m_Hops);
-	if (m_RelayPeer) SetValue(IDC_RELAY_PEER, *m_RelayPeer);
+	if (m_RelayGatewayPeer) SetValue(IDC_RELAY_PEER, *m_RelayGatewayPeer);
 
 	if (m_ShowRelay)
 	{
@@ -53,7 +53,7 @@ void CEndpointDlg::OnBnClickedOk()
 		m_Hops = static_cast<UInt8>(GetInt64Value(IDC_HOPS));
 
 		auto id = GetUInt64Value(IDC_RELAY_PEER);
-		if (id != 0) m_RelayPeer = id;
+		if (id != 0) m_RelayGatewayPeer = id;
 
 		CDialogBase::OnOK();
 	}

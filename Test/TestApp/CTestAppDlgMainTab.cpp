@@ -5,6 +5,7 @@
 #include "TestApp.h"
 #include "CTestAppDlgMainTab.h"
 #include "CInformationDlg.h"
+#include "TestAppDlg.h"
 
 #include "Console.h"
 #include "Common\Util.h"
@@ -56,6 +57,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlgMainTab, CTabBase)
 	ON_COMMAND(ID_VERBOSITY_DEBUG, &CTestAppDlgMainTab::OnVerbosityDebug)
 	ON_UPDATE_COMMAND_UI(ID_PEERLIST_VIEW_DETAILS, &CTestAppDlgMainTab::OnUpdatePeerlistViewDetails)
 	ON_UPDATE_COMMAND_UI(ID_PEERLIST_DISCONNECT, &CTestAppDlgMainTab::OnUpdatePeerlistDisconnect)
+	ON_UPDATE_COMMAND_UI(ID_PEERLIST_CREATE_RELAY, &CTestAppDlgMainTab::OnUpdatePeerlistCreateRelay)
 	ON_WM_DESTROY()
 	ON_BN_CLICKED(IDC_ONLY_RELAYED_CHECK, &CTestAppDlgMainTab::OnBnClickedOnlyRelayedCheck)
 	ON_BN_CLICKED(IDC_ONLY_AUTHENTICATED_CHECK, &CTestAppDlgMainTab::OnBnClickedOnlyAuthenticatedCheck)
@@ -64,6 +66,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlgMainTab, CTabBase)
 	ON_BN_CLICKED(IDC_CREATE_UUID, &CTestAppDlgMainTab::OnBnClickedCreateUuid)
 	ON_BN_CLICKED(IDC_HAS_TEST_EXTENDER, &CTestAppDlgMainTab::OnBnClickedHasTestExtender)
 	ON_BN_CLICKED(IDC_HAS_STRESS_EXTENDER, &CTestAppDlgMainTab::OnBnClickedHasStressExtender)
+	ON_COMMAND(ID_PEERLIST_CREATE_RELAY, &CTestAppDlgMainTab::OnPeerlistCreateRelay)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlgMainTab::OnInitDialog()
@@ -310,7 +313,12 @@ void CTestAppDlgMainTab::OnUpdatePeerlistDisconnect(CCmdUI* pCmdUI)
 {
 	const auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
 	pCmdUI->Enable(m_QuantumGate.IsRunning() && (lctrl->GetSelectedCount() > 0));
+}
 
+void CTestAppDlgMainTab::OnUpdatePeerlistCreateRelay(CCmdUI* pCmdUI)
+{
+	const auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
+	pCmdUI->Enable(m_QuantumGate.IsRunning() && (lctrl->GetSelectedCount() > 0));
 }
 
 void CTestAppDlgMainTab::OnNMDblclkAllPeersList(NMHDR* pNMHDR, LRESULT* pResult)
@@ -331,6 +339,15 @@ void CTestAppDlgMainTab::OnPeerlistDisconnect()
 		{
 			LogErr(L"Failed to disconnect from peer LUID %llu", pluid);
 		}
+	}
+}
+
+void CTestAppDlgMainTab::OnPeerlistCreateRelay()
+{
+	const auto pluid = GetSelectedPeerLUID();
+	if (pluid != 0)
+	{
+		((CTestAppDlg*)GetParent()->GetParent())->CreateRelayedConnection(pluid);
 	}
 }
 
@@ -568,3 +585,4 @@ void CTestAppDlgMainTab::OnBnClickedHasStressExtender()
 
 	m_PeerQueryParams.Extenders.Include = PeerQueryParameters::Extenders::IncludeOption::AllOf;
 }
+

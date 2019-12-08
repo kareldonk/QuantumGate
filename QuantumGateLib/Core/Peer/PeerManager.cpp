@@ -403,7 +403,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return rval;
 	}
 
-	Result<PeerLUID> Manager::GetRelayPeer(const Vector<BinaryIPAddress>& excl_addr1,
+	Result<PeerLUID> Manager::GetRelayGatewayPeer(const Vector<BinaryIPAddress>& excl_addr1,
 										   const Vector<BinaryIPAddress>& excl_addr2) const noexcept
 	{
 		const auto& settings = GetSettings();
@@ -842,7 +842,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						{
 							// Try to get a (random) peer for the hop in between
 							// and don't include endpoints on excluded networks
-							const auto result = GetRelayPeer(*excl_addr1, excl_addr2);
+							const auto result = GetRelayGatewayPeer(*excl_addr1, excl_addr2);
 							if (result.Succeeded())
 							{
 								out_peer = result.GetValue();

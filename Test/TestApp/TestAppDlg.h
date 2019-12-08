@@ -23,6 +23,8 @@ class CTestAppDlg final : public CDialogBase
 public:
 	CTestAppDlg(CWnd* pParent = NULL);	// standard constructor
 
+	void CreateRelayedConnection(const std::optional<PeerLUID>& gateway_pluid);
+
 // Dialog Data
 	enum { IDD = IDD_QGTESTAPP_DIALOG };
 
