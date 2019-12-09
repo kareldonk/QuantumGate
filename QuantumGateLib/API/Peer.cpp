@@ -10,9 +10,6 @@ namespace QuantumGate::API
 	using Peer_ThS = QuantumGate::Implementation::Core::Peer::Peer_ThS;
 	using SharedPeerPtr = std::shared_ptr<Peer_ThS>;
 
-	// Size of peer shared pointer plus one byte to use as a flag
-	static constexpr int MinimumPeerStorageSize{ sizeof(SharedPeerPtr) + 1 + sizeof(PeerLUID) };
-
 	inline SharedPeerPtr* GetSharedPeerPtr(void* peer_storage)
 	{
 		return reinterpret_cast<SharedPeerPtr*>(peer_storage);
@@ -29,7 +26,7 @@ namespace QuantumGate::API
 	Peer::Peer(const PeerLUID pluid, const void* peer) noexcept
 	{
 		static_assert(sizeof(m_PeerStorage) >= MinimumPeerStorageSize,
-					  "Storage size is too small; increase size of m_Peer in header file");
+					  "Storage size is too small; increase size of m_PeerStorage in header file");
 
 		Create(pluid, peer);
 	}

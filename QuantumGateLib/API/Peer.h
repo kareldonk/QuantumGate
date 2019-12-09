@@ -60,7 +60,9 @@ namespace QuantumGate::API
 		inline void Reset() noexcept;
 
 	private:
+		static constexpr int MinimumPeerStorageSize{ sizeof(std::shared_ptr<void>) + 1 + sizeof(PeerLUID) };
+
 		PeerLUID m_PeerLUID{ 0 };
-		typename std::aligned_storage<32>::type m_PeerStorage{ 0 };
+		typename std::aligned_storage<MinimumPeerStorageSize>::type m_PeerStorage{ 0 };
 	};
 }
