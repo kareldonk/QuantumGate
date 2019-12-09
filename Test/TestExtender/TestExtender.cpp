@@ -24,28 +24,19 @@ using namespace std::literals;
 
 namespace TestExtender
 {
-	FileTransfer::FileTransfer(const FileTransferType type, const Size trfbuf_size, const bool autotrf) noexcept
-	{
-		m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
-		m_Type = type;
-		m_Auto = autotrf;
-		m_TransferBuffer.Allocate(trfbuf_size);
-	}
+	FileTransfer::FileTransfer(QuantumGate::Peer& peer, const FileTransferType type, const Size trfbuf_size,
+							   const bool autotrf) noexcept :
+		m_Peer(peer), m_LastActiveSteadyTime(Util::GetCurrentSteadyTime()),	m_Type(type), m_Auto(autotrf),
+		m_TransferBuffer(trfbuf_size)
+	{}
 
-	FileTransfer::FileTransfer(const FileTransferType type,
-							   const FileTransferID id, const Size filesize,
-							   const String& filename, Buffer&& filehash,
-							   const Size trfbuf_size, const bool autotrf) noexcept
-	{
-		m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
-		m_Type = type;
-		m_Auto = autotrf;
-		m_ID = id;
-		m_FileSize = filesize;
-		m_FileName = filename;
-		m_FileHash = std::move(filehash);
-		m_TransferBuffer.Allocate(trfbuf_size);
-	}
+	FileTransfer::FileTransfer(QuantumGate::Peer& peer, const FileTransferType type, const FileTransferID id,
+							   const Size filesize, const String& filename, Buffer&& filehash,
+							   const Size trfbuf_size, const bool autotrf) noexcept :
+		m_Peer(peer), m_LastActiveSteadyTime(Util::GetCurrentSteadyTime()), m_Type(type), m_Auto(autotrf),
+		m_ID(id), m_FileSize(filesize), m_FileName(filename), m_FileHash(std::move(filehash)),
+		m_TransferBuffer(trfbuf_size)
+	{}
 
 	FileTransfer::~FileTransfer()
 	{
@@ -344,9 +335,12 @@ namespace TestExtender
 		{
 			ev = L"Connect";
 
-			auto peer = std::make_unique<Peer>(event.GetPeerLUID());
+			if (auto result = GetPeer(event.GetPeerLUID()); result.Succeeded())
+			{
+				auto peer = std::make_unique<PeerData>(std::move(*result));
 
-			m_Peers.WithUniqueLock()->insert({ event.GetPeerLUID(), std::move(peer) });
+				m_Peers.WithUniqueLock()->insert({ event.GetPeerLUID(), std::move(peer) });
+			}
 		}
 		else if (event.GetType() == PeerEvent::Type::Disconnected)
 		{
@@ -466,14 +460,14 @@ namespace TestExtender
 									{
 										Dbg(L"Received FileTransferStart message from %llu", event.GetPeerLUID());
 
-										auto ft = std::make_unique<FileTransfer>(FileTransferType::Incoming, fid,
-																				 fsize2, fname, std::move(fhash),
-																				 GetFileTransferDataSize(), autotrf);
-										ft->SetStatus(FileTransferStatus::NeedAccept);
-
-										IfNotHasFileTransfer(event.GetPeerLUID(), ft->GetID(),
-															 [&](FileTransfers& filetransfers)
+										IfNotHasFileTransfer(event.GetPeerLUID(), fid,
+															 [&](QuantumGate::Peer& peer, FileTransfers& filetransfers)
 										{
+											auto ft = std::make_unique<FileTransfer>(peer, FileTransferType::Incoming, fid,
+																					 fsize2, fname, std::move(fhash),
+																					 GetFileTransferDataSize(), autotrf);
+											ft->SetStatus(FileTransferStatus::NeedAccept);
+
 											auto retval = filetransfers.insert({ fid, std::move(ft) });
 											result.Success = true;
 											auto error = false;
@@ -482,7 +476,7 @@ namespace TestExtender
 											{
 												// Must be deallocated in message handler
 												FileAccept* fa = new FileAccept();
-												fa->PeerLUID = event.GetPeerLUID();
+												fa->PeerLUID = peer.GetLUID();
 												fa->FileTransferID = fid;
 
 												if (!PostMessage(m_Window, static_cast<UINT>(WindowsMessage::FileAccept),
@@ -501,8 +495,7 @@ namespace TestExtender
 													// to reduce conflicts with multiple transfers
 													const auto rndfname = Util::FormatString(L"%llu.tmp",
 																							 Util::GetPseudoRandomNumber());
-													if (!AcceptFile(event.GetPeerLUID(),
-																	*filepath + rndfname,
+													if (!AcceptFile(*filepath + rndfname,
 																	*retval.first->second))
 													{
 														error = true;
@@ -539,7 +532,7 @@ namespace TestExtender
 								{
 									ft.SetStatus(FileTransferStatus::Transfering);
 
-									result.Success = SendFileData(event.GetPeerLUID(), ft);
+									result.Success = SendFileData(ft);
 								});
 							}
 							break;
@@ -580,11 +573,11 @@ namespace TestExtender
 									{
 										if (ft.WriteToFile(buffer.GetBytes(), buffer.GetSize()))
 										{
-											result.Success = SendFileDataAck(event.GetPeerLUID(), ft);
+											result.Success = SendFileDataAck(ft);
 										}
 										else
 										{
-											result.Success = SendFileTransferCancel(event.GetPeerLUID(), ft);
+											result.Success = SendFileTransferCancel(ft);
 										}
 									}
 								});
@@ -608,7 +601,7 @@ namespace TestExtender
 										ft.SetStatus(FileTransferStatus::Succeeded);
 										result.Success = true;
 									}
-									else result.Success = SendFileData(event.GetPeerLUID(), ft);
+									else result.Success = SendFileData(ft);
 								});
 							}
 							break;
@@ -717,12 +710,12 @@ namespace TestExtender
 			const auto it = peers.find(pluid);
 			if (it != peers.end())
 			{
-				it->second->FileTransfers.WithUniqueLock([&](auto & filetransfers)
+				it->second->FileTransfers.WithUniqueLock([&](auto& filetransfers)
 				{
 					const auto fit = filetransfers.find(ftid);
 					if (fit == filetransfers.end())
 					{
-						func(filetransfers);
+						func(it->second->Peer, filetransfers);
 						success = true;
 					}
 					else LogErr(L"File transfer already active");
@@ -813,25 +806,36 @@ namespace TestExtender
 	{
 		auto success = false;
 
-		auto ft = std::make_unique<FileTransfer>(FileTransferType::Outgoing, GetFileTransferDataSize(), autotrf);
-		if (ft->OpenSourceFile(filename))
+		auto peers = m_Peers.WithSharedLock();
+		const auto it = peers->find(pluid);
+		if (it != peers->end())
 		{
-			ft->SetStatus(FileTransferStatus::WaitingForAccept);
+			auto ft = std::make_unique<FileTransfer>(it->second->Peer, FileTransferType::Outgoing,
+													 GetFileTransferDataSize(), autotrf);
 
-			IfNotHasFileTransfer(pluid, ft->GetID(), [&](FileTransfers& filetransfers)
+			// Need to unlock because IfNotHasFileTransfer will
+			// lock again later
+			peers.UnlockShared();
+
+			if (ft->OpenSourceFile(filename))
 			{
-				if (SendFileTransferStart(pluid, *ft))
+				ft->SetStatus(FileTransferStatus::WaitingForAccept);
+
+				IfNotHasFileTransfer(pluid, ft->GetID(), [&](QuantumGate::Peer& ftpeer, FileTransfers& filetransfers)
 				{
-					filetransfers.insert({ ft->GetID(), std::move(ft) });
+					if (SendFileTransferStart(*ft))
+					{
+						filetransfers.insert({ ft->GetID(), std::move(ft) });
 
-					SLogInfo(SLogFmt(FGBrightCyan) << L"Starting file transfer for file " <<
-							 filename << SLogFmt(Default));
+						SLogInfo(SLogFmt(FGBrightCyan) << L"Starting file transfer for file " <<
+								 filename << SLogFmt(Default));
 
-					success = true;
-				}
-			});
+						success = true;
+					}
+				});
+			}
+			else LogErr(L"Could not open file %s", filename.c_str());
 		}
-		else LogErr(L"Could not open file %s", filename.c_str());
 
 		return success;
 	}
@@ -842,13 +846,13 @@ namespace TestExtender
 
 		IfHasFileTransfer(pluid, ftid, [&](FileTransfer& ft)
 		{
-			success = AcceptFile(pluid, filename, ft);
+			success = AcceptFile(filename, ft);
 		});
 
 		return success;
 	}
 
-	bool Extender::AcceptFile(const PeerLUID pluid, const String& filename, FileTransfer& ft)
+	bool Extender::AcceptFile(const String& filename, FileTransfer& ft)
 	{
 		auto success = false;
 
@@ -861,7 +865,7 @@ namespace TestExtender
 				BufferWriter writer(true);
 				if (writer.WriteWithPreallocation(msgtype, ft.GetID()))
 				{
-					if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
+					if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
 					{
 						ft.SetStatus(FileTransferStatus::Transfering);
 
@@ -878,7 +882,7 @@ namespace TestExtender
 
 			if (!success) ft.SetStatus(FileTransferStatus::Error);
 		}
-		else SendFileTransferCancel(pluid, ft);
+		else SendFileTransferCancel(ft);
 
 		return success;
 	}
@@ -888,7 +892,7 @@ namespace TestExtender
 		return &m_Peers;
 	}
 
-	bool Extender::SendFileTransferStart(const PeerLUID pluid, FileTransfer& ft)
+	bool Extender::SendFileTransferStart(FileTransfer& ft)
 	{
 		Path fp{ ft.GetFileName() };
 		String filename{ fp.filename().wstring().c_str() };
@@ -908,7 +912,7 @@ namespace TestExtender
 		if (writer.WriteWithPreallocation(msgtype, ft.GetID(), filesize,
 										  WithSize(filename, MaxSize::_1KB), *ft.GetFileHash(), autotrf))
 		{
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
+			if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
 			else LogErr(L"Could not send FileTransferStart message to peer");
 		}
 		else LogErr(L"Could not prepare FileTransferStart message for peer");
@@ -918,14 +922,14 @@ namespace TestExtender
 		return false;
 	}
 
-	bool Extender::SendFileTransferCancel(const PeerLUID pluid, FileTransfer& ft)
+	bool Extender::SendFileTransferCancel(FileTransfer& ft)
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferCancel);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, ft.GetID()))
 		{
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
+			if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
 			{
 				ft.SetStatus(FileTransferStatus::Cancelled);
 				return true;
@@ -945,7 +949,7 @@ namespace TestExtender
 		return (GetMaximumMessageDataSize() - 15);
 	}
 
-	bool Extender::SendFileData(const PeerLUID pluid, FileTransfer& ft)
+	bool Extender::SendFileData(FileTransfer& ft)
 	{
 		auto& buffer = ft.GetTransferBuffer();
 		const auto numread = ft.ReadFromFile(buffer.GetBytes(), buffer.GetSize());
@@ -959,7 +963,7 @@ namespace TestExtender
 			BufferWriter writer(true);
 			if (writer.WriteWithPreallocation(msgtype, ft.GetID(), WithSize(buffer, GetFileTransferDataSize())))
 			{
-				if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
+				if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
 				else LogErr(L"Could not send FileTransferData message to peer");
 			}
 			else LogErr(L"Could not prepare FileTransferData message for peer");
@@ -970,14 +974,14 @@ namespace TestExtender
 		return false;
 	}
 
-	bool Extender::SendFileDataAck(const PeerLUID pluid, FileTransfer& ft)
+	bool Extender::SendFileDataAck(FileTransfer& ft)
 	{
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferDataAck);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, ft.GetID()))
 		{
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
+			if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
 			else LogErr(L"Could not send FileTransferDataAck message to peer");
 		}
 		else LogErr(L"Could not prepare FileTransferDataAck message for peer");

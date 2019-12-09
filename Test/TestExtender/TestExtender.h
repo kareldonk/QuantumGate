@@ -51,8 +51,8 @@ namespace TestExtender
 	class FileTransfer final
 	{
 	public:
-		FileTransfer(const FileTransferType type, const Size trfbuf_size, const bool autotrf) noexcept;
-		FileTransfer(const FileTransferType type, const FileTransferID id,
+		FileTransfer(QuantumGate::Peer& peer, const FileTransferType type, const Size trfbuf_size, const bool autotrf) noexcept;
+		FileTransfer(QuantumGate::Peer& peer, const FileTransferType type, const FileTransferID id,
 					 const Size filesize, const String& filename, Buffer&& filehash,
 					 const Size trfbuf_size, const bool autotrf) noexcept;
 		~FileTransfer();
@@ -64,6 +64,7 @@ namespace TestExtender
 
 		void SetStatus(const FileTransferStatus status) noexcept;
 
+		inline QuantumGate::Peer& GetPeer() noexcept { return m_Peer; }
 		inline const FileTransferStatus GetStatus() const noexcept { return m_Status; }
 		const WChar* GetStatusString() const noexcept;
 		inline const FileTransferType GetType() const noexcept { return m_Type; }
@@ -82,6 +83,7 @@ namespace TestExtender
 		void TransferEndStats() const noexcept;
 
 	private:
+		QuantumGate::Peer& m_Peer;
 		FileTransferType m_Type{ FileTransferType::Unknown };
 		FileTransferStatus m_Status{ FileTransferStatus::Unknown };
 		bool m_Auto{ false };
@@ -99,15 +101,15 @@ namespace TestExtender
 	using FileTransfers = std::unordered_map<FileTransferID, std::unique_ptr<FileTransfer>>;
 	using FileTransfers_ThS = Implementation::Concurrency::ThreadSafe<FileTransfers, std::shared_mutex>;
 
-	struct Peer final
+	struct PeerData final
 	{
-		Peer(const PeerLUID pluid) noexcept : ID(pluid) {}
+		PeerData(QuantumGate::Peer&& peer) noexcept : Peer(std::move(peer)) {}
 
-		const PeerLUID ID{ 0 };
+		QuantumGate::Peer Peer;
 		FileTransfers_ThS FileTransfers;
 	};
 
-	using Peers = std::unordered_map<PeerLUID, std::unique_ptr<Peer>>;
+	using Peers = std::unordered_map<PeerLUID, std::unique_ptr<PeerData>>;
 	using Peers_ThS = Implementation::Concurrency::ThreadSafe<Peers, std::shared_mutex>;
 
 	struct FileAccept final
@@ -170,13 +172,13 @@ namespace TestExtender
 		template<typename Func>
 		bool IfNotHasFileTransfer(const PeerLUID pluid, const FileTransferID ftid, Func&& func);
 
-		bool AcceptFile(const PeerLUID pluid, const String& filename, FileTransfer& ft);
+		bool AcceptFile(const String& filename, FileTransfer& ft);
 
-		bool SendFileTransferStart(const PeerLUID pluid, FileTransfer& ft);
-		bool SendFileTransferCancel(const PeerLUID pluid, FileTransfer& ft);
+		bool SendFileTransferStart(FileTransfer& ft);
+		bool SendFileTransferCancel(FileTransfer& ft);
 		Size GetFileTransferDataSize() const noexcept;
-		bool SendFileData(const PeerLUID pluid, FileTransfer& ft);
-		bool SendFileDataAck(const PeerLUID pluid, FileTransfer& ft);
+		bool SendFileData(FileTransfer& ft);
+		bool SendFileDataAck(FileTransfer& ft);
 
 	private:
 		HWND m_Window{ nullptr };
