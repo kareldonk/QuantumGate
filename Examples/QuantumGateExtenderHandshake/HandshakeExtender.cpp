@@ -111,9 +111,9 @@ void HandshakeExtender::OnPeerEvent(QuantumGate::Extender::PeerEvent&& event)
 	if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Connected)
 	{
 		// Add connected peer
-		GetPeer(event.GetPeerLUID()).Succeeded([&](QuantumGate::Result<QuantumGate::Peer>& peer)
+		GetPeer(event.GetPeerLUID()).Succeeded([&](auto& peer_result)
 		{
-			if (const auto result = peer->GetDetails(); result.Succeeded())
+			if (const auto result = peer_result->GetDetails(); result.Succeeded())
 			{
 				auto peer = std::make_unique<Peer>();
 				peer->LUID = event.GetPeerLUID();
