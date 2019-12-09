@@ -611,7 +611,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	Result<> Manager::DisconnectFrom(API::Peer& peer, DisconnectCallback&& function) noexcept
 	{
-		return DisconnectFrom(**static_cast<std::shared_ptr<Peer_ThS>*>(peer.GetPeerStorage()), std::move(function));
+		return DisconnectFrom(*GetPeerFromPeerStorage(peer), std::move(function));
 	}
 
 	Result<> Manager::DisconnectFrom(Peer_ThS& peerths, DisconnectCallback&& function) noexcept
@@ -998,8 +998,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
 							 API::Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept
 	{
-		return SendTo(extuuid, running, **static_cast<std::shared_ptr<Peer_ThS>*>(peer.GetPeerStorage()),
-					  std::move(buffer), params);
+		return SendTo(extuuid, running, *GetPeerFromPeerStorage(peer), std::move(buffer), params);
 	}
 
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,

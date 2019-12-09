@@ -105,6 +105,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		inline KeyGeneration::Manager& GetKeyGenerationManager() const noexcept { return m_KeyGenerationManager; }
 		inline Extender::Manager& GetExtenderManager() const noexcept { return m_ExtenderManager; }
 
+		inline std::shared_ptr<Peer_ThS>& GetPeerFromPeerStorage(API::Peer& peer) noexcept { return *static_cast<std::shared_ptr<Peer_ThS>*>(peer.GetPeerStorage()); }
+
 		std::shared_ptr<Peer_ThS> Create(const IP::AddressFamily af, const Socket::Type type,
 										 const IP::Protocol protocol, const PeerConnectionType pctype,
 										 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
