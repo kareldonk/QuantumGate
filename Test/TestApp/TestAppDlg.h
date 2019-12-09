@@ -133,6 +133,7 @@ protected:
 	afx_msg void OnUpdateAttacksConnectAndWait(CCmdUI* pCmdUI);
 	afx_msg void OnLocalEnvironmentInfo();
 	afx_msg void OnUtilsPing();
+	afx_msg void OnLocalFreeUnusedMemory();
 
 protected:
 	QuantumGate::StartupParameters m_StartupParameters;

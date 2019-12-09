@@ -782,6 +782,7 @@ BEGIN
     BEGIN
         MENUITEM "S&tartup",                    ID_LOCAL_INITIALIZE
         MENUITEM "Shut&down",                   ID_LOCAL_DEINITIALIZE
+        MENUITEM "Free U&nused Memory",         ID_LOCAL_FREEUNUSEDMEMORY
         MENUITEM SEPARATOR
         MENUITEM "&Connect...",                 ID_LOCAL_CONNECT
         MENUITEM "C&onnect (Relayed)...",       ID_LOCAL_CONNECT_RELAYED

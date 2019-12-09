@@ -126,6 +126,8 @@ namespace QuantumGate::API
 		[[nodiscard]] const SecurityLevel GetSecurityLevel() const noexcept;
 		[[nodiscard]] SecurityParameters GetSecurityParameters() const noexcept;
 
+		void FreeUnusedMemory() noexcept;
+
 	private:
 		std::shared_ptr<QuantumGate::Implementation::Core::Local> m_Local{ nullptr };
 		Access::Manager m_AccessManager;

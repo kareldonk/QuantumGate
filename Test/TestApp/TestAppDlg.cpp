@@ -173,6 +173,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_UPDATE_COMMAND_UI(ID_ATTACKS_CONNECTANDWAIT, &CTestAppDlg::OnUpdateAttacksConnectAndWait)
 	ON_COMMAND(ID_LOCAL_ENVIRONMENTINFO, &CTestAppDlg::OnLocalEnvironmentInfo)
 	ON_COMMAND(ID_UTILS_PING, &CTestAppDlg::OnUtilsPing)
+	ON_COMMAND(ID_LOCAL_FREEUNUSEDMEMORY, &CTestAppDlg::OnLocalFreeUnusedMemory)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlg::OnInitDialog()
@@ -1501,9 +1502,6 @@ void CTestAppDlg::OnUtilsLogAllocatorStatistics()
 	QuantumGate::Implementation::Memory::PoolAllocator::ProtectedAllocator<void>::LogStatistics();
 	QuantumGate::Implementation::Memory::LinearPoolAllocator::ProtectedAllocator<void>::LogStatistics();
 	QuantumGate::Implementation::Memory::ProtectedFreeStoreAllocator<void>::LogStatistics();
-
-	QuantumGate::Implementation::Memory::PoolAllocator::Allocator<void>::FreeUnused();
-	QuantumGate::Implementation::Memory::PoolAllocator::ProtectedAllocator<void>::FreeUnused();
 }
 
 void CTestAppDlg::OnLocalIPReputations()
@@ -1617,4 +1615,9 @@ void CTestAppDlg::OnUtilsPing()
 			SLogInfo(L"Ping: " << ping);
 		}
 	}
+}
+
+void CTestAppDlg::OnLocalFreeUnusedMemory()
+{
+	m_QuantumGate.FreeUnusedMemory();
 }

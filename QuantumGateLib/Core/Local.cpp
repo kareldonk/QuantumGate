@@ -1455,4 +1455,14 @@ namespace QuantumGate::Implementation::Core
 		settings.Noise.MinMessageSize = 0;
 		settings.Noise.MaxMessageSize = 0;
 	}
+
+	void Local::FreeUnusedMemory() noexcept
+	{
+		LogDbg(L"Freeing unused memory...");
+
+		Memory::PoolAllocator::Allocator<void>::FreeUnused();
+		Memory::PoolAllocator::ProtectedAllocator<void>::FreeUnused();
+
+		LogSys(L"Freed unused memory");
+	}
 }

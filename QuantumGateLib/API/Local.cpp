@@ -272,4 +272,9 @@ namespace QuantumGate::API
 	{
 		return m_Local->GetSecurityParameters();
 	}
+
+	void Local::FreeUnusedMemory() noexcept
+	{
+		return m_Local->FreeUnusedMemory();
+	}
 }

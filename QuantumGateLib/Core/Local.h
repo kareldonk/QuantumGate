@@ -106,6 +106,8 @@ namespace QuantumGate::Implementation::Core
 		[[nodiscard]] SecurityParameters GetSecurityParameters() const noexcept;
 		void SetDefaultSecuritySettings(Settings& settings) noexcept;
 
+		void FreeUnusedMemory() noexcept;
+
 	private:
 		[[nodiscard]] bool StartupThreadPool() noexcept;
 		void ShutdownThreadPool() noexcept;
