@@ -75,6 +75,11 @@ namespace QuantumGate::API
 		return *this;
 	}
 
+	Peer::operator bool() const noexcept
+	{
+		return HasPeer();
+	}
+
 	inline void Peer::Create(const PeerLUID pluid, const void* peer) noexcept
 	{
 		auto peer_ptr = static_cast<const SharedPeerPtr*>(peer);

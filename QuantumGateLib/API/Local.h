@@ -47,10 +47,10 @@ namespace QuantumGate::API
 
 			Environment() = delete;
 			Environment(const Environment&) = delete;
-			Environment(Environment&&) = default;
+			Environment(Environment&&) noexcept = default;
 			~Environment() = default;
 			Environment& operator=(const Environment&) = delete;
-			Environment& operator=(Environment&&) = default;
+			Environment& operator=(Environment&&) noexcept = default;
 
 			Result<String> GetHostname() const noexcept;
 			Result<String> GetUsername() const noexcept;
@@ -66,10 +66,10 @@ namespace QuantumGate::API
 
 		Local();
 		Local(const Local&) = delete;
-		Local(Local&&) = default;
+		Local(Local&&) noexcept = default;
 		virtual ~Local() = default;
 		Local& operator=(const Local&) = delete;
-		Local& operator=(Local&&) = default;
+		Local& operator=(Local&&) noexcept = default;
 
 		Result<> Startup(const StartupParameters& params) noexcept;
 		Result<> Shutdown() noexcept;
@@ -115,8 +115,11 @@ namespace QuantumGate::API
 		Result<ConnectDetails> ConnectTo(ConnectParameters&& params) noexcept;
 		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params,
 													ConnectCallback&& function) noexcept;
+
 		Result<> DisconnectFrom(const PeerLUID pluid) noexcept;
 		Result<> DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept;
+		Result<> DisconnectFrom(Peer& peer) noexcept;
+		Result<> DisconnectFrom(Peer& peer, DisconnectCallback&& function) noexcept;
 
 		Result<> SetSecurityLevel(const SecurityLevel level,
 								  const std::optional<SecurityParameters>& params = std::nullopt) noexcept;

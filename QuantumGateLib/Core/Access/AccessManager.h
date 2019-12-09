@@ -27,9 +27,9 @@ namespace QuantumGate::Implementation::Core::Access
 		Manager(const Settings_CThS& settings) noexcept;
 		virtual ~Manager() = default;
 		Manager(const Manager&) = delete;
-		Manager(Manager&&) = default;
+		Manager(Manager&&) noexcept = default;
 		Manager& operator=(const Manager&) = delete;
-		Manager& operator=(Manager&&) = default;
+		Manager& operator=(Manager&&) noexcept = default;
 
 		Result<IPFilterID> AddIPFilter(const WChar* ip_cidr,
 									   const IPFilterType type) noexcept;
@@ -57,7 +57,9 @@ namespace QuantumGate::Implementation::Core::Access
 		[[nodiscard]] bool AddIPRelayConnectionAttempt(const IPAddress& ip) noexcept;
 
 		Result<> AddIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits, const Size max_con) noexcept;
+		Result<> AddIPSubnetLimit(const IPAddress::Family af, const UInt8 cidr_lbits, const Size max_con) noexcept;
 		Result<> RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept;
+		Result<> RemoveIPSubnetLimit(const IPAddress::Family af, const UInt8 cidr_lbits) noexcept;
 
 		Result<Vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
 

@@ -72,10 +72,10 @@ namespace QuantumGate::API::Access
 		Manager() = delete;
 		Manager(QuantumGate::Implementation::Core::Access::Manager* accessmgr) noexcept;
 		Manager(const Manager&) = delete;
-		Manager(Manager&&) = default;
+		Manager(Manager&&) noexcept = default;
 		virtual ~Manager() = default;
 		Manager& operator=(const Manager&) = delete;
-		Manager& operator=(Manager&&) = default;
+		Manager& operator=(Manager&&) noexcept = default;
 
 		Result<IPFilterID> AddIPFilter(const WChar* ip_cidr,
 									   const IPFilterType type) noexcept;
@@ -92,7 +92,9 @@ namespace QuantumGate::API::Access
 		Result<Vector<IPFilter>> GetAllIPFilters() const noexcept;
 
 		Result<> AddIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits, const Size max_con) noexcept;
+		Result<> AddIPSubnetLimit(const IPAddress::Family af, const UInt8 cidr_lbits, const Size max_con) noexcept;
 		Result<> RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept;
+		Result<> RemoveIPSubnetLimit(const IPAddress::Family af, const UInt8 cidr_lbits) noexcept;
 
 		Result<Vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
 

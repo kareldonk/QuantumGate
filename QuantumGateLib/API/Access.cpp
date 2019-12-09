@@ -58,7 +58,17 @@ namespace QuantumGate::API::Access
 		return m_AccessManager->AddIPSubnetLimit(af, cidr_lbits, max_con);
 	}
 
+	Result<> Manager::AddIPSubnetLimit(const IPAddress::Family af, const UInt8 cidr_lbits, const Size max_con) noexcept
+	{
+		return m_AccessManager->AddIPSubnetLimit(af, cidr_lbits, max_con);
+	}
+
 	Result<> Manager::RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept
+	{
+		return m_AccessManager->RemoveIPSubnetLimit(af, cidr_lbits);
+	}
+
+	Result<> Manager::RemoveIPSubnetLimit(const IPAddress::Family af, const UInt8 cidr_lbits) noexcept
 	{
 		return m_AccessManager->RemoveIPSubnetLimit(af, cidr_lbits);
 	}

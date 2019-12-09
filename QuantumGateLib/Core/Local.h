@@ -39,10 +39,10 @@ namespace QuantumGate::Implementation::Core
 	public:
 		Local();
 		Local(const Local&) = delete;
-		Local(Local&&) = default;
+		Local(Local&&) noexcept = default;
 		~Local();
 		Local& operator=(const Local&) = delete;
-		Local& operator=(Local&&) = default;
+		Local& operator=(Local&&) noexcept = default;
 
 		inline const Settings_CThS& GetSettings() const noexcept { return m_Settings; }
 
@@ -81,8 +81,11 @@ namespace QuantumGate::Implementation::Core
 		Result<ConnectDetails> ConnectTo(ConnectParameters&& params) noexcept;
 		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params,
 													ConnectCallback&& function) noexcept;
+
 		Result<> DisconnectFrom(const PeerLUID pluid) noexcept;
 		Result<> DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept;
+		Result<> DisconnectFrom(API::Peer& peer) noexcept;
+		Result<> DisconnectFrom(API::Peer& peer, DisconnectCallback&& function) noexcept;
 
 		std::tuple<UInt, UInt, UInt, UInt> GetVersion() const noexcept;
 		String GetVersionString() const noexcept;
@@ -121,6 +124,10 @@ namespace QuantumGate::Implementation::Core
 
 		Result<> SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running,
 						const PeerLUID id, Buffer&& buffer, const SendParameters& params) noexcept;
+		Result<> SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running,
+						API::Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept;
+
+		Result<> DisconnectFromImpl(API::Peer& peer) noexcept;
 
 		void ProcessEvent(const Events::LocalEnvironmentChange& event) noexcept;
 		void ProcessEvent(const Events::UnhandledExtenderException& event) noexcept;

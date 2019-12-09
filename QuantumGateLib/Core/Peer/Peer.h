@@ -60,10 +60,10 @@ namespace QuantumGate::Implementation::Core::Peer
 			 const IP::Protocol protocol, const PeerConnectionType pctype,
 			 std::optional<ProtectedBuffer>&& shared_secret);
 		Peer(const Peer&) = delete;
-		Peer(Peer&&) = default;
+		Peer(Peer&&) noexcept = default;
 		~Peer() = default;
 		Peer& operator=(const Peer&) = delete;
-		Peer& operator=(Peer&&) = default;
+		Peer& operator=(Peer&&) noexcept = default;
 
 		[[nodiscard]] bool Initialize() noexcept;
 

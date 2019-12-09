@@ -207,6 +207,16 @@ namespace QuantumGate::API
 		return m_Local->DisconnectFrom(pluid, std::move(function));
 	}
 
+	Result<> Local::DisconnectFrom(Peer& peer) noexcept
+	{
+		return m_Local->DisconnectFrom(peer);
+	}
+
+	Result<> Local::DisconnectFrom(Peer& peer, DisconnectCallback&& function) noexcept
+	{
+		return m_Local->DisconnectFrom(peer, std::move(function));
+	}
+
 	std::tuple<UInt, UInt, UInt, UInt> Local::GetVersion() const noexcept
 	{
 		return m_Local->GetVersion();

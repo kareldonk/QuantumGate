@@ -85,10 +85,10 @@ namespace QuantumGate::API
 
 		Extender() = delete;
 		Extender(const Extender&) = delete;
-		Extender(Extender&&) = default;
+		Extender(Extender&&) noexcept = default;
 		virtual ~Extender() = default;
 		Extender& operator=(const Extender&) = delete;
-		Extender& operator=(Extender&&) = default;
+		Extender& operator=(Extender&&) noexcept = default;
 
 		[[nodiscard]] const ExtenderUUID& GetUUID() const noexcept;
 		[[nodiscard]] const String& GetName() const noexcept;
@@ -102,15 +102,20 @@ namespace QuantumGate::API
 		Result<ConnectDetails> ConnectTo(ConnectParameters&& params) noexcept;
 		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params,
 													ConnectCallback&& function) noexcept;
+
 		Result<> DisconnectFrom(const PeerLUID pluid) noexcept;
 		Result<> DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept;
+		Result<> DisconnectFrom(Peer& peer) noexcept;
+		Result<> DisconnectFrom(Peer& peer, DisconnectCallback&& function) noexcept;
 
 		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress = true) const noexcept;
 		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const noexcept;
+		Result<> SendMessageTo(Peer& peer, Buffer&& buffer, const bool compress = true) const noexcept;
+		Result<> SendMessageTo(Peer& peer, Buffer&& buffer, const SendParameters& params) const noexcept;
 
 		[[nodiscard]] const Size GetMaximumMessageDataSize() const noexcept;
 
-		Result<API::Peer> GetPeer(const PeerLUID pluid) const noexcept;
+		Result<Peer> GetPeer(const PeerLUID pluid) const noexcept;
 
 		Result<Vector<PeerLUID>> QueryPeers(const PeerQueryParameters& params) const noexcept;
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;

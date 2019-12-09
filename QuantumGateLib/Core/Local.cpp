@@ -940,11 +940,11 @@ namespace QuantumGate::Implementation::Core
 							return cdetails;
 						}
 					}
-					
+
 					return ResultCode::FailedRetry;
 				}
 			}
-			
+
 			return result.GetErrorCode();
 		}
 
@@ -965,30 +965,58 @@ namespace QuantumGate::Implementation::Core
 	{
 		if (IsRunning())
 		{
-			Concurrency::EventCondition cevent;
-
-			// Initiate disconnect from peer
-			auto result = m_PeerManager.DisconnectFrom(pluid,
-													   [&](PeerLUID pluid, PeerUUID puuid) mutable noexcept
-			{
-				cevent.Set();
-			});
-
+			auto result = m_PeerManager.GetPeer(pluid);
 			if (result.Succeeded())
 			{
-				// Wait for completion event
-				cevent.Wait();
+				return DisconnectFromImpl(*result);
 			}
 
-			return result;
+			return result.GetErrorCode();
 		}
 
 		return ResultCode::NotRunning;
 	}
 
+	Result<> Local::DisconnectFrom(API::Peer& peer) noexcept
+	{
+		if (IsRunning())
+		{
+			return DisconnectFromImpl(peer);
+		}
+
+		return ResultCode::NotRunning;
+	}
+
+	Result<> Local::DisconnectFromImpl(API::Peer& peer) noexcept
+	{
+		Concurrency::EventCondition cevent;
+
+		// Initiate disconnect from peer
+		auto result = m_PeerManager.DisconnectFrom(peer,
+												   [&](PeerLUID pluid, PeerUUID puuid) mutable noexcept
+		{
+			cevent.Set();
+		});
+
+		if (result.Succeeded())
+		{
+			// Wait for completion event
+			cevent.Wait();
+		}
+
+		return result;
+	}
+
 	Result<> Local::DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept
 	{
 		if (IsRunning()) return m_PeerManager.DisconnectFrom(pluid, std::move(function));
+
+		return ResultCode::NotRunning;
+	}
+
+	Result<> Local::DisconnectFrom(API::Peer& peer, DisconnectCallback&& function) noexcept
+	{
+		if (IsRunning()) return m_PeerManager.DisconnectFrom(peer, std::move(function));
 
 		return ResultCode::NotRunning;
 	}
@@ -1090,6 +1118,14 @@ namespace QuantumGate::Implementation::Core
 						   const PeerLUID id, Buffer&& buffer, const SendParameters& params) noexcept
 	{
 		if (IsRunning()) return m_PeerManager.SendTo(uuid, running, id, std::move(buffer), params);
+
+		return ResultCode::NotRunning;
+	}
+
+	Result<> Local::SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running,
+						   API::Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept
+	{
+		if (IsRunning()) return m_PeerManager.SendTo(uuid, running, peer, std::move(buffer), params);
 
 		return ResultCode::NotRunning;
 	}

@@ -183,7 +183,29 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
+	Result<> Manager::AddIPSubnetLimit(const IPAddress::Family af, const UInt8 cidr_lbits, const Size max_con) noexcept
+	{
+		auto result = m_SubnetLimits.WithUniqueLock()->AddLimit(af, cidr_lbits, max_con);
+		if (result.Succeeded())
+		{
+			m_AccessUpdateCallbacks.WithUniqueLock()();
+		}
+
+		return result;
+	}
+	
 	Result<> Manager::RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept
+	{
+		auto result = m_SubnetLimits.WithUniqueLock()->RemoveLimit(af, cidr_lbits);
+		if (result.Succeeded())
+		{
+			m_AccessUpdateCallbacks.WithUniqueLock()();
+		}
+
+		return result;
+	}
+
+	Result<> Manager::RemoveIPSubnetLimit(const IPAddress::Family af, const UInt8 cidr_lbits) noexcept
 	{
 		auto result = m_SubnetLimits.WithUniqueLock()->RemoveLimit(af, cidr_lbits);
 		if (result.Succeeded())

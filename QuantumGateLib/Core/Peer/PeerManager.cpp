@@ -601,26 +601,37 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	Result<> Manager::DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept
 	{
-		auto result_code = ResultCode::Failed;
-
 		if (auto peerths = Get(pluid); peerths != nullptr)
 		{
-			peerths->WithUniqueLock([&](Peer& peer) noexcept
-			{
-				// Peer should not already be disconnected
-				if (peer.GetStatus() != Status::Disconnected)
-				{
-					if (function) peer.AddDisconnectCallback(std::move(function));
-
-					// Set the disconnect condition so that the peer
-					// gets disconnected as soon as possible
-					peer.SetDisconnectCondition(DisconnectCondition::DisconnectRequest);
-
-					result_code = ResultCode::Succeeded;
-				}
-			});
+			return DisconnectFrom(*peerths, std::move(function));
 		}
-		else result_code = ResultCode::PeerNotFound;
+
+		return ResultCode::PeerNotFound;
+	}
+
+	Result<> Manager::DisconnectFrom(API::Peer& peer, DisconnectCallback&& function) noexcept
+	{
+		return DisconnectFrom(**static_cast<std::shared_ptr<Peer_ThS>*>(peer.GetPeerStorage()), std::move(function));
+	}
+
+	Result<> Manager::DisconnectFrom(Peer_ThS& peerths, DisconnectCallback&& function) noexcept
+	{
+		auto result_code = ResultCode::Failed;
+
+		peerths.WithUniqueLock([&](Peer& peer) noexcept
+		{
+			// Peer should not already be disconnected
+			if (peer.GetStatus() != Status::Disconnected)
+			{
+				if (function) peer.AddDisconnectCallback(std::move(function));
+
+				// Set the disconnect condition so that the peer
+				// gets disconnected as soon as possible
+				peer.SetDisconnectCondition(DisconnectCondition::DisconnectRequest);
+
+				result_code = ResultCode::Succeeded;
+			}
+		});
 
 		return result_code;
 	}
@@ -976,33 +987,47 @@ namespace QuantumGate::Implementation::Core::Peer
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
 							 PeerLUID pluid, Buffer&& buffer, const SendParameters& params) noexcept
 	{
-		Result<> result{ ResultCode::Failed };
-
 		if (auto peerths = Get(pluid); peerths != nullptr)
 		{
-			peerths->WithUniqueLock([&](Peer& peer)
-			{
-				// Only if peer status is ready (handshake succeeded, etc.)
-				if (peer.IsReady())
-				{
-					// If peer has extender installed and active
-					if (peer.GetPeerExtenderUUIDs().HasExtender(extuuid))
-					{
-						// If local extender is still running
-						if (running)
-						{
-							result = peer.Send(Message(MessageOptions(MessageType::ExtenderCommunication,
-																	  extuuid, std::move(buffer), params.Compress)),
-											   params.Priority, params.Delay);
-						}
-						else result = ResultCode::NotRunning;
-					}
-					else result = ResultCode::PeerNoExtender;
-				}
-				else result = ResultCode::PeerNotReady;
-			});
+			return SendTo(extuuid, running, *peerths, std::move(buffer), params);
 		}
-		else result = ResultCode::PeerNotFound;
+
+		return ResultCode::PeerNotFound;
+	}
+
+	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+							 API::Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept
+	{
+		return SendTo(extuuid, running, **static_cast<std::shared_ptr<Peer_ThS>*>(peer.GetPeerStorage()),
+					  std::move(buffer), params);
+	}
+
+	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+							 Peer_ThS& peerths, Buffer&& buffer, const SendParameters& params) noexcept
+	{
+		Result<> result{ ResultCode::Failed };
+
+		peerths.WithUniqueLock([&](Peer& peer)
+		{
+			// Only if peer status is ready (handshake succeeded, etc.)
+			if (peer.IsReady())
+			{
+				// If peer has extender installed and active
+				if (peer.GetPeerExtenderUUIDs().HasExtender(extuuid))
+				{
+					// If local extender is still running
+					if (running)
+					{
+						result = peer.Send(Message(MessageOptions(MessageType::ExtenderCommunication,
+																  extuuid, std::move(buffer), params.Compress)),
+										   params.Priority, params.Delay);
+					}
+					else result = ResultCode::NotRunning;
+				}
+				else result = ResultCode::PeerNoExtender;
+			}
+			else result = ResultCode::PeerNotReady;
+		});
 
 		return result;
 	}

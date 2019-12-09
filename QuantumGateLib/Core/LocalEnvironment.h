@@ -23,10 +23,10 @@ namespace QuantumGate::Implementation::Core
 		{}
 
 		LocalEnvironment(const LocalEnvironment&) = delete;
-		LocalEnvironment(LocalEnvironment&&) = default;
+		LocalEnvironment(LocalEnvironment&&) noexcept = default;
 		~LocalEnvironment() { if (IsInitialized()) Deinitialize(); }
 		LocalEnvironment& operator=(const LocalEnvironment&) = delete;
-		LocalEnvironment& operator=(LocalEnvironment&&) = default;
+		LocalEnvironment& operator=(LocalEnvironment&&) noexcept = default;
 
 		[[nodiscard]] bool Initialize(ChangedCallback&& callback) noexcept;
 		[[nodiscard]] inline bool IsInitialized() const noexcept { return m_Initialized; }

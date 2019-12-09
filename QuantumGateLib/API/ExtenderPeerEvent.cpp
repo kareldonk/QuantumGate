@@ -96,9 +96,9 @@ namespace QuantumGate::API
 
 	Extender::PeerEvent::operator bool() const noexcept
 	{
-		assert(HasEvent());
+		if (HasEvent()) return GetEvent()->operator bool();
 
-		return GetEvent()->operator bool();
+		return false;
 	}
 
 	const Extender::PeerEvent::Type Extender::PeerEvent::GetType() const noexcept

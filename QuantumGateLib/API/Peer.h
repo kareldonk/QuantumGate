@@ -41,6 +41,8 @@ namespace QuantumGate::API
 		Peer& operator=(const Peer&) noexcept;
 		Peer& operator=(Peer&&) noexcept;
 
+		explicit operator bool() const noexcept;
+
 		[[nodiscard]] PeerLUID GetLUID() const noexcept;
 		Result<Details> GetDetails() const noexcept;
 
@@ -62,7 +64,6 @@ namespace QuantumGate::API
 	private:
 		static constexpr int MinimumPeerStorageSize{ sizeof(std::shared_ptr<void>) + 1 + sizeof(PeerLUID) };
 
-		PeerLUID m_PeerLUID{ 0 };
 		typename std::aligned_storage<MinimumPeerStorageSize>::type m_PeerStorage{ 0 };
 	};
 }

@@ -50,10 +50,10 @@ namespace QuantumGate::Implementation::Core::Peer
 				KeyGeneration::Manager& keymgr, Access::Manager& accessmgr,
 				Extender::Manager& extenders) noexcept;
 		Manager(const Manager&) = delete;
-		Manager(Manager&&) = default;
+		Manager(Manager&&) noexcept = default;
 		~Manager() { if (IsRunning()) Shutdown(); }
 		Manager& operator=(const Manager&) = delete;
-		Manager& operator=(Manager&&) = default;
+		Manager& operator=(Manager&&) noexcept = default;
 
 		const Settings& GetSettings() const noexcept;
 
@@ -77,14 +77,16 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		bool Accept(std::shared_ptr<Peer_ThS>& peerths) noexcept;
 
-		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params,
-													ConnectCallback&& function) noexcept;
+		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept;
 
-		Result<> DisconnectFrom(const PeerLUID pluid,
-								DisconnectCallback&& function) noexcept;
+		Result<> DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept;
+		Result<> DisconnectFrom(API::Peer& peer, DisconnectCallback&& function) noexcept;
 
 		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
 						const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) noexcept;
+
+		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+						API::Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept;
 
 		Result<> Broadcast(const MessageType msgtype, const Buffer& buffer, BroadcastCallback&& callback);
 
@@ -126,8 +128,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		Result<std::pair<PeerLUID, bool>> RelayConnectTo(ConnectParameters&& params,
 														 ConnectCallback&& function) noexcept;
 
+		Result<> DisconnectFrom(Peer_ThS& peerths, DisconnectCallback&& function) noexcept;
 		void Disconnect(Peer& peer, const bool graceful) noexcept;
 		void DisconnectAndRemoveAll() noexcept;
+
+		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+						Peer_ThS& peerths, Buffer&& buffer, const SendParameters& params) noexcept;
 
 		bool BroadcastExtenderUpdate();
 

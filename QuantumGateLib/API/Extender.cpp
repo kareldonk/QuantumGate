@@ -48,6 +48,16 @@ namespace QuantumGate::API
 		return m_Extender->DisconnectFrom(pluid, std::move(function));
 	}
 
+	Result<> Extender::DisconnectFrom(Peer& peer) noexcept
+	{
+		return m_Extender->DisconnectFrom(peer);
+	}
+
+	Result<> Extender::DisconnectFrom(Peer& peer, DisconnectCallback&& function) noexcept
+	{
+		return m_Extender->DisconnectFrom(peer, std::move(function));
+	}
+
 	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress) const noexcept
 	{
 		return m_Extender->SendMessageTo(pluid, std::move(buffer), compress);
@@ -56,6 +66,16 @@ namespace QuantumGate::API
 	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const noexcept
 	{
 		return m_Extender->SendMessageTo(pluid, std::move(buffer), params);
+	}
+
+	Result<> Extender::SendMessageTo(Peer& peer, Buffer&& buffer, const bool compress) const noexcept
+	{
+		return m_Extender->SendMessageTo(peer, std::move(buffer), compress);
+	}
+
+	Result<> Extender::SendMessageTo(Peer& peer, Buffer&& buffer, const SendParameters& params) const noexcept
+	{
+		return m_Extender->SendMessageTo(peer, std::move(buffer), params);
 	}
 
 	const Size Extender::GetMaximumMessageDataSize() const noexcept
@@ -78,7 +98,7 @@ namespace QuantumGate::API
 		return m_Extender->GetLocalUUID();
 	}
 
-	Result<API::Peer> Extender::GetPeer(const PeerLUID pluid) const noexcept
+	Result<Peer> Extender::GetPeer(const PeerLUID pluid) const noexcept
 	{
 		return m_Extender->GetPeer(pluid);
 	}
