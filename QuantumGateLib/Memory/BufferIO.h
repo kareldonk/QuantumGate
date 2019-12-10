@@ -75,12 +75,12 @@ namespace QuantumGate::Implementation::Memory
 		};
 
 	public:
-		BufferIO() = default;
-		BufferIO(const BufferIO&) = default;
-		BufferIO(BufferIO&&) = default;
+		BufferIO() noexcept = default;
+		BufferIO(const BufferIO&) noexcept = default;
+		BufferIO(BufferIO&&) noexcept = default;
 		virtual ~BufferIO() = default;
-		BufferIO& operator=(const BufferIO&) = default;
-		BufferIO& operator=(BufferIO&&) = default;
+		BufferIO& operator=(const BufferIO&) noexcept = default;
+		BufferIO& operator=(BufferIO&&) noexcept = default;
 
 	protected:
 		// Encoding as also used in Satoshi Nakamoto's Bitcoin code

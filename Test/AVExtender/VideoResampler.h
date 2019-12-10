@@ -18,7 +18,7 @@ namespace QuantumGate::AVExtender
 	{
 		struct DMOData
 		{
-			DMOData() = default;
+			DMOData() noexcept = default;
 
 			DMOData(const Size width, const Size height, const Size bitcount,
 					const DWORD compression, const GUID mfsubtype, const GUID dmosubtype) noexcept
@@ -61,10 +61,10 @@ namespace QuantumGate::AVExtender
 	public:
 		VideoResampler() noexcept;
 		VideoResampler(const VideoResampler&) = delete;
-		VideoResampler(VideoResampler&&) = default;
+		VideoResampler(VideoResampler&&) noexcept = default;
 		~VideoResampler();
 		VideoResampler& operator=(const VideoResampler&) = delete;
-		VideoResampler& operator=(VideoResampler&&) = default;
+		VideoResampler& operator=(VideoResampler&&) noexcept = default;
 
 		[[nodiscard]] bool Create(const Size width, const Size height,
 								  const GUID in_video_format, const GUID out_video_format) noexcept;

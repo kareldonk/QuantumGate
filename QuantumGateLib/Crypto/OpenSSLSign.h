@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation::Crypto
 	class OpenSSLSign final
 	{
 	private:
-		OpenSSLSign() = default;
+		OpenSSLSign() noexcept = default;
 
 	public:
 		[[nodiscard]] static bool Sign(const BufferView& msg, const Algorithm::Asymmetric alg,

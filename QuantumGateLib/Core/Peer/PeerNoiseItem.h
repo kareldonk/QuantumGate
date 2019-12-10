@@ -7,7 +7,7 @@ namespace QuantumGate::Implementation::Core::Peer
 {
 	struct NoiseItem final
 	{
-		NoiseItem() = default;
+		NoiseItem() noexcept = default;
 		NoiseItem(const std::chrono::milliseconds& max_interval, const Size minsize, const Size maxsize) noexcept;
 
 		inline bool IsTime() const noexcept

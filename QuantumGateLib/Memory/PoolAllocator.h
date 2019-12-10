@@ -36,11 +36,11 @@ namespace QuantumGate::Implementation::Memory::PoolAllocator
 		template<typename Other>
 		Allocator(const Allocator<Other, Type>&) noexcept {}
 
-		Allocator(const Allocator&) = default;
-		Allocator(Allocator&&) = default;
+		Allocator(const Allocator&) noexcept = default;
+		Allocator(Allocator&&) noexcept = default;
 		~Allocator() = default;
-		Allocator& operator=(const Allocator&) = default;
-		Allocator& operator=(Allocator&&) = default;
+		Allocator& operator=(const Allocator&) noexcept = default;
+		Allocator& operator=(Allocator&&) noexcept = default;
 
 		template<typename Other>
 		inline bool operator==(const Allocator<Other, Type>&) const noexcept

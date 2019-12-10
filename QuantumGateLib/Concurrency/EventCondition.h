@@ -5,7 +5,6 @@
 
 #include "SpinMutex.h"
 
-#include <atomic>
 #include <condition_variable>
 
 namespace QuantumGate::Implementation::Concurrency

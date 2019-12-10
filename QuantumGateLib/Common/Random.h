@@ -76,7 +76,7 @@ namespace QuantumGate::Implementation
 	class Random final
 	{
 	private:
-		Random() = default;
+		Random() noexcept = default;
 
 	public:
 		inline static Int64 GetPseudoRandomNumber() noexcept

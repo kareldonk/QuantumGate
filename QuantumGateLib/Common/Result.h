@@ -111,10 +111,10 @@ namespace QuantumGate::Implementation
 			m_ErrorCode(static_cast<E>(0)), m_Value(std::forward<T>(value)) {}
 
 		ResultImpl(const ResultImpl&) = delete;
-		ResultImpl(ResultImpl&&) = default;
+		ResultImpl(ResultImpl&&) noexcept = default;
 		~ResultImpl() = default;
 		ResultImpl& operator=(const ResultImpl&) = delete;
-		ResultImpl& operator=(ResultImpl&&) = default;
+		ResultImpl& operator=(ResultImpl&&) noexcept = default;
 
 		inline explicit operator bool() const noexcept
 		{

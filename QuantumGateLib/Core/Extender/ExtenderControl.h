@@ -29,7 +29,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			}
 
 			Peer(const Peer&) = delete;
-			Peer(Peer&&) = default;
+			Peer(Peer&&) noexcept = default;
 
 			~Peer()
 			{
@@ -37,7 +37,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			}
 
 			Peer& operator=(const Peer&) = delete;
-			Peer& operator=(Peer&&) = default;
+			Peer& operator=(Peer&&) noexcept = default;
 
 			Status Status{ Status::Unknown };
 			Concurrency::Queue<Core::Peer::Event> EventQueue;
@@ -71,10 +71,10 @@ namespace QuantumGate::Implementation::Core::Extender
 		Control(Manager& mgr, const std::shared_ptr<QuantumGate::API::Extender>& extender,
 				const ExtenderModuleID moduleid) noexcept;
 		Control(const Control&) = delete;
-		Control(Control&&) = default;
+		Control(Control&&) noexcept = default;
 		~Control() = default;
 		Control& operator=(const Control&) = delete;
-		Control& operator=(Control&&) = default;
+		Control& operator=(Control&&) noexcept = default;
 
 		void SetStatus(const Status status) noexcept;
 		inline const Status GetStatus() const noexcept { return m_Status; }

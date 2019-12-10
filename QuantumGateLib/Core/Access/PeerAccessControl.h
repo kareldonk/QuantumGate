@@ -24,10 +24,10 @@ namespace QuantumGate::Implementation::Core::Access
 		PeerAccessControl() = delete;
 		PeerAccessControl(const Settings_CThS& settings) noexcept;
 		PeerAccessControl(const PeerAccessControl&) = delete;
-		PeerAccessControl(PeerAccessControl&&) = default;
+		PeerAccessControl(PeerAccessControl&&) noexcept = default;
 		~PeerAccessControl() = default;
 		PeerAccessControl& operator=(const PeerAccessControl&) = delete;
-		PeerAccessControl& operator=(PeerAccessControl&&) = default;
+		PeerAccessControl& operator=(PeerAccessControl&&) noexcept = default;
 
 		Result<> AddPeer(PeerSettings&& pas) noexcept;
 		Result<> UpdatePeer(PeerSettings&& pas) noexcept;

@@ -24,7 +24,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 	class Event final
 	{
 	public:
-		Event() = default;
+		Event() noexcept = default;
 
 		Event(KeyQueue_ThS* key_queueths) noexcept : m_KeyQueue(key_queueths)
 		{

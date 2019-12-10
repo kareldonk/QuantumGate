@@ -22,10 +22,10 @@ namespace QuantumGate::AVExtender
 
 		VideoRenderer() noexcept;
 		VideoRenderer(const VideoRenderer&) = delete;
-		VideoRenderer(VideoRenderer&&) = default;
+		VideoRenderer(VideoRenderer&&) noexcept = default;
 		~VideoRenderer();
 		VideoRenderer& operator=(const VideoRenderer&) = delete;
-		VideoRenderer& operator=(VideoRenderer&&) = default;
+		VideoRenderer& operator=(VideoRenderer&&) noexcept = default;
 
 		[[nodiscard]] bool Create(const WChar* title, const DWORD dwExStyle, const DWORD dwStyle,
 								  const int x, const int y, const int width, const int height,

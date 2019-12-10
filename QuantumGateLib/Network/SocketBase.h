@@ -87,12 +87,12 @@ namespace QuantumGate::Implementation::Network
 		using ConnectCallback = Callback<bool(void) noexcept>;
 		using CloseCallback = Callback<void(void) noexcept>;
 
-		SocketBase() = default;
-		SocketBase(const SocketBase&) = default;
-		SocketBase(SocketBase&&) = default;
+		SocketBase() noexcept = default;
+		SocketBase(const SocketBase&) noexcept = default;
+		SocketBase(SocketBase&&) noexcept = default;
 		virtual ~SocketBase() = default;
-		SocketBase& operator=(const SocketBase&) = default;
-		SocketBase& operator=(SocketBase&&) = default;
+		SocketBase& operator=(const SocketBase&) noexcept = default;
+		SocketBase& operator=(SocketBase&&) noexcept = default;
 
 		virtual bool BeginConnect(const IPEndpoint& endpoint) noexcept = 0;
 		virtual bool CompleteConnect() noexcept = 0;

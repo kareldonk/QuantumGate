@@ -14,10 +14,10 @@ namespace QuantumGate::AVExtender
 	public:
 		VideoCompressor(const Type type) noexcept;
 		VideoCompressor(const VideoCompressor&) = delete;
-		VideoCompressor(VideoCompressor&&) = default;
+		VideoCompressor(VideoCompressor&&) noexcept = default;
 		virtual ~VideoCompressor();
 		VideoCompressor& operator=(const VideoCompressor&) = delete;
-		VideoCompressor& operator=(VideoCompressor&&) = default;
+		VideoCompressor& operator=(VideoCompressor&&) noexcept = default;
 
 		void SetFormat(const UInt16 width, const UInt16 height, const GUID& video_format) noexcept;
 

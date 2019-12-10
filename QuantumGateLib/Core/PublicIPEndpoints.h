@@ -117,10 +117,10 @@ namespace QuantumGate::Implementation::Core
 		{}
 
 		PublicIPEndpoints(const PublicIPEndpoints&) = delete;
-		PublicIPEndpoints(PublicIPEndpoints&&) = default;
+		PublicIPEndpoints(PublicIPEndpoints&&) noexcept = default;
 		~PublicIPEndpoints() { if (IsInitialized()) Deinitialize(); }
 		PublicIPEndpoints& operator=(const PublicIPEndpoints&) = delete;
-		PublicIPEndpoints& operator=(PublicIPEndpoints&&) = default;
+		PublicIPEndpoints& operator=(PublicIPEndpoints&&) noexcept = default;
 
 		[[nodiscard]] bool Initialize() noexcept;
 		void Deinitialize() noexcept;

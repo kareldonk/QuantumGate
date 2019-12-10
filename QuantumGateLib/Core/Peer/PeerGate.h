@@ -23,10 +23,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		Gate(const GateType type) noexcept;
 		Gate(const IP::AddressFamily af, const Socket::Type type, const IP::Protocol protocol);
 		Gate(const Gate&) = delete;
-		Gate(Gate&&) = default;
+		Gate(Gate&&) noexcept = default;
 		virtual ~Gate();
 		Gate& operator=(const Gate&) = delete;
-		Gate& operator=(Gate&&) = default;
+		Gate& operator=(Gate&&) noexcept = default;
 
 		template<typename T>
 		T& GetSocket() noexcept { return *dynamic_cast<T*>(m_Socket); }

@@ -65,10 +65,10 @@ namespace QuantumGate::Implementation::Core::Access
 	public:
 		IPSubnetLimits() = default;
 		IPSubnetLimits(const IPSubnetLimits&) = delete;
-		IPSubnetLimits(IPSubnetLimits&&) = default;
+		IPSubnetLimits(IPSubnetLimits&&) noexcept = default;
 		~IPSubnetLimits() = default;
 		IPSubnetLimits& operator=(const IPSubnetLimits&) = delete;
-		IPSubnetLimits& operator=(IPSubnetLimits&&) = default;
+		IPSubnetLimits& operator=(IPSubnetLimits&&) noexcept = default;
 
 		Result<> AddLimit(const IPAddress::Family af, const String& cidr_lbits, const Size max_con) noexcept;
 		Result<> AddLimit(const IPAddress::Family af, const UInt8 cidr_lbits, const Size max_con) noexcept;

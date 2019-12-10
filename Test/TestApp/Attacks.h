@@ -29,7 +29,7 @@ class Attacks
 	};
 
 private:
-	Attacks() = default;
+	Attacks() noexcept = default;
 
 public:
 	static bool StartConnectGarbageAttack(const CString& ip, const UInt16 port);

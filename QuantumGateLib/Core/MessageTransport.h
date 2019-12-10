@@ -30,10 +30,10 @@ namespace QuantumGate::Implementation::Core
 			{}
 
 			OHeader(const OHeader&) = default;
-			OHeader(OHeader&&) = default;
+			OHeader(OHeader&&) noexcept = default;
 			~OHeader() = default;
 			OHeader& operator=(const OHeader&) = default;
-			OHeader& operator=(OHeader&&) = default;
+			OHeader& operator=(OHeader&&) noexcept = default;
 
 			void Initialize() noexcept;
 
@@ -73,11 +73,11 @@ namespace QuantumGate::Implementation::Core
 		{
 		public:
 			IHeader() noexcept {}
-			IHeader(const IHeader&) = default;
-			IHeader(IHeader&&) = default;
+			IHeader(const IHeader&) noexcept = default;
+			IHeader(IHeader&&) noexcept = default;
 			~IHeader() = default;
-			IHeader& operator=(const IHeader&) = default;
-			IHeader& operator=(IHeader&&) = default;
+			IHeader& operator=(const IHeader&) noexcept = default;
+			IHeader& operator=(IHeader&&) noexcept = default;
 
 			void Initialize() noexcept;
 
@@ -113,10 +113,10 @@ namespace QuantumGate::Implementation::Core
 	public:
 		MessageTransport(const DataSizeSettings mds_settings, const Settings& settings) noexcept;
 		MessageTransport(const MessageTransport&) = delete;
-		MessageTransport(MessageTransport&&) = default;
+		MessageTransport(MessageTransport&&) noexcept = default;
 		~MessageTransport() = default;
 		MessageTransport& operator=(const MessageTransport&) = delete;
-		MessageTransport& operator=(MessageTransport&&) = default;
+		MessageTransport& operator=(MessageTransport&&) noexcept = default;
 
 		[[nodiscard]] inline bool IsValid() const noexcept { return m_Valid; }
 

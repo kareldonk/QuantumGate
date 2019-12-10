@@ -28,10 +28,10 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 	public:
 		Manager(const Settings_CThS& settings) noexcept;
 		Manager(const Manager&) = delete;
-		Manager(Manager&&) = default;
+		Manager(Manager&&) noexcept = default;
 		~Manager() { if (IsRunning()) Shutdown(); }
 		Manager& operator=(const Manager&) = delete;
-		Manager& operator=(Manager&&) = default;
+		Manager& operator=(Manager&&) noexcept = default;
 
 		const Settings& GetSettings() const noexcept;
 

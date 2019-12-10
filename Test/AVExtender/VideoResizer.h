@@ -15,10 +15,10 @@ namespace QuantumGate::AVExtender
 	public:
 		VideoResizer() noexcept;
 		VideoResizer(const VideoResizer&) = delete;
-		VideoResizer(VideoResizer&&) = default;
+		VideoResizer(VideoResizer&&) noexcept = default;
 		~VideoResizer();
 		VideoResizer& operator=(const VideoResizer&) = delete;
-		VideoResizer& operator=(VideoResizer&&) = default;
+		VideoResizer& operator=(VideoResizer&&) noexcept = default;
 
 		[[nodiscard]] bool Create(const VideoFormat& in_video_format, const Size out_width, const Size out_height) noexcept;
 		void Close() noexcept;

@@ -14,10 +14,10 @@ namespace QuantumGate::Implementation
 		public:
 			Window() noexcept;
 			Window(const Window&) = delete;
-			Window(Window&&) = default;
+			Window(Window&&) noexcept = default;
 			~Window();
 			Window& operator=(const Window&) = delete;
-			Window& operator=(Window&&) = default;
+			Window& operator=(Window&&) noexcept = default;
 
 			FILE* m_ConsoleInput{ nullptr };
 			FILE* m_ConsoleOutput{ nullptr };
@@ -95,10 +95,10 @@ namespace QuantumGate::Implementation
 		public:
 			Output() = default;
 			Output(const Output&) = delete;
-			Output(Output&&) = default;
+			Output(Output&&) noexcept = default;
 			virtual ~Output() = default;
 			Output& operator=(const Output&) = delete;
-			Output& operator=(Output&&) = default;
+			Output& operator=(Output&&) noexcept = default;
 
 			virtual const WChar* GetFormat(const MessageType type, const Format fmt) const = 0;
 			virtual void AddMessage(const MessageType type, const WChar* message) = 0;

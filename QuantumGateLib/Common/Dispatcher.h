@@ -22,10 +22,10 @@ namespace QuantumGate::Implementation
 
 		Dispatcher() = default;
 		Dispatcher(const Dispatcher&) = delete;
-		Dispatcher(Dispatcher&&) = default;
+		Dispatcher(Dispatcher&&) noexcept = default;
 		~Dispatcher() = default;
 		Dispatcher& operator=(const Dispatcher&) = delete;
-		Dispatcher& operator=(Dispatcher&&) = default;
+		Dispatcher& operator=(Dispatcher&&) noexcept = default;
 
 		template<typename... Args, typename Sig2 = Sig,
 			typename = std::enable_if_t<!FunctionSignatureIsConstV<Sig2>>>

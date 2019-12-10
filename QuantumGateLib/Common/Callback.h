@@ -283,7 +283,7 @@ namespace QuantumGate::Implementation
 
 		~Callback() = default;
 		Callback(const Callback&) = delete;
-		Callback(Callback&& other) = default;
+		Callback(Callback&& other) noexcept = default;
 		Callback& operator=(const Callback&) = delete;
 		Callback& operator=(Callback&& other) noexcept = default;
 	};

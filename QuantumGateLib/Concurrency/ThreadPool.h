@@ -107,10 +107,10 @@ namespace QuantumGate::Implementation::Concurrency
 		ThreadPool(Args&&... args) noexcept : m_Data(std::forward<Args>(args)...) {}
 
 		ThreadPool(const ThreadPool&) = delete;
-		ThreadPool(ThreadPool&&) = default;
+		ThreadPool(ThreadPool&&) noexcept = default;
 		virtual ~ThreadPool() = default;
 		ThreadPool& operator=(const ThreadPool&) = delete;
-		ThreadPool& operator=(ThreadPool&&) = default;
+		ThreadPool& operator=(ThreadPool&&) noexcept = default;
 
 		inline void SetWorkerThreadsMaxBurst(Size max_burst) noexcept
 		{

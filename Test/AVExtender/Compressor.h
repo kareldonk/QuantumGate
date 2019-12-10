@@ -15,10 +15,10 @@ namespace QuantumGate::AVExtender
 
 		Compressor(const Type type, const CLSID encoderid, const CLSID decoderid) noexcept;
 		Compressor(const Compressor&) = delete;
-		Compressor(Compressor&&) = default;
+		Compressor(Compressor&&) noexcept = default;
 		virtual ~Compressor();
 		Compressor& operator=(const Compressor&) = delete;
-		Compressor& operator=(Compressor&&) = default;
+		Compressor& operator=(Compressor&&) noexcept = default;
 
 		[[nodiscard]] inline Type GetType() const noexcept { return m_Type; }
 

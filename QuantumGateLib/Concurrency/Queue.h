@@ -16,10 +16,10 @@ namespace QuantumGate::Implementation::Concurrency
 	
 		Queue() noexcept {}
 		Queue(const Queue&) = delete;
-		Queue(Queue&&) = default;
+		Queue(Queue&&) noexcept = default;
 		Queue& operator=(const Queue&) = delete;
 		~Queue() = default;
-		Queue& operator=(Queue&&) = default;
+		Queue& operator=(Queue&&) noexcept = default;
 
 		inline bool Empty() const noexcept
 		{

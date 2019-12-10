@@ -10,7 +10,7 @@ using namespace QuantumGate;
 class Benchmarks final
 {
 private:
-	Benchmarks() = default;
+	Benchmarks() noexcept = default;
 
 public:
 	int TestMemberFunction(int number);

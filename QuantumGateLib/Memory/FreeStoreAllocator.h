@@ -21,11 +21,11 @@ namespace QuantumGate::Implementation::Memory
 		template<typename Other>
 		FreeStoreAllocator(const FreeStoreAllocator<Other>&) noexcept {}
 
-		FreeStoreAllocator(const FreeStoreAllocator&) = default;
-		FreeStoreAllocator(FreeStoreAllocator&&) = default;
+		FreeStoreAllocator(const FreeStoreAllocator&) noexcept = default;
+		FreeStoreAllocator(FreeStoreAllocator&&) noexcept = default;
 		~FreeStoreAllocator() = default;
-		FreeStoreAllocator& operator=(const FreeStoreAllocator&) = default;
-		FreeStoreAllocator& operator=(FreeStoreAllocator&&) = default;
+		FreeStoreAllocator& operator=(const FreeStoreAllocator&) noexcept = default;
+		FreeStoreAllocator& operator=(FreeStoreAllocator&&) noexcept = default;
 
 		template<typename Other>
 		inline bool operator==(const FreeStoreAllocator<Other>&) const noexcept

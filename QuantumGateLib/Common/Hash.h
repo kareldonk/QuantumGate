@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation
 	class Hash final
 	{
 	private:
-		Hash() = default;
+		Hash() noexcept = default;
 
 		static void InitNonPersistentKey() noexcept;
 

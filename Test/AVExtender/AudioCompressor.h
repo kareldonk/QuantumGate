@@ -25,10 +25,10 @@ namespace QuantumGate::AVExtender
 	public:
 		AudioCompressor(const Type type) noexcept;
 		AudioCompressor(const AudioCompressor&) = delete;
-		AudioCompressor(AudioCompressor&&) = default;
+		AudioCompressor(AudioCompressor&&) noexcept = default;
 		virtual ~AudioCompressor();
 		AudioCompressor& operator=(const AudioCompressor&) = delete;
-		AudioCompressor& operator=(AudioCompressor&&) = default;
+		AudioCompressor& operator=(AudioCompressor&&) noexcept = default;
 
 		[[nodiscard]] static AudioFormat GetEncoderInputFormat() noexcept;
 		[[nodiscard]] static AudioFormat GetDecoderOutputFormat() noexcept;

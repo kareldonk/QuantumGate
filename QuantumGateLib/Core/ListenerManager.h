@@ -13,9 +13,9 @@ namespace QuantumGate::Implementation::Core::Listener
 	{
 		struct ThreadData final
 		{
-			ThreadData() = default;
+			ThreadData() noexcept = default;
 			ThreadData(const ThreadData&) = delete;
-			ThreadData(ThreadData&&) = default;
+			ThreadData(ThreadData&&) noexcept = default;
 
 			~ThreadData()
 			{
@@ -23,7 +23,7 @@ namespace QuantumGate::Implementation::Core::Listener
 			}
 
 			ThreadData& operator=(const ThreadData&) = delete;
-			ThreadData& operator=(ThreadData&&) = default;
+			ThreadData& operator=(ThreadData&&) noexcept = default;
 
 			Network::Socket Socket;
 			bool UseConditionalAcceptFunction{ true };
@@ -38,10 +38,10 @@ namespace QuantumGate::Implementation::Core::Listener
 		Manager() = delete;
 		Manager(const Settings_CThS& settings, Access::Manager& accessmgr, Peer::Manager& peers) noexcept;
 		Manager(const Manager&) = delete;
-		Manager(Manager&&) = default;
+		Manager(Manager&&) noexcept = default;
 		~Manager() { if (IsRunning()) Shutdown(); }
 		Manager& operator=(const Manager&) = delete;
-		Manager& operator=(Manager&&) = default;
+		Manager& operator=(Manager&&) noexcept = default;
 
 		[[nodiscard]] bool Startup() noexcept;
 		[[nodiscard]] bool Startup(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept;

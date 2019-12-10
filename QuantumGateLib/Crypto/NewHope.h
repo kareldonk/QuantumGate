@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Crypto
 	class NewHope final
 	{
 	private:
-		NewHope() = default;
+		NewHope() noexcept = default;
 
 	public:
 		[[nodiscard]] static bool GenerateKey(AsymmetricKeyData& keydata) noexcept

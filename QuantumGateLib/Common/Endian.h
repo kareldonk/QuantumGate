@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation
 	class Endian final
 	{
 	private:
-		Endian() = default;
+		Endian() noexcept = default;
 
 	public:
 		template<typename T>

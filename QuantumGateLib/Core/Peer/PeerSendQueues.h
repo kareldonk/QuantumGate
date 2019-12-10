@@ -30,10 +30,10 @@ namespace QuantumGate::Implementation::Core::Peer
 	public:
 		PeerSendQueues() noexcept = default;
 		PeerSendQueues(const PeerSendQueues&) = delete;
-		PeerSendQueues(PeerSendQueues&&) = default;
+		PeerSendQueues(PeerSendQueues&&) noexcept = default;
 		~PeerSendQueues() = default;
 		PeerSendQueues& operator=(const PeerSendQueues&) = delete;
-		PeerSendQueues& operator=(PeerSendQueues&&) = default;
+		PeerSendQueues& operator=(PeerSendQueues&&) noexcept = default;
 
 		[[nodiscard]] bool HaveMessages() const noexcept
 		{

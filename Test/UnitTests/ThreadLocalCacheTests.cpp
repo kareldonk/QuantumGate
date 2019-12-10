@@ -12,7 +12,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 struct TLTest
 {
-	TLTest() = default;
+	TLTest() noexcept = default;
 
 	TLTest(int val)
 	{

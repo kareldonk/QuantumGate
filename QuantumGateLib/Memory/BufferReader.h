@@ -13,10 +13,10 @@ namespace QuantumGate::Implementation::Memory
 		BufferReader() = delete;
 		BufferReader(const BufferView& buffer, const bool network_byteorder = false) noexcept;
 		BufferReader(const BufferReader&) = delete;
-		BufferReader(BufferReader&&) = default;
+		BufferReader(BufferReader&&) noexcept = default;
 		virtual ~BufferReader() = default;
 		BufferReader& operator=(const BufferReader&) = delete;
-		BufferReader& operator=(BufferReader&&) = default;
+		BufferReader& operator=(BufferReader&&) noexcept = default;
 
 		template<typename... Args>
 		[[nodiscard]] bool Read(Args&... data) noexcept

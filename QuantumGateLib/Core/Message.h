@@ -52,11 +52,11 @@ namespace QuantumGate::Implementation::Core
 		{
 		public:
 			Header() noexcept {}
-			Header(const Header&) = default;
-			Header(Header&&) = default;
+			Header(const Header&) noexcept = default;
+			Header(Header&&) noexcept = default;
 			~Header() = default;
-			Header& operator=(const Header&) = default;
-			Header& operator=(Header&&) = default;
+			Header& operator=(const Header&) noexcept = default;
+			Header& operator=(Header&&) noexcept = default;
 
 			void Initialize(const MessageOptions& msgopt) noexcept;
 
@@ -123,10 +123,10 @@ namespace QuantumGate::Implementation::Core
 		Message() noexcept;
 		Message(MessageOptions&& msgopt) noexcept;
 		Message(const Message&) = delete;
-		Message(Message&&) = default;
+		Message(Message&&) noexcept = default;
 		~Message() = default;
 		Message& operator=(const Message&) = delete;
-		Message& operator=(Message&&) = default;
+		Message& operator=(Message&&) noexcept = default;
 
 		[[nodiscard]] inline bool IsValid() const noexcept { return m_Valid; }
 

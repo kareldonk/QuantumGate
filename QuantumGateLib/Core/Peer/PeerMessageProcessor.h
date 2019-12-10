@@ -22,10 +22,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		MessageProcessor() = delete;
 		MessageProcessor(Peer& peer) noexcept : m_Peer(peer) {}
 		MessageProcessor(const MessageProcessor&) = delete;
-		MessageProcessor(MessageProcessor&&) = default;
+		MessageProcessor(MessageProcessor&&) noexcept = default;
 		~MessageProcessor() = default;
 		MessageProcessor& operator=(const MessageProcessor&) = delete;
-		MessageProcessor& operator=(MessageProcessor&&) = default;
+		MessageProcessor& operator=(MessageProcessor&&) noexcept = default;
 
 		bool SendBeginHandshake() const noexcept;
 

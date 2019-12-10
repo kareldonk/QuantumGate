@@ -26,10 +26,10 @@ namespace QuantumGate::Implementation::Network
 		{}
 
 		Ping(const Ping&) = delete;
-		Ping(Ping&&) = default;
+		Ping(Ping&&) noexcept = default;
 		~Ping() = default;
 		Ping& operator=(const Ping&) = delete;
-		Ping& operator=(Ping&&) = default;
+		Ping& operator=(Ping&&) noexcept = default;
 
 		[[nodiscard]] bool Execute(const bool use_os_api = true) noexcept;
 

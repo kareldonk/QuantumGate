@@ -38,7 +38,7 @@ class Stress final
 	};
 
 private:
-	Stress() = default;
+	Stress() noexcept = default;
 
 public:
 	static bool StartExtenderStartupShutdownStress(Local& qg);

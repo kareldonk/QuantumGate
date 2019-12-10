@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation::Crypto
 	class OpenSSL final
 	{
 	private:
-		OpenSSL() = default;
+		OpenSSL() noexcept = default;
 
 	public:
 		[[nodiscard]] static bool GetRandomBytes(const UInt seed, Byte* buffer, const Size len) noexcept

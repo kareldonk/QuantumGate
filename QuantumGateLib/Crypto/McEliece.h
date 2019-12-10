@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Crypto
 	class McEliece final
 	{
 	private:
-		McEliece() = default;
+		McEliece() noexcept = default;
 
 	public:
 		[[nodiscard]] static bool GenerateKey(AsymmetricKeyData& keydata) noexcept

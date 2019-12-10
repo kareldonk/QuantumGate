@@ -14,10 +14,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		KeyExchange() = delete;
 		KeyExchange(KeyGeneration::Manager& keymgr) noexcept : m_KeyManager(keymgr) {}
 		KeyExchange(const KeyExchange&) = delete;
-		KeyExchange(KeyExchange&&) = default;
+		KeyExchange(KeyExchange&&) noexcept = default;
 		~KeyExchange() = default;
 		KeyExchange& operator=(const KeyExchange&) = delete;
-		KeyExchange& operator=(KeyExchange&&) = default;
+		KeyExchange& operator=(KeyExchange&&) noexcept = default;
 
 		[[nodiscard]] inline bool GeneratePrimaryAsymmetricKeys(const Algorithms& algorithms,
 																const Crypto::AsymmetricKeyOwner type) noexcept

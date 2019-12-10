@@ -37,10 +37,10 @@ namespace QuantumGate::Implementation::Core::Access
 	public:
 		IPAccessDetails() noexcept;
 		IPAccessDetails(const IPAccessDetails&) = delete;
-		IPAccessDetails(IPAccessDetails&&) = default;
+		IPAccessDetails(IPAccessDetails&&) noexcept = default;
 		~IPAccessDetails() = default;
 		IPAccessDetails& operator=(const IPAccessDetails&) = delete;
-		IPAccessDetails& operator=(IPAccessDetails&&) = default;
+		IPAccessDetails& operator=(IPAccessDetails&&) noexcept = default;
 
 		[[nodiscard]] bool SetReputation(const Int16 score,
 										 const std::optional<Time>& time = std::nullopt) noexcept;
@@ -79,9 +79,9 @@ namespace QuantumGate::Implementation::Core::Access
 		IPAccessControl(const Settings_CThS& settings) noexcept;
 		~IPAccessControl() = default;
 		IPAccessControl(const IPAccessControl&) = delete;
-		IPAccessControl(IPAccessControl&&) = default;
+		IPAccessControl(IPAccessControl&&) noexcept = default;
 		IPAccessControl& operator=(const IPAccessControl&) = delete;
-		IPAccessControl& operator=(IPAccessControl&&) = default;
+		IPAccessControl& operator=(IPAccessControl&&) noexcept = default;
 
 		Result<> SetReputation(const IPAddress& ip, const Int16 score,
 							   const std::optional<Time>& time = std::nullopt) noexcept;

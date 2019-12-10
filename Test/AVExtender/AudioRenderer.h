@@ -16,10 +16,10 @@ namespace QuantumGate::AVExtender
 	public:
 		AudioRenderer() noexcept;
 		AudioRenderer(const AudioRenderer&) = delete;
-		AudioRenderer(AudioRenderer&&) = default;
+		AudioRenderer(AudioRenderer&&) noexcept = default;
 		~AudioRenderer();
 		AudioRenderer& operator=(const AudioRenderer&) = delete;
-		AudioRenderer& operator=(AudioRenderer&&) = default;
+		AudioRenderer& operator=(AudioRenderer&&) noexcept = default;
 
 		[[nodiscard]] bool Create(const AudioFormat& input_audio_settings) noexcept;
 		void Close() noexcept;

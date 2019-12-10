@@ -7,12 +7,12 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 {
 	struct Connect final
 	{
-		Connect() = default;
+		Connect() noexcept = default;
 		Connect(const Connect&) = delete;
-		Connect(Connect&&) = default;
+		Connect(Connect&&) noexcept = default;
 		~Connect() = default;
 		Connect& operator=(const Connect&) = delete;
-		Connect& operator=(Connect&&) = default;
+		Connect& operator=(Connect&&) noexcept = default;
 
 		RelayPort Port{ 0 };
 		RelayHop Hop{ 0 };
@@ -27,12 +27,12 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 
 	struct StatusUpdate final
 	{
-		StatusUpdate() = default;
+		StatusUpdate() noexcept = default;
 		StatusUpdate(const StatusUpdate&) = delete;
-		StatusUpdate(StatusUpdate&&) = default;
+		StatusUpdate(StatusUpdate&&) noexcept = default;
 		~StatusUpdate() = default;
 		StatusUpdate& operator=(const StatusUpdate&) = delete;
-		StatusUpdate& operator=(StatusUpdate&&) = default;
+		StatusUpdate& operator=(StatusUpdate&&) noexcept = default;
 
 		RelayPort Port{ 0 };
 		RelayStatusUpdate Status{ RelayStatusUpdate::GeneralFailure };
@@ -46,10 +46,10 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 	{
 		RelayData() = default;
 		RelayData(const RelayData&) = delete;
-		RelayData(RelayData&&) = default;
+		RelayData(RelayData&&) noexcept = default;
 		~RelayData() = default;
 		RelayData& operator=(const RelayData&) = delete;
-		RelayData& operator=(RelayData&&) = default;
+		RelayData& operator=(RelayData&&) noexcept = default;
 
 		RelayPort Port{ 0 };
 		Buffer Data;

@@ -47,10 +47,10 @@ namespace QuantumGate::Implementation::Core::Relay
 	public:
 		Manager(Peer::Manager& peers) noexcept : m_Peers(peers) {}
 		Manager(const Manager&) = delete;
-		Manager(Manager&&) = default;
+		Manager(Manager&&) noexcept = default;
 		~Manager() { if (IsRunning()) Shutdown(); }
 		Manager& operator=(const Manager&) = delete;
-		Manager& operator=(Manager&&) = default;
+		Manager& operator=(Manager&&) noexcept = default;
 
 		Peer::Manager& GetPeers() const noexcept;
 		Access::Manager& GetAccessManager() const noexcept;

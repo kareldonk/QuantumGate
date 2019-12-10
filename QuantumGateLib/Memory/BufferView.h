@@ -17,11 +17,11 @@ namespace QuantumGate::Implementation::Memory
 			m_Buffer(buffer), m_Size(size)
 		{}
 
-		constexpr BufferView(const BufferView&) = default;
-		constexpr BufferView(BufferView&&) = default;
+		constexpr BufferView(const BufferView&) noexcept = default;
+		constexpr BufferView(BufferView&&) noexcept = default;
 		~BufferView() = default;
-		constexpr BufferView& operator=(const BufferView&) = default;
-		constexpr BufferView& operator=(BufferView&&) = default;
+		constexpr BufferView& operator=(const BufferView&) noexcept = default;
+		constexpr BufferView& operator=(BufferView&&) noexcept = default;
 
 		constexpr const Byte operator[](Size index) const noexcept
 		{

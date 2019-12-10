@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Crypto
 	class NTRUPrime final
 	{
 	private:
-		NTRUPrime() = default;
+		NTRUPrime() noexcept = default;
 
 	public:
 		[[nodiscard]] static bool GenerateKey(AsymmetricKeyData& keydata) noexcept

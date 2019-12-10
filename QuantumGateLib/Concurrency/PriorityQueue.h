@@ -19,10 +19,10 @@ namespace QuantumGate::Implementation::Concurrency
 		PriorityQueue(F&& function) noexcept(std::is_nothrow_constructible_v<T, F>) :
 			m_Queue(std::forward<F>(function)) {}
 		PriorityQueue(const PriorityQueue&) = delete;
-		PriorityQueue(PriorityQueue&&) = default;
+		PriorityQueue(PriorityQueue&&) noexcept = default;
 		~PriorityQueue() = default;
 		PriorityQueue& operator=(const PriorityQueue&) = delete;
-		PriorityQueue& operator=(PriorityQueue&&) = default;
+		PriorityQueue& operator=(PriorityQueue&&) noexcept = default;
 
 		inline bool Empty() const noexcept
 		{

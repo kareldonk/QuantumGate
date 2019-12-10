@@ -12,10 +12,10 @@ namespace QuantumGate::Implementation::Core::Peer
 	public:
 		ExtenderUUIDs() = default;
 		ExtenderUUIDs(const ExtenderUUIDs&) = delete;
-		ExtenderUUIDs(ExtenderUUIDs&&) = default;
+		ExtenderUUIDs(ExtenderUUIDs&&) noexcept = default;
 		~ExtenderUUIDs() = default;
 		ExtenderUUIDs& operator=(const ExtenderUUIDs&) = delete;
-		ExtenderUUIDs& operator=(ExtenderUUIDs&&) = default;
+		ExtenderUUIDs& operator=(ExtenderUUIDs&&) noexcept = default;
 
 		[[nodiscard]] bool HasExtender(const ExtenderUUID& uuid) const noexcept;
 

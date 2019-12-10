@@ -15,10 +15,10 @@ namespace QuantumGate::AVExtender
 	public:
 		AudioResampler() noexcept;
 		AudioResampler(const AudioResampler&) = delete;
-		AudioResampler(AudioResampler&&) = default;
+		AudioResampler(AudioResampler&&) noexcept = default;
 		~AudioResampler();
 		AudioResampler& operator=(const AudioResampler&) = delete;
-		AudioResampler& operator=(AudioResampler&&) = default;
+		AudioResampler& operator=(AudioResampler&&) noexcept = default;
 
 		[[nodiscard]] bool Create(const AudioFormat& in_settings, const AudioFormat& out_settings) noexcept;
 		void Close() noexcept;

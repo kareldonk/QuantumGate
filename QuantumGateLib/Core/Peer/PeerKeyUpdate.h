@@ -17,10 +17,10 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		KeyUpdate(Peer& peer) noexcept : m_Peer(peer) {}
 		KeyUpdate(const KeyUpdate&) = delete;
-		KeyUpdate(KeyUpdate&&) = default;
+		KeyUpdate(KeyUpdate&&) noexcept = default;
 		~KeyUpdate() = default;
 		KeyUpdate& operator=(const KeyUpdate&) = delete;
-		KeyUpdate& operator=(KeyUpdate&&) = default;
+		KeyUpdate& operator=(KeyUpdate&&) noexcept = default;
 
 		[[nodiscard]] bool BeginKeyUpdate() noexcept;
 
