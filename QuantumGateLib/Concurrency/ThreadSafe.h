@@ -29,10 +29,23 @@ namespace QuantumGate::Implementation::Concurrency
 				m_ThS(ths), m_Lock(ths->m_Mutex, t) {}
 
 			Value(const Value&) = delete;
-			Value(Value&&) noexcept = default;
+			
+			Value(Value&& other) noexcept :
+				m_ThS(other.m_ThS), m_Lock(std::move(other.m_Lock))
+			{
+				other.m_ThS = nullptr;
+			}
+
 			~Value() = default;
 			Value& operator=(const Value&) = delete;
-			Value& operator=(Value&&) noexcept = default;
+
+			Value& operator=(Value&& other) noexcept
+			{
+				m_ThS = std::exchange(other.m_ThS, nullptr);
+				m_Lock = std::move(other.m_Lock);
+
+				return *this;
+			}
 
 			inline std::conditional_t<std::is_const_v<ThS>, const T*, T*> operator->() noexcept { assert(*this); return &m_ThS->m_Data; }
 			inline const T* operator->() const noexcept { assert(*this); return &m_ThS->m_Data; }
