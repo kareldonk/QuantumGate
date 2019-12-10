@@ -129,9 +129,6 @@
     <ClInclude Include="Concurrency\SharedSpinMutex.h">
       <Filter>Header Files\Concurrency</Filter>
     </ClInclude>
-    <ClInclude Include="Concurrency\DummyMutex.h">
-      <Filter>Header Files\Concurrency</Filter>
-    </ClInclude>
     <ClInclude Include="Concurrency\SpinMutex.h">
       <Filter>Header Files\Concurrency</Filter>
     </ClInclude>
