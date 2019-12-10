@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "DummyMutex.h"
+#include "SpinMutex.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Concurrency
 	class EventCondition
 	{
 	public:
-		EventCondition(bool singlethread = false) noexcept : m_SingleThread(singlethread), m_State(false) {}
+		EventCondition(const bool singlethread = false) noexcept : m_SingleThread(singlethread), m_State(false) {}
 		EventCondition(const EventCondition&) = delete;
 		EventCondition(EventCondition&&) = delete;
 		virtual ~EventCondition() = default;
@@ -22,30 +22,43 @@ namespace QuantumGate::Implementation::Concurrency
 
 		void Set() noexcept
 		{
-			m_State = true;
+			{
+				std::lock_guard<SpinMutex> lock(m_Mutex);
+				m_State = true;
+			}
 
 			if (m_SingleThread) m_Condition.notify_one();
 			else m_Condition.notify_all();
 		}
 
-		inline void Reset() noexcept { m_State = false; }
-		inline bool IsSet() const noexcept { return m_State; }
-		
-		bool Wait(const std::chrono::milliseconds& ms)
+		inline void Reset() noexcept
 		{
-			DummyMutex mtx;
-			return m_Condition.wait_for(mtx, ms, [&]() noexcept -> bool { return m_State; });
+			std::lock_guard<SpinMutex> lock(m_Mutex);
+			m_State = false;
 		}
 
-		void Wait()
+		[[nodiscard]] inline bool IsSet() const noexcept
 		{
-			DummyMutex mtx;
-			m_Condition.wait(mtx, [&]() noexcept -> bool { return m_State; });
+			std::lock_guard<SpinMutex> lock(m_Mutex);
+			return m_State;
+		}
+		
+		inline bool Wait(const std::chrono::milliseconds& ms)
+		{
+			std::unique_lock<SpinMutex> lock(m_Mutex);
+			return m_Condition.wait_for(lock, ms, [&]() noexcept -> bool { return m_State; });
+		}
+
+		inline void Wait()
+		{
+			std::unique_lock<SpinMutex> lock(m_Mutex);
+			m_Condition.wait(lock, [&]() noexcept -> bool { return m_State; });
 		}
 
 	private:
 		const bool m_SingleThread{ false };
-		std::atomic_bool m_State{ false };
+		bool m_State{ false };
+		mutable SpinMutex m_Mutex;
 		std::condition_variable_any m_Condition;
 	};
 }

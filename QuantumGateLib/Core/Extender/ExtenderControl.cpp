@@ -129,8 +129,6 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
-		auto addtoqueue = false;
-
 		std::shared_ptr<Peer_ThS> peerctrl = nullptr;
 
 		thpdata.Queue.IfUniqueLock([&](auto& queue)
@@ -194,8 +192,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				{
 					const auto pluid = event.GetPeerLUID();
 					const auto evresult = GetExtender().OnPeerMessage(QuantumGate::API::Extender::PeerEvent(std::move(event)));
-					if ((!evresult.Handled || !evresult.Success) &&
-						!GetExtender().HadException())
+					if ((!evresult.Handled || !evresult.Success) && !GetExtender().HadException())
 					{
 						m_ExtenderManager.GetUnhandledExtenderMessageCallbacks().WithUniqueLock()(GetExtender().GetUUID(),
 																								  pluid, evresult);
@@ -213,14 +210,11 @@ namespace QuantumGate::Implementation::Core::Extender
 				if (!peer.EventQueue.Empty() ||
 					(!peer.MessageQueue.Empty() && peer.Status == Peer::Status::Connected))
 				{
-					addtoqueue = true;
+					thpdata.Queue.WithUniqueLock()->Push(peerctrl);
 				}
-
-				if (!addtoqueue) peer.IsInQueue = false;
+				else peer.IsInQueue = false;
 			});
 		}
-
-		if (addtoqueue) thpdata.Queue.WithUniqueLock()->Push(peerctrl);
 
 		return result;
 	}
@@ -288,7 +282,6 @@ namespace QuantumGate::Implementation::Core::Extender
 				}
 			}
 
-			auto addtoqueue = false;
 			UInt64 thpoolkey{ 0 };
 
 			peerctrl->WithUniqueLock([&](Peer& peer)
@@ -303,12 +296,10 @@ namespace QuantumGate::Implementation::Core::Extender
 
 				if (!peer.IsInQueue)
 				{
-					addtoqueue = true;
-					peer.IsInQueue = true;
+					m_ThreadPools[thpoolkey]->GetData().Queue.WithUniqueLock()->Push(peerctrl,
+																					 [&]() { peer.IsInQueue = true; });
 				}
 			});
-
-			if (addtoqueue) m_ThreadPools[thpoolkey]->GetData().Queue.WithUniqueLock()->Push(peerctrl);
 
 			return true;
 		}
