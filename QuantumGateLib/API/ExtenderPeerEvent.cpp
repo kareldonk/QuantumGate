@@ -101,14 +101,14 @@ namespace QuantumGate::API
 		return false;
 	}
 
-	const Extender::PeerEvent::Type Extender::PeerEvent::GetType() const noexcept
+	Extender::PeerEvent::Type Extender::PeerEvent::GetType() const noexcept
 	{
 		assert(HasEvent());
 
 		return GetEvent()->GetType();
 	}
 
-	const PeerLUID Extender::PeerEvent::GetPeerLUID() const noexcept
+	PeerLUID Extender::PeerEvent::GetPeerLUID() const noexcept
 	{
 		assert(HasEvent());
 

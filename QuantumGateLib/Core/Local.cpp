@@ -1371,7 +1371,7 @@ namespace QuantumGate::Implementation::Core
 		return result_code;
 	}
 
-	const SecurityLevel Local::GetSecurityLevel() const noexcept
+	SecurityLevel Local::GetSecurityLevel() const noexcept
 	{
 		return m_SecurityLevel;
 	}

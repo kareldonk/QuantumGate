@@ -87,7 +87,7 @@ namespace QuantumGate::API
 		Result<> DisableRelays() noexcept;
 		[[nodiscard]] bool AreRelaysEnabled() const noexcept;
 
-		[[nodiscard]] const Environment GetEnvironment() const noexcept;
+		[[nodiscard]] Environment GetEnvironment() const noexcept;
 
 		[[nodiscard]] Access::Manager& GetAccessManager() noexcept;
 
@@ -123,7 +123,7 @@ namespace QuantumGate::API
 
 		Result<> SetSecurityLevel(const SecurityLevel level,
 								  const std::optional<SecurityParameters>& params = std::nullopt) noexcept;
-		[[nodiscard]] const SecurityLevel GetSecurityLevel() const noexcept;
+		[[nodiscard]] SecurityLevel GetSecurityLevel() const noexcept;
 		[[nodiscard]] SecurityParameters GetSecurityParameters() const noexcept;
 
 		void FreeUnusedMemory() noexcept;

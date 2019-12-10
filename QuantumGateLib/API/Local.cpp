@@ -146,7 +146,7 @@ namespace QuantumGate::API
 		return m_Local->AreRelaysEnabled();
 	}
 
-	const Local::Environment Local::GetEnvironment() const noexcept
+	Local::Environment Local::GetEnvironment() const noexcept
 	{
 		return Local::Environment(&m_Local->GetEnvironment());
 	}
@@ -263,7 +263,7 @@ namespace QuantumGate::API
 		return m_Local->SetSecurityLevel(level, params);
 	}
 
-	const SecurityLevel Local::GetSecurityLevel() const noexcept
+	SecurityLevel Local::GetSecurityLevel() const noexcept
 	{
 		return m_Local->GetSecurityLevel();
 	}

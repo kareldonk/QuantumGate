@@ -55,7 +55,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		Result<> SendMessageTo(API::Peer& peer, Buffer&& buffer, const bool compress) const noexcept;
 		Result<> SendMessageTo(API::Peer& peer, Buffer&& buffer, const SendParameters& params) const noexcept;
 
-		inline const Size GetMaximumMessageDataSize() const noexcept { return Message::MaxMessageDataSize; }
+		inline Size GetMaximumMessageDataSize() const noexcept { return Message::MaxMessageDataSize; }
 
 		Result<API::Peer> GetPeer(const PeerLUID pluid) const noexcept;
 
@@ -65,32 +65,32 @@ namespace QuantumGate::Implementation::Core::Extender
 		inline void SetLocal(Local* local) noexcept { assert(local != nullptr); m_Local = local; }
 		inline void ResetLocal() noexcept { m_Local = nullptr; }
 
-		inline const Result<> SetStartupCallback(StartupCallback&& function) noexcept
+		inline Result<> SetStartupCallback(StartupCallback&& function) noexcept
 		{
 			return SetCallback(m_StartupCallback, std::move(function));
 		}
 
-		inline const Result<> SetPostStartupCallback(PostStartupCallback&& function) noexcept
+		inline Result<> SetPostStartupCallback(PostStartupCallback&& function) noexcept
 		{
 			return SetCallback(m_PostStartupCallback, std::move(function));
 		}
 
-		inline const Result<> SetPreShutdownCallback(PreShutdownCallback&& function) noexcept
+		inline Result<> SetPreShutdownCallback(PreShutdownCallback&& function) noexcept
 		{
 			return SetCallback(m_PreShutdownCallback, std::move(function));
 		}
 
-		inline const Result<> SetShutdownCallback(ShutdownCallback&& function) noexcept
+		inline Result<> SetShutdownCallback(ShutdownCallback&& function) noexcept
 		{
 			return SetCallback(m_ShutdownCallback, std::move(function));
 		}
 
-		inline const Result<> SetPeerEventCallback(PeerEventCallback&& function) noexcept
+		inline Result<> SetPeerEventCallback(PeerEventCallback&& function) noexcept
 		{
 			return SetCallback(m_PeerEventCallback, std::move(function));
 		}
 
-		inline const Result<> SetPeerMessageCallback(PeerMessageCallback&& function) noexcept
+		inline Result<> SetPeerMessageCallback(PeerMessageCallback&& function) noexcept
 		{
 			return SetCallback(m_PeerMessageCallback, std::move(function));
 		}
@@ -152,7 +152,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		void OnException(const std::exception& e) noexcept;
 
 		template<typename T>
-		inline const Result<> SetCallback(T& var, T&& function) noexcept
+		inline Result<> SetCallback(T& var, T&& function) noexcept
 		{
 			assert(!IsRunning() && function);
 

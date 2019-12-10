@@ -56,8 +56,8 @@ namespace QuantumGate::API
 
 			explicit operator bool() const noexcept;
 
-			[[nodiscard]] const Type GetType() const noexcept;
-			[[nodiscard]] const PeerLUID GetPeerLUID() const noexcept;
+			[[nodiscard]] Type GetType() const noexcept;
+			[[nodiscard]] PeerLUID GetPeerLUID() const noexcept;
 			[[nodiscard]] const PeerUUID& GetPeerUUID() const noexcept;
 			[[nodiscard]] const Buffer* GetMessageData() const noexcept;
 
@@ -113,7 +113,7 @@ namespace QuantumGate::API
 		Result<> SendMessageTo(Peer& peer, Buffer&& buffer, const bool compress = true) const noexcept;
 		Result<> SendMessageTo(Peer& peer, Buffer&& buffer, const SendParameters& params) const noexcept;
 
-		[[nodiscard]] const Size GetMaximumMessageDataSize() const noexcept;
+		[[nodiscard]] Size GetMaximumMessageDataSize() const noexcept;
 
 		Result<Peer> GetPeer(const PeerLUID pluid) const noexcept;
 

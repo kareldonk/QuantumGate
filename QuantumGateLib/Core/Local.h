@@ -102,7 +102,7 @@ namespace QuantumGate::Implementation::Core
 		Result<> SetSecurityLevel(const SecurityLevel level,
 								  const std::optional<SecurityParameters>& params = std::nullopt,
 								  const bool silent = false) noexcept;
-		[[nodiscard]] const SecurityLevel GetSecurityLevel() const noexcept;
+		[[nodiscard]] SecurityLevel GetSecurityLevel() const noexcept;
 		[[nodiscard]] SecurityParameters GetSecurityParameters() const noexcept;
 		void SetDefaultSecuritySettings(Settings& settings) noexcept;
 

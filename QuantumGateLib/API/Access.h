@@ -91,9 +91,9 @@ namespace QuantumGate::API::Access
 
 		Result<Vector<IPFilter>> GetAllIPFilters() const noexcept;
 
-		Result<> AddIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits, const Size max_con) noexcept;
+		Result<> AddIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits_str, const Size max_con) noexcept;
 		Result<> AddIPSubnetLimit(const IPAddress::Family af, const UInt8 cidr_lbits, const Size max_con) noexcept;
-		Result<> RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept;
+		Result<> RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits_str) noexcept;
 		Result<> RemoveIPSubnetLimit(const IPAddress::Family af, const UInt8 cidr_lbits) noexcept;
 
 		Result<Vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
