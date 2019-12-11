@@ -369,7 +369,7 @@ namespace QuantumGate::Implementation::Core::Access
 		m_AccessUpdateCallbacks.WithUniqueLock()();
 	}
 
-	const PeerAccessDefault Manager::GetPeerAccessDefault() const noexcept
+	PeerAccessDefault Manager::GetPeerAccessDefault() const noexcept
 	{
 		return m_PeerAccessControl.WithSharedLock()->GetAccessDefault();
 	}

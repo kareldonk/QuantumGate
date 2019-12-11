@@ -38,7 +38,7 @@ namespace QuantumGate::Implementation::Core::Access
 		const ProtectedBuffer* GetPublicKey(const PeerUUID& puuid) const noexcept;
 
 		void SetAccessDefault(const PeerAccessDefault pad) noexcept { m_AccessDefaultAllowed = pad; }
-		[[nodiscard]] const PeerAccessDefault GetAccessDefault() const noexcept { return m_AccessDefaultAllowed; }
+		[[nodiscard]] PeerAccessDefault GetAccessDefault() const noexcept { return m_AccessDefaultAllowed; }
 
 		void Clear() noexcept;
 

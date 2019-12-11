@@ -117,7 +117,7 @@ namespace QuantumGate::API::Access
 		Result<bool> IsPeerAllowed(const PeerUUID& puuid) const noexcept;
 
 		void SetPeerAccessDefault(const PeerAccessDefault pad) noexcept;
-		[[nodiscard]] const PeerAccessDefault GetPeerAccessDefault() const noexcept;
+		[[nodiscard]] PeerAccessDefault GetPeerAccessDefault() const noexcept;
 
 		Result<Vector<PeerSettings>> GetAllPeers() const noexcept;
 

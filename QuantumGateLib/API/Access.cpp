@@ -153,7 +153,7 @@ namespace QuantumGate::API::Access
 		m_AccessManager->SetPeerAccessDefault(pad);
 	}
 
-	const PeerAccessDefault Manager::GetPeerAccessDefault() const noexcept
+	PeerAccessDefault Manager::GetPeerAccessDefault() const noexcept
 	{
 		return m_AccessManager->GetPeerAccessDefault();
 	}
