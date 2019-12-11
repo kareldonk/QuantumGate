@@ -15,10 +15,12 @@ namespace QuantumGate::API
 		friend class QuantumGate::Implementation::Core::Peer::Manager;
 
 	public:
+		using ConnectionType = QuantumGate::Implementation::PeerConnectionType;
+
 		struct Details
 		{
 			PeerUUID PeerUUID;
-			PeerConnectionType ConnectionType{ PeerConnectionType::Unknown };
+			ConnectionType ConnectionType{ ConnectionType::Unknown };
 			bool IsAuthenticated{ false };
 			bool IsRelayed{ false };
 			bool IsUsingGlobalSharedSecret{ false };

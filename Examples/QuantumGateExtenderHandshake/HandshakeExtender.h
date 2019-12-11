@@ -38,7 +38,7 @@ class HandshakeExtender final : public QuantumGate::Extender
 		enum class Status { Unknown, Connected, PubKeySent, Ready, Exception };
 
 		QuantumGate::PeerLUID LUID{ 0 };
-		QuantumGate::PeerConnectionType ConnectionType{ QuantumGate::PeerConnectionType::Unknown };
+		QuantumGate::Peer::ConnectionType ConnectionType{ QuantumGate::Peer::ConnectionType::Unknown };
 		Status Status{ Status::Unknown };
 		std::chrono::time_point<std::chrono::steady_clock> ConnectedSteadyTime;
 

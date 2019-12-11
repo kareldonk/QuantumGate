@@ -225,7 +225,7 @@ bool HandshakeExtender::ProcessPublicKeyMessage(const QuantumGate::PeerLUID plui
 			std::unique_lock<std::shared_mutex> lock(peer.Mutex);
 
 			if (peer.Status == Peer::Status::Connected &&
-				peer.ConnectionType == QuantumGate::PeerConnectionType::Outbound)
+				peer.ConnectionType == QuantumGate::Peer::ConnectionType::Outbound)
 			{
 				std::memcpy(peer.PeerPublicKey.data(), &pubmsg->PublicKey, peer.PeerPublicKey.size());
 
@@ -238,7 +238,7 @@ bool HandshakeExtender::ProcessPublicKeyMessage(const QuantumGate::PeerLUID plui
 				}
 			}
 			else if (peer.Status == Peer::Status::PubKeySent &&
-					 peer.ConnectionType == QuantumGate::PeerConnectionType::Inbound)
+					 peer.ConnectionType == QuantumGate::Peer::ConnectionType::Inbound)
 			{
 				std::memcpy(peer.PeerPublicKey.data(), &pubmsg->PublicKey, peer.PeerPublicKey.size());
 
@@ -272,7 +272,7 @@ bool HandshakeExtender::ProcessReadyMessage(const QuantumGate::PeerLUID pluid, c
 			std::unique_lock<std::shared_mutex> lock(peer.Mutex);
 
 			if (peer.Status == Peer::Status::PubKeySent &&
-				peer.ConnectionType == QuantumGate::PeerConnectionType::Outbound)
+				peer.ConnectionType == QuantumGate::Peer::ConnectionType::Outbound)
 			{
 				if (SendReady(peer))
 				{
@@ -280,7 +280,7 @@ bool HandshakeExtender::ProcessReadyMessage(const QuantumGate::PeerLUID pluid, c
 				}
 			}
 			else if (peer.Status == Peer::Status::PubKeySent &&
-					 peer.ConnectionType == QuantumGate::PeerConnectionType::Inbound)
+					 peer.ConnectionType == QuantumGate::Peer::ConnectionType::Inbound)
 			{
 				peer.Status = Peer::Status::Ready;
 			}
@@ -363,7 +363,7 @@ void HandshakeExtender::MainThreadFunction(HandshakeExtender* extender)
 							std::wcout << L"Failed to disconnect from peer " << peer.LUID << L"\r\n";
 						}
 					}
-					else if (peer.ConnectionType == QuantumGate::PeerConnectionType::Inbound &&
+					else if (peer.ConnectionType == QuantumGate::Peer::ConnectionType::Inbound &&
 							 peer.Status == Peer::Status::Connected)
 					{
 						// We get here for newly connected peers;

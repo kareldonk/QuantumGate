@@ -57,6 +57,23 @@ namespace QuantumGate
 	using SteadyTime = std::chrono::time_point<std::chrono::steady_clock>;
 
 	using Path = std::filesystem::path;
+
+	using RelayPort = UInt64;
+	using RelayHop = UInt8;
+}
+
+namespace QuantumGate::Implementation
+{
+	struct ProtocolVersion final
+	{
+		static constexpr const UInt8 Major{ 0 };
+		static constexpr const UInt8 Minor{ 1 };
+	};
+
+	enum class PeerConnectionType : UInt16
+	{
+		Unknown, Inbound, Outbound
+	};
 }
 
 #include "Memory\RingBuffer.h"
@@ -84,42 +101,17 @@ namespace QuantumGate
 
 	template<typename T, typename C = std::less<T>>
 	using Set = std::set<T, C, Implementation::Memory::DefaultAllocator<T>>;
-
-	struct PeerKeys
-	{
-		ProtectedBuffer PrivateKey;
-		ProtectedBuffer PublicKey;
-	};
 }
 
 #include "Common\UUID.h"
 
 namespace QuantumGate
 {
-	struct ProtocolVersion final
-	{
-		static constexpr const UInt8 Major{ 0 };
-		static constexpr const UInt8 Minor{ 1 };
-	};
-
-	enum class SecurityLevel : UInt16
-	{
-		One = 1, Two, Three, Four, Five, Custom
-	};
-
-	enum class PeerConnectionType : UInt16
-	{
-		Unknown, Inbound, Outbound
-	};
-
 	using Implementation::UUID;
 
 	using PeerLUID = UInt64;
 	using PeerUUID = UUID;
 	using ExtenderUUID = UUID;
-
-	using RelayPort = UInt64;
-	using RelayHop = UInt8;
 }
 
 #include "Algorithms.h"
@@ -146,7 +138,7 @@ namespace QuantumGate
 	struct StartupParameters
 	{
 		PeerUUID UUID;											// The UUID for the local peer
-		std::optional<PeerKeys> Keys;							// The private and public keys for the local peer
+		std::optional<PeerUUID::PeerKeys> Keys;					// The private and public keys for the local peer
 		std::optional<ProtectedBuffer> GlobalSharedSecret;		// Global shared secret to use for all connections with peers (in addition to each individual secret key for every peer)
 		bool RequireAuthentication{ true };						// Whether authentication is required for connecting peers
 		
@@ -168,6 +160,11 @@ namespace QuantumGate
 			UInt8 IPv4ExcludedNetworksCIDRLeadingBits{ 16 };	// The CIDR leading bits of the IPv4 network address spaces of the source and destination endpoints to exclude from the relay link
 			UInt8 IPv6ExcludedNetworksCIDRLeadingBits{ 48 };	// The CIDR leading bits of the IPv6 network address spaces of the source and destination endpoints to exclude from the relay link
 		} Relays;
+	};
+
+	enum class SecurityLevel : UInt16
+	{
+		One = 1, Two, Three, Four, Five, Custom
 	};
 
 	struct SecurityParameters

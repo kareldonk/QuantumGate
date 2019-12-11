@@ -86,8 +86,8 @@ namespace QuantumGate::Implementation
 		return TryParse(str.c_str(), uuid);
 	}
 
-	std::tuple<bool, UUID, std::optional<PeerKeys>> UUID::Create(const Type type,
-																 const SignAlgorithm salg) noexcept
+	std::tuple<bool, UUID, std::optional<UUID::PeerKeys>> UUID::Create(const Type type,
+																	   const SignAlgorithm salg) noexcept
 	{
 		auto success = false;
 		UUID uuid;
@@ -250,7 +250,7 @@ namespace QuantumGate::Implementation
 		stream << Util::ToStringA(uuid.GetString());
 		return stream;
 	}
-	
+
 	std::wostream& operator<<(std::wostream& stream, const UUID& uuid)
 	{
 		stream << uuid.GetString();

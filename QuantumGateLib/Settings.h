@@ -54,7 +54,7 @@ namespace QuantumGate::Implementation
 	struct LocalSettings final
 	{
 		PeerUUID UUID;														// The UUID of the local peer
-		PeerKeys Keys;														// The private and public keys for the local peer
+		PeerUUID::PeerKeys Keys;											// The private and public keys for the local peer
 		ProtectedBuffer GlobalSharedSecret;									// Global shared secret to use for all connections with peers (in addition to each individual secret key for every peer)
 		bool RequireAuthentication{ true };									// Whether authentication is required for connecting peers
 

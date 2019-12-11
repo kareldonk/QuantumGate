@@ -247,7 +247,7 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 											retval->IsUsingGlobalSharedSecret ? L"Yes" : L"No");
 
 				pitxt += Util::FormatString(L"Connection type:\t\t%s\r\n",
-											retval->ConnectionType == PeerConnectionType::Inbound ? L"Inbound" : L"Outbound");
+											retval->ConnectionType == QuantumGate::Peer::ConnectionType::Inbound ? L"Inbound" : L"Outbound");
 				pitxt += Util::FormatString(L"Local endpoint:\t\t%s\r\n",
 											retval->LocalIPEndpoint.GetString().c_str());
 				pitxt += Util::FormatString(L"Peer endpoint:\t\t%s\r\n",

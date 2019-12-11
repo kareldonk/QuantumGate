@@ -22,6 +22,12 @@ namespace QuantumGate::Implementation
 			None, EDDSA_ED25519, EDDSA_ED448
 		};
 
+		struct PeerKeys
+		{
+			ProtectedBuffer PrivateKey;
+			ProtectedBuffer PublicKey;
+		};
+
 		constexpr UUID() noexcept {}
 
 		constexpr UUID(const UInt32 data1, const UInt16 data2, const UInt16 data3, const UInt64 data4)
