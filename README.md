@@ -17,11 +17,11 @@ Based on the architecture described in the [overview](https://github.com/kareldo
 
 ## Platforms
 
-QuantumGate is developed in C++17 and currently only supports the Microsoft Windows (x86/x64) platform. Support for Linux is planned for the future.
+QuantumGate is developed in C++20 and currently only supports the Microsoft Windows (x86/x64) platform. Support for Linux is planned for the future.
 
 ## Build
 
-You'll require the latest version of Microsoft Visual Studio 2017, as well as the dependencies listed below. When the paths to the dependency includes and libraries have been configured properly, building is as simple as opening the `QuantumGate.sln` file in the project root with Visual Studio and issuing the build command for the entire solution.
+You'll require the latest version of Microsoft Visual Studio 2019, as well as the dependencies listed below. When the paths to the dependency includes and libraries have been configured properly, building is as simple as opening the `QuantumGate.sln` file in the project root with Visual Studio and issuing the build command for the entire solution.
 
 ### Dependencies
 
