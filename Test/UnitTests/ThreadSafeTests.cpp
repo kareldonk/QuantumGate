@@ -3,7 +3,6 @@
 
 #include "stdafx.h"
 #include "Concurrency\ThreadSafe.h"
-#include "Concurrency\DummyMutex.h"
 
 #include <thread>
 #include <atomic>
@@ -12,6 +11,25 @@
 using namespace std::literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace QuantumGate::Implementation::Concurrency;
+
+class DummyMutex final
+{
+public:
+	constexpr DummyMutex() noexcept {}
+	DummyMutex(const DummyMutex&) = delete;
+	DummyMutex(DummyMutex&&) = delete;
+	~DummyMutex() = default;
+	DummyMutex& operator=(const DummyMutex&) = delete;
+	DummyMutex& operator=(DummyMutex&&) = delete;
+
+	constexpr void lock() noexcept {}
+	constexpr bool try_lock() noexcept { return true; }
+	constexpr void unlock() noexcept {}
+
+	constexpr void lock_shared() noexcept {}
+	constexpr bool try_lock_shared() noexcept { return true; }
+	constexpr void unlock_shared() noexcept {}
+};
 
 bool TestTypeConstFuncOperatorExecuted{ false };
 

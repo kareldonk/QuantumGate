@@ -16,7 +16,7 @@ std::unique_ptr<Data_ThS> MakePeerData(const IPEndpoint& peer_endpoint, const Qu
 	peer_data->WithUniqueLock([&](Data& data)
 	{
 		data.Status = Status::Ready;
-		data.LUID = Peer::MakeLUID(peer_endpoint);
+		data.LUID = Core::Peer::Peer::MakeLUID(peer_endpoint);
 		data.Cached.PeerEndpoint = peer_endpoint;
 		data.PeerUUID = uuid;
 	});
@@ -33,7 +33,7 @@ std::unique_ptr<Data_ThS> MakePeerData(const IPEndpoint& peer_endpoint, const Qu
 	{
 		data.Status = Status::Ready;
 		data.Type = type;
-		data.LUID = Peer::MakeLUID(peer_endpoint);
+		data.LUID = Core::Peer::Peer::MakeLUID(peer_endpoint);
 		data.Cached.PeerEndpoint = peer_endpoint;
 		data.PeerUUID = uuid;
 		data.IsAuthenticated = authenticated;

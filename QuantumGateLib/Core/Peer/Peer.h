@@ -79,16 +79,16 @@ namespace QuantumGate::Implementation::Core::Peer
 			return m_PeerData.WithSharedLock()->LUID;
 		}
 
-		static const PeerLUID MakeLUID(const IPEndpoint& endpoint) noexcept;
+		static PeerLUID MakeLUID(const IPEndpoint& endpoint) noexcept;
 
-		inline const PeerConnectionType GetConnectionType() const noexcept { return m_PeerData.WithSharedLock()->Type; }
+		inline PeerConnectionType GetConnectionType() const noexcept { return m_PeerData.WithSharedLock()->Type; }
 
 		inline const Data_ThS& GetPeerData() const noexcept { return m_PeerData; }
 
 		inline Result<API::Peer::Details> GetPeerDetails() const noexcept { return m_PeerData.WithSharedLock()->GetDetails(); }
 
 		[[nodiscard]] bool SetStatus(const Status status) noexcept;
-		inline const Status GetStatus() const noexcept { return m_PeerData.WithSharedLock()->Status; }
+		inline Status GetStatus() const noexcept { return m_PeerData.WithSharedLock()->Status; }
 
 		inline bool IsReady() const noexcept { return (GetStatus() == Status::Ready); }
 		inline bool IsInSessionInit() const noexcept { return (GetStatus() == Status::SessionInit); }
@@ -118,8 +118,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		inline void SetPeerSessionID(UInt64 id) noexcept { m_PeerData.WithUniqueLock()->PeerSessionID = id; }
 		inline UInt64 GetPeerSessionID() const noexcept { return m_PeerData.WithSharedLock()->PeerSessionID; }
 
-		inline const Size GetExtendersBytesReceived() const noexcept { return m_PeerData.WithSharedLock()->ExtendersBytesReceived; }
-		inline const Size GetExtendersBytesSent() const noexcept { return m_PeerData.WithSharedLock()->ExtendersBytesSent; }
+		inline Size GetExtendersBytesReceived() const noexcept { return m_PeerData.WithSharedLock()->ExtendersBytesReceived; }
+		inline Size GetExtendersBytesSent() const noexcept { return m_PeerData.WithSharedLock()->ExtendersBytesSent; }
 
 		inline MessageProcessor& GetMessageProcessor() noexcept { return m_MessageProcessor; }
 

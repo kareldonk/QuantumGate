@@ -1327,7 +1327,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	const PeerLUID Peer::MakeLUID(const IPEndpoint& endpoint) noexcept
+	PeerLUID Peer::MakeLUID(const IPEndpoint& endpoint) noexcept
 	{
 		assert(!endpoint.GetString().empty());
 
