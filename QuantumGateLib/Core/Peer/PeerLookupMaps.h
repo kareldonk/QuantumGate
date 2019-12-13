@@ -57,7 +57,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<API::Peer::Details> GetPeerDetails(const PeerLUID pluid) const noexcept;
 
-		static const UInt64 GetIPPortHash(const IPEndpoint& endpoint) noexcept;
+		static UInt64 GetIPPortHash(const IPEndpoint& endpoint) noexcept;
 
 		[[nodiscard]] static bool HasLUID(const PeerLUID pluid, const Vector<PeerLUID>& pluids) noexcept;
 		[[nodiscard]] static bool HasIPPort(const UInt64 hash, const Vector<IPEndpoint>& endpoints) noexcept;

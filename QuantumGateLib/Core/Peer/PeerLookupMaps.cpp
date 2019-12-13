@@ -308,7 +308,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const UInt64 LookupMaps::GetIPPortHash(const IPEndpoint& endpoint) noexcept
+	UInt64 LookupMaps::GetIPPortHash(const IPEndpoint& endpoint) noexcept
 	{
 		struct IPPort final
 		{
