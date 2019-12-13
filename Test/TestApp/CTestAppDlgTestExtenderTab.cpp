@@ -362,6 +362,8 @@ void CTestAppDlgTestExtenderTab::OnBnClickedSendfile()
 	const auto path = GetApp()->BrowseForFile(GetSafeHwnd(), false);
 	if (path)
 	{
+		CWaitCursor wait;
+
 		m_TestExtender->SendFile(*m_SelectedPeerLUID, path->GetString(), false);
 	}
 }
@@ -452,6 +454,8 @@ void CTestAppDlgTestExtenderTab::ProcessMessages()
 void CTestAppDlgTestExtenderTab::OnBnClickedSendStress()
 {
 	if (m_TestExtender == nullptr) return;
+
+	CWaitCursor wait;
 
 	const auto pluid = *m_SelectedPeerLUID;
 
@@ -547,6 +551,9 @@ LRESULT CTestAppDlgTestExtenderTab::OnPeerFileAccept(WPARAM w, LPARAM l)
 	delete fa;
 
 	const auto path = GetApp()->BrowseForFile(GetSafeHwnd(), true);
+
+	CWaitCursor wait;
+
 	if (path)
 	{
 		m_TestExtender->AcceptFile(pluid, ftid, path->GetString());
@@ -707,6 +714,8 @@ void CTestAppDlgTestExtenderTab::OnBnClickedBrowse()
 
 void CTestAppDlgTestExtenderTab::OnBnClickedAutoSendfile()
 {
+	CWaitCursor wait;
+
 	auto path = GetTextValue(IDC_FILE_PATH);
 	if (path.GetLength() == 0)
 	{

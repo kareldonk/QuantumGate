@@ -51,6 +51,8 @@ std::chrono::microseconds Benchmarks::DoBenchmark(const std::wstring& desc, unsi
 
 void Benchmarks::BenchmarkThreadLocalCache()
 {
+	CWaitCursor wait;
+
 	const auto maxtr = 50000000u;
 
 	LogSys(L"---");
@@ -81,6 +83,8 @@ void Benchmarks::BenchmarkThreadLocalCache()
 
 void Benchmarks::BenchmarkCallbacks()
 {
+	CWaitCursor wait;
+
 	const auto maxtr = 50000000u;
 
 	LogSys(L"---");
@@ -164,6 +168,8 @@ void Benchmarks::BenchmarkCallbacks()
 
 void Benchmarks::BenchmarkMutexes()
 {
+	CWaitCursor wait;
+
 	const auto maxtr = 10000000u;
 
 	LogSys(L"---");
@@ -259,6 +265,8 @@ void Benchmarks::BenchmarkMutexes()
 
 void Benchmarks::BenchmarkCompression()
 {
+	CWaitCursor wait;
+
 	const auto maxtr = 50000u;
 
 	LogSys(L"---");
@@ -341,6 +349,8 @@ void Benchmarks::BenchmarkCompression()
 
 void Benchmarks::BenchmarkConsole()
 {
+	CWaitCursor wait;
+
 	const auto maxtr = 50000u;
 
 	const auto dur1 = DoBenchmark(std::wstring(L"Adding to console using AddMessage"), maxtr, [&]()
@@ -374,6 +384,8 @@ void Benchmarks::BenchmarkConsole()
 
 void Benchmarks::BenchmarkMemory()
 {
+	CWaitCursor wait;
+
 	const auto maxtr = 2000u;
 
 	LogSys(L"---");
