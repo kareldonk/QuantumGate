@@ -4,9 +4,6 @@
 #include "stdafx.h"
 #include "IPEndpoint.h"
 
-#include <ws2tcpip.h>
-#include <Mstcpip.h>
-
 namespace QuantumGate::Implementation::Network
 {
 	String IPEndpoint::GetString() const noexcept
