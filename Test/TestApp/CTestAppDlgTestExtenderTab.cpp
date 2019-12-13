@@ -714,9 +714,7 @@ void CTestAppDlgTestExtenderTab::OnBnClickedBrowse()
 
 void CTestAppDlgTestExtenderTab::OnBnClickedAutoSendfile()
 {
-	CWaitCursor wait;
-
-	auto path = GetTextValue(IDC_FILE_PATH);
+	const auto path = GetTextValue(IDC_FILE_PATH);
 	if (path.GetLength() == 0)
 	{
 		AfxMessageBox(L"Please select a file first!");
@@ -728,6 +726,16 @@ void CTestAppDlgTestExtenderTab::OnBnClickedAutoSendfile()
 		AfxMessageBox(L"The file does not exist!");
 		return;
 	}
+
+	// Disable button
+	GetDlgItem(IDC_AUTO_SENDFILE)->EnableWindow(false);
+
+	// Enable button when we return
+	const auto sg = MakeScopeGuard([&]() noexcept {
+		UpdateControls();
+	});
+
+	CWaitCursor wait;
 
 	m_TestExtender->SendFile(*m_SelectedPeerLUID, path.GetString(), true);
 }
