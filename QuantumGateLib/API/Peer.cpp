@@ -169,21 +169,18 @@ namespace QuantumGate::API
 	inline PeerLUID Peer::GetLUID() const noexcept
 	{
 		assert(HasPeer());
-
 		return *reinterpret_cast<const PeerLUID*>(reinterpret_cast<const Byte*>(&m_PeerStorage) + 1);
 	}
 
 	Result<Peer::Details> Peer::GetDetails() const noexcept
 	{
 		assert(HasPeer());
-
 		return PeerDataCast(GetPeerDataStorage())->WithSharedLock()->GetDetails();
 	}
 
 	bool Peer::IsConnected() const noexcept
 	{
 		assert(HasPeer());
-
 		auto peer_data = PeerDataCast(GetPeerDataStorage())->WithSharedLock();
 		return IsPeerConnected(peer_data);
 	}

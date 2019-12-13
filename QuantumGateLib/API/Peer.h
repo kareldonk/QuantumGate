@@ -45,6 +45,8 @@ namespace QuantumGate::API
 
 		explicit operator bool() const noexcept;
 
+		[[nodiscard]] inline bool HasPeer() const noexcept;
+
 		[[nodiscard]] PeerLUID GetLUID() const noexcept;
 		[[nodiscard]] bool IsConnected() const noexcept;
 
@@ -84,7 +86,6 @@ namespace QuantumGate::API
 		inline std::uintptr_t* GetPeerDataStorage() noexcept;
 		inline const std::uintptr_t* GetPeerDataStorage() const noexcept;
 
-		[[nodiscard]] inline bool HasPeer() const noexcept;
 		inline void SetHasPeer(const bool flag) noexcept;
 
 		inline void SetLUID(const PeerLUID pluid) noexcept;
