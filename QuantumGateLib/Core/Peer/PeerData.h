@@ -50,6 +50,12 @@ namespace QuantumGate::Implementation::Core::Peer
 			ExtenderUUIDs PeerExtenderUUIDs;
 		} Cached;
 
+		inline std::chrono::milliseconds GetConnectedTime() const noexcept
+		{
+			return std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() -
+																		 Cached.ConnectedSteadyTime);
+		}
+
 		Result<API::Peer::Details> GetDetails() const noexcept
 		{
 			// Only if peer status is ready (handshake succeeded, etc.)
@@ -67,8 +73,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				pdetails.PeerProtocolVersion = PeerProtocolVersion;
 				pdetails.LocalSessionID = LocalSessionID;
 				pdetails.PeerSessionID = PeerSessionID;
-				pdetails.ConnectedTime = std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() -
-																							   Cached.ConnectedSteadyTime);
+				pdetails.ConnectedTime = GetConnectedTime();
 				pdetails.BytesReceived = Cached.BytesReceived;
 				pdetails.BytesSent = Cached.BytesSent;
 				pdetails.ExtendersBytesReceived = ExtendersBytesReceived;

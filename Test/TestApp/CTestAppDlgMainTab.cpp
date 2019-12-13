@@ -235,6 +235,8 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 			const auto retval = result->GetDetails();
 			if (retval.Succeeded())
 			{
+				LogPeerDetails(*result);
+
 				String pitxt;
 				pitxt += Util::FormatString(L"Peer LUID:\t\t%llu\r\n", pluid);
 				pitxt += Util::FormatString(L"Peer UUID:\t\t%s\r\n\r\n", retval->PeerUUID.GetString().c_str());
@@ -289,7 +291,95 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 	}
 }
 
-void CTestAppDlgMainTab::OnNMRClickAllPeersList(NMHDR *pNMHDR, LRESULT *pResult)
+void CTestAppDlgMainTab::LogPeerDetails(const QuantumGate::Peer& peer)
+{
+	// We're using the individual member functions from QuantumGate::Peer
+	// instead of the more efficient GetDetails() member as a test
+
+	String pitxt{ L"Logging peer details:\r\n\r\n" };
+	pitxt += Util::FormatString(L"Peer LUID:\t\t\t%llu\r\n", peer.GetLUID());
+
+	peer.GetUUID().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Peer UUID:\t\t\t%s\r\n\r\n", result->GetString().c_str());
+	});
+
+	peer.IsAuthenticated().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Authenticated:\t\t\t%s\r\n", *result ? L"Yes" : L"No");
+	});
+
+	peer.IsRelayed().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Relayed:\t\t\t%s\r\n", *result ? L"Yes" : L"No");
+	});
+
+	peer.IsUsingGlobalSharedSecret().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Global shared secret:\t\t%s\r\n\r\n", *result ? L"Yes" : L"No");
+	});
+
+	peer.GetConnectionType().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Connection type:\t\t%s\r\n",
+									*result == QuantumGate::Peer::ConnectionType::Inbound ? L"Inbound" : L"Outbound");
+	});
+
+	peer.GetLocalIPEndpoint().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Local endpoint:\t\t\t%s\r\n", result->GetString().c_str());
+	});
+
+	peer.GetPeerIPEndpoint().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Peer endpoint:\t\t\t%s\r\n", result->GetString().c_str());
+	});
+
+	peer.GetPeerProtocolVersion().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Peer protocol version:\t\t%u.%u\r\n", result->first, result->second);
+	});
+
+	peer.GetLocalSessionID().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Local session ID:\t\t%llu\r\n", *result);
+	});
+
+	peer.GetPeerSessionID().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Peer session ID:\t\t%llu\r\n", *result);
+	});
+
+	peer.GetConnectedTime().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Connected time:\t\t\t%llu seconds\r\n",
+									std::chrono::duration_cast<std::chrono::seconds>(*result).count());
+	});
+
+	peer.GetBytesReceived().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Bytes received:\t\t\t%zu\r\n", *result);
+	});
+
+	peer.GetBytesSent().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Bytes sent:\t\t\t%zu\r\n", *result);
+	});
+
+	peer.GetExtendersBytesReceived().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Extenders bytes received:\t%zu\r\n", *result);
+	});
+
+	peer.GetExtendersBytesSent().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Extenders bytes sent:\t\t%zu\r\n\r\n", *result);
+	});
+
+	LogInfo(pitxt.c_str());
+}
+
+void CTestAppDlgMainTab::OnNMRClickAllPeersList(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	CMenu menu;
 	if (menu.LoadMenu(IDR_POPUPS))
@@ -538,8 +628,8 @@ void CTestAppDlgMainTab::OnBnClickedCreateUuid()
 								   MB_ICONQUESTION | MB_YESNO);
 	if (ret == IDYES)
 	{
-		const auto[success, uuid, keys] = QuantumGate::UUID::Create(QuantumGate::UUID::Type::Peer,
-																	QuantumGate::UUID::SignAlgorithm::EDDSA_ED25519);
+		const auto [success, uuid, keys] = QuantumGate::UUID::Create(QuantumGate::UUID::Type::Peer,
+																	 QuantumGate::UUID::SignAlgorithm::EDDSA_ED25519);
 		if (success)
 		{
 			const auto privname = GetApp()->GetFolder() + L"private_" + uuid.GetString() + L".pem";
