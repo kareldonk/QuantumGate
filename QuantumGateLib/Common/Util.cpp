@@ -373,6 +373,11 @@ namespace QuantumGate::Implementation::Util
 		return Hash::GetNonPersistentHash(txt);
 	}
 
+	Export UInt64 GetNonPersistentHash(const BufferView& buffer) noexcept
+	{
+		return Hash::GetNonPersistentHash(buffer);
+	}
+
 	Export UInt64 GetPersistentHash(const String& txt) noexcept
 	{
 		return Hash::GetPersistentHash(txt);

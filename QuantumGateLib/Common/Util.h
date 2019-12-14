@@ -86,6 +86,7 @@ namespace QuantumGate::Implementation::Util
 	}
 
 	Export UInt64 GetNonPersistentHash(const String& txt) noexcept;
+	Export UInt64 GetNonPersistentHash(const BufferView& buffer) noexcept;
 	Export UInt64 GetPersistentHash(const String& txt) noexcept;
 
 	Export bool SetThreadName(HANDLE thread, const String& name) noexcept;
