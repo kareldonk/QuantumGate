@@ -128,7 +128,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		void Remove(const Containers::List<std::shared_ptr<Peer_ThS>>& peerlist) noexcept;
 		void RemoveAll() noexcept;
 
-		bool DirectConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept;
+		Result<PeerLUID> DirectConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept;
 
 		Result<std::pair<PeerLUID, bool>> RelayConnectTo(ConnectParameters&& params,
 														 ConnectCallback&& function) noexcept;

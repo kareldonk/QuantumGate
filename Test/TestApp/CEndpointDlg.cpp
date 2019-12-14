@@ -31,6 +31,8 @@ BOOL CEndpointDlg::OnInitDialog()
 	SetValue(IDC_IP, m_IPAddress.GetString());
 	SetValue(IDC_PORT, m_Port);
 	SetValue(IDC_HOPS, m_Hops);
+
+	if (m_ReuseConnection) ((CButton*)GetDlgItem(IDC_REUSE_CONNECTION))->SetCheck(BST_CHECKED);
 	if (m_RelayGatewayPeer) SetValue(IDC_RELAY_PEER, *m_RelayGatewayPeer);
 
 	if (m_ShowRelay)
@@ -54,6 +56,8 @@ void CEndpointDlg::OnBnClickedOk()
 
 		auto id = GetUInt64Value(IDC_RELAY_PEER);
 		if (id != 0) m_RelayGatewayPeer = id;
+
+		m_ReuseConnection = (((CButton*)GetDlgItem(IDC_REUSE_CONNECTION))->GetCheck() == BST_CHECKED);
 
 		CDialogBase::OnOK();
 	}

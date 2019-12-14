@@ -16,7 +16,7 @@ std::unique_ptr<Data_ThS> MakePeerData(const IPEndpoint& peer_endpoint, const Qu
 	peer_data->WithUniqueLock([&](Data& data)
 	{
 		data.Status = Status::Ready;
-		data.LUID = Core::Peer::Peer::MakeLUID(peer_endpoint);
+		data.LUID = Core::Peer::Peer::MakeLUID(peer_endpoint, 0);
 		data.Cached.PeerEndpoint = peer_endpoint;
 		data.PeerUUID = uuid;
 	});
@@ -33,7 +33,7 @@ std::unique_ptr<Data_ThS> MakePeerData(const IPEndpoint& peer_endpoint, const Qu
 	{
 		data.Status = Status::Ready;
 		data.Type = type;
-		data.LUID = Core::Peer::Peer::MakeLUID(peer_endpoint);
+		data.LUID = Core::Peer::Peer::MakeLUID(peer_endpoint, 0);
 		data.Cached.PeerEndpoint = peer_endpoint;
 		data.PeerUUID = uuid;
 		data.IsAuthenticated = authenticated;
@@ -124,14 +124,14 @@ namespace UnitTests
 			Assert::AreEqual(true, lum.IsEmpty());
 		}
 
-		TEST_METHOD(IPPortMap)
+		TEST_METHOD(IPEndpointMap)
 		{
 			LookupMaps lum;
 
 			const auto uuid1 = QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54");
 			const auto uuid2 = QuantumGate::UUID(L"e938194b-52c1-69d4-0b84-75d3d11dbfad");
 
-			const auto ep1 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.10"), 9000, 1000, 2), uuid1);
+			const auto ep1 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.10"), 9000, 1000, 3), uuid1);
 			const auto ep2 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.10"), 9000, 2000, 3), uuid1);
 			const auto ep3 = MakePeerData(IPEndpoint(IPAddress(L"192.168.10.11"), 8000, 1000, 2), uuid2);
 
@@ -139,20 +139,20 @@ namespace UnitTests
 			Assert::AreEqual(true, lum.AddPeerData(*ep2));
 			Assert::AreEqual(true, lum.AddPeerData(*ep3));
 
-			// Should have 2 IPPort combinations
-			Assert::AreEqual(true, lum.GetIPPortMap().size() == 2);
+			// Should have 2 IPEndpoint combinations
+			Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 2);
 
 			{
-				const auto it = lum.GetIPPortMap().find(lum.GetIPPortHash(ep1->WithSharedLock()->Cached.PeerEndpoint));
-				Assert::AreEqual(true, it != lum.GetIPPortMap().end());
+				const auto it = lum.GetIPEndpointMap().find(lum.GetIPEndpointHash(ep1->WithSharedLock()->Cached.PeerEndpoint));
+				Assert::AreEqual(true, it != lum.GetIPEndpointMap().end());
 
 				// Should have 2 LUIDs
 				Assert::AreEqual(true, it->second.size() == 2);
 			}
 
 			{
-				const auto it = lum.GetIPPortMap().find(lum.GetIPPortHash(ep3->WithSharedLock()->Cached.PeerEndpoint));
-				Assert::AreEqual(true, it != lum.GetIPPortMap().end());
+				const auto it = lum.GetIPEndpointMap().find(lum.GetIPEndpointHash(ep3->WithSharedLock()->Cached.PeerEndpoint));
+				Assert::AreEqual(true, it != lum.GetIPEndpointMap().end());
 
 				// Should have 1 LUID
 				Assert::AreEqual(true, it->second.size() == 1);
@@ -165,20 +165,20 @@ namespace UnitTests
 			{
 				Assert::AreEqual(true, lum.RemovePeerData(*ep1));
 
-				// Should still have 2 IPPort combinations
-				Assert::AreEqual(true, lum.GetIPPortMap().size() == 2);
+				// Should still have 2 IPEndpoint combinations
+				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 2);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep2));
 
-				// Should have 1 IPPort combination
-				Assert::AreEqual(true, lum.GetIPPortMap().size() == 1);
+				// Should have 1 IPEndpoint combination
+				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 1);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep3));
 
-				// Should have no IPPort combinations
-				Assert::AreEqual(true, lum.GetIPPortMap().empty());
+				// Should have no IPEndpoint combinations
+				Assert::AreEqual(true, lum.GetIPEndpointMap().empty());
 
-				// Removing nonexisting IPPort combination should fail
+				// Removing nonexisting IPEndpoint combination should fail
 				Assert::AreEqual(false, lum.RemovePeerData(*ep3));
 			}
 
@@ -232,12 +232,12 @@ namespace UnitTests
 				Assert::AreEqual(true, lum.RemovePeerData(*ep2));
 
 				// Should have 1 IP
-				Assert::AreEqual(true, lum.GetIPPortMap().size() == 1);
+				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 1);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep3));
 
 				// Should have no IPs
-				Assert::AreEqual(true, lum.GetIPPortMap().empty());
+				Assert::AreEqual(true, lum.GetIPEndpointMap().empty());
 
 				// Removing nonexisting IP should fail
 				Assert::AreEqual(false, lum.RemovePeerData(*ep3));

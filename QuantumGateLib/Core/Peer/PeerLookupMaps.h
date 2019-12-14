@@ -24,12 +24,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		using IPMap = Containers::UnorderedMap<BinaryIPAddress, LUIDVector>;
 
 		// One to many relationship between IP address and port and PeerLUID
-		using IPPortMap = Containers::UnorderedMap<UInt64, LUIDVector>;
+		using IPEndpointMap = Containers::UnorderedMap<UInt64, LUIDVector>;
 
 		inline const PeerDataMap& GetPeerDataMap() const noexcept { return m_PeerDataMap; }
 		inline const UUIDMap& GetUUIDMap() const noexcept { return m_UUIDMap; }
 		inline const IPMap& GetIPMap() const noexcept { return m_IPMap; }
-		inline const IPPortMap& GetIPPortMap() const noexcept { return m_IPPortMap; }
+		inline const IPEndpointMap& GetIPEndpointMap() const noexcept { return m_IPEndpointMap; }
 
 		[[nodiscard]] bool AddPeerData(const Data_ThS& data) noexcept;
 		[[nodiscard]] bool RemovePeerData(const Data_ThS& data) noexcept;
@@ -37,16 +37,18 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline bool IsEmpty() const noexcept
 		{
-			return (m_UUIDMap.empty() && m_IPMap.empty() && m_IPPortMap.empty() && m_PeerDataMap.empty());
+			return (m_UUIDMap.empty() && m_IPMap.empty() && m_IPEndpointMap.empty() && m_PeerDataMap.empty());
 		}
 
 		inline void Clear() noexcept
 		{
 			m_UUIDMap.clear();
 			m_IPMap.clear();
-			m_IPPortMap.clear();
+			m_IPEndpointMap.clear();
 			m_PeerDataMap.clear();
 		}
+
+		Result<PeerLUID> GetPeer(const IPEndpoint& endpoint) const noexcept;
 
 		Result<PeerLUID> GetRandomPeer(const Vector<PeerLUID>& excl_pluids,
 									   const Vector<BinaryIPAddress>& excl_addr1,
@@ -57,10 +59,10 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<API::Peer::Details> GetPeerDetails(const PeerLUID pluid) const noexcept;
 
-		static UInt64 GetIPPortHash(const IPEndpoint& endpoint) noexcept;
+		static UInt64 GetIPEndpointHash(const IPEndpoint& endpoint) noexcept;
 
 		[[nodiscard]] static bool HasLUID(const PeerLUID pluid, const Vector<PeerLUID>& pluids) noexcept;
-		[[nodiscard]] static bool HasIPPort(const UInt64 hash, const Vector<IPEndpoint>& endpoints) noexcept;
+		[[nodiscard]] static bool HasIPEndpoint(const UInt64 hash, const Vector<IPEndpoint>& endpoints) noexcept;
 		[[nodiscard]] static bool HasIP(const BinaryIPAddress& ip, const Vector<BinaryIPAddress>& addresses) noexcept;
 
 		static Result<bool> AreIPsInSameNetwork(const BinaryIPAddress& ip, const Vector<BinaryIPAddress>& addresses,
@@ -88,7 +90,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	private:
 		UUIDMap m_UUIDMap;
 		IPMap m_IPMap;
-		IPPortMap m_IPPortMap;
+		IPEndpointMap m_IPEndpointMap;
 		PeerDataMap m_PeerDataMap;
 	};
 

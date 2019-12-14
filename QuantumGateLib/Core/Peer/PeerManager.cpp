@@ -679,58 +679,78 @@ namespace QuantumGate::Implementation::Core::Peer
 		if (const auto allowed = m_AccessManager.IsIPConnectionAllowed(params.PeerIPEndpoint.GetIPAddress(),
 																	   Access::CheckType::All); allowed && *allowed)
 		{
-			if (params.Relay.Hops == 0)
+			auto reused = false;
+			PeerLUID pluid{ 0 };
+			std::shared_ptr<Peer_ThS> peerths{ nullptr };
+
+			if (params.ReuseExistingConnection)
 			{
-				auto reused = false;
-				PeerLUID pluid{ 0 };
+				const auto cendpoint = std::invoke([&]()
+				{
+					if (params.Relay.Hops == 0)
+					{
+						return IPEndpoint(params.PeerIPEndpoint.GetIPAddress(), params.PeerIPEndpoint.GetPort());
+					}
+					else
+					{
+						return IPEndpoint(params.PeerIPEndpoint.GetIPAddress(), params.PeerIPEndpoint.GetPort(),
+										  0, params.Relay.Hops);
+					}
+				});
 
-				auto peerths = Get(Peer::MakeLUID(params.PeerIPEndpoint));
+				// Do we have an existing connection to the endpoint?
+				if (const auto result = m_LookupMaps.WithSharedLock()->GetPeer(cendpoint); result.Succeeded())
+				{
+					peerths = Get(*result);
+				}
+			}
 
-				// If not yet connected, make new connection,
-				// otherwise reuse existing connection
-				if (peerths == nullptr)
+			// If there's no existing connection make new one,
+			// otherwise try to reuse existing connection
+			if (peerths == nullptr)
+			{
+				if (params.Relay.Hops == 0)
 				{
 					LogInfo(L"Connecting to peer %s", params.PeerIPEndpoint.GetString().c_str());
 
-					pluid = Peer::MakeLUID(params.PeerIPEndpoint);
-
-					if (DirectConnectTo(std::move(params), std::move(function)))
+					if (const auto result = DirectConnectTo(std::move(params), std::move(function)); result.Succeeded())
 					{
 						result_code = ResultCode::Succeeded;
+						pluid = *result;
 					}
 				}
 				else
 				{
-					peerths->WithUniqueLock([&](Peer& peer) noexcept
-					{
-						if ((peer.GetIOStatus().IsConnecting() || peer.GetIOStatus().IsConnected()) &&
-							!peer.GetIOStatus().HasException())
-						{
-							LogDbg(L"Reusing existing connection to peer %s", peer.GetPeerName().c_str());
+					LogInfo(L"Connecting to peer %s (Relayed)", params.PeerIPEndpoint.GetString().c_str());
 
-							result_code = ResultCode::Succeeded;
-							pluid = peer.GetLUID();
-							reused = true;
-						}
-						else
-						{
-							LogErr(L"Error on existing connection to peer %s; retry connecting", peer.GetPeerName().c_str());
-
-							// Set the disconnect condition so that the peer gets disconnected as soon as possible
-							peer.SetDisconnectCondition(DisconnectCondition::ConnectError);
-							result_code = ResultCode::FailedRetry;
-						}
-					});
+					return RelayConnectTo(std::move(params), std::move(function));
 				}
-
-				if (result_code == ResultCode::Succeeded) return { std::make_pair(pluid, reused) };
 			}
 			else
 			{
-				LogInfo(L"Connecting to peer %s (Relayed)", params.PeerIPEndpoint.GetString().c_str());
+				peerths->WithUniqueLock([&](Peer& peer) noexcept
+				{
+					if ((peer.GetIOStatus().IsConnecting() || peer.GetIOStatus().IsConnected()) &&
+						!peer.GetIOStatus().HasException())
+					{
+						LogDbg(L"Reusing existing connection to peer %s", peer.GetPeerName().c_str());
 
-				return RelayConnectTo(std::move(params), std::move(function));
+						result_code = ResultCode::Succeeded;
+						pluid = peer.GetLUID();
+						reused = true;
+					}
+					else
+					{
+						LogErr(L"Error on existing connection to peer %s; retry connecting", peer.GetPeerName().c_str());
+
+						// Set the disconnect condition so that the peer gets disconnected as soon as possible
+						peer.SetDisconnectCondition(DisconnectCondition::ConnectError);
+						result_code = ResultCode::FailedRetry;
+					}
+				});
 			}
+
+			if (result_code == ResultCode::Succeeded) return { std::make_pair(pluid, reused) };
 		}
 		else
 		{
@@ -741,9 +761,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result_code;
 	}
 
-	bool Manager::DirectConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept
+	Result<PeerLUID> Manager::DirectConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept
 	{
-		auto success = false;
+		std::optional<PeerLUID> pluid;
 
 		auto peerths = Create(params.PeerIPEndpoint.GetIPAddress().GetFamily(), Socket::Type::Stream,
 							  IP::Protocol::TCP, PeerConnectionType::Outbound,
@@ -758,27 +778,27 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					if (Add(peerths))
 					{
-						success = true;
+						pluid = peer.GetLUID();
 					}
 					else peer.Close();
 				}
 			});
 		}
 
-		if (!success)
+		if (!pluid)
 		{
 			LogErr(L"Could not create connection to peer %s", params.PeerIPEndpoint.GetString().c_str());
+			return ResultCode::Failed;
 		}
 
-		return success;
+		return *pluid;
 	}
 
-	Result<std::pair<PeerLUID, bool>> Manager::RelayConnectTo(ConnectParameters&& params,
-															  ConnectCallback&& function) noexcept
+	Result<std::pair<PeerLUID, bool>> Manager::RelayConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept
 	{
 		assert(params.Relay.Hops > 0);
 
-		auto reused = false;
+		const auto reused = false;
 		PeerLUID pluid{ 0 };
 		auto result_code = ResultCode::Failed;
 		String error_details;
@@ -796,8 +816,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					if (excl_addr != nullptr)
 					{
 						// Don't include addresses/network of local instance
-						const auto result = AreRelayIPsInSameNetwork(params.PeerIPEndpoint.GetIPAddress().GetBinary(),
-																	 *excl_addr);
+						const auto result = AreRelayIPsInSameNetwork(params.PeerIPEndpoint.GetIPAddress().GetBinary(), *excl_addr);
 						if (result.Succeeded())
 						{
 							if (!result.GetValue())

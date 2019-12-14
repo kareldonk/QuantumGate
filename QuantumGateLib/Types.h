@@ -244,6 +244,7 @@ namespace QuantumGate
 	{
 		IPEndpoint PeerIPEndpoint;							// The address of the peer
 		std::optional<ProtectedBuffer> GlobalSharedSecret;	// Global shared secret to use for this connection
+		bool ReuseExistingConnection{ true };				// Whether or not an already existing connection to the peer is allowed to be reused
 
 		struct
 		{

@@ -1322,16 +1322,33 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			if (peer_data.LUID == 0)
 			{
-				peer_data.LUID = MakeLUID(GetPeerEndpoint());
+				peer_data.LUID = MakeLUID(GetPeerEndpoint(), reinterpret_cast<std::uintptr_t>(this));
 			}
 		});
 	}
 
-	PeerLUID Peer::MakeLUID(const IPEndpoint& endpoint) noexcept
+	PeerLUID Peer::MakeLUID(const IPEndpoint& endpoint, const UInt64 unique_data) noexcept
 	{
-		assert(!endpoint.GetString().empty());
+		assert(endpoint != IPEndpoint());
 
-		return Util::GetNonPersistentHash(endpoint.GetString());
+		struct HashData final
+		{
+			BinaryIPAddress IP;
+			RelayPort RelayPort{ 0 };
+			UInt64 UniqueData{ 0 };
+			UInt16 Port{ 0 };
+			RelayHop RelayHop{ 0 };
+		};
+
+		HashData data;
+		MemInit(&data, sizeof(data)); // Needed to zero out padding bytes for consistent hash
+		data.IP = endpoint.GetIPAddress().GetBinary();
+		data.Port = endpoint.GetPort();
+		data.RelayPort = endpoint.GetRelayPort();
+		data.RelayHop = endpoint.GetRelayHop();
+		data.UniqueData = unique_data;
+
+		return Util::GetNonPersistentHash(BufferView(reinterpret_cast<const Byte*>(&data), sizeof(data)));
 	}
 
 	void Peer::OnConnecting() noexcept

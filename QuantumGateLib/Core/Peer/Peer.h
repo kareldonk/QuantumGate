@@ -79,7 +79,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			return m_PeerData.WithSharedLock()->LUID;
 		}
 
-		static PeerLUID MakeLUID(const IPEndpoint& endpoint) noexcept;
+		static PeerLUID MakeLUID(const IPEndpoint& endpoint, const UInt64 unique_data) noexcept;
 
 		inline PeerConnectionType GetConnectionType() const noexcept { return m_PeerData.WithSharedLock()->Type; }
 
