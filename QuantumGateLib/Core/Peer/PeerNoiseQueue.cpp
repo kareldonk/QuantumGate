@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	bool NoiseQueue::QueueNoise(const Settings & settings, const bool inhandshake) noexcept
+	bool NoiseQueue::QueueNoise(const Settings& settings, const bool inhandshake) noexcept
 	{
 		try
 		{
