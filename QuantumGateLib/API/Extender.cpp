@@ -78,9 +78,9 @@ namespace QuantumGate::API
 		return m_Extender->SendMessageTo(peer, std::move(buffer), params);
 	}
 
-	Size Extender::GetMaximumMessageDataSize() const noexcept
+	Size Extender::GetMaximumMessageDataSize() noexcept
 	{
-		return m_Extender->GetMaximumMessageDataSize();
+		return QuantumGate::Implementation::Core::Extender::Extender::GetMaximumMessageDataSize();
 	}
 
 	Result<std::tuple<UInt, UInt, UInt, UInt>> Extender::GetLocalVersion() const noexcept

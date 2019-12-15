@@ -55,7 +55,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		Result<> SendMessageTo(API::Peer& peer, Buffer&& buffer, const bool compress) const noexcept;
 		Result<> SendMessageTo(API::Peer& peer, Buffer&& buffer, const SendParameters& params) const noexcept;
 
-		inline Size GetMaximumMessageDataSize() const noexcept { return Message::MaxMessageDataSize; }
+		inline static Size GetMaximumMessageDataSize() noexcept { return Message::MaxMessageDataSize; }
 
 		Result<API::Peer> GetPeer(const PeerLUID pluid) const noexcept;
 
