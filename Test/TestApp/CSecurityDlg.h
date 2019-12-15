@@ -9,6 +9,15 @@ using namespace QuantumGate;
 
 class CSecurityDlg final : public CDialogBase
 {
+	struct NoiseBasedOnBandwidth
+	{
+		bool Use{ false };
+		bool Saturate{ false };
+		std::chrono::seconds TimeInterval{ 60 };
+		Size MinimumBandwidth{ 100'000 };
+		Size MaximumBandwidth{ 1'000'000 };
+	};
+
 public:
 	CSecurityDlg(CWnd* pParent = NULL);
 	virtual ~CSecurityDlg();
@@ -24,8 +33,19 @@ protected:
 	DECLARE_MESSAGE_MAP()
 	
 	afx_msg void OnBnClickedOk();
+	afx_msg void OnBnClickedNoiseAutoUse();
+	afx_msg void OnEnChangeNoiseAutoSeconds();
+	afx_msg void OnEnChangeNoiseAutoMinBandwidth();
+	afx_msg void OnEnChangeNoiseAutoMaxBandwidth();
+	afx_msg void OnBnClickedNoiseAutoSaturate();
+
+private:
+	void UpdateNoiseControls() noexcept;
+	void CalculateNoiseSettings() noexcept;
 
 private:
 	QuantumGate::Local* m_QuantumGate{ nullptr };
+
+	inline static NoiseBasedOnBandwidth m_NoiseBasedOnBandwidth;
 };
 
