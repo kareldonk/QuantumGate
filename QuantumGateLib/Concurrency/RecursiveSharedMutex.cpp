@@ -131,20 +131,11 @@ namespace QuantumGate::Implementation::Concurrency
 	template<typename Func>
 	void RecursiveSharedMutex::Wait(std::unique_lock<SpinMutex>& lock, Func&& func) noexcept
 	{
-		auto count = 0u;
-
 		while (func() == false)
 		{
 			lock.unlock();
 
 			std::this_thread::yield();
-
-			++count;
-			if (count > 10)
-			{
-				count = 0;
-				std::this_thread::sleep_for(1ms);
-			}
 
 			lock.lock();
 		}
