@@ -46,6 +46,7 @@ private:
 private:
 	QuantumGate::Local* m_QuantumGate{ nullptr };
 
+	bool m_CanCalculateNoiseSettings{ false };
 	inline static NoiseBasedOnBandwidth m_NoiseBasedOnBandwidth;
 };
 

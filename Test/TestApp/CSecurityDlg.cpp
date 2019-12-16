@@ -77,6 +77,8 @@ BOOL CSecurityDlg::OnInitDialog()
 
 	UpdateNoiseControls();
 
+	m_CanCalculateNoiseSettings = true;
+
 	return TRUE;
 }
 
@@ -155,7 +157,7 @@ void CSecurityDlg::UpdateNoiseControls() noexcept
 
 void CSecurityDlg::CalculateNoiseSettings() noexcept
 {
-	if (((CButton*)GetDlgItem(IDC_NOISE_AUTO_USE))->GetCheck() == BST_CHECKED)
+	if (m_CanCalculateNoiseSettings && ((CButton*)GetDlgItem(IDC_NOISE_AUTO_USE))->GetCheck() == BST_CHECKED)
 	{
 		Size minmsgsize{ 0 };
 		Size maxmsgsize{ 16384 };
