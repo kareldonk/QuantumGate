@@ -363,11 +363,13 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		if (ShouldDisconnect()) return false;
 
+		const auto& settings = GetSettings();
+
 		// First we check if we have data waiting to be received;
 		// if so receive and process any received messages
 		if (HasReceiveEvents())
 		{
-			if (ReceiveAndProcess())
+			if (ReceiveAndProcess(settings))
 			{
 				m_PeerData.WithUniqueLock()->Cached.BytesReceived = GetBytesReceived();
 			}
@@ -381,7 +383,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		// Prepare and add noise messages to the send queue
 		if (!m_NoiseQueue.IsEmpty())
 		{
-			if (!SendFromNoiseQueue())
+			if (!SendFromNoiseQueue(settings))
 			{
 				SetDisconnectCondition(DisconnectCondition::SendError);
 				return false;
@@ -407,7 +409,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		// messages above
 		if (HasSendEvents())
 		{
-			if (SendFromQueues())
+			if (SendFromQueues(settings))
 			{
 				m_PeerData.WithUniqueLock()->Cached.BytesSent = GetBytesSent();
 			}
@@ -717,16 +719,26 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::Succeeded;
 	}
 
-	bool Peer::SendFromNoiseQueue() noexcept
+	bool Peer::SendFromNoiseQueue(const Settings& settings) noexcept
 	{
+		Size num{ 0 };
+
 		// Send queued noise as long as we have items
 		auto noiseitm = m_NoiseQueue.GetQueuedNoise();
-
 		while (noiseitm)
 		{
+			++num;
+
 			if (const auto result = SendNoise(noiseitm->MinSize, noiseitm->MaxSize); result.Succeeded())
 			{
-				noiseitm = m_NoiseQueue.GetQueuedNoise();
+				// Check if the processing limit has been reached; in that case break
+				// so that we'll return to continue processing later. This prevents 
+				// this peer from hoarding all the processing capacity.
+				if (num < settings.Local.Concurrency.WorkerThreadsMaxBurst)
+				{
+					noiseitm = m_NoiseQueue.GetQueuedNoise();
+				}
+				else break;
 			}
 			else
 			{
@@ -832,7 +844,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return Send(msgtype, std::move(buffer), SendParameters::PriorityOption::Delayed, delay);
 	}
 
-	bool Peer::SendFromQueues()
+	bool Peer::SendFromQueues(const Settings& settings)
 	{
 		// If the send buffer isn't empty yet
 		if (!m_SendBuffer.IsEmpty())
@@ -850,9 +862,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		// If the send buffer is empty get more messages from the send queues
-		const auto& settings = GetSettings();
-		Size num{ 0 };
 
+		Size num{ 0 };
 		Buffer sndbuf;
 
 		while (m_SendQueues.HaveMessages())
@@ -945,7 +956,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	bool Peer::ReceiveAndProcess()
+	bool Peer::ReceiveAndProcess(const Settings& settings)
 	{
 		auto success = true;
 
@@ -968,9 +979,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		if (msgchk == MessageTransportCheck::CompleteMessage)
 		{
-			const auto& settings = GetSettings();
 			Size num{ 0 };
-
 			Buffer msgbuf;
 
 			// Get as many completed messages from the receive buffer

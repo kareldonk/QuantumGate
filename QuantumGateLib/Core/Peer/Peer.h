@@ -210,7 +210,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] bool OnStatusChange(const Status old_status, const Status new_status);
 
-		[[nodiscard]] bool SendFromNoiseQueue() noexcept;
+		[[nodiscard]] bool SendFromNoiseQueue(const Settings& settings) noexcept;
 
 		void EnableSend() noexcept;
 		void DisableSend() noexcept;
@@ -231,9 +231,9 @@ namespace QuantumGate::Implementation::Core::Peer
 				(m_SendBuffer.IsEventSet() || m_SendQueues.HaveMessages()));
 		}
 
-		[[nodiscard]] bool SendFromQueues();
+		[[nodiscard]] bool SendFromQueues(const Settings& settings);
 
-		[[nodiscard]] bool ReceiveAndProcess();
+		[[nodiscard]] bool ReceiveAndProcess(const Settings& settings);
 		[[nodiscard]] std::tuple<bool, Size, UInt16> ProcessMessage(const BufferView msgbuf,
 																	const Settings& settings);
 		[[nodiscard]] std::pair<bool, Size> ProcessMessages(BufferView buffer,
