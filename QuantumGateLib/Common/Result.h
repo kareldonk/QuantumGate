@@ -111,10 +111,26 @@ namespace QuantumGate::Implementation
 			m_ErrorCode(static_cast<E>(0)), m_Value(std::forward<T>(value)) {}
 
 		ResultImpl(const ResultImpl&) = delete;
-		ResultImpl(ResultImpl&&) noexcept = default;
+
+		ResultImpl(ResultImpl&& other) noexcept(std::is_nothrow_move_constructible_v<std::optional<T>>) :
+			m_ErrorCode(std::move(other.m_ErrorCode)), m_Value(std::move(other.m_Value))
+		{
+			other.m_ErrorCode = DefaultErrorCode;
+		}
+
 		~ResultImpl() = default;
+
 		ResultImpl& operator=(const ResultImpl&) = delete;
-		ResultImpl& operator=(ResultImpl&&) noexcept = default;
+
+		ResultImpl& operator=(ResultImpl&& other) noexcept(std::is_nothrow_move_assignable_v<std::optional<T>>)
+		{
+			m_ErrorCode = std::move(other.m_ErrorCode);
+			m_Value = std::move(other.m_Value);
+			
+			other.m_ErrorCode = DefaultErrorCode;
+
+			return *this;
+		}
 
 		inline explicit operator bool() const noexcept
 		{

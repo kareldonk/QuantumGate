@@ -66,11 +66,13 @@ namespace UnitTests
 
 				// Result with value cannot be constructed with success code without a value
 				{
-					Assert::ExpectException<std::invalid_argument>([] {
+					Assert::ExpectException<std::invalid_argument>([]
+					{
 						Result<int> result3{ ResultCode::Succeeded };
 					});
 
-					Assert::ExpectException<std::invalid_argument>([] {
+					Assert::ExpectException<std::invalid_argument>([]
+					{
 						Result<int> result3{ std::error_code(0, std::system_category()) };
 					});
 				}
@@ -109,7 +111,7 @@ namespace UnitTests
 			{
 				Result<int> result{ 2 };
 				Result<int> result1{ ResultCode::Failed };
-				
+
 				Assert::AreEqual(false, result1.Succeeded());
 				Assert::AreEqual(false, result1.operator bool());
 				Assert::AreEqual(true, result1.Failed());
@@ -251,6 +253,79 @@ namespace UnitTests
 				});
 
 				Assert::AreEqual(true, x == 5);
+			}
+		}
+
+		TEST_METHOD(ConstructionAssignmentExceptions)
+		{
+			{
+				static_assert(std::is_nothrow_constructible_v<Result<>>, "Should be no throw constructible.");
+				static_assert(noexcept(Result<>{ ResultCode::Failed }), "Should be no throw constructible.");
+
+				Result<> result;
+				Result<> result2;
+				static_assert(noexcept(result = Result<>{}), "Should be no throw assignable.");
+				static_assert(noexcept(result = std::move(result2)), "Should be no throw assignable.");
+			}
+
+			{
+				static_assert(std::is_nothrow_constructible_v<Result<int>>, "Should be no throw constructible.");
+				static_assert(!noexcept(Result<int>{ ResultCode::Failed }), "Should not be no throw constructible.");
+
+				Result<int> result;
+				Result<int> result2;
+				static_assert(noexcept(result = Result<int>{}), "Should be no throw assignable.");
+				static_assert(noexcept(result = std::move(result2)), "Should be no throw assignable.");
+			}
+
+			{
+				struct ExceptTest
+				{
+					ExceptTest() {};
+					ExceptTest(const ExceptTest&) {}
+					ExceptTest(ExceptTest&&) {}
+					~ExceptTest() {}
+					ExceptTest& operator=(const ExceptTest&) { return *this; }
+					ExceptTest& operator=(ExceptTest&&) { return *this; }
+				};
+
+				static_assert(std::is_nothrow_constructible_v<Result<ExceptTest>>, "Should be no throw constructible.");
+				static_assert(!noexcept(Result<ExceptTest>{ ResultCode::Failed }), "Should not be no throw constructible.");
+
+				ExceptTest etest;
+				static_assert(!noexcept(Result<ExceptTest>(etest)), "Should not be no throw constructible.");
+				static_assert(!noexcept(Result<ExceptTest>{ std::move(etest) }), "Should not be no throw constructible.");
+				static_assert(!noexcept(Result<ExceptTest>{ ExceptTest{} }), "Should not be no throw constructible.");
+
+				Result<ExceptTest> eresult;
+				Result<ExceptTest> eresult2;
+				static_assert(!noexcept(eresult = Result<ExceptTest>{}), "Should not be no throw assignable.");
+				static_assert(!noexcept(eresult = std::move(eresult2)), "Should not be no throw assignable.");
+			}
+
+			{
+				struct NoExceptTest
+				{
+					NoExceptTest() noexcept {};
+					NoExceptTest(const NoExceptTest&) noexcept {}
+					NoExceptTest(NoExceptTest&&) noexcept {}
+					~NoExceptTest() {}
+					NoExceptTest& operator=(const NoExceptTest&) noexcept { return *this; }
+					NoExceptTest& operator=(NoExceptTest&&) noexcept { return *this; }
+				};
+
+				static_assert(std::is_nothrow_constructible_v<Result<NoExceptTest>>, "Should be no throw constructible.");
+				static_assert(!noexcept(Result<NoExceptTest>{ ResultCode::Failed }), "Should not be no throw constructible.");
+
+				NoExceptTest netest;
+				static_assert(noexcept(Result<NoExceptTest>(netest)), "Should be no throw constructible.");
+				static_assert(noexcept(Result<NoExceptTest>{ std::move(netest) }), "Should be no throw constructible.");
+				static_assert(noexcept(Result<NoExceptTest>{ NoExceptTest() }), "Should be no throw constructible.");
+
+				Result<NoExceptTest> result;
+				Result<NoExceptTest> result2;
+				static_assert(noexcept(result = Result<NoExceptTest>{}), "Should be no throw assignable.");
+				static_assert(noexcept(result = std::move(result2)), "Should be no throw assignable.");
 			}
 		}
 	};
