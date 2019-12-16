@@ -678,34 +678,71 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	Result<> Peer::SendNoise(const Size minsize, const Size maxsize, const std::chrono::milliseconds delay)
+	Result<> Peer::SendNoise(const Size minsize, const Size maxsize, const std::chrono::milliseconds delay) noexcept
 	{
-		const auto datasize = std::abs(Random::GetPseudoRandomNumber(minsize, maxsize));
-		auto data = Random::GetPseudoRandomBytes(static_cast<Size>(datasize));
+		try
+		{
+			const auto data_size = static_cast<Size>(std::abs(Random::GetPseudoRandomNumber(minsize, maxsize)));
 
-		Dbg(L"Sending %u byte noise message to peer %s", datasize, GetPeerName().c_str());
+			if (m_SendQueues.GetAvailableNoiseDataSize() >= data_size)
+			{
+				auto data = Random::GetPseudoRandomBytes(data_size);
 
-		// Note that noise messages don't get compressed because the data
-		// is random and doesn't get any smaller with compression; in addition
-		// their length shouldn't be changed anyway
-		return Send(MessageType::Noise, std::move(data), SendParameters::PriorityOption::Delayed, delay, false);
+				Dbg(L"Sending %u byte noise message to peer %s", data_size, GetPeerName().c_str());
+
+				// Note that noise messages don't get compressed because the data
+				// is random and doesn't get any smaller with compression; in addition
+				// their length shouldn't be changed anyway
+				return Send(MessageType::Noise, std::move(data), SendParameters::PriorityOption::Delayed, delay, false);
+			}
+			else return ResultCode::PeerSendBufferFull;
+		}
+		catch (...) {}
+
+		return ResultCode::OutOfMemory;
 	}
 
-	Result<> Peer::SendNoise(const Size maxnum, const Size minsize, const Size maxsize)
+	Result<> Peer::SendNoise(const Size maxnum, const Size minsize, const Size maxsize) noexcept
 	{
-		auto success = true;
 		const auto max = static_cast<Size>(Random::GetPseudoRandomNumber(0, maxnum));
 
-		for (Size x = 0; x < max; ++x)
+		for (Size x = 0u; x < max; ++x)
 		{
-			auto result = SendNoise(minsize, maxsize);
-			if (result.Failed())
+			if (auto result = SendNoise(minsize, maxsize); result.Failed())
 			{
 				return result;
 			}
 		}
 
 		return ResultCode::Succeeded;
+	}
+
+	bool Peer::SendFromNoiseQueue() noexcept
+	{
+		// Send queued noise as long as we have items
+		auto noiseitm = m_NoiseQueue.GetQueuedNoise();
+
+		while (noiseitm)
+		{
+			if (const auto result = SendNoise(noiseitm->MinSize, noiseitm->MaxSize); result.Succeeded())
+			{
+				noiseitm = m_NoiseQueue.GetQueuedNoise();
+			}
+			else
+			{
+				// If send buffer is full we may have too much noise queued up;
+				// this can occur, for example, when the upload bandwidth is
+				// completely maxed out; this is not a fatal error
+				if (result == ResultCode::PeerSendBufferFull)
+				{
+					LogDbg(L"Failed to send noise message to peer %s; send buffer is full", GetPeerName().c_str());
+					break;
+				}
+				else return false;
+			}
+		}
+
+		return true;
 	}
 
 	Result<> Peer::Send(Message&& msg, const SendParameters::PriorityOption priority,
@@ -1251,23 +1288,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		return false;
-	}
-
-	bool Peer::SendFromNoiseQueue()
-	{
-		// Send queued noise as long as we have items
-		auto noiseitm = m_NoiseQueue.GetQueuedNoise();
-
-		while (noiseitm)
-		{
-			if (SendNoise(noiseitm->MinSize, noiseitm->MaxSize))
-			{
-				noiseitm = m_NoiseQueue.GetQueuedNoise();
-			}
-			else return false;
-		}
-
-		return true;
 	}
 
 	bool Peer::CheckAndProcessKeyUpdate() noexcept

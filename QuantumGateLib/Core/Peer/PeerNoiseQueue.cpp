@@ -55,7 +55,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	const std::optional<NoiseItem> NoiseQueue::GetQueuedNoise() noexcept
+	std::optional<NoiseItem> NoiseQueue::GetQueuedNoise() noexcept
 	{
 		if (!m_NoiseQueue.Empty())
 		{

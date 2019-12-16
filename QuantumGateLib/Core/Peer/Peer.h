@@ -210,15 +210,15 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] bool OnStatusChange(const Status old_status, const Status new_status);
 
-		[[nodiscard]] bool SendFromNoiseQueue();
+		[[nodiscard]] bool SendFromNoiseQueue() noexcept;
 
 		void EnableSend() noexcept;
 		void DisableSend() noexcept;
 		void DisableSend(const std::chrono::milliseconds duration) noexcept;
 
 		[[nodiscard]] Result<> SendNoise(const Size minsize, const Size maxsize,
-										 const std::chrono::milliseconds delay = std::chrono::milliseconds(0));
-		[[nodiscard]] Result<> SendNoise(const Size maxnum, const Size minsize, const Size maxsize);
+										 const std::chrono::milliseconds delay = std::chrono::milliseconds(0)) noexcept;
+		[[nodiscard]] Result<> SendNoise(const Size maxnum, const Size minsize, const Size maxsize) noexcept;
 
 		[[nodiscard]] inline bool HasReceiveEvents() noexcept
 		{

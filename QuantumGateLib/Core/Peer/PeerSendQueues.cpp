@@ -9,13 +9,33 @@ namespace QuantumGate::Implementation::Core::Peer
 	Result<> PeerSendQueues::AddMessage(Message&& msg, const SendParameters::PriorityOption priority,
 										const std::chrono::milliseconds delay) noexcept
 	{
-		Size msg_size{ 0 };
-
-		if (msg.GetMessageType() == MessageType::ExtenderCommunication)
+		switch (msg.GetMessageType())
 		{
-			msg_size = msg.GetMessageData().GetSize();
+			case MessageType::ExtenderCommunication:
+				return AddMessageImpl<MessageType::ExtenderCommunication>(std::move(msg), priority, delay);
+			case MessageType::Noise:
+				return AddMessageImpl<MessageType::Noise>(std::move(msg), priority, delay);
+			default:
+				return AddMessageImpl<MessageType::Unknown>(std::move(msg), priority, delay);
+		}
+	}
 
-			if (m_QueuedExtenderCommunicationDataSize + msg_size > MaxQueuedExtenderCommunicationDataSize)
+	template<MessageType MsgType>
+	Result<> PeerSendQueues::AddMessageImpl(Message&& msg, const SendParameters::PriorityOption priority,
+											const std::chrono::milliseconds delay) noexcept
+	{
+		const auto msg_size = msg.GetMessageData().GetSize();
+
+		if constexpr (MsgType == MessageType::ExtenderCommunication)
+		{
+			if (m_RateLimits.CurrentExtenderCommunicationDataSize + msg_size > RateLimits::MaxExtenderCommunicationDataSize)
+			{
+				return ResultCode::PeerSendBufferFull;
+			}
+		}
+		else if constexpr (MsgType == MessageType::Noise)
+		{
+			if (m_RateLimits.CurrentNoiseDataSize + msg_size > RateLimits::MaxNoiseDataSize)
 			{
 				return ResultCode::PeerSendBufferFull;
 			}
@@ -40,7 +60,14 @@ namespace QuantumGate::Implementation::Core::Peer
 					break;
 			}
 
-			m_QueuedExtenderCommunicationDataSize += msg_size;
+			if constexpr (MsgType == MessageType::ExtenderCommunication)
+			{
+				m_RateLimits.CurrentExtenderCommunicationDataSize += msg_size;
+			}
+			else if constexpr (MsgType == MessageType::Noise)
+			{
+				m_RateLimits.CurrentNoiseDataSize += msg_size;
+			}
 		}
 		catch (...)
 		{
@@ -54,26 +81,35 @@ namespace QuantumGate::Implementation::Core::Peer
 	template<typename T>
 	void PeerSendQueues::RemoveMessage(T& queue) noexcept
 	{
-		if constexpr (std::is_same_v<T, MessageQueue>)
+		const auto& [message_type, data_size] = std::invoke([&]()
 		{
-			if (queue.Front().GetMessageType() == MessageType::ExtenderCommunication)
+			if constexpr (std::is_same_v<T, MessageQueue>)
 			{
-				m_QueuedExtenderCommunicationDataSize -= queue.Front().GetMessageData().GetSize();
+				return std::make_pair(queue.Front().GetMessageType(), queue.Front().GetMessageData().GetSize());
 			}
-		}
-		else if constexpr (std::is_same_v<T, DelayedMessageQueue>)
-		{
-			if (queue.Front().Message.GetMessageType() == MessageType::ExtenderCommunication)
+			else if constexpr (std::is_same_v<T, DelayedMessageQueue>)
 			{
-				m_QueuedExtenderCommunicationDataSize -= queue.Front().Message.GetMessageData().GetSize();
+				return std::make_pair(queue.Front().Message.GetMessageType(), queue.Front().Message.GetMessageData().GetSize());
 			}
-		}
-		else
-		{
-			static_assert(false, "No match for queue type.");
-		}
+			else
+			{
+				static_assert(false, "No match for queue type.");
+			}
+		});
 
 		queue.Pop();
+
+		switch (message_type)
+		{
+			case MessageType::ExtenderCommunication:
+				m_RateLimits.CurrentExtenderCommunicationDataSize -= data_size;
+				break;
+			case MessageType::Noise:
+				m_RateLimits.CurrentNoiseDataSize -= data_size;
+				break;
+			default:
+				break;
+		}
 	}
 
 	std::pair<bool, Size> PeerSendQueues::GetMessages(Buffer& buffer, const Crypto::SymmetricKeyData& symkey,
