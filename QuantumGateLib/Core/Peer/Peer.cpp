@@ -686,7 +686,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			const auto data_size = static_cast<Size>(std::abs(Random::GetPseudoRandomNumber(minsize, maxsize)));
 
-			if (m_SendQueues.GetAvailableNoiseDataSize() >= data_size)
+			if (m_SendQueues.GetAvailableNoiseSendBufferSize() >= data_size)
 			{
 				auto data = Random::GetPseudoRandomBytes(data_size);
 

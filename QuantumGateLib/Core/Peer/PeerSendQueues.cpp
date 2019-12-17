@@ -15,6 +15,8 @@ namespace QuantumGate::Implementation::Core::Peer
 				return AddMessageImpl<MessageType::ExtenderCommunication>(std::move(msg), priority, delay);
 			case MessageType::Noise:
 				return AddMessageImpl<MessageType::Noise>(std::move(msg), priority, delay);
+			case MessageType::RelayData:
+				return AddMessageImpl<MessageType::RelayData>(std::move(msg), priority, delay);
 			default:
 				return AddMessageImpl<MessageType::Unknown>(std::move(msg), priority, delay);
 		}
@@ -28,14 +30,21 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		if constexpr (MsgType == MessageType::ExtenderCommunication)
 		{
-			if (m_RateLimits.CurrentExtenderCommunicationDataSize + msg_size > RateLimits::MaxExtenderCommunicationDataSize)
+			if (!m_RateLimits.ExtenderCommunication.CanAdd(msg_size))
 			{
 				return ResultCode::PeerSendBufferFull;
 			}
 		}
 		else if constexpr (MsgType == MessageType::Noise)
 		{
-			if (m_RateLimits.CurrentNoiseDataSize + msg_size > RateLimits::MaxNoiseDataSize)
+			if (!m_RateLimits.Noise.CanAdd(msg_size))
+			{
+				return ResultCode::PeerSendBufferFull;
+			}
+		}
+		else if constexpr (MsgType == MessageType::RelayData)
+		{
+			if (!m_RateLimits.RelayData.CanAdd(msg_size))
 			{
 				return ResultCode::PeerSendBufferFull;
 			}
@@ -62,11 +71,15 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			if constexpr (MsgType == MessageType::ExtenderCommunication)
 			{
-				m_RateLimits.CurrentExtenderCommunicationDataSize += msg_size;
+				m_RateLimits.ExtenderCommunication.Add(msg_size);
 			}
 			else if constexpr (MsgType == MessageType::Noise)
 			{
-				m_RateLimits.CurrentNoiseDataSize += msg_size;
+				m_RateLimits.Noise.Add(msg_size);
+			}
+			else if constexpr (MsgType == MessageType::RelayData)
+			{
+				m_RateLimits.RelayData.Add(msg_size);
 			}
 		}
 		catch (...)
@@ -102,10 +115,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		switch (message_type)
 		{
 			case MessageType::ExtenderCommunication:
-				m_RateLimits.CurrentExtenderCommunicationDataSize -= data_size;
+				m_RateLimits.ExtenderCommunication.Subtract(data_size);
 				break;
 			case MessageType::Noise:
-				m_RateLimits.CurrentNoiseDataSize -= data_size;
+				m_RateLimits.Noise.Subtract(data_size);
+				break;
+			case MessageType::RelayData:
+				m_RateLimits.RelayData.Subtract(data_size);
 				break;
 			default:
 				break;

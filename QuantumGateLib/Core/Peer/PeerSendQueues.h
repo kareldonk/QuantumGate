@@ -4,6 +4,7 @@
 #pragma once
 
 #include "..\..\Concurrency\Queue.h"
+#include "..\..\Common\RateLimit.h"
 #include "..\Message.h"
 
 namespace QuantumGate::Implementation::Core::Peer
@@ -30,11 +31,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		struct RateLimits final
 		{
 			// Enough space to hold 5 full size messages (and more smaller ones)
-			static constexpr Size MaxExtenderCommunicationDataSize{ 5 * Message::MaxMessageDataSize };
-			static constexpr Size MaxNoiseDataSize{ 5 * Message::MaxMessageDataSize };
+			using ExtenderCommunicationRateLimit = RateLimit<Size, 0, 5 * Message::MaxMessageDataSize>;
+			using NoiseRateLimit = RateLimit<Size, 0, 5 * Message::MaxMessageDataSize>;
+			using RelayDataRateLimit = RateLimit<Size, 0, 5 * Message::MaxMessageDataSize>;
 
-			Size CurrentExtenderCommunicationDataSize{ 0 };
-			Size CurrentNoiseDataSize{ 0 };
+			ExtenderCommunicationRateLimit ExtenderCommunication;
+			NoiseRateLimit Noise;
+			RelayDataRateLimit RelayData;
 		};
 
 	public:
@@ -57,9 +60,14 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] std::pair<bool, Size> GetMessages(Buffer& buffer, const Crypto::SymmetricKeyData& symkey,
 														const bool concatenate);
 
-		[[nodiscard]] inline Size GetAvailableNoiseDataSize() const noexcept
+		[[nodiscard]] inline Size GetAvailableNoiseSendBufferSize() const noexcept
 		{
-			return RateLimits::MaxNoiseDataSize - m_RateLimits.CurrentNoiseDataSize;
+			return m_RateLimits.Noise.GetAvailable();
+		}
+
+		[[nodiscard]] inline Size GetAvailableRelayDataSendBufferSize() const noexcept
+		{
+			return m_RateLimits.RelayData.GetAvailable();
 		}
 
 	private:
