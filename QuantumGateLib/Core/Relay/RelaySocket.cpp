@@ -178,7 +178,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return true;
 	}
 
-	const SystemTime Socket::GetConnectedTime() const noexcept
+	SystemTime Socket::GetConnectedTime() const noexcept
 	{
 		const auto dif = std::chrono::duration_cast<std::chrono::seconds>(Util::GetCurrentSteadyTime() -
 																		  GetConnectedSteadyTime());

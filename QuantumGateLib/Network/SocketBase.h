@@ -108,20 +108,20 @@ namespace QuantumGate::Implementation::Network
 		virtual bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
 									const IOStatus::Update ioupdate = IOStatus::Update::All) noexcept = 0;
 
-		virtual const SystemTime GetConnectedTime() const noexcept = 0;
+		virtual SystemTime GetConnectedTime() const noexcept = 0;
 		virtual const SteadyTime& GetConnectedSteadyTime() const noexcept = 0;
-		virtual const Size GetBytesReceived() const noexcept = 0;
-		virtual const Size GetBytesSent() const noexcept = 0;
+		virtual Size GetBytesReceived() const noexcept = 0;
+		virtual Size GetBytesSent() const noexcept = 0;
 
 		virtual const IPEndpoint& GetLocalEndpoint() const noexcept = 0;
 		virtual const IPAddress& GetLocalIPAddress() const noexcept = 0;
-		virtual const String GetLocalName() const noexcept = 0;
-		virtual const UInt32 GetLocalPort() const noexcept = 0;
+		virtual String GetLocalName() const noexcept = 0;
+		virtual UInt32 GetLocalPort() const noexcept = 0;
 
 		virtual const IPEndpoint& GetPeerEndpoint() const noexcept = 0;
 		virtual const IPAddress& GetPeerIPAddress() const noexcept = 0;
-		virtual const UInt32 GetPeerPort() const noexcept = 0;
-		virtual const String GetPeerName() const noexcept = 0;
+		virtual UInt32 GetPeerPort() const noexcept = 0;
+		virtual String GetPeerName() const noexcept = 0;
 
 		virtual void SetConnectingCallback(ConnectingCallback&& callback) noexcept = 0;
 		virtual void SetAcceptCallback(AcceptCallback&& callback) noexcept = 0;

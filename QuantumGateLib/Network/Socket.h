@@ -27,9 +27,9 @@ namespace QuantumGate::Implementation::Network
 		Socket& operator=(const Socket&) = delete;
 		Socket& operator=(Socket&& other) noexcept;
 
-		IP::AddressFamily GetAddressFamily() const noexcept;
-		Type GetType() const noexcept;
-		IP::Protocol GetProtocol() const noexcept;
+		[[nodiscard]] IP::AddressFamily GetAddressFamily() const noexcept;
+		[[nodiscard]] Type GetType() const noexcept;
+		[[nodiscard]] IP::Protocol GetProtocol() const noexcept;
 
 		[[nodiscard]] bool Bind(const IPEndpoint& endpoint, const bool nat_traversal) noexcept;
 
@@ -49,25 +49,25 @@ namespace QuantumGate::Implementation::Network
 
 		void Close(const bool linger = false) noexcept override;
 
-		inline const IOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
+		[[nodiscard]] inline const IOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
 		[[nodiscard]] bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
 										  const IOStatus::Update ioupdate = IOStatus::Update::All) noexcept override;
 
-		const SystemTime GetConnectedTime() const noexcept override;
-		inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
+		[[nodiscard]] SystemTime GetConnectedTime() const noexcept override;
+		[[nodiscard]] inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
 
-		inline const Size GetBytesReceived() const noexcept override { return m_BytesReceived; }
-		inline const Size GetBytesSent() const noexcept override { return m_BytesSent; }
+		[[nodiscard]] inline Size GetBytesReceived() const noexcept override { return m_BytesReceived; }
+		[[nodiscard]] inline Size GetBytesSent() const noexcept override { return m_BytesSent; }
 
-		inline const IPEndpoint& GetLocalEndpoint() const noexcept override { return m_LocalEndpoint; }
-		inline const IPAddress& GetLocalIPAddress() const noexcept override { return m_LocalEndpoint.GetIPAddress(); }
-		inline const UInt32 GetLocalPort() const noexcept override { return m_LocalEndpoint.GetPort(); }
-		inline const String GetLocalName() const noexcept override { return m_LocalEndpoint.GetString(); }
+		[[nodiscard]] inline const IPEndpoint& GetLocalEndpoint() const noexcept override { return m_LocalEndpoint; }
+		[[nodiscard]] inline const IPAddress& GetLocalIPAddress() const noexcept override { return m_LocalEndpoint.GetIPAddress(); }
+		[[nodiscard]] inline UInt32 GetLocalPort() const noexcept override { return m_LocalEndpoint.GetPort(); }
+		[[nodiscard]] inline String GetLocalName() const noexcept override { return m_LocalEndpoint.GetString(); }
 
-		inline const IPEndpoint& GetPeerEndpoint() const noexcept override { return m_PeerEndpoint; }
-		inline const IPAddress& GetPeerIPAddress() const noexcept override { return m_PeerEndpoint.GetIPAddress(); }
-		inline const UInt32 GetPeerPort() const noexcept override { return m_PeerEndpoint.GetPort(); }
-		inline const String GetPeerName() const noexcept override { return m_PeerEndpoint.GetString(); }
+		[[nodiscard]] inline const IPEndpoint& GetPeerEndpoint() const noexcept override { return m_PeerEndpoint; }
+		[[nodiscard]] inline const IPAddress& GetPeerIPAddress() const noexcept override { return m_PeerEndpoint.GetIPAddress(); }
+		[[nodiscard]] inline UInt32 GetPeerPort() const noexcept override { return m_PeerEndpoint.GetPort(); }
+		[[nodiscard]] inline String GetPeerName() const noexcept override { return m_PeerEndpoint.GetString(); }
 
 		[[nodiscard]] bool SetBlockingMode(const bool blocking) noexcept;
 
@@ -84,9 +84,9 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] bool SetNATTraversal(const bool nat_traversal) noexcept;
 		[[nodiscard]] bool SetConditionalAccept(const bool cond_accept) noexcept;
 
-		Size GetMaxDatagramMessageSize() const noexcept;
-		Size GetSendBufferSize() const noexcept;
-		Size GetReceiveBufferSize() const noexcept;
+		[[nodiscard]] Size GetMaxDatagramMessageSize() const noexcept;
+		[[nodiscard]] Size GetSendBufferSize() const noexcept;
+		[[nodiscard]] Size GetReceiveBufferSize() const noexcept;
 
 		inline void SetConnectingCallback(ConnectingCallback&& callback) noexcept override
 		{
@@ -115,17 +115,17 @@ namespace QuantumGate::Implementation::Network
 		static constexpr Size ReadWriteBufferSize{ 65'535 }; //64Kb
 
 	protected:
-		inline const SOCKET GetSocket() const noexcept { return m_Socket; }
+		inline SOCKET GetSocket() const noexcept { return m_Socket; }
 
 	private:
 		[[nodiscard]] bool SetSocket(const SOCKET s, const bool excl_addr_use = true,
 									 const bool blocking = false) noexcept;
 		void UpdateSocketInfo() noexcept;
 
-		Buffer& GetReceiveBuffer() const noexcept;
+		[[nodiscard]] Buffer& GetReceiveBuffer() const noexcept;
 
-		int GetError() const noexcept;
-		int GetSockOptInt(const int optname) const noexcept;
+		[[nodiscard]] int GetError() const noexcept;
+		[[nodiscard]] int GetSockOptInt(const int optname) const noexcept;
 
 		template<bool read, bool write, bool exception>
 		[[nodiscard]] bool UpdateIOStatusImpl(const std::chrono::milliseconds& mseconds) noexcept;

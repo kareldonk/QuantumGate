@@ -883,7 +883,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	const SystemTime Socket::GetConnectedTime() const noexcept
+	SystemTime Socket::GetConnectedTime() const noexcept
 	{
 		const auto dif = std::chrono::duration_cast<std::chrono::seconds>(Util::GetCurrentSteadyTime() -
 																		  GetConnectedSteadyTime());
