@@ -537,6 +537,7 @@
     <ClInclude Include="Common\Endian.h" />
     <ClInclude Include="Common\Hash.h" />
     <ClInclude Include="Common\Random.h" />
+    <ClInclude Include="Common\RateLimit.h" />
     <ClInclude Include="Common\Result.h" />
     <ClInclude Include="Common\ScopeGuard.h" />
     <ClInclude Include="Common\Traits.h" />

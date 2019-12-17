@@ -414,6 +414,9 @@
     <ClInclude Include="API\Access.h">
       <Filter>Header Files\API</Filter>
     </ClInclude>
+    <ClInclude Include="Common\RateLimit.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
