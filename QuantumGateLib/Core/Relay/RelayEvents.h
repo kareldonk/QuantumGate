@@ -60,3 +60,8 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 	};
 }
 
+namespace QuantumGate::Implementation::Core::Relay
+{
+	using Event = std::variant<Events::Connect, Events::StatusUpdate, Events::RelayData>;
+}
+

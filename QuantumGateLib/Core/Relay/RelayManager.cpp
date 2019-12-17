@@ -825,7 +825,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				else in_peer->GetSocket<Socket>().SetRead();
 			}
 
-			if (out_peer) rl.SendRelayStatus(*out_peer, std::nullopt, status_update);
+			if (out_peer) DiscardReturnValue(rl.SendRelayStatus(*out_peer, std::nullopt, status_update));
 		}
 		else if (rl.GetPosition() == Position::End)
 		{
@@ -837,13 +837,13 @@ namespace QuantumGate::Implementation::Core::Relay
 				else out_peer->GetSocket<Socket>().SetRead();
 			}
 
-			if (in_peer) rl.SendRelayStatus(*in_peer, std::nullopt, status_update);
+			if (in_peer) DiscardReturnValue(rl.SendRelayStatus(*in_peer, std::nullopt, status_update));
 		}
 		else // Position::Between
 		{
-			if (in_peer) rl.SendRelayStatus(*in_peer, std::nullopt, status_update);
+			if (in_peer) DiscardReturnValue(rl.SendRelayStatus(*in_peer, std::nullopt, status_update));
 
-			if (out_peer) rl.SendRelayStatus(*out_peer, std::nullopt, status_update);
+			if (out_peer) DiscardReturnValue(rl.SendRelayStatus(*out_peer, std::nullopt, status_update));
 		}
 
 		rl.UpdateStatus(Status::Closed);

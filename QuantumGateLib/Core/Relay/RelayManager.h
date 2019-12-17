@@ -9,8 +9,6 @@
 
 namespace QuantumGate::Implementation::Core::Relay
 {
-	using Event = std::variant<Events::Connect, Events::StatusUpdate, Events::RelayData>;
-
 	class Manager final
 	{
 		using ThreadKey = UInt64;

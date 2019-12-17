@@ -43,17 +43,17 @@ namespace QuantumGate::Implementation::Core::Relay
 			m_Position(position), m_IncomingPeer{ ipeer }, m_OutgoingPeer{ opeer }
 		{}
 
-		inline const Status GetStatus() const noexcept { return m_Status; }
-		inline const Exception GetException() const noexcept { return m_Exception; }
-		inline const RelayPort GetPort() const noexcept { return m_Port; }
-		inline const RelayHop GetHop() const noexcept { return m_Hop; }
-		inline const IPEndpoint& GetEndpoint() const noexcept { return m_Endpoint; }
-		inline const SteadyTime GetLastStatusChangeSteadyTime() const noexcept { return m_LastStatusChangeSteadyTime; }
-		inline const Position GetPosition() const noexcept { return m_Position; }
-		inline PeerDetails& GetIncomingPeer() noexcept { assert(m_IncomingPeer.PeerLUID); return m_IncomingPeer; }
-		inline const PeerDetails& GetIncomingPeer() const noexcept { assert(m_IncomingPeer.PeerLUID); return m_IncomingPeer; }
-		inline PeerDetails& GetOutgoingPeer() noexcept { assert(m_OutgoingPeer.PeerLUID != 0); return m_OutgoingPeer; }
-		inline const PeerDetails& GetOutgoingPeer() const noexcept { assert(m_OutgoingPeer.PeerLUID != 0); return m_OutgoingPeer; }
+		[[nodiscard]] inline Status GetStatus() const noexcept { return m_Status; }
+		[[nodiscard]] inline Exception GetException() const noexcept { return m_Exception; }
+		[[nodiscard]] inline RelayPort GetPort() const noexcept { return m_Port; }
+		[[nodiscard]] inline RelayHop GetHop() const noexcept { return m_Hop; }
+		[[nodiscard]] inline const IPEndpoint& GetEndpoint() const noexcept { return m_Endpoint; }
+		[[nodiscard]] inline SteadyTime GetLastStatusChangeSteadyTime() const noexcept { return m_LastStatusChangeSteadyTime; }
+		[[nodiscard]] inline Position GetPosition() const noexcept { return m_Position; }
+		[[nodiscard]] inline PeerDetails& GetIncomingPeer() noexcept { assert(m_IncomingPeer.PeerLUID); return m_IncomingPeer; }
+		[[nodiscard]] inline const PeerDetails& GetIncomingPeer() const noexcept { assert(m_IncomingPeer.PeerLUID); return m_IncomingPeer; }
+		[[nodiscard]] inline PeerDetails& GetOutgoingPeer() noexcept { assert(m_OutgoingPeer.PeerLUID != 0); return m_OutgoingPeer; }
+		[[nodiscard]] inline const PeerDetails& GetOutgoingPeer() const noexcept { assert(m_OutgoingPeer.PeerLUID != 0); return m_OutgoingPeer; }
 
 		bool UpdateStatus(const PeerLUID from_pluid, const RelayStatusUpdate status) noexcept
 		{
@@ -184,8 +184,8 @@ namespace QuantumGate::Implementation::Core::Relay
 			return success;
 		}
 
-		bool SendRelayStatus(Peer::Peer& to_peer, const std::optional<PeerLUID> from_pluid,
-							 const RelayStatusUpdate status) noexcept
+		[[nodiscard]] bool SendRelayStatus(Peer::Peer& to_peer, const std::optional<PeerLUID> from_pluid,
+										   const RelayStatusUpdate status) noexcept
 		{
 			if (!MayGetStatusUpdate(to_peer.GetLUID())) return true;
 
@@ -229,7 +229,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			}
 		}
 
-		bool MayGetStatusUpdate(const PeerLUID pluid) const noexcept
+		[[nodiscard]] bool MayGetStatusUpdate(const PeerLUID pluid) const noexcept
 		{
 			assert(m_IncomingPeer.PeerLUID != 0 && m_OutgoingPeer.PeerLUID != 0);
 
