@@ -42,6 +42,11 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
 
+		enum RelayDataProcessResult
+		{
+			Failed, Succeeded, Retry
+		};
+
 	public:
 		Manager(Peer::Manager& peers) noexcept : m_Peers(peers) {}
 		Manager(const Manager&) = delete;
@@ -115,7 +120,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		bool ProcessRelayEvent(const Events::Connect& event) noexcept;
 		bool ProcessRelayEvent(const Events::StatusUpdate& event) noexcept;
-		bool ProcessRelayEvent(Events::RelayData& event) noexcept;
+		[[nodiscard]] RelayDataProcessResult ProcessRelayEvent(Events::RelayData& event) noexcept;
 
 	private:
 		std::atomic_bool m_Running{ false };

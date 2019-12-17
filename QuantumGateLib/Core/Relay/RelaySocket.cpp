@@ -89,29 +89,54 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		if (m_IOStatus.HasException()) return false;
 
-		auto success = false;
-
 		try
 		{
-			// Update the total amount of bytes sent
-			m_BytesSent += buffer.GetSize();
-
 			Events::RelayData red;
+
+			const auto available_size = m_SendRateLimit.GetAvailable();
+			if (available_size >= buffer.GetSize())
+			{
+				red.Data = std::move(buffer);
+			}
+			else if (available_size > 0)
+			{
+				red.Data = BufferView(buffer).GetFirst(available_size);
+				buffer.RemoveFirst(available_size);
+			}
+			else
+			{
+				// Send buffer is full, we'll try again later
+				LogDbg(L"Relay socket send buffer full/unavailable for endpoint %s", GetPeerName().c_str());
+
+				return true;
+			}
+
 			red.Port = m_LocalEndpoint.GetRelayPort();
-			red.Data = std::move(buffer);
 			red.Origin.PeerLUID = 0;
 
-			success = m_RelayManager->AddRelayEvent(red.Port, std::move(red));
+			const auto send_size = red.Data.GetSize();
+
+			if (m_RelayManager->AddRelayEvent(red.Port, std::move(red)))
+			{
+				// Relay Manager should decrease send rate limit once
+				// the relay data event has been processed
+				AddToSendRateLimit(send_size);
+
+				// Update the total amount of bytes sent
+				m_BytesSent += send_size;
+
+				return true;
+			}
 		}
 		catch (const std::exception& e)
 		{
-			LogErr(L"Send exception for endpoint %s - %s",
+			LogErr(L"Relay socket send exception for endpoint %s - %s",
 				   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
 
 			SetException(WSAENOBUFS);
 		}
 
-		return success;
+		return false;
 	}
 
 	bool Socket::Receive(Buffer& buffer) noexcept
@@ -142,11 +167,11 @@ namespace QuantumGate::Implementation::Core::Relay
 				m_BytesReceived += rcvsize;
 				success = true;
 			}
-			else LogDbg(L"Connection closed for endpoint %s", GetPeerName().c_str());
+			else LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
 		}
 		catch (const std::exception& e)
 		{
-			LogErr(L"Receive exception for endpoint %s - %s",
+			LogErr(L"Relay socket receive exception for endpoint %s - %s",
 				   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
 
 			SetException(WSAENOBUFS);

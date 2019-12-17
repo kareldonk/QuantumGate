@@ -4,7 +4,9 @@
 #pragma once
 
 #include "..\..\Common\Containers.h"
+#include "..\..\Common\RateLimit.h"
 #include "..\..\Network\SocketBase.h"
+#include "..\Message.h"
 
 namespace QuantumGate::Implementation::Core::Relay
 {
@@ -13,6 +15,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		friend class Manager;
 
 		using RelayDataQueue = Containers::Queue<Buffer>;
+		using SendRateLimit = RateLimit<Size, 0, 5 * Message::MaxMessageDataSize>;
 
 	public:
 		Socket() noexcept;
@@ -91,11 +94,18 @@ namespace QuantumGate::Implementation::Core::Relay
 		inline void SetWrite() noexcept { m_IOStatus.SetWrite(true); }
 		inline void SetRead() noexcept { m_ClosingRead = true; }
 
+		inline void AddToSendRateLimit(const Size num) noexcept { m_SendRateLimit.Add(num); }
+		inline void SubtractFromSendRateLimit(const Size num) noexcept { m_SendRateLimit.Subtract(num); }
+
+	private:
+		static constexpr Size MaxSendBufferDataSize{ 5 * Message::MaxMessageDataSize };
+
 	private:
 		IOStatus m_IOStatus;
 
 		Manager* m_RelayManager{ nullptr };
 		bool m_ClosingRead{ false };
+		SendRateLimit m_SendRateLimit;
 
 		Size m_BytesReceived{ 0 };
 		Size m_BytesSent{ 0 };

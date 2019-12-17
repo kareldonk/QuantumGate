@@ -18,21 +18,17 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		Dbg(L"*********** SendBeginRelay ***********");
 
-		try
+		BufferWriter wrt(true);
+		if (wrt.WriteWithPreallocation(rport, Network::SerializedBinaryIPAddress{ endpoint.GetIPAddress().GetBinary() },
+									   endpoint.GetPort(), hops))
 		{
-			BufferWriter wrt(true);
-			if (wrt.WriteWithPreallocation(rport, Network::SerializedBinaryIPAddress{ endpoint.GetIPAddress().GetBinary() },
-										   endpoint.GetPort(), hops))
+			if (m_Peer.Send(MessageType::RelayCreate, wrt.MoveWrittenBytes()))
 			{
-				if (m_Peer.Send(MessageType::RelayCreate, wrt.MoveWrittenBytes()))
-				{
-					return true;
-				}
-				else LogDbg(L"Couldn't send RelayCreate message to peer %s", m_Peer.GetPeerName().c_str());
+				return true;
 			}
-			else LogDbg(L"Couldn't prepare RelayCreate message for peer %s", m_Peer.GetPeerName().c_str());
+			else LogDbg(L"Couldn't send RelayCreate message to peer %s", m_Peer.GetPeerName().c_str());
 		}
-		catch (...) {}
+		else LogDbg(L"Couldn't prepare RelayCreate message for peer %s", m_Peer.GetPeerName().c_str());
 
 		return false;
 	}
@@ -49,55 +45,54 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		Dbg(L"*********** SendRelayStatus ***********");
 
-		try
-		{
-			LogDbg(L"Sending relay status %u to peer %s", status, m_Peer.GetPeerName().c_str());
+		LogDbg(L"Sending relay status %u to peer %s", status, m_Peer.GetPeerName().c_str());
 
-			BufferWriter wrt(true);
-			if (wrt.WriteWithPreallocation(rport, status))
+		BufferWriter wrt(true);
+		if (wrt.WriteWithPreallocation(rport, status))
+		{
+			if (m_Peer.Send(MessageType::RelayStatus, wrt.MoveWrittenBytes()))
 			{
-				if (m_Peer.Send(MessageType::RelayStatus, wrt.MoveWrittenBytes()))
-				{
-					return true;
-				}
-				else LogDbg(L"Couldn't send RelayStatus message to peer %s", m_Peer.GetPeerName().c_str());
+				return true;
 			}
-			else LogDbg(L"Couldn't prepare RelayStatus message for peer %s", m_Peer.GetPeerName().c_str());
+			else LogDbg(L"Couldn't send RelayStatus message to peer %s", m_Peer.GetPeerName().c_str());
 		}
-		catch (...) {}
+		else LogDbg(L"Couldn't prepare RelayStatus message for peer %s", m_Peer.GetPeerName().c_str());
 
 		return false;
 	}
 
-	bool MessageProcessor::SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept
+	QuantumGate::Result<> MessageProcessor::SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept
 	{
-		try
+		if (m_Peer.GetAvailableRelayDataSendBufferSize() < buffer.GetSize())
 		{
-			BufferWriter wrt(true);
-			if (wrt.WriteWithPreallocation(rport, WithSize(buffer, MaxSize::_2MB)))
+			LogDbg(L"Couldn't send RelayData message to peer %s for relay port %llu",
+				   m_Peer.GetPeerName().c_str(), rport);
+
+			return ResultCode::PeerSendBufferFull;
+		}
+
+		BufferWriter wrt(true);
+		if (wrt.WriteWithPreallocation(rport, WithSize(buffer, MaxSize::_2MB)))
+		{
+			// Note that relayed data doesn't get compressed (again) because
+			// it is mostly encrypted and random looking so it wouldn't compress well
+			auto result = m_Peer.Send(MessageType::RelayData, wrt.MoveWrittenBytes(),
+									  SendParameters::PriorityOption::Normal, 0ms, false);
+			if (!result)
 			{
-				// Note that relayed data doesn't get compressed (again) because
-				// it is mostly encrypted and random looking so it wouldn't compress well
-				if (m_Peer.Send(MessageType::RelayData, wrt.MoveWrittenBytes(),
-								SendParameters::PriorityOption::Normal, 0ms, false))
-				{
-					return true;
-				}
-				else
-				{
-					LogDbg(L"Couldn't send RelayData message to peer %s for relay port %llu",
-						   m_Peer.GetPeerName().c_str(), rport);
-				}
-			}
-			else
-			{
-				LogDbg(L"Couldn't prepare RelayData message to peer %s for relay port %llu",
+				LogDbg(L"Couldn't send RelayData message to peer %s for relay port %llu",
 					   m_Peer.GetPeerName().c_str(), rport);
 			}
-		}
-		catch (...) {}
 
-		return false;
+			return result;
+		}
+		else
+		{
+			LogDbg(L"Couldn't prepare RelayData message to peer %s for relay port %llu",
+				   m_Peer.GetPeerName().c_str(), rport);
+		}
+
+		return ResultCode::Failed;
 	}
 
 	MessageProcessor::Result MessageProcessor::ProcessMessageReadyState(const MessageDetails& msg) const

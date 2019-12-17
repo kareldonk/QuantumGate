@@ -440,18 +440,20 @@ namespace QuantumGate::Implementation::Core::Relay
 				{
 					it.second->WithUniqueLock([&](Link& rl)
 					{
-						Peer::Peer_ThS::UniqueLockedType in_peer;
-						Peer::Peer_ThS::UniqueLockedType out_peer;
-
-						// Get the peers and lock them
-						GetUniqueLocks(rl.GetIncomingPeer(), in_peer,
-									   rl.GetOutgoingPeer(), out_peer);
-
-						if (rl.GetStatus() != Status::Closed)
 						{
-							rl.UpdateStatus(Status::Disconnected);
+							Peer::Peer_ThS::UniqueLockedType in_peer;
+							Peer::Peer_ThS::UniqueLockedType out_peer;
 
-							ProcessRelayDisconnect(rl, in_peer, out_peer);
+							// Get the peers and lock them
+							GetUniqueLocks(rl.GetIncomingPeer(), in_peer,
+										   rl.GetOutgoingPeer(), out_peer);
+
+							if (rl.GetStatus() != Status::Closed)
+							{
+								rl.UpdateStatus(Status::Disconnected);
+
+								ProcessRelayDisconnect(rl, in_peer, out_peer);
+							}
 						}
 
 						// Collect the relay for removal
@@ -716,7 +718,10 @@ namespace QuantumGate::Implementation::Core::Relay
 			}
 			else if (std::holds_alternative<Events::RelayData>(*event))
 			{
-				ProcessRelayEvent(std::get<Events::RelayData>(*event));
+				while (ProcessRelayEvent(std::get<Events::RelayData>(*event)) == RelayDataProcessResult::Retry && !shutdown_event.IsSet())
+				{
+					std::this_thread::yield();
+				}
 			}
 			else assert(false);
 		}
@@ -1035,45 +1040,47 @@ namespace QuantumGate::Implementation::Core::Relay
 				// If relay is already closed don't bother
 				if (rl.GetStatus() == Status::Closed) return;
 
-				Peer::Peer_ThS::UniqueLockedType in_peer;
-				Peer::Peer_ThS::UniqueLockedType out_peer;
-
-				// Get the peers and lock them
-				GetUniqueLocks(rl.GetIncomingPeer(), in_peer,
-							   rl.GetOutgoingPeer(), out_peer);
-
-				if (in_peer && out_peer) // Both peers are present
 				{
-					const auto prev_status = rl.GetStatus();
+					Peer::Peer_ThS::UniqueLockedType in_peer;
+					Peer::Peer_ThS::UniqueLockedType out_peer;
 
-					if (rl.UpdateStatus(event.Origin.PeerLUID, event.Status))
+					// Get the peers and lock them
+					GetUniqueLocks(rl.GetIncomingPeer(), in_peer,
+								   rl.GetOutgoingPeer(), out_peer);
+
+					if (in_peer && out_peer) // Both peers are present
 					{
-						if (rl.GetPosition() == Position::Beginning &&
-							rl.GetStatus() == Status::Connected &&
-							prev_status != rl.GetStatus())
-						{
-							// We went to the connected state while we were connecting;
-							// the socket is now writable
-							in_peer->GetSocket<Socket>().SetWrite();
-							success = true;
-						}
-						else if (rl.GetPosition() == Position::Between)
-						{
-							Peer::Peer_ThS::UniqueLockedType* peer1 = &in_peer;
-							Peer::Peer_ThS::UniqueLockedType* peer2 = &out_peer;
-							if (event.Origin.PeerLUID == rl.GetOutgoingPeer().PeerLUID)
-							{
-								peer1 = &out_peer;
-								peer2 = &in_peer;
-							}
+						const auto prev_status = rl.GetStatus();
 
-							// Forward status update to the other peer
-							if (rl.SendRelayStatus(*(*peer2), (*peer1)->GetLUID(), event.Status))
+						if (rl.UpdateStatus(event.Origin.PeerLUID, event.Status))
+						{
+							if (rl.GetPosition() == Position::Beginning &&
+								rl.GetStatus() == Status::Connected &&
+								prev_status != rl.GetStatus())
 							{
+								// We went to the connected state while we were connecting;
+								// the socket is now writable
+								in_peer->GetSocket<Socket>().SetWrite();
 								success = true;
 							}
+							else if (rl.GetPosition() == Position::Between)
+							{
+								Peer::Peer_ThS::UniqueLockedType* peer1 = &in_peer;
+								Peer::Peer_ThS::UniqueLockedType* peer2 = &out_peer;
+								if (event.Origin.PeerLUID == rl.GetOutgoingPeer().PeerLUID)
+								{
+									peer1 = &out_peer;
+									peer2 = &in_peer;
+								}
+
+								// Forward status update to the other peer
+								if (rl.SendRelayStatus(*(*peer2), (*peer1)->GetLUID(), event.Status))
+								{
+									success = true;
+								}
+							}
+							else success = true;
 						}
-						else success = true;
 					}
 				}
 
@@ -1092,9 +1099,9 @@ namespace QuantumGate::Implementation::Core::Relay
 		return success;
 	}
 
-	bool Manager::ProcessRelayEvent(Events::RelayData& event) noexcept
+	Manager::RelayDataProcessResult Manager::ProcessRelayEvent(Events::RelayData& event) noexcept
 	{
-		auto success = false;
+		auto retval = RelayDataProcessResult::Failed;
 
 		if (auto relayths = Get(event.Port); relayths != nullptr)
 		{
@@ -1102,17 +1109,33 @@ namespace QuantumGate::Implementation::Core::Relay
 			{
 				if (event.Origin.PeerLUID == 0) // Special case for Relay::Socket peers
 				{
+					PeerDetails* pd{ nullptr };
+
 					switch (rl.GetPosition())
 					{
 						case Position::Beginning:
-							event.Origin.PeerLUID = rl.GetIncomingPeer().PeerLUID;
+							pd = &rl.GetIncomingPeer();
 							break;
 						case Position::End:
-							event.Origin.PeerLUID = rl.GetOutgoingPeer().PeerLUID;
+							pd = &rl.GetOutgoingPeer();
 							break;
 						default:
+							// Should not get here
 							assert(false);
-							break;
+							return;
+					}
+
+					event.Origin.PeerLUID = pd->PeerLUID;
+
+					Peer::Peer_ThS::UniqueLockedType peer;
+
+					// Get the peer and lock it
+					GetUniqueLock(*pd, peer);
+
+					if (peer) // If peer is present
+					{
+						// Free up space to allow for more sends
+						peer->GetSocket<Socket>().SubtractFromSendRateLimit(event.Data.GetSize());
 					}
 				}
 				else
@@ -1124,58 +1147,100 @@ namespace QuantumGate::Implementation::Core::Relay
 				// If relay is not (yet) connected (anymore) don't bother
 				if (rl.GetStatus() != Status::Connected)
 				{
-					LogErr(L"Received relay data event from peer LUID %llu on port %llu that's not connected",
-						   event.Origin.PeerLUID, event.Port);
+					DbgInvoke([&]()
+					{
+						LogErr(L"Received relay data event from peer LUID %llu on port %llu that's not connected",
+							   event.Origin.PeerLUID, event.Port);
+					});
+
 					return;
 				}
 
-				auto dest_rpeer = &rl.GetIncomingPeer();
-				if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
 				{
-					dest_rpeer = &rl.GetOutgoingPeer();
-				}
-
-				Peer::Peer_ThS::UniqueLockedType dest_peer;
-
-				// Get the peer and lock it
-				GetUniqueLock(*dest_rpeer, dest_peer);
-
-				if (dest_peer) // If peer is present
-				{
-					switch (rl.GetPosition())
+					auto dest_rpeer = &rl.GetIncomingPeer();
+					if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
 					{
-						case Position::Beginning:
+						dest_rpeer = &rl.GetOutgoingPeer();
+					}
+
+					Peer::Peer_ThS::UniqueLockedType dest_peer;
+
+					// Get the peer and lock it
+					GetUniqueLock(*dest_rpeer, dest_peer);
+
+					if (dest_peer) // If peer is present
+					{
+						switch (rl.GetPosition())
 						{
-							if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
+							case Position::Beginning:
 							{
-								success = dest_peer->GetMessageProcessor().SendRelayData(rl.GetPort(), event.Data);
+								if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
+								{
+									if (auto result = dest_peer->GetMessageProcessor().SendRelayData(rl.GetPort(), event.Data); result.Succeeded())
+									{
+										retval = RelayDataProcessResult::Succeeded;
+									}
+									else if (result == ResultCode::PeerSendBufferFull)
+									{
+										retval = RelayDataProcessResult::Retry;
+									}
+								}
+								else
+								{
+									if (dest_peer->GetSocket<Socket>().AddToReceiveQueue(std::move(event.Data)))
+									{
+										retval = RelayDataProcessResult::Succeeded;
+									}
+								}
+								break;
 							}
-							else success = dest_peer->GetSocket<Socket>().AddToReceiveQueue(std::move(event.Data));
-							break;
-						}
-						case Position::End:
-						{
-							if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
+							case Position::End:
 							{
-								success = dest_peer->GetSocket<Socket>().AddToReceiveQueue(std::move(event.Data));
+								if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
+								{
+									if (dest_peer->GetSocket<Socket>().AddToReceiveQueue(std::move(event.Data)))
+									{
+										retval = RelayDataProcessResult::Succeeded;
+									}
+								}
+								else
+								{
+									if (const auto result = dest_peer->GetMessageProcessor().SendRelayData(rl.GetPort(), event.Data); result.Succeeded())
+									{
+										retval = RelayDataProcessResult::Succeeded;
+									}
+									else if (result == ResultCode::PeerSendBufferFull)
+									{
+										retval = RelayDataProcessResult::Retry;
+									}
+								}
+								break;
 							}
-							else success = dest_peer->GetMessageProcessor().SendRelayData(rl.GetPort(), event.Data);
-							break;
-						}
-						case Position::Between:
-						{
-							success = dest_peer->GetMessageProcessor().SendRelayData(rl.GetPort(), event.Data);
-							break;
-						}
-						default:
-						{
-							assert(false);
-							break;
+							case Position::Between:
+							{
+								if (const auto result = dest_peer->GetMessageProcessor().SendRelayData(rl.GetPort(), event.Data); result.Succeeded())
+								{
+									retval = RelayDataProcessResult::Succeeded;
+								}
+								else if (result == ResultCode::PeerSendBufferFull)
+								{
+									retval = RelayDataProcessResult::Retry;
+								}
+								break;
+							}
+							default:
+							{
+								assert(false);
+								break;
+							}
 						}
 					}
 				}
 
-				if (!success) rl.UpdateStatus(Status::Exception, Exception::GeneralFailure);
+				if (retval == RelayDataProcessResult::Failed)
+				{
+					rl.UpdateStatus(Status::Exception, Exception::GeneralFailure);
+				}
 			});
 		}
 		else
@@ -1187,7 +1252,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			DeterioratePeerReputation(event.Origin.PeerLUID);
 		}
 
-		return success;
+		return retval;
 	}
 
 	template<typename T>

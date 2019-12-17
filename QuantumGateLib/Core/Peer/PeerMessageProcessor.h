@@ -34,7 +34,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		bool SendBeginRelay(const RelayPort rport, const IPEndpoint& endpoint,
 							const RelayHop hops) const noexcept;
 		bool SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept;
-		bool SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept;
+		QuantumGate::Result<> SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept;
 		bool SendEndRelay(const RelayPort rport) const noexcept;
 
 		Result ProcessMessage(const MessageDetails& msg) const;
