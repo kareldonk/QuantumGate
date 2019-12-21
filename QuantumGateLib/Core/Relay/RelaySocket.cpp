@@ -167,7 +167,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				m_BytesReceived += bytesrcv;
 				success = true;
 			}
-			else if (bytesrcv == 0)
+			else if (bytesrcv == 0 && m_ClosingRead)
 			{
 				LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
 			}
