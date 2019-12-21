@@ -69,6 +69,11 @@ BOOL CSecurityDlg::OnInitDialog()
 	SetValue(IDC_NOISE_MINSIZE, params.Noise.MinMessageSize);
 	SetValue(IDC_NOISE_MAXSIZE, params.Noise.MaxMessageSize);
 
+	if (m_QuantumGate->GetSecurityLevel() != SecurityLevel::Custom)
+	{
+		m_NoiseBasedOnBandwidth.Use = false;
+	}
+
 	SetValue(IDC_NOISE_AUTO_USE, m_NoiseBasedOnBandwidth.Use);
 	SetValue(IDC_NOISE_AUTO_SECONDS, m_NoiseBasedOnBandwidth.TimeInterval.count());
 	SetValue(IDC_NOISE_AUTO_MIN_BANDWIDTH, m_NoiseBasedOnBandwidth.MinimumBandwidth);
