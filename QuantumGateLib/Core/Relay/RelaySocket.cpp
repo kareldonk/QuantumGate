@@ -149,11 +149,11 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		try
 		{
-			Size rcvsize{ 0 };
+			Size bytesrcv{ 0 };
 
 			while (!m_ReceiveQueue.empty())
 			{
-				rcvsize += m_ReceiveQueue.front().GetSize();
+				bytesrcv += m_ReceiveQueue.front().GetSize();
 
 				if (buffer.IsEmpty()) buffer = std::move(m_ReceiveQueue.front());
 				else buffer += m_ReceiveQueue.front();
@@ -161,13 +161,13 @@ namespace QuantumGate::Implementation::Core::Relay
 				m_ReceiveQueue.pop();
 			}
 
-			if (rcvsize > 0)
+			if (bytesrcv > 0)
 			{
 				// Update the total amount of bytes received
-				m_BytesReceived += rcvsize;
+				m_BytesReceived += bytesrcv;
 				success = true;
 			}
-			else if (rcvsize == 0)
+			else if (bytesrcv == 0)
 			{
 				LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
 			}
