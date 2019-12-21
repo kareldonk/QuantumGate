@@ -188,7 +188,7 @@ namespace QuantumGate::Implementation::Crypto
 			Buffer bytes(size);
 
 			if (QGCryptoGetRandomBytes(reinterpret_cast<UChar*>(bytes.GetBytes()),
-									   gsl::narrow<ULong>(bytes.GetSize())) == 0)
+									   static_cast<ULong>(bytes.GetSize())) == 0)
 			{
 				return { std::move(bytes) };
 			}

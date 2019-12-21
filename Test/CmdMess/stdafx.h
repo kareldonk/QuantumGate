@@ -29,9 +29,3 @@
 #pragma comment (lib, "QuantumGate64.lib")
 #endif
 #endif
-
-// Undefine conflicting macro from Windows SDK for gsl
-#pragma push_macro("max")
-#undef max
-#include <gsl/gsl>
-#pragma pop_macro("max")

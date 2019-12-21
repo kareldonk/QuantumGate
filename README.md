@@ -29,7 +29,6 @@ You'll require the latest version of Microsoft Visual Studio 2019, as well as th
 
 | Name | Version |
 |------|---------|
-| [Microsoft Guideline Support Library](https://github.com/Microsoft/GSL) | Latest. |
 | [OpenSSL](https://github.com/openssl/openssl) | At least 1.1.1 |
 | [PCG-Random](https://github.com/imneme/pcg-cpp) | Latest. |
 | [zlib](https://github.com/madler/zlib) | At least 1.2.11 |
@@ -39,7 +38,7 @@ You'll require the latest version of Microsoft Visual Studio 2019, as well as th
 
 | Name | Version |
 |------|---------|
-| [Monocypher](https://github.com/LoupVaillant/Monocypher) | Latest. |
+| [Monocypher](https://github.com/LoupVaillant/Monocypher) | At least 2.0.6 |
 | [JSON for Modern C++](https://github.com/nlohmann/json) | At least 3.2.1 |
 
 #### Naming

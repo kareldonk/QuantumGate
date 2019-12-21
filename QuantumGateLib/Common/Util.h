@@ -54,7 +54,7 @@ namespace QuantumGate::Implementation::Util
 		return txt;
 	}
 
-	Export String ToBinaryString(const gsl::span<Byte> bytes) noexcept;
+	Export String ToBinaryString(const BufferView& bytes) noexcept;
 
 	Export String ToStringW(const Char* txt) noexcept;		
 	Export String ToStringW(const std::string& txt) noexcept;

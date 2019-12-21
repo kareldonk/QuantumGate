@@ -67,12 +67,4 @@
 #include <atomic>
 #include <thread>
 #include <fstream>
-
-// Undefine conflicting macro from Windows SDK for gsl
-#pragma push_macro("max")
-#undef max
-#include <gsl/gsl>
-#pragma pop_macro("max")
-
 #include <json.hpp>
-

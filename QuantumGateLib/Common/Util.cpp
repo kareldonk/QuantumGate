@@ -93,21 +93,21 @@ namespace QuantumGate::Implementation::Util
 		return fstr;
 	}
 
-	Export String ToBinaryString(const gsl::span<Byte> bytes) noexcept
+	Export String ToBinaryString(const BufferView& bytes) noexcept
 	{
 		try
 		{
-			const auto numbits = CHAR_BIT * bytes.size();
-			const auto numsep = bytes.size() - 1;
+			const auto numbits = CHAR_BIT * bytes.GetSize();
+			const auto numsep = bytes.GetSize() - 1;
 			const auto len = numbits + numsep;
 
 			String txt;
 			txt.reserve(len);
 
-			for (const auto byte : bytes)
+			for (BufferView::SizeType x = 0u; x < bytes.GetSize(); ++x)
 			{
 				if (!txt.empty()) txt += L"'";
-				txt += ToBinaryString(static_cast<UChar>(byte)).data();
+				txt += ToBinaryString(static_cast<UChar>(bytes[x])).data();
 			}
 
 			return txt;

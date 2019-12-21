@@ -49,12 +49,6 @@
 	#endif
 #endif
 
-// Undefine conflicting macro from Windows SDK for gsl
-#pragma push_macro("max")
-#undef max
-#include <gsl/gsl>
-#pragma pop_macro("max")
-
 #include "Types.h"
 #include "Common\Util.h"
 #include "Common\Console.h"
