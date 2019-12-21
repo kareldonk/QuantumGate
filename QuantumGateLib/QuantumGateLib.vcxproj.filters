@@ -417,6 +417,9 @@
     <ClInclude Include="Common\RateLimit.h">
       <Filter>Header Files\Common</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Peer\PeerMessageRateLimits.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

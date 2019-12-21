@@ -3,9 +3,8 @@
 
 #pragma once
 
+#include "PeerMessageRateLimits.h"
 #include "..\..\Concurrency\Queue.h"
-#include "..\..\Common\RateLimit.h"
-#include "..\Message.h"
 
 namespace QuantumGate::Implementation::Core::Peer
 {
@@ -27,18 +26,6 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		using MessageQueue = Concurrency::Queue<Message>;
 		using DelayedMessageQueue = Concurrency::Queue<DelayedMessage>;
-
-		struct RateLimits final
-		{
-			// Enough space to hold 5 full size messages (and more smaller ones)
-			using ExtenderCommunicationRateLimit = RateLimit<Size, 0, 5 * Message::MaxMessageDataSize>;
-			using NoiseRateLimit = RateLimit<Size, 0, 5 * Message::MaxMessageDataSize>;
-			using RelayDataRateLimit = RateLimit<Size, 0, 5 * Message::MaxMessageDataSize>;
-
-			ExtenderCommunicationRateLimit ExtenderCommunication;
-			NoiseRateLimit Noise;
-			RelayDataRateLimit RelayData;
-		};
 
 	public:
 		PeerSendQueues() noexcept = default;
@@ -62,16 +49,16 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline Size GetAvailableNoiseSendBufferSize() const noexcept
 		{
-			return m_RateLimits.Noise.GetAvailable();
+			return m_RateLimits.GetAvailable<MessageRateLimits::Type::Noise>();
 		}
 
 		[[nodiscard]] inline Size GetAvailableRelayDataSendBufferSize() const noexcept
 		{
-			return m_RateLimits.RelayData.GetAvailable();
+			return m_RateLimits.GetAvailable<MessageRateLimits::Type::RelayData>();
 		}
 
 	private:
-		template<MessageType MsgType>
+		template<MessageRateLimits::Type type>
 		Result<> AddMessageImpl(Message&& msg, const SendParameters::PriorityOption priority,
 								const std::chrono::milliseconds delay) noexcept;
 
@@ -85,6 +72,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		MessageQueue m_NormalQueue;
 		MessageQueue m_ExpeditedQueue;
 		DelayedMessageQueue m_DelayedQueue;
-		RateLimits m_RateLimits;
+		MessageRateLimits m_RateLimits;
 	};
 }

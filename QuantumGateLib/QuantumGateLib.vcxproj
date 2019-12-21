@@ -583,6 +583,7 @@
     <ClInclude Include="Core\Peer\PeerKeyUpdate.h" />
     <ClInclude Include="Core\Peer\PeerLookupMaps.h" />
     <ClInclude Include="Core\Peer\PeerMessageProcessor.h" />
+    <ClInclude Include="Core\Peer\PeerMessageRateLimits.h" />
     <ClInclude Include="Core\Peer\PeerNoiseQueue.h" />
     <ClInclude Include="Core\Peer\PeerNoiseItem.h" />
     <ClInclude Include="Core\Peer\PeerManager.h" />

@@ -12,42 +12,25 @@ namespace QuantumGate::Implementation::Core::Peer
 		switch (msg.GetMessageType())
 		{
 			case MessageType::ExtenderCommunication:
-				return AddMessageImpl<MessageType::ExtenderCommunication>(std::move(msg), priority, delay);
+				return AddMessageImpl<MessageRateLimits::Type::ExtenderCommunication>(std::move(msg), priority, delay);
 			case MessageType::Noise:
-				return AddMessageImpl<MessageType::Noise>(std::move(msg), priority, delay);
+				return AddMessageImpl<MessageRateLimits::Type::Noise>(std::move(msg), priority, delay);
 			case MessageType::RelayData:
-				return AddMessageImpl<MessageType::RelayData>(std::move(msg), priority, delay);
+				return AddMessageImpl<MessageRateLimits::Type::RelayData>(std::move(msg), priority, delay);
 			default:
-				return AddMessageImpl<MessageType::Unknown>(std::move(msg), priority, delay);
+				return AddMessageImpl<MessageRateLimits::Type::Default>(std::move(msg), priority, delay);
 		}
 	}
 
-	template<MessageType MsgType>
+	template<MessageRateLimits::Type type>
 	Result<> PeerSendQueues::AddMessageImpl(Message&& msg, const SendParameters::PriorityOption priority,
 											const std::chrono::milliseconds delay) noexcept
 	{
 		const auto msg_size = msg.GetMessageData().GetSize();
 
-		if constexpr (MsgType == MessageType::ExtenderCommunication)
+		if (!m_RateLimits.CanAdd<type>(msg_size))
 		{
-			if (!m_RateLimits.ExtenderCommunication.CanAdd(msg_size))
-			{
-				return ResultCode::PeerSendBufferFull;
-			}
-		}
-		else if constexpr (MsgType == MessageType::Noise)
-		{
-			if (!m_RateLimits.Noise.CanAdd(msg_size))
-			{
-				return ResultCode::PeerSendBufferFull;
-			}
-		}
-		else if constexpr (MsgType == MessageType::RelayData)
-		{
-			if (!m_RateLimits.RelayData.CanAdd(msg_size))
-			{
-				return ResultCode::PeerSendBufferFull;
-			}
+			return ResultCode::PeerSendBufferFull;
 		}
 
 		try
@@ -69,18 +52,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					break;
 			}
 
-			if constexpr (MsgType == MessageType::ExtenderCommunication)
-			{
-				m_RateLimits.ExtenderCommunication.Add(msg_size);
-			}
-			else if constexpr (MsgType == MessageType::Noise)
-			{
-				m_RateLimits.Noise.Add(msg_size);
-			}
-			else if constexpr (MsgType == MessageType::RelayData)
-			{
-				m_RateLimits.RelayData.Add(msg_size);
-			}
+			m_RateLimits.Add<type>(msg_size);
 		}
 		catch (...)
 		{
@@ -115,13 +87,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		switch (message_type)
 		{
 			case MessageType::ExtenderCommunication:
-				m_RateLimits.ExtenderCommunication.Subtract(data_size);
+				m_RateLimits.Subtract<MessageRateLimits::Type::ExtenderCommunication>(data_size);
 				break;
 			case MessageType::Noise:
-				m_RateLimits.Noise.Subtract(data_size);
+				m_RateLimits.Subtract<MessageRateLimits::Type::Noise>(data_size);
 				break;
 			case MessageType::RelayData:
-				m_RateLimits.RelayData.Subtract(data_size);
+				m_RateLimits.Subtract<MessageRateLimits::Type::RelayData>(data_size);
 				break;
 			default:
 				break;
