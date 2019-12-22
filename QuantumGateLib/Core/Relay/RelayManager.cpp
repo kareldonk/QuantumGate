@@ -1137,7 +1137,6 @@ namespace QuantumGate::Implementation::Core::Relay
 						// Free up space to allow for more sends
 						peer->GetSocket<Socket>().SubtractFromSendRateLimit(event.Data.GetSize());
 					}
-					else return;
 				}
 				else
 				{
