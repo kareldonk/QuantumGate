@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation::Concurrency
 	{
 		const auto id = std::this_thread::get_id();
 
-		std::unique_lock<SpinMutex> lock(m_Mutex);
+		UniqueLockType lock(m_Mutex);
 
 		if (m_ExclusiveThreadID == id)
 		{
@@ -44,7 +44,7 @@ namespace QuantumGate::Implementation::Concurrency
 	{
 		const auto id = std::this_thread::get_id();
 
-		std::unique_lock<SpinMutex> lock(m_Mutex);
+		UniqueLockType lock(m_Mutex);
 
 		if (m_ExclusiveThreadID == id)
 		{
@@ -72,7 +72,7 @@ namespace QuantumGate::Implementation::Concurrency
 	
 	void RecursiveSharedMutex::unlock() noexcept
 	{
-		std::unique_lock<SpinMutex> lock(m_Mutex);
+		UniqueLockType lock(m_Mutex);
 
 		// Only the thread with exclusive lock should call unlock
 		assert(m_ExclusiveThreadID == std::this_thread::get_id());
@@ -90,7 +90,7 @@ namespace QuantumGate::Implementation::Concurrency
 	
 	void RecursiveSharedMutex::lock_shared() noexcept
 	{
-		std::unique_lock<SpinMutex> lock(m_Mutex);
+		UniqueLockType lock(m_Mutex);
 
 		// Thread with exclusive lock may not get shared lock
 		assert(m_ExclusiveThreadID != std::this_thread::get_id());
@@ -106,7 +106,7 @@ namespace QuantumGate::Implementation::Concurrency
 	
 	bool RecursiveSharedMutex::try_lock_shared() noexcept
 	{
-		std::unique_lock<SpinMutex> lock(m_Mutex);
+		UniqueLockType lock(m_Mutex);
 
 		// Thread with exclusive lock may not get shared lock
 		assert(m_ExclusiveThreadID != std::this_thread::get_id());
@@ -120,7 +120,7 @@ namespace QuantumGate::Implementation::Concurrency
 	
 	void RecursiveSharedMutex::unlock_shared() noexcept
 	{
-		std::unique_lock<SpinMutex> lock(m_Mutex);
+		UniqueLockType lock(m_Mutex);
 
 		// Should have shared lock before unlocking
 		assert(m_SharedLockCount > 0);
@@ -129,7 +129,7 @@ namespace QuantumGate::Implementation::Concurrency
 	}
 
 	template<typename Func>
-	void RecursiveSharedMutex::Wait(std::unique_lock<SpinMutex>& lock, Func&& func) noexcept
+	void RecursiveSharedMutex::Wait(UniqueLockType& lock, Func&& func) noexcept
 	{
 		while (func() == false)
 		{
