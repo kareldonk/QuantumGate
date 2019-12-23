@@ -66,7 +66,7 @@ CString CDialogBase::GetTextValue(const int id, const CString& def) const noexce
 
 bool CDialogBase::GetBoolValue(const int id, const bool def) noexcept
 {
-	const auto btn = (CButton*)GetDlgItem(id);
+	auto btn = (const CButton*)GetDlgItem(id);
 	if (btn)
 	{
 		if (btn->GetCheck() == BST_CHECKED)

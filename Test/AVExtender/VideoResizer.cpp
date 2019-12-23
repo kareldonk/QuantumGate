@@ -26,8 +26,8 @@ namespace QuantumGate::AVExtender
 		// Close if failed
 		auto sg = MakeScopeGuard([&]() noexcept { Close(); });
 
-		auto hr = CoCreateInstance(CLSID_CResizerDMO, nullptr, CLSCTX_ALL,
-								   IID_IMFTransform, (void**)&m_IMFTransform);
+		const auto hr = CoCreateInstance(CLSID_CResizerDMO, nullptr, CLSCTX_ALL,
+										 IID_IMFTransform, (void**)&m_IMFTransform);
 		if (SUCCEEDED(hr))
 		{
 			if (SUCCEEDED(MFCreateMediaType(&m_InputMediaType)) &&

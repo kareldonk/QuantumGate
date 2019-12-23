@@ -39,8 +39,8 @@ namespace StressExtender
 		bool SendMessage(const PeerLUID pluid, const String& msg, const SendParameters::PriorityOption priority,
 						 const std::chrono::milliseconds delay) const;
 
-		bool SendBenchmarkStart(const PeerLUID pluid);
-		bool SendBenchmarkEnd(const PeerLUID pluid);
+		bool SendBenchmarkStart(const PeerLUID pluid) noexcept;
+		bool SendBenchmarkEnd(const PeerLUID pluid) noexcept;
 
 		bool BenchmarkSendMessage(const PeerLUID pluid);
 

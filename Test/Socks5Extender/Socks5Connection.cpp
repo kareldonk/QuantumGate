@@ -15,8 +15,7 @@ using namespace std::literals;
 
 namespace QuantumGate::Socks5Extender
 {
-	Connection::Connection(Extender& extender, const PeerLUID pluid,
-						   Socket&& socket) noexcept :
+	Connection::Connection(Extender& extender, const PeerLUID pluid, Socket&& socket) noexcept :
 		m_PeerLUID(pluid), m_Socket(std::move(socket)), m_Extender(extender)
 	{
 		m_ID = Util::GetPseudoRandomNumber();

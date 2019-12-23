@@ -103,20 +103,20 @@ namespace QuantumGate::Socks5Extender
 									const IPAddress& ip, const UInt16 port);
 
 		bool SendConnectDomain(const PeerLUID pluid, const ConnectionID cid,
-							   const String& domain, const UInt16 port) const;
+							   const String& domain, const UInt16 port) const noexcept;
 
 		bool SendConnectIP(const PeerLUID pluid, const ConnectionID cid,
-						   const Network::BinaryIPAddress& ip, const UInt16 port) const;
+						   const Network::BinaryIPAddress& ip, const UInt16 port) const noexcept;
 
-		bool SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const;
-		bool SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const;
+		bool SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const noexcept;
+		bool SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const noexcept;
 
 		bool SendSocks5Reply(const PeerLUID pluid, const ConnectionID cid, const Socks5Protocol::Replies reply,
 							 const Socks5Protocol::AddressTypes atype = Socks5Protocol::AddressTypes::IPv4,
 							 const Network::BinaryIPAddress ip = Network::BinaryIPAddress{},
-							 const UInt16 port = 0) const;
+							 const UInt16 port = 0) const noexcept;
 
-		bool SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const;
+		bool SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const noexcept;
 
 		constexpr Size GetDataRelayHeaderSize() const noexcept
 		{

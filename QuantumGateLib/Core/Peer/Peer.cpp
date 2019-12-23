@@ -1060,7 +1060,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						// MessageTransport counter should match the expected message counter
 						// if we have one already; this is to protect against replay attacks
-						auto counter = GetNextPeerMessageCounter();
+						const auto counter = GetNextPeerMessageCounter();
 
 						Dbg(L"MessageTransport counters %u/%u",
 							counter.has_value() ? counter.value() : 0, msg.GetMessageCounter());

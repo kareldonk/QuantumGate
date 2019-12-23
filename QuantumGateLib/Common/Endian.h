@@ -54,8 +54,8 @@ namespace QuantumGate::Implementation
 
 		static const EndianType GetLocalEndian() noexcept
 		{
-			const UInt16 s = 0x0201;
-			const UInt8 c = *(reinterpret_cast<const UInt8*>(&s));
+			constexpr UInt16 s{ 0x0201 };
+			const UInt8 c{ *(reinterpret_cast<const UInt8*>(&s)) };
 			return ((c == 1) ? EndianType::LittleEndian : EndianType::BigEndian);
 		}
 

@@ -24,7 +24,7 @@ namespace QuantumGate::AVExtender
 
 	struct CaptureDevice final
 	{
-		enum Type
+		enum class Type
 		{
 			Unknown, Video, Audio
 		};

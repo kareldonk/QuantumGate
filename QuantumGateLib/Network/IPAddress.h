@@ -143,7 +143,7 @@ namespace QuantumGate::Implementation::Network
 		{
 			constexpr std::array<Block, 12> local =
 			{
-				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 0 }), 8},						// 0.0.0.0/8 (Local system)
+				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 0 }), 8 },						// 0.0.0.0/8 (Local system)
 				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 169 }, Byte{ 254 }), 16 },		// 169.254.0.0/16 (Link local)
 				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 127 }), 8 },					// 127.0.0.0/8 (Loopback)
 				Block{ BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 192 }, Byte{ 168 }), 16 },		// 192.168.0.0/16 (Local LAN)
@@ -246,8 +246,8 @@ namespace QuantumGate::Implementation::Network
 
 		[[nodiscard]] static constexpr bool IsInBlock(const BinaryIPAddress& bin_ipaddr, const Block& block) noexcept
 		{
-			const auto[success, same_network] = BinaryIPAddress::AreInSameNetwork(bin_ipaddr, block.Address,
-																				  block.Mask);
+			const auto [success, same_network] = BinaryIPAddress::AreInSameNetwork(bin_ipaddr, block.Address,
+																				   block.Mask);
 			if (success && same_network) return true;
 
 			return false;

@@ -63,7 +63,7 @@ namespace QuantumGate::Implementation::Core::Access
 	class Export IPSubnetLimits final
 	{
 	public:
-		IPSubnetLimits() = default;
+		IPSubnetLimits() noexcept {}
 		IPSubnetLimits(const IPSubnetLimits&) = delete;
 		IPSubnetLimits(IPSubnetLimits&&) noexcept = default;
 		~IPSubnetLimits() = default;

@@ -53,7 +53,7 @@ void Benchmarks::BenchmarkThreadLocalCache()
 {
 	CWaitCursor wait;
 
-	const auto maxtr = 50000000u;
+	constexpr auto maxtr = 50000000u;
 
 	LogSys(L"---");
 	LogSys(L"Starting ThreadLocalCache benchmark for %u iterations", maxtr);
@@ -85,7 +85,7 @@ void Benchmarks::BenchmarkCallbacks()
 {
 	CWaitCursor wait;
 
-	const auto maxtr = 50000000u;
+	constexpr auto maxtr = 50000000u;
 
 	LogSys(L"---");
 	LogSys(L"Starting Callbacks benchmark for %u iterations", maxtr);
@@ -170,7 +170,7 @@ void Benchmarks::BenchmarkMutexes()
 {
 	CWaitCursor wait;
 
-	const auto maxtr = 10000000u;
+	constexpr auto maxtr = 10000000u;
 
 	LogSys(L"---");
 	LogSys(L"Starting mutexes benchmark for %u iterations", maxtr);
@@ -267,7 +267,7 @@ void Benchmarks::BenchmarkCompression()
 {
 	CWaitCursor wait;
 
-	const auto maxtr = 50000u;
+	constexpr auto maxtr = 50000u;
 
 	LogSys(L"---");
 	LogSys(L"Starting Compression benchmark for %u iterations", maxtr);
@@ -351,7 +351,7 @@ void Benchmarks::BenchmarkConsole()
 {
 	CWaitCursor wait;
 
-	const auto maxtr = 50000u;
+	constexpr auto maxtr = 50000u;
 
 	const auto dur1 = DoBenchmark(std::wstring(L"Adding to console using AddMessage"), maxtr, [&]()
 	{
@@ -363,7 +363,7 @@ void Benchmarks::BenchmarkConsole()
 		SLogInfo(L"This is a test message");
 	});
 
-	const auto number = 3000ull;
+	constexpr auto number = 3000ull;
 
 	const auto dur3 = DoBenchmark(std::wstring(L"Adding to console using AddMessage"), maxtr, [&]()
 	{
@@ -386,7 +386,7 @@ void Benchmarks::BenchmarkMemory()
 {
 	CWaitCursor wait;
 
-	const auto maxtr = 2000u;
+	constexpr auto maxtr = 2000u;
 
 	LogSys(L"---");
 	LogSys(L"Starting Memory benchmark for %u iterations", maxtr);

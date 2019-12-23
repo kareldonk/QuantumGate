@@ -20,7 +20,7 @@ namespace QuantumGate::Implementation
 	public:
 		using FunctionHandle = std::optional<typename FunctionList::const_iterator>;
 
-		Dispatcher() = default;
+		Dispatcher() noexcept {}
 		Dispatcher(const Dispatcher&) = delete;
 		Dispatcher(Dispatcher&&) noexcept = default;
 		~Dispatcher() = default;

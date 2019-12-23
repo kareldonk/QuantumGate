@@ -58,9 +58,9 @@ namespace TestExtender
 		~FileTransfer();
 
 		bool OpenSourceFile(const String& filename);
-		Size ReadFromFile(Byte* buffer, Size size);
+		Size ReadFromFile(Byte* buffer, Size size) noexcept;
 		bool OpenDestinationFile(const String& filename);
-		bool WriteToFile(const Byte* buffer, const Size size);
+		bool WriteToFile(const Byte* buffer, const Size size) noexcept;
 
 		void SetStatus(const FileTransferStatus status) noexcept;
 
@@ -148,8 +148,8 @@ namespace TestExtender
 		bool SendMessage(const PeerLUID pluid, const String& msg, const SendParameters::PriorityOption priority,
 						 const std::chrono::milliseconds delay) const;
 
-		bool SendBenchmarkStart(const PeerLUID pluid);
-		bool SendBenchmarkEnd(const PeerLUID pluid);
+		bool SendBenchmarkStart(const PeerLUID pluid) noexcept;
+		bool SendBenchmarkEnd(const PeerLUID pluid) noexcept;
 
 		bool SendFile(const PeerLUID pluid, const String filename, const bool autotrf);
 		bool AcceptFile(const PeerLUID pluid, const FileTransferID ftid, const String& filename);
@@ -175,10 +175,10 @@ namespace TestExtender
 		bool AcceptFile(const String& filename, FileTransfer& ft);
 
 		bool SendFileTransferStart(FileTransfer& ft);
-		bool SendFileTransferCancel(FileTransfer& ft);
+		bool SendFileTransferCancel(FileTransfer& ft) noexcept;
 		Size GetFileTransferDataSize() const noexcept;
 		bool SendFileData(FileTransfer& ft);
-		bool SendFileDataAck(FileTransfer& ft);
+		bool SendFileDataAck(FileTransfer& ft) noexcept;
 
 	private:
 		HWND m_Window{ nullptr };

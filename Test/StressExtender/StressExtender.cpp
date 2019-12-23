@@ -182,7 +182,7 @@ namespace StressExtender
 		return true;
 	}
 
-	bool Extender::SendBenchmarkStart(const PeerLUID pluid)
+	bool Extender::SendBenchmarkStart(const PeerLUID pluid) noexcept
 	{
 		if (m_IsLocalBenchmarking)
 		{
@@ -190,7 +190,7 @@ namespace StressExtender
 			return false;
 		}
 
-		const UInt16 msgtype = static_cast<UInt16>(MessageType::BenchmarkStart);
+		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::BenchmarkStart);
 
 		BufferWriter writer(true);
 		if (writer.Write(msgtype))
@@ -209,7 +209,7 @@ namespace StressExtender
 		return false;
 	}
 
-	bool Extender::SendBenchmarkEnd(const PeerLUID pluid)
+	bool Extender::SendBenchmarkEnd(const PeerLUID pluid) noexcept
 	{
 		if (!m_IsLocalBenchmarking)
 		{

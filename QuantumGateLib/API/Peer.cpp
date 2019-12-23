@@ -14,17 +14,17 @@ namespace QuantumGate::API
 
 	inline static PeerSharedPtr* PeerSharedPtrCast(void* peer_storage) noexcept
 	{
-		return reinterpret_cast<PeerSharedPtr*>(peer_storage);
+		return static_cast<PeerSharedPtr*>(peer_storage);
 	}
 
 	inline static const PeerSharedPtr* PeerSharedPtrCast(const void* peer_storage) noexcept
 	{
-		return reinterpret_cast<const PeerSharedPtr*>(peer_storage);
+		return static_cast<const PeerSharedPtr*>(peer_storage);
 	}
 
 	inline static const PeerData_ThS* PeerDataCast(const std::uintptr_t* peer_data_ptr) noexcept
 	{
-		return reinterpret_cast<const PeerData_ThS*>(reinterpret_cast<const void*>(*peer_data_ptr));
+		return static_cast<const PeerData_ThS*>(reinterpret_cast<const void*>(*peer_data_ptr));
 	}
 
 	inline static bool IsPeerConnected(const PeerData_ThS::SharedLockedConstType& peer_data) noexcept

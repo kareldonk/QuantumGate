@@ -1376,7 +1376,7 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 		}
 
 		const auto result = m_QuantumGate.ConnectTo(std::move(params),
-													[](PeerLUID pluid, Result<ConnectDetails> result) mutable
+													[](PeerLUID pluid, Result<ConnectDetails> result) mutable noexcept
 		{
 			if (result.Succeeded())
 			{

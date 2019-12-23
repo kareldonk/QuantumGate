@@ -798,7 +798,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		assert(params.Relay.Hops > 0);
 
-		const auto reused = false;
+		constexpr auto reused = false;
 		PeerLUID pluid{ 0 };
 		auto result_code = ResultCode::Failed;
 		String error_details;

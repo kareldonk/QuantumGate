@@ -547,7 +547,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		m_RelayLinks.WithSharedLock([&](const LinkMap& relays)
 		{
-			auto it = relays.find(rport);
+			const auto it = relays.find(rport);
 			if (it != relays.end())
 			{
 				rcths = it->second.get();
@@ -1176,7 +1176,7 @@ namespace QuantumGate::Implementation::Core::Relay
 							{
 								if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
 								{
-									if (auto result = dest_peer->GetMessageProcessor().SendRelayData(rl.GetPort(), event.Data); result.Succeeded())
+									if (const auto result = dest_peer->GetMessageProcessor().SendRelayData(rl.GetPort(), event.Data); result.Succeeded())
 									{
 										retval = RelayDataProcessResult::Succeeded;
 									}

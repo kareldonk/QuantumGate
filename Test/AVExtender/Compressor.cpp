@@ -121,7 +121,7 @@ namespace QuantumGate::AVExtender
 	{
 		assert(IsOpen());
 
-		auto hr = m_IMFTransform->ProcessInput(0, in_sample, 0);
+		const auto hr = m_IMFTransform->ProcessInput(0, in_sample, 0);
 		if (SUCCEEDED(hr))
 		{
 			return true;
@@ -142,7 +142,7 @@ namespace QuantumGate::AVExtender
 		{
 			DWORD flags{ 0 };
 
-			auto hr = m_IMFTransform->GetOutputStatus(&flags);
+			const auto hr = m_IMFTransform->GetOutputStatus(&flags);
 			if (SUCCEEDED(hr))
 			{
 				if (flags != MFT_OUTPUT_STATUS_SAMPLE_READY)

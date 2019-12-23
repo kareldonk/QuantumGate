@@ -607,7 +607,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				// Do/did we have the extender running locally?
 				if (const auto it = extenders.find(extuuid); it != extenders.end())
 				{
-					it->second->WithUniqueLock([&](Control& extctrl)
+					it->second->WithUniqueLock([&](Control& extctrl) noexcept
 					{
 						// If extender exists and is running let it process the event
 						if (extctrl.GetStatus() == Control::Status::Running)

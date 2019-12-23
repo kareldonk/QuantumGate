@@ -94,8 +94,6 @@ namespace QuantumGate::Implementation::Memory::LinearPoolAllocator
 
 		GetMemoryPool<Type>().WithUniqueLock([&](const auto& mp)
 		{
-			std::size_t total{ 0 };
-
 			for (auto it = mp.begin(); it != mp.end(); ++it)
 			{
 				const auto pool_size = it->Buffer.size();

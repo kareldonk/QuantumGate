@@ -91,7 +91,7 @@ namespace TestExtender
 		return success;
 	}
 
-	Size FileTransfer::ReadFromFile(Byte* buffer, Size size)
+	Size FileTransfer::ReadFromFile(Byte* buffer, Size size) noexcept
 	{
 		if (m_NumBytesTransferred == 0) m_TransferStartSteadyTime = Util::GetCurrentSteadyTime();
 
@@ -130,7 +130,7 @@ namespace TestExtender
 		return false;
 	}
 
-	bool FileTransfer::WriteToFile(const Byte* buffer, const Size size)
+	bool FileTransfer::WriteToFile(const Byte* buffer, const Size size) noexcept
 	{
 		if (m_NumBytesTransferred == 0) m_TransferStartSteadyTime = Util::GetCurrentSteadyTime();
 
@@ -202,7 +202,7 @@ namespace TestExtender
 	{
 		try
 		{
-			const Size bufsize{ 1024 * 1000 };
+			constexpr Size bufsize{ 1024 * 1000 };
 			Buffer buffer(bufsize);
 			Size bytesread{ 0 };
 
@@ -468,7 +468,7 @@ namespace TestExtender
 																					 GetFileTransferDataSize(), autotrf);
 											ft->SetStatus(FileTransferStatus::NeedAccept);
 
-											auto retval = filetransfers.insert({ fid, std::move(ft) });
+											const auto retval = filetransfers.insert({ fid, std::move(ft) });
 											result.Success = true;
 											auto error = false;
 
@@ -726,7 +726,7 @@ namespace TestExtender
 		return success;
 	}
 
-	bool Extender::SendBenchmarkStart(const PeerLUID pluid)
+	bool Extender::SendBenchmarkStart(const PeerLUID pluid) noexcept
 	{
 		if (m_IsLocalBenchmarking)
 		{
@@ -734,7 +734,7 @@ namespace TestExtender
 			return false;
 		}
 
-		const UInt16 msgtype = static_cast<UInt16>(MessageType::BenchmarkStart);
+		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::BenchmarkStart);
 
 		BufferWriter writer(true);
 		if (writer.Write(msgtype))
@@ -753,7 +753,7 @@ namespace TestExtender
 		return false;
 	}
 
-	bool Extender::SendBenchmarkEnd(const PeerLUID pluid)
+	bool Extender::SendBenchmarkEnd(const PeerLUID pluid) noexcept
 	{
 		if (!m_IsLocalBenchmarking)
 		{
@@ -768,7 +768,7 @@ namespace TestExtender
 			LogSys(L"Local %s benchmark result: %dms", GetName().c_str(), ms.count());
 		}
 
-		const UInt16 msgtype = static_cast<UInt16>(MessageType::BenchmarkEnd);
+		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::BenchmarkEnd);
 
 		BufferWriter writer(true);
 		if (writer.Write(msgtype))
@@ -784,7 +784,7 @@ namespace TestExtender
 	bool Extender::SendMessage(const PeerLUID pluid, const String& msg, const SendParameters::PriorityOption priority,
 							   const std::chrono::milliseconds delay) const
 	{
-		const UInt16 msgtype = static_cast<UInt16>(MessageType::MessageString);
+		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::MessageString);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, msg))
@@ -860,7 +860,7 @@ namespace TestExtender
 		{
 			if (ft.OpenDestinationFile(filename))
 			{
-				const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferAccept);
+				constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferAccept);
 
 				BufferWriter writer(true);
 				if (writer.WriteWithPreallocation(msgtype, ft.GetID()))
@@ -900,7 +900,7 @@ namespace TestExtender
 		// Filename may not be longer than 256 bytes (128 wide characters)
 		filename = filename.substr(0, 128);
 
-		const UInt16 msgtype = static_cast<const UInt16>(MessageType::FileTransferStart);
+		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::FileTransferStart);
 		const UInt64 filesize = static_cast<UInt64>(ft.GetFileSize());
 		const UInt8 autotrf = [&]()
 		{
@@ -922,9 +922,9 @@ namespace TestExtender
 		return false;
 	}
 
-	bool Extender::SendFileTransferCancel(FileTransfer& ft)
+	bool Extender::SendFileTransferCancel(FileTransfer& ft) noexcept
 	{
-		const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferCancel);
+		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferCancel);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, ft.GetID()))
@@ -958,7 +958,7 @@ namespace TestExtender
 		{
 			buffer.Resize(numread);
 
-			const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferData);
+			constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferData);
 
 			BufferWriter writer(true);
 			if (writer.WriteWithPreallocation(msgtype, ft.GetID(), WithSize(buffer, GetFileTransferDataSize())))
@@ -974,9 +974,9 @@ namespace TestExtender
 		return false;
 	}
 
-	bool Extender::SendFileDataAck(FileTransfer& ft)
+	bool Extender::SendFileDataAck(FileTransfer& ft) noexcept
 	{
-		const UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferDataAck);
+		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::FileTransferDataAck);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, ft.GetID()))

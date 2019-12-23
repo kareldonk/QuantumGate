@@ -268,7 +268,7 @@ namespace QuantumGate::Socks5Extender
 		{
 			m_Listener.ShutdownEvent.Reset();
 
-			auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), 9090);
+			const auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), 9090);
 			m_Listener.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
 												Network::Socket::Type::Stream,
 												IP::Protocol::TCP);
@@ -691,7 +691,7 @@ namespace QuantumGate::Socks5Extender
 
 		m_Connections.WithSharedLock([&](const Connections& connections)
 		{
-			auto it = connections.find(Connection::MakeKey(pluid, cid));
+			const auto it = connections.find(Connection::MakeKey(pluid, cid));
 			if (it != connections.end())
 			{
 				con = it->second.get();
@@ -876,9 +876,9 @@ namespace QuantumGate::Socks5Extender
 	}
 
 	bool Extender::SendConnectDomain(const PeerLUID pluid, const ConnectionID cid,
-									 const String& domain, const UInt16 port) const
+									 const String& domain, const UInt16 port) const noexcept
 	{
-		const UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectDomain);
+		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectDomain);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, WithSize(domain, MaxSize::_1KB), port))
@@ -896,11 +896,11 @@ namespace QuantumGate::Socks5Extender
 	}
 
 	bool Extender::SendConnectIP(const PeerLUID pluid, const ConnectionID cid,
-								 const BinaryIPAddress& ip, const UInt16 port) const
+								 const BinaryIPAddress& ip, const UInt16 port) const noexcept
 	{
 		assert(ip.AddressFamily != BinaryIPAddress::Family::Unspecified);
 
-		const UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectIP);
+		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectIP);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, SerializedBinaryIPAddress{ ip }, port))
@@ -917,9 +917,9 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	bool Extender::SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const
+	bool Extender::SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const noexcept
 	{
-		const UInt16 msgtype = static_cast<const UInt16>(MessageType::Disconnect);
+		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::Disconnect);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid))
@@ -936,9 +936,9 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	bool Extender::SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const
+	bool Extender::SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const noexcept
 	{
-		const UInt16 msgtype = static_cast<const UInt16>(MessageType::DisconnectAck);
+		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::DisconnectAck);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid))
@@ -958,9 +958,9 @@ namespace QuantumGate::Socks5Extender
 	bool Extender::SendSocks5Reply(const PeerLUID pluid, const ConnectionID cid,
 								   const Socks5Protocol::Replies reply,
 								   const Socks5Protocol::AddressTypes atype,
-								   const BinaryIPAddress ip, const UInt16 port) const
+								   const BinaryIPAddress ip, const UInt16 port) const noexcept
 	{
-		const UInt16 msgtype = static_cast<const UInt16>(MessageType::Socks5ReplyRelay);
+		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::Socks5ReplyRelay);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, reply, atype, SerializedBinaryIPAddress{ ip }, port))
@@ -977,9 +977,9 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	bool Extender::SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const
+	bool Extender::SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const noexcept
 	{
-		const UInt16 msgtype = static_cast<UInt16>(MessageType::DataRelay);
+		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::DataRelay);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, WithSize(buffer, GetMaxDataRelayDataSize())))
@@ -1018,7 +1018,7 @@ namespace QuantumGate::Socks5Extender
 	{
 		if (IsOutgoingIPAllowed(ip))
 		{
-			IPEndpoint endp(ip, port);
+			const IPEndpoint endp(ip, port);
 			Socket s(endp.GetIPAddress().GetFamily());
 
 			LogInfo(L"%s: connecting to %s for peer %llu for connection %llu",
@@ -1057,7 +1057,7 @@ namespace QuantumGate::Socks5Extender
 		if (ret == 0)
 		{
 			// Free ADDRINFO resources when we leave
-			auto sg = MakeScopeGuard([&] { FreeAddrInfoW(result); });
+			auto sg = MakeScopeGuard([&]() noexcept { FreeAddrInfoW(result); });
 
 			for (auto ptr = result; ptr != nullptr; ptr = ptr->ai_next)
 			{

@@ -41,8 +41,8 @@ namespace QuantumGate::AVExtender
 			hr = m_IMFTransform->QueryInterface(&m_IMediaObject);
 			if (SUCCEEDED(hr))
 			{
-				auto itype = GetMediaType(width, height, in_video_format);
-				auto otype = GetMediaType(width, height, out_video_format);
+				const auto itype = GetMediaType(width, height, in_video_format);
+				const auto otype = GetMediaType(width, height, out_video_format);
 
 				// Set input type
 				hr = m_IMediaObject->SetInputType(0, &itype.DMOMediaType, 0);

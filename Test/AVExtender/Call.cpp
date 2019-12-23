@@ -220,7 +220,7 @@ namespace QuantumGate::AVExtender
 		AudioFormat snd_audio_in_format;
 		AudioCompressor audio_compressor{ AudioCompressor::Type::Encoder };
 
-		auto send_audio = [](Call* call, AudioSample& media_sample)
+		const auto send_audio = [](Call* call, AudioSample& media_sample)
 		{
 			// Try to send at most 1 second of audio data at once
 			const auto max_send{ media_sample.Format.AvgBytesPerSecond };
@@ -404,7 +404,7 @@ namespace QuantumGate::AVExtender
 		VideoFormat snd_video_in_format;
 		VideoCompressor video_compressor{ VideoCompressor::Type::Encoder };
 
-		auto send_video = [](Call* call, VideoSample& media_sample)
+		const auto send_video = [](Call* call, VideoSample& media_sample)
 		{
 			// Video frame size should not be larger than what we can send
 			assert(media_sample.SampleBuffer.GetSize() <= call->m_Extender.GetMaximumMessageDataSize());

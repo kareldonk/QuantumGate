@@ -780,7 +780,7 @@ namespace QuantumGate::AVExtender
 	Result<> Extender::SendCallAudioSample(const PeerLUID pluid, const AudioFormat& afmt, const UInt64 timestamp,
 										   const BufferView data, const bool compressed) const noexcept
 	{
-		const UInt16 msgtype = static_cast<const UInt16>(MessageType::AudioSample);
+		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::AudioSample);
 
 		AudioFormatData fmt_data;
 		fmt_data.NumChannels = afmt.NumChannels;
@@ -808,7 +808,7 @@ namespace QuantumGate::AVExtender
 	Result<> Extender::SendCallVideoSample(const PeerLUID pluid, const VideoFormat& vfmt, const UInt64 timestamp,
 										   const BufferView data, const bool compressed) const noexcept
 	{
-		const UInt16 msgtype = static_cast<const UInt16>(MessageType::VideoSample);
+		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::VideoSample);
 
 		VideoFormatData fmt_data;
 		fmt_data.Format = vfmt.Format;

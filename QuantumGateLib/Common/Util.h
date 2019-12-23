@@ -31,7 +31,7 @@ namespace QuantumGate::Implementation::Util
 	{
 		static_assert(std::is_integral_v<T>, "Unsupported type.");
 
-		const auto numbits = CHAR_BIT * sizeof(T);
+		constexpr auto numbits = CHAR_BIT * sizeof(T);
 		std::array<WChar, GetBinaryStringLength<T>()> txt{ 0 };
 
 		auto pos = 0u;
