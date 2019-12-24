@@ -5,19 +5,19 @@
 
 namespace QuantumGate::Implementation
 {
-	enum class EndianType
-	{
-		LittleEndian, BigEndian
-	};
-
 	class Endian final
 	{
 	private:
 		Endian() noexcept = default;
 
 	public:
+		enum class Type
+		{
+			Unknown, Little, Big
+		};
+
 		template<typename T>
-		static void ToNetworkByteOrder(const T& indata, T& outdata) noexcept
+		static constexpr void ToNetworkByteOrder(const T& indata, T& outdata) noexcept
 		{
 			static_assert(std::is_same_v<T, Byte> || std::is_integral_v<T>, "Unsupported type");
 
@@ -25,7 +25,7 @@ namespace QuantumGate::Implementation
 		}
 
 		template<typename T>
-		static T ToNetworkByteOrder(const T& indata) noexcept
+		static constexpr T ToNetworkByteOrder(const T& indata) noexcept
 		{
 			static_assert(std::is_same_v<T, Byte> || std::is_integral_v<T>, "Unsupported type");
 
@@ -35,7 +35,7 @@ namespace QuantumGate::Implementation
 		}
 
 		template<typename T>
-		static void FromNetworkByteOrder(const T& indata, T& outdata) noexcept
+		static constexpr void FromNetworkByteOrder(const T& indata, T& outdata) noexcept
 		{
 			static_assert(std::is_same_v<T, Byte> || std::is_integral_v<T>, "Unsupported type");
 
@@ -43,7 +43,7 @@ namespace QuantumGate::Implementation
 		}
 
 		template<typename T>
-		static T FromNetworkByteOrder(const T& indata) noexcept
+		static constexpr T FromNetworkByteOrder(const T& indata) noexcept
 		{
 			static_assert(std::is_same_v<T, Byte> || std::is_integral_v<T>, "Unsupported type");
 
@@ -52,28 +52,46 @@ namespace QuantumGate::Implementation
 			return outdata;
 		}
 
-		static const EndianType GetLocalEndian() noexcept
+		static constexpr Type GetNative() noexcept
 		{
-			constexpr UInt16 s{ 0x0201 };
-			const UInt8 c{ *(reinterpret_cast<const UInt8*>(&s)) };
-			return ((c == 1) ? EndianType::LittleEndian : EndianType::BigEndian);
+			// 41 42 43 44 = 'ABCD' hex ASCII code
+			constexpr UInt32 little{ 0x41424344 };
+
+			// 44 43 42 41 = 'DCBA' hex ASCII code
+			constexpr UInt32 big{ 0x44434241 };
+
+			// Converts chars to uint32 on current platform
+			constexpr UInt32 native{ 'ABCD' };
+
+			if constexpr (little == native)
+			{
+				return Type::Little;
+			}
+			else if constexpr (big == native)
+			{
+				return Type::Big;
+			}
+			else
+			{
+				return Type::Unknown;
+			}
 		}
 
-		static bool IsLittleEndian() noexcept
+		static constexpr bool IsLittleEndian() noexcept
 		{
-			return (GetLocalEndian() == EndianType::LittleEndian);
+			return (GetNative() == Type::Little);
 		}
 
-		static bool IsBigEndian() noexcept
+		static constexpr bool IsBigEndian() noexcept
 		{
-			return (GetLocalEndian() == EndianType::BigEndian);
+			return (GetNative() == Type::Big);
 		}
 
-		static void ToNetworkByteOrder(const Byte* indata, Byte* outdata, const Size len) noexcept
+		static constexpr void ToNetworkByteOrder(const Byte* indata, Byte* outdata, const Size len) noexcept
 		{
 			assert(indata != nullptr && outdata != nullptr);
 
-			if (GetLocalEndian() != EndianType::BigEndian)
+			if constexpr (GetNative() != Type::Big)
 			{
 				for (Size i = 0; i < len; ++i)
 				{
@@ -81,12 +99,17 @@ namespace QuantumGate::Implementation
 					outdata[i] = indata[len - 1 - i];
 				}
 			}
-			else memcpy(outdata, indata, len);
+			else
+			{
+				std::memcpy(outdata, indata, len);
+			}
 		}
 
-		static void FromNetworkByteOrder(const Byte* indata, Byte* outdata, const Size len) noexcept
+		static constexpr void FromNetworkByteOrder(const Byte* indata, Byte* outdata, const Size len) noexcept
 		{
 			ToNetworkByteOrder(indata, outdata, len);
 		}
 	};
+
+	static_assert(Endian::GetNative() != Endian::Type::Unknown, "Unable to determine native endianness");
 }

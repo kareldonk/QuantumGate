@@ -9,12 +9,12 @@ namespace QuantumGate::Implementation::Memory
 {
 	BufferWriter::BufferWriter(const bool network_byteorder) noexcept : m_Buffer(m_LocalBuffer)
 	{
-		m_ConvertToNetworkByteOrder = (network_byteorder && Endian::GetLocalEndian() != EndianType::BigEndian);
+		m_ConvertToNetworkByteOrder = (network_byteorder && Endian::GetNative() != Endian::Type::Big);
 	}
 
 	BufferWriter::BufferWriter(Buffer& buffer, const bool network_byteorder) noexcept : m_Buffer(buffer.GetVector())
 	{
-		m_ConvertToNetworkByteOrder = (network_byteorder && Endian::GetLocalEndian() != EndianType::BigEndian);
+		m_ConvertToNetworkByteOrder = (network_byteorder && Endian::GetNative() != Endian::Type::Big);
 		m_Buffer.clear();
 	}
 

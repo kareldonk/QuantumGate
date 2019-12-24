@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Memory
 	BufferReader::BufferReader(const BufferView& buffer, const bool network_byteorder) noexcept :
 		m_Buffer(buffer)
 	{
-		m_ConvertFromNetworkByteOrder = (network_byteorder && Endian::GetLocalEndian() != EndianType::BigEndian);
+		m_ConvertFromNetworkByteOrder = (network_byteorder && Endian::GetNative() != Endian::Type::Big);
 	}
 
 	bool BufferReader::ReadEncodedSize(Size& size, const Size maxsize) noexcept
