@@ -13,10 +13,4 @@
 // Headers for CppUnitTest
 #include "CppUnitTest.h"
 
-// Undefine conflicting macro from Windows SDK for gsl
-#pragma push_macro("max")
-#undef max
-#include <gsl/gsl>
-#pragma pop_macro("max")
-
 #include "Common.h"
