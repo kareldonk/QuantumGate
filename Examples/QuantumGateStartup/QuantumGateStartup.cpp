@@ -43,8 +43,8 @@ int main()
 	// and keys. The UUID and public key can be shared with other peers,
 	// while the private key should be protected and kept private.
 	{
-		auto[success, uuid, keys] = QuantumGate::UUID::Create(QuantumGate::UUID::Type::Peer,
-															  QuantumGate::UUID::SignAlgorithm::EDDSA_ED25519);
+		auto [success, uuid, keys] = QuantumGate::UUID::Create(QuantumGate::UUID::Type::Peer,
+															   QuantumGate::UUID::SignAlgorithm::EDDSA_ED25519);
 		if (success)
 		{
 			params.UUID = uuid;
@@ -83,7 +83,26 @@ int main()
 	// Start extenders on startup
 	params.EnableExtenders = true;
 
+	// For testing purposes we disable authentication requirement; when
+	// authentication is required we would need to add peers to the instance
+	// via QuantumGate::Local::GetAccessManager().AddPeer() including their
+	// UUID and public key so that they can be authenticated when connecting
+	params.RequireAuthentication = false;
+
+	// Our local instance object
 	QuantumGate::Local qg;
+
+	// For testing purposes we allow access by default
+	qg.GetAccessManager().SetPeerAccessDefault(QuantumGate::Access::PeerAccessDefault::Allowed);
+
+	// For testing purposes we allow all IP addresses to connect;
+	// by default all IP Addresses are blocked
+	if (!qg.GetAccessManager().AddIPFilter(L"0.0.0.0/0", QuantumGate::Access::IPFilterType::Allowed) ||
+		!qg.GetAccessManager().AddIPFilter(L"::/0", QuantumGate::Access::IPFilterType::Allowed))
+	{
+		std::wcout << L"Failed to add an IP filter\r\n";
+		return -1;
+	}
 
 	// Add any extenders here
 	// qg.AddExtender
