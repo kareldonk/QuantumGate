@@ -59,12 +59,22 @@ namespace QuantumGate::Implementation
 	Export std::ostream& operator<<(std::ostream& os, const ResultCode code);
 	Export std::wostream& operator<<(std::wostream& os, const ResultCode code);
 
-	Export const std::error_category& GetErrorCategory() noexcept;
+	Export [[nodiscard]] const std::error_category& GetResultCodeErrorCategory() noexcept;
 
 	// The following function overload is needed for the enum conversion 
 	// in one of the constructors for class std::error_code
-	Export std::error_code make_error_code(const ResultCode code) noexcept;
+	Export [[nodiscard]] std::error_code make_error_code(const ResultCode code) noexcept;
+}
 
+namespace std
+{
+	// Needed to make the std::error_code class work with the ResultCode enum
+	template<>
+	struct is_error_code_enum<QuantumGate::Implementation::ResultCode> : std::true_type {};
+}
+
+namespace QuantumGate::Implementation
+{
 	struct NoResultValue final {};
 
 	template<typename E, E DefaultErrorCode, typename T = NoResultValue>
@@ -88,7 +98,7 @@ namespace QuantumGate::Implementation
 		ResultImpl(const E code) noexcept(!HasValueType<T>) : ResultImpl(std::error_code(code)) {}
 
 		// This constructor accepts any enum that works with std::error_code
-		template<class Enum, typename = std::enable_if_t<std::is_error_code_enum_v<Enum>>>
+		template<typename Enum, typename = std::enable_if_t<std::is_error_code_enum_v<Enum>>>
 		ResultImpl(const Enum code) noexcept(!HasValueType<T>) : ResultImpl(std::error_code(code)) {}
 
 		ResultImpl(const std::error_code& code) noexcept(!HasValueType<T>) : m_ErrorCode(code)
@@ -152,7 +162,7 @@ namespace QuantumGate::Implementation
 		[[nodiscard]] inline int GetErrorValue() const noexcept { return m_ErrorCode.value(); }
 
 		// This overload accepts any enum that works with std::error_code
-		template<class Enum, typename = std::enable_if_t<std::is_error_code_enum_v<Enum>>>
+		template<typename Enum, typename = std::enable_if_t<std::is_error_code_enum_v<Enum>>>
 		[[nodiscard]] inline Enum GetErrorValue() const noexcept { return static_cast<Enum>(m_ErrorCode.value()); }
 
 		[[nodiscard]] String GetErrorDescription() const noexcept
@@ -298,11 +308,17 @@ namespace QuantumGate::Implementation
 
 	template<typename T = void>
 	using Result = ResultImpl<ResultCode, ResultCode::Failed, std::conditional_t<std::is_same_v<T, void>, NoResultValue, T>>;
-}
 
-namespace std
-{
-	// Needed to make the std::error_code class work with the ResultCode enum
-	template<>
-	struct is_error_code_enum<QuantumGate::Implementation::ResultCode> : std::true_type {};
+	template<typename T>
+	[[nodiscard]] inline bool IsResultCode(const T& result) noexcept
+	{
+		return (result.GetErrorCode().category() == GetResultCodeErrorCategory());
+	}
+
+	template<typename T>
+	[[nodiscard]] inline ResultCode GetResultCode(const T& result) noexcept
+	{
+		assert(IsResultCode(result));
+		return result.GetErrorValue<ResultCode>();
+	}
 }

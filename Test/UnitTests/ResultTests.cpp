@@ -5,8 +5,8 @@
 #include "Result.h"
 #include "Common\Util.h"
 
-using namespace std::literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
+using namespace QuantumGate::Implementation;
 
 Result<> SucceedTestFunction()
 {
@@ -194,9 +194,34 @@ namespace UnitTests
 				Assert::AreEqual(true, result.GetErrorDescription() == Util::ToStringW(GetErrorCategory().message(result.GetErrorValue())));
 
 				auto result2 = FailTestFunction2();
-				Assert::AreEqual(true, result2.GetErrorValue() == static_cast<int>(ResultCode::InvalidArgument));
+				Assert::AreEqual(true, result2.GetErrorValue<ResultCode>() == ResultCode::InvalidArgument);
 				Assert::AreEqual(true, result2.GetErrorCategory() == Util::ToStringW(GetErrorCategory().name()));
 				Assert::AreEqual(true, result2.GetErrorDescription() == Util::ToStringW(GetErrorCategory().message(result2.GetErrorValue())));
+			}
+		}
+
+		TEST_METHOD(ResultCodeFunctions)
+		{
+			{
+				Result<> result{ ResultCode::Failed };
+				Assert::AreEqual(true, IsResultCode(result));
+				Assert::AreEqual(true, GetResultCode(result) == ResultCode::Failed);
+			}
+
+			{
+				Result<bool> result{ true };
+				Assert::AreEqual(true, IsResultCode(result));
+				Assert::AreEqual(true, GetResultCode(result) == ResultCode::Succeeded);
+			}
+
+			{
+				Result<> result{ std::make_error_code(std::errc::io_error) };
+				Assert::AreEqual(false, IsResultCode(result));
+			}
+
+			{
+				Result<bool> result{ std::make_error_code(std::errc::io_error) };
+				Assert::AreEqual(false, IsResultCode(result));
 			}
 		}
 

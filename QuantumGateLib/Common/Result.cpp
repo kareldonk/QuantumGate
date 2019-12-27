@@ -90,7 +90,7 @@ namespace QuantumGate::Implementation
 		}
 	};
 
-	Export const std::error_category& GetErrorCategory() noexcept
+	Export const std::error_category& GetResultCodeErrorCategory() noexcept
 	{
 		static ErrorCategory ErrorCategory;
 		return ErrorCategory;
@@ -110,6 +110,6 @@ namespace QuantumGate::Implementation
 
 	Export std::error_code make_error_code(const ResultCode code) noexcept
 	{
-		return std::error_code(static_cast<int>(code), GetErrorCategory());
+		return std::error_code(static_cast<int>(code), GetResultCodeErrorCategory());
 	}
 }
