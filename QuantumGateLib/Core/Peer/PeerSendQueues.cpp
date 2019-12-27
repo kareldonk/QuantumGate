@@ -205,7 +205,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			if (num > 1)
 			{
-				LogDbg(L"Sent %llu messages in one transport", num);
+				LogDbg(L"Sent %zu messages in one transport", num);
 			}
 		});
 
