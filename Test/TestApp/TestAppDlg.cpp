@@ -1380,7 +1380,7 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 		{
 			if (result.Succeeded())
 			{
-				LogInfo(L"Relay connected");
+				LogInfo(L"Relay connected (peer LUID %llu)", pluid);
 			}
 			else LogErr(L"Relay connection failed (%s)", result.GetErrorString().c_str());
 		});
