@@ -139,7 +139,7 @@ namespace QuantumGate::Implementation::Core::Extender
 					if (shutdown)
 					{
 						DiscardReturnValue(ShutdownExtender(*e.second, false));
-						
+
 						shutdownext_list.emplace_back(e.second->WithSharedLock()->GetExtender().GetUUID());
 					}
 				}
@@ -239,7 +239,7 @@ namespace QuantumGate::Implementation::Core::Extender
 					// If extender didn't exist in the map add it
 					if (extenders.size() < Manager::MaximumNumberOfExtenders)
 					{
-						[[maybe_unused]] const auto[eit, inserted] =
+						[[maybe_unused]] const auto [eit, inserted] =
 							extenders.insert({ extender->GetUUID(), std::move(extctrl) });
 						if (inserted)
 						{
@@ -361,7 +361,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			}
 			else
 			{
-				result_code = static_cast<ResultCode>(result.GetErrorValue());
+				result_code = GetResultCode(result);
 
 				switch (result_code)
 				{
@@ -471,12 +471,12 @@ namespace QuantumGate::Implementation::Core::Extender
 				catch (const std::exception& e)
 				{
 					LogErr(L"Extendermanager encountered an exception while starting extender %s - %s",
-							extname.c_str(), Util::ToStringW(e.what()).c_str());
+						   extname.c_str(), Util::ToStringW(e.what()).c_str());
 				}
 			}
 			else
 			{
-				result_code = static_cast<ResultCode>(result.GetErrorValue());
+				result_code = GetResultCode(result);
 
 				switch (result_code)
 				{
@@ -523,12 +523,12 @@ namespace QuantumGate::Implementation::Core::Extender
 				catch (const std::exception& e)
 				{
 					LogErr(L"Extendermanager encountered an exception while shutting down extender %s - %s",
-							extname.c_str(), Util::ToStringW(e.what()).c_str());
+						   extname.c_str(), Util::ToStringW(e.what()).c_str());
 				}
 			}
 			else
 			{
-				result_code = static_cast<ResultCode>(result.GetErrorValue());
+				result_code = GetResultCode(result);
 
 				switch (result_code)
 				{

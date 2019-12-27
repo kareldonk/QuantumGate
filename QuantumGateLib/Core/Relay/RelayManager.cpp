@@ -388,9 +388,9 @@ namespace QuantumGate::Implementation::Core::Relay
 			m_RelayLinks.WithUniqueLock([&](LinkMap& relays)
 			{
 				auto pair = std::make_pair(rport, std::move(rl));
-				[[maybe_unused]] const auto [it, retval] = relays.insert(std::move(pair));
+				[[maybe_unused]] const auto [it, inserted] = relays.insert(std::move(pair));
 
-				if (retval)
+				if (inserted)
 				{
 					if (MapRelayPortToThreadKey(rport)) success = true;
 					else

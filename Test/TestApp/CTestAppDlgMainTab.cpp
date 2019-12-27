@@ -628,8 +628,8 @@ void CTestAppDlgMainTab::OnBnClickedCreateUuid()
 								   MB_ICONQUESTION | MB_YESNO);
 	if (ret == IDYES)
 	{
-		const auto [success, uuid, keys] = QuantumGate::UUID::Create(QuantumGate::UUID::Type::Peer,
-																	 QuantumGate::UUID::SignAlgorithm::EDDSA_ED25519);
+		const auto& [success, uuid, keys] = QuantumGate::UUID::Create(QuantumGate::UUID::Type::Peer,
+																	  QuantumGate::UUID::SignAlgorithm::EDDSA_ED25519);
 		if (success)
 		{
 			const auto privname = GetApp()->GetFolder() + L"private_" + uuid.GetString() + L".pem";
