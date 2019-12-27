@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation
 {
-	class ErrorCategory final : public std::error_category
+	class ResultCodeErrorCategory final : public std::error_category
 	{
 	public:
 		const char* name() const noexcept override { return "QuantumGate"; }
@@ -92,7 +92,7 @@ namespace QuantumGate::Implementation
 
 	Export const std::error_category& GetResultCodeErrorCategory() noexcept
 	{
-		static ErrorCategory ErrorCategory;
+		static ResultCodeErrorCategory ErrorCategory;
 		return ErrorCategory;
 	}
 	
