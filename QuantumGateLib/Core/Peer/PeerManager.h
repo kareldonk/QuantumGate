@@ -116,6 +116,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		inline Relay::Manager& GetRelayManager() noexcept { return m_RelayManager; }
 
+		Result<std::pair<PeerLUID, bool>> GetRelayPeer(const ConnectParameters& params, String& error_details) noexcept;
+
 		Result<PeerLUID> GetRelayPeer(const Vector<BinaryIPAddress>& excl_addr1,
 									  const Vector<BinaryIPAddress>& excl_addr2) const noexcept;
 

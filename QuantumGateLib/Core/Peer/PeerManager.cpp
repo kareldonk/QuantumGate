@@ -798,119 +798,21 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		assert(params.Relay.Hops > 0);
 
-		constexpr auto reused = false;
+		constexpr auto reused{ false };
 		PeerLUID pluid{ 0 };
-		auto result_code = ResultCode::Failed;
+		auto result_code{ ResultCode::Failed };
 		String error_details;
-		std::optional<PeerLUID> out_peer;
-		auto out_reused = false;
 
 		const auto rport = m_RelayManager.MakeRelayPort();
 		if (rport)
 		{
-			try
+			if (const auto result = GetRelayPeer(params, error_details); result.Succeeded())
 			{
-				if (params.Relay.Hops == 1)
-				{
-					const auto excl_addr = GetLocalIPAddresses();
-					if (excl_addr != nullptr)
-					{
-						// Don't include addresses/network of local instance
-						const auto result = AreRelayIPsInSameNetwork(params.PeerIPEndpoint.GetIPAddress().GetBinary(), *excl_addr);
-						if (result.Succeeded())
-						{
-							if (!result.GetValue())
-							{
-								if (params.Relay.GatewayPeer)
-								{
-									LogWarn(L"Ignoring via_peer parameter (LUID %llu) for relay link to peer %s because of single hop",
-											params.Relay.GatewayPeer.value(), params.PeerIPEndpoint.GetString().c_str());
-								}
+				const auto& [out_peer, out_reused] = *result;
 
-								// Connect to specific endpoint for final hop 0; if we're
-								// already connected we'll use the existing connection; note that we specify
-								// the same global shared secret since the destination is the same
-								const auto retval = ConnectTo({ params.PeerIPEndpoint, params.GlobalSharedSecret }, nullptr);
-								if (retval.Succeeded())
-								{
-									out_peer = retval->first;
-									out_reused = retval->second;
-								}
-								else result_code = static_cast<ResultCode>(retval.GetErrorValue());
-							}
-							else error_details = L"the destination endpoint is on the same network as the local instance";
-						}
-						else error_details = L"couldn't check if the destination endpoint is on the same network as the local instance";
-					}
-					else error_details = L"couldn't get IP addresses of local instance";
-				}
-				else
-				{
-					const auto excl_addr1 = GetLocalIPAddresses();
-					if (excl_addr1 != nullptr)
-					{
-						Vector<BinaryIPAddress> excl_addr2{ params.PeerIPEndpoint.GetIPAddress().GetBinary() };
+				LogInfo(L"Using peer LUID %llu as gateway for relay connection to peer %s",
+						out_peer, params.PeerIPEndpoint.GetString().c_str());
 
-						if (params.Relay.GatewayPeer)
-						{
-							if (const auto gateway_peerths = Get(*params.Relay.GatewayPeer); gateway_peerths != nullptr)
-							{
-								const auto gateway_peer_ip =
-									gateway_peerths->WithSharedLock()->GetPeerEndpoint().GetIPAddress().GetBinary();
-
-								// Don't include addresses/network of local instance
-								const auto result1 = AreRelayIPsInSameNetwork(gateway_peer_ip, *excl_addr1);
-
-								// Don't include the final endpoint/network
-								const auto result2 = AreRelayIPsInSameNetwork(gateway_peer_ip, excl_addr2);
-
-								if (result1.Succeeded() && result2.Succeeded())
-								{
-									if (!result1.GetValue() && !result2.GetValue())
-									{
-										out_peer = params.Relay.GatewayPeer;
-									}
-									else error_details = Util::FormatString(L"cannot go through peer LUID %llu because it's on the same network as the local or destination endpoint",
-																			params.Relay.GatewayPeer.value());
-								}
-								else error_details = Util::FormatString(L"couldn't check if peer LUID %llu is on the same network as the local or destination endpoint",
-																		params.Relay.GatewayPeer.value());
-							}
-							else error_details = Util::FormatString(L"a peer with LUID %llu wasn't found", params.Relay.GatewayPeer.value());
-						}
-						else
-						{
-							// Try to get a (random) peer for the hop in between
-							// and don't include endpoints on excluded networks
-							const auto result = GetRelayPeer(*excl_addr1, excl_addr2);
-							if (result.Succeeded())
-							{
-								out_peer = result.GetValue();
-							}
-							else
-							{
-								if (result == ResultCode::PeerNotFound)
-								{
-									result_code = ResultCode::NoPeersForRelay;
-									error_details = L"no peers available to create relay link";
-								}
-								else
-								{
-									error_details = L"failed to get a peer to create relay link";
-								}
-							}
-						}
-					}
-					else error_details = L"couldn't get IP addresses of local instance";
-				}
-			}
-			catch (...)
-			{
-				error_details = L"an exception was thrown";
-			}
-
-			if (out_peer)
-			{
 				if (auto in_peerths = CreateRelay(PeerConnectionType::Outbound,
 												  std::move(params.GlobalSharedSecret)); in_peerths != nullptr)
 				{
@@ -924,8 +826,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						{
 							if (Add(in_peerths))
 							{
-								if (m_RelayManager.Connect(in_peer.GetLUID(), *out_peer,
-														   out_endpoint, *rport, params.Relay.Hops))
+								if (m_RelayManager.Connect(in_peer.GetLUID(), out_peer, out_endpoint, *rport, params.Relay.Hops))
 								{
 									pluid = in_peer.GetLUID();
 									result_code = ResultCode::Succeeded;
@@ -941,21 +842,160 @@ namespace QuantumGate::Implementation::Core::Peer
 				// for this relay then we should close it since it's not needed
 				if (result_code != ResultCode::Succeeded && params.Relay.Hops == 1 && !out_reused)
 				{
-					DiscardReturnValue(DisconnectFrom(*out_peer, nullptr));
+					DiscardReturnValue(DisconnectFrom(out_peer, nullptr));
 				}
+			}
+			else
+			{
+				if (IsResultCode(result)) result_code = GetResultCode(result);
 			}
 		}
 		else error_details = L"couldn't get relay port (relays may not be enabled)";
 
-		if (result_code != ResultCode::Succeeded)
+		if (result_code == ResultCode::Succeeded)
 		{
-			if (!error_details.empty()) error_details = L" - " + error_details;
+			return std::make_pair(pluid, reused);
+		}
+		else
+		{
+			LogErr(L"Couldn't create relay link to peer %s%s%s",
+				   params.PeerIPEndpoint.GetString().c_str(), error_details.empty() ? L"" : L" - ", error_details.c_str());
 
-			LogErr(L"Couldn't create relay link to peer %s%s",
-				   params.PeerIPEndpoint.GetString().c_str(), error_details.c_str());
+			return result_code;
+		}
+	}
+
+	Result<std::pair<PeerLUID, bool>> Manager::GetRelayPeer(const ConnectParameters& params, String& error_details) noexcept
+	{
+		PeerLUID out_peer{ 0 };
+		auto out_reused{ false };
+		auto result_code{ ResultCode::Failed };
+
+		try
+		{
+			if (params.Relay.Hops == 1)
+			{
+				const auto excl_addr = GetLocalIPAddresses();
+				if (excl_addr != nullptr)
+				{
+					// Don't include addresses/network of local instance
+					const auto result = AreRelayIPsInSameNetwork(params.PeerIPEndpoint.GetIPAddress().GetBinary(), *excl_addr);
+					if (result.Succeeded())
+					{
+						if (!result.GetValue())
+						{
+							if (params.Relay.GatewayPeer)
+							{
+								if (const auto gateway_peerths = Get(*params.Relay.GatewayPeer); gateway_peerths != nullptr)
+								{
+									const auto gateway_peer_ep = gateway_peerths->WithSharedLock()->GetPeerEndpoint();
+
+									// For single hop relay we check that the final endpoint is the same as the
+									// gateway peer endpoint
+									if (gateway_peer_ep.GetIPAddress() == params.PeerIPEndpoint.GetIPAddress() &&
+										gateway_peer_ep.GetPort() == params.PeerIPEndpoint.GetPort())
+									{
+										out_peer = *params.Relay.GatewayPeer;
+										out_reused = true;
+										result_code = ResultCode::Succeeded;
+									}
+									else error_details = Util::FormatString(L"the gateway peer LUID %llu does not have the same endpoint as the destination (they must be the same for single hop relays)",
+																			params.Relay.GatewayPeer.value());
+								}
+								else error_details = Util::FormatString(L"a peer with LUID %llu (for use as relay gateway) wasn't found", params.Relay.GatewayPeer.value());
+							}
+							else
+							{
+								// Connect to specific endpoint for final hop 0; if we're
+								// already connected we'll use the existing connection; note that we specify
+								// the same global shared secret since the destination is the same
+								const auto retval = ConnectTo({ params.PeerIPEndpoint, params.GlobalSharedSecret }, nullptr);
+								if (retval.Succeeded())
+								{
+									out_peer = retval->first;
+									out_reused = retval->second;
+									result_code = ResultCode::Succeeded;
+								}
+								else
+								{
+									if (IsResultCode(retval)) result_code = GetResultCode(retval);
+								}
+							}
+						}
+						else error_details = L"the destination endpoint is on the same network as the local instance";
+					}
+					else error_details = L"couldn't check if the destination endpoint is on the same network as the local instance";
+				}
+				else error_details = L"couldn't get IP addresses of local instance";
+			}
+			else
+			{
+				const auto excl_addr1 = GetLocalIPAddresses();
+				if (excl_addr1 != nullptr)
+				{
+					Vector<BinaryIPAddress> excl_addr2{ params.PeerIPEndpoint.GetIPAddress().GetBinary() };
+
+					if (params.Relay.GatewayPeer)
+					{
+						if (const auto gateway_peerths = Get(*params.Relay.GatewayPeer); gateway_peerths != nullptr)
+						{
+							const auto gateway_peer_ip =
+								gateway_peerths->WithSharedLock()->GetPeerEndpoint().GetIPAddress().GetBinary();
+
+							// Don't include addresses/network of local instance
+							const auto result1 = AreRelayIPsInSameNetwork(gateway_peer_ip, *excl_addr1);
+
+							// Don't include the final endpoint/network
+							const auto result2 = AreRelayIPsInSameNetwork(gateway_peer_ip, excl_addr2);
+
+							if (result1.Succeeded() && result2.Succeeded())
+							{
+								if (!result1.GetValue() && !result2.GetValue())
+								{
+									out_peer = *params.Relay.GatewayPeer;
+									result_code = ResultCode::Succeeded;
+								}
+								else error_details = Util::FormatString(L"cannot go through peer LUID %llu because it's on the same network as the local or destination endpoint",
+																		params.Relay.GatewayPeer.value());
+							}
+							else error_details = Util::FormatString(L"couldn't check if peer LUID %llu is on the same network as the local or destination endpoint",
+																	params.Relay.GatewayPeer.value());
+						}
+						else error_details = Util::FormatString(L"a peer with LUID %llu (for use as relay gateway) wasn't found", params.Relay.GatewayPeer.value());
+					}
+					else
+					{
+						// Try to get a (random) peer for the hop in between
+						// and don't include endpoints on excluded networks
+						const auto result = GetRelayPeer(*excl_addr1, excl_addr2);
+						if (result.Succeeded())
+						{
+							out_peer = result.GetValue();
+							result_code = ResultCode::Succeeded;
+						}
+						else
+						{
+							if (result == ResultCode::PeerNotFound)
+							{
+								result_code = ResultCode::NoPeersForRelay;
+								error_details = L"no peers available to create relay link";
+							}
+							else
+							{
+								error_details = L"failed to get a peer to create relay link";
+							}
+						}
+					}
+				}
+				else error_details = L"couldn't get IP addresses of local instance";
+			}
+		}
+		catch (...)
+		{
+			error_details = L"an exception was thrown";
 		}
 
-		if (result_code == ResultCode::Succeeded) return { std::make_pair(pluid, reused) };
+		if (result_code == ResultCode::Succeeded) return std::make_pair(out_peer, out_reused);
 
 		return result_code;
 	}
