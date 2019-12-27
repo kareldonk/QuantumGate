@@ -787,7 +787,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 		else
 		{
-			LogDbg(L"Message (type %u) from peer %s is too large (%llu bytes too much); will send in fragments",
+			LogDbg(L"Message (type %u) from peer %s is too large (%zu bytes too much); will send in fragments",
 				   msgtype, GetPeerName().c_str(), buffer.GetSize() - Message::MaxMessageDataSize);
 
 			BufferView snd_buf = buffer;
@@ -1172,7 +1172,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			if (num > 1)
 			{
-				LogDbg(L"Processed %llu messages from one transport", num);
+				LogDbg(L"Processed %zu messages from one transport", num);
 			}
 		});
 

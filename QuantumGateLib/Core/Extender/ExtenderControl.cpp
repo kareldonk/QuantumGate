@@ -305,8 +305,8 @@ namespace QuantumGate::Implementation::Core::Extender
 		}
 		catch (const std::exception& e)
 		{
-			LogErr(L"Exception while adding peer event to extender with UUID %llu - %s",
-				   event.GetExtenderUUID(), Util::ToStringW(e.what()).c_str());
+			LogErr(L"Exception while adding peer event to extender with UUID %s - %s",
+				   event.GetExtenderUUID()->GetString().c_str(), Util::ToStringW(e.what()).c_str());
 		}
 
 		return false;

@@ -153,7 +153,7 @@ namespace StressExtender
 		}
 		else
 		{
-			LogErr(L"Unknown peer event from %llu: %d", event.GetPeerLUID(), event.GetType());
+			LogErr(L"Unknown peer event from %llu: %u", event.GetPeerLUID(), event.GetType());
 		}
 
 		return result;

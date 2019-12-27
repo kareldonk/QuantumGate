@@ -349,7 +349,7 @@ namespace QuantumGate::Implementation::Network
 							}
 						}
 					}
-					else LogErr(L"Received ICMP destination unreachable message with unexpected size of %llu bytes", buffer.GetSize());
+					else LogErr(L"Received ICMP destination unreachable message with unexpected size of %zu bytes", buffer.GetSize());
 					break;
 				case ICMP::MessageType::TimeExceeded:
 					if (buffer.GetSize() >=
@@ -372,7 +372,7 @@ namespace QuantumGate::Implementation::Network
 							}
 						}
 					}
-					else LogErr(L"Received ICMP time exceeded message with unexpected size of %llu bytes", buffer.GetSize());
+					else LogErr(L"Received ICMP time exceeded message with unexpected size of %zu bytes", buffer.GetSize());
 					break;
 				case ICMP::MessageType::EchoReply:
 					if (buffer.GetSize() >= sizeof(ICMP::EchoMessage))
@@ -395,7 +395,7 @@ namespace QuantumGate::Implementation::Network
 							else LogErr(L"Received ICMP echo reply message with unexpected code, ID or sequence number");
 						}
 					}
-					else LogErr(L"Received ICMP echo reply message with unexpected size of %llu bytes", buffer.GetSize());
+					else LogErr(L"Received ICMP echo reply message with unexpected size of %zu bytes", buffer.GetSize());
 					break;
 				default:
 					LogErr(L"Received unrecognized ICMP message type %u", icmp_hdr.Type);

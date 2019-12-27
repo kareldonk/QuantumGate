@@ -393,11 +393,11 @@ void Benchmarks::BenchmarkMemory()
 
 	using namespace QuantumGate::Implementation::Memory;
 
-	auto len = 16u;
+	Size len{ 16u };
 
 	while (true)
 	{
-		LogSys(L"\r\nAllocation of %llu bytes:", len);
+		LogSys(L"\r\nAllocation of %zu bytes:", len);
 
 		DoBenchmark(std::wstring(L"Free Allocator"), maxtr, [&]()
 		{
