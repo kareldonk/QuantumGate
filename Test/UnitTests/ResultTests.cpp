@@ -190,13 +190,13 @@ namespace UnitTests
 			{
 				auto result = SucceedTestFunction();
 				Assert::AreEqual(true, result.GetErrorValue() == static_cast<int>(ResultCode::Succeeded));
-				Assert::AreEqual(true, result.GetErrorCategory() == Util::ToStringW(GetErrorCategory().name()));
-				Assert::AreEqual(true, result.GetErrorDescription() == Util::ToStringW(GetErrorCategory().message(result.GetErrorValue())));
+				Assert::AreEqual(true, result.GetErrorCategory() == Util::ToStringW(GetResultCodeErrorCategory().name()));
+				Assert::AreEqual(true, result.GetErrorDescription() == Util::ToStringW(GetResultCodeErrorCategory().message(result.GetErrorValue())));
 
 				auto result2 = FailTestFunction2();
 				Assert::AreEqual(true, result2.GetErrorValue<ResultCode>() == ResultCode::InvalidArgument);
-				Assert::AreEqual(true, result2.GetErrorCategory() == Util::ToStringW(GetErrorCategory().name()));
-				Assert::AreEqual(true, result2.GetErrorDescription() == Util::ToStringW(GetErrorCategory().message(result2.GetErrorValue())));
+				Assert::AreEqual(true, result2.GetErrorCategory() == Util::ToStringW(GetResultCodeErrorCategory().name()));
+				Assert::AreEqual(true, result2.GetErrorDescription() == Util::ToStringW(GetResultCodeErrorCategory().message(result2.GetErrorValue())));
 			}
 		}
 
