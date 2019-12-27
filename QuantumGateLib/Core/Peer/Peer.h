@@ -73,7 +73,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Manager& GetPeerManager() const noexcept;
 		Relay::Manager& GetRelayManager() noexcept;
 
-		inline const PeerLUID GetLUID() const noexcept
+		[[nodiscard]] inline PeerLUID GetLUID() const noexcept
 		{
 			assert(m_PeerData.WithSharedLock()->LUID != 0);
 			return m_PeerData.WithSharedLock()->LUID;
@@ -86,12 +86,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		inline const Data_ThS& GetPeerData() const noexcept { return m_PeerData; }
 
 		[[nodiscard]] bool SetStatus(const Status status) noexcept;
-		inline Status GetStatus() const noexcept { return m_PeerData.WithSharedLock()->Status; }
+		[[nodiscard]] inline Status GetStatus() const noexcept { return m_PeerData.WithSharedLock()->Status; }
 
-		inline bool IsReady() const noexcept { return (GetStatus() == Status::Ready); }
-		inline bool IsInSessionInit() const noexcept { return (GetStatus() == Status::SessionInit); }
+		[[nodiscard]] inline bool IsReady() const noexcept { return (GetStatus() == Status::Ready); }
+		[[nodiscard]] inline bool IsInSessionInit() const noexcept { return (GetStatus() == Status::SessionInit); }
 
-		inline bool IsInHandshake() const noexcept
+		[[nodiscard]] inline bool IsInHandshake() const noexcept
 		{
 			return (GetStatus() > Status::Connected&& GetStatus() < Status::Ready);
 		}
@@ -101,25 +101,25 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline bool IsRelayed() const noexcept { return m_PeerData.WithSharedLock()->IsRelayed; }
 
-		inline std::pair<UInt8, UInt8> GetLocalProtocolVersion() const noexcept { return m_PeerData.WithSharedLock()->LocalProtocolVersion; }
+		[[nodiscard]] inline std::pair<UInt8, UInt8> GetLocalProtocolVersion() const noexcept { return m_PeerData.WithSharedLock()->LocalProtocolVersion; }
 		inline void SetPeerProtocolVersion(const std::pair<UInt8, UInt8>& version) noexcept { m_PeerData.WithUniqueLock()->PeerProtocolVersion = version; }
-		inline std::pair<UInt8, UInt8> GetPeerProtocolVersion() const noexcept { return m_PeerData.WithSharedLock()->PeerProtocolVersion; }
+		[[nodiscard]] inline std::pair<UInt8, UInt8> GetPeerProtocolVersion() const noexcept { return m_PeerData.WithSharedLock()->PeerProtocolVersion; }
 
-		const String GetLocalName() const noexcept override;
-		const String GetPeerName() const noexcept override;
+		[[nodiscard]] String GetLocalName() const noexcept override;
+		[[nodiscard]] String GetPeerName() const noexcept override;
 
-		inline const PeerUUID& GetLocalUUID() const noexcept { return GetSettings().Local.UUID; }
+		[[nodiscard]] inline const PeerUUID& GetLocalUUID() const noexcept { return GetSettings().Local.UUID; }
 		inline void SetPeerUUID(const PeerUUID& puuid) noexcept { m_PeerData.WithUniqueLock()->PeerUUID = puuid; }
-		inline const PeerUUID& GetPeerUUID() const noexcept { return m_PeerData.WithSharedLock()->PeerUUID; }
+		[[nodiscard]] inline const PeerUUID& GetPeerUUID() const noexcept { return m_PeerData.WithSharedLock()->PeerUUID; }
 
-		inline UInt64 GetLocalSessionID() const noexcept { return m_PeerData.WithSharedLock()->LocalSessionID; }
+		[[nodiscard]] inline UInt64 GetLocalSessionID() const noexcept { return m_PeerData.WithSharedLock()->LocalSessionID; }
 		inline void SetPeerSessionID(UInt64 id) noexcept { m_PeerData.WithUniqueLock()->PeerSessionID = id; }
-		inline UInt64 GetPeerSessionID() const noexcept { return m_PeerData.WithSharedLock()->PeerSessionID; }
+		[[nodiscard]] inline UInt64 GetPeerSessionID() const noexcept { return m_PeerData.WithSharedLock()->PeerSessionID; }
 
-		inline Size GetExtendersBytesReceived() const noexcept { return m_PeerData.WithSharedLock()->ExtendersBytesReceived; }
-		inline Size GetExtendersBytesSent() const noexcept { return m_PeerData.WithSharedLock()->ExtendersBytesSent; }
+		[[nodiscard]] inline Size GetExtendersBytesReceived() const noexcept { return m_PeerData.WithSharedLock()->ExtendersBytesReceived; }
+		[[nodiscard]] inline Size GetExtendersBytesSent() const noexcept { return m_PeerData.WithSharedLock()->ExtendersBytesSent; }
 
-		inline MessageProcessor& GetMessageProcessor() noexcept { return m_MessageProcessor; }
+		[[nodiscard]] inline MessageProcessor& GetMessageProcessor() noexcept { return m_MessageProcessor; }
 
 		[[nodiscard]] Result<> Send(Message&& msg, const SendParameters::PriorityOption priority = SendParameters::PriorityOption::Normal,
 									const std::chrono::milliseconds delay = std::chrono::milliseconds(0)) noexcept;
@@ -135,39 +135,39 @@ namespace QuantumGate::Implementation::Core::Peer
 			return m_SendQueues.GetAvailableRelayDataSendBufferSize();
 		}
 
-		std::chrono::milliseconds GetHandshakeDelayPerMessage() const noexcept;
+		[[nodiscard]] std::chrono::milliseconds GetHandshakeDelayPerMessage() const noexcept;
 
-		const LocalAlgorithms& GetSupportedAlgorithms() const noexcept;
+		[[nodiscard]] const LocalAlgorithms& GetSupportedAlgorithms() const noexcept;
 
 		[[nodiscard]] bool SetAlgorithms(const Algorithm::Hash ha, const Algorithm::Asymmetric paa,
 										 const Algorithm::Asymmetric saa, const Algorithm::Symmetric sa,
 										 const Algorithm::Compression ca) noexcept;
 
-		inline const Algorithms& GetAlgorithms() const noexcept { return m_Algorithms; }
+		[[nodiscard]] inline const Algorithms& GetAlgorithms() const noexcept { return m_Algorithms; }
 
 		[[nodiscard]] inline bool IsUsingGlobalSharedSecret() const noexcept { return !GetGlobalSharedSecret().IsEmpty(); }
-		const ProtectedBuffer& GetGlobalSharedSecret() const noexcept;
-		inline const ProtectedBuffer& GetLocalPrivateKey() const noexcept { return GetSettings().Local.Keys.PrivateKey; }
-		const ProtectedBuffer* GetPeerPublicKey() const noexcept;
+		[[nodiscard]] const ProtectedBuffer& GetGlobalSharedSecret() const noexcept;
+		[[nodiscard]] inline const ProtectedBuffer& GetLocalPrivateKey() const noexcept { return GetSettings().Local.Keys.PrivateKey; }
+		[[nodiscard]] const ProtectedBuffer* GetPeerPublicKey() const noexcept;
 
-		inline SymmetricKeys& GetKeys() noexcept { return m_Keys; }
+		[[nodiscard]] inline SymmetricKeys& GetKeys() noexcept { return m_Keys; }
 		[[nodiscard]] bool InitializeKeyExchange() noexcept;
 		void ReleaseKeyExchange() noexcept;
-		inline KeyExchange& GetKeyExchange() noexcept { assert(m_KeyExchange != nullptr); return *m_KeyExchange; }
-		inline const KeyExchange& GetKeyExchange() const noexcept { assert(m_KeyExchange != nullptr); return *m_KeyExchange; }
+		[[nodiscard]] inline KeyExchange& GetKeyExchange() noexcept { assert(m_KeyExchange != nullptr); return *m_KeyExchange; }
+		[[nodiscard]] inline const KeyExchange& GetKeyExchange() const noexcept { assert(m_KeyExchange != nullptr); return *m_KeyExchange; }
 
-		inline KeyUpdate& GetKeyUpdate() noexcept { return m_KeyUpdate; }
+		[[nodiscard]] inline KeyUpdate& GetKeyUpdate() noexcept { return m_KeyUpdate; }
 
-		UInt8 SetLocalMessageCounter() noexcept;
-		std::optional<UInt8> GetNextLocalMessageCounter() noexcept;
+		[[nodiscard]] UInt8 SetLocalMessageCounter() noexcept;
+		[[nodiscard]] std::optional<UInt8> GetNextLocalMessageCounter() noexcept;
 		void SetPeerMessageCounter(const UInt8 counter) noexcept;
-		std::optional<UInt8> GetNextPeerMessageCounter() noexcept;
+		[[nodiscard]] std::optional<UInt8> GetNextPeerMessageCounter() noexcept;
 
-		SerializedIPEndpoint GetPublicIPEndpointToReport() const noexcept;
+		[[nodiscard]] SerializedIPEndpoint GetPublicIPEndpointToReport() const noexcept;
 		[[nodiscard]] bool AddReportedPublicIPEndpoint(const SerializedIPEndpoint& pub_endpoint) noexcept;
 
-		const Extender::ActiveExtenderUUIDs& GetLocalExtenderUUIDs() noexcept;
-		inline ExtenderUUIDs& GetPeerExtenderUUIDs() noexcept { return m_PeerExtenderUUIDs; }
+		[[nodiscard]] const Extender::ActiveExtenderUUIDs& GetLocalExtenderUUIDs() noexcept;
+		[[nodiscard]] inline ExtenderUUIDs& GetPeerExtenderUUIDs() noexcept { return m_PeerExtenderUUIDs; }
 
 		void AddConnectCallback(ConnectCallback&& function) noexcept { m_ConnectCallbacks.Add(std::move(function)); }
 		void AddDisconnectCallback(DisconnectCallback&& function) noexcept { m_DisconnectCallbacks.Add(std::move(function)); }
@@ -175,11 +175,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] inline bool IsInQueue() const noexcept { return IsFlagSet(Flags::InQueue); }
 		inline void SetInQueue(const bool flag) noexcept { SetFlag(Flags::InQueue, flag); }
 
-		inline const UInt64 GetThreadPoolKey() const noexcept { return m_ThreadPoolKey; }
+		[[nodiscard]] inline UInt64 GetThreadPoolKey() const noexcept { return m_ThreadPoolKey; }
 		inline void SetThreadPoolKey(const UInt64 key) noexcept { m_ThreadPoolKey = key; }
 
 		[[nodiscard]] inline bool ShouldDisconnect() const noexcept { return (m_DisconnectCondition != DisconnectCondition::None); }
-		inline DisconnectCondition GetDisconnectCondition() const noexcept { return m_DisconnectCondition; }
+		[[nodiscard]] inline DisconnectCondition GetDisconnectCondition() const noexcept { return m_DisconnectCondition; }
 		inline void SetDisconnectCondition(const DisconnectCondition dc) noexcept { if (!ShouldDisconnect()) m_DisconnectCondition = dc; }
 
 		[[nodiscard]] bool UpdateSocketStatus() noexcept;
@@ -267,7 +267,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			return (m_Flags.test(static_cast<Size>(flag)));
 		}
 
-		const ResultCode GetDisconnectConditionResultCode() const noexcept;
+		[[nodiscard]] ResultCode GetDisconnectConditionResultCode() const noexcept;
 
 	private:
 		static constexpr Size NumHandshakeDelayMessages{ 8 };

@@ -64,13 +64,13 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		const IPEndpoint& GetLocalEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetLocalEndpoint(); }
 		const IPAddress& GetLocalIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetLocalIPAddress(); }
-		virtual const String GetLocalName() const noexcept { assert(m_Socket); return m_Socket->GetLocalName(); }
+		virtual String GetLocalName() const noexcept { assert(m_Socket); return m_Socket->GetLocalName(); }
 		const UInt32 GetLocalPort() const noexcept { assert(m_Socket); return m_Socket->GetLocalPort(); }
 
 		const IPEndpoint& GetPeerEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetPeerEndpoint(); }
 		const IPAddress& GetPeerIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetPeerIPAddress(); }
 		const UInt32 GetPeerPort() const noexcept { assert(m_Socket); return m_Socket->GetPeerPort(); }
-		virtual const String GetPeerName() const noexcept { assert(m_Socket); return m_Socket->GetPeerName(); }
+		virtual String GetPeerName() const noexcept { assert(m_Socket); return m_Socket->GetPeerName(); }
 
 	protected:
 		virtual void OnConnecting() noexcept {}

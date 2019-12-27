@@ -208,7 +208,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			auto success = false;
 
-			auto position = (rcevent.Hop == 0) ? Position::End : Position::Between;
+			const auto position = (rcevent.Hop == 0) ? Position::End : Position::Between;
 
 			auto rcths = std::make_unique<Link_ThS>(rcevent.Origin.PeerLUID, out_peer,
 													rcevent.Endpoint, rcevent.Port, rcevent.Hop, position);

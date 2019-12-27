@@ -1323,12 +1323,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		return GetSettings().Local.SupportedAlgorithms;
 	}
 
-	const String Peer::GetLocalName() const noexcept
+	String Peer::GetLocalName() const noexcept
 	{
 		return Util::FormatString(L"%s (LUID %llu)", GetLocalEndpoint().GetString().c_str(), GetLUID());
 	}
 
-	const String Peer::GetPeerName() const noexcept
+	String Peer::GetPeerName() const noexcept
 	{
 		return Util::FormatString(L"%s (LUID %llu)", GetPeerEndpoint().GetString().c_str(), GetLUID());
 	}
@@ -1553,7 +1553,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	const ResultCode Peer::GetDisconnectConditionResultCode() const noexcept
+	ResultCode Peer::GetDisconnectConditionResultCode() const noexcept
 	{
 		switch (GetDisconnectCondition())
 		{
