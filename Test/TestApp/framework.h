@@ -1,9 +1,5 @@
-// This file is part of the QuantumGate project. For copyright and
+// This file is part of the QuantumGate project.For copyright and
 // licensing information refer to the license file(s) in the project root.
-
-// stdafx.h : include file for standard system include files,
-// or project specific include files that are used frequently,
-// but are changed infrequently
 
 #pragma once
 
@@ -23,8 +19,6 @@
 #include <afxdlgs.h>
 
 #include <afxdisp.h>        // MFC Automation classes
-
-
 
 #ifndef _AFX_NO_OLE_SUPPORT
 #include <afxdtctl.h>           // MFC support for Internet Explorer 4 Common Controls
@@ -47,24 +41,4 @@
 #endif
 #endif
 
-#include "resource.h"
 
-#if defined(_DEBUG)
-#if !defined(_WIN64)
-#pragma comment (lib, "QuantumGate32D.lib")
-#else
-#pragma comment (lib, "QuantumGate64D.lib")
-#endif
-#else
-#if !defined(_WIN64)
-#pragma comment (lib, "QuantumGate32.lib")
-#else
-#pragma comment (lib, "QuantumGate64.lib")
-#endif
-#endif
-
-#include <cassert>
-#include <atomic>
-#include <thread>
-#include <fstream>
-#include <json.hpp>

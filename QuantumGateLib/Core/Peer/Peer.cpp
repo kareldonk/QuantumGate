@@ -1,7 +1,7 @@
 // This file is part of the QuantumGate project. For copyright and
 // licensing information refer to the license file(s) in the project root.
 
-#include "stdafx.h"
+#include "pch.h"
 #include "Peer.h"
 #include "PeerManager.h"
 #include "..\..\Common\Random.h"

@@ -186,9 +186,6 @@
     <ClInclude Include="Crypto\OpenSSL.h">
       <Filter>Header Files\Crypto</Filter>
     </ClInclude>
-    <ClInclude Include="stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Network\BinaryIPAddress.h">
       <Filter>Header Files\Network</Filter>
     </ClInclude>
@@ -420,11 +417,11 @@
     <ClInclude Include="Core\Peer\PeerMessageRateLimits.h">
       <Filter>Header Files\Core\Peer</Filter>
     </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -595,6 +592,9 @@
     </ClCompile>
     <ClCompile Include="API\Access.cpp">
       <Filter>Source Files\API</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -231,6 +231,7 @@
       <OpenMPSupport>
       </OpenMPSupport>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -265,6 +266,7 @@
       <OpenMPSupport>
       </OpenMPSupport>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -297,6 +299,7 @@
       <OpenMPSupport>
       </OpenMPSupport>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -330,6 +333,7 @@
       <OpenMPSupport>
       </OpenMPSupport>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -363,6 +367,7 @@
       <OpenMPSupport>
       </OpenMPSupport>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -399,6 +404,7 @@
       <OpenMPSupport>
       </OpenMPSupport>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -435,6 +441,7 @@
       <OpenMPSupport>
       </OpenMPSupport>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -470,6 +477,7 @@
       <OpenMPSupport>
       </OpenMPSupport>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -533,11 +541,12 @@
     <ClInclude Include="CSecurityDlg.h" />
     <ClInclude Include="CUUIDDialog.h" />
     <ClInclude Include="CIPReputationsDlg.h" />
+    <ClInclude Include="framework.h" />
     <ClInclude Include="TestApp.h" />
     <ClInclude Include="TestAppConsole.h" />
     <ClInclude Include="TestAppDlg.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="pch.h" />
     <ClInclude Include="Stress.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
@@ -582,7 +591,7 @@
     <ClCompile Include="TestApp.cpp" />
     <ClCompile Include="TestAppConsole.cpp" />
     <ClCompile Include="TestAppDlg.cpp" />
-    <ClCompile Include="stdafx.cpp">
+    <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

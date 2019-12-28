@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "QuantumGate.h"
-#include "Console.h"
-#include "Common\Util.h"
+#include <QuantumGate.h>
+#include <Console.h>
+#include <Common\Util.h>
 #include "..\TestExtender\TestExtender.h"
 
 using namespace QuantumGate;
