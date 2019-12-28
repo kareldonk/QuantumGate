@@ -504,6 +504,9 @@ void CTestAppDlgMainTab::UpdateConsoleState()
 		// Disable terminal window close button, otherwise application doesn't
 		// close properly if user clicks there (memory leaks)
 		EnableMenuItem(::GetSystemMenu(GetConsoleWindow(), FALSE), SC_CLOSE, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
+
+		// Disable Ctrl+C/BREAK
+		::SetConsoleCtrlHandler(NULL, TRUE);
 	}
 	else if (m_ConsoleState == ConsoleState::Enabled)
 	{
