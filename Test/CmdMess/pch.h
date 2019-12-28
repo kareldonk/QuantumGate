@@ -17,6 +17,8 @@
 #include <iostream>
 #include <regex>
 
+#include <QuantumGate.h>
+
 #if defined(_DEBUG)
 #if !defined(_WIN64)
 #pragma comment (lib, "QuantumGate32D.lib")
