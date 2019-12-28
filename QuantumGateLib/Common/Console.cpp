@@ -184,7 +184,6 @@ namespace QuantumGate::Implementation
 
 		// Enable unicode
 		if (_setmode(_fileno(stdout), _O_U8TEXT) == -1 ||
-			_setmode(_fileno(stdin), _O_U8TEXT) == -1 ||
 			_setmode(_fileno(stderr), _O_U8TEXT) == -1)
 		{
 			return false;
