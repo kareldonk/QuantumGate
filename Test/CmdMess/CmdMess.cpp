@@ -11,26 +11,30 @@
 using namespace QuantumGate;
 using namespace QuantumGate::Implementation;
 
-struct Commands final
+struct Command final
 {
 	std::wstring ID;
 	std::wstring RegEx;
+	std::wstring Usage;
 };
 
-std::vector<Commands> commands = {
-	{ L"disconnect", L"^disconnect\\s+([^\\s]+)$" },				// disconnect <PeerLUID>
-	{ L"connect", L"^connect\\s+([^\\s]*):(\\d+)$" },				// connect <IPAddress>:<Port>
-	{ L"quit", L"^quit\\s?$|^exit\\s?$" },							// quit or exit
-	{ L"send", L"^send\\s+([^\\s]+)\\s+\"(.+)\"\\s*(\\d*)$" },		// send <PeerLUID> "<this message>" <Number of times>
-	{ L"seclevel", L"^set\\s+security\\s+level\\s+(\\d+)$" },		// set security level <Level>
-	{ L"verbosity", L"^set\\s+verbosity\\s+([^\\s]+)$" }			// set verbosity <Verbosity>
+std::vector<Command> commands = {
+	Command{ L"connect",	L"^connect\\s+([^\\s]*):(\\d+)$",				L"connect [IP Address]:[Port]" },
+	Command{ L"disconnect",	L"^disconnect\\s+([^\\s]+)$",					L"disconnect [Peer LUID]" },
+	Command{ L"send",		L"^send\\s+([^\\s]+)\\s+\"(.+)\"\\s*(\\d*)$",	L"send [Peer LUID] \"[Message]\" [Number of times]" },
+	Command{ L"seclevel",	L"^set\\s+security\\s+level\\s+(\\d+)$",		L"set security level [Level: 1-5]" },
+	Command{ L"verbosity",	L"^set\\s+verbosity\\s+([^\\s]+)$",				L"set verbosity [Verbosity: silent, minimal, normal, verbose, debug]" },
+	Command{ L"help",		L"^help\\s?$|^\\?\\s?$",						L"help or ?" },
+	Command{ L"quit",		L"^quit\\s?$|^exit\\s?$",						L"quit or exit" }
 };
 
 int main()
 {
-	// Send console output to terminal
+	// Send console output to CmdConsole
 	Console::SetOutput(std::make_shared<CmdConsole>());
 	Console::SetVerbosity(Console::Verbosity::Debug);
+	
+	PrintInfoLine(L"Starting QuantumGate, please wait...\r\n");
 
 	StartupParameters params;
 	params.UUID.Set(L"5a378a95-f00e-d9a0-532f-8d3a036117bf");
@@ -60,7 +64,11 @@ int main()
 	auto m_Extender = std::make_shared<TestExtender::Extender>(nullptr);
 	auto extp = std::static_pointer_cast<Extender>(m_Extender);
 
-	if (!m_QuantumGate.AddExtender(extp)) return -1;
+	if (const auto result = m_QuantumGate.AddExtender(extp); result.Failed())
+	{
+		PrintErrLine(L"Failed to add extender: %s", result.GetErrorDescription().c_str());
+		return -1;
+	}
 
 	// Allow access by default
 	m_QuantumGate.GetAccessManager().SetPeerAccessDefault(Access::PeerAccessDefault::Allowed);
@@ -69,16 +77,21 @@ int main()
 	if (!m_QuantumGate.GetAccessManager().AddIPFilter(L"0.0.0.0/0", Access::IPFilterType::Allowed) ||
 		!m_QuantumGate.GetAccessManager().AddIPFilter(L"::/0", Access::IPFilterType::Allowed))
 	{
-		LogErr(L"Failed to add an IP filter");
+		PrintErrLine(L"Failed to add an IP filter");
 		return -1;
 	}
 
-	if (m_QuantumGate.Startup(params).Failed())
+	if (const auto result = m_QuantumGate.Startup(params); result.Succeeded())
 	{
-		LogErr(L"Failed to start QuantumGate");
+		PrintInfoLine(L"\r\nQuantumGate startup successful\r\n\r\nType a command and press Enter. Type 'help' for help.\r\n");
+	}
+	else
+	{
+		PrintErrLine(L"Failed to start QuantumGate: %s", result.GetErrorDescription().c_str());
 		return -1;
 	}
 
+	CmdConsole::SetDisplayPrompt(true);
 	CmdConsole::DisplayPrompt();
 
 	while (true)
@@ -87,13 +100,12 @@ int main()
 		{
 			if (CmdConsole::ProcessInputEvent() == CmdConsole::KeyInputEventResult::ReturnPressed)
 			{
-				std::wcout << L"\r\n";
-				
-				if (CmdConsole::GetCommandLine().size() > 0)
-				{
-					auto cmdline{ CmdConsole::GetCommandLine() };
-					CmdConsole::ClearCommandLine();
+				CmdConsole::SetDisplayPrompt(false);
 
+				const auto cmdline = CmdConsole::AcceptCommandLine();
+
+				if (cmdline.size() > 0)
+				{
 					auto handled{ false };
 
 					for (auto& cmd : commands)
@@ -107,24 +119,55 @@ int main()
 								wchar_t* end{ nullptr };
 								const PeerLUID pluid = wcstoull(m[1].str().c_str(), &end, 10);
 
-								LogInfo(L"Disconnecting peer %llu", pluid);
-
-								if (m_QuantumGate.DisconnectFrom(pluid, nullptr) == ResultCode::PeerNotFound)
+								const auto result = m_QuantumGate.DisconnectFrom(pluid, [](PeerLUID pluid, PeerUUID puuid) mutable
 								{
-									LogErr(L"Could not disconnect peer; peer not found");
+									PrintInfoLine(L"Peer %llu disconnected", pluid);
+								});
+
+								if (result.Succeeded())
+								{
+									PrintInfoLine(L"Disconnecting peer %llu...", pluid);
+								}
+								else
+								{
+									PrintErrLine(L"Could not disconnect peer %llu: %s", pluid, result.GetErrorDescription().c_str());
 								}
 							}
 							else if (cmd.ID == L"connect")
 							{
-								LogInfo(L"Connecting to endpoint %s:%s", m[1].str().c_str(), m[2].str().c_str());
-
 								wchar_t* end{ nullptr };
 								const auto port = wcstoul(m[2].str().c_str(), &end, 10);
 
-								if (!m_QuantumGate.ConnectTo({ IPEndpoint(IPAddress(m[1].str().c_str()), static_cast<UInt16>(port)) }))
+								IPAddress addr;
+								if (IPAddress::TryParse(m[1].str().c_str(), addr))
 								{
-									LogErr(L"Failed to connect");
+									const auto endp = IPEndpoint(addr, static_cast<UInt16>(port));
+
+									const auto result = m_QuantumGate.ConnectTo({ endp }, [&](PeerLUID pluid, Result<ConnectDetails> cresult) mutable
+									{
+										if (cresult.Succeeded())
+										{
+											PrintInfoLine(L"Successfully connected to endpoint %s with peer LUID %llu (%s, %s)",
+														  endp.GetString().c_str(), pluid,
+														  cresult->IsAuthenticated ? L"Authenticated" : L"NOT Authenticated",
+														  cresult->IsRelayed ? L"Relayed" : L"NOT Relayed");
+										}
+										else
+										{
+											PrintErrLine(L"Failed to connect to endpoint %s", endp.GetString().c_str());
+										}
+									});
+
+									if (result.Succeeded())
+									{
+										PrintInfoLine(L"Connecting to endpoint %s...", endp.GetString().c_str());
+									}
+									else
+									{
+										PrintErrLine(L"Failed to connect to endpoint %s", endp.GetString().c_str());
+									}
 								}
+								else PrintErrLine(L"Invalid IP address specified");
 							}
 							else if (cmd.ID == L"seclevel")
 							{
@@ -132,27 +175,43 @@ int main()
 								const auto lvl = wcstoul(m[1].str().c_str(), &end, 10);
 								const auto seclvl = static_cast<SecurityLevel>(lvl);
 
-								if (!m_QuantumGate.SetSecurityLevel(seclvl))
+								if (m_QuantumGate.SetSecurityLevel(seclvl))
 								{
-									LogErr(L"Failed to change security level");
+									PrintInfoLine(L"Security level set to %s", m[1].str().c_str());
+								}
+								else
+								{
+									PrintErrLine(L"Failed to change security level");
 								}
 							}
 							else if (cmd.ID == L"verbosity")
 							{
 								SetVerbosity(m[1].str());
 							}
-							else if (cmd.ID == L"quit")
-							{
-								if (!m_QuantumGate.Shutdown())
-								{
-									LogErr(L"QuantumGate shut down failed");
-								}
-
-								return 0;
-							}
 							else if (cmd.ID == L"send")
 							{
 								Send(m_Extender, m[1].str(), m[2].str(), m[3].str());
+							}
+							else if (cmd.ID == L"help")
+							{
+								DisplayHelp();
+							}
+							else if (cmd.ID == L"quit")
+							{
+								PrintInfoLine(L"Shutting down QuantumGate, please wait...\r\n");
+
+								if (m_QuantumGate.Shutdown())
+								{
+									PrintInfoLine(L"\r\nQuantumGate shut down successful\r\n");
+								}
+								else
+								{
+									PrintErrLine(L"QuantumGate shut down failed");
+								}
+
+								PrintInfoLine(L"\r\nBye...\r\n");
+
+								return 0;
 							}
 
 							handled = true;
@@ -163,10 +222,12 @@ int main()
 
 					if (!handled)
 					{
-						LogErr(L"Unrecognized command or bad syntax: %s", cmdline.c_str());
+						PrintErrLine(L"Unrecognized command or bad syntax: %s", cmdline.c_str());
+						PrintErrLine(L"Type 'help' or '?' and press Enter for help.", cmdline.c_str());
 					}
 				}
 
+				CmdConsole::SetDisplayPrompt(true);
 				CmdConsole::DisplayPrompt();
 			}
 		}
@@ -188,7 +249,7 @@ bool Send(const std::shared_ptr<TestExtender::Extender>& extender, const std::ws
 
 	if (count.size() > 0) nmess = wcstoul(count.c_str(), &end, 10);
 
-	LogInfo(L"Sending message '%s' to peer %llu, %d %s", msg.c_str(), pluid, nmess, ((nmess == 1) ? L"time" : L"times"));
+	PrintInfoLine(L"Sending message '%s' to peer %llu, %d %s", msg.c_str(), pluid, nmess, ((nmess == 1) ? L"time..." : L"times..."));
 
 	auto success{ true };
 	const auto begin{ std::chrono::high_resolution_clock::now() };
@@ -206,7 +267,7 @@ bool Send(const std::shared_ptr<TestExtender::Extender>& extender, const std::ws
 
 		if (!extender->SendMessage(pluid, txt, SendParameters::PriorityOption::Normal, std::chrono::milliseconds(0)))
 		{
-			LogErr(L"Could not send message %d to peer", x);
+			PrintErrLine(L"Could not send message %d to peer", x);
 			success = false;
 			break;
 		}
@@ -215,7 +276,7 @@ bool Send(const std::shared_ptr<TestExtender::Extender>& extender, const std::ws
 	if (success)
 	{
 		const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - begin);
-		LogInfo(L"Sent in %d milliseconds", ms.count());
+		PrintInfoLine(L"Sent in %d milliseconds", ms.count());
 	}
 
 	return success;
@@ -230,35 +291,73 @@ bool SetVerbosity(const std::wstring& verb)
 	{
 		set = true;
 		verbosity = Console::Verbosity::Silent;
-		LogSys(L"Console verbosity set to silent");
+		PrintInfoLine(L"Console verbosity set to silent");
 	}
 	else if (verb == L"minimal")
 	{
 		set = true;
 		verbosity = Console::Verbosity::Minimal;
-		LogSys(L"Console verbosity set to minimal");
+		PrintInfoLine(L"Console verbosity set to minimal");
 	}
 	else if (verb == L"normal")
 	{
 		set = true;
 		verbosity = Console::Verbosity::Normal;
-		LogSys(L"Console verbosity set to normal");
+		PrintInfoLine(L"Console verbosity set to normal");
 	}
 	else if (verb == L"verbose")
 	{
 		set = true;
 		verbosity = Console::Verbosity::Verbose;
-		LogSys(L"Console verbosity set to verbose");
+		PrintInfoLine(L"Console verbosity set to verbose");
 	}
 	else if (verb == L"debug")
 	{
 		set = true;
 		verbosity = Console::Verbosity::Debug;
-		LogSys(L"Console verbosity set to debug");
+		PrintInfoLine(L"Console verbosity set to debug");
 	}
-	else LogErr(L"Unknown console verbosity level");
+	else PrintErrLine(L"Unknown console verbosity level");
 
 	if (set) Console::SetVerbosity(verbosity);
 
 	return set;
+}
+
+void DisplayHelp() noexcept
+{
+	String output{ L"\r\n" };
+	output += Console::TerminalOutput::Colors::FGBrightGreen;
+	output += L"Supported commands:";
+	output += Console::TerminalOutput::Colors::FGWhite;
+	output += L"\r\n\r\n";
+
+	size_t maxlen{ 0 };
+	for (auto& command : commands)
+	{
+		if (command.ID.size() > maxlen) maxlen = command.ID.size();
+	}
+
+	auto fixlen = [&](const std::wstring& str)
+	{
+		String str2{ str };
+		while (str2.size() < maxlen)
+		{
+			str2 += L" ";
+		}
+
+		return str2;
+	};
+
+	for (auto& command : commands)
+	{
+		output += L"\t";
+		output += Console::TerminalOutput::Colors::FGBrightYellow + fixlen(command.ID) + Console::TerminalOutput::Colors::FGBlack;
+		output += Console::TerminalOutput::Colors::FGBrightBlack;
+		output += L"\t\tUsage: ";
+		output += Console::TerminalOutput::Colors::FGWhite + command.Usage + Console::TerminalOutput::Colors::FGWhite;
+		output += L"\r\n\r\n";
+	}
+
+	PrintInfoLine(output.c_str());
 }

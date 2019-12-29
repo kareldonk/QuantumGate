@@ -5,6 +5,7 @@
 
 #include "..\TestExtender\TestExtender.h"
 
+void DisplayHelp() noexcept;
 bool Send(const std::shared_ptr<TestExtender::Extender>& extender, const std::wstring& pluidstr,
 		  const std::wstring& msg, const std::wstring& count);
 bool SetVerbosity(const std::wstring& verb);

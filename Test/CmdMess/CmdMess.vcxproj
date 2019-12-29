@@ -354,6 +354,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\TestExtender\TestExtender.cpp" />
+    <ClCompile Include="CmdConsole.cpp" />
     <ClCompile Include="CmdMess.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

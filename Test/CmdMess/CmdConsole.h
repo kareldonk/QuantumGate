@@ -4,6 +4,7 @@
 #pragma once
 
 #include <mutex>
+#include <shared_mutex>
 
 class CmdConsole final : public QuantumGate::Console::TerminalOutput
 {
@@ -11,6 +12,11 @@ public:
 	enum class KeyInputEventResult
 	{
 		NoInput, NormalInput, ReturnPressed
+	};
+
+	enum class PrintColor
+	{
+		Info, Warning, Error, Debug
 	};
 
 	CmdConsole()
@@ -127,24 +133,42 @@ public:
 		EraseConsoleRows(csbi.dwCursorPosition.Y, 1, csbi.dwMaximumWindowSize.X);
 	}
 
+	[[nodiscard]] static QuantumGate::String AcceptCommandLine() noexcept
+	{
+		std::wcout << L"\r\n" << QuantumGate::Console::TerminalOutput::Colors::FGWhite;
+
+		m_CommandLineRowStart = -1;
+
+		auto retval = m_CommandLine;
+
+		ClearCommandLine();
+
+		return retval;
+	}
+
 	static void EraseCommandLine() noexcept
 	{
-		CONSOLE_SCREEN_BUFFER_INFO csbi{ 0 };
-		GetConsoleScreenBufferInfo(m_StdOutHandle, &csbi);
+		if (m_CommandLineRowStart > -1)
+		{
+			CONSOLE_SCREEN_BUFFER_INFO csbi{ 0 };
+			GetConsoleScreenBufferInfo(m_StdOutHandle, &csbi);
 
-		EraseConsoleRows((csbi.dwCursorPosition.Y + 1) - m_CommandLineRowCount, m_CommandLineRowCount, csbi.dwMaximumWindowSize.X);
+			EraseConsoleRows(m_CommandLineRowStart, m_CommandLineRowCount, csbi.dwMaximumWindowSize.X);
+		}
 	}
 
 	static void EraseConsoleRows(const int begin_row, const int num_rows, const int width) noexcept
 	{
 		COORD c{ 0 };
 		DWORD num{ 0 };
+		WORD attr{ 0 };
 
 		for (c.Y = begin_row; c.Y < begin_row + num_rows; ++c.Y)
 		{
 			for (c.X = 0; c.X < width; ++c.X)
 			{
-				if (!WriteConsoleOutputCharacter(m_StdOutHandle, L" ", 1, c, &num))
+				if (!WriteConsoleOutputAttribute(m_StdOutHandle, &attr, 1, c, &num) ||
+					!WriteConsoleOutputCharacter(m_StdOutHandle, L" ", 1, c, &num))
 				{
 					break;
 				}
@@ -163,6 +187,8 @@ public:
 
 	[[nodiscard]] static inline std::shared_mutex& GetTerminalMutex() noexcept { return m_TerminalMutex; }
 
+	static void SetDisplayPrompt(const bool display) noexcept { m_DisplayPrompt = display; }
+
 	static void DisplayPrompt()
 	{
 		std::unique_lock lock(GetTerminalMutex());
@@ -170,10 +196,26 @@ public:
 		DisplayPromptImpl();
 	}
 
+	static void PrintLine(const PrintColor pc, const QuantumGate::WChar* message, ...) noexcept;
+
 private:
 	static void DisplayPromptImpl()
 	{
-		std::wcout << L"\r\x1b[106m\x1b[30m" << L" QuantumGate: " << L"\x1b[49m\x1b[39m " << GetCommandLine();
+		if (!m_DisplayPrompt) return;
+
+		CONSOLE_SCREEN_BUFFER_INFO csbi{ 0 };
+		GetConsoleScreenBufferInfo(m_StdOutHandle, &csbi);
+		m_CommandLineRowStart = csbi.dwCursorPosition.Y;
+
+		std::wcout << 
+			L"\r" << 
+			QuantumGate::Console::TerminalOutput::Colors::BGBrightYellow <<
+			QuantumGate::Console::TerminalOutput::Colors::FGBlue <<
+			L" QuantumGate: " <<
+			QuantumGate::Console::TerminalOutput::Colors::BGBlack <<
+			QuantumGate::Console::TerminalOutput::Colors::FGBrightWhite <<
+			L" " <<
+			GetCommandLine();
 	}
 
 private:
@@ -181,5 +223,12 @@ private:
 	static inline HANDLE m_StdInHandle{ GetStdHandle(STD_INPUT_HANDLE) };
 	static inline std::shared_mutex m_TerminalMutex;
 	static inline QuantumGate::String m_CommandLine;
+	static inline int m_CommandLineRowStart{ -1 };
 	static inline int m_CommandLineRowCount{ 1 };
+	static inline bool m_DisplayPrompt{ false };
 };
+
+#define PrintInfoLine(x, ...) CmdConsole::PrintLine(CmdConsole::PrintColor::Info, x, __VA_ARGS__)
+#define PrintWarnLine(x, ...) CmdConsole::PrintLine(CmdConsole::PrintColor::Warning, x, __VA_ARGS__)
+#define PrintErrLine(x, ...) CmdConsole::PrintLine(CmdConsole::PrintColor::Error, x, __VA_ARGS__)
+#define PrintDbgLine(x, ...) CmdConsole::PrintLine(CmdConsole::PrintColor::Debug, x, __VA_ARGS__)
