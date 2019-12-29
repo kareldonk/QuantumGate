@@ -794,9 +794,12 @@ namespace TestExtender
 			params.Priority = priority;
 			params.Delay = delay;
 
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), params).Succeeded()) return true;
-
-			LogErr(L"Could not send message to peer");
+			const auto result = SendMessageTo(pluid, writer.MoveWrittenBytes(), params);
+			if (result.Succeeded()) return true;
+			else
+			{
+				LogErr(L"Could not send message to peer: %s", result.GetErrorDescription().c_str());
+			}
 		}
 
 		return false;
