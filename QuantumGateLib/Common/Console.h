@@ -113,6 +113,7 @@ namespace QuantumGate::Implementation
 
 		class Export TerminalOutput : public Output
 		{
+		public:
 			struct Colors final
 			{
 				static constexpr const WChar* Default{ L"\x1b[0;37m" };
@@ -166,7 +167,6 @@ namespace QuantumGate::Implementation
 				static constexpr const WChar* BGBrightWhite{ L"\x1b[107m" };
 			};
 
-		public:
 			TerminalOutput() noexcept;
 
 			bool InitConsole() noexcept;
