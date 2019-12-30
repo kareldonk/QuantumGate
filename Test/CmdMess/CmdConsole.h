@@ -211,8 +211,9 @@ private:
 			L"\r" << 
 			QuantumGate::Console::TerminalOutput::Colors::BGBrightYellow <<
 			QuantumGate::Console::TerminalOutput::Colors::FGBlue <<
-			L" QuantumGate: " <<
-			QuantumGate::Console::TerminalOutput::Colors::BGBlack <<
+			QuantumGate::Console::TerminalOutput::Colors::Bold <<
+			L" \u25BA\u25BA " <<
+			QuantumGate::Console::TerminalOutput::Colors::Reset <<
 			QuantumGate::Console::TerminalOutput::Colors::FGBrightWhite <<
 			L" " <<
 			GetCommandLine();

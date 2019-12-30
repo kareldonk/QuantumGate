@@ -18,7 +18,7 @@ struct Command final
 	std::wstring Usage;
 };
 
-std::vector<Command> commands = {
+static std::vector<Command> commands = {
 	Command{ L"connect",	L"^connect\\s+([^\\s]*):(\\d+)$",				L"connect [IP Address]:[Port]" },
 	Command{ L"disconnect",	L"^disconnect\\s+([^\\s]+)$",					L"disconnect [Peer LUID]" },
 	Command{ L"send",		L"^send\\s+([^\\s]+)\\s+\"(.+)\"\\s*(\\d*)$",	L"send [Peer LUID] \"[Message]\" [Number of times]" },
@@ -27,6 +27,9 @@ std::vector<Command> commands = {
 	Command{ L"help",		L"^help\\s?$|^\\?\\s?$",						L"help or ?" },
 	Command{ L"quit",		L"^quit\\s?$|^exit\\s?$",						L"quit or exit" }
 };
+
+static Local m_QuantumGate;
+static std::shared_ptr<TestExtender::Extender> m_Extender;
 
 int main()
 {
@@ -60,8 +63,7 @@ int main()
 	params.EnableExtenders = true;
 	params.Relays.Enable = true;
 
-	Local m_QuantumGate;
-	auto m_Extender = std::make_shared<TestExtender::Extender>(nullptr);
+	m_Extender = std::make_shared<TestExtender::Extender>(nullptr);
 	auto extp = std::static_pointer_cast<Extender>(m_Extender);
 
 	if (const auto result = m_QuantumGate.AddExtender(extp); result.Failed())
@@ -102,130 +104,7 @@ int main()
 			{
 				CmdConsole::SetDisplayPrompt(false);
 
-				const auto cmdline = CmdConsole::AcceptCommandLine();
-
-				if (cmdline.size() > 0)
-				{
-					auto handled{ false };
-
-					for (auto& cmd : commands)
-					{
-						std::wregex r(cmd.RegEx, std::regex_constants::icase);
-						std::wsmatch m;
-						if (regex_search(cmdline, m, r))
-						{
-							if (cmd.ID == L"disconnect")
-							{
-								wchar_t* end{ nullptr };
-								const PeerLUID pluid = wcstoull(m[1].str().c_str(), &end, 10);
-
-								const auto result = m_QuantumGate.DisconnectFrom(pluid, [](PeerLUID pluid, PeerUUID puuid) mutable
-								{
-									PrintInfoLine(L"Peer %llu disconnected", pluid);
-								});
-
-								if (result.Succeeded())
-								{
-									PrintInfoLine(L"Disconnecting peer %llu...", pluid);
-								}
-								else
-								{
-									PrintErrLine(L"Could not disconnect peer %llu: %s", pluid, result.GetErrorDescription().c_str());
-								}
-							}
-							else if (cmd.ID == L"connect")
-							{
-								wchar_t* end{ nullptr };
-								const auto port = wcstoul(m[2].str().c_str(), &end, 10);
-
-								IPAddress addr;
-								if (IPAddress::TryParse(m[1].str().c_str(), addr))
-								{
-									const auto endp = IPEndpoint(addr, static_cast<UInt16>(port));
-
-									const auto result = m_QuantumGate.ConnectTo({ endp }, [&](PeerLUID pluid, Result<ConnectDetails> cresult) mutable
-									{
-										if (cresult.Succeeded())
-										{
-											PrintInfoLine(L"Successfully connected to endpoint %s with peer LUID %llu (%s, %s)",
-														  endp.GetString().c_str(), pluid,
-														  cresult->IsAuthenticated ? L"Authenticated" : L"NOT Authenticated",
-														  cresult->IsRelayed ? L"Relayed" : L"NOT Relayed");
-										}
-										else
-										{
-											PrintErrLine(L"Failed to connect to endpoint %s", endp.GetString().c_str());
-										}
-									});
-
-									if (result.Succeeded())
-									{
-										PrintInfoLine(L"Connecting to endpoint %s...", endp.GetString().c_str());
-									}
-									else
-									{
-										PrintErrLine(L"Failed to connect to endpoint %s", endp.GetString().c_str());
-									}
-								}
-								else PrintErrLine(L"Invalid IP address specified");
-							}
-							else if (cmd.ID == L"seclevel")
-							{
-								wchar_t* end{ nullptr };
-								const auto lvl = wcstoul(m[1].str().c_str(), &end, 10);
-								const auto seclvl = static_cast<SecurityLevel>(lvl);
-
-								if (m_QuantumGate.SetSecurityLevel(seclvl))
-								{
-									PrintInfoLine(L"Security level set to %s", m[1].str().c_str());
-								}
-								else
-								{
-									PrintErrLine(L"Failed to change security level");
-								}
-							}
-							else if (cmd.ID == L"verbosity")
-							{
-								SetVerbosity(m[1].str());
-							}
-							else if (cmd.ID == L"send")
-							{
-								Send(m_Extender, m[1].str(), m[2].str(), m[3].str());
-							}
-							else if (cmd.ID == L"help")
-							{
-								DisplayHelp();
-							}
-							else if (cmd.ID == L"quit")
-							{
-								PrintInfoLine(L"Shutting down QuantumGate, please wait...\r\n");
-
-								if (m_QuantumGate.Shutdown())
-								{
-									PrintInfoLine(L"\r\nQuantumGate shut down successful\r\n");
-								}
-								else
-								{
-									PrintErrLine(L"QuantumGate shut down failed");
-								}
-
-								PrintInfoLine(L"\r\nBye...\r\n");
-
-								return 0;
-							}
-
-							handled = true;
-
-							break;
-						}
-					}
-
-					if (!handled)
-					{
-						PrintErrLine(L"Unrecognized command or bad syntax: %s", cmdline.c_str());
-						PrintErrLine(L"Type 'help' or '?' and press Enter for help.", cmdline.c_str());
-					}
-				}
+				if (!HandleCommand(CmdConsole::AcceptCommandLine())) break;
 
 				CmdConsole::SetDisplayPrompt(true);
 				CmdConsole::DisplayPrompt();
@@ -240,8 +119,135 @@ int main()
 	return 0;
 }
 
-bool Send(const std::shared_ptr<TestExtender::Extender>& extender, const std::wstring& pluidstr,
-		  const std::wstring& msg, const std::wstring& count)
+bool HandleCommand(const String& cmdline)
+{
+	if (cmdline.size() > 0)
+	{
+		auto handled{ false };
+
+		for (auto& cmd : commands)
+		{
+			std::wregex r(cmd.RegEx, std::regex_constants::icase);
+			std::wsmatch m;
+			if (regex_search(cmdline, m, r))
+			{
+				if (cmd.ID == L"disconnect")
+				{
+					wchar_t* end{ nullptr };
+					const PeerLUID pluid = wcstoull(m[1].str().c_str(), &end, 10);
+
+					const auto result = m_QuantumGate.DisconnectFrom(pluid, [](PeerLUID pluid, PeerUUID puuid) mutable
+					{
+						PrintInfoLine(L"Peer %llu disconnected", pluid);
+					});
+
+					if (result.Succeeded())
+					{
+						PrintInfoLine(L"Disconnecting peer %llu...", pluid);
+					}
+					else
+					{
+						PrintErrLine(L"Could not disconnect peer %llu: %s", pluid, result.GetErrorDescription().c_str());
+					}
+				}
+				else if (cmd.ID == L"connect")
+				{
+					wchar_t* end{ nullptr };
+					const auto port = wcstoul(m[2].str().c_str(), &end, 10);
+
+					IPAddress addr;
+					if (IPAddress::TryParse(m[1].str().c_str(), addr))
+					{
+						const auto endp = IPEndpoint(addr, static_cast<UInt16>(port));
+
+						const auto result = m_QuantumGate.ConnectTo({ endp }, [&](PeerLUID pluid, Result<ConnectDetails> cresult) mutable
+						{
+							if (cresult.Succeeded())
+							{
+								PrintInfoLine(L"Successfully connected to endpoint %s with peer LUID %llu (%s, %s)",
+											  endp.GetString().c_str(), pluid,
+											  cresult->IsAuthenticated ? L"Authenticated" : L"NOT Authenticated",
+											  cresult->IsRelayed ? L"Relayed" : L"NOT Relayed");
+							}
+							else
+							{
+								PrintErrLine(L"Failed to connect to endpoint %s: %s", endp.GetString().c_str(), cresult.GetErrorDescription().c_str());
+							}
+						});
+
+						if (result.Succeeded())
+						{
+							PrintInfoLine(L"Connecting to endpoint %s...", endp.GetString().c_str());
+						}
+						else
+						{
+							PrintErrLine(L"Failed to connect to endpoint %s: %s", endp.GetString().c_str(), result.GetErrorDescription().c_str());
+						}
+					}
+					else PrintErrLine(L"Invalid IP address specified");
+				}
+				else if (cmd.ID == L"seclevel")
+				{
+					wchar_t* end{ nullptr };
+					const auto lvl = wcstoul(m[1].str().c_str(), &end, 10);
+					const auto seclvl = static_cast<SecurityLevel>(lvl);
+
+					if (m_QuantumGate.SetSecurityLevel(seclvl))
+					{
+						PrintInfoLine(L"Security level set to %s", m[1].str().c_str());
+					}
+					else
+					{
+						PrintErrLine(L"Failed to change security level");
+					}
+				}
+				else if (cmd.ID == L"verbosity")
+				{
+					SetVerbosity(m[1].str());
+				}
+				else if (cmd.ID == L"send")
+				{
+					Send(m[1].str(), m[2].str(), m[3].str());
+				}
+				else if (cmd.ID == L"help")
+				{
+					DisplayHelp();
+				}
+				else if (cmd.ID == L"quit")
+				{
+					PrintInfoLine(L"Shutting down QuantumGate, please wait...\r\n");
+
+					if (const auto result = m_QuantumGate.Shutdown(); result.Succeeded())
+					{
+						PrintInfoLine(L"\r\nQuantumGate shut down successful\r\n");
+					}
+					else
+					{
+						PrintErrLine(L"QuantumGate shut down failed: %s", result.GetErrorDescription().c_str());
+					}
+
+					PrintInfoLine(L"\r\nBye...\r\n");
+
+					return false;
+				}
+
+				handled = true;
+
+				break;
+			}
+		}
+
+		if (!handled)
+		{
+			PrintErrLine(L"Unrecognized command or bad syntax: %s", cmdline.c_str());
+			PrintErrLine(L"Type 'help' or '?' and press Enter for help.", cmdline.c_str());
+		}
+	}
+
+	return true;
+}
+
+bool Send(const std::wstring& pluidstr, const std::wstring& msg, const std::wstring& count)
 {
 	wchar_t* end{ nullptr };
 	const PeerLUID pluid{ wcstoull(pluidstr.c_str(), &end, 10) };
@@ -265,7 +271,7 @@ bool Send(const std::shared_ptr<TestExtender::Extender>& extender, const std::ws
 			txt += Util::FormatString(L" #%d", x);
 		}
 
-		if (!extender->SendMessage(pluid, txt, SendParameters::PriorityOption::Normal, std::chrono::milliseconds(0)))
+		if (!m_Extender->SendMessage(pluid, txt, SendParameters::PriorityOption::Normal, std::chrono::milliseconds(0)))
 		{
 			PrintErrLine(L"Could not send message %d to peer", x);
 			success = false;
