@@ -115,7 +115,7 @@ public:
 
 					SetConsoleCursorPosition(m_StdOutHandle, c);
 
-					m_CommandLine.erase(m_CommandLine.size() - 1, 1);
+					m_CommandLine.erase(m_CommandLine.end() - 1);
 				}
 			}
 
@@ -123,6 +123,13 @@ public:
 		}
 
 		return KeyInputEventResult::ReturnPressed;
+	}
+
+	[[nodiscard]] static int GetWidth() noexcept
+	{
+		CONSOLE_SCREEN_BUFFER_INFO csbi{ 0 };
+		GetConsoleScreenBufferInfo(m_StdOutHandle, &csbi);
+		return csbi.dwMaximumWindowSize.X;
 	}
 
 	static void EraseCurrentConsoleRow() noexcept
