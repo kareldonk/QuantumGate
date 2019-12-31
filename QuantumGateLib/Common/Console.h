@@ -49,11 +49,22 @@ namespace QuantumGate::Implementation
 			Reset,
 			Bold,
 			Dim,
-			Standout,
+			Italic,
 			Underline,
 			Blink,
+			RapidBlink,
 			Reverse,
 			Hidden, 
+			StrikeThrough,
+
+			BoldOff,
+			DimOff,
+			ItalicOff,
+			UnderlineOff,
+			BlinkOff,
+			ReverseOff,
+			HiddenOff,
+			StrikeThroughOff,
 
 			FGBlack,
 			FGRed,
@@ -124,13 +135,25 @@ namespace QuantumGate::Implementation
 				static constexpr const WChar* DefaultDbg{ L"\x1b[0;32m" };
 
 				static constexpr const WChar* Reset{ L"\x1b[0m" };
+				
 				static constexpr const WChar* Bold{ L"\x1b[1m" };
 				static constexpr const WChar* Dim{ L"\x1b[2m" };
-				static constexpr const WChar* Standout{ L"\x1b[3m" };
+				static constexpr const WChar* Italic{ L"\x1b[3m" };
 				static constexpr const WChar* Underline{ L"\x1b[4m" };
 				static constexpr const WChar* Blink{ L"\x1b[5m" };
+				static constexpr const WChar* RapidBlink{ L"\x1b[6m" };
 				static constexpr const WChar* Reverse{ L"\x1b[7m" };
 				static constexpr const WChar* Hidden{ L"\x1b[8m" };
+				static constexpr const WChar* StrikeThrough{ L"\x1b[9m" };
+
+				static constexpr const WChar* BoldOff{ L"\x1b[21m" };
+				static constexpr const WChar* DimOff{ L"\x1b[22m" };
+				static constexpr const WChar* ItalicOff{ L"\x1b[23m" };
+				static constexpr const WChar* UnderlineOff{ L"\x1b[24m" };
+				static constexpr const WChar* BlinkOff{ L"\x1b[25m" };
+				static constexpr const WChar* ReverseOff{ L"\x1b[27m" };
+				static constexpr const WChar* HiddenOff{ L"\x1b[28m" };
+				static constexpr const WChar* StrikeThroughOff{ L"\x1b[29m" };
 
 				static constexpr const WChar* FGBlack{ L"\x1b[30m" };
 				static constexpr const WChar* FGRed{ L"\x1b[31m" };

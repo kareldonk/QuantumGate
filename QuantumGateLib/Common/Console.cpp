@@ -220,16 +220,37 @@ namespace QuantumGate::Implementation
 				return Colors::Bold;
 			case Format::Dim:
 				return Colors::Dim;
-			case Format::Standout:
-				return Colors::Standout;
+			case Format::Italic:
+				return Colors::Italic;
 			case Format::Underline:
 				return Colors::Underline;
 			case Format::Blink:
 				return Colors::Blink;
+			case Format::RapidBlink:
+				return Colors::RapidBlink;
 			case Format::Reverse:
 				return Colors::Reverse;
 			case Format::Hidden:
 				return Colors::Hidden;
+			case Format::StrikeThrough:
+				return Colors::StrikeThrough;
+
+			case Format::BoldOff:
+				return Colors::BoldOff;
+			case Format::DimOff:
+				return Colors::DimOff;
+			case Format::ItalicOff:
+				return Colors::ItalicOff;
+			case Format::UnderlineOff:
+				return Colors::UnderlineOff;
+			case Format::BlinkOff:
+				return Colors::BlinkOff;
+			case Format::ReverseOff:
+				return Colors::ReverseOff;
+			case Format::HiddenOff:
+				return Colors::HiddenOff;
+			case Format::StrikeThroughOff:
+				return Colors::StrikeThroughOff;
 
 			case Format::FGBlack:
 				return Colors::FGBlack;
