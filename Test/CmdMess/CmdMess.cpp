@@ -18,7 +18,7 @@ struct Command final
 	std::wstring Usage;
 };
 
-static std::vector<Command> commands = {
+static std::array commands = {
 	Command{ L"connect",	L"^connect\\s+([^\\s]*):(\\d+)$",				L"connect [IP Address]:[Port]" },
 	Command{ L"disconnect",	L"^disconnect\\s+([^\\s]+)$",					L"disconnect [Peer LUID]" },
 	Command{ L"query",		L"^query\\s+peers\\s+(.*?)$",					L"query peers [Parameters: all]" },
