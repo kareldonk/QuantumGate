@@ -660,14 +660,19 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	bool Socket::Receive(Buffer& buffer) noexcept
+	bool Socket::Receive(Buffer& buffer, const Size max_rcv_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
 		auto& rcvbuf = GetReceiveBuffer();
 
-		const auto bytesrcv = recv(m_Socket, reinterpret_cast<char*>(rcvbuf.GetBytes()),
-								   static_cast<int>(rcvbuf.GetSize()), 0);
+		const auto read_size = std::invoke([&]()
+		{
+			if (max_rcv_size > 0 && max_rcv_size < rcvbuf.GetSize()) return max_rcv_size;
+			else return rcvbuf.GetSize();
+		});
+
+		const auto bytesrcv = recv(m_Socket, reinterpret_cast<char*>(rcvbuf.GetBytes()), static_cast<int>(read_size), 0);
 
 		Dbg(L"%d bytes received", bytesrcv);
 
@@ -716,18 +721,23 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	bool Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept
+	bool Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
 		auto& rcvbuf = GetReceiveBuffer();
 
+		const auto read_size = std::invoke([&]()
+		{
+			if (max_rcv_size > 0 && max_rcv_size < rcvbuf.GetSize()) return max_rcv_size;
+			else return rcvbuf.GetSize();
+		});
+
 		sockaddr_storage sock_addr{ 0 };
 		int sock_addr_len{ sizeof(sock_addr) };
 
-		const auto bytesrcv = recvfrom(m_Socket, reinterpret_cast<char*>(rcvbuf.GetBytes()),
-									   static_cast<int>(rcvbuf.GetSize()), 0,
-									   reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len);
+		const auto bytesrcv = recvfrom(m_Socket, reinterpret_cast<char*>(rcvbuf.GetBytes()), static_cast<int>(read_size),
+									   0, reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len);
 
 		Dbg(L"%d bytes received", bytesrcv);
 

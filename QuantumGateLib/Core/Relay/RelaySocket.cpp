@@ -139,7 +139,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return false;
 	}
 
-	bool Socket::Receive(Buffer& buffer) noexcept
+	bool Socket::Receive(Buffer& buffer, const Size /* max_rcv_size */) noexcept
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanRead());
 

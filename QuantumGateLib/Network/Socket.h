@@ -44,8 +44,8 @@ namespace QuantumGate::Implementation::Network
 
 		[[nodiscard]] bool Send(Buffer& buffer) noexcept override;
 		[[nodiscard]] bool SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept override;
-		[[nodiscard]] bool Receive(Buffer& buffer) noexcept override;
-		[[nodiscard]] bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept override;
+		[[nodiscard]] bool Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
+		[[nodiscard]] bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
 
 		void Close(const bool linger = false) noexcept override;
 

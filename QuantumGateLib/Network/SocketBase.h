@@ -99,8 +99,8 @@ namespace QuantumGate::Implementation::Network
 
 		virtual bool Send(Buffer& buffer) noexcept = 0;
 		virtual bool SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept = 0;
-		virtual bool Receive(Buffer& buffer) noexcept = 0;
-		virtual bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer) noexcept = 0;
+		virtual bool Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept = 0;
+		virtual bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept = 0;
 
 		virtual void Close(const bool linger = false) noexcept = 0;
 
