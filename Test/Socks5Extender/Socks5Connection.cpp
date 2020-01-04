@@ -352,13 +352,12 @@ namespace QuantumGate::Socks5Extender
 				}
 				else
 				{
-					if (m_Socket.GetIOStatus().CanRead())
+					if (m_Socket.GetIOStatus().CanRead() && m_ReceiveBuffer.GetSize() < MaxReceiveBufferSize)
 					{
-						// Get as much data as possible at once
-						// for efficiency
-						while (m_Socket.GetIOStatus().CanRead() && success)
+						// Get as much data as possible at once for efficiency
+						while (m_Socket.GetIOStatus().CanRead() && success && m_ReceiveBuffer.GetSize() < MaxReceiveBufferSize)
 						{
-							success = m_Socket.Receive(m_ReceiveBuffer);
+							success = m_Socket.Receive(m_ReceiveBuffer, MaxReceiveBufferSize - m_ReceiveBuffer.GetSize());
 							if (success)
 							{
 								success = m_Socket.UpdateIOStatus(0ms);
@@ -790,9 +789,16 @@ namespace QuantumGate::Socks5Extender
 				auto size = buffer.GetSize();
 				if (size > max_send_size) size = max_send_size;
 
-				if (m_Extender.SendDataRelay(GetPeerLUID(), GetID(), buffer.GetFirst(size)))
+				const auto result = m_Extender.SendDataRelay(GetPeerLUID(), GetID(), buffer.GetFirst(size));
+				if (result.Succeeded())
 				{
 					buffer.RemoveFirst(size);
+				}
+				else if (result == ResultCode::PeerSendBufferFull)
+				{
+					// Peer send buffer is currently full;
+					// we'll come back later to send the rest
+					break;
 				}
 				else
 				{

@@ -977,24 +977,26 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	bool Extender::SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const noexcept
+	Result<> Extender::SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const noexcept
 	{
 		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::DataRelay);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, WithSize(buffer, GetMaxDataRelayDataSize())))
 		{
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
+			auto result = SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression);
+			if (result.Failed() && result != ResultCode::PeerSendBufferFull)
 			{
-				return true;
+				LogErr(L"%s: could not send DataRelay message for connection %llu to peer %llu (%s)",
+						GetName().c_str(), cid, pluid, result.GetErrorString().c_str());
 			}
-			else LogErr(L"%s: could not send DataRelay message for connection %llu to peer %llu",
-						GetName().c_str(), cid, pluid);
+
+			return result;
 		}
 		else LogErr(L"%s: could not prepare DataRelay message for connection %llu; buffer size is %llu and max. data size is %llu",
 					GetName().c_str(), cid, buffer.GetSize(), GetMaxDataRelayDataSize());
 
-		return false;
+		return ResultCode::Failed;
 	}
 
 	std::optional<PeerLUID> Extender::GetPeerForConnection() const

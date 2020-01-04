@@ -116,7 +116,7 @@ namespace QuantumGate::Socks5Extender
 							 const Network::BinaryIPAddress ip = Network::BinaryIPAddress{},
 							 const UInt16 port = 0) const noexcept;
 
-		bool SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const noexcept;
+		Result<> SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const noexcept;
 
 		constexpr Size GetDataRelayHeaderSize() const noexcept
 		{

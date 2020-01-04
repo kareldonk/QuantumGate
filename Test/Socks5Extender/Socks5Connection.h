@@ -72,6 +72,9 @@ namespace QuantumGate::Socks5Extender
 		bool RelayReceivedData();
 
 	private:
+		static constexpr Size MaxReceiveBufferSize{ 1u << 16 };
+
+	private:
 		ConnectionID m_ID{ 0 };
 		PeerLUID m_PeerLUID{ 0 };
 		UInt64 m_Key{ 0 };
