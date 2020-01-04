@@ -347,8 +347,7 @@ namespace QuantumGate::Implementation::Core::Listener
 				if (cond_accept)
 				{
 					if (!listener_socket.Accept(peer.GetSocket<Network::Socket>(), true,
-												&Manager::AcceptConditionFunction,
-												this))
+												&Manager::AcceptConditionFunction, this))
 					{
 						// Couldn't accept for some reason
 						return;
@@ -362,7 +361,8 @@ namespace QuantumGate::Implementation::Core::Listener
 						if (!CanAcceptConnection(peer.GetPeerIPAddress()))
 						{
 							peer.Close();
-							LogWarn(L"Incoming connection from peer %s was rejected", peer.GetPeerName().c_str());
+							LogWarn(L"Incoming connection from peer %s was rejected; IP address is not allowed by access configuration",
+									peer.GetPeerName().c_str());
 
 							return;
 						}
@@ -410,7 +410,8 @@ namespace QuantumGate::Implementation::Core::Listener
 			return CF_ACCEPT;
 		}
 
-		LogWarn(L"Incoming connection attempt from peer %s was rejected", endpoint.GetString().c_str());
+		LogWarn(L"Incoming connection attempt from peer %s was rejected; IP address is not allowed by access configuration",
+				endpoint.GetString().c_str());
 
 		return CF_REJECT;
 	}
