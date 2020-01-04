@@ -118,6 +118,8 @@ namespace QuantumGate::Socks5Extender
 
 		Result<> SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const noexcept;
 
+		bool SendMessage(const PeerLUID pluid, Buffer&& buffer) const noexcept;
+
 		constexpr Size GetDataRelayHeaderSize() const noexcept
 		{
 			return sizeof(MessageType) +
