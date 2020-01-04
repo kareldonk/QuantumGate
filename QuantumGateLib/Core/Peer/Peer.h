@@ -130,6 +130,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] Result<> SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
 												   const std::chrono::milliseconds maxdelay) noexcept;
 
+		[[nodiscard]] inline Size GetAvailableExtenderCommunicationSendBufferSize() const noexcept
+		{
+			return m_SendQueues.GetAvailableExtenderCommunicationSendBufferSize();
+		}
+
 		[[nodiscard]] inline Size GetAvailableRelayDataSendBufferSize() const noexcept
 		{
 			return m_SendQueues.GetAvailableRelayDataSendBufferSize();

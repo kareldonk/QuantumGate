@@ -57,6 +57,11 @@ namespace QuantumGate::Implementation::Core::Peer
 			return m_RateLimits.GetAvailable<MessageRateLimits::Type::RelayData>();
 		}
 
+		[[nodiscard]] inline Size GetAvailableExtenderCommunicationSendBufferSize() const noexcept
+		{
+			return m_RateLimits.GetAvailable<MessageRateLimits::Type::ExtenderCommunication>();
+		}
+
 	private:
 		template<MessageRateLimits::Type type>
 		Result<> AddMessageImpl(Message&& msg, const SendParameters::PriorityOption priority,
