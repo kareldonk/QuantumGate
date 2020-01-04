@@ -82,11 +82,15 @@ namespace QuantumGate::Implementation::Core::Peer
 		Result<> DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept;
 		Result<> DisconnectFrom(API::Peer& peer, DisconnectCallback&& function) noexcept;
 
-		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-						const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) noexcept;
+		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+						  const PeerLUID pluid, const BufferView& buffer, const SendParameters& params) noexcept;
+		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+						  API::Peer& api_peer, const BufferView& buffer, const SendParameters& params) noexcept;
 
 		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-						API::Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept;
+						const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) noexcept;
+		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+						API::Peer& api_peer, Buffer&& buffer, const SendParameters& params) noexcept;
 
 		Result<> Broadcast(const MessageType msgtype, const Buffer& buffer, BroadcastCallback&& callback);
 
@@ -139,8 +143,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		void Disconnect(Peer& peer, const bool graceful) noexcept;
 		void DisconnectAndRemoveAll() noexcept;
 
+		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+						  Peer& peer, const BufferView& buffer, const SendParameters& params) noexcept;
+
 		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-						Peer_ThS& peerths, Buffer&& buffer, const SendParameters& params) noexcept;
+						Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept;
 
 		bool BroadcastExtenderUpdate();
 

@@ -1044,50 +1044,99 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							 PeerLUID pluid, Buffer&& buffer, const SendParameters& params) noexcept
+							 const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) noexcept
 	{
 		if (auto peerths = Get(pluid); peerths != nullptr)
 		{
-			return SendTo(extuuid, running, *peerths, std::move(buffer), params);
+			auto peer = peerths->WithUniqueLock();
+			return SendTo(extuuid, running, *peer, std::move(buffer), params);
+		}
+
+		return ResultCode::PeerNotFound;
+	}
+
+	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+							   const PeerLUID pluid, const BufferView& buffer, const SendParameters& params) noexcept
+	{
+		if (auto peerths = Get(pluid); peerths != nullptr)
+		{
+			auto peer = peerths->WithUniqueLock();
+			return Send(extuuid, running, *peer, buffer, params);
 		}
 
 		return ResultCode::PeerNotFound;
 	}
 
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							 API::Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept
+							 API::Peer& api_peer, Buffer&& buffer, const SendParameters& params) noexcept
 	{
-		return SendTo(extuuid, running, *GetPeerFromPeerStorage(peer), std::move(buffer), params);
+		auto& peerths = GetPeerFromPeerStorage(api_peer);
+		auto peer = peerths->WithUniqueLock();
+		return SendTo(extuuid, running, *peer, std::move(buffer), params);
+	}
+
+	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+							   API::Peer& api_peer, const BufferView& buffer, const SendParameters& params) noexcept
+	{
+		auto& peerths = GetPeerFromPeerStorage(api_peer);
+		auto peer = peerths->WithUniqueLock();
+		return Send(extuuid, running, *peer, buffer, params);
+	}
+
+	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+							   Peer& peer, const BufferView& buffer, const SendParameters& params) noexcept
+	{
+		try
+		{
+			const auto max_size = peer.GetAvailableExtenderCommunicationSendBufferSize();
+			if (max_size > 0)
+			{
+				const auto snd_size = std::min(buffer.GetSize(), max_size);
+
+				// Note the copy
+				Buffer snd_buf = buffer.GetFirst(snd_size);
+
+				if (auto result = SendTo(extuuid, running, peer, std::move(snd_buf), params); result.Succeeded())
+				{
+					return snd_size;
+				}
+				else
+				{
+					if (IsResultCode(result)) return GetResultCode(result);
+				}
+			}
+			else return ResultCode::PeerSendBufferFull;
+		}
+		catch (...)
+		{
+			return ResultCode::OutOfMemory;
+		}
+
+		return ResultCode::Failed;
 	}
 
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							 Peer_ThS& peerths, Buffer&& buffer, const SendParameters& params) noexcept
+							 Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept
 	{
-		Result<> result{ ResultCode::Failed };
-
-		peerths.WithUniqueLock([&](Peer& peer)
+		// Only if peer status is ready (handshake succeeded, etc.)
+		if (peer.IsReady())
 		{
-			// Only if peer status is ready (handshake succeeded, etc.)
-			if (peer.IsReady())
+			// If peer has extender installed and active
+			if (peer.GetPeerExtenderUUIDs().HasExtender(extuuid))
 			{
-				// If peer has extender installed and active
-				if (peer.GetPeerExtenderUUIDs().HasExtender(extuuid))
+				// If local extender is still running
+				if (running)
 				{
-					// If local extender is still running
-					if (running)
-					{
-						result = peer.Send(Message(MessageOptions(MessageType::ExtenderCommunication,
-																  extuuid, std::move(buffer), params.Compress)),
-										   params.Priority, params.Delay);
-					}
-					else result = ResultCode::NotRunning;
+					return peer.Send(Message(MessageOptions(MessageType::ExtenderCommunication,
+															extuuid, std::move(buffer), params.Compress)),
+									 params.Priority, params.Delay);
 				}
-				else result = ResultCode::PeerNoExtender;
+				else return ResultCode::NotRunning;
 			}
-			else result = ResultCode::PeerNotReady;
-		});
+			else return ResultCode::PeerNoExtender;
+		}
 
-		return result;
+		return ResultCode::PeerNotReady;
 	}
 
 	Result<Buffer> Manager::GetExtenderUpdateData() const noexcept
