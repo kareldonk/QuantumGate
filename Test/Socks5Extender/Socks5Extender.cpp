@@ -883,7 +883,7 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, WithSize(domain, MaxSize::_1KB), port))
 		{
-			if (SendMessage(pluid, writer.MoveWrittenBytes()))
+			if (Send(pluid, writer.MoveWrittenBytes()))
 			{
 				return true;
 			}
@@ -905,7 +905,7 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, SerializedBinaryIPAddress{ ip }, port))
 		{
-			if (SendMessage(pluid, writer.MoveWrittenBytes()))
+			if (Send(pluid, writer.MoveWrittenBytes()))
 			{
 				return true;
 			}
@@ -924,7 +924,7 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid))
 		{
-			if (SendMessage(pluid, writer.MoveWrittenBytes()))
+			if (Send(pluid, writer.MoveWrittenBytes()))
 			{
 				return true;
 			}
@@ -943,7 +943,7 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid))
 		{
-			if (SendMessage(pluid, writer.MoveWrittenBytes()))
+			if (Send(pluid, writer.MoveWrittenBytes()))
 			{
 				return true;
 			}
@@ -965,7 +965,7 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, reply, atype, SerializedBinaryIPAddress{ ip }, port))
 		{
-			if (SendMessage(pluid, writer.MoveWrittenBytes()))
+			if (Send(pluid, writer.MoveWrittenBytes()))
 			{
 				return true;
 			}
@@ -984,7 +984,7 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, WithSize(buffer, GetMaxDataRelayDataSize())))
 		{
-			auto result = SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression);
+			auto result = SendMessageTo(pluid, writer.MoveWrittenBytes(), QuantumGate::SendParameters{ .Compress = m_UseCompression });
 			if (result.Failed() && result != ResultCode::PeerSendBufferFull)
 			{
 				LogErr(L"%s: could not send DataRelay message for connection %llu to peer %llu (%s)",
@@ -999,7 +999,7 @@ namespace QuantumGate::Socks5Extender
 		return ResultCode::Failed;
 	}
 
-	bool Extender::SendMessage(const PeerLUID pluid, Buffer&& buffer) const noexcept
+	bool Extender::Send(const PeerLUID pluid, Buffer&& buffer) const noexcept
 	{
 		// This is not the best way to handle buffer full condition
 		// but this is just a test extender
@@ -1008,7 +1008,8 @@ namespace QuantumGate::Socks5Extender
 			// Make a copy
 			auto temp_buf = buffer;
 
-			if (const auto result = SendMessageTo(pluid, std::move(temp_buf), m_UseCompression); result.Succeeded())
+			if (const auto result = SendMessageTo(pluid, std::move(temp_buf),
+												  QuantumGate::SendParameters{ .Compress = m_UseCompression }); result.Succeeded())
 			{
 				return true;
 			}

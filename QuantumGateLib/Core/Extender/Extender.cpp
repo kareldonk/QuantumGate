@@ -56,14 +56,18 @@ namespace QuantumGate::Implementation::Core::Extender
 		return m_Local.load()->DisconnectFrom(peer, std::move(function));
 	}
 
-	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress) const noexcept
+	Result<Size> Extender::SendMessage(const PeerLUID pluid, const BufferView& buffer, const SendParameters& params) const noexcept
 	{
 		assert(IsRunning());
 
-		SendParameters params;
-		params.Compress = compress;
+		return m_Local.load()->Send(GetUUID(), m_Running, pluid, std::move(buffer), params);
+	}
 
-		return m_Local.load()->SendTo(GetUUID(), m_Running, pluid, std::move(buffer), params);
+	Result<Size> Extender::SendMessage(API::Peer& peer, const BufferView& buffer, const SendParameters& params) const noexcept
+	{
+		assert(IsRunning());
+
+		return m_Local.load()->Send(GetUUID(), m_Running, peer, std::move(buffer), params);
 	}
 
 	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const noexcept
@@ -71,16 +75,6 @@ namespace QuantumGate::Implementation::Core::Extender
 		assert(IsRunning());
 
 		return m_Local.load()->SendTo(GetUUID(), m_Running, pluid, std::move(buffer), params);
-	}
-
-	Result<> Extender::SendMessageTo(API::Peer& peer, Buffer&& buffer, const bool compress) const noexcept
-	{
-		assert(IsRunning());
-
-		SendParameters params;
-		params.Compress = compress;
-
-		return m_Local.load()->SendTo(GetUUID(), m_Running, peer, std::move(buffer), params);
 	}
 
 	Result<> Extender::SendMessageTo(API::Peer& peer, Buffer&& buffer, const SendParameters& params) const noexcept

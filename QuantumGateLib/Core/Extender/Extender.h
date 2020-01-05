@@ -50,9 +50,10 @@ namespace QuantumGate::Implementation::Core::Extender
 		Result<> DisconnectFrom(API::Peer& peer) noexcept;
 		Result<> DisconnectFrom(API::Peer& peer, DisconnectCallback&& function) noexcept;
 
-		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress) const noexcept;
+		Result<Size> SendMessage(const PeerLUID pluid, const BufferView& buffer, const SendParameters& params) const noexcept;
+		Result<Size> SendMessage(API::Peer& peer, const BufferView& buffer, const SendParameters& params) const noexcept;
+
 		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const noexcept;
-		Result<> SendMessageTo(API::Peer& peer, Buffer&& buffer, const bool compress) const noexcept;
 		Result<> SendMessageTo(API::Peer& peer, Buffer&& buffer, const SendParameters& params) const noexcept;
 
 		inline static Size GetMaximumMessageDataSize() noexcept { return Message::MaxMessageDataSize; }

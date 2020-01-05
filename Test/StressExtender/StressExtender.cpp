@@ -195,7 +195,7 @@ namespace StressExtender
 		BufferWriter writer(true);
 		if (writer.Write(msgtype))
 		{
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
+			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded())
 			{
 				m_IsLocalBenchmarking = true;
 				m_LocalBenchmarkStart = std::chrono::high_resolution_clock::now();
@@ -229,7 +229,8 @@ namespace StressExtender
 		BufferWriter writer(true);
 		if (writer.Write(msgtype))
 		{
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
+			if (SendMessageTo(pluid, writer.MoveWrittenBytes(),
+							  QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded()) return true;
 
 			LogErr(L"Could not send benchmark end message to peer");
 		}

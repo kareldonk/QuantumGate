@@ -58,19 +58,19 @@ namespace QuantumGate::API
 		return m_Extender->DisconnectFrom(peer, std::move(function));
 	}
 
-	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const bool compress) const noexcept
+	Result<Size> Extender::SendMessage(const PeerLUID pluid, const BufferView& buffer, const SendParameters& params) const noexcept
 	{
-		return m_Extender->SendMessageTo(pluid, std::move(buffer), compress);
+		return m_Extender->SendMessage(pluid, buffer, params);
+	}
+
+	Result<Size> Extender::SendMessage(Peer& peer, const BufferView& buffer, const SendParameters& params) const noexcept
+	{
+		return m_Extender->SendMessage(peer, buffer, params);
 	}
 
 	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const noexcept
 	{
 		return m_Extender->SendMessageTo(pluid, std::move(buffer), params);
-	}
-
-	Result<> Extender::SendMessageTo(Peer& peer, Buffer&& buffer, const bool compress) const noexcept
-	{
-		return m_Extender->SendMessageTo(peer, std::move(buffer), compress);
 	}
 
 	Result<> Extender::SendMessageTo(Peer& peer, Buffer&& buffer, const SendParameters& params) const noexcept

@@ -1114,6 +1114,22 @@ namespace QuantumGate::Implementation::Core
 		return true;
 	}
 
+	Result<Size> Local::Send(const ExtenderUUID& uuid, const std::atomic_bool& running,
+							 const PeerLUID id, const BufferView& buffer, const SendParameters& params) noexcept
+	{
+		if (IsRunning()) return m_PeerManager.Send(uuid, running, id, buffer, params);
+
+		return ResultCode::NotRunning;
+	}
+
+	Result<Size> Local::Send(const ExtenderUUID& uuid, const std::atomic_bool& running,
+							 API::Peer& peer, const BufferView& buffer, const SendParameters& params) noexcept
+	{
+		if (IsRunning()) return m_PeerManager.Send(uuid, running, peer, buffer, params);
+
+		return ResultCode::NotRunning;
+	}
+
 	Result<> Local::SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running,
 						   const PeerLUID id, Buffer&& buffer, const SendParameters& params) noexcept
 	{

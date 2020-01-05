@@ -1096,7 +1096,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				// Note the copy
 				Buffer snd_buf = buffer.GetFirst(snd_size);
 
-				if (auto result = SendTo(extuuid, running, peer, std::move(snd_buf), params); result.Succeeded())
+				if (const auto result = SendTo(extuuid, running, peer, std::move(snd_buf), params); result.Succeeded())
 				{
 					return snd_size;
 				}

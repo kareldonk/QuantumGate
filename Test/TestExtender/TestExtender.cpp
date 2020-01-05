@@ -739,7 +739,7 @@ namespace TestExtender
 		BufferWriter writer(true);
 		if (writer.Write(msgtype))
 		{
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
+			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded())
 			{
 				m_IsLocalBenchmarking = true;
 				m_LocalBenchmarkStart = std::chrono::high_resolution_clock::now();
@@ -773,7 +773,8 @@ namespace TestExtender
 		BufferWriter writer(true);
 		if (writer.Write(msgtype))
 		{
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
+			if (SendMessageTo(pluid, writer.MoveWrittenBytes(),
+							  QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded()) return true;
 
 			LogErr(L"Could not send benchmark end message to peer");
 		}
@@ -868,7 +869,8 @@ namespace TestExtender
 				BufferWriter writer(true);
 				if (writer.WriteWithPreallocation(msgtype, ft.GetID()))
 				{
-					if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
+					if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(),
+									  QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded())
 					{
 						ft.SetStatus(FileTransferStatus::Transfering);
 
@@ -915,7 +917,8 @@ namespace TestExtender
 		if (writer.WriteWithPreallocation(msgtype, ft.GetID(), filesize,
 										  WithSize(filename, MaxSize::_1KB), *ft.GetFileHash(), autotrf))
 		{
-			if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
+			if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(),
+							  QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded()) return true;
 			else LogErr(L"Could not send FileTransferStart message to peer");
 		}
 		else LogErr(L"Could not prepare FileTransferStart message for peer");
@@ -932,7 +935,8 @@ namespace TestExtender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, ft.GetID()))
 		{
-			if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(), m_UseCompression).Succeeded())
+			if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(),
+							  QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded())
 			{
 				ft.SetStatus(FileTransferStatus::Cancelled);
 				return true;
@@ -966,7 +970,8 @@ namespace TestExtender
 			BufferWriter writer(true);
 			if (writer.WriteWithPreallocation(msgtype, ft.GetID(), WithSize(buffer, GetFileTransferDataSize())))
 			{
-				if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
+				if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(),
+								  QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded()) return true;
 				else LogErr(L"Could not send FileTransferData message to peer");
 			}
 			else LogErr(L"Could not prepare FileTransferData message for peer");
@@ -984,7 +989,8 @@ namespace TestExtender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, ft.GetID()))
 		{
-			if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(), m_UseCompression).Succeeded()) return true;
+			if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(),
+							  QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded()) return true;
 			else LogErr(L"Could not send FileTransferDataAck message to peer");
 		}
 		else LogErr(L"Could not prepare FileTransferDataAck message for peer");

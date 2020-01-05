@@ -388,7 +388,7 @@ bool HandshakeExtender::SendPublicKey(Peer& peer)
 
 	QuantumGate::Buffer msg(reinterpret_cast<std::byte*>(&pubmsg), sizeof(PublicKeyMessage));
 
-	const auto result = SendMessageTo(peer.LUID, std::move(msg), NoCompression);
+	const auto result = SendMessageTo(peer.LUID, std::move(msg), QuantumGate::SendParameters{ .Compress = NoCompression });
 	if (result.Succeeded())
 	{
 		std::wcout << L"Sent public key to peer " << peer.LUID << L"\r\n";
@@ -407,7 +407,7 @@ bool HandshakeExtender::SendReady(Peer& peer)
 	ReadyMessage rmsg;
 	QuantumGate::Buffer msg(reinterpret_cast<std::byte*>(&rmsg), sizeof(ReadyMessage));
 
-	const auto result = SendMessageTo(peer.LUID, std::move(msg), NoCompression);
+	const auto result = SendMessageTo(peer.LUID, std::move(msg), QuantumGate::SendParameters{ .Compress = NoCompression });
 	if (result.Succeeded())
 	{
 		std::wcout << L"Sent ready to peer " << peer.LUID << L"\r\n";
@@ -444,7 +444,7 @@ bool HandshakeExtender::SendChatMessage(const Peer& peer, const std::wstring& ms
 			QuantumGate::Buffer msg(reinterpret_cast<std::byte*>(&cmsg), sizeof(ChatMessage));
 			msg += cipher_text;
 
-			const auto result = SendMessageTo(peer.LUID, std::move(msg), NoCompression);
+			const auto result = SendMessageTo(peer.LUID, std::move(msg), QuantumGate::SendParameters{ .Compress = NoCompression });
 			if (result.Succeeded())
 			{
 				std::wcout << L"Sent chat message to peer " << peer.LUID << L"\r\n";
