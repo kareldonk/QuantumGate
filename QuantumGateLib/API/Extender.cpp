@@ -32,8 +32,7 @@ namespace QuantumGate::API
 		return m_Extender->ConnectTo(std::move(params));
 	}
 
-	Result<std::pair<PeerLUID, bool>> Extender::ConnectTo(ConnectParameters&& params,
-														  ConnectCallback&& function) noexcept
+	Result<std::pair<PeerLUID, bool>> Extender::ConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept
 	{
 		return m_Extender->ConnectTo(std::move(params), std::move(function));
 	}
@@ -58,24 +57,28 @@ namespace QuantumGate::API
 		return m_Extender->DisconnectFrom(peer, std::move(function));
 	}
 
-	Result<Size> Extender::SendMessage(const PeerLUID pluid, const BufferView& buffer, const SendParameters& params) const noexcept
+	Result<Size> Extender::SendMessage(const PeerLUID pluid, const BufferView& buffer,
+									   const SendParameters& params, SendCallback&& callback) const noexcept
 	{
-		return m_Extender->SendMessage(pluid, buffer, params);
+		return m_Extender->SendMessage(pluid, buffer, params, std::move(callback));
 	}
 
-	Result<Size> Extender::SendMessage(Peer& peer, const BufferView& buffer, const SendParameters& params) const noexcept
+	Result<Size> Extender::SendMessage(Peer& peer, const BufferView& buffer,
+									   const SendParameters& params, SendCallback&& callback) const noexcept
 	{
-		return m_Extender->SendMessage(peer, buffer, params);
+		return m_Extender->SendMessage(peer, buffer, params, std::move(callback));
 	}
 
-	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const noexcept
+	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer,
+									 const SendParameters& params, SendCallback&& callback) const noexcept
 	{
-		return m_Extender->SendMessageTo(pluid, std::move(buffer), params);
+		return m_Extender->SendMessageTo(pluid, std::move(buffer), params, std::move(callback));
 	}
 
-	Result<> Extender::SendMessageTo(Peer& peer, Buffer&& buffer, const SendParameters& params) const noexcept
+	Result<> Extender::SendMessageTo(Peer& peer, Buffer&& buffer,
+									 const SendParameters& params, SendCallback&& callback) const noexcept
 	{
-		return m_Extender->SendMessageTo(peer, std::move(buffer), params);
+		return m_Extender->SendMessageTo(peer, std::move(buffer), params, std::move(callback));
 	}
 
 	Size Extender::GetMaximumMessageDataSize() noexcept

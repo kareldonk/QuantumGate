@@ -100,19 +100,22 @@ namespace QuantumGate::API
 		[[nodiscard]] bool IsRunning() const noexcept;
 
 		Result<ConnectDetails> ConnectTo(ConnectParameters&& params) noexcept;
-		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params,
-													ConnectCallback&& function) noexcept;
+		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept;
 
 		Result<> DisconnectFrom(const PeerLUID pluid) noexcept;
 		Result<> DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept;
 		Result<> DisconnectFrom(Peer& peer) noexcept;
 		Result<> DisconnectFrom(Peer& peer, DisconnectCallback&& function) noexcept;
 
-		Result<Size> SendMessage(const PeerLUID pluid, const BufferView& buffer, const SendParameters& params) const noexcept;
-		Result<Size> SendMessage(API::Peer& peer, const BufferView& buffer, const SendParameters& params) const noexcept;
+		Result<Size> SendMessage(const PeerLUID pluid, const BufferView& buffer,
+								 const SendParameters& params, SendCallback&& callback = nullptr) const noexcept;
+		Result<Size> SendMessage(Peer& peer, const BufferView& buffer,
+								 const SendParameters& params, SendCallback&& callback = nullptr) const noexcept;
 
-		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const noexcept;
-		Result<> SendMessageTo(Peer& peer, Buffer&& buffer, const SendParameters& params) const noexcept;
+		Result<> SendMessageTo(const PeerLUID pluid, Buffer&& buffer,
+							   const SendParameters& params, SendCallback&& callback = nullptr) const noexcept;
+		Result<> SendMessageTo(Peer& peer, Buffer&& buffer,
+							   const SendParameters& params, SendCallback&& callback = nullptr) const noexcept;
 
 		[[nodiscard]] static Size GetMaximumMessageDataSize() noexcept;
 

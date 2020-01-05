@@ -7,24 +7,24 @@
 namespace QuantumGate::Implementation::Core::Peer
 {
 	Result<> PeerSendQueues::AddMessage(Message&& msg, const SendParameters::PriorityOption priority,
-										const std::chrono::milliseconds delay) noexcept
+										const std::chrono::milliseconds delay, SendCallback&& callback) noexcept
 	{
 		switch (msg.GetMessageType())
 		{
 			case MessageType::ExtenderCommunication:
-				return AddMessageImpl<MessageRateLimits::Type::ExtenderCommunication>(std::move(msg), priority, delay);
+				return AddMessageImpl<MessageRateLimits::Type::ExtenderCommunication>(std::move(msg), priority, delay, std::move(callback));
 			case MessageType::Noise:
-				return AddMessageImpl<MessageRateLimits::Type::Noise>(std::move(msg), priority, delay);
+				return AddMessageImpl<MessageRateLimits::Type::Noise>(std::move(msg), priority, delay, std::move(callback));
 			case MessageType::RelayData:
-				return AddMessageImpl<MessageRateLimits::Type::RelayData>(std::move(msg), priority, delay);
+				return AddMessageImpl<MessageRateLimits::Type::RelayData>(std::move(msg), priority, delay, std::move(callback));
 			default:
-				return AddMessageImpl<MessageRateLimits::Type::Default>(std::move(msg), priority, delay);
+				return AddMessageImpl<MessageRateLimits::Type::Default>(std::move(msg), priority, delay, std::move(callback));
 		}
 	}
 
 	template<MessageRateLimits::Type type>
 	Result<> PeerSendQueues::AddMessageImpl(Message&& msg, const SendParameters::PriorityOption priority,
-											const std::chrono::milliseconds delay) noexcept
+											const std::chrono::milliseconds delay, SendCallback&& callback) noexcept
 	{
 		const auto msg_size = msg.GetMessageData().GetSize();
 
@@ -38,13 +38,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			switch (priority)
 			{
 				case SendParameters::PriorityOption::Normal:
-					m_NormalQueue.Push(std::move(msg));
+					m_NormalQueue.Push(DefaultMessage{ std::move(msg), std::move(callback) });
 					break;
 				case SendParameters::PriorityOption::Expedited:
-					m_ExpeditedQueue.Push(std::move(msg));
+					m_ExpeditedQueue.Push(DefaultMessage{ std::move(msg), std::move(callback) });
 					break;
 				case SendParameters::PriorityOption::Delayed:
-					m_DelayedQueue.Push(DelayedMessage{ std::move(msg), Util::GetCurrentSteadyTime(), delay });
+					m_DelayedQueue.Push(DelayedMessage{ std::move(msg), Util::GetCurrentSteadyTime(), delay, std::move(callback) });
 					break;
 				default:
 					// Shouldn't get here
@@ -66,15 +66,11 @@ namespace QuantumGate::Implementation::Core::Peer
 	template<typename T>
 	void PeerSendQueues::RemoveMessage(T& queue) noexcept
 	{
-		const auto& [message_type, data_size] = std::invoke([&]()
+		auto result = std::invoke([&]()
 		{
-			if constexpr (std::is_same_v<T, MessageQueue>)
+			if constexpr (std::is_same_v<T, MessageQueue> || std::is_same_v<T, DelayedMessageQueue>)
 			{
-				return std::make_pair(queue.Front().GetMessageType(), queue.Front().GetMessageData().GetSize());
-			}
-			else if constexpr (std::is_same_v<T, DelayedMessageQueue>)
-			{
-				return std::make_pair(queue.Front().Message.GetMessageType(), queue.Front().Message.GetMessageData().GetSize());
+				return std::make_tuple(queue.Front().Message.GetMessageType(), queue.Front().Message.GetMessageData().GetSize(), std::move(queue.Front().SendCallback));
 			}
 			else
 			{
@@ -83,6 +79,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 
 		queue.Pop();
+
+		auto& [message_type, data_size, send_callback] = result;
 
 		switch (message_type)
 		{
@@ -98,6 +96,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			default:
 				break;
 		}
+
+		if (send_callback) send_callback();
 	}
 
 	std::pair<bool, Size> PeerSendQueues::GetMessages(Buffer& buffer, const Crypto::SymmetricKeyData& symkey,
@@ -124,7 +124,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		while (!m_NormalQueue.Empty())
 		{
 			auto& msg = m_NormalQueue.Front();
-			if (msg.Write(tempbuf, symkey))
+			if (msg.Message.Write(tempbuf, symkey))
 			{
 				if (buffer.GetSize() + tempbuf.GetSize() <= MessageTransport::MaxMessageDataSize)
 				{
@@ -227,7 +227,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		// communications
 
 		auto& msg = m_ExpeditedQueue.Front();
-		if (msg.Write(buffer, symkey))
+		if (msg.Message.Write(buffer, symkey))
 		{
 			RemoveMessage(m_ExpeditedQueue);
 

@@ -122,11 +122,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] inline MessageProcessor& GetMessageProcessor() noexcept { return m_MessageProcessor; }
 
 		[[nodiscard]] Result<> Send(Message&& msg, const SendParameters::PriorityOption priority = SendParameters::PriorityOption::Normal,
-									const std::chrono::milliseconds delay = std::chrono::milliseconds(0)) noexcept;
+									const std::chrono::milliseconds delay = std::chrono::milliseconds(0), SendCallback&& callback = nullptr) noexcept;
 		[[nodiscard]] Result<> Send(const MessageType msgtype, Buffer&& buffer,
 									const SendParameters::PriorityOption priority = SendParameters::PriorityOption::Normal,
 									const std::chrono::milliseconds delay = std::chrono::milliseconds(0),
-									const bool compress = true) noexcept;
+									const bool compress = true, SendCallback&& callback = nullptr) noexcept;
 		[[nodiscard]] Result<> SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
 												   const std::chrono::milliseconds maxdelay) noexcept;
 

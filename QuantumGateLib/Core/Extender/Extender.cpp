@@ -56,32 +56,36 @@ namespace QuantumGate::Implementation::Core::Extender
 		return m_Local.load()->DisconnectFrom(peer, std::move(function));
 	}
 
-	Result<Size> Extender::SendMessage(const PeerLUID pluid, const BufferView& buffer, const SendParameters& params) const noexcept
+	Result<Size> Extender::SendMessage(const PeerLUID pluid, const BufferView& buffer,
+									   const SendParameters& params, SendCallback&& callback) const noexcept
 	{
 		assert(IsRunning());
 
-		return m_Local.load()->Send(GetUUID(), m_Running, pluid, std::move(buffer), params);
+		return m_Local.load()->Send(GetUUID(), m_Running, pluid, buffer, params, std::move(callback));
 	}
 
-	Result<Size> Extender::SendMessage(API::Peer& peer, const BufferView& buffer, const SendParameters& params) const noexcept
+	Result<Size> Extender::SendMessage(API::Peer& peer, const BufferView& buffer,
+									   const SendParameters& params, SendCallback&& callback) const noexcept
 	{
 		assert(IsRunning());
 
-		return m_Local.load()->Send(GetUUID(), m_Running, peer, std::move(buffer), params);
+		return m_Local.load()->Send(GetUUID(), m_Running, peer, buffer, params, std::move(callback));
 	}
 
-	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) const noexcept
+	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer,
+									 const SendParameters& params, SendCallback&& callback) const noexcept
 	{
 		assert(IsRunning());
 
-		return m_Local.load()->SendTo(GetUUID(), m_Running, pluid, std::move(buffer), params);
+		return m_Local.load()->SendTo(GetUUID(), m_Running, pluid, std::move(buffer), params, std::move(callback));
 	}
 
-	Result<> Extender::SendMessageTo(API::Peer& peer, Buffer&& buffer, const SendParameters& params) const noexcept
+	Result<> Extender::SendMessageTo(API::Peer& peer, Buffer&& buffer,
+									 const SendParameters& params, SendCallback&& callback) const noexcept
 	{
 		assert(IsRunning());
 
-		return m_Local.load()->SendTo(GetUUID(), m_Running, peer, std::move(buffer), params);
+		return m_Local.load()->SendTo(GetUUID(), m_Running, peer, std::move(buffer), params, std::move(callback));
 	}
 
 	Result<API::Peer> Extender::GetPeer(const PeerLUID pluid) const noexcept

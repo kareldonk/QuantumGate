@@ -758,7 +758,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	Result<> Peer::Send(Message&& msg, const SendParameters::PriorityOption priority,
-						const std::chrono::milliseconds delay) noexcept
+						const std::chrono::milliseconds delay, SendCallback&& callback) noexcept
 	{
 		assert(msg.IsValid());
 
@@ -769,7 +769,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			msg_size = msg.GetMessageData().GetSize();
 		}
 
-		auto result = m_SendQueues.AddMessage(std::move(msg), priority, delay);
+		auto result = m_SendQueues.AddMessage(std::move(msg), priority, delay, std::move(callback));
 		if (result.Succeeded() && msg_size > 0)
 		{
 			m_PeerData.WithUniqueLock()->ExtendersBytesSent += msg_size;
@@ -779,11 +779,11 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	Result<> Peer::Send(const MessageType msgtype, Buffer&& buffer, const SendParameters::PriorityOption priority,
-						const std::chrono::milliseconds delay, const bool compress) noexcept
+						const std::chrono::milliseconds delay, const bool compress, SendCallback&& callback) noexcept
 	{
 		if (buffer.GetSize() <= Message::MaxMessageDataSize)
 		{
-			return Send(Message(MessageOptions(msgtype, std::move(buffer), compress)), priority, delay);
+			return Send(Message(MessageOptions(msgtype, std::move(buffer), compress)), priority, delay, std::move(callback));
 		}
 		else
 		{
@@ -795,6 +795,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			while (true)
 			{
+				SendCallback snd_callback;
+
 				auto snd_size = snd_buf.GetSize();
 				if (snd_size > Message::MaxMessageDataSize)
 				{
@@ -806,12 +808,16 @@ namespace QuantumGate::Implementation::Core::Peer
 					}
 					else fragment = MessageFragmentType::Partial;
 				}
-				else fragment = MessageFragmentType::PartialEnd;
+				else
+				{
+					fragment = MessageFragmentType::PartialEnd;
+					snd_callback = std::move(callback);
+				}
 
 				try
 				{
 					auto result = Send(Message(MessageOptions(msgtype, snd_buf.GetFirst(snd_size), compress, fragment)),
-									   priority, delay);
+									   priority, delay, std::move(snd_callback));
 					if (result.Succeeded())
 					{
 						snd_buf.RemoveFirst(snd_size);

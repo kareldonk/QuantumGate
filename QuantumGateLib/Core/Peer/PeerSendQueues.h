@@ -10,6 +10,12 @@ namespace QuantumGate::Implementation::Core::Peer
 {
 	class PeerSendQueues final
 	{
+		struct DefaultMessage final
+		{
+			Message Message;
+			SendCallback SendCallback{ nullptr };
+		};
+
 		struct DelayedMessage final
 		{
 			[[nodiscard]] inline bool IsTime() const noexcept
@@ -22,9 +28,10 @@ namespace QuantumGate::Implementation::Core::Peer
 			Message Message;
 			SteadyTime ScheduleSteadyTime;
 			std::chrono::milliseconds Delay{ 0 };
+			SendCallback SendCallback{ nullptr };
 		};
 
-		using MessageQueue = Concurrency::Queue<Message>;
+		using MessageQueue = Concurrency::Queue<DefaultMessage>;
 		using DelayedMessageQueue = Concurrency::Queue<DelayedMessage>;
 
 	public:
@@ -42,7 +49,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		Result<> AddMessage(Message&& msg, const SendParameters::PriorityOption priority,
-							const std::chrono::milliseconds delay) noexcept;
+							const std::chrono::milliseconds delay, SendCallback&& callback) noexcept;
 
 		[[nodiscard]] std::pair<bool, Size> GetMessages(Buffer& buffer, const Crypto::SymmetricKeyData& symkey,
 														const bool concatenate);
@@ -65,7 +72,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	private:
 		template<MessageRateLimits::Type type>
 		Result<> AddMessageImpl(Message&& msg, const SendParameters::PriorityOption priority,
-								const std::chrono::milliseconds delay) noexcept;
+								const std::chrono::milliseconds delay, SendCallback&& callback) noexcept;
 
 		template<typename T>
 		void RemoveMessage(T& queue) noexcept;

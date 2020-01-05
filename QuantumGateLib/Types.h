@@ -239,6 +239,7 @@ namespace QuantumGate
 
 	using ConnectCallback = Callback<void(PeerLUID, Result<ConnectDetails> result)>;
 	using DisconnectCallback = Callback<void(PeerLUID, PeerUUID)>;
+	using SendCallback = Callback<void()>;
 
 	struct ConnectParameters
 	{

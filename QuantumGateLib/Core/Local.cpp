@@ -1114,34 +1114,34 @@ namespace QuantumGate::Implementation::Core
 		return true;
 	}
 
-	Result<Size> Local::Send(const ExtenderUUID& uuid, const std::atomic_bool& running,
-							 const PeerLUID id, const BufferView& buffer, const SendParameters& params) noexcept
+	Result<Size> Local::Send(const ExtenderUUID& uuid, const std::atomic_bool& running, const PeerLUID id,
+							 const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
-		if (IsRunning()) return m_PeerManager.Send(uuid, running, id, buffer, params);
+		if (IsRunning()) return m_PeerManager.Send(uuid, running, id, buffer, params, std::move(callback));
 
 		return ResultCode::NotRunning;
 	}
 
-	Result<Size> Local::Send(const ExtenderUUID& uuid, const std::atomic_bool& running,
-							 API::Peer& peer, const BufferView& buffer, const SendParameters& params) noexcept
+	Result<Size> Local::Send(const ExtenderUUID& uuid, const std::atomic_bool& running, API::Peer& peer,
+							 const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
-		if (IsRunning()) return m_PeerManager.Send(uuid, running, peer, buffer, params);
+		if (IsRunning()) return m_PeerManager.Send(uuid, running, peer, buffer, params, std::move(callback));
 
 		return ResultCode::NotRunning;
 	}
 
-	Result<> Local::SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running,
-						   const PeerLUID id, Buffer&& buffer, const SendParameters& params) noexcept
+	Result<> Local::SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running, const PeerLUID id,
+						   Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
-		if (IsRunning()) return m_PeerManager.SendTo(uuid, running, id, std::move(buffer), params);
+		if (IsRunning()) return m_PeerManager.SendTo(uuid, running, id, std::move(buffer), params, std::move(callback));
 
 		return ResultCode::NotRunning;
 	}
 
-	Result<> Local::SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running,
-						   API::Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept
+	Result<> Local::SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running, API::Peer& peer,
+						   Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
-		if (IsRunning()) return m_PeerManager.SendTo(uuid, running, peer, std::move(buffer), params);
+		if (IsRunning()) return m_PeerManager.SendTo(uuid, running, peer, std::move(buffer), params, std::move(callback));
 
 		return ResultCode::NotRunning;
 	}

@@ -1043,48 +1043,48 @@ namespace QuantumGate::Implementation::Core::Peer
 		return m_LocalEnvironment.WithSharedLock()->GetTrustedAndVerifiedIPAddresses();
 	}
 
-	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							 const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) noexcept
+	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, const PeerLUID pluid,
+							 Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
 		if (auto peerths = Get(pluid); peerths != nullptr)
 		{
 			auto peer = peerths->WithUniqueLock();
-			return SendTo(extuuid, running, *peer, std::move(buffer), params);
+			return SendTo(extuuid, running, *peer, std::move(buffer), params, std::move(callback));
 		}
 
 		return ResultCode::PeerNotFound;
 	}
 
-	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							   const PeerLUID pluid, const BufferView& buffer, const SendParameters& params) noexcept
+	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, const PeerLUID pluid,
+							   const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
 		if (auto peerths = Get(pluid); peerths != nullptr)
 		{
 			auto peer = peerths->WithUniqueLock();
-			return Send(extuuid, running, *peer, buffer, params);
+			return Send(extuuid, running, *peer, buffer, params, std::move(callback));
 		}
 
 		return ResultCode::PeerNotFound;
 	}
 
-	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							 API::Peer& api_peer, Buffer&& buffer, const SendParameters& params) noexcept
+	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, API::Peer& api_peer,
+							 Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
 		auto& peerths = GetPeerFromPeerStorage(api_peer);
 		auto peer = peerths->WithUniqueLock();
-		return SendTo(extuuid, running, *peer, std::move(buffer), params);
+		return SendTo(extuuid, running, *peer, std::move(buffer), params, std::move(callback));
 	}
 
-	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							   API::Peer& api_peer, const BufferView& buffer, const SendParameters& params) noexcept
+	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, API::Peer& api_peer,
+							   const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
 		auto& peerths = GetPeerFromPeerStorage(api_peer);
 		auto peer = peerths->WithUniqueLock();
-		return Send(extuuid, running, *peer, buffer, params);
+		return Send(extuuid, running, *peer, buffer, params, std::move(callback));
 	}
 
 	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							   Peer& peer, const BufferView& buffer, const SendParameters& params) noexcept
+							   Peer& peer, const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
 		try
 		{
@@ -1096,7 +1096,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				// Note the copy
 				Buffer snd_buf = buffer.GetFirst(snd_size);
 
-				if (const auto result = SendTo(extuuid, running, peer, std::move(snd_buf), params); result.Succeeded())
+				if (const auto result = SendTo(extuuid, running, peer, std::move(snd_buf), params, std::move(callback)); result.Succeeded())
 				{
 					return snd_size;
 				}
@@ -1116,7 +1116,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							 Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept
+							 Peer& peer, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
 		// Only if peer status is ready (handshake succeeded, etc.)
 		if (peer.IsReady())
@@ -1129,7 +1129,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					return peer.Send(Message(MessageOptions(MessageType::ExtenderCommunication,
 															extuuid, std::move(buffer), params.Compress)),
-									 params.Priority, params.Delay);
+									 params.Priority, params.Delay, std::move(callback));
 				}
 				else return ResultCode::NotRunning;
 			}

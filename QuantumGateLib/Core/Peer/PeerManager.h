@@ -83,14 +83,14 @@ namespace QuantumGate::Implementation::Core::Peer
 		Result<> DisconnectFrom(API::Peer& peer, DisconnectCallback&& function) noexcept;
 
 		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-						  const PeerLUID pluid, const BufferView& buffer, const SendParameters& params) noexcept;
+						  const PeerLUID pluid, const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
 		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-						  API::Peer& api_peer, const BufferView& buffer, const SendParameters& params) noexcept;
+						  API::Peer& api_peer, const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
 
 		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-						const PeerLUID pluid, Buffer&& buffer, const SendParameters& params) noexcept;
+						const PeerLUID pluid, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
 		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-						API::Peer& api_peer, Buffer&& buffer, const SendParameters& params) noexcept;
+						API::Peer& api_peer, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
 
 		Result<> Broadcast(const MessageType msgtype, const Buffer& buffer, BroadcastCallback&& callback);
 
@@ -144,10 +144,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		void DisconnectAndRemoveAll() noexcept;
 
 		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-						  Peer& peer, const BufferView& buffer, const SendParameters& params) noexcept;
+						  Peer& peer, const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
 
 		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-						Peer& peer, Buffer&& buffer, const SendParameters& params) noexcept;
+						Peer& peer, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
 
 		bool BroadcastExtenderUpdate();
 
