@@ -261,7 +261,10 @@ namespace QuantumGate::Socks5Extender
 		{
 			// This should send any remaining requested
 			// data for this connection to the peer
-			RelayReceivedData();
+			while (RelayReceivedData())
+			{
+				if (m_ReceiveBuffer.IsEmpty()) break;
+			}
 		}
 	}
 
@@ -784,34 +787,27 @@ namespace QuantumGate::Socks5Extender
 			const auto max_send_size = m_Extender.GetMaxDataRelayDataSize();
 			BufferView buffer(m_ReceiveBuffer);
 
-			while (!buffer.IsEmpty())
-			{
-				auto size = buffer.GetSize();
-				if (size > max_send_size) size = max_send_size;
+			const auto size = (std::min)(buffer.GetSize(), max_send_size);
 
-				const auto result = m_Extender.SendDataRelay(GetPeerLUID(), GetID(), buffer.GetFirst(size));
-				if (result.Succeeded())
+			const auto result = m_Extender.SendDataRelay(GetPeerLUID(), GetID(), buffer.GetFirst(size));
+			if (result.Succeeded())
+			{
+				if (m_ReceiveBuffer.GetSize() == size)
 				{
-					buffer.RemoveFirst(size);
-				}
-				else if (result == ResultCode::PeerSendBufferFull)
-				{
-					// Peer send buffer is currently full;
-					// we'll come back later to send the rest
-					break;
+					m_ReceiveBuffer.Clear();
 				}
 				else
 				{
-					success = false;
-					break;
+					m_ReceiveBuffer.RemoveFirst(size);
+					// We'll come back later to send the rest
 				}
 			}
-
-			if (buffer.IsEmpty())
+			else if (result == ResultCode::PeerSendBufferFull)
 			{
-				m_ReceiveBuffer.Clear();
+				// Peer send buffer is currently full;
+				// we'll come back later to send the rest
 			}
-			else m_ReceiveBuffer.RemoveFirst(m_ReceiveBuffer.GetSize() - buffer.GetSize());
+			else success = false;
 		}
 
 		return success;

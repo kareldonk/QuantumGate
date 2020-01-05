@@ -984,7 +984,8 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, WithSize(buffer, GetMaxDataRelayDataSize())))
 		{
-			auto result = SendMessageTo(pluid, writer.MoveWrittenBytes(), QuantumGate::SendParameters{ .Compress = m_UseCompression });
+			auto result = SendMessageTo(pluid, writer.MoveWrittenBytes(),
+										QuantumGate::SendParameters{ .Compress = m_UseCompression });
 			if (result.Failed() && result != ResultCode::PeerSendBufferFull)
 			{
 				LogErr(L"%s: could not send DataRelay message for connection %llu to peer %llu (%s)",

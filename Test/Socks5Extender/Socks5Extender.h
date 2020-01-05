@@ -127,9 +127,11 @@ namespace QuantumGate::Socks5Extender
 				9; // 9 bytes for encoded size of buffer
 		}
 
-		Size GetMaxDataRelayDataSize() const noexcept
+		constexpr Size GetMaxDataRelayDataSize() const noexcept
 		{
-			return GetMaximumMessageDataSize() - GetDataRelayHeaderSize();
+			Size size{ (1u << 10) - GetDataRelayHeaderSize() };
+			assert(size <= GetMaximumMessageDataSize());
+			return size;
 		}
 
 		bool HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
