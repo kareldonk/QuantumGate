@@ -56,94 +56,96 @@ namespace QuantumGate::Socks5Extender
 		virtual ~Extender();
 
 		inline void SetUseCompression(const bool compression) noexcept { m_UseCompression = compression; }
-		inline bool IsUsingCompression() const noexcept { return m_UseCompression; }
+		[[nodiscard]] inline bool IsUsingCompression() const noexcept { return m_UseCompression; }
 
-		inline bool IsAuthenticationRequired() const noexcept { return m_RequireAuthentication; }
+		[[nodiscard]] inline bool IsAuthenticationRequired() const noexcept { return m_RequireAuthentication; }
 
-		bool IsAcceptingIncomingConnections() const noexcept { return m_UseListener; }
+		[[nodiscard]] bool IsAcceptingIncomingConnections() const noexcept { return m_UseListener; }
 		void SetAcceptIncomingConnections(const bool accept);
 
-		bool SetCredentials(const ProtectedStringA& username, const ProtectedStringA& password);
-		bool CheckCredentials(const BufferView& username, const BufferView& password) const;
+		[[nodiscard]] bool SetCredentials(const ProtectedStringA& username, const ProtectedStringA& password);
+		[[nodiscard]] bool CheckCredentials(const BufferView& username, const BufferView& password) const;
 
-		bool IsOutgoingIPAllowed(const IPAddress& ip) const noexcept;
+		[[nodiscard]] bool IsOutgoingIPAllowed(const IPAddress& ip) const noexcept;
 
 	private:
-		bool OnStartup();
+		[[nodiscard]] bool OnStartup();
 		void OnPostStartup();
 		void OnPreShutdown();
 		void OnShutdown();
 		void OnPeerEvent(PeerEvent&& event);
 		QuantumGate::Extender::PeerEvent::Result OnPeerMessage(PeerEvent&& event);
 
-		bool InitializeIPFilters();
+		[[nodiscard]] bool InitializeIPFilters();
 		void DeInitializeIPFilters() noexcept;
-		bool StartupListener();
+		[[nodiscard]] bool StartupListener();
 		void ShutdownListener();
-		bool StartupThreadPool();
+		[[nodiscard]] bool StartupThreadPool();
 		void ShutdownThreadPool() noexcept;
 
 		static void ListenerThreadLoop(Extender* extender);
 		ThreadPool::ThreadCallbackResult MainWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event);
 
-		std::optional<IPAddress> ResolveDomainIP(const String& domain) const noexcept;
-		const Socks5Protocol::Replies TranslateWSAErrorToSocks5(Int errorcode) const noexcept;
+		[[nodiscard]] std::optional<IPAddress> ResolveDomainIP(const String& domain) const noexcept;
+		[[nodiscard]] Socks5Protocol::Replies TranslateWSAErrorToSocks5(Int errorcode) const noexcept;
 
-		bool AddConnection(const PeerLUID pluid, const ConnectionID cid, std::unique_ptr<Connection_ThS>&& c) noexcept;
-		Connection_ThS* GetConnection(const PeerLUID pluid, const ConnectionID cid) const noexcept;
+		[[nodiscard]] bool AddConnection(const PeerLUID pluid, const ConnectionID cid,
+										 std::unique_ptr<Connection_ThS>&& c) noexcept;
+		[[nodiscard]] Connection_ThS* GetConnection(const PeerLUID pluid, const ConnectionID cid) const noexcept;
 		void Disconnect(Connection_ThS& c);
 		void Disconnect(Connection& c);
 		void DisconnectFor(const PeerLUID pluid);
 		void DisconnectAll();
 
 		void AcceptIncomingConnection();
-		std::optional<PeerLUID> GetPeerForConnection() const;
+		[[nodiscard]] std::optional<PeerLUID> GetPeerForConnection() const;
 
-		bool MakeOutgoingConnection(const PeerLUID pluid, const ConnectionID cid,
-									const IPAddress& ip, const UInt16 port);
+		[[nodiscard]] bool MakeOutgoingConnection(const PeerLUID pluid, const ConnectionID cid,
+												  const IPAddress& ip, const UInt16 port);
 
-		bool SendConnectDomain(const PeerLUID pluid, const ConnectionID cid,
-							   const String& domain, const UInt16 port) const noexcept;
+		[[nodiscard]] bool SendConnectDomain(const PeerLUID pluid, const ConnectionID cid,
+											 const String& domain, const UInt16 port) const noexcept;
 
-		bool SendConnectIP(const PeerLUID pluid, const ConnectionID cid,
-						   const Network::BinaryIPAddress& ip, const UInt16 port) const noexcept;
+		[[nodiscard]] bool SendConnectIP(const PeerLUID pluid, const ConnectionID cid,
+										 const Network::BinaryIPAddress& ip, const UInt16 port) const noexcept;
 
-		bool SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const noexcept;
-		bool SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const noexcept;
+		[[nodiscard]] bool SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const noexcept;
+		[[nodiscard]] bool SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const noexcept;
 
-		bool SendSocks5Reply(const PeerLUID pluid, const ConnectionID cid, const Socks5Protocol::Replies reply,
-							 const Socks5Protocol::AddressTypes atype = Socks5Protocol::AddressTypes::IPv4,
-							 const Network::BinaryIPAddress ip = Network::BinaryIPAddress{},
-							 const UInt16 port = 0) const noexcept;
+		[[nodiscard]] bool SendSocks5Reply(const PeerLUID pluid, const ConnectionID cid, const Socks5Protocol::Replies reply,
+										   const Socks5Protocol::AddressTypes atype = Socks5Protocol::AddressTypes::IPv4,
+										   const Network::BinaryIPAddress ip = Network::BinaryIPAddress{},
+										   const UInt16 port = 0) const noexcept;
 
-		Result<> SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const noexcept;
+		[[nodiscard]] Result<> SendDataRelay(const PeerLUID pluid, const ConnectionID cid,
+											 const BufferView& buffer) const noexcept;
 
-		bool Send(const PeerLUID pluid, Buffer&& buffer) const noexcept;
+		[[nodiscard]] bool Send(const PeerLUID pluid, Buffer&& buffer) const noexcept;
 
-		constexpr Size GetDataRelayHeaderSize() const noexcept
+		[[nodiscard]] constexpr Size GetDataRelayHeaderSize() const noexcept
 		{
 			return sizeof(MessageType) +
 				sizeof(ConnectionID) +
 				9; // 9 bytes for encoded size of buffer
 		}
 
-		constexpr Size GetMaxDataRelayDataSize() const noexcept
+		[[nodiscard]] constexpr Size GetMaxDataRelayDataSize() const noexcept
 		{
 			Size size{ (1u << 10) - GetDataRelayHeaderSize() };
 			assert(size <= GetMaximumMessageDataSize());
 			return size;
 		}
 
-		bool HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
-											const String& domain, const UInt16 port);
+		[[nodiscard]] bool HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+														  const String& domain, const UInt16 port);
 
-		bool HandleConnectIPPeerMessage(const PeerLUID pluid, const ConnectionID cid,
-										const Network::BinaryIPAddress& ip, const UInt16 port);
+		[[nodiscard]] bool HandleConnectIPPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+													  const Network::BinaryIPAddress& ip, const UInt16 port);
 
-		bool HandleSocks5ReplyRelayPeerMessage(const PeerLUID pluid, const ConnectionID cid,
-											   const Socks5Protocol::Replies reply,
-											   const Socks5Protocol::AddressTypes atype,
-											   const BufferView& address, const UInt16 port);
+		[[nodiscard]] bool HandleSocks5ReplyRelayPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+															 const Socks5Protocol::Replies reply,
+															 const Socks5Protocol::AddressTypes atype,
+															 const BufferView& address, const UInt16 port);
 
 	public:
 		inline static ExtenderUUID UUID{ L"20a86749-7e9e-297d-1e1c-3a7ddc723f66" };

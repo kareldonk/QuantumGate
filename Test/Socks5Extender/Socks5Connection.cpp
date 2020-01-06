@@ -26,8 +26,7 @@ namespace QuantumGate::Socks5Extender
 		SetStatus(Status::Handshake);
 	}
 
-	Connection::Connection(Extender& extender, const PeerLUID pluid,
-						   const ConnectionID cid, Socket&& socket) noexcept :
+	Connection::Connection(Extender& extender, const PeerLUID pluid, const ConnectionID cid, Socket&& socket) noexcept :
 		m_ID(cid), m_PeerLUID(pluid), m_Socket(std::move(socket)), m_Extender(extender)
 	{
 		m_Key = MakeKey(m_PeerLUID, m_ID);
@@ -154,7 +153,7 @@ namespace QuantumGate::Socks5Extender
 				assert(address.GetSize() >= 4);
 
 				Socks5Protocol::IPv4Address addr;
-				memcpy(&addr.Address, address.GetBytes(), 4);
+				std::memcpy(&addr.Address, address.GetBytes(), 4);
 				addr.Port = Endian::ToNetworkByteOrder(port);
 				m_SendBuffer += BufferView(reinterpret_cast<Byte*>(&addr), sizeof(addr));
 
@@ -165,7 +164,7 @@ namespace QuantumGate::Socks5Extender
 				assert(address.GetSize() >= 16);
 
 				Socks5Protocol::IPv6Address addr;
-				memcpy(&addr.Address, address.GetBytes(), 16);
+				std::memcpy(&addr.Address, address.GetBytes(), 16);
 				addr.Port = Endian::ToNetworkByteOrder(port);
 				m_SendBuffer += BufferView(reinterpret_cast<Byte*>(&addr), sizeof(addr));
 
@@ -226,7 +225,7 @@ namespace QuantumGate::Socks5Extender
 			// If we have trouble sending or receiving
 			// we can disconnect immediately
 			LogDbg(L"%s: will remove connection %llu marked for disconnection",
-					m_Extender.GetName().c_str(), GetID());
+				   m_Extender.GetName().c_str(), GetID());
 
 			// Attempt to write the last bits of data
 			// we have if possible before disconnecting
@@ -289,8 +288,8 @@ namespace QuantumGate::Socks5Extender
 				{
 					if (m_Socket.GetIOStatus().HasException())
 					{
-						m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(),
-												   m_Extender.TranslateWSAErrorToSocks5(m_Socket.GetIOStatus().GetErrorCode()));
+						DiscardReturnValue(m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(),
+																	  m_Extender.TranslateWSAErrorToSocks5(m_Socket.GetIOStatus().GetErrorCode())));
 
 						LogErr(L"%s: got exception on socket %s (%s)",
 							   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
@@ -334,7 +333,8 @@ namespace QuantumGate::Socks5Extender
 						}
 						else
 						{
-							m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(), Socks5Protocol::Replies::GeneralFailure);
+							DiscardReturnValue(m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(),
+																		  Socks5Protocol::Replies::GeneralFailure));
 
 							LogErr(L"%s: CompleteConnect failed for socket %s",
 								   m_Extender.GetName().c_str(), m_Socket.GetPeerName().c_str());
@@ -621,7 +621,7 @@ namespace QuantumGate::Socks5Extender
 						}
 						default:
 						{
-							SendSocks5Reply(Socks5Protocol::Replies::UnsupportedAddressType);
+							DiscardReturnValue(SendSocks5Reply(Socks5Protocol::Replies::UnsupportedAddressType));
 
 							LogErr(L"%s: received unsupported address type on socket %s",
 								   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
@@ -632,7 +632,7 @@ namespace QuantumGate::Socks5Extender
 				}
 				else
 				{
-					SendSocks5Reply(Socks5Protocol::Replies::UnsupportedCommand);
+					DiscardReturnValue(SendSocks5Reply(Socks5Protocol::Replies::UnsupportedCommand));
 
 					LogErr(L"%s: received incorrect command on socket %s",
 						   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
@@ -641,7 +641,7 @@ namespace QuantumGate::Socks5Extender
 			}
 			else
 			{
-				SendSocks5Reply(Socks5Protocol::Replies::GeneralFailure);
+				DiscardReturnValue(SendSocks5Reply(Socks5Protocol::Replies::GeneralFailure));
 
 				LogErr(L"%s: received incorrect request on socket %s",
 					   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
@@ -668,7 +668,7 @@ namespace QuantumGate::Socks5Extender
 				// Read domain name
 				std::string domain;
 				domain.resize(numchars);
-				memcpy(domain.data(), buffer.GetBytes(), numchars);
+				std::memcpy(domain.data(), buffer.GetBytes(), numchars);
 
 				buffer.RemoveFirst(numchars);
 
@@ -690,7 +690,7 @@ namespace QuantumGate::Socks5Extender
 					}
 					else
 					{
-						SendSocks5Reply(Socks5Protocol::Replies::GeneralFailure);
+						DiscardReturnValue(SendSocks5Reply(Socks5Protocol::Replies::GeneralFailure));
 						success = false;
 					}
 				}
@@ -711,7 +711,7 @@ namespace QuantumGate::Socks5Extender
 			// Read IPv4 address (4 bytes)
 			BinaryIPAddress ip;
 			ip.AddressFamily = BinaryIPAddress::Family::IPv4;
-			memcpy(&ip.Bytes, buffer.GetBytes(), 4);
+			std::memcpy(&ip.Bytes, buffer.GetBytes(), 4);
 
 			buffer.RemoveFirst(4);
 
@@ -730,7 +730,7 @@ namespace QuantumGate::Socks5Extender
 			}
 			else
 			{
-				SendSocks5Reply(Socks5Protocol::Replies::GeneralFailure);
+				DiscardReturnValue(SendSocks5Reply(Socks5Protocol::Replies::GeneralFailure));
 				success = false;
 			}
 		}
@@ -749,7 +749,7 @@ namespace QuantumGate::Socks5Extender
 			// Read IPv6 address (16 bytes)
 			BinaryIPAddress ip;
 			ip.AddressFamily = BinaryIPAddress::Family::IPv6;
-			memcpy(&ip.Bytes, buffer.GetBytes(), 16);
+			std::memcpy(&ip.Bytes, buffer.GetBytes(), 16);
 
 			buffer.RemoveFirst(16);
 
@@ -768,7 +768,7 @@ namespace QuantumGate::Socks5Extender
 			}
 			else
 			{
-				SendSocks5Reply(Socks5Protocol::Replies::GeneralFailure);
+				DiscardReturnValue(SendSocks5Reply(Socks5Protocol::Replies::GeneralFailure));
 				success = false;
 			}
 		}
@@ -780,11 +780,12 @@ namespace QuantumGate::Socks5Extender
 	{
 		assert(IsReady());
 
-		auto success = true;
-
 		if (!m_ReceiveBuffer.IsEmpty())
 		{
+			// We don't (attempt to) send all data at once; prevents this
+			// connection from hoarding all processing and bandwidth capacity
 			const auto max_send_size = m_Extender.GetMaxDataRelayDataSize();
+
 			BufferView buffer(m_ReceiveBuffer);
 
 			const auto size = (std::min)(buffer.GetSize(), max_send_size);
@@ -807,9 +808,9 @@ namespace QuantumGate::Socks5Extender
 				// Peer send buffer is currently full;
 				// we'll come back later to send the rest
 			}
-			else success = false;
+			else return false;
 		}
 
-		return success;
+		return true;
 	}
 }

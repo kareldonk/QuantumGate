@@ -49,14 +49,14 @@ namespace QuantumGate::Socks5Extender
 		{
 			if (IsRunning())
 			{
-				StartupListener();
+				DiscardReturnValue(StartupListener());
 			}
 		}
 		else
 		{
 			if (IsRunning())
 			{
-				ShutdownListener();
+				DiscardReturnValue(ShutdownListener());
 			}
 		}
 	}
@@ -163,7 +163,7 @@ namespace QuantumGate::Socks5Extender
 
 		if (m_UseListener)
 		{
-			StartupListener();
+			DiscardReturnValue(StartupListener());
 		}
 	}
 
@@ -270,8 +270,7 @@ namespace QuantumGate::Socks5Extender
 
 			const auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), 9090);
 			m_Listener.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
-												Network::Socket::Type::Stream,
-												IP::Protocol::TCP);
+												Network::Socket::Type::Stream, IP::Protocol::TCP);
 			if (m_Listener.Socket.Listen(endpoint, false, false))
 			{
 				LogInfo(L"%s: listening on endpoint %s", GetName().c_str(), endpoint.GetString().c_str());
@@ -308,8 +307,7 @@ namespace QuantumGate::Socks5Extender
 		m_ThreadPool.SetWorkerThreadsMaxBurst(50);
 		m_ThreadPool.SetWorkerThreadsMaxSleep(64ms);
 
-		if (m_ThreadPool.AddThread(GetName() + L" Main Worker Thread",
-								   MakeCallback(this, &Extender::MainWorkerThreadLoop)))
+		if (m_ThreadPool.AddThread(GetName() + L" Main Worker Thread", MakeCallback(this, &Extender::MainWorkerThreadLoop)))
 		{
 			if (m_ThreadPool.Startup())
 			{
@@ -486,7 +484,7 @@ namespace QuantumGate::Socks5Extender
 									connection.SetPeerConnected(false);
 									connection.SetDisconnectCondition();
 
-									SendDisconnectAck(event.GetPeerLUID(), cid);
+									DiscardReturnValue(SendDisconnectAck(event.GetPeerLUID(), cid));
 								});
 
 								result.Success = true;
@@ -556,12 +554,15 @@ namespace QuantumGate::Socks5Extender
 			const auto ip = ResolveDomainIP(domain);
 			if (ip)
 			{
-				MakeOutgoingConnection(pluid, cid, *ip, port);
+				if (!MakeOutgoingConnection(pluid, cid, *ip, port))
+				{
+					DiscardReturnValue(SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::GeneralFailure));
+				}
 			}
 			else
 			{
 				// Could not resolve domain
-				SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::HostUnreachable);
+				DiscardReturnValue(SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::HostUnreachable));
 			}
 
 			return true;
@@ -579,7 +580,7 @@ namespace QuantumGate::Socks5Extender
 		{
 			LogDbg(L"%s: received ConnectIP from peer %llu for connection %llu", GetName().c_str(), pluid, cid);
 
-			MakeOutgoingConnection(pluid, cid, IPAddress(ip), port);
+			DiscardReturnValue(MakeOutgoingConnection(pluid, cid, IPAddress(ip), port));
 
 			return true;
 		}
@@ -628,7 +629,7 @@ namespace QuantumGate::Socks5Extender
 										connection.SetDisconnectCondition();
 									}
 
-									connection.SendSocks5Reply(reply, atype, address, port);
+									DiscardReturnValue(connection.SendSocks5Reply(reply, atype, address, port));
 								}
 							});
 
@@ -661,14 +662,13 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	bool Extender::AddConnection(const PeerLUID pluid, const ConnectionID cid,
-								 std::unique_ptr<Connection_ThS>&& c) noexcept
+	bool Extender::AddConnection(const PeerLUID pluid, const ConnectionID cid, std::unique_ptr<Connection_ThS>&& c) noexcept
 	{
 		auto success = false;
 
 		m_Connections.WithUniqueLock([&](Connections& connections)
 		{
-			auto key = c->WithSharedLock()->GetKey();
+			const auto key = c->WithSharedLock()->GetKey();
 
 			[[maybe_unused]] const auto [it, inserted] = connections.insert({ key, std::move(c) });
 
@@ -684,8 +684,7 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
-	Connection_ThS* Extender::GetConnection(const PeerLUID pluid,
-											const ConnectionID cid) const noexcept
+	Connection_ThS* Extender::GetConnection(const PeerLUID pluid, const ConnectionID cid) const noexcept
 	{
 		Connection_ThS* con{ nullptr };
 
@@ -754,7 +753,7 @@ namespace QuantumGate::Socks5Extender
 	{
 		assert(extender != nullptr);
 
-		auto extname = extender->GetName();
+		auto& extname = extender->GetName();
 
 		LogDbg(L"%s: listener thread %u starting", extname.c_str(), std::this_thread::get_id());
 
@@ -832,7 +831,7 @@ namespace QuantumGate::Socks5Extender
 		{
 			m_Connections.IfUniqueLock([&](Connections& connections)
 			{
-				for (auto key : rlist)
+				for (const auto key : rlist)
 				{
 					connections.erase(key);
 				}
@@ -853,16 +852,17 @@ namespace QuantumGate::Socks5Extender
 			const auto pluid = GetPeerForConnection();
 			if (pluid)
 			{
-				auto endp = s.GetPeerEndpoint().GetString();
+				const auto endp = s.GetPeerEndpoint().GetString();
 
 				auto cths = std::make_unique<Connection_ThS>(*this, *pluid, std::move(s));
 
 				const auto cid = cths->WithSharedLock()->GetID();
 
-				AddConnection(*pluid, cid, std::move(cths));
-
-				LogInfo(L"%s: accepted connection %llu from endpoint %s and associated with peer %llu",
-						GetName().c_str(), cid, endp.c_str(), *pluid);
+				if (AddConnection(*pluid, cid, std::move(cths)))
+				{
+					LogInfo(L"%s: accepted connection %llu from endpoint %s and associated with peer %llu",
+							GetName().c_str(), cid, endp.c_str(), *pluid);
+				}
 			}
 			else
 			{
@@ -883,12 +883,11 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, WithSize(domain, MaxSize::_1KB), port))
 		{
-			if (Send(pluid, writer.MoveWrittenBytes()))
+			if (!Send(pluid, writer.MoveWrittenBytes()))
 			{
-				return true;
+				LogErr(L"%s: could not send ConnectDomain message for connection %llu to peer %llu",
+					   GetName().c_str(), cid, pluid);
 			}
-			else LogErr(L"%s: could not send ConnectDomain message for connection %llu to peer %llu",
-						GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare ConnectDomain message for connection %llu", GetName().c_str(), cid);
 
@@ -905,12 +904,11 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, SerializedBinaryIPAddress{ ip }, port))
 		{
-			if (Send(pluid, writer.MoveWrittenBytes()))
+			if (!Send(pluid, writer.MoveWrittenBytes()))
 			{
-				return true;
+				LogErr(L"%s: could not send ConnectIP message for connection %llu to peer %llu",
+					   GetName().c_str(), cid, pluid);
 			}
-			else LogErr(L"%s: could not send ConnectIP message for connection %llu to peer %llu",
-						GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare ConnectIP message for connection %llu", GetName().c_str(), cid);
 
@@ -924,12 +922,11 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid))
 		{
-			if (Send(pluid, writer.MoveWrittenBytes()))
+			if (!Send(pluid, writer.MoveWrittenBytes()))
 			{
-				return true;
+				LogErr(L"%s: could not send Disconnect message for connection %llu to peer %llu",
+					   GetName().c_str(), cid, pluid);
 			}
-			else LogErr(L"%s: could not send Disconnect message for connection %llu to peer %llu",
-						GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare Disconnect message for connection %llu", GetName().c_str(), cid);
 
@@ -943,12 +940,11 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid))
 		{
-			if (Send(pluid, writer.MoveWrittenBytes()))
+			if (!Send(pluid, writer.MoveWrittenBytes()))
 			{
-				return true;
+				LogErr(L"%s: could not send DisconnectAck message for connection %llu to peer %llu",
+					   GetName().c_str(), cid, pluid);
 			}
-			else LogErr(L"%s: could not send DisconnectAck message for connection %llu to peer %llu",
-						GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare DisconnectAck message for connection %llu", GetName().c_str(), cid);
 
@@ -965,12 +961,11 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, reply, atype, SerializedBinaryIPAddress{ ip }, port))
 		{
-			if (Send(pluid, writer.MoveWrittenBytes()))
+			if (!Send(pluid, writer.MoveWrittenBytes()))
 			{
-				return true;
+				LogErr(L"%s: could not send Socks5ReplyRelay message for connection %llu to peer %llu",
+					   GetName().c_str(), cid, pluid);
 			}
-			else LogErr(L"%s: could not send Socks5ReplyRelay message for connection %llu to peer %llu",
-						GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare Socks5ReplyRelay message for connection %llu", GetName().c_str(), cid);
 
@@ -1063,7 +1058,7 @@ namespace QuantumGate::Socks5Extender
 			else
 			{
 				// Could not connect
-				SendSocks5Reply(pluid, cid, TranslateWSAErrorToSocks5(WSAGetLastError()));
+				DiscardReturnValue(SendSocks5Reply(pluid, cid, TranslateWSAErrorToSocks5(WSAGetLastError())));
 			}
 		}
 		else
@@ -1071,7 +1066,7 @@ namespace QuantumGate::Socks5Extender
 			LogErr(L"%s: attempt by peer %llu (connection %llu) to connect to address %s that is not allowed",
 				   GetName().c_str(), pluid, cid, ip.GetString().c_str());
 
-			SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::ConnectionNotAllowed);
+			DiscardReturnValue(SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::ConnectionNotAllowed));
 		}
 
 		return false;
@@ -1085,7 +1080,7 @@ namespace QuantumGate::Socks5Extender
 		if (ret == 0)
 		{
 			// Free ADDRINFO resources when we leave
-			auto sg = MakeScopeGuard([&]() noexcept { FreeAddrInfoW(result); });
+			const auto sg = MakeScopeGuard([&]() noexcept { FreeAddrInfoW(result); });
 
 			for (auto ptr = result; ptr != nullptr; ptr = ptr->ai_next)
 			{
@@ -1100,7 +1095,7 @@ namespace QuantumGate::Socks5Extender
 		return std::nullopt;
 	}
 
-	const Socks5Protocol::Replies Extender::TranslateWSAErrorToSocks5(Int errorcode) const noexcept
+	Socks5Protocol::Replies Extender::TranslateWSAErrorToSocks5(Int errorcode) const noexcept
 	{
 		switch (errorcode)
 		{
