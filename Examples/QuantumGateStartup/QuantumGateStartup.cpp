@@ -112,7 +112,7 @@ int main()
 	const auto result = qg.Startup(params);
 	if (result.Succeeded())
 	{
-		std::wcout << L"Startup successful\r\nPress Enter to shut down";
+		std::wcout << L"Startup successful\r\nPress Enter to shut down\r\n";
 
 		std::wcin.ignore();
 
