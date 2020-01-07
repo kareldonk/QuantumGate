@@ -883,11 +883,10 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, WithSize(domain, MaxSize::_1KB), port))
 		{
-			if (!Send(pluid, writer.MoveWrittenBytes()))
-			{
-				LogErr(L"%s: could not send ConnectDomain message for connection %llu to peer %llu",
-					   GetName().c_str(), cid, pluid);
-			}
+			if (Send(pluid, writer.MoveWrittenBytes())) return true;
+
+			LogErr(L"%s: could not send ConnectDomain message for connection %llu to peer %llu",
+					GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare ConnectDomain message for connection %llu", GetName().c_str(), cid);
 
@@ -904,11 +903,10 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, SerializedBinaryIPAddress{ ip }, port))
 		{
-			if (!Send(pluid, writer.MoveWrittenBytes()))
-			{
-				LogErr(L"%s: could not send ConnectIP message for connection %llu to peer %llu",
-					   GetName().c_str(), cid, pluid);
-			}
+			if (Send(pluid, writer.MoveWrittenBytes())) return true;
+
+			LogErr(L"%s: could not send ConnectIP message for connection %llu to peer %llu",
+					GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare ConnectIP message for connection %llu", GetName().c_str(), cid);
 
@@ -922,11 +920,10 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid))
 		{
-			if (!Send(pluid, writer.MoveWrittenBytes()))
-			{
-				LogErr(L"%s: could not send Disconnect message for connection %llu to peer %llu",
-					   GetName().c_str(), cid, pluid);
-			}
+			if (Send(pluid, writer.MoveWrittenBytes())) return true;
+
+			LogErr(L"%s: could not send Disconnect message for connection %llu to peer %llu",
+					GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare Disconnect message for connection %llu", GetName().c_str(), cid);
 
@@ -940,11 +937,10 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid))
 		{
-			if (!Send(pluid, writer.MoveWrittenBytes()))
-			{
-				LogErr(L"%s: could not send DisconnectAck message for connection %llu to peer %llu",
-					   GetName().c_str(), cid, pluid);
-			}
+			if (Send(pluid, writer.MoveWrittenBytes())) return true;
+
+			LogErr(L"%s: could not send DisconnectAck message for connection %llu to peer %llu",
+				   GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare DisconnectAck message for connection %llu", GetName().c_str(), cid);
 
@@ -961,11 +957,10 @@ namespace QuantumGate::Socks5Extender
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, cid, reply, atype, SerializedBinaryIPAddress{ ip }, port))
 		{
-			if (!Send(pluid, writer.MoveWrittenBytes()))
-			{
-				LogErr(L"%s: could not send Socks5ReplyRelay message for connection %llu to peer %llu",
-					   GetName().c_str(), cid, pluid);
-			}
+			if (Send(pluid, writer.MoveWrittenBytes())) return true;
+
+			LogErr(L"%s: could not send Socks5ReplyRelay message for connection %llu to peer %llu",
+					GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare Socks5ReplyRelay message for connection %llu", GetName().c_str(), cid);
 
