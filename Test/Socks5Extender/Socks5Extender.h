@@ -34,7 +34,7 @@ namespace QuantumGate::Socks5Extender
 	};
 
 	using Connection_ThS = Concurrency::ThreadSafe<Connection, std::shared_mutex>;
-	using Connections = std::unordered_map<ConnectionID, std::unique_ptr<Connection_ThS>>;
+	using Connections = std::unordered_map<ConnectionID, std::shared_ptr<Connection_ThS>>;
 	using Connections_ThS = Concurrency::ThreadSafe<Connections, std::shared_mutex>;
 
 	struct Peer final
@@ -90,12 +90,13 @@ namespace QuantumGate::Socks5Extender
 		[[nodiscard]] Socks5Protocol::Replies TranslateWSAErrorToSocks5(Int errorcode) const noexcept;
 
 		[[nodiscard]] bool AddConnection(const PeerLUID pluid, const ConnectionID cid,
-										 std::unique_ptr<Connection_ThS>&& c) noexcept;
-		[[nodiscard]] Connection_ThS* GetConnection(const PeerLUID pluid, const ConnectionID cid) const noexcept;
+										 std::shared_ptr<Connection_ThS>&& c) noexcept;
+		[[nodiscard]] std::shared_ptr<Connection_ThS> GetConnection(const PeerLUID pluid, const ConnectionID cid) const noexcept;
 		void Disconnect(Connection_ThS& c);
 		void Disconnect(Connection& c);
 		void DisconnectFor(const PeerLUID pluid);
 		void DisconnectAll();
+		void RemoveConnections(const std::vector<UInt64>& conn_list);
 
 		void AcceptIncomingConnection();
 		[[nodiscard]] std::optional<PeerLUID> GetPeerForConnection() const;
@@ -131,10 +132,13 @@ namespace QuantumGate::Socks5Extender
 
 		[[nodiscard]] constexpr Size GetMaxDataRelayDataSize() const noexcept
 		{
-			Size size{ (1u << 10) - GetDataRelayHeaderSize() };
+			Size size{ (1u << 14) - GetDataRelayHeaderSize() };
 			assert(size <= GetMaximumMessageDataSize());
 			return size;
 		}
+		
+		void CalcMaxSndRcvSize(const Size num_conn) noexcept;
+		[[nodiscard]] inline Size GetMaxSndRcvSize() const noexcept { return m_MaxSndRcvSize; }
 
 		[[nodiscard]] bool HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
 														  const String& domain, const UInt16 port);
@@ -157,6 +161,9 @@ namespace QuantumGate::Socks5Extender
 		ThreadPool m_ThreadPool;
 		Peers_ThS m_Peers;
 		Connections_ThS m_Connections;
+
+		std::atomic<Size> m_MaxSndRcvSize{ GetMaxDataRelayDataSize() };
+		std::atomic<Size> m_ActSndRcvSize{ 0 };
 
 		std::atomic_bool m_UseCompression{ true };
 

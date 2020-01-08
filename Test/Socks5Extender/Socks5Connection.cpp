@@ -212,13 +212,6 @@ namespace QuantumGate::Socks5Extender
 					SetDisconnectCondition();
 				}
 			}
-			else if (IsReady())
-			{
-				if (!RelayReceivedData())
-				{
-					SetDisconnectCondition();
-				}
-			}
 		}
 		else
 		{
@@ -237,6 +230,22 @@ namespace QuantumGate::Socks5Extender
 		}
 
 		if (didwork) m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+	}
+
+	void Connection::ProcessRelayEvents(const Size max_send, Size& sent)
+	{
+		assert(!IsDisconnecting() && !IsDisconnected());
+
+		if (!ShouldDisconnect())
+		{
+			if (IsReady())
+			{
+				if (!RelayReceivedData(max_send, sent))
+				{
+					SetDisconnectCondition();
+				}
+			}
+		}
 	}
 
 	void Connection::FlushBuffers()
@@ -258,9 +267,11 @@ namespace QuantumGate::Socks5Extender
 		}
 		else if (IsReady() && !m_ReceiveBuffer.IsEmpty())
 		{
+			Size sent{ 0 };
+
 			// This should send any remaining requested
 			// data for this connection to the peer
-			while (RelayReceivedData())
+			while (RelayReceivedData(m_Extender.GetMaxDataRelayDataSize(), sent))
 			{
 				if (m_ReceiveBuffer.IsEmpty()) break;
 			}
@@ -776,23 +787,21 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
-	bool Connection::RelayReceivedData()
+	bool Connection::RelayReceivedData(const Size max_send, Size& sent)
 	{
 		assert(IsReady());
 
 		if (!m_ReceiveBuffer.IsEmpty())
 		{
-			// We don't (attempt to) send all data at once; prevents this
-			// connection from hoarding all processing and bandwidth capacity
-			const auto max_send_size = m_Extender.GetMaxDataRelayDataSize();
-
 			BufferView buffer(m_ReceiveBuffer);
 
-			const auto size = (std::min)(buffer.GetSize(), max_send_size);
+			const auto size = (std::min)(buffer.GetSize(), max_send);
 
 			const auto result = m_Extender.SendDataRelay(GetPeerLUID(), GetID(), buffer.GetFirst(size));
 			if (result.Succeeded())
 			{
+				sent = size;
+
 				if (m_ReceiveBuffer.GetSize() == size)
 				{
 					m_ReceiveBuffer.Clear();

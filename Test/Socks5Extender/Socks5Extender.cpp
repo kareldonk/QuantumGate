@@ -304,8 +304,8 @@ namespace QuantumGate::Socks5Extender
 
 	bool Extender::StartupThreadPool()
 	{
-		m_ThreadPool.SetWorkerThreadsMaxBurst(50);
-		m_ThreadPool.SetWorkerThreadsMaxSleep(64ms);
+		m_ThreadPool.SetWorkerThreadsMaxBurst(64);
+		m_ThreadPool.SetWorkerThreadsMaxSleep(1s);
 
 		if (m_ThreadPool.AddThread(GetName() + L" Main Worker Thread", MakeCallback(this, &Extender::MainWorkerThreadLoop)))
 		{
@@ -662,9 +662,10 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	bool Extender::AddConnection(const PeerLUID pluid, const ConnectionID cid, std::unique_ptr<Connection_ThS>&& c) noexcept
+	bool Extender::AddConnection(const PeerLUID pluid, const ConnectionID cid, std::shared_ptr<Connection_ThS>&& c) noexcept
 	{
 		auto success = false;
+		Size num_conn{ 0 };
 
 		m_Connections.WithUniqueLock([&](Connections& connections)
 		{
@@ -674,26 +675,47 @@ namespace QuantumGate::Socks5Extender
 
 			assert(inserted);
 			success = inserted;
+			num_conn = connections.size();
 		});
 
 		if (!success)
 		{
 			LogErr(L"%s: could not add new connection", GetName().c_str());
 		}
+		else
+		{
+			CalcMaxSndRcvSize(num_conn);
+		}
 
 		return success;
 	}
 
-	Connection_ThS* Extender::GetConnection(const PeerLUID pluid, const ConnectionID cid) const noexcept
+	void Extender::CalcMaxSndRcvSize(const Size num_conn) noexcept
 	{
-		Connection_ThS* con{ nullptr };
+		if (num_conn > 0)
+		{
+			const auto max_size = (std::max)(static_cast<double>(GetMaxDataRelayDataSize()) / static_cast<double>(num_conn),
+											 static_cast<double>(1u << 9));
+			m_MaxSndRcvSize = static_cast<Size>(max_size);
+		}
+		else
+		{
+			m_MaxSndRcvSize = GetMaxDataRelayDataSize();
+		}
+
+		LogWarn(L"Max send /rcv size: %zu", m_MaxSndRcvSize.load());
+	}
+
+	std::shared_ptr<Connection_ThS> Extender::GetConnection(const PeerLUID pluid, const ConnectionID cid) const noexcept
+	{
+		std::shared_ptr<Connection_ThS> con{ nullptr };
 
 		m_Connections.WithSharedLock([&](const Connections& connections)
 		{
 			const auto it = connections.find(Connection::MakeKey(pluid, cid));
 			if (it != connections.end())
 			{
-				con = it->second.get();
+				con = it->second;
 			}
 		});
 
@@ -799,7 +821,7 @@ namespace QuantumGate::Socks5Extender
 
 		std::vector<UInt64> rlist;
 
-		m_Connections.IfSharedLock([&](const Connections& connections)
+		m_Connections.WithSharedLock([&](const Connections& connections)
 		{
 			for (auto it = connections.begin(); it != connections.end() && !shutdown_event.IsSet(); ++it)
 			{
@@ -825,23 +847,71 @@ namespace QuantumGate::Socks5Extender
 					}
 				});
 			}
+
+			const auto max_send = GetMaxSndRcvSize();
+			auto act_send = (std::max)(GetMaxSndRcvSize(), m_ActSndRcvSize.load());
+
+			for (auto it = connections.begin(); it != connections.end() && !shutdown_event.IsSet(); ++it)
+			{
+				Size sent{ 0 };
+
+				it->second->IfUniqueLock([&](Connection& connection)
+				{
+					if (connection.IsActive())
+					{
+						connection.ProcessRelayEvents(act_send, sent);
+					}
+				});
+
+				if (sent < max_send)
+				{
+					act_send += (max_send - sent);
+				}
+				else
+				{
+					act_send -= sent;
+					act_send += max_send;
+				}
+
+				if (act_send > GetMaxDataRelayDataSize())
+				{
+					act_send = GetMaxDataRelayDataSize();
+				}
+			}
+
+			if (m_ActSndRcvSize != act_send)
+			{
+				LogWarn(L"act send: %zu", act_send);
+			}
+
+			m_ActSndRcvSize = act_send;
 		});
 
 		if (!rlist.empty())
 		{
-			m_Connections.IfUniqueLock([&](Connections& connections)
-			{
-				for (const auto key : rlist)
-				{
-					connections.erase(key);
-				}
-			});
-
+			RemoveConnections(rlist);
 			rlist.clear();
 			result.DidWork = true;
 		}
 
 		return result;
+	}
+
+	void Extender::RemoveConnections(const std::vector<UInt64>& conn_list)
+	{
+		Size num_conn{ 0 };
+
+		m_Connections.WithUniqueLock([&](Connections& connections)
+		{
+			for (const auto key : conn_list)
+			{
+				connections.erase(key);
+			}
+
+			num_conn = connections.size();
+		});
+
+		CalcMaxSndRcvSize(num_conn);
 	}
 
 	void Extender::AcceptIncomingConnection()
@@ -854,7 +924,7 @@ namespace QuantumGate::Socks5Extender
 			{
 				const auto endp = s.GetPeerEndpoint().GetString();
 
-				auto cths = std::make_unique<Connection_ThS>(*this, *pluid, std::move(s));
+				auto cths = std::make_shared<Connection_ThS>(*this, *pluid, std::move(s));
 
 				const auto cid = cths->WithSharedLock()->GetID();
 

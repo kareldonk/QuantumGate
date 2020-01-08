@@ -49,6 +49,7 @@ namespace QuantumGate::Socks5Extender
 		void SetStatus(Status status) noexcept;
 
 		void ProcessEvents(bool& didwork);
+		void ProcessRelayEvents(const Size max_send, Size& sent);
 
 		[[nodiscard]] bool SendSocks5Reply(const Socks5Protocol::Replies reply);
 		[[nodiscard]] bool SendSocks5Reply(const Socks5Protocol::Replies reply,
@@ -69,7 +70,7 @@ namespace QuantumGate::Socks5Extender
 		[[nodiscard]] bool ProcessSocks5IPv4ConnectMessage(BufferView buffer);
 		[[nodiscard]] bool ProcessSocks5IPv6ConnectMessage(BufferView buffer);
 
-		[[nodiscard]] bool RelayReceivedData();
+		[[nodiscard]] bool RelayReceivedData(const Size max_send, Size& sent);
 
 	private:
 		static constexpr Size MaxReceiveBufferSize{ 1u << 16 };
