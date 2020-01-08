@@ -557,12 +557,18 @@ namespace QuantumGate::Implementation::Network
 		return m_ConnectCallback();
 	}
 
-	bool Socket::Send(Buffer& buffer) noexcept
+	bool Socket::Send(Buffer& buffer, const Size max_snd_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
+		const auto send_size = std::invoke([&]()
+		{
+			if (max_snd_size > 0 && max_snd_size < buffer.GetSize()) return max_snd_size;
+			else return buffer.GetSize();
+		});
+
 		const auto bytessent = send(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()),
-									static_cast<int>(buffer.GetSize()), 0);
+									static_cast<int>(send_size), 0);
 
 		Dbg(L"%d bytes sent", bytessent);
 
@@ -603,11 +609,9 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	bool Socket::SendTo(const IPEndpoint& endpoint, Buffer& buffer) noexcept
+	bool Socket::SendTo(const IPEndpoint& endpoint, Buffer& buffer, const Size max_snd_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-
-		if (GetType() == Type::Datagram) assert(buffer.GetSize() < GetMaxDatagramMessageSize());
 
 		sockaddr_storage sock_addr{ 0 };
 		if (!SockAddrSetEndpoint(sock_addr, endpoint))
@@ -617,8 +621,16 @@ namespace QuantumGate::Implementation::Network
 			return false;
 		}
 
+		const auto send_size = std::invoke([&]()
+		{
+			if (max_snd_size > 0 && max_snd_size < buffer.GetSize()) return max_snd_size;
+			else return buffer.GetSize();
+		});
+
+		if (GetType() == Type::Datagram) assert(send_size < GetMaxDatagramMessageSize());
+
 		const auto bytessent = sendto(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()),
-									  static_cast<int>(buffer.GetSize()), 0,
+									  static_cast<int>(send_size), 0,
 									  reinterpret_cast<sockaddr*>(&sock_addr), sizeof(sock_addr));
 
 		Dbg(L"%d bytes sent", bytessent);

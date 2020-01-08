@@ -82,7 +82,7 @@ namespace QuantumGate::Implementation::Core::Relay
 									rport, hop);
 	}
 
-	bool Socket::Send(Buffer& buffer) noexcept
+	bool Socket::Send(Buffer& buffer, const Size /*max_snd_size*/) noexcept
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanWrite());
 		assert(m_RelayManager != nullptr);
