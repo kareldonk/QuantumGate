@@ -155,6 +155,11 @@ namespace QuantumGate::Implementation::Network
 			if (!SetBlockingMode(false)) return false;
 		}
 
+		if (GetProtocol() == IP::Protocol::TCP)
+		{
+			if (!SetNoDelay(true)) return false;
+		}
+
 		return true;
 	}
 
@@ -375,7 +380,7 @@ namespace QuantumGate::Implementation::Network
 
 		// Enable conditional accept (in order to check IP access settings before allowing connection)
 		// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/dd264794(v=vs.85).aspx
-		const DWORD ca = cond_accept ? 1 : 0;
+		const int ca = cond_accept ? 1 : 0;
 
 		const auto ret = setsockopt(m_Socket, SOL_SOCKET, SO_CONDITIONAL_ACCEPT,
 									reinterpret_cast<const char*>(&ca), sizeof(ca));
@@ -383,6 +388,27 @@ namespace QuantumGate::Implementation::Network
 		{
 			LogErr(L"Could not set conditional accept socket option for endpoint %s (%s)",
 				   GetLocalName().c_str(), GetLastSysErrorString().c_str());
+
+			return false;
+		}
+
+		return true;
+	}
+
+	bool Socket::SetNoDelay(const bool no_delay) noexcept
+	{
+		assert(m_Socket != INVALID_SOCKET);
+
+		// Disables the Nagle algorithm for send coalescing
+		// Docs: https://docs.microsoft.com/en-us/windows/win32/winsock/ipproto-tcp-socket-options
+		const int nd = no_delay ? 1 : 0;
+
+		const auto ret = setsockopt(m_Socket, IPPROTO_TCP, TCP_NODELAY,
+									reinterpret_cast<const char*>(&nd), sizeof(nd));
+		if (ret == SOCKET_ERROR)
+		{
+			LogErr(L"Could not disable nagle algorithm for endpoint %s (%s)",
+					GetLocalName().c_str(), GetLastSysErrorString().c_str());
 
 			return false;
 		}
