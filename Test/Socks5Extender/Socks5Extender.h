@@ -34,15 +34,47 @@ namespace QuantumGate::Socks5Extender
 	};
 
 	using Connection_ThS = Concurrency::ThreadSafe<Connection, std::shared_mutex>;
-	using Connections = std::unordered_map<ConnectionID, std::shared_ptr<Connection_ThS>>;
+	using Connections = std::unordered_map<Connection::ID, std::shared_ptr<Connection_ThS>>;
 	using Connections_ThS = Concurrency::ThreadSafe<Connections, std::shared_mutex>;
+
+	using DNSCache = std::unordered_map<String, IPAddress>;
+	using DNSCache_ThS = Concurrency::ThreadSafe<DNSCache, std::shared_mutex>;
 
 	struct Peer final
 	{
-		PeerLUID ID{ 0 };
+		const PeerLUID ID{ 0 };
+		Connections Connections;
+
+		const Size MaxDataRelayDataSize{ 0 };
+		Size MaxSndRcvSize{ 0 };
+		Size ActSndRcvSize{ 0 };
+
+		Peer(const PeerLUID pluid, const Size max_datarelay_size) noexcept :
+			ID(pluid), MaxDataRelayDataSize(max_datarelay_size)
+		{
+			CalcMaxSndRcvSize();
+		}
+
+		void CalcMaxSndRcvSize() noexcept
+		{
+			const auto num_conn = Connections.size();
+			if (num_conn > 0)
+			{
+				const auto max_size = (std::max)(static_cast<double>(MaxDataRelayDataSize) / static_cast<double>(num_conn),
+												 static_cast<double>(1u << 9));
+				MaxSndRcvSize = static_cast<Size>(max_size);
+			}
+			else
+			{
+				MaxSndRcvSize = MaxDataRelayDataSize;
+			}
+
+			LogWarn(L"Max send /rcv size: %zu", MaxSndRcvSize);
+		}
 	};
 
-	using Peers = std::unordered_map<PeerLUID, Peer>;
+	using Peer_ThS = Concurrency::ThreadSafe<Peer, std::shared_mutex>;
+	using Peers = std::unordered_map<PeerLUID, std::shared_ptr<Peer_ThS>>;
 	using Peers_ThS = Concurrency::ThreadSafe<Peers, std::shared_mutex>;
 
 	class Extender final : public QuantumGate::Extender
@@ -85,68 +117,72 @@ namespace QuantumGate::Socks5Extender
 
 		static void ListenerThreadLoop(Extender* extender);
 		ThreadPool::ThreadCallbackResult MainWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event);
+		ThreadPool::ThreadCallbackResult DataRelayWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event);
 
-		[[nodiscard]] std::optional<IPAddress> ResolveDomainIP(const String& domain) const noexcept;
+		[[nodiscard]] std::optional<IPAddress> ResolveDomainIP(const String& domain) noexcept;
 		[[nodiscard]] Socks5Protocol::Replies TranslateWSAErrorToSocks5(Int errorcode) const noexcept;
 
-		[[nodiscard]] bool AddConnection(const PeerLUID pluid, const ConnectionID cid,
+		[[nodiscard]] bool AddPeer(const PeerLUID pluid) noexcept;
+		void RemovePeer(const PeerLUID pluid) noexcept;
+		[[nodiscard]] std::shared_ptr<Peer_ThS> GetPeer(const PeerLUID pluid) const noexcept;
+
+		[[nodiscard]] bool AddConnection(const PeerLUID pluid, const Connection::ID cid,
 										 std::shared_ptr<Connection_ThS>&& c) noexcept;
-		[[nodiscard]] std::shared_ptr<Connection_ThS> GetConnection(const PeerLUID pluid, const ConnectionID cid) const noexcept;
+		void RemoveConnection(const Connection::Key key) noexcept;
+		void RemoveConnections(const std::vector<Connection::Key>& conn_list) noexcept;
+		[[nodiscard]] std::shared_ptr<Connection_ThS> GetConnection(const PeerLUID pluid, const Connection::ID cid) const noexcept;
+
 		void Disconnect(Connection_ThS& c);
 		void Disconnect(Connection& c);
 		void DisconnectFor(const PeerLUID pluid);
 		void DisconnectAll();
-		void RemoveConnections(const std::vector<UInt64>& conn_list);
 
 		void AcceptIncomingConnection();
 		[[nodiscard]] std::optional<PeerLUID> GetPeerForConnection() const;
 
-		[[nodiscard]] bool MakeOutgoingConnection(const PeerLUID pluid, const ConnectionID cid,
+		[[nodiscard]] bool MakeOutgoingConnection(const PeerLUID pluid, const Connection::ID cid,
 												  const IPAddress& ip, const UInt16 port);
 
-		[[nodiscard]] bool SendConnectDomain(const PeerLUID pluid, const ConnectionID cid,
+		[[nodiscard]] bool SendConnectDomain(const PeerLUID pluid, const Connection::ID cid,
 											 const String& domain, const UInt16 port) const noexcept;
 
-		[[nodiscard]] bool SendConnectIP(const PeerLUID pluid, const ConnectionID cid,
+		[[nodiscard]] bool SendConnectIP(const PeerLUID pluid, const Connection::ID cid,
 										 const Network::BinaryIPAddress& ip, const UInt16 port) const noexcept;
 
-		[[nodiscard]] bool SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const noexcept;
-		[[nodiscard]] bool SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const noexcept;
+		[[nodiscard]] bool SendDisconnect(const PeerLUID pluid, const Connection::ID cid) const noexcept;
+		[[nodiscard]] bool SendDisconnectAck(const PeerLUID pluid, const Connection::ID cid) const noexcept;
 
-		[[nodiscard]] bool SendSocks5Reply(const PeerLUID pluid, const ConnectionID cid, const Socks5Protocol::Replies reply,
+		[[nodiscard]] bool SendSocks5Reply(const PeerLUID pluid, const Connection::ID cid, const Socks5Protocol::Replies reply,
 										   const Socks5Protocol::AddressTypes atype = Socks5Protocol::AddressTypes::IPv4,
 										   const Network::BinaryIPAddress ip = Network::BinaryIPAddress{},
 										   const UInt16 port = 0) const noexcept;
 
-		[[nodiscard]] Result<> SendDataRelay(const PeerLUID pluid, const ConnectionID cid,
+		[[nodiscard]] Result<> SendDataRelay(const PeerLUID pluid, const Connection::ID cid,
 											 const BufferView& buffer) const noexcept;
 
 		[[nodiscard]] bool Send(const PeerLUID pluid, Buffer&& buffer) const noexcept;
 
-		[[nodiscard]] constexpr Size GetDataRelayHeaderSize() const noexcept
+		[[nodiscard]] Size GetDataRelayHeaderSize() const noexcept
 		{
 			return sizeof(MessageType) +
-				sizeof(ConnectionID) +
+				sizeof(Connection::ID) +
 				9; // 9 bytes for encoded size of buffer
 		}
 
-		[[nodiscard]] constexpr Size GetMaxDataRelayDataSize() const noexcept
+		[[nodiscard]] Size GetMaxDataRelayDataSize() const noexcept
 		{
 			Size size{ (1u << 14) - GetDataRelayHeaderSize() };
 			assert(size <= GetMaximumMessageDataSize());
 			return size;
 		}
-		
-		void CalcMaxSndRcvSize(const Size num_conn) noexcept;
-		[[nodiscard]] inline Size GetMaxSndRcvSize() const noexcept { return m_MaxSndRcvSize; }
 
-		[[nodiscard]] bool HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+		[[nodiscard]] bool HandleConnectDomainPeerMessage(const PeerLUID pluid, const Connection::ID cid,
 														  const String& domain, const UInt16 port);
 
-		[[nodiscard]] bool HandleConnectIPPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+		[[nodiscard]] bool HandleConnectIPPeerMessage(const PeerLUID pluid, const Connection::ID cid,
 													  const Network::BinaryIPAddress& ip, const UInt16 port);
 
-		[[nodiscard]] bool HandleSocks5ReplyRelayPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+		[[nodiscard]] bool HandleSocks5ReplyRelayPeerMessage(const PeerLUID pluid, const Connection::ID cid,
 															 const Socks5Protocol::Replies reply,
 															 const Socks5Protocol::AddressTypes atype,
 															 const BufferView& address, const UInt16 port);
@@ -160,10 +196,8 @@ namespace QuantumGate::Socks5Extender
 
 		ThreadPool m_ThreadPool;
 		Peers_ThS m_Peers;
-		Connections_ThS m_Connections;
-
-		std::atomic<Size> m_MaxSndRcvSize{ GetMaxDataRelayDataSize() };
-		std::atomic<Size> m_ActSndRcvSize{ 0 };
+		Connections_ThS m_AllConnections;
+		DNSCache_ThS m_DNSCache;
 
 		std::atomic_bool m_UseCompression{ true };
 

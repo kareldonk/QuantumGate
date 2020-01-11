@@ -10,21 +10,22 @@ namespace QuantumGate::Socks5Extender
 {
 	class Extender;
 
-	using ConnectionID = UInt64;
-
 	class Connection final
 	{
 	public:
 		enum class Type { Unknown, Incoming, Outgoing };
 		enum class Status { Unknown, Handshake, Authenticating, Connecting, Connected, Ready, Disconnecting, Disconnected };
 
+		using ID = UInt64;
+		using Key = UInt64;
+
 		Connection(Extender& extender, const PeerLUID pluid, Socket&& socket) noexcept;
-		Connection(Extender& extender, const PeerLUID pluid, const ConnectionID cid, Socket&& socket) noexcept;
+		Connection(Extender& extender, const PeerLUID pluid, const ID cid, Socket&& socket) noexcept;
 
-		[[nodiscard]] inline UInt64 GetKey() const noexcept { return m_Key; }
-		[[nodiscard]] static UInt64 MakeKey(const PeerLUID pluid, const ConnectionID cid) noexcept;
+		[[nodiscard]] inline Key GetKey() const noexcept { return m_Key; }
+		[[nodiscard]] static Key MakeKey(const PeerLUID pluid, const ID cid) noexcept;
 
-		[[nodiscard]] inline const ConnectionID GetID() const noexcept { return m_ID; }
+		[[nodiscard]] inline const ID GetID() const noexcept { return m_ID; }
 		[[nodiscard]] inline const PeerLUID GetPeerLUID() const noexcept { return m_PeerLUID; }
 		[[nodiscard]] inline const Status GetStatus() const noexcept { return m_Status; }
 		[[nodiscard]] inline const Type GetType() const noexcept { return m_Type; }
@@ -49,7 +50,7 @@ namespace QuantumGate::Socks5Extender
 		void SetStatus(Status status) noexcept;
 
 		void ProcessEvents(bool& didwork);
-		void ProcessRelayEvents(const Size max_send, Size& sent);
+		void ProcessRelayEvents(bool& didwork, const Size max_send, Size& sent);
 
 		[[nodiscard]] bool SendSocks5Reply(const Socks5Protocol::Replies reply);
 		[[nodiscard]] bool SendSocks5Reply(const Socks5Protocol::Replies reply,
@@ -76,7 +77,7 @@ namespace QuantumGate::Socks5Extender
 		static constexpr Size MaxReceiveBufferSize{ 1u << 16 };
 
 	private:
-		ConnectionID m_ID{ 0 };
+		ID m_ID{ 0 };
 		PeerLUID m_PeerLUID{ 0 };
 		UInt64 m_Key{ 0 };
 		Type m_Type{ Type::Unknown };

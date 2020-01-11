@@ -185,7 +185,8 @@ namespace QuantumGate::Socks5Extender
 		ShutdownThreadPool();
 
 		m_Peers.WithUniqueLock()->clear();
-		m_Connections.WithUniqueLock()->clear();
+		m_AllConnections.WithUniqueLock()->clear();
+		m_DNSCache.WithUniqueLock()->clear();
 
 		DeInitializeIPFilters();
 	}
@@ -307,7 +308,8 @@ namespace QuantumGate::Socks5Extender
 		m_ThreadPool.SetWorkerThreadsMaxBurst(64);
 		m_ThreadPool.SetWorkerThreadsMaxSleep(1s);
 
-		if (m_ThreadPool.AddThread(GetName() + L" Main Worker Thread", MakeCallback(this, &Extender::MainWorkerThreadLoop)))
+		if (m_ThreadPool.AddThread(GetName() + L" Main Worker Thread", MakeCallback(this, &Extender::MainWorkerThreadLoop)) &&
+			m_ThreadPool.AddThread(GetName() + L" DataRelay Worker Thread", MakeCallback(this, &Extender::DataRelayWorkerThreadLoop)))
 		{
 			if (m_ThreadPool.Startup())
 			{
@@ -335,10 +337,10 @@ namespace QuantumGate::Socks5Extender
 			{
 				ev = L"Connect";
 
-				Peer peer;
-				peer.ID = event.GetPeerLUID();
-
-				m_Peers.WithUniqueLock()->insert({ event.GetPeerLUID(), std::move(peer) });
+				if (!AddPeer(event.GetPeerLUID()))
+				{
+					LogErr(L"Extender '%s' failed to add peer %llu", GetName().c_str(), event.GetPeerLUID());
+				}
 
 				break;
 			}
@@ -346,9 +348,7 @@ namespace QuantumGate::Socks5Extender
 			{
 				ev = L"Disconnect";
 
-				m_Peers.WithUniqueLock()->erase(event.GetPeerLUID());
-
-				DisconnectFor(event.GetPeerLUID());
+				RemovePeer(event.GetPeerLUID());
 
 				break;
 			}
@@ -358,8 +358,7 @@ namespace QuantumGate::Socks5Extender
 			}
 		}
 
-		LogInfo(L"Extender '%s' got peer event: %s, Peer LUID: %llu",
-				GetName().c_str(), ev.c_str(), event.GetPeerLUID());
+		LogInfo(L"Extender '%s' got peer event: %s, Peer LUID: %llu", GetName().c_str(), ev.c_str(), event.GetPeerLUID());
 	}
 
 	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(PeerEvent&& event)
@@ -383,7 +382,7 @@ namespace QuantumGate::Socks5Extender
 					{
 						result.Handled = true;
 
-						ConnectionID cid{ 0 };
+						Connection::ID cid{ 0 };
 						String domain;
 						UInt16 port{ 0 };
 
@@ -400,7 +399,7 @@ namespace QuantumGate::Socks5Extender
 					{
 						result.Handled = true;
 
-						ConnectionID cid{ 0 };
+						Connection::ID cid{ 0 };
 						SerializedBinaryIPAddress ip;
 						UInt16 port{ 0 };
 
@@ -417,7 +416,7 @@ namespace QuantumGate::Socks5Extender
 					{
 						result.Handled = true;
 
-						ConnectionID cid{ 0 };
+						Connection::ID cid{ 0 };
 						Socks5Protocol::Replies reply{ Socks5Protocol::Replies::GeneralFailure };
 						Socks5Protocol::AddressTypes atype{ Socks5Protocol::AddressTypes::Unknown };
 						SerializedBinaryIPAddress ip;
@@ -438,7 +437,7 @@ namespace QuantumGate::Socks5Extender
 					{
 						result.Handled = true;
 
-						ConnectionID cid{ 0 };
+						Connection::ID cid{ 0 };
 						Buffer data;
 
 						if (rdr.Read(cid, WithSize(data, GetMaxDataRelayDataSize())))
@@ -472,13 +471,16 @@ namespace QuantumGate::Socks5Extender
 					{
 						result.Handled = true;
 
-						ConnectionID cid{ 0 };
+						Connection::ID cid{ 0 };
 
 						if (rdr.Read(cid))
 						{
 							auto con = GetConnection(event.GetPeerLUID(), cid);
 							if (con)
 							{
+								LogDbg(L"%s: received Disconnect from peer %llu for connection %llu",
+									   GetName().c_str(), event.GetPeerLUID(), cid);
+
 								con->WithUniqueLock([&](Connection& connection)
 								{
 									connection.SetPeerConnected(false);
@@ -504,13 +506,16 @@ namespace QuantumGate::Socks5Extender
 					{
 						result.Handled = true;
 
-						ConnectionID cid{ 0 };
+						Connection::ID cid{ 0 };
 
 						if (rdr.Read(cid))
 						{
 							auto con = GetConnection(event.GetPeerLUID(), cid);
 							if (con)
 							{
+								LogDbg(L"%s: received DisconnectAck from peer %llu for connection %llu",
+									   GetName().c_str(), event.GetPeerLUID(), cid);
+
 								con->WithUniqueLock([](Connection& connection) noexcept
 								{
 									connection.SetPeerConnected(false);
@@ -543,17 +548,21 @@ namespace QuantumGate::Socks5Extender
 		return result;
 	}
 
-	bool Extender::HandleConnectDomainPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+	bool Extender::HandleConnectDomainPeerMessage(const PeerLUID pluid, const Connection::ID cid,
 												  const String& domain, const UInt16 port)
 	{
 		if (!domain.empty() && port != 0)
 		{
-			LogDbg(L"%s: received ConnectDomain from peer %llu for connection %llu",
-				   GetName().c_str(), pluid, cid);
+			LogDbg(L"%s: received ConnectDomain from peer %llu for connection %llu for domain %s",
+				   GetName().c_str(), pluid, cid, domain.c_str());
 
 			const auto ip = ResolveDomainIP(domain);
 			if (ip)
 			{
+				SLogInfo(GetName() << L": domain " << SLogFmt(FGBrightMagenta) << domain.c_str() <<
+						 SLogFmt(Default) << L" resolved to IP " << SLogFmt(FGBrightMagenta) << 
+						 ip->GetString() << SLogFmt(Default) << L" for connection " << cid);
+
 				if (!MakeOutgoingConnection(pluid, cid, *ip, port))
 				{
 					DiscardReturnValue(SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::GeneralFailure));
@@ -561,6 +570,8 @@ namespace QuantumGate::Socks5Extender
 			}
 			else
 			{
+				LogErr(L"%s: could not resolve IP addresses for domain %s", GetName().c_str(), domain.c_str());
+
 				// Could not resolve domain
 				DiscardReturnValue(SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::HostUnreachable));
 			}
@@ -572,7 +583,7 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	bool Extender::HandleConnectIPPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+	bool Extender::HandleConnectIPPeerMessage(const PeerLUID pluid, const Connection::ID cid,
 											  const BinaryIPAddress& ip, const UInt16 port)
 	{
 		if ((ip.AddressFamily == BinaryIPAddress::Family::IPv4 ||
@@ -589,7 +600,7 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	bool Extender::HandleSocks5ReplyRelayPeerMessage(const PeerLUID pluid, const ConnectionID cid,
+	bool Extender::HandleSocks5ReplyRelayPeerMessage(const PeerLUID pluid, const Connection::ID cid,
 													 const Socks5Protocol::Replies reply,
 													 const Socks5Protocol::AddressTypes atype,
 													 const BufferView& address, const UInt16 port)
@@ -662,58 +673,134 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	bool Extender::AddConnection(const PeerLUID pluid, const ConnectionID cid, std::shared_ptr<Connection_ThS>&& c) noexcept
+	bool Extender::AddPeer(const PeerLUID pluid) noexcept
+	{
+		try
+		{
+			auto peer_ths = std::make_shared<Peer_ThS>(pluid, GetMaxDataRelayDataSize());
+
+			[[maybe_unused]] const auto [it, inserted] = m_Peers.WithUniqueLock()->insert({ pluid, std::move(peer_ths) });
+
+			assert(inserted);
+			return inserted;
+		}
+		catch (...) {}
+
+		return false;
+	}
+
+	void Extender::RemovePeer(const PeerLUID pluid) noexcept
+	{
+		DisconnectFor(pluid);
+
+		const auto num = m_Peers.WithUniqueLock()->erase(pluid);
+		assert(num == 1);
+	}
+
+	std::shared_ptr<Peer_ThS> Extender::GetPeer(const PeerLUID pluid) const noexcept
+	{
+		std::shared_ptr<Peer_ThS> peer_ths{ nullptr };
+
+		m_Peers.WithSharedLock([&](const Peers& peers)
+		{
+			if (const auto it = peers.find(pluid); it != peers.end())
+			{
+				peer_ths = it->second;
+			}
+		});
+
+		return peer_ths;
+	}
+
+	bool Extender::AddConnection(const PeerLUID pluid, const Connection::ID cid, std::shared_ptr<Connection_ThS>&& c) noexcept
 	{
 		auto success = false;
-		Size num_conn{ 0 };
 
-		m_Connections.WithUniqueLock([&](Connections& connections)
+		Connection::Key key{ c->WithSharedLock()->GetKey() };
+
+		m_AllConnections.WithUniqueLock([&](Connections& connections)
 		{
-			const auto key = c->WithSharedLock()->GetKey();
-
-			[[maybe_unused]] const auto [it, inserted] = connections.insert({ key, std::move(c) });
+			[[maybe_unused]] const auto [it, inserted] = connections.insert({ key, c });
 
 			assert(inserted);
 			success = inserted;
-			num_conn = connections.size();
 		});
+
+		if (success)
+		{
+			// Remove if we fail
+			auto sg = MakeScopeGuard([&]() noexcept { RemoveConnection(key); });
+
+			success = false;
+
+			const auto peer_ths = GetPeer(pluid);
+			if (peer_ths)
+			{
+				peer_ths->WithUniqueLock([&](Peer& peer)
+				{
+					[[maybe_unused]] const auto [it, inserted] = peer.Connections.insert({ key, std::move(c) });
+
+					assert(inserted);
+					success = inserted;
+
+					peer.CalcMaxSndRcvSize();
+				});
+			}
+
+			if (success) sg.Deactivate();
+		}
 
 		if (!success)
 		{
-			LogErr(L"%s: could not add new connection", GetName().c_str());
-		}
-		else
-		{
-			CalcMaxSndRcvSize(num_conn);
+			LogErr(L"%s: could not add new connection %llu for peer %llu", GetName().c_str(), cid, pluid);
 		}
 
 		return success;
 	}
 
-	void Extender::CalcMaxSndRcvSize(const Size num_conn) noexcept
+	void Extender::RemoveConnection(const Connection::Key key) noexcept
 	{
-		if (num_conn > 0)
-		{
-			const auto max_size = (std::max)(static_cast<double>(GetMaxDataRelayDataSize()) / static_cast<double>(num_conn),
-											 static_cast<double>(1u << 9));
-			m_MaxSndRcvSize = static_cast<Size>(max_size);
-		}
-		else
-		{
-			m_MaxSndRcvSize = GetMaxDataRelayDataSize();
-		}
+		std::optional<PeerLUID> pluid;
 
-		LogWarn(L"Max send /rcv size: %zu", m_MaxSndRcvSize.load());
+		m_AllConnections.WithUniqueLock([&](Connections& connections)
+		{
+			const auto it = connections.find(key);
+			if (it != connections.end())
+			{
+				pluid = it->second->WithSharedLock()->GetPeerLUID();
+				connections.erase(it);
+			}
+		});
+
+		if (pluid)
+		{
+			const auto peer_ths = GetPeer(*pluid);
+			if (peer_ths)
+			{
+				peer_ths->WithUniqueLock([&](Peer& peer)
+				{
+					peer.Connections.erase(key);
+					peer.CalcMaxSndRcvSize();
+				});
+			}
+		}
 	}
 
-	std::shared_ptr<Connection_ThS> Extender::GetConnection(const PeerLUID pluid, const ConnectionID cid) const noexcept
+	void Extender::RemoveConnections(const std::vector<Connection::Key>& conn_list) noexcept
+	{
+		for (const auto key : conn_list)
+		{
+			RemoveConnection(key);
+		}
+	}
+
+	std::shared_ptr<Connection_ThS> Extender::GetConnection(const PeerLUID pluid, const Connection::ID cid) const noexcept
 	{
 		std::shared_ptr<Connection_ThS> con{ nullptr };
 
-		m_Connections.WithSharedLock([&](const Connections& connections)
+		m_AllConnections.WithSharedLock([&](const Connections& connections)
 		{
-			const auto it = connections.find(Connection::MakeKey(pluid, cid));
-			if (it != connections.end())
+			if (const auto it = connections.find(Connection::MakeKey(pluid, cid)); it != connections.end())
 			{
 				con = it->second;
 			}
@@ -742,27 +829,28 @@ namespace QuantumGate::Socks5Extender
 	{
 		LogInfo(L"%s: disconnecting connections for peer %llu", GetName().c_str(), pluid);
 
-		m_Connections.WithSharedLock([&](const Connections& connections)
+		const auto peer_ths = GetPeer(pluid);
+		if (peer_ths)
 		{
-			for (auto& connection : connections)
+			peer_ths->WithSharedLock([&](const Peer& peer)
 			{
-				connection.second->WithUniqueLock([&](Connection& c) noexcept
+				for (auto& connection : peer.Connections)
 				{
-					if (c.GetPeerLUID() == pluid)
+					connection.second->WithUniqueLock([&](Connection& c) noexcept
 					{
 						c.SetPeerConnected(false);
 						c.SetDisconnectCondition();
-					}
-				});
-			}
-		});
+					});
+				}
+			});
+		}
 	}
 
 	void Extender::DisconnectAll()
 	{
 		LogInfo(L"%s: disconnecting all connections", GetName().c_str());
 
-		m_Connections.WithUniqueLock([&](const Connections& connections)
+		m_AllConnections.WithUniqueLock([&](const Connections& connections)
 		{
 			for (auto& connection : connections)
 			{
@@ -819,13 +907,13 @@ namespace QuantumGate::Socks5Extender
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
-		std::vector<UInt64> rlist;
+		std::vector<Connection::Key> rlist;
 
-		m_Connections.WithSharedLock([&](const Connections& connections)
+		m_AllConnections.WithSharedLock([&](const Connections& connections)
 		{
 			for (auto it = connections.begin(); it != connections.end() && !shutdown_event.IsSet(); ++it)
 			{
-				it->second->IfUniqueLock([&](Connection& connection)
+				it->second->WithUniqueLock([&](Connection& connection)
 				{
 					if (connection.IsActive())
 					{
@@ -847,44 +935,6 @@ namespace QuantumGate::Socks5Extender
 					}
 				});
 			}
-
-			const auto max_send = GetMaxSndRcvSize();
-			auto act_send = (std::max)(GetMaxSndRcvSize(), m_ActSndRcvSize.load());
-
-			for (auto it = connections.begin(); it != connections.end() && !shutdown_event.IsSet(); ++it)
-			{
-				Size sent{ 0 };
-
-				it->second->IfUniqueLock([&](Connection& connection)
-				{
-					if (connection.IsActive())
-					{
-						connection.ProcessRelayEvents(act_send, sent);
-					}
-				});
-
-				if (sent < max_send)
-				{
-					act_send += (max_send - sent);
-				}
-				else
-				{
-					act_send -= sent;
-					act_send += max_send;
-				}
-
-				if (act_send > GetMaxDataRelayDataSize())
-				{
-					act_send = GetMaxDataRelayDataSize();
-				}
-			}
-
-			if (m_ActSndRcvSize != act_send)
-			{
-				LogWarn(L"act send: %zu", act_send);
-			}
-
-			m_ActSndRcvSize = act_send;
 		});
 
 		if (!rlist.empty())
@@ -897,21 +947,65 @@ namespace QuantumGate::Socks5Extender
 		return result;
 	}
 
-	void Extender::RemoveConnections(const std::vector<UInt64>& conn_list)
+	Extender::ThreadPool::ThreadCallbackResult Extender::DataRelayWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event)
 	{
-		Size num_conn{ 0 };
+		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
-		m_Connections.WithUniqueLock([&](Connections& connections)
+		m_Peers.WithSharedLock([&](const Peers& peers)
 		{
-			for (const auto key : conn_list)
+			for (auto& pit : peers)
 			{
-				connections.erase(key);
-			}
+				if (shutdown_event.IsSet()) break;
 
-			num_conn = connections.size();
+				Size act_send{ 0 };
+
+				pit.second->WithSharedLock([&](const Peer& peer)
+				{
+					const auto max_send = peer.MaxSndRcvSize;
+					act_send = (std::max)(max_send, peer.ActSndRcvSize);
+
+					for (auto it = peer.Connections.begin(); it != peer.Connections.end() && !shutdown_event.IsSet(); ++it)
+					{
+						Size sent{ 0 };
+
+						it->second->WithUniqueLock([&](Connection& connection)
+						{
+							if (connection.IsActive())
+							{
+								connection.ProcessRelayEvents(result.DidWork, act_send, sent);
+							}
+						});
+
+						if (sent < max_send)
+						{
+							act_send += (max_send - sent);
+						}
+						else
+						{
+							act_send -= sent;
+							act_send += max_send;
+						}
+
+						if (act_send > peer.MaxDataRelayDataSize)
+						{
+							act_send = peer.MaxDataRelayDataSize;
+						}
+					}
+				});
+
+				pit.second->WithUniqueLock([&](Peer& peer)
+				{
+					if (peer.ActSndRcvSize != act_send)
+					{
+						LogWarn(L"act send: %zu", act_send);
+					}
+
+					peer.ActSndRcvSize = act_send;
+				});
+			}
 		});
 
-		CalcMaxSndRcvSize(num_conn);
+		return result;
 	}
 
 	void Extender::AcceptIncomingConnection()
@@ -945,7 +1039,7 @@ namespace QuantumGate::Socks5Extender
 		else LogErr(L"%s: could not accept new connection", GetName().c_str());
 	}
 
-	bool Extender::SendConnectDomain(const PeerLUID pluid, const ConnectionID cid,
+	bool Extender::SendConnectDomain(const PeerLUID pluid, const Connection::ID cid,
 									 const String& domain, const UInt16 port) const noexcept
 	{
 		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectDomain);
@@ -956,14 +1050,14 @@ namespace QuantumGate::Socks5Extender
 			if (Send(pluid, writer.MoveWrittenBytes())) return true;
 
 			LogErr(L"%s: could not send ConnectDomain message for connection %llu to peer %llu",
-					GetName().c_str(), cid, pluid);
+				   GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare ConnectDomain message for connection %llu", GetName().c_str(), cid);
 
 		return false;
 	}
 
-	bool Extender::SendConnectIP(const PeerLUID pluid, const ConnectionID cid,
+	bool Extender::SendConnectIP(const PeerLUID pluid, const Connection::ID cid,
 								 const BinaryIPAddress& ip, const UInt16 port) const noexcept
 	{
 		assert(ip.AddressFamily != BinaryIPAddress::Family::Unspecified);
@@ -976,14 +1070,14 @@ namespace QuantumGate::Socks5Extender
 			if (Send(pluid, writer.MoveWrittenBytes())) return true;
 
 			LogErr(L"%s: could not send ConnectIP message for connection %llu to peer %llu",
-					GetName().c_str(), cid, pluid);
+				   GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare ConnectIP message for connection %llu", GetName().c_str(), cid);
 
 		return false;
 	}
 
-	bool Extender::SendDisconnect(const PeerLUID pluid, const ConnectionID cid) const noexcept
+	bool Extender::SendDisconnect(const PeerLUID pluid, const Connection::ID cid) const noexcept
 	{
 		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::Disconnect);
 
@@ -993,14 +1087,14 @@ namespace QuantumGate::Socks5Extender
 			if (Send(pluid, writer.MoveWrittenBytes())) return true;
 
 			LogErr(L"%s: could not send Disconnect message for connection %llu to peer %llu",
-					GetName().c_str(), cid, pluid);
+				   GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare Disconnect message for connection %llu", GetName().c_str(), cid);
 
 		return false;
 	}
 
-	bool Extender::SendDisconnectAck(const PeerLUID pluid, const ConnectionID cid) const noexcept
+	bool Extender::SendDisconnectAck(const PeerLUID pluid, const Connection::ID cid) const noexcept
 	{
 		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::DisconnectAck);
 
@@ -1017,7 +1111,7 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	bool Extender::SendSocks5Reply(const PeerLUID pluid, const ConnectionID cid,
+	bool Extender::SendSocks5Reply(const PeerLUID pluid, const Connection::ID cid,
 								   const Socks5Protocol::Replies reply,
 								   const Socks5Protocol::AddressTypes atype,
 								   const BinaryIPAddress ip, const UInt16 port) const noexcept
@@ -1030,14 +1124,14 @@ namespace QuantumGate::Socks5Extender
 			if (Send(pluid, writer.MoveWrittenBytes())) return true;
 
 			LogErr(L"%s: could not send Socks5ReplyRelay message for connection %llu to peer %llu",
-					GetName().c_str(), cid, pluid);
+				   GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare Socks5ReplyRelay message for connection %llu", GetName().c_str(), cid);
 
 		return false;
 	}
 
-	Result<> Extender::SendDataRelay(const PeerLUID pluid, const ConnectionID cid, const BufferView& buffer) const noexcept
+	Result<> Extender::SendDataRelay(const PeerLUID pluid, const Connection::ID cid, const BufferView& buffer) const noexcept
 	{
 		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::DataRelay);
 
@@ -1094,14 +1188,14 @@ namespace QuantumGate::Socks5Extender
 			if (!peers.empty())
 			{
 				pluid = std::next(std::begin(peers),
-								  static_cast<Size>(Util::GetPseudoRandomNumber(0, peers.size() - 1u)))->second.ID;
+								  static_cast<Size>(Util::GetPseudoRandomNumber(0, peers.size() - 1u)))->second->WithSharedLock()->ID;
 			}
 		});
 
 		return pluid;
 	}
 
-	bool Extender::MakeOutgoingConnection(const PeerLUID pluid, const ConnectionID cid,
+	bool Extender::MakeOutgoingConnection(const PeerLUID pluid, const Connection::ID cid,
 										  const IPAddress& ip, const UInt16 port)
 	{
 		if (IsOutgoingIPAllowed(ip))
@@ -1137,25 +1231,44 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	std::optional<IPAddress> Extender::ResolveDomainIP(const String& domain) const noexcept
+	std::optional<IPAddress> Extender::ResolveDomainIP(const String& domain) noexcept
 	{
-		ADDRINFOW* result{ nullptr };
-
-		const auto ret = GetAddrInfoW(domain.c_str(), L"", nullptr, &result);
-		if (ret == 0)
 		{
-			// Free ADDRINFO resources when we leave
-			const auto sg = MakeScopeGuard([&]() noexcept { FreeAddrInfoW(result); });
-
-			for (auto ptr = result; ptr != nullptr; ptr = ptr->ai_next)
+			auto cache = m_DNSCache.WithSharedLock();
+			if (const auto it = cache->find(domain); it != cache->end())
 			{
-				if (ptr->ai_family == AF_INET || ptr->ai_family == AF_INET6)
+				return it->second;
+			}
+		}
+
+		auto cache = m_DNSCache.WithUniqueLock();
+		if (const auto it = cache->find(domain); it != cache->end())
+		{
+			return it->second;
+		}
+		else
+		{
+			ADDRINFOW* result{ nullptr };
+
+			const auto ret = GetAddrInfoW(domain.c_str(), L"", nullptr, &result);
+			if (ret == 0)
+			{
+				// Free ADDRINFO resources when we leave
+				const auto sg = MakeScopeGuard([&]() noexcept { FreeAddrInfoW(result); });
+
+				for (auto ptr = result; ptr != nullptr; ptr = ptr->ai_next)
 				{
-					return { IPAddress(ptr->ai_addr) };
+					if (ptr->ai_family == AF_INET || ptr->ai_family == AF_INET6)
+					{
+						const auto ip = IPAddress(ptr->ai_addr);
+							
+						cache->insert({ domain, ip });
+
+						return ip;
+					}
 				}
 			}
 		}
-		else LogErr(L"%s: could not resolve IP addresses for domain %s", GetName().c_str(), domain.c_str());
 
 		return std::nullopt;
 	}

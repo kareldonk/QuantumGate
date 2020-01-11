@@ -26,7 +26,7 @@ namespace QuantumGate::Socks5Extender
 		SetStatus(Status::Handshake);
 	}
 
-	Connection::Connection(Extender& extender, const PeerLUID pluid, const ConnectionID cid, Socket&& socket) noexcept :
+	Connection::Connection(Extender& extender, const PeerLUID pluid, const Connection::ID cid, Socket&& socket) noexcept :
 		m_ID(cid), m_PeerLUID(pluid), m_Socket(std::move(socket)), m_Extender(extender)
 	{
 		m_Key = MakeKey(m_PeerLUID, m_ID);
@@ -203,7 +203,9 @@ namespace QuantumGate::Socks5Extender
 	{
 		assert(!IsDisconnecting() && !IsDisconnected());
 
-		if (SendAndReceive(didwork) && !ShouldDisconnect())
+		bool dw{ false };
+
+		if (SendAndReceive(dw) && !ShouldDisconnect())
 		{
 			if (IsInHandshake())
 			{
@@ -226,13 +228,17 @@ namespace QuantumGate::Socks5Extender
 
 			Disconnect();
 
-			didwork = true;
+			dw = true;
 		}
 
-		if (didwork) m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+		if (dw)
+		{
+			m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+			didwork = true;
+		}
 	}
 
-	void Connection::ProcessRelayEvents(const Size max_send, Size& sent)
+	void Connection::ProcessRelayEvents(bool& didwork, const Size max_send, Size& sent)
 	{
 		assert(!IsDisconnecting() && !IsDisconnected());
 
@@ -243,6 +249,12 @@ namespace QuantumGate::Socks5Extender
 				if (!RelayReceivedData(max_send, sent))
 				{
 					SetDisconnectCondition();
+				}
+
+				if (sent > 0)
+				{
+					m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+					didwork = true;
 				}
 			}
 		}
@@ -278,7 +290,7 @@ namespace QuantumGate::Socks5Extender
 		}
 	}
 
-	UInt64 Connection::MakeKey(const PeerLUID pluid, const ConnectionID cid) noexcept
+	UInt64 Connection::MakeKey(const PeerLUID pluid, const Connection::ID cid) noexcept
 	{
 		return Util::GetNonPersistentHash(Util::FormatString(L"%llu:%llu", pluid, cid));
 	}
