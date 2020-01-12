@@ -861,6 +861,8 @@ namespace QuantumGate::Socks5Extender
 			{
 				pluid = it->second->WithSharedLock()->GetPeerLUID();
 				connections.erase(it);
+
+				LogDbg(L"%s: total number of connections: %zu", GetName().c_str(), connections.size());
 			}
 		});
 
@@ -873,6 +875,9 @@ namespace QuantumGate::Socks5Extender
 				{
 					peer.Connections.erase(key);
 					peer.CalcMaxSndRcvSize();
+
+					LogDbg(L"%s: total number of connections for peer %llu: %zu",
+						   GetName().c_str(), peer.ID, peer.Connections.size());
 				});
 			}
 		}
@@ -1005,7 +1010,7 @@ namespace QuantumGate::Socks5Extender
 		{
 			for (auto it = connections.begin(); it != connections.end() && !shutdown_event.IsSet(); ++it)
 			{
-				it->second->WithUniqueLock([&](Connection& connection)
+				it->second->IfUniqueLock([&](Connection& connection)
 				{
 					if (connection.IsActive())
 					{
@@ -1018,8 +1023,7 @@ namespace QuantumGate::Socks5Extender
 							connection.SetDisconnectCondition();
 						}
 					}
-					else if (connection.IsDisconnected() ||
-						(connection.IsDisconnecting() && connection.IsTimedOut()))
+					else if ((connection.IsDisconnected() || connection.IsDisconnecting()) && connection.IsTimedOut())
 					{
 						LogDbg(L"%s: removing connection %llu", GetName().c_str(), connection.GetID());
 
@@ -1060,7 +1064,7 @@ namespace QuantumGate::Socks5Extender
 					{
 						Size sent{ 0 };
 
-						it->second->WithUniqueLock([&](Connection& connection)
+						it->second->IfUniqueLock([&](Connection& connection)
 						{
 							if (connection.IsActive())
 							{

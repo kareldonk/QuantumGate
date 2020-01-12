@@ -67,6 +67,8 @@ namespace QuantumGate::Socks5Extender
 		[[nodiscard]] bool SendRelayedData(const Buffer&& buffer);
 
 	protected:
+		[[nodiscard]] int GetNullPosition(const BufferView& buffer) const noexcept;
+
 		[[nodiscard]] bool SendAndReceive(bool& didwork);
 		void FlushBuffers();
 

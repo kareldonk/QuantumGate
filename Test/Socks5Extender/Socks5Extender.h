@@ -47,7 +47,7 @@ namespace QuantumGate::Socks5Extender
 		Connections Connections;
 
 		const Size MaxDataRelayDataSize{ 0 };
-		static constexpr Size MinSndRcvSize{ 1u << 9 };
+		static constexpr Size MinSndRcvSize{ 1u << 10 };
 		Size MaxSndRcvSize{ 0 };
 		Size ActSndRcvSize{ 0 };
 
@@ -182,7 +182,7 @@ namespace QuantumGate::Socks5Extender
 
 		[[nodiscard]] Size GetMaxDataRelayDataSize() const noexcept
 		{
-			Size size{ (1u << 14) - GetDataRelayHeaderSize() };
+			const Size size{ (1u << 15) - GetDataRelayHeaderSize() };
 			assert(size <= GetMaximumMessageDataSize());
 			return size;
 		}

@@ -67,7 +67,8 @@ namespace QuantumGate::Socks5Extender
 		// Timeout is shorter in handshake state
 		const auto current_time = Util::GetCurrentSteadyTime();
 		return ((IsInHandshake() && current_time - m_Socket.GetConnectedSteadyTime() > 30s) ||
-			(current_time - GetLastActiveSteadyTime() > 600s));
+			(IsDisconnected() && current_time - GetLastActiveSteadyTime() > 30s) ||
+				(current_time - GetLastActiveSteadyTime() > 600s));
 	}
 
 	void Connection::SetStatus(Status status) noexcept
@@ -229,47 +230,61 @@ namespace QuantumGate::Socks5Extender
 
 		bool dw{ false };
 
-		if (SendAndReceive(dw) && !ShouldDisconnect())
+		if (SendAndReceive(dw))
 		{
 			if (IsInHandshake())
 			{
-				switch (GetSocksProtocolVersion())
+				const auto spv = GetSocksProtocolVersion();
+				if (spv == SocksProtocolVersion::Unknown)
 				{
-					case SocksProtocolVersion::Unknown:
+					if (!DetermineProtocolVersion())
 					{
-						if (!DetermineProtocolVersion())
-						{
-							SetDisconnectCondition();
-						}
-						break;
-					}
-					case SocksProtocolVersion::Socks4:
-					{
-						if (!HandleReceivedSocks4Messages())
-						{
-							SetDisconnectCondition();
-						}
-						break;
-					}
-					case SocksProtocolVersion::Socks5:
-					{
-						if (!HandleReceivedSocks5Messages())
-						{
-							SetDisconnectCondition();
-						}
-						break;
-					}
-					default:
-					{
-						// Shouldn't get here
-						assert(false);
 						SetDisconnectCondition();
-						break;
+					}
+				}
+
+				if (spv != SocksProtocolVersion::Unknown && !ShouldDisconnect())
+				{
+					switch (spv)
+					{
+						case SocksProtocolVersion::Socks4:
+						{
+							if (!HandleReceivedSocks4Messages())
+							{
+								SetDisconnectCondition();
+							}
+							break;
+						}
+						case SocksProtocolVersion::Socks5:
+						{
+							if (!HandleReceivedSocks5Messages())
+							{
+								SetDisconnectCondition();
+							}
+							break;
+						}
+						default:
+						{
+							// Shouldn't get here
+							assert(false);
+							SetDisconnectCondition();
+							break;
+						}
+					}
+				}
+
+				if (!ShouldDisconnect())
+				{
+					if (!SendAndReceive(dw))
+					{
+						SetDisconnectCondition();
 					}
 				}
 			}
 		}
-		else
+		else SetDisconnectCondition();
+
+		if (ShouldDisconnect())
 		{
 			// If we have trouble sending or receiving
 			// we can disconnect immediately
@@ -638,19 +653,10 @@ namespace QuantumGate::Socks5Extender
 		{
 			// Try to determine how long the userid is;
 			// it should end in null character
-			int pos{ -1 };
-			for (int x = 0; x < buffer.GetSize(); ++x)
+			const auto posu = GetNullPosition(buffer);
+			if (posu != -1)
 			{
-				if (buffer[x] == Byte{ '\0' })
-				{
-					pos = x;
-					break;
-				}
-			}
-
-			if (pos != -1)
-			{
-				const int userid_len = pos + 1;
+				const int userid_len = posu + 1;
 
 				buffer.RemoveFirst(userid_len);
 
@@ -660,27 +666,18 @@ namespace QuantumGate::Socks5Extender
 				{
 					// Try to determine how long the domain is;
 					// it should end in null character
-					pos = -1;
-					for (int x = 0; x < buffer.GetSize(); ++x)
-					{
-						if (buffer[x] == Byte{ '\0' })
-						{
-							pos = x;
-							break;
-						}
-					}
-
-					if (pos != -1)
+					const auto posd = GetNullPosition(buffer);
+					if (posd != -1)
 					{
 						// Domain should not be empty
-						if (pos > 0)
+						if (posd > 0)
 						{
-							const int domain_len = pos + 1;
+							const int domain_len = posd + 1;
 
 							// Read domain name
 							std::string domain;
-							domain.resize(pos);
-							std::memcpy(domain.data(), buffer.GetBytes(), pos);
+							domain.resize(posd);
+							std::memcpy(domain.data(), buffer.GetBytes(), posd);
 
 							// Read port and convert from network byte order
 							const auto port = Endian::FromNetworkByteOrder(msg.DestinationPort);
@@ -717,6 +714,19 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
+	int Connection::GetNullPosition(const BufferView& buffer) const noexcept
+	{
+		for (BufferView::SizeType x = 0u; x < buffer.GetSize(); ++x)
+		{
+			if (buffer[x] == Byte{ '\0' })
+			{
+				return static_cast<int>(x);
+			}
+		}
+
+		return -1;
+	}
+
 	bool Connection::ProcessSocks4IPv4ConnectMessage()
 	{
 		auto success = true;
@@ -733,16 +743,7 @@ namespace QuantumGate::Socks5Extender
 		{
 			// Try to determine how long the userid is;
 			// it should end in null character
-			int pos{ -1 };
-			for (int x = 0; x < buffer.GetSize(); ++x)
-			{
-				if (buffer[x] == Byte{ '\0' })
-				{
-					pos = x;
-					break;
-				}
-			}
-
+			const auto pos = GetNullPosition(buffer);
 			if (pos != -1)
 			{
 				const int userid_len = pos + 1;
@@ -1060,8 +1061,7 @@ namespace QuantumGate::Socks5Extender
 					auto port = Endian::FromNetworkByteOrder(*reinterpret_cast<const UInt16*>(buffer.GetBytes()));
 
 					// Remove what we already processed from the buffer
-					m_ReceiveBuffer.RemoveFirst(sizeof(Socks5Protocol::RequestMsg) +
-												1 + numchars + 2);
+					m_ReceiveBuffer.RemoveFirst(sizeof(Socks5Protocol::RequestMsg) + 1 + numchars + 2);
 
 					Dbg(L"Socks5 RequestMsg: d:%s, p:%u", Util::ToStringW(domain).c_str(), port);
 
