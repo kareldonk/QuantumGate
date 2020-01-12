@@ -26,8 +26,9 @@ namespace QuantumGate::Socks5Extender
 		SetStatus(Status::Handshake);
 	}
 
-	Connection::Connection(Extender& extender, const PeerLUID pluid, const Connection::ID cid, Socket&& socket) noexcept :
-		m_ID(cid), m_PeerLUID(pluid), m_Socket(std::move(socket)), m_Extender(extender)
+	Connection::Connection(Extender& extender, const PeerLUID pluid, const Connection::ID cid,
+						   const SocksProtocolVersion socks_version, Socket&& socket) noexcept :
+		m_ProtocolVersion(socks_version), m_ID(cid), m_PeerLUID(pluid), m_Socket(std::move(socket)), m_Extender(extender)
 	{
 		m_Key = MakeKey(m_PeerLUID, m_ID);
 		m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
@@ -132,6 +133,29 @@ namespace QuantumGate::Socks5Extender
 		}
 	}
 
+	bool Connection::SendSocks4Reply(const Socks4Protocol::Replies reply)
+	{
+		return SendSocks4Reply(reply, BufferView(), 0);
+	}
+
+	bool Connection::SendSocks4Reply(const Socks4Protocol::Replies reply,
+									 const BufferView& address, const UInt16 port)
+	{
+		Socks4Protocol::ReplyMsg msg;
+		msg.Reserved = 0;
+		msg.Reply = static_cast<UInt8>(reply);
+		msg.DestinationPort = port;
+
+		if (address.GetSize() >= sizeof(msg.DestinationIP))
+		{
+			std::memcpy(&msg.DestinationIP, address.GetBytes(), sizeof(msg.DestinationIP));
+		}
+
+		m_SendBuffer += BufferView(reinterpret_cast<Byte*>(&msg), sizeof(msg));
+
+		return true;
+	}
+
 	bool Connection::SendSocks5Reply(const Socks5Protocol::Replies reply)
 	{
 		return SendSocks5Reply(reply, Socks5Protocol::AddressTypes::DomainName, BufferView(), 0);
@@ -209,9 +233,39 @@ namespace QuantumGate::Socks5Extender
 		{
 			if (IsInHandshake())
 			{
-				if (!HandleReceivedSocks5Messages())
+				switch (GetSocksProtocolVersion())
 				{
-					SetDisconnectCondition();
+					case SocksProtocolVersion::Unknown:
+					{
+						if (!DetermineProtocolVersion())
+						{
+							SetDisconnectCondition();
+						}
+						break;
+					}
+					case SocksProtocolVersion::Socks4:
+					{
+						if (!HandleReceivedSocks4Messages())
+						{
+							SetDisconnectCondition();
+						}
+						break;
+					}
+					case SocksProtocolVersion::Socks5:
+					{
+						if (!HandleReceivedSocks5Messages())
+						{
+							SetDisconnectCondition();
+						}
+						break;
+					}
+					default:
+					{
+						// Shouldn't get here
+						assert(false);
+						SetDisconnectCondition();
+						break;
+					}
 				}
 			}
 		}
@@ -311,8 +365,20 @@ namespace QuantumGate::Socks5Extender
 				{
 					if (m_Socket.GetIOStatus().HasException())
 					{
-						DiscardReturnValue(m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(),
-																	  m_Extender.TranslateWSAErrorToSocks5(m_Socket.GetIOStatus().GetErrorCode())));
+						switch (GetSocksProtocolVersion())
+						{
+							case SocksProtocolVersion::Socks4:
+								DiscardReturnValue(m_Extender.SendSocks4Reply(GetPeerLUID(), GetID(),
+																			  m_Extender.TranslateWSAErrorToSocks4(m_Socket.GetIOStatus().GetErrorCode())));
+								break;
+							case SocksProtocolVersion::Socks5:
+								DiscardReturnValue(m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(),
+																			  m_Extender.TranslateWSAErrorToSocks5(m_Socket.GetIOStatus().GetErrorCode())));
+								break;
+							default:
+								assert(false);
+								break;
+						}
 
 						LogErr(L"%s: got exception on socket %s (%s)",
 							   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
@@ -334,30 +400,73 @@ namespace QuantumGate::Socks5Extender
 							LogInfo(L"%s: connected to %s for connection %llu",
 									m_Extender.GetName().c_str(), m_Socket.GetPeerName().c_str(), GetID());
 
-							Socks5Protocol::AddressTypes atype{ Socks5Protocol::AddressTypes::IPv4 };
-							if (m_Socket.GetLocalEndpoint().GetIPAddress().GetFamily() == IPAddress::Family::IPv6)
-							{
-								atype = Socks5Protocol::AddressTypes::IPv6;
-							}
-
 							// Let peer know connection succeeded
-							if (m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(), Socks5Protocol::Replies::Succeeded, atype,
-														   m_Socket.GetLocalEndpoint().GetIPAddress().GetBinary(),
-														   m_Socket.GetLocalEndpoint().GetPort()))
+							switch (GetSocksProtocolVersion())
 							{
-								SetStatus(Status::Ready);
-							}
-							else
-							{
-								LogErr(L"%s: could not send Socks5 Succeeded reply to peer %llu for connection %llu",
-									   m_Extender.GetName().c_str(), GetPeerLUID(), GetID());
-								success = false;
+								case SocksProtocolVersion::Socks4:
+								{
+									if (m_Extender.SendSocks4Reply(GetPeerLUID(), GetID(), Socks4Protocol::Replies::Succeeded,
+																   m_Socket.GetLocalEndpoint().GetIPAddress().GetBinary(),
+																   m_Socket.GetLocalEndpoint().GetPort()))
+									{
+										SetStatus(Status::Ready);
+									}
+									else
+									{
+										LogErr(L"%s: could not send Socks4 Succeeded reply to peer %llu for connection %llu",
+											   m_Extender.GetName().c_str(), GetPeerLUID(), GetID());
+										success = false;
+									}
+
+									break;
+								}
+								case SocksProtocolVersion::Socks5:
+								{
+									Socks5Protocol::AddressTypes atype{ Socks5Protocol::AddressTypes::IPv4 };
+									if (m_Socket.GetLocalEndpoint().GetIPAddress().GetFamily() == IPAddress::Family::IPv6)
+									{
+										atype = Socks5Protocol::AddressTypes::IPv6;
+									}
+
+									if (m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(), Socks5Protocol::Replies::Succeeded, atype,
+																   m_Socket.GetLocalEndpoint().GetIPAddress().GetBinary(),
+																   m_Socket.GetLocalEndpoint().GetPort()))
+									{
+										SetStatus(Status::Ready);
+									}
+									else
+									{
+										LogErr(L"%s: could not send Socks5 Succeeded reply to peer %llu for connection %llu",
+											   m_Extender.GetName().c_str(), GetPeerLUID(), GetID());
+										success = false;
+									}
+
+									break;
+								}
+								default:
+								{
+									assert(false);
+									success = false;
+									break;
+								}
 							}
 						}
 						else
 						{
-							DiscardReturnValue(m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(),
-																		  Socks5Protocol::Replies::GeneralFailure));
+							switch (GetSocksProtocolVersion())
+							{
+								case SocksProtocolVersion::Socks4:
+									DiscardReturnValue(m_Extender.SendSocks4Reply(GetPeerLUID(), GetID(),
+																				  Socks4Protocol::Replies::FailedOrRejected));
+									break;
+								case SocksProtocolVersion::Socks5:
+									DiscardReturnValue(m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(),
+																				  Socks5Protocol::Replies::GeneralFailure));
+									break;
+								default:
+									assert(false);
+									break;
+							}
 
 							LogErr(L"%s: CompleteConnect failed for socket %s",
 								   m_Extender.GetName().c_str(), m_Socket.GetPeerName().c_str());
@@ -413,6 +522,256 @@ namespace QuantumGate::Socks5Extender
 			}
 		}
 		else success = false;
+
+		return success;
+	}
+
+	bool Connection::DetermineProtocolVersion() noexcept
+	{
+		assert(IsInHandshake());
+
+		// Try to determine Socks protocol version based on first byte
+		if (m_ReceiveBuffer.GetSize() >= 1u)
+		{
+			const auto byte = m_ReceiveBuffer[0];
+
+			if (byte == Byte{ 0x04 })
+			{
+				m_ProtocolVersion = SocksProtocolVersion::Socks4;
+			}
+			else if (byte == Byte{ 0x05 })
+			{
+				m_ProtocolVersion = SocksProtocolVersion::Socks5;
+			}
+			else
+			{
+				LogErr(L"%s: received incorrect version %u on socket %s",
+					   m_Extender.GetName().c_str(), byte, m_Socket.GetPeerEndpoint().GetString().c_str());
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool Connection::HandleReceivedSocks4Messages() noexcept
+	{
+		assert(IsInHandshake());
+
+		auto success = true;
+
+		switch (GetStatus())
+		{
+			case Status::Handshake:
+				SetStatus(Status::Connecting);
+				[[fallthrough]];
+			case Status::Connecting:
+				success = ProcessSocks4ConnectMessages();
+				break;
+			default:
+				break;
+		}
+
+		return success;
+	}
+
+	bool Connection::ProcessSocks4ConnectMessages() noexcept
+	{
+		auto success = true;
+
+		if (m_ReceiveBuffer.GetSize() >= sizeof(Socks4Protocol::RequestMsg))
+		{
+			const Socks4Protocol::RequestMsg msg =
+				*reinterpret_cast<Socks4Protocol::RequestMsg*>(m_ReceiveBuffer.GetBytes());
+
+			Dbg(L"Socks4 RequestMsg: v:%u, c:%u", msg.Version, msg.Command);
+
+			if (msg.Version == 0x04)
+			{
+				const UInt8 domain_ip[4]{ 0, 0, 0, 1 };
+
+				if (msg.Command == static_cast<UInt8>(Socks4Protocol::Commands::Connect) &&
+					std::memcmp(&msg.DestinationIP, &domain_ip, sizeof(msg.DestinationIP)) != 0)
+				{
+					success = ProcessSocks4IPv4ConnectMessage();
+				}
+				else if (msg.Command == static_cast<UInt8>(Socks4Protocol::Commands::Connect) &&
+						 std::memcmp(&msg.DestinationIP, &domain_ip, sizeof(msg.DestinationIP)) == 0)
+				{
+					success = ProcessSocks4DomainConnectMessage();
+				}
+				else
+				{
+					DiscardReturnValue(SendSocks4Reply(Socks4Protocol::Replies::FailedOrRejected));
+
+					LogErr(L"%s: received incorrect command on socket %s",
+						   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
+					success = false;
+				}
+			}
+			else
+			{
+				DiscardReturnValue(SendSocks4Reply(Socks4Protocol::Replies::FailedOrRejected));
+
+				LogErr(L"%s: received incorrect request on socket %s",
+					   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
+				success = false;
+			}
+		}
+
+		return success;
+	}
+
+	bool Connection::ProcessSocks4DomainConnectMessage()
+	{
+		auto success = true;
+
+		const Socks4Protocol::RequestMsg msg =
+			*reinterpret_cast<Socks4Protocol::RequestMsg*>(m_ReceiveBuffer.GetBytes());
+
+		BufferView buffer(m_ReceiveBuffer);
+		buffer.RemoveFirst(sizeof(Socks4Protocol::RequestMsg));
+
+		// If we have enough data for the userid read it out
+		// otherwise we come back later
+		if (buffer.GetSize() >= 1)
+		{
+			// Try to determine how long the userid is;
+			// it should end in null character
+			int pos{ -1 };
+			for (int x = 0; x < buffer.GetSize(); ++x)
+			{
+				if (buffer[x] == Byte{ '\0' })
+				{
+					pos = x;
+					break;
+				}
+			}
+
+			if (pos != -1)
+			{
+				const int userid_len = pos + 1;
+
+				buffer.RemoveFirst(userid_len);
+
+				// If we have enough data for the domain read it out
+				// otherwise we come back later
+				if (buffer.GetSize() >= 1)
+				{
+					// Try to determine how long the domain is;
+					// it should end in null character
+					pos = -1;
+					for (int x = 0; x < buffer.GetSize(); ++x)
+					{
+						if (buffer[x] == Byte{ '\0' })
+						{
+							pos = x;
+							break;
+						}
+					}
+
+					if (pos != -1)
+					{
+						// Domain should not be empty
+						if (pos > 0)
+						{
+							const int domain_len = pos + 1;
+
+							// Read domain name
+							std::string domain;
+							domain.resize(pos);
+							std::memcpy(domain.data(), buffer.GetBytes(), pos);
+
+							// Read port and convert from network byte order
+							const auto port = Endian::FromNetworkByteOrder(msg.DestinationPort);
+
+							// Remove what we already processed from the buffer
+							m_ReceiveBuffer.RemoveFirst(sizeof(Socks4Protocol::RequestMsg) + userid_len + domain_len);
+
+							Dbg(L"Socks4 RequestMsg: d:%s, p:%u", Util::ToStringW(domain).c_str(), port);
+
+							if (m_Extender.SendConnectDomain(GetPeerLUID(), GetID(), SocksProtocolVersion::Socks4,
+															 Util::ToStringW(domain), port))
+							{
+								SetPeerConnected(true);
+								SetStatus(Status::Connected);
+							}
+							else success = false;
+						}
+						else
+						{
+							LogErr(L"%s: received connect request with empty domain on socket %s",
+								   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
+							success = false;
+						}
+
+						if (!success)
+						{
+							DiscardReturnValue(SendSocks4Reply(Socks4Protocol::Replies::FailedOrRejected));
+						}
+					}
+				}
+			}
+		}
+
+		return success;
+	}
+
+	bool Connection::ProcessSocks4IPv4ConnectMessage()
+	{
+		auto success = true;
+
+		const Socks4Protocol::RequestMsg msg =
+			*reinterpret_cast<Socks4Protocol::RequestMsg*>(m_ReceiveBuffer.GetBytes());
+
+		BufferView buffer(m_ReceiveBuffer);
+		buffer.RemoveFirst(sizeof(Socks4Protocol::RequestMsg));
+
+		// If we have enough data for the userid read it out
+		// otherwise we come back later
+		if (buffer.GetSize() >= 1)
+		{
+			// Try to determine how long the userid is;
+			// it should end in null character
+			int pos{ -1 };
+			for (int x = 0; x < buffer.GetSize(); ++x)
+			{
+				if (buffer[x] == Byte{ '\0' })
+				{
+					pos = x;
+					break;
+				}
+			}
+
+			if (pos != -1)
+			{
+				const int userid_len = pos + 1;
+
+				// Read IPv4 address
+				BinaryIPAddress ip;
+				ip.AddressFamily = BinaryIPAddress::Family::IPv4;
+				std::memcpy(&ip.Bytes, msg.DestinationIP, 4);
+
+				// Read port and convert from network byte order
+				const auto port = Endian::FromNetworkByteOrder(msg.DestinationPort);
+
+				// Remove what we already processed from the buffer
+				m_ReceiveBuffer.RemoveFirst(sizeof(Socks4Protocol::RequestMsg) + userid_len);
+
+				Dbg(L"Socks4 RequestMsg: ip:%s, p:%u", IPAddress(ip).GetString().c_str(), port);
+
+				if (m_Extender.SendConnectIP(GetPeerLUID(), GetID(), SocksProtocolVersion::Socks4, ip, port))
+				{
+					SetPeerConnected(true);
+					SetStatus(Status::Connected);
+				}
+				else
+				{
+					DiscardReturnValue(SendSocks4Reply(Socks4Protocol::Replies::FailedOrRejected));
+					success = false;
+				}
+			}
+		}
 
 		return success;
 	}
@@ -706,7 +1065,8 @@ namespace QuantumGate::Socks5Extender
 
 					Dbg(L"Socks5 RequestMsg: d:%s, p:%u", Util::ToStringW(domain).c_str(), port);
 
-					if (m_Extender.SendConnectDomain(GetPeerLUID(), GetID(), Util::ToStringW(domain), port))
+					if (m_Extender.SendConnectDomain(GetPeerLUID(), GetID(), SocksProtocolVersion::Socks5,
+													 Util::ToStringW(domain), port))
 					{
 						SetPeerConnected(true);
 						SetStatus(Status::Connected);
@@ -746,7 +1106,7 @@ namespace QuantumGate::Socks5Extender
 
 			Dbg(L"Socks5 RequestMsg: ip:%s, p:%u", IPAddress(ip).GetString().c_str(), port);
 
-			if (m_Extender.SendConnectIP(GetPeerLUID(), GetID(), ip, port))
+			if (m_Extender.SendConnectIP(GetPeerLUID(), GetID(), SocksProtocolVersion::Socks5, ip, port))
 			{
 				SetPeerConnected(true);
 				SetStatus(Status::Connected);
@@ -784,7 +1144,7 @@ namespace QuantumGate::Socks5Extender
 
 			Dbg(L"Socks5 RequestMsg: ip:%s, p:%u", IPAddress(ip).GetString().c_str(), port);
 
-			if (m_Extender.SendConnectIP(GetPeerLUID(), GetID(), ip, port))
+			if (m_Extender.SendConnectIP(GetPeerLUID(), GetID(), SocksProtocolVersion::Socks5, ip, port))
 			{
 				SetPeerConnected(true);
 				SetStatus(Status::Connected);

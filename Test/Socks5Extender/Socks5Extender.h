@@ -19,6 +19,7 @@ namespace QuantumGate::Socks5Extender
 		Unknown = 0,
 		ConnectDomain,
 		ConnectIP,
+		Socks4ReplyRelay,
 		Socks5ReplyRelay,
 		DataRelay,
 		Disconnect,
@@ -46,6 +47,7 @@ namespace QuantumGate::Socks5Extender
 		Connections Connections;
 
 		const Size MaxDataRelayDataSize{ 0 };
+		static constexpr Size MinSndRcvSize{ 1u << 9 };
 		Size MaxSndRcvSize{ 0 };
 		Size ActSndRcvSize{ 0 };
 
@@ -61,7 +63,7 @@ namespace QuantumGate::Socks5Extender
 			if (num_conn > 0)
 			{
 				const auto max_size = (std::max)(static_cast<double>(MaxDataRelayDataSize) / static_cast<double>(num_conn),
-												 static_cast<double>(1u << 9));
+												 static_cast<double>(MinSndRcvSize));
 				MaxSndRcvSize = static_cast<Size>(max_size);
 			}
 			else
@@ -120,6 +122,8 @@ namespace QuantumGate::Socks5Extender
 		ThreadPool::ThreadCallbackResult DataRelayWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event);
 
 		[[nodiscard]] std::optional<IPAddress> ResolveDomainIP(const String& domain) noexcept;
+
+		[[nodiscard]] Socks4Protocol::Replies TranslateWSAErrorToSocks4(Int errorcode) const noexcept;
 		[[nodiscard]] Socks5Protocol::Replies TranslateWSAErrorToSocks5(Int errorcode) const noexcept;
 
 		[[nodiscard]] bool AddPeer(const PeerLUID pluid) noexcept;
@@ -141,16 +145,23 @@ namespace QuantumGate::Socks5Extender
 		[[nodiscard]] std::optional<PeerLUID> GetPeerForConnection() const;
 
 		[[nodiscard]] bool MakeOutgoingConnection(const PeerLUID pluid, const Connection::ID cid,
+												  const SocksProtocolVersion socks_version,
 												  const IPAddress& ip, const UInt16 port);
 
 		[[nodiscard]] bool SendConnectDomain(const PeerLUID pluid, const Connection::ID cid,
+											 const SocksProtocolVersion socks_version,
 											 const String& domain, const UInt16 port) const noexcept;
 
 		[[nodiscard]] bool SendConnectIP(const PeerLUID pluid, const Connection::ID cid,
+										 const SocksProtocolVersion socks_version,
 										 const Network::BinaryIPAddress& ip, const UInt16 port) const noexcept;
 
 		[[nodiscard]] bool SendDisconnect(const PeerLUID pluid, const Connection::ID cid) const noexcept;
 		[[nodiscard]] bool SendDisconnectAck(const PeerLUID pluid, const Connection::ID cid) const noexcept;
+
+		[[nodiscard]] bool SendSocks4Reply(const PeerLUID pluid, const Connection::ID cid, const Socks4Protocol::Replies reply,
+										   const Network::BinaryIPAddress ip = Network::BinaryIPAddress{},
+										   const UInt16 port = 0) const noexcept;
 
 		[[nodiscard]] bool SendSocks5Reply(const PeerLUID pluid, const Connection::ID cid, const Socks5Protocol::Replies reply,
 										   const Socks5Protocol::AddressTypes atype = Socks5Protocol::AddressTypes::IPv4,
@@ -177,10 +188,16 @@ namespace QuantumGate::Socks5Extender
 		}
 
 		[[nodiscard]] bool HandleConnectDomainPeerMessage(const PeerLUID pluid, const Connection::ID cid,
+														  const SocksProtocolVersion socks_version,
 														  const String& domain, const UInt16 port);
 
 		[[nodiscard]] bool HandleConnectIPPeerMessage(const PeerLUID pluid, const Connection::ID cid,
+													  const SocksProtocolVersion socks_version,
 													  const Network::BinaryIPAddress& ip, const UInt16 port);
+
+		[[nodiscard]] bool HandleSocks4ReplyRelayPeerMessage(const PeerLUID pluid, const Connection::ID cid,
+															 const Socks4Protocol::Replies reply,
+															 const BufferView& address, const UInt16 port);
 
 		[[nodiscard]] bool HandleSocks5ReplyRelayPeerMessage(const PeerLUID pluid, const Connection::ID cid,
 															 const Socks5Protocol::Replies reply,

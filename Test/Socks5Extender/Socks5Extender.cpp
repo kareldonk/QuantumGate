@@ -383,12 +383,15 @@ namespace QuantumGate::Socks5Extender
 						result.Handled = true;
 
 						Connection::ID cid{ 0 };
+						UInt8 socks_version{ 0 };
 						String domain;
 						UInt16 port{ 0 };
 
-						if (rdr.Read(cid, WithSize(domain, MaxSize::_1KB), port))
+						if (rdr.Read(cid, socks_version, WithSize(domain, MaxSize::_1KB), port))
 						{
-							result.Success = HandleConnectDomainPeerMessage(event.GetPeerLUID(), cid, domain, port);
+							result.Success = HandleConnectDomainPeerMessage(event.GetPeerLUID(), cid,
+																			static_cast<SocksProtocolVersion>(socks_version),
+																			domain, port);
 						}
 						else LogErr(L"%s: could not read ConnectDomain message from peer %llu",
 									GetName().c_str(), event.GetPeerLUID());
@@ -400,14 +403,37 @@ namespace QuantumGate::Socks5Extender
 						result.Handled = true;
 
 						Connection::ID cid{ 0 };
+						UInt8 socks_version{ 0 };
 						SerializedBinaryIPAddress ip;
 						UInt16 port{ 0 };
 
-						if (rdr.Read(cid, ip, port))
+						if (rdr.Read(cid, socks_version, ip, port))
 						{
-							result.Success = HandleConnectIPPeerMessage(event.GetPeerLUID(), cid, ip, port);
+							result.Success = HandleConnectIPPeerMessage(event.GetPeerLUID(), cid,
+																		static_cast<SocksProtocolVersion>(socks_version),
+																		ip, port);
 						}
 						else LogErr(L"%s: could not read ConnectIP message from peer %llu",
+									GetName().c_str(), event.GetPeerLUID());
+
+						break;
+					}
+					case MessageType::Socks4ReplyRelay:
+					{
+						result.Handled = true;
+
+						Connection::ID cid{ 0 };
+						Socks4Protocol::Replies reply{ Socks4Protocol::Replies::FailedOrRejected };
+						SerializedBinaryIPAddress ip;
+						UInt16 port{ 0 };
+
+						if (rdr.Read(cid, reply, ip, port))
+						{
+							result.Success = HandleSocks4ReplyRelayPeerMessage(event.GetPeerLUID(), cid, reply,
+																			   BufferView(reinterpret_cast<Byte*>(&ip.Bytes),
+																						  sizeof(SerializedBinaryIPAddress::Bytes)), port);
+						}
+						else LogErr(L"%s: could not read Socks4ReplyRelay message from peer %llu",
 									GetName().c_str(), event.GetPeerLUID());
 
 						break;
@@ -549,9 +575,11 @@ namespace QuantumGate::Socks5Extender
 	}
 
 	bool Extender::HandleConnectDomainPeerMessage(const PeerLUID pluid, const Connection::ID cid,
+												  const SocksProtocolVersion socks_version,
 												  const String& domain, const UInt16 port)
 	{
-		if (!domain.empty() && port != 0)
+		if ((socks_version == SocksProtocolVersion::Socks4 || socks_version == SocksProtocolVersion::Socks5) &&
+			!domain.empty() && port != 0)
 		{
 			LogDbg(L"%s: received ConnectDomain from peer %llu for connection %llu for domain %s",
 				   GetName().c_str(), pluid, cid, domain.c_str());
@@ -560,20 +588,27 @@ namespace QuantumGate::Socks5Extender
 			if (ip)
 			{
 				SLogInfo(GetName() << L": domain " << SLogFmt(FGBrightMagenta) << domain.c_str() <<
-						 SLogFmt(Default) << L" resolved to IP " << SLogFmt(FGBrightMagenta) << 
+						 SLogFmt(Default) << L" resolved to IP " << SLogFmt(FGBrightMagenta) <<
 						 ip->GetString() << SLogFmt(Default) << L" for connection " << cid);
 
-				if (!MakeOutgoingConnection(pluid, cid, *ip, port))
-				{
-					DiscardReturnValue(SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::GeneralFailure));
-				}
+				DiscardReturnValue(MakeOutgoingConnection(pluid, cid, socks_version, *ip, port));
 			}
 			else
 			{
 				LogErr(L"%s: could not resolve IP addresses for domain %s", GetName().c_str(), domain.c_str());
 
 				// Could not resolve domain
-				DiscardReturnValue(SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::HostUnreachable));
+				switch (socks_version)
+				{
+					case SocksProtocolVersion::Socks4:
+						DiscardReturnValue(SendSocks4Reply(pluid, cid, Socks4Protocol::Replies::FailedOrRejected));
+					case SocksProtocolVersion::Socks5:
+						DiscardReturnValue(SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::HostUnreachable));
+						break;
+					default:
+						assert(false);
+						break;
+				}
 			}
 
 			return true;
@@ -584,18 +619,75 @@ namespace QuantumGate::Socks5Extender
 	}
 
 	bool Extender::HandleConnectIPPeerMessage(const PeerLUID pluid, const Connection::ID cid,
+											  const SocksProtocolVersion socks_version,
 											  const BinaryIPAddress& ip, const UInt16 port)
 	{
-		if ((ip.AddressFamily == BinaryIPAddress::Family::IPv4 ||
+		if ((socks_version == SocksProtocolVersion::Socks4 || socks_version == SocksProtocolVersion::Socks5) &&
+			(ip.AddressFamily == BinaryIPAddress::Family::IPv4 ||
 			 ip.AddressFamily == BinaryIPAddress::Family::IPv6) && port != 0)
 		{
 			LogDbg(L"%s: received ConnectIP from peer %llu for connection %llu", GetName().c_str(), pluid, cid);
 
-			DiscardReturnValue(MakeOutgoingConnection(pluid, cid, IPAddress(ip), port));
+			DiscardReturnValue(MakeOutgoingConnection(pluid, cid, socks_version, IPAddress(ip), port));
 
 			return true;
 		}
 		else LogErr(L"%s: received invalid ConnectIP parameters from peer %llu", GetName().c_str(), pluid);
+
+		return false;
+	}
+
+	bool Extender::HandleSocks4ReplyRelayPeerMessage(const PeerLUID pluid, const Connection::ID cid,
+													 const Socks4Protocol::Replies reply,
+													 const BufferView& address, const UInt16 port)
+	{
+		switch (reply)
+		{
+			case Socks4Protocol::Replies::Succeeded:
+			case Socks4Protocol::Replies::FailedOrRejected:
+			case Socks4Protocol::Replies::FailedIdentDUnreachable:
+			case Socks4Protocol::Replies::FailedUnknownUser:
+			{
+				auto con = GetConnection(pluid, cid);
+				if (con)
+				{
+					con->WithUniqueLock([&](Connection& connection)
+					{
+						// If incoming connection is still active
+						// (might have been closed in the mean time)
+						if (connection.IsActive())
+						{
+							if (reply == Socks4Protocol::Replies::Succeeded)
+							{
+								connection.SetStatus(Connection::Status::Ready);
+							}
+							else
+							{
+								// Error
+								connection.SetPeerConnected(false);
+								connection.SetDisconnectCondition();
+							}
+
+							DiscardReturnValue(connection.SendSocks4Reply(reply, address, port));
+						}
+					});
+
+					return true;
+				}
+				else
+				{
+					LogErr(L"%s: received Socks4ReplyRelay (%u) from peer %llu for unknown connection ID %llu",
+						   GetName().c_str(), reply, pluid, cid);
+				}
+
+				break;
+			}
+			default:
+			{
+				LogErr(L"%s: received unknown Socks4 reply from %llu: %u", GetName().c_str(), pluid, reply);
+				break;
+			}
+		}
 
 		return false;
 	}
@@ -1039,13 +1131,17 @@ namespace QuantumGate::Socks5Extender
 		else LogErr(L"%s: could not accept new connection", GetName().c_str());
 	}
 
-	bool Extender::SendConnectDomain(const PeerLUID pluid, const Connection::ID cid,
+	bool Extender::SendConnectDomain(const PeerLUID pluid, const Connection::ID cid, const SocksProtocolVersion socks_version,
 									 const String& domain, const UInt16 port) const noexcept
 	{
+		LogInfo(L"%s: connecting to %s through peer %llu for connection %llu (Socks version %u)",
+				GetName().c_str(), domain.c_str(), pluid, cid, socks_version);
+
 		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectDomain);
+		const UInt8 socksv = static_cast<UInt8>(socks_version);
 
 		BufferWriter writer(true);
-		if (writer.WriteWithPreallocation(msgtype, cid, WithSize(domain, MaxSize::_1KB), port))
+		if (writer.WriteWithPreallocation(msgtype, cid, socksv, WithSize(domain, MaxSize::_1KB), port))
 		{
 			if (Send(pluid, writer.MoveWrittenBytes())) return true;
 
@@ -1057,15 +1153,19 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
-	bool Extender::SendConnectIP(const PeerLUID pluid, const Connection::ID cid,
+	bool Extender::SendConnectIP(const PeerLUID pluid, const Connection::ID cid, const SocksProtocolVersion socks_version,
 								 const BinaryIPAddress& ip, const UInt16 port) const noexcept
 	{
 		assert(ip.AddressFamily != BinaryIPAddress::Family::Unspecified);
 
+		LogInfo(L"%s: connecting to %s through peer %llu for connection %llu (Socks version %u)",
+				GetName().c_str(), IPEndpoint(IPAddress(ip), port).GetString().c_str(), pluid, cid, socks_version);
+
 		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectIP);
+		const UInt8 socksv = static_cast<UInt8>(socks_version);
 
 		BufferWriter writer(true);
-		if (writer.WriteWithPreallocation(msgtype, cid, SerializedBinaryIPAddress{ ip }, port))
+		if (writer.WriteWithPreallocation(msgtype, cid, socksv, SerializedBinaryIPAddress{ ip }, port))
 		{
 			if (Send(pluid, writer.MoveWrittenBytes())) return true;
 
@@ -1107,6 +1207,25 @@ namespace QuantumGate::Socks5Extender
 				   GetName().c_str(), cid, pluid);
 		}
 		else LogErr(L"%s: could not prepare DisconnectAck message for connection %llu", GetName().c_str(), cid);
+
+		return false;
+	}
+
+	bool Extender::SendSocks4Reply(const PeerLUID pluid, const Connection::ID cid,
+								   const Socks4Protocol::Replies reply,
+								   const BinaryIPAddress ip, const UInt16 port) const noexcept
+	{
+		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::Socks4ReplyRelay);
+
+		BufferWriter writer(true);
+		if (writer.WriteWithPreallocation(msgtype, cid, reply, SerializedBinaryIPAddress{ ip }, port))
+		{
+			if (Send(pluid, writer.MoveWrittenBytes())) return true;
+
+			LogErr(L"%s: could not send Socks4ReplyRelay message for connection %llu to peer %llu",
+				   GetName().c_str(), cid, pluid);
+		}
+		else LogErr(L"%s: could not prepare Socks4ReplyRelay message for connection %llu", GetName().c_str(), cid);
 
 		return false;
 	}
@@ -1196,28 +1315,34 @@ namespace QuantumGate::Socks5Extender
 	}
 
 	bool Extender::MakeOutgoingConnection(const PeerLUID pluid, const Connection::ID cid,
-										  const IPAddress& ip, const UInt16 port)
+										  const SocksProtocolVersion socks_version, const IPAddress& ip, const UInt16 port)
 	{
+		Socks4Protocol::Replies reply4{ Socks4Protocol::Replies::FailedOrRejected };
+		Socks5Protocol::Replies reply5{ Socks5Protocol::Replies::GeneralFailure };
+
 		if (IsOutgoingIPAllowed(ip))
 		{
 			const IPEndpoint endp(ip, port);
 			Socket s(endp.GetIPAddress().GetFamily());
 
-			LogInfo(L"%s: connecting to %s for peer %llu for connection %llu",
-					GetName().c_str(), endp.GetString().c_str(), pluid, cid);
+			LogInfo(L"%s: connecting to %s for peer %llu for connection %llu (Socks version %u)",
+					GetName().c_str(), endp.GetString().c_str(), pluid, cid, socks_version);
 
 			if (s.BeginConnect(endp))
 			{
-				auto cths = std::make_unique<Connection_ThS>(*this, pluid, cid, std::move(s));
+				auto cths = std::make_unique<Connection_ThS>(*this, pluid, cid, socks_version, std::move(s));
 
 				cths->WithUniqueLock()->SetPeerConnected(true);
 
-				return AddConnection(pluid, cid, std::move(cths));
+				if (AddConnection(pluid, cid, std::move(cths)))
+				{
+					return true;
+				}
 			}
 			else
 			{
 				// Could not connect
-				DiscardReturnValue(SendSocks5Reply(pluid, cid, TranslateWSAErrorToSocks5(WSAGetLastError())));
+				reply5 = TranslateWSAErrorToSocks5(WSAGetLastError());
 			}
 		}
 		else
@@ -1225,7 +1350,19 @@ namespace QuantumGate::Socks5Extender
 			LogErr(L"%s: attempt by peer %llu (connection %llu) to connect to address %s that is not allowed",
 				   GetName().c_str(), pluid, cid, ip.GetString().c_str());
 
-			DiscardReturnValue(SendSocks5Reply(pluid, cid, Socks5Protocol::Replies::ConnectionNotAllowed));
+			reply5 = Socks5Protocol::Replies::ConnectionNotAllowed;
+		}
+
+		switch (socks_version)
+		{
+			case SocksProtocolVersion::Socks4:
+				DiscardReturnValue(SendSocks4Reply(pluid, cid, reply4));
+			case SocksProtocolVersion::Socks5:
+				DiscardReturnValue(SendSocks5Reply(pluid, cid, reply5));
+				break;
+			default:
+				assert(false);
+				break;
 		}
 
 		return false;
@@ -1261,7 +1398,7 @@ namespace QuantumGate::Socks5Extender
 					if (ptr->ai_family == AF_INET || ptr->ai_family == AF_INET6)
 					{
 						const auto ip = IPAddress(ptr->ai_addr);
-							
+
 						cache->insert({ domain, ip });
 
 						return ip;
@@ -1271,6 +1408,11 @@ namespace QuantumGate::Socks5Extender
 		}
 
 		return std::nullopt;
+	}
+
+	Socks4Protocol::Replies Extender::TranslateWSAErrorToSocks4(Int errorcode) const noexcept
+	{
+		return Socks4Protocol::Replies::FailedOrRejected;
 	}
 
 	Socks5Protocol::Replies Extender::TranslateWSAErrorToSocks5(Int errorcode) const noexcept

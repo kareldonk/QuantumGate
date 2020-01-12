@@ -10,6 +10,49 @@
 
 namespace QuantumGate::Socks5Extender
 {
+	enum class SocksProtocolVersion : UInt8
+	{
+		Unknown = 0,
+		Socks4 = 0x04,
+		Socks5 = 0x05
+	};
+
+	namespace Socks4Protocol
+	{
+		enum class Commands : UInt8
+		{
+			Unknown = 0x00,
+			Connect = 0x01,
+			Bind = 0x02
+		};
+
+		enum class Replies : UInt8
+		{
+			Succeeded = 0x5A,
+			FailedOrRejected = 0x5B,
+			FailedIdentDUnreachable = 0x5C,
+			FailedUnknownUser = 0x5D
+		};
+
+#pragma pack(push, 1) // Disable padding bytes
+		struct RequestMsg final
+		{
+			UInt8 Version{ 0x04 };
+			UInt8 Command{ 0 };
+			UInt16 DestinationPort{ 0 };
+			UInt8 DestinationIP[4]{ 0 };
+		};
+
+		struct ReplyMsg final
+		{
+			UInt8 Reserved{ 0 };
+			UInt8 Reply{ 0 };
+			UInt16 DestinationPort{ 0 };
+			UInt8 DestinationIP[4]{ 0 };
+		};
+#pragma pack(pop)
+	}
+
 	namespace Socks5Protocol
 	{
 		enum class AuthMethods : UInt8

@@ -20,10 +20,13 @@ namespace QuantumGate::Socks5Extender
 		using Key = UInt64;
 
 		Connection(Extender& extender, const PeerLUID pluid, Socket&& socket) noexcept;
-		Connection(Extender& extender, const PeerLUID pluid, const ID cid, Socket&& socket) noexcept;
+		Connection(Extender& extender, const PeerLUID pluid, const ID cid, const SocksProtocolVersion socks_version,
+				   Socket&& socket) noexcept;
 
 		[[nodiscard]] inline Key GetKey() const noexcept { return m_Key; }
 		[[nodiscard]] static Key MakeKey(const PeerLUID pluid, const ID cid) noexcept;
+
+		[[nodiscard]] inline SocksProtocolVersion GetSocksProtocolVersion() const noexcept { return m_ProtocolVersion; }
 
 		[[nodiscard]] inline const ID GetID() const noexcept { return m_ID; }
 		[[nodiscard]] inline const PeerLUID GetPeerLUID() const noexcept { return m_PeerLUID; }
@@ -52,6 +55,10 @@ namespace QuantumGate::Socks5Extender
 		void ProcessEvents(bool& didwork);
 		void ProcessRelayEvents(bool& didwork, const Size max_send, Size& sent);
 
+		[[nodiscard]] bool SendSocks4Reply(const Socks4Protocol::Replies reply);
+		[[nodiscard]] bool SendSocks4Reply(const Socks4Protocol::Replies reply,
+										   const BufferView& address, const UInt16 port);
+
 		[[nodiscard]] bool SendSocks5Reply(const Socks5Protocol::Replies reply);
 		[[nodiscard]] bool SendSocks5Reply(const Socks5Protocol::Replies reply,
 										   const Socks5Protocol::AddressTypes atype,
@@ -62,6 +69,13 @@ namespace QuantumGate::Socks5Extender
 	protected:
 		[[nodiscard]] bool SendAndReceive(bool& didwork);
 		void FlushBuffers();
+
+		[[nodiscard]] bool DetermineProtocolVersion() noexcept;
+
+		[[nodiscard]] bool HandleReceivedSocks4Messages() noexcept;
+		[[nodiscard]] bool ProcessSocks4ConnectMessages() noexcept;
+		[[nodiscard]] bool ProcessSocks4IPv4ConnectMessage();
+		[[nodiscard]] bool ProcessSocks4DomainConnectMessage();
 
 		[[nodiscard]] bool HandleReceivedSocks5Messages();
 		[[nodiscard]] bool ProcessSocks5MethodIdentificationMessage();
@@ -77,6 +91,7 @@ namespace QuantumGate::Socks5Extender
 		static constexpr Size MaxReceiveBufferSize{ 1u << 16 };
 
 	private:
+		SocksProtocolVersion m_ProtocolVersion{ SocksProtocolVersion::Unknown };
 		ID m_ID{ 0 };
 		PeerLUID m_PeerLUID{ 0 };
 		UInt64 m_Key{ 0 };
