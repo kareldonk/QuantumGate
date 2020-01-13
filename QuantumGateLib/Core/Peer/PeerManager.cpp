@@ -371,12 +371,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			peerths->WithUniqueLock([&](Peer& peer)
 			{
 				peer.SetInQueue(false);
+				peer.ResetFastRequeue();
 
 				if (peer.ProcessEvents())
 				{
 					// If we still have events waiting to be processed add the
 					// peer back to the queue immediately to avoid extra delays
-					if (peer.UpdateSocketStatus() && peer.HasPendingEvents())
+					if (peer.UpdateSocketStatus() && peer.HasPendingEvents() && peer.IsFastRequeue())
 					{
 						// Peer should not already be in queue if we get here
 						assert(!peer.IsInQueue());

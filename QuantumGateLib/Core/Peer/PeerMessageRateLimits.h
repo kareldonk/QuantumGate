@@ -10,14 +10,14 @@ namespace QuantumGate::Implementation::Core::Peer
 {
 	class MessageRateLimits final
 	{
-		// Enough space to hold 5 full size messages (and more smaller ones)
-		using ExtenderCommunicationRateLimit = RateLimit<Size, 0, 5 * Message::MaxMessageDataSize>;
+		// Enough space to hold 1 full size message (and more smaller ones)
+		using ExtenderCommunicationRateLimit = RateLimit<Size, 0, Message::MaxMessageDataSize>;
 
 		// Enough space to hold 1 full size message (and more smaller ones)
-		using NoiseRateLimit = RateLimit<Size, 0, 1 * Message::MaxMessageDataSize>;
+		using NoiseRateLimit = RateLimit<Size, 0, Message::MaxMessageDataSize>;
 
-		// Enough space to hold 5 full size messages (and more smaller ones)
-		using RelayDataRateLimit = RateLimit<Size, 0, 5 * Message::MaxMessageDataSize>;
+		// Enough space to hold 1 full size message (and more smaller ones)
+		using RelayDataRateLimit = RateLimit<Size, 0, Message::MaxMessageDataSize>;
 
 	public:
 		enum Type

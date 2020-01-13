@@ -15,7 +15,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		friend class Manager;
 
 		using RelayDataQueue = Containers::Queue<Buffer>;
-		using SendRateLimit = RateLimit<Size, 0, 5 * Message::MaxMessageDataSize>;
+		using SendRateLimit = RateLimit<Size, 0, 1u << 16>; // 65KB
 
 	public:
 		Socket() noexcept;
@@ -96,9 +96,6 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		inline void AddToSendRateLimit(const Size num) noexcept { m_SendRateLimit.Add(num); }
 		inline void SubtractFromSendRateLimit(const Size num) noexcept { m_SendRateLimit.Subtract(num); }
-
-	private:
-		static constexpr Size MaxSendBufferDataSize{ 5 * Message::MaxMessageDataSize };
 
 	private:
 		IOStatus m_IOStatus;

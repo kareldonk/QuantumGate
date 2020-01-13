@@ -32,6 +32,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		enum class Flags
 		{
 			InQueue = 0,
+			FastRequeue,
 			NeedsAccessCheck,
 			ConcatenateMessages,
 			HandshakeStartDelay,
@@ -176,6 +177,10 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		void AddConnectCallback(ConnectCallback&& function) noexcept { m_ConnectCallbacks.Add(std::move(function)); }
 		void AddDisconnectCallback(DisconnectCallback&& function) noexcept { m_DisconnectCallbacks.Add(std::move(function)); }
+
+		[[nodiscard]] inline bool IsFastRequeue() const noexcept { return IsFlagSet(Flags::FastRequeue); }
+		inline void SetFastRequeue(const bool flag) noexcept { SetFlag(Flags::FastRequeue, flag); }
+		inline void ResetFastRequeue() noexcept { SetFastRequeue(true); }
 
 		[[nodiscard]] inline bool IsInQueue() const noexcept { return IsFlagSet(Flags::InQueue); }
 		inline void SetInQueue(const bool flag) noexcept { SetFlag(Flags::InQueue, flag); }

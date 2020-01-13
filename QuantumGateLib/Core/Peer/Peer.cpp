@@ -855,13 +855,21 @@ namespace QuantumGate::Implementation::Core::Peer
 		// If the send buffer isn't empty yet
 		if (!m_SendBuffer.IsEmpty())
 		{
+			const auto buf_size = m_SendBuffer.GetSize();
+
 			if (!Gate::Send(m_SendBuffer))
 			{
 				return false;
 			}
 			else if (!m_SendBuffer.IsEmpty())
 			{
-				// If we weren't able to send all data we'll try again later
+				if (buf_size == m_SendBuffer.GetSize())
+				{
+					// Nothing was sent; buffer probably full so don't come back too soon
+					SetFastRequeue(false);
+				}
+
+				// If we weren't able to send (all) data we'll try again later
 				return true;
 			}
 			else m_SendBuffer.ResetEvent();

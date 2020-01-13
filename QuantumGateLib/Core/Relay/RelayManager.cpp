@@ -720,7 +720,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			{
 				while (ProcessRelayEvent(std::get<Events::RelayData>(*event)) == RelayDataProcessResult::Retry && !shutdown_event.IsSet())
 				{
-					std::this_thread::yield();
+					std::this_thread::sleep_for(1ms);
 				}
 			}
 			else assert(false);
@@ -1107,17 +1107,17 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			relayths->WithUniqueLock([&](Link& rl) noexcept
 			{
+				PeerDetails* relay_socket_pd{ nullptr };
+
 				if (event.Origin.PeerLUID == 0) // Special case for Relay::Socket peers
 				{
-					PeerDetails* pd{ nullptr };
-
 					switch (rl.GetPosition())
 					{
 						case Position::Beginning:
-							pd = &rl.GetIncomingPeer();
+							relay_socket_pd = &rl.GetIncomingPeer();
 							break;
 						case Position::End:
-							pd = &rl.GetOutgoingPeer();
+							relay_socket_pd = &rl.GetOutgoingPeer();
 							break;
 						default:
 							// Should not get here
@@ -1125,18 +1125,7 @@ namespace QuantumGate::Implementation::Core::Relay
 							return;
 					}
 
-					event.Origin.PeerLUID = pd->PeerLUID;
-
-					Peer::Peer_ThS::UniqueLockedType peer;
-
-					// Get the peer and lock it
-					GetUniqueLock(*pd, peer);
-
-					if (peer) // If peer is present
-					{
-						// Free up space to allow for more sends
-						peer->GetSocket<Socket>().SubtractFromSendRateLimit(event.Data.GetSize());
-					}
+					event.Origin.PeerLUID = relay_socket_pd->PeerLUID;
 				}
 				else
 				{
@@ -1234,6 +1223,20 @@ namespace QuantumGate::Implementation::Core::Relay
 								break;
 							}
 						}
+					}
+				}
+
+				if (relay_socket_pd && retval == RelayDataProcessResult::Succeeded)
+				{
+					Peer::Peer_ThS::UniqueLockedType peer;
+
+					// Get the peer and lock it
+					GetUniqueLock(*relay_socket_pd, peer);
+
+					if (peer) // If peer is present
+					{
+						// Free up space to allow for more sends
+						peer->GetSocket<Socket>().SubtractFromSendRateLimit(event.Data.GetSize());
 					}
 				}
 
