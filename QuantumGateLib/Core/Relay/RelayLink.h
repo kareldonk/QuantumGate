@@ -5,6 +5,7 @@
 
 #include "..\Message.h"
 #include "..\Peer\Peer.h"
+#include "..\..\Common\RateLimit.h"
 
 #include <queue>
 
@@ -36,6 +37,8 @@ namespace QuantumGate::Implementation::Core::Relay
 	class Link final
 	{
 	public:
+		using RelayDataRateLimit = RateLimit<Size, 0, 3 * (1u << 16)>; // 65KB
+
 		Link(const PeerLUID ipeer, const PeerLUID opeer,
 			 const IPEndpoint& endpoint, const RelayPort port, const RelayHop hop,
 			 const Position position) noexcept :
@@ -200,6 +203,8 @@ namespace QuantumGate::Implementation::Core::Relay
 			return false;
 		}
 
+		[[nodiscard]] RelayDataRateLimit& GetRelayDataRate() noexcept { return m_RelayDataRateLimit; }
+
 	private:
 		void CheckStatusUpdate(const PeerLUID from_pluid, const RelayStatusUpdate status) noexcept
 		{
@@ -251,6 +256,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		Position m_Position{ Position::Unknown };
 		PeerDetails m_IncomingPeer;
 		PeerDetails m_OutgoingPeer;
+		RelayDataRateLimit m_RelayDataRateLimit{ 0 };
 	};
 
 	using Link_ThS = Concurrency::ThreadSafe<Link, std::shared_mutex>;

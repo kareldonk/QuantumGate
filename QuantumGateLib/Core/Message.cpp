@@ -303,6 +303,7 @@ namespace QuantumGate::Implementation::Core
 			case MessageType::RelayCreate:
 			case MessageType::RelayStatus:
 			case MessageType::RelayData:
+			case MessageType::RelayDataAck:
 			case MessageType::BeginMetaExchange:
 			case MessageType::EndMetaExchange:
 			case MessageType::BeginPrimaryKeyExchange:

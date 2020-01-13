@@ -35,6 +35,7 @@ namespace QuantumGate::Implementation::Core::Peer
 							const RelayHop hops) const noexcept;
 		bool SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept;
 		QuantumGate::Result<> SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept;
+		bool SendRelayDataAck(const RelayPort rport, const Size data_size) const noexcept;
 		bool SendEndRelay(const RelayPort rport) const noexcept;
 
 		Result ProcessMessage(const MessageDetails& msg) const;

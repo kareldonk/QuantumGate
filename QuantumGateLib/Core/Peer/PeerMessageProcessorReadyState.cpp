@@ -95,6 +95,29 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::Failed;
 	}
 
+	bool MessageProcessor::SendRelayDataAck(const RelayPort rport, const Size data_size) const noexcept
+	{
+		BufferWriter wrt(true);
+		if (wrt.WriteWithPreallocation(rport, static_cast<UInt32>(data_size)))
+		{
+			auto result = m_Peer.Send(MessageType::RelayDataAck, wrt.MoveWrittenBytes(),
+									  SendParameters::PriorityOption::Normal, 0ms, false);
+			if (result.Succeeded()) return true;
+			else
+			{
+				LogDbg(L"Couldn't send RelayDataAck message to peer %s for relay port %llu",
+					   m_Peer.GetPeerName().c_str(), rport);
+			}
+		}
+		else
+		{
+			LogDbg(L"Couldn't prepare RelayDataAck message to peer %s for relay port %llu",
+				   m_Peer.GetPeerName().c_str(), rport);
+		}
+
+		return false;
+	}
+
 	MessageProcessor::Result MessageProcessor::ProcessMessageReadyState(const MessageDetails& msg) const
 	{
 		MessageProcessor::Result result;
@@ -248,6 +271,44 @@ namespace QuantumGate::Implementation::Core::Peer
 					else LogDbg(L"Invalid RelayData message from peer %s; data expected", m_Peer.GetPeerName().c_str());
 				}
 				else LogDbg(L"Received RelayData message from peer %s, but relays are not enabled",
+							m_Peer.GetPeerName().c_str());
+
+				break;
+			}
+			case MessageType::RelayDataAck:
+			{
+				Dbg(L"*********** RelayDataAck ***********");
+
+				result.Handled = true;
+
+				if (m_Peer.GetRelayManager().IsRunning())
+				{
+					if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
+					{
+						RelayPort rport{ 0 };
+						UInt32 data_size{ 0 };
+
+						BufferReader rdr(buffer, true);
+						if (rdr.Read(rport, data_size))
+						{
+							Relay::Events::RelayDataAck rda;
+							rda.Port = rport;
+							rda.DataSize = data_size;
+							rda.Origin.PeerLUID = m_Peer.GetLUID();
+
+							if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rda)))
+							{
+								LogErr(L"Could not add relay event for port %llu", rport);
+							}
+
+							result.Success = true;
+						}
+						else LogDbg(L"Invalid RelayDataAck message from peer %s; couldn't read message data",
+									m_Peer.GetPeerName().c_str());
+					}
+					else LogDbg(L"Invalid RelayDataAck message from peer %s; data expected", m_Peer.GetPeerName().c_str());
+				}
+				else LogDbg(L"Received RelayDataAck message from peer %s, but relays are not enabled",
 							m_Peer.GetPeerName().c_str());
 
 				break;

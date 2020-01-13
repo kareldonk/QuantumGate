@@ -32,7 +32,8 @@ namespace QuantumGate::Implementation::Core
 
 		RelayCreate = 300,
 		RelayStatus = 310,
-		RelayData = 320
+		RelayData = 320,
+		RelayDataAck = 330
 	};
 
 	enum class RelayStatusUpdate : UInt8

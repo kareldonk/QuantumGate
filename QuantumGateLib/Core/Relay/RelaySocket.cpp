@@ -91,42 +91,35 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		try
 		{
-			Events::RelayData red;
+			Size sent_size{ 0 };
 
-			const auto available_size = m_SendRateLimit.GetAvailable();
+			const auto available_size = MaxSendBufferSize - m_SendBuffer.GetSize();
 			if (available_size >= buffer.GetSize())
 			{
-				red.Data = std::move(buffer);
+				m_SendBuffer += buffer;
+				sent_size = buffer.GetSize();
 			}
 			else if (available_size > 0)
 			{
-				red.Data = BufferView(buffer).GetFirst(available_size);
-				buffer.RemoveFirst(available_size);
+				const auto pbuffer = BufferView(buffer).GetFirst(available_size);
+				m_SendBuffer += pbuffer;
+				sent_size = pbuffer.GetSize();
 			}
 			else
 			{
 				// Send buffer is full, we'll try again later
 				LogDbg(L"Relay socket send buffer full/unavailable for endpoint %s", GetPeerName().c_str());
-
-				return true;
 			}
 
-			red.Port = m_LocalEndpoint.GetRelayPort();
-			red.Origin.PeerLUID = 0;
-
-			const auto send_size = red.Data.GetSize();
-
-			if (m_RelayManager->AddRelayEvent(red.Port, std::move(red)))
+			if (sent_size > 0)
 			{
-				// Relay Manager should decrease send rate limit once
-				// the relay data event has been processed
-				AddToSendRateLimit(send_size);
+				buffer.RemoveFirst(sent_size);
 
 				// Update the total amount of bytes sent
-				m_BytesSent += send_size;
-
-				return true;
+				m_BytesSent += sent_size;
 			}
+
+			return true;
 		}
 		catch (const std::exception& e)
 		{

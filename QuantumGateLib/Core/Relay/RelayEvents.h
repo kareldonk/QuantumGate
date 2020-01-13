@@ -44,7 +44,7 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 
 	struct RelayData final
 	{
-		RelayData() = default;
+		RelayData() noexcept = default;
 		RelayData(const RelayData&) = delete;
 		RelayData(RelayData&&) noexcept = default;
 		~RelayData() = default;
@@ -58,10 +58,27 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 			PeerLUID PeerLUID{ 0 };
 		} Origin;
 	};
+
+	struct RelayDataAck final
+	{
+		RelayDataAck() noexcept = default;
+		RelayDataAck(const RelayDataAck&) = delete;
+		RelayDataAck(RelayDataAck&&) noexcept = default;
+		~RelayDataAck() = default;
+		RelayDataAck& operator=(const RelayDataAck&) = delete;
+		RelayDataAck& operator=(RelayDataAck&&) noexcept = default;
+
+		RelayPort Port{ 0 };
+		UInt32 DataSize{ 0 };
+		struct
+		{
+			PeerLUID PeerLUID{ 0 };
+		} Origin;
+	};
 }
 
 namespace QuantumGate::Implementation::Core::Relay
 {
-	using Event = std::variant<Events::Connect, Events::StatusUpdate, Events::RelayData>;
+	using Event = std::variant<Events::Connect, Events::StatusUpdate, Events::RelayData, Events::RelayDataAck>;
 }
 

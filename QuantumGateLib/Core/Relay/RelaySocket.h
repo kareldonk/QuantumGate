@@ -15,7 +15,6 @@ namespace QuantumGate::Implementation::Core::Relay
 		friend class Manager;
 
 		using RelayDataQueue = Containers::Queue<Buffer>;
-		using SendRateLimit = RateLimit<Size, 0, 1u << 16>; // 65KB
 
 	public:
 		Socket() noexcept;
@@ -83,6 +82,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	private:
 		void SetLocalEndpoint(const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept;
 
+		[[nodiscard]] inline Buffer& GetSendBuffer() noexcept { return m_SendBuffer; }
 		[[nodiscard]] bool AddToReceiveQueue(Buffer&& buffer) noexcept;
 
 		inline void SetException(const Int errorcode) noexcept
@@ -94,15 +94,14 @@ namespace QuantumGate::Implementation::Core::Relay
 		inline void SetWrite() noexcept { m_IOStatus.SetWrite(true); }
 		inline void SetRead() noexcept { m_ClosingRead = true; }
 
-		inline void AddToSendRateLimit(const Size num) noexcept { m_SendRateLimit.Add(num); }
-		inline void SubtractFromSendRateLimit(const Size num) noexcept { m_SendRateLimit.Subtract(num); }
+	private:
+		static constexpr Size MaxSendBufferSize{ 1u << 16 }; // 65KB
 
 	private:
 		IOStatus m_IOStatus;
 
 		Manager* m_RelayManager{ nullptr };
 		bool m_ClosingRead{ false };
-		SendRateLimit m_SendRateLimit;
 
 		Size m_BytesReceived{ 0 };
 		Size m_BytesSent{ 0 };
@@ -112,6 +111,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		SteadyTime m_ConnectedSteadyTime;
 
+		Buffer m_SendBuffer;
 		RelayDataQueue m_ReceiveQueue;
 
 		ConnectingCallback m_ConnectingCallback{ []() mutable noexcept {} };
