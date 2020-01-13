@@ -836,6 +836,8 @@ namespace QuantumGate::Socks5Extender
 					success = inserted;
 
 					peer.CalcMaxSndRcvSize();
+
+					LogDbg(L"%s: MaxSndRcv size for peer %llu: %zu", GetName().c_str(), peer.ID, peer.MaxSndRcvSize);
 				});
 			}
 
@@ -878,6 +880,8 @@ namespace QuantumGate::Socks5Extender
 
 					LogDbg(L"%s: total number of connections for peer %llu: %zu",
 						   GetName().c_str(), peer.ID, peer.Connections.size());
+
+					LogDbg(L"%s: MaxSndRcv size for peer %llu: %zu", GetName().c_str(), peer.ID, peer.MaxSndRcvSize);
 				});
 			}
 		}
@@ -1093,7 +1097,7 @@ namespace QuantumGate::Socks5Extender
 				{
 					if (peer.ActSndRcvSize != act_send)
 					{
-						LogWarn(L"act send: %zu", act_send);
+						LogDbg(L"%s: ActSndRcvSize for peer %llu: %zu", GetName().c_str(), peer.ID, act_send);
 					}
 
 					peer.ActSndRcvSize = act_send;

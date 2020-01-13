@@ -70,8 +70,6 @@ namespace QuantumGate::Socks5Extender
 			{
 				MaxSndRcvSize = MaxDataRelayDataSize;
 			}
-
-			LogWarn(L"Max send /rcv size: %zu", MaxSndRcvSize);
 		}
 	};
 
