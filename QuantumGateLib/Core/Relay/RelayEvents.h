@@ -52,6 +52,7 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 		RelayData& operator=(RelayData&&) noexcept = default;
 
 		RelayPort Port{ 0 };
+		UInt64 MessageID{ 0 };
 		Buffer Data;
 		struct
 		{
@@ -69,7 +70,7 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 		RelayDataAck& operator=(RelayDataAck&&) noexcept = default;
 
 		RelayPort Port{ 0 };
-		UInt32 DataSize{ 0 };
+		UInt64 MessageID{ 0 };
 		struct
 		{
 			PeerLUID PeerLUID{ 0 };

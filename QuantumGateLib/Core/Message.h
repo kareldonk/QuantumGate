@@ -5,6 +5,7 @@
 
 #include "MessageTransport.h"
 #include "MessageDetails.h"
+#include "..\Memory\BufferIO.h"
 
 namespace QuantumGate::Implementation::Core
 {
@@ -160,5 +161,30 @@ namespace QuantumGate::Implementation::Core
 		Buffer m_MessageData;
 
 		bool m_UseCompression{ true };
+	};
+
+	struct RelayDataMessage final
+	{
+	public:
+		RelayPort Port{ 0 };
+		UInt64 ID{ 0 };
+		Buffer& Data;
+
+		static constexpr Size HeaderSize{
+			sizeof(Port) +
+			sizeof(ID) +
+			// Size of message data in buffer
+			Memory::BufferIO::GetSizeOfEncodedSize(Memory::MaxSize::_2MB)
+		};
+
+		static constexpr Size MaxMessageDataSize{
+			// Reserve space for relay data header
+			Message::MaxMessageDataSize - HeaderSize
+		};
+
+		[[nodiscard]] Size GetSize() const noexcept
+		{
+			return Data.GetSize() + HeaderSize;
+		}
 	};
 }

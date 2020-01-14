@@ -93,7 +93,16 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			Size sent_size{ 0 };
 
-			const auto available_size = MaxSendBufferSize - m_SendBuffer.GetSize();
+			const auto available_size = std::invoke([&]()
+			{
+				Size size{ 0 };
+				if (m_MaxSendBufferSize > m_SendBuffer.GetSize())
+				{
+					size = m_MaxSendBufferSize - m_SendBuffer.GetSize();
+				}
+				return size;
+			});
+
 			if (available_size >= buffer.GetSize())
 			{
 				m_SendBuffer += buffer;

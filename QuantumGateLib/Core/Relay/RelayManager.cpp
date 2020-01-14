@@ -806,24 +806,37 @@ namespace QuantumGate::Implementation::Core::Relay
 		if (orig_peer != nullptr)
 		{
 			auto& send_buffer = (*orig_peer)->GetSocket<Socket>().GetSendBuffer();
-			const auto send_size = send_buffer.GetSize();
-			if (send_size > 0 && send_size <= rl.GetRelayDataRate().GetAvailable())
+
+			const auto send_size = std::invoke([&]()
+			{
+				auto size = (std::min)(send_buffer.GetSize(), rl.GetDataRateLimiter().GetNumBytesAvailable());
+				size = (std::min)(size, RelayDataMessage::MaxMessageDataSize);
+				return size;
+			});
+
+			if (send_size > 0)
 			{
 				did_work = true;
 
+				const auto msg_id = rl.GetDataRateLimiter().GetNewDataMessageID();
+
 				Events::RelayData red;
-				red.Data = std::move(send_buffer);
 				red.Port = rl.GetPort();
+				red.MessageID = msg_id;
+				red.Data = BufferView(send_buffer).GetFirst(send_size);
 				red.Origin.PeerLUID = orig_luid;
 
 				if (AddRelayEvent(rl.GetPort(), std::move(red)))
 				{
-					rl.GetRelayDataRate().Add(send_size);
+					send_buffer.RemoveFirst(send_size);
+
+					success = rl.GetDataRateLimiter().AddDataMessage(msg_id, send_size, Util::GetCurrentSteadyTime());
 				}
-				else
+				else success = false;
+
+				if (!success)
 				{
 					rl.UpdateStatus(Status::Exception, Exception::GeneralFailure);
-					success = false;
 				}
 			}
 		}
@@ -1175,7 +1188,6 @@ namespace QuantumGate::Implementation::Core::Relay
 				}
 
 				bool data_ack_needed{ false };
-				Size data_ack_size{ 0 };
 				
 				auto orig_rpeer = &rl.GetOutgoingPeer();
 				auto dest_rpeer = &rl.GetIncomingPeer();
@@ -1199,8 +1211,8 @@ namespace QuantumGate::Implementation::Core::Relay
 							{
 								if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
 								{
-									if (const auto result = dest_peer->GetMessageProcessor().SendRelayData(rl.GetPort(), event.Data);
-										result.Succeeded())
+									if (const auto result = dest_peer->GetMessageProcessor().SendRelayData(
+										RelayDataMessage{ rl.GetPort(), event.MessageID, event.Data }); result.Succeeded())
 									{
 										retval = RelayDataProcessResult::Succeeded;
 									}
@@ -1211,7 +1223,6 @@ namespace QuantumGate::Implementation::Core::Relay
 								}
 								else
 								{
-									data_ack_size = event.Data.GetSize();
 									data_ack_needed = true;
 
 									if (dest_peer->GetSocket<Socket>().AddToReceiveQueue(std::move(event.Data)))
@@ -1225,7 +1236,6 @@ namespace QuantumGate::Implementation::Core::Relay
 							{
 								if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
 								{
-									data_ack_size = event.Data.GetSize();
 									data_ack_needed = true;
 
 									if (dest_peer->GetSocket<Socket>().AddToReceiveQueue(std::move(event.Data)))
@@ -1235,8 +1245,8 @@ namespace QuantumGate::Implementation::Core::Relay
 								}
 								else
 								{
-									if (const auto result = dest_peer->GetMessageProcessor().SendRelayData(rl.GetPort(), event.Data);
-										result.Succeeded())
+									if (const auto result = dest_peer->GetMessageProcessor().SendRelayData(
+										RelayDataMessage{ rl.GetPort(), event.MessageID, event.Data }); result.Succeeded())
 									{
 										retval = RelayDataProcessResult::Succeeded;
 									}
@@ -1249,8 +1259,8 @@ namespace QuantumGate::Implementation::Core::Relay
 							}
 							case Position::Between:
 							{
-								if (const auto result = dest_peer->GetMessageProcessor().SendRelayData(rl.GetPort(), event.Data);
-									result.Succeeded())
+								if (const auto result = dest_peer->GetMessageProcessor().SendRelayData(
+									RelayDataMessage{ rl.GetPort(), event.MessageID, event.Data }); result.Succeeded())
 								{
 									retval = RelayDataProcessResult::Succeeded;
 								}
@@ -1279,7 +1289,7 @@ namespace QuantumGate::Implementation::Core::Relay
 					if (orig_peer) // If peer is present
 					{
 						// Send RelayDataAck to the origin
-						if (!orig_peer->GetMessageProcessor().SendRelayDataAck(rl.GetPort(), data_ack_size))
+						if (!orig_peer->GetMessageProcessor().SendRelayDataAck(rl.GetPort(), event.MessageID))
 						{
 							retval = RelayDataProcessResult::Failed;
 						}
@@ -1327,36 +1337,43 @@ namespace QuantumGate::Implementation::Core::Relay
 					return;
 				}
 
+				auto dest_rpeer = &rl.GetIncomingPeer();
+				if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
+				{
+					dest_rpeer = &rl.GetOutgoingPeer();
+				}
+
+				Peer::Peer_ThS::UniqueLockedType dest_peer;
+
 				switch (rl.GetPosition())
 				{
 					case Position::Beginning:
 					case Position::End:
 					{
-						if (rl.GetRelayDataRate().CanSubtract(event.DataSize))
+						if (rl.GetDataRateLimiter().UpdateDataMessage(event.MessageID, Util::GetCurrentSteadyTime()))
 						{
-							rl.GetRelayDataRate().Subtract(event.DataSize);
 							success = true;
+
+							// Get the peer and lock it
+							GetUniqueLock(*dest_rpeer, dest_peer);
+
+							if (dest_peer) // If peer is present
+							{
+								dest_peer->GetSocket<Socket>().SetMaxSendBufferSize(rl.GetDataRateLimiter().GetMaxNumBytes());
+							}
 						}
 
 						break;
 					}
 					case Position::Between:
 					{
-						auto dest_rpeer = &rl.GetIncomingPeer();
-						if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
-						{
-							dest_rpeer = &rl.GetOutgoingPeer();
-						}
-
-						Peer::Peer_ThS::UniqueLockedType dest_peer;
-
 						// Get the peer and lock it
 						GetUniqueLock(*dest_rpeer, dest_peer);
 
 						if (dest_peer) // If peer is present
 						{
 							// Forward RelayDataAck to the destination
-							success = dest_peer->GetMessageProcessor().SendRelayDataAck(event.Port, event.DataSize);
+							success = dest_peer->GetMessageProcessor().SendRelayDataAck(event.Port, event.MessageID);
 						}
 
 						break;

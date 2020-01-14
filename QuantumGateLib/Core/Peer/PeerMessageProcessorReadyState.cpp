@@ -61,18 +61,18 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	QuantumGate::Result<> MessageProcessor::SendRelayData(const RelayPort rport, const Buffer& buffer) const noexcept
+	QuantumGate::Result<> MessageProcessor::SendRelayData(const RelayDataMessage& msg) const noexcept
 	{
-		if (m_Peer.GetAvailableRelayDataSendBufferSize() < buffer.GetSize())
+		if (m_Peer.GetAvailableRelayDataSendBufferSize() < msg.GetSize())
 		{
-			LogDbg(L"Couldn't send RelayData message to peer %s for relay port %llu",
-				   m_Peer.GetPeerName().c_str(), rport);
+			LogDbg(L"Couldn't send RelayData message to peer %s for relay port %llu; peer buffer full",
+				   m_Peer.GetPeerName().c_str(), msg.Port);
 
 			return ResultCode::PeerSendBufferFull;
 		}
 
 		BufferWriter wrt(true);
-		if (wrt.WriteWithPreallocation(rport, WithSize(buffer, MaxSize::_2MB)))
+		if (wrt.WriteWithPreallocation(msg.Port, msg.ID, WithSize(msg.Data, MaxSize::_2MB)))
 		{
 			// Note that relayed data doesn't get compressed (again) because
 			// it is mostly encrypted and random looking so it wouldn't compress well
@@ -81,7 +81,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (!result)
 			{
 				LogDbg(L"Couldn't send RelayData message to peer %s for relay port %llu",
-					   m_Peer.GetPeerName().c_str(), rport);
+					   m_Peer.GetPeerName().c_str(), msg.Port);
 			}
 
 			return result;
@@ -89,16 +89,16 @@ namespace QuantumGate::Implementation::Core::Peer
 		else
 		{
 			LogDbg(L"Couldn't prepare RelayData message to peer %s for relay port %llu",
-				   m_Peer.GetPeerName().c_str(), rport);
+				   m_Peer.GetPeerName().c_str(), msg.Port);
 		}
 
 		return ResultCode::Failed;
 	}
 
-	bool MessageProcessor::SendRelayDataAck(const RelayPort rport, const Size data_size) const noexcept
+	bool MessageProcessor::SendRelayDataAck(const RelayPort rport, const UInt64 msgid) const noexcept
 	{
 		BufferWriter wrt(true);
-		if (wrt.WriteWithPreallocation(rport, static_cast<UInt32>(data_size)))
+		if (wrt.WriteWithPreallocation(rport, msgid))
 		{
 			auto result = m_Peer.Send(MessageType::RelayDataAck, wrt.MoveWrittenBytes(),
 									  SendParameters::PriorityOption::Normal, 0ms, false);
@@ -248,13 +248,15 @@ namespace QuantumGate::Implementation::Core::Peer
 					if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 					{
 						RelayPort rport{ 0 };
+						UInt64 msgid{ 0 };
 						Buffer data;
 
 						BufferReader rdr(buffer, true);
-						if (rdr.Read(rport, WithSize(data, MaxSize::_2MB)))
+						if (rdr.Read(rport, msgid, WithSize(data, MaxSize::_2MB)))
 						{
 							Relay::Events::RelayData red;
 							red.Port = rport;
+							red.MessageID = msgid;
 							red.Data = std::move(data);
 							red.Origin.PeerLUID = m_Peer.GetLUID();
 
@@ -286,14 +288,14 @@ namespace QuantumGate::Implementation::Core::Peer
 					if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 					{
 						RelayPort rport{ 0 };
-						UInt32 data_size{ 0 };
+						UInt64 msgid{ 0 };
 
 						BufferReader rdr(buffer, true);
-						if (rdr.Read(rport, data_size))
+						if (rdr.Read(rport, msgid))
 						{
 							Relay::Events::RelayDataAck rda;
 							rda.Port = rport;
-							rda.DataSize = data_size;
+							rda.MessageID = msgid;
 							rda.Origin.PeerLUID = m_Peer.GetLUID();
 
 							if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rda)))

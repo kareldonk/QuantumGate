@@ -94,8 +94,21 @@ namespace QuantumGate::Implementation::Core::Relay
 		inline void SetWrite() noexcept { m_IOStatus.SetWrite(true); }
 		inline void SetRead() noexcept { m_ClosingRead = true; }
 
+		inline void SetMaxSendBufferSize(const Size size) noexcept
+		{
+			auto msbs = (std::max)(size, MinSendBufferSize);
+			msbs = (std::min)(msbs, RelayDataMessage::MaxMessageDataSize);
+
+			if (m_MaxSendBufferSize != msbs)
+			{
+				m_MaxSendBufferSize = msbs;
+
+				LogDbg(L"New relay socket send buffer size is %zu", m_MaxSendBufferSize);
+			}
+		}
+
 	private:
-		static constexpr Size MaxSendBufferSize{ 1u << 16 }; // 65KB
+		static constexpr Size MinSendBufferSize{ 1u << 16 }; // 65KB
 
 	private:
 		IOStatus m_IOStatus;
@@ -111,6 +124,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		SteadyTime m_ConnectedSteadyTime;
 
+		Size m_MaxSendBufferSize{ MinSendBufferSize };
 		Buffer m_SendBuffer;
 		RelayDataQueue m_ReceiveQueue;
 
