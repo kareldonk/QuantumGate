@@ -82,13 +82,12 @@ namespace QuantumGate::Implementation::Memory
 		BufferIO& operator=(const BufferIO&) noexcept = default;
 		BufferIO& operator=(BufferIO&&) noexcept = default;
 
-	protected:
 		// Encoding as also used in Satoshi Nakamoto's Bitcoin code
 		// size < 253 becomes 1 byte
 		// size <= UInt16 becomes 253 + 2 bytes)
 		// size <= UInt32 becomes 254 + 4 bytes)
 		// size > UInt32 becomes 255 + 8 bytes)
-		Size GetSizeOfEncodedSize(Size size) noexcept
+		static constexpr Size GetSizeOfEncodedSize(Size size) noexcept
 		{
 			if (size < MaxSize::UInt8 - 2) return sizeof(UInt8);
 			else if (size <= MaxSize::UInt16) return (sizeof(UInt8) + sizeof(UInt16));
