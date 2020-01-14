@@ -342,6 +342,7 @@ namespace QuantumGate::Socks5Extender
 					while (m_Socket.Send(m_SendBuffer))
 					{
 						if (m_SendBuffer.IsEmpty()) break;
+						else std::this_thread::sleep_for(1ms);
 					}
 				}
 			}
@@ -355,6 +356,7 @@ namespace QuantumGate::Socks5Extender
 			while (RelayReceivedData(m_Extender.GetMaxDataRelayDataSize(), sent))
 			{
 				if (m_ReceiveBuffer.IsEmpty()) break;
+				else std::this_thread::sleep_for(1ms);
 			}
 		}
 	}
