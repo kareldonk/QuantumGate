@@ -11,7 +11,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		struct DataMessageDetails
 		{
-			UInt64 ID{ 0 };
+			RelayMessageID ID{ 0 };
 			Size NumBytes{ 0 };
 			SteadyTime TimeSent;
 			std::optional<SteadyTime> TimeAckReceived;
@@ -20,12 +20,12 @@ namespace QuantumGate::Implementation::Core::Relay
 		using DataMessageList = Containers::List<DataMessageDetails>;
 
 	public:
-		[[nodiscard]] inline UInt64 GetNewDataMessageID() noexcept
+		[[nodiscard]] inline RelayMessageID GetNewDataMessageID() noexcept
 		{
 			return m_MessageIDCounter++;
 		}
 
-		[[nodiscard]] bool AddDataMessage(const UInt64 id, const Size num_bytes, const SteadyTime time_sent) noexcept
+		[[nodiscard]] bool AddDataMessage(const RelayMessageID id, const Size num_bytes, const SteadyTime time_sent) noexcept
 		{
 			assert(CanAddDataMessage(num_bytes));
 
@@ -38,20 +38,20 @@ namespace QuantumGate::Implementation::Core::Relay
 					m_DataMessageList.pop_back();
 				}
 
-				m_CurrentNumBytes += num_bytes;
+				m_CurrentWindowSizeInUse += num_bytes;
 
-				LogDbg(L"Relay data rate: added message ID %llu, %zu bytes", id, num_bytes);
+				LogDbg(L"Relay data rate: added message ID %u, %zu bytes", id, num_bytes);
 
 				return true;
 			}
 			catch (...) {}
 
-			LogErr(L"Failed to add message ID %llu with %zu bytes to relay data limit", id, num_bytes);
+			LogErr(L"Failed to add message ID %u with %zu bytes to relay data limit", id, num_bytes);
 
 			return false;
 		}
 
-		[[nodiscard]] bool UpdateDataMessage(const UInt64 id, const SteadyTime time_ack_received) noexcept
+		[[nodiscard]] bool UpdateDataMessage(const RelayMessageID id, const SteadyTime time_ack_received) noexcept
 		{
 			const auto it = std::find_if(m_DataMessageList.begin(), m_DataMessageList.end(),
 										 [&](const auto& dmd) { return (dmd.ID == id); });
@@ -63,20 +63,20 @@ namespace QuantumGate::Implementation::Core::Relay
 				{
 					it->TimeAckReceived = time_ack_received;
 
-					if (m_CurrentNumBytes >= it->NumBytes)
+					if (m_CurrentWindowSizeInUse > it->NumBytes)
 					{
-						m_CurrentNumBytes -= it->NumBytes;
+						m_CurrentWindowSizeInUse -= it->NumBytes;
 					}
-					else m_CurrentNumBytes = 0;
+					else m_CurrentWindowSizeInUse = 0;
 
-					LogDbg(L"Relay data rate: received ack for message ID %llu, %zu bytes, roundtrip time: %llu ns",
-						   id, it->NumBytes, std::chrono::duration_cast<std::chrono::nanoseconds>(time_ack_received - it->TimeSent).count());
+					LogDbg(L"Relay data rate: received ack for message ID %u, %zu bytes, roundtrip time: %jd ms",
+						   id, it->NumBytes, std::chrono::duration_cast<std::chrono::milliseconds>(time_ack_received - it->TimeSent).count());
 
 					CalculateDataRate();
 				}
 				else
 				{
-					LogErr(L"Failed to update message ID %llu on relay data limit; the ACK time was smaller than the sent time", id);
+					LogErr(L"Failed to update message ID %u on relay data limit; the ACK time was smaller than the sent time", id);
 					return false;
 				}
 			}
@@ -86,20 +86,20 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		[[nodiscard]] inline bool CanAddDataMessage(const Size num_bytes) const noexcept
 		{
-			return (GetNumBytesAvailable() >= num_bytes);
+			return (GetAvailableWindowSize() >= num_bytes);
 		}
 
-		[[nodiscard]] inline Size GetNumBytesAvailable() const noexcept
+		[[nodiscard]] inline Size GetAvailableWindowSize() const noexcept
 		{
-			if (m_MaxNumBytes > m_CurrentNumBytes)
+			if (m_MaxWindowSize > m_CurrentWindowSizeInUse)
 			{
-				return (m_MaxNumBytes - m_CurrentNumBytes);
+				return (m_MaxWindowSize - m_CurrentWindowSizeInUse);
 			}
 
 			return 0;
 		}
 
-		[[nodiscard]] inline Size GetMaxNumBytes() const noexcept { return m_MaxNumBytes; }
+		[[nodiscard]] inline Size GetMaxWindowSize() const noexcept { return m_MaxWindowSize; }
 
 	private:
 		void CalculateDataRate() noexcept
@@ -116,30 +116,35 @@ namespace QuantumGate::Implementation::Core::Relay
 				}
 			}
 
+			// Assuming sending data takes 75% of the RTT and receiving ACK 25% of the RTT
+			// we only use 75% (0.75) of the total RTT (rough average estimate)
 			const double data_rate_milliseconds =
-				(static_cast<double>(total_bytes) / (static_cast<double>(total_time.count()) / 2.0 / 1'000'000.0));
+				(static_cast<double>(total_bytes) / ((static_cast<double>(total_time.count()) * 0.75) / 1'000'000.0));
 
-			m_MaxNumBytes = (std::max)(static_cast<Size>(data_rate_milliseconds * static_cast<double>(DataRateInterval.count())), DataRateMinNumBytes);
+			m_MaxWindowSize = std::max(static_cast<Size>(data_rate_milliseconds * static_cast<double>(WindowInterval.count())), MinWindowSize);
 
-			if (m_CurrentNumBytes > m_MaxNumBytes)
+			if (m_CurrentWindowSizeInUse > m_MaxWindowSize)
 			{
-				m_CurrentNumBytes = m_MaxNumBytes;
+				m_CurrentWindowSizeInUse = m_MaxWindowSize;
 			}
 
-			LogDbg(L"Relay data rate - total bytes sent: %zu in %llu ns - rate: %.2lf b/ms - MaxNumBytes: %zu",
-				   total_bytes, total_time.count(), data_rate_milliseconds, m_MaxNumBytes);
+			LogDbg(L"Relay data rate - total bytes sent: %zu in %jd ms - rate: %.2lf B/ms - MaxWindowSize: %zu bytes",
+				   total_bytes, std::chrono::duration_cast<std::chrono::milliseconds>(total_time).count(),
+				   data_rate_milliseconds, m_MaxWindowSize);
 		}
 
 	private:
 		static constexpr Size MaxDataMessageHistory{ 100 };
 
-		static constexpr Size DataRateMinNumBytes{ 1u << 12 }; // 4KB;
-		static constexpr std::chrono::milliseconds DataRateInterval{ 500 };
+		static constexpr Size MinWindowSize{ 1u << 12 }; // 4KB
+
+		// Allow 1000ms of data to be in transit before receiving ACK
+		static constexpr std::chrono::milliseconds WindowInterval{ 1000 };
 
 	private:
-		UInt64 m_MessageIDCounter{ 0 };
-		Size m_MaxNumBytes{ 1u << 16 };
-		Size m_CurrentNumBytes{ 0 };
+		RelayMessageID m_MessageIDCounter{ 0 };
+		Size m_MaxWindowSize{ MinWindowSize };
+		Size m_CurrentWindowSizeInUse{ 0 };
 		DataMessageList m_DataMessageList;
 	};
 }

@@ -792,15 +792,18 @@ namespace QuantumGate::Implementation::Core::Relay
 		PeerLUID orig_luid{ 0 };
 		Peer::Peer_ThS::UniqueLockedType* orig_peer{ nullptr };
 
-		if (rl.GetPosition() == Position::Beginning)
+		switch (rl.GetPosition())
 		{
-			orig_luid = rl.GetIncomingPeer().PeerLUID;
-			orig_peer = &in_peer;
-		}
-		else if (rl.GetPosition() == Position::End)
-		{
-			orig_luid = rl.GetOutgoingPeer().PeerLUID;
-			orig_peer = &out_peer;
+			case Position::Beginning:
+				orig_luid = rl.GetIncomingPeer().PeerLUID;
+				orig_peer = &in_peer;
+				break;
+			case Position::End:
+				orig_luid = rl.GetOutgoingPeer().PeerLUID;
+				orig_peer = &out_peer;
+				break;
+			default:
+				break;
 		}
 
 		if (orig_peer != nullptr)
@@ -809,8 +812,10 @@ namespace QuantumGate::Implementation::Core::Relay
 
 			const auto send_size = std::invoke([&]()
 			{
-				auto size = (std::min)(send_buffer.GetSize(), rl.GetDataRateLimiter().GetNumBytesAvailable());
-				size = (std::min)(size, RelayDataMessage::MaxMessageDataSize);
+				// Shouldn't send more than available window size
+				auto size = std::min(send_buffer.GetSize(), rl.GetDataRateLimiter().GetAvailableWindowSize());
+				// Shouldn't send more than maximum data a relay data message can handle
+				size = std::min(size, RelayDataMessage::MaxMessageDataSize);
 				return size;
 			});
 
@@ -1188,7 +1193,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				}
 
 				bool data_ack_needed{ false };
-				
+
 				auto orig_rpeer = &rl.GetOutgoingPeer();
 				auto dest_rpeer = &rl.GetIncomingPeer();
 				if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
@@ -1289,7 +1294,7 @@ namespace QuantumGate::Implementation::Core::Relay
 					if (orig_peer) // If peer is present
 					{
 						// Send RelayDataAck to the origin
-						if (!orig_peer->GetMessageProcessor().SendRelayDataAck(rl.GetPort(), event.MessageID))
+						if (!orig_peer->GetMessageProcessor().SendRelayDataAck({ rl.GetPort(), event.MessageID }))
 						{
 							retval = RelayDataProcessResult::Failed;
 						}
@@ -1359,7 +1364,9 @@ namespace QuantumGate::Implementation::Core::Relay
 
 							if (dest_peer) // If peer is present
 							{
-								dest_peer->GetSocket<Socket>().SetMaxSendBufferSize(rl.GetDataRateLimiter().GetMaxNumBytes());
+								// Update the send buffer size of the relay socket to prevent too much data
+								// getting queued up while the connection can't handle it
+								dest_peer->GetSocket<Socket>().SetMaxSendBufferSize(rl.GetDataRateLimiter().GetMaxWindowSize());
 							}
 						}
 
@@ -1373,7 +1380,7 @@ namespace QuantumGate::Implementation::Core::Relay
 						if (dest_peer) // If peer is present
 						{
 							// Forward RelayDataAck to the destination
-							success = dest_peer->GetMessageProcessor().SendRelayDataAck(event.Port, event.MessageID);
+							success = dest_peer->GetMessageProcessor().SendRelayDataAck({ event.Port, event.MessageID });
 						}
 
 						break;

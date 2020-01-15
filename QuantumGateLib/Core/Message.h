@@ -165,9 +165,8 @@ namespace QuantumGate::Implementation::Core
 
 	struct RelayDataMessage final
 	{
-	public:
 		RelayPort Port{ 0 };
-		UInt64 ID{ 0 };
+		RelayMessageID ID{ 0 };
 		Buffer& Data;
 
 		static constexpr Size HeaderSize{
@@ -186,5 +185,11 @@ namespace QuantumGate::Implementation::Core
 		{
 			return Data.GetSize() + HeaderSize;
 		}
+	};
+
+	struct RelayDataAckMessage final
+	{
+		RelayPort Port{ 0 };
+		RelayMessageID ID{ 0 };
 	};
 }

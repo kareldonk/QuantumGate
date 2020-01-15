@@ -60,6 +60,7 @@ namespace QuantumGate
 
 	using RelayPort = UInt64;
 	using RelayHop = UInt8;
+	using RelayMessageID = UInt16;
 }
 
 namespace QuantumGate::Implementation

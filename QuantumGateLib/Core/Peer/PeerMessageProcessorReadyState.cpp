@@ -95,10 +95,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::Failed;
 	}
 
-	bool MessageProcessor::SendRelayDataAck(const RelayPort rport, const UInt64 msgid) const noexcept
+	bool MessageProcessor::SendRelayDataAck(const RelayDataAckMessage& msg) const noexcept
 	{
 		BufferWriter wrt(true);
-		if (wrt.WriteWithPreallocation(rport, msgid))
+		if (wrt.WriteWithPreallocation(msg.Port, msg.ID))
 		{
 			auto result = m_Peer.Send(MessageType::RelayDataAck, wrt.MoveWrittenBytes(),
 									  SendParameters::PriorityOption::Normal, 0ms, false);
@@ -106,13 +106,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			else
 			{
 				LogDbg(L"Couldn't send RelayDataAck message to peer %s for relay port %llu",
-					   m_Peer.GetPeerName().c_str(), rport);
+					   m_Peer.GetPeerName().c_str(), msg.Port);
 			}
 		}
 		else
 		{
 			LogDbg(L"Couldn't prepare RelayDataAck message to peer %s for relay port %llu",
-				   m_Peer.GetPeerName().c_str(), rport);
+				   m_Peer.GetPeerName().c_str(), msg.Port);
 		}
 
 		return false;
@@ -248,7 +248,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 					{
 						RelayPort rport{ 0 };
-						UInt64 msgid{ 0 };
+						RelayMessageID msgid{ 0 };
 						Buffer data;
 
 						BufferReader rdr(buffer, true);
@@ -288,7 +288,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 					{
 						RelayPort rport{ 0 };
-						UInt64 msgid{ 0 };
+						RelayMessageID msgid{ 0 };
 
 						BufferReader rdr(buffer, true);
 						if (rdr.Read(rport, msgid))
