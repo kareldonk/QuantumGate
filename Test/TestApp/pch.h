@@ -26,6 +26,8 @@
 #endif
 #endif
 
+#pragma comment (lib, "version.lib")
+
 #include <cassert>
 #include <atomic>
 #include <thread>

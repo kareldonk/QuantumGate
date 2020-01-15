@@ -6,6 +6,8 @@
 #include "TestAppDlg.h"
 #include "Common\Util.h"
 
+#include <regex>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -214,13 +216,72 @@ const String& CTestAppApp::GetFolder() noexcept
 	return m_AppFolder;
 }
 
+String CTestAppApp::GetAppVersion() noexcept
+{
+	try
+	{
+		const auto applocation = GetFolder() + m_pszExeName + L".exe";
+		const auto version = GetVersionInfo(applocation.c_str(), L"ProductVersion");
+
+		std::wregex r(LR"ver(^(\d+).(\d+).(\d+).(\d+)$)ver");
+		std::wcmatch m;
+		if (std::regex_search(version.c_str(), m, r))
+		{
+			return { (m[1].str() + L"." + m[2].str() + L"." + m[3].str() + L" build " + m[4].str()).c_str() };
+		}
+	}
+	catch (...) {}
+
+	return {};
+}
+
+String CTestAppApp::GetVersionInfo(const WChar* module_name, const WChar* value) const noexcept
+{
+	DWORD handle{ 0 };
+	const DWORD size = GetFileVersionInfoSize(module_name, &handle);
+	if (size > 0)
+	{
+		std::vector<Byte> buffer(size);
+
+		if (GetFileVersionInfo(module_name, handle, static_cast<DWORD>(buffer.size()), buffer.data()))
+		{
+			struct LANGANDCODEPAGE
+			{
+				WORD wLanguage;
+				WORD wCodePage;
+			} *lpTranslate{ nullptr };
+
+			UINT len{ 0 };
+
+			// Read the list of languages and code pages
+			VerQueryValue(buffer.data(), L"\\VarFileInfo\\Translation", reinterpret_cast<LPVOID*>(&lpTranslate), &len);
+
+			if ((len / sizeof(LANGANDCODEPAGE)) > 0)
+			{
+				// Read the value for first language and code page
+				const auto sub_block = Util::FormatString(L"\\StringFileInfo\\%04x%04x\\%s", lpTranslate[0].wLanguage,
+														  lpTranslate[0].wCodePage, value);
+
+				Byte* ver{ nullptr };
+
+				if (VerQueryValue(buffer.data(), sub_block.c_str(), reinterpret_cast<LPVOID*>(&ver), &len))
+				{
+					return { reinterpret_cast<WChar*>(ver) };
+				}
+			}
+		}
+	}
+
+	return {};
+}
+
 int CTestAppApp::GetScaledWidth(const int width) const noexcept
 {
 	auto dc = GetDC(0);
 	const auto dpix = GetDeviceCaps(dc, LOGPIXELSX);
 	ReleaseDC(0, dc);
 
-	return static_cast<int>((static_cast<double>(width) / 96.0) * static_cast<double>(dpix));
+	return static_cast<int>((static_cast<double>(width) / 96.0)* static_cast<double>(dpix));
 }
 
 int CTestAppApp::GetScaledHeight(const int height) const noexcept
@@ -229,5 +290,5 @@ int CTestAppApp::GetScaledHeight(const int height) const noexcept
 	const auto dpiy = GetDeviceCaps(dc, LOGPIXELSY);
 	ReleaseDC(0, dc);
 
-	return static_cast<int>((static_cast<double>(height) / 96.0) * static_cast<double>(dpiy));
+	return static_cast<int>((static_cast<double>(height) / 96.0)* static_cast<double>(dpiy));
 }

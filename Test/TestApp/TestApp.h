@@ -18,7 +18,8 @@ class CTestAppApp final : public CWinApp
 {
 public:
 	CTestAppApp();
-	
+
+	String GetAppVersion() noexcept;
 	const String& GetFolder() noexcept;
 
 	std::optional<CString> BrowseForFile(HWND hwnd, const bool save) const noexcept;
@@ -29,7 +30,9 @@ public:
 	int GetScaledWidth(const int width) const noexcept;
 	int GetScaledHeight(const int height) const noexcept;
 
-public:
+private:
+	String GetVersionInfo(const WChar* module_name, const WChar* value) const noexcept;
+
 	virtual BOOL InitInstance();
 
 	DECLARE_MESSAGE_MAP()

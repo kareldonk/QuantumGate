@@ -191,6 +191,7 @@
 #define IDC_REUSE_CONNECTION            1082
 #define IDC_CHECK20                     1083
 #define IDC_VIDEO_COMPRESSION_CHECK     1083
+#define IDC_VERSION_INFO                1083
 #define IDC_CHECK21                     1084
 #define IDC_AUDIO_COMPRESSION_CHECK     1084
 #define IDC_CHECK22                     1085
@@ -286,7 +287,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
 #define _APS_NEXT_COMMAND_VALUE         32854
-#define _APS_NEXT_CONTROL_VALUE         1083
+#define _APS_NEXT_CONTROL_VALUE         1084
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

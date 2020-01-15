@@ -73,6 +73,8 @@ BOOL CTestAppDlgMainTab::OnInitDialog()
 {
 	CTabBase::OnInitDialog();
 
+	SetValue(IDC_VERSION_INFO, GetApp()->GetAppVersion());
+
 	m_Console = std::make_shared<TestAppConsole>();
 	Console::SetOutput(m_Console);
 	Console::SetVerbosity(Console::Verbosity::Debug);
