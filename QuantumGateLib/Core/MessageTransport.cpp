@@ -141,7 +141,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const SystemTime MessageTransport::IHeader::GetMessageTime() const noexcept
+	SystemTime MessageTransport::IHeader::GetMessageTime() const noexcept
 	{
 		return Util::ToTime(m_MessageTime);
 	}
@@ -238,14 +238,12 @@ namespace QuantumGate::Implementation::Core
 		m_Valid = true;
 	}
 
-	const SystemTime MessageTransport::GetMessageTime() const noexcept
+	SystemTime MessageTransport::GetMessageTime() const noexcept
 	{
 		return m_IHeader.GetMessageTime();
 	}
 
-	const std::pair<bool, bool> MessageTransport::Read(BufferView buffer,
-													   Crypto::SymmetricKeyData& symkey,
-													   const BufferView& nonce)
+	std::pair<bool, bool> MessageTransport::Read(BufferView buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce)
 	{
 		assert(buffer.GetSize() >= OHeader::GetSize());
 		assert(!nonce.IsEmpty());
@@ -395,8 +393,8 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	const MessageTransportCheck MessageTransport::Peek(const UInt16 rndp_len, const DataSizeSettings mds_settings,
-													   const Buffer& srcbuf) noexcept
+	MessageTransportCheck MessageTransport::Peek(const UInt16 rndp_len, const DataSizeSettings mds_settings,
+												 const Buffer& srcbuf) noexcept
 	{
 		// Check if buffer has enough data for outer MessageTransport header
 		if (srcbuf.GetSize() < rndp_len + OHeader::GetSize()) return MessageTransportCheck::NotEnoughData;
@@ -422,8 +420,8 @@ namespace QuantumGate::Implementation::Core
 		return MessageTransportCheck::NotEnoughData;
 	}
 
-	const MessageTransportCheck MessageTransport::GetFromBuffer(const UInt16 rndp_len, const DataSizeSettings mds_settings,
-																Buffer& srcbuf, Buffer& destbuf)
+	MessageTransportCheck MessageTransport::GetFromBuffer(const UInt16 rndp_len, const DataSizeSettings mds_settings,
+														  Buffer& srcbuf, Buffer& destbuf)
 	{
 		// Check if buffer has enough data for outer MessageTransport header
 		if (srcbuf.GetSize() < rndp_len + OHeader::GetSize()) return MessageTransportCheck::NotEnoughData;

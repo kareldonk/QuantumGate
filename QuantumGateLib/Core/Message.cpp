@@ -338,7 +338,7 @@ namespace QuantumGate::Implementation::Core
 		m_Valid = true;
 	}
 
-	const BufferView Message::GetFromBuffer(BufferView& srcbuf) noexcept
+	BufferView Message::GetFromBuffer(BufferView& srcbuf) noexcept
 	{
 		// Check if buffer has enough data for message header
 		if (srcbuf.GetSize() < Header::GetMinSize()) return nullptr;

@@ -90,11 +90,11 @@ namespace QuantumGate::Implementation::Core
 			}
 
 			inline void SetMessageDataSize(const Size size) noexcept { m_MessageDataSize = static_cast<UInt32>(size); }
-			inline const Size GetMessageDataSize() const noexcept { return m_MessageDataSize; }
+			inline Size GetMessageDataSize() const noexcept { return m_MessageDataSize; }
 
-			inline const MessageType GetMessageType() const noexcept { return m_MessageType; }
+			inline MessageType GetMessageType() const noexcept { return m_MessageType; }
 
-			inline const MessageFragmentType GetMessageFragmentType() const noexcept
+			inline MessageFragmentType GetMessageFragmentType() const noexcept
 			{
 				if (!(m_MessageFlags & 0x07)) return MessageFragmentType::Complete;
 				else if (m_MessageFlags & static_cast<UInt8>(MessageFlag::PartialBegin)) return MessageFragmentType::PartialBegin;
@@ -131,8 +131,8 @@ namespace QuantumGate::Implementation::Core
 
 		[[nodiscard]] inline bool IsValid() const noexcept { return m_Valid; }
 
-		inline const MessageType GetMessageType() const noexcept { return m_Header.GetMessageType(); }
-		inline const MessageFragmentType GetMessageFragmentType() const noexcept { return m_Header.GetMessageFragmentType(); }
+		inline MessageType GetMessageType() const noexcept { return m_Header.GetMessageType(); }
+		inline MessageFragmentType GetMessageFragmentType() const noexcept { return m_Header.GetMessageFragmentType(); }
 		const ExtenderUUID& GetExtenderUUID() const noexcept;
 		const Buffer& GetMessageData() const noexcept;
 		Buffer&& MoveMessageData() noexcept;
@@ -140,7 +140,7 @@ namespace QuantumGate::Implementation::Core
 		[[nodiscard]] bool Read(BufferView buffer, const Crypto::SymmetricKeyData& symkey);
 		[[nodiscard]] bool Write(Buffer& buffer, const Crypto::SymmetricKeyData& symkey);
 
-		static const BufferView GetFromBuffer(BufferView& srcbuf) noexcept;
+		static BufferView GetFromBuffer(BufferView& srcbuf) noexcept;
 
 	public:
 		static constexpr Size MinMessageDataSizeForCompression{ 128 }; // Bytes

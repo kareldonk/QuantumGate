@@ -93,9 +93,9 @@ namespace QuantumGate::Implementation::Core::Peer
 			return true;
 		}
 
-		const std::pair<std::shared_ptr<Crypto::SymmetricKeyData>, Buffer> GetEncryptionKeyAndNonce(const UInt32 nonce_seed,
-																									const PeerConnectionType pctype,
-																									const bool autogenkey_allowed) const noexcept
+		std::pair<std::shared_ptr<Crypto::SymmetricKeyData>, Buffer> GetEncryptionKeyAndNonce(const UInt32 nonce_seed,
+																							  const PeerConnectionType pctype,
+																							  const bool autogenkey_allowed) const noexcept
 		{
 			auto error = false;
 
@@ -128,10 +128,10 @@ namespace QuantumGate::Implementation::Core::Peer
 			return std::make_pair(nullptr, Buffer());
 		}
 
-		const std::pair<std::shared_ptr<Crypto::SymmetricKeyData>, Buffer> GetDecryptionKeyAndNonce(const UInt32 keynum,
-																									const UInt32 nonce_seed,
-																									const PeerConnectionType pctype,
-																									const bool autogenkey_allowed) const noexcept
+		std::pair<std::shared_ptr<Crypto::SymmetricKeyData>, Buffer> GetDecryptionKeyAndNonce(const UInt32 keynum,
+																							  const UInt32 nonce_seed,
+																							  const PeerConnectionType pctype,
+																							  const bool autogenkey_allowed) const noexcept
 		{
 			// If we have a symmetric key use it otherwise we'll generate one
 			// if allowed (an autogen key)
@@ -247,9 +247,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 	private:
-		static const std::pair<std::shared_ptr<Crypto::SymmetricKeyData>, Buffer> GetAutoGenKeyAndNonce(const UInt32 nonce_seed,
-																										const PeerConnectionType pctype,
-																										bool enc) noexcept
+		static std::pair<std::shared_ptr<Crypto::SymmetricKeyData>, Buffer> GetAutoGenKeyAndNonce(const UInt32 nonce_seed,
+																								  const PeerConnectionType pctype,
+																								  bool enc) noexcept
 		{
 			try
 			{

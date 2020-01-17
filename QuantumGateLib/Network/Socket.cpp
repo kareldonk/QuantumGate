@@ -986,7 +986,7 @@ namespace QuantumGate::Implementation::Network
 				static_assert(sizeof(endpoint.GetIPAddress().GetBinary().Bytes) >= sizeof(in6_addr),
 							  "IP Address length mismatch");
 
-				memcpy(&saddr->sin6_addr, &endpoint.GetIPAddress().GetBinary().Bytes, sizeof(in6_addr));
+				std::memcpy(&saddr->sin6_addr, &endpoint.GetIPAddress().GetBinary().Bytes, sizeof(in6_addr));
 				return true;
 			}
 			default:

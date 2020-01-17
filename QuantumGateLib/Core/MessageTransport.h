@@ -14,7 +14,7 @@ namespace QuantumGate::Implementation::Core
 
 	class MessageTransport final
 	{
-	public :
+	public:
 		struct DataSizeSettings final
 		{
 			UInt8 Offset{ 9 };
@@ -49,9 +49,9 @@ namespace QuantumGate::Implementation::Core
 
 			inline Buffer& GetHMACBuffer() noexcept { return m_MessageHMAC; }
 			inline void SetMessageDataSize(const Size size) noexcept { m_MessageDataSize = static_cast<UInt32>(size); }
-			inline const Size GetMessageDataSize() const noexcept { return m_MessageDataSize; }
-			inline const void SetMessageNonceSeed(UInt32 seed) noexcept { m_MessageNonceSeed = seed; }
-			inline const UInt32 GetMessageNonceSeed() const noexcept { return m_MessageNonceSeed; }
+			inline Size GetMessageDataSize() const noexcept { return m_MessageDataSize; }
+			inline void SetMessageNonceSeed(UInt32 seed) noexcept { m_MessageNonceSeed = seed; }
+			inline UInt32 GetMessageNonceSeed() const noexcept { return m_MessageNonceSeed; }
 
 
 			static UInt32 ObfuscateMessageDataSize(const DataSizeSettings mds_settings, const UInt32 rnd_bits,
@@ -93,15 +93,15 @@ namespace QuantumGate::Implementation::Core
 			}
 
 			inline void SetMessageCounter(const UInt8 counter) noexcept { m_MessageCounter = counter; }
-			inline const UInt8 GetMessageCounter() const noexcept { return m_MessageCounter; }
+			inline UInt8 GetMessageCounter() const noexcept { return m_MessageCounter; }
 
 			void SetRandomDataSize(const Size minrndsize, const Size maxrndsize) noexcept;
-			inline const UInt16 GetRandomDataSize() const noexcept { return m_RandomDataSize; }
+			inline UInt16 GetRandomDataSize() const noexcept { return m_RandomDataSize; }
 
 			void SetRandomDataPrefixLength(const UInt16 len) noexcept { m_NextRandomDataPrefixLength = len; }
 			UInt16 GetRandomDataPrefixLength() const noexcept { return m_NextRandomDataPrefixLength; }
 
-			const SystemTime GetMessageTime() const noexcept;
+			SystemTime GetMessageTime() const noexcept;
 
 		private:
 			UInt8 m_MessageCounter{ 0 };
@@ -121,9 +121,9 @@ namespace QuantumGate::Implementation::Core
 		[[nodiscard]] inline bool IsValid() const noexcept { return m_Valid; }
 
 		inline void SetMessageCounter(const UInt8 counter) noexcept { m_IHeader.SetMessageCounter(counter); }
-		inline const UInt8 GetMessageCounter() const noexcept { return m_IHeader.GetMessageCounter(); }
-		inline const void SetMessageNonceSeed(UInt32 seed) noexcept { m_OHeader.SetMessageNonceSeed(seed); }
-		inline const UInt32 GetMessageNonceSeed() const noexcept { return m_OHeader.GetMessageNonceSeed(); }
+		inline UInt8 GetMessageCounter() const noexcept { return m_IHeader.GetMessageCounter(); }
+		inline void SetMessageNonceSeed(UInt32 seed) noexcept { m_OHeader.SetMessageNonceSeed(seed); }
+		inline UInt32 GetMessageNonceSeed() const noexcept { return m_OHeader.GetMessageNonceSeed(); }
 
 		void SetMessageData(Buffer&& buffer) noexcept;
 		const Buffer& GetMessageData() const noexcept;
@@ -132,18 +132,17 @@ namespace QuantumGate::Implementation::Core
 		inline void SetNextRandomDataPrefixLength(const UInt16 len) noexcept { m_IHeader.SetRandomDataPrefixLength(len); }
 		inline UInt16 GetNextRandomDataPrefixLength() const noexcept { return m_IHeader.GetRandomDataPrefixLength(); }
 
-		const SystemTime GetMessageTime() const noexcept;
+		SystemTime GetMessageTime() const noexcept;
 
-		[[nodiscard]] const std::pair<bool, bool> Read(BufferView buffer, Crypto::SymmetricKeyData& symkey,
-													   const BufferView& nonce);
+		[[nodiscard]] std::pair<bool, bool> Read(BufferView buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce);
 
 		[[nodiscard]] bool Write(Buffer& buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce);
 
-		static const MessageTransportCheck Peek(const UInt16 rndp_len, const DataSizeSettings mds_settings,
-												const Buffer& srcbuf) noexcept;
+		static MessageTransportCheck Peek(const UInt16 rndp_len, const DataSizeSettings mds_settings,
+										  const Buffer& srcbuf) noexcept;
 
-		static const MessageTransportCheck GetFromBuffer(const UInt16 rndp_len, const DataSizeSettings mds_settings,
-														 Buffer& srcbuf, Buffer& destbuf);
+		static MessageTransportCheck GetFromBuffer(const UInt16 rndp_len, const DataSizeSettings mds_settings,
+												   Buffer& srcbuf, Buffer& destbuf);
 
 		static std::optional<UInt32> GetNonceSeedFromBuffer(const BufferView& srcbuf) noexcept;
 

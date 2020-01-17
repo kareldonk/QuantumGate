@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	class ExtenderUUIDs final
 	{
 	public:
-		ExtenderUUIDs() = default;
+		ExtenderUUIDs() noexcept = default;
 		ExtenderUUIDs(const ExtenderUUIDs&) = delete;
 		ExtenderUUIDs(ExtenderUUIDs&&) noexcept = default;
 		~ExtenderUUIDs() = default;

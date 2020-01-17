@@ -29,7 +29,7 @@ namespace QuantumGate::Implementation::Core::Access
 			}
 
 			Int64 new_score{ static_cast<Int64>(m_Reputation.Score) +
-				(static_cast<Int64>(IPReputationUpdate::ImproveMinimal) * factor) };
+				(static_cast<Int64>(IPReputationUpdate::ImproveMinimal)* factor) };
 
 			if (new_score > IPReputation::ScoreLimits::Maximum)
 			{
@@ -71,7 +71,7 @@ namespace QuantumGate::Implementation::Core::Access
 		m_Reputation.LastImproveSteadyTime = Util::GetCurrentSteadyTime();
 	}
 
-	const Int16 IPAccessDetails::UpdateReputation(const IPReputationUpdate rep_update) noexcept
+	Int16 IPAccessDetails::UpdateReputation(const IPReputationUpdate rep_update) noexcept
 	{
 		m_Reputation.Score += static_cast<Int16>(rep_update);
 		if (m_Reputation.Score > IPReputation::ScoreLimits::Maximum)
@@ -86,14 +86,14 @@ namespace QuantumGate::Implementation::Core::Access
 		return m_Reputation.Score;
 	}
 
-	const Int16 IPAccessDetails::UpdateReputation(const std::chrono::seconds interval,
-												  const IPReputationUpdate rep_update) noexcept
+	Int16 IPAccessDetails::UpdateReputation(const std::chrono::seconds interval,
+											const IPReputationUpdate rep_update) noexcept
 	{
 		ImproveReputation(interval);
 		return UpdateReputation(rep_update);
 	}
 
-	const std::pair<Int16, Time> IPAccessDetails::GetReputation() const noexcept
+	std::pair<Int16, Time> IPAccessDetails::GetReputation() const noexcept
 	{
 		// Elapsed time since last reputation update
 		const auto tlru = std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() -
@@ -211,7 +211,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 			for (const auto& it : m_IPAccessDetails)
 			{
-				const auto[score, time] = it.second.GetReputation();
+				const auto [score, time] = it.second.GetReputation();
 
 				auto& ipreputation = ipreputations.emplace_back();
 				ipreputation.Address = it.first;
@@ -240,7 +240,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	bool IPAccessControl::AddRelayConnectionAttempt(const IPAddress & ip) noexcept
+	bool IPAccessControl::AddRelayConnectionAttempt(const IPAddress& ip) noexcept
 	{
 		const auto& settings = m_Settings.GetCache();
 		const auto interval = settings.Relay.IPConnectionAttempts.Interval;
@@ -265,7 +265,7 @@ namespace QuantumGate::Implementation::Core::Access
 			}
 			else
 			{
-				const auto[it, success] = m_IPAccessDetails.insert({ ip.GetBinary(), IPAccessDetails() });
+				const auto [it, success] = m_IPAccessDetails.insert({ ip.GetBinary(), IPAccessDetails() });
 				if (success) return &it->second;
 			}
 		}

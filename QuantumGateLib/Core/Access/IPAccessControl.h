@@ -42,11 +42,10 @@ namespace QuantumGate::Implementation::Core::Access
 		IPAccessDetails& operator=(const IPAccessDetails&) = delete;
 		IPAccessDetails& operator=(IPAccessDetails&&) noexcept = default;
 
-		[[nodiscard]] bool SetReputation(const Int16 score,
-										 const std::optional<Time>& time = std::nullopt) noexcept;
+		[[nodiscard]] bool SetReputation(const Int16 score, const std::optional<Time>& time = std::nullopt) noexcept;
 		void ResetReputation() noexcept;
-		const Int16 UpdateReputation(const std::chrono::seconds interval, const IPReputationUpdate rep_update) noexcept;
-		[[nodiscard]] const std::pair<Int16, Time> GetReputation() const noexcept;
+		Int16 UpdateReputation(const std::chrono::seconds interval, const IPReputationUpdate rep_update) noexcept;
+		[[nodiscard]] std::pair<Int16, Time> GetReputation() const noexcept;
 
 		inline ConnectionAttempts& GetConnectionAttempts() noexcept { return m_ConnectionAttempts; }
 		inline ConnectionAttempts& GetRelayConnectionAttempts() noexcept { return m_RelayConnectionAttempts; }
@@ -61,7 +60,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 	private:
 		void ImproveReputation(const std::chrono::seconds interval) noexcept;
-		const Int16 UpdateReputation(const IPReputationUpdate rep_update) noexcept;
+		Int16 UpdateReputation(const IPReputationUpdate rep_update) noexcept;
 
 	private:
 		Reputation m_Reputation;

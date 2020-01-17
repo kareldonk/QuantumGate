@@ -77,8 +77,8 @@ namespace QuantumGate::Implementation::Core::Extender
 		Control& operator=(Control&&) noexcept = default;
 
 		void SetStatus(const Status status) noexcept;
-		inline const Status GetStatus() const noexcept { return m_Status; }
-		inline const SteadyTime GetSteadyTimeRemoved() const noexcept { return m_SteadyTimeRemoved; }
+		inline Status GetStatus() const noexcept { return m_Status; }
+		inline SteadyTime GetSteadyTimeRemoved() const noexcept { return m_SteadyTimeRemoved; }
 
 		inline bool HasExtender() const noexcept { return (m_Extender != nullptr); }
 

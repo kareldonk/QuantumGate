@@ -97,13 +97,13 @@ namespace QuantumGate::Implementation::Memory
 
 	protected:
 		template<typename... Args>
-		const Size GetDataSizes(const Args&... data) noexcept
+		Size GetDataSizes(const Args&... data) noexcept
 		{
 			return (GetDataSize(data) + ...);
 		}
 
 		template<typename T>
-		const std::enable_if_t<!std::is_enum_v<T>, Size> GetDataSize(const T& data) noexcept
+		std::enable_if_t<!std::is_enum_v<T>, Size> GetDataSize(const T& data) noexcept
 		{
 			static_assert(std::is_integral_v<T> || std::is_same_v<T, Byte>, "Unsupported type.");
 
@@ -111,13 +111,13 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		template<typename T>
-		const std::enable_if_t<std::is_enum_v<T>, Size> GetDataSize(const T& data) noexcept
+		std::enable_if_t<std::is_enum_v<T>, Size> GetDataSize(const T& data) noexcept
 		{
 			return sizeof(std::underlying_type_t<T>);
 		}
 
 		template<typename T>
-		const std::enable_if_t<std::is_integral_v<T> ||
+		std::enable_if_t<std::is_integral_v<T> ||
 			std::is_same_v<T, Byte> || std::is_enum_v<T> ||
 			std::is_same_v<T, SerializedUUID>, Size> GetDataSize(const Vector<T>& data) noexcept
 		{
@@ -125,7 +125,7 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		template<typename T>
-		const Size GetDataSize(const SizeWrap<T>& data) noexcept
+		Size GetDataSize(const SizeWrap<T>& data) noexcept
 		{
 			const auto size = GetDataSize(*data);
 			return (GetSizeOfEncodedSize(size) + size);
@@ -133,13 +133,13 @@ namespace QuantumGate::Implementation::Memory
 	};
 
 	// Specializations
-	template<> Export const Size BufferIO::GetDataSize(const String& data) noexcept;
-	template<> Export const Size BufferIO::GetDataSize(const Network::SerializedBinaryIPAddress& data) noexcept;
-	template<> Export const Size BufferIO::GetDataSize(const Network::SerializedIPEndpoint& data) noexcept;
-	template<> Export const Size BufferIO::GetDataSize(const SerializedUUID& data) noexcept;
-	template<> Export const Size BufferIO::GetDataSize(const Buffer& data) noexcept;
-	template<> Export const Size BufferIO::GetDataSize(const BufferView& data) noexcept;
-	template<> Export const Size BufferIO::GetDataSize(const ProtectedBuffer& data) noexcept;
+	template<> Export Size BufferIO::GetDataSize(const String& data) noexcept;
+	template<> Export Size BufferIO::GetDataSize(const Network::SerializedBinaryIPAddress& data) noexcept;
+	template<> Export Size BufferIO::GetDataSize(const Network::SerializedIPEndpoint& data) noexcept;
+	template<> Export Size BufferIO::GetDataSize(const SerializedUUID& data) noexcept;
+	template<> Export Size BufferIO::GetDataSize(const Buffer& data) noexcept;
+	template<> Export Size BufferIO::GetDataSize(const BufferView& data) noexcept;
+	template<> Export Size BufferIO::GetDataSize(const ProtectedBuffer& data) noexcept;
 
 	// Helper function
 	template<typename T>

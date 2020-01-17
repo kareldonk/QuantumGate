@@ -31,7 +31,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		template<typename T>
 		T& GetSocket() noexcept { return *dynamic_cast<T*>(m_Socket); }
 
-		const GateType GetGateType() const noexcept { return m_Type; }
+		GateType GetGateType() const noexcept { return m_Type; }
 
 		bool BeginConnect(const IPEndpoint& endpoint) noexcept
 		{
@@ -52,24 +52,24 @@ namespace QuantumGate::Implementation::Core::Peer
 			assert(m_Socket); return m_Socket->UpdateIOStatus(mseconds);
 		}
 
-		const SystemTime GetConnectedTime() const noexcept { assert(m_Socket); return m_Socket->GetConnectedTime(); }
+		SystemTime GetConnectedTime() const noexcept { assert(m_Socket); return m_Socket->GetConnectedTime(); }
 
 		const SteadyTime& GetConnectedSteadyTime() const noexcept
 		{
 			assert(m_Socket); return m_Socket->GetConnectedSteadyTime();
 		}
 
-		const Size GetBytesReceived() const noexcept { assert(m_Socket); return m_Socket->GetBytesReceived(); }
-		const Size GetBytesSent() const noexcept { assert(m_Socket); return m_Socket->GetBytesSent(); }
+		Size GetBytesReceived() const noexcept { assert(m_Socket); return m_Socket->GetBytesReceived(); }
+		Size GetBytesSent() const noexcept { assert(m_Socket); return m_Socket->GetBytesSent(); }
 
 		const IPEndpoint& GetLocalEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetLocalEndpoint(); }
 		const IPAddress& GetLocalIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetLocalIPAddress(); }
 		virtual String GetLocalName() const noexcept { assert(m_Socket); return m_Socket->GetLocalName(); }
-		const UInt32 GetLocalPort() const noexcept { assert(m_Socket); return m_Socket->GetLocalPort(); }
+		UInt32 GetLocalPort() const noexcept { assert(m_Socket); return m_Socket->GetLocalPort(); }
 
 		const IPEndpoint& GetPeerEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetPeerEndpoint(); }
 		const IPAddress& GetPeerIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetPeerIPAddress(); }
-		const UInt32 GetPeerPort() const noexcept { assert(m_Socket); return m_Socket->GetPeerPort(); }
+		UInt32 GetPeerPort() const noexcept { assert(m_Socket); return m_Socket->GetPeerPort(); }
 		virtual String GetPeerName() const noexcept { assert(m_Socket); return m_Socket->GetPeerName(); }
 
 	protected:

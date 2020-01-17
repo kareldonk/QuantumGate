@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	public:
 		using Type = QuantumGate::API::Extender::PeerEvent::Type;
 
-		Event() = default;
+		Event() noexcept = default;
 		Event(Type type, PeerLUID pluid, PeerUUID puuid) noexcept;
 		Event(Type type, PeerLUID pluid, PeerUUID puuid, MessageDetails&& msg) noexcept;
 		Event(const Event& other) noexcept;
@@ -26,8 +26,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		explicit operator bool() const noexcept;
 
-		inline const Type GetType() const noexcept { return m_Type; }
-		inline const PeerLUID GetPeerLUID() const noexcept { return m_PeerLUID; }
+		inline Type GetType() const noexcept { return m_Type; }
+		inline PeerLUID GetPeerLUID() const noexcept { return m_PeerLUID; }
 		inline const PeerUUID& GetPeerUUID() const noexcept { return m_PeerUUID; }
 
 		const ExtenderUUID* GetExtenderUUID() const noexcept;

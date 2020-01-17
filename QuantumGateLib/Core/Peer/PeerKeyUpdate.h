@@ -24,7 +24,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] bool BeginKeyUpdate() noexcept;
 
-		inline const Status GetStatus() const noexcept { return m_Status; }
+		inline Status GetStatus() const noexcept { return m_Status; }
 		[[nodiscard]] bool SetStatus(const Status status) noexcept;
 		
 		[[nodiscard]] inline bool HasEvents() noexcept { return ShouldUpdate() || UpdateTimedOut(); }

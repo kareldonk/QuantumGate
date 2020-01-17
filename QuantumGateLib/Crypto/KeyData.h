@@ -31,10 +31,10 @@ namespace QuantumGate::Implementation::Crypto
 		inline void* GetKey() const noexcept { return Key; }
 
 		inline void SetOwner(const AsymmetricKeyOwner owner) noexcept { Owner = owner; }
-		inline const AsymmetricKeyOwner GetOwner() const noexcept { return Owner; }
+		inline AsymmetricKeyOwner GetOwner() const noexcept { return Owner; }
 
-		inline const Algorithm::Asymmetric GetAlgorithm() const noexcept { return Algorithm; }
-		inline const KeyExchangeType GetKeyExchangeType() const noexcept { return KeyExchange; }
+		inline Algorithm::Asymmetric GetAlgorithm() const noexcept { return Algorithm; }
+		inline KeyExchangeType GetKeyExchangeType() const noexcept { return KeyExchange; }
 
 		void ReleaseKeys() noexcept;
 

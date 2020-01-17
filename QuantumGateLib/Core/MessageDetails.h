@@ -15,10 +15,10 @@ namespace QuantumGate::Implementation::Core
 		{}
 
 		MessageDetails(const MessageDetails&) = delete;
-		MessageDetails(MessageDetails&&) = default;
+		MessageDetails(MessageDetails&&) noexcept = default;
 		~MessageDetails() = default;
 		MessageDetails& operator=(const MessageDetails&) = delete;
-		MessageDetails& operator=(MessageDetails&&) = default;
+		MessageDetails& operator=(MessageDetails&&) noexcept = default;
 
 		[[nodiscard]] inline bool AddToMessageData(const Buffer& data) noexcept
 		{
@@ -32,7 +32,7 @@ namespace QuantumGate::Implementation::Core
 			return false;
 		}
 
-		inline const MessageType GetMessageType() const noexcept { return m_MessageType; }
+		inline MessageType GetMessageType() const noexcept { return m_MessageType; }
 		inline const ExtenderUUID& GetExtenderUUID() const noexcept { return m_ExtenderUUID; }
 		inline const Buffer& GetMessageData() const noexcept { return m_MessageData; }
 
