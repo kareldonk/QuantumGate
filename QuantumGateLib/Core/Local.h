@@ -8,22 +8,22 @@
 
 namespace QuantumGate::Implementation::Core
 {
-	namespace Events
-	{
-		struct LocalEnvironmentChange final
-		{};
-
-		struct UnhandledExtenderException final
-		{
-			ExtenderUUID UUID;
-		};
-	}
-
 	class Local final
 	{
 		friend class Extender::Extender;
 
 		using ExtenderModuleMap = Containers::UnorderedMap<Extender::ExtenderModuleID, Extender::Module>;
+
+		struct Events final
+		{
+			struct LocalEnvironmentChange final
+			{};
+
+			struct UnhandledExtenderException final
+			{
+				ExtenderUUID UUID;
+			};
+		};
 
 		using Event = std::variant<Events::LocalEnvironmentChange, Events::UnhandledExtenderException>;
 		using EventQueue = Concurrency::Queue<Event>;
