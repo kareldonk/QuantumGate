@@ -172,14 +172,14 @@ namespace QuantumGate::Implementation::Core::Peer
 			// are cleared the peercount should be zero
 			for (const auto& thpool : m_ThreadPools)
 			{
-				assert(thpool.second->GetData().PeerCollection.Map.WithSharedLock()->empty());
+				assert(thpool.second->GetData().PeerMap.WithSharedLock()->empty());
 			}
 		});
 
 		// If all peers were disconnected and our bookkeeping
 		// was done right then the below should be true
 		assert(m_LookupMaps.WithSharedLock()->IsEmpty());
-		assert(m_AllPeers.Map.WithSharedLock()->empty());
+		assert(m_AllPeers.WithSharedLock()->empty());
 
 		ResetState();
 	}
