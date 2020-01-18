@@ -40,8 +40,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return SendRelayStatus(rport, RelayStatusUpdate::Disconnected);
 	}
 
-	bool MessageProcessor::SendRelayStatus(const RelayPort rport,
-										   const RelayStatusUpdate status) const noexcept
+	bool MessageProcessor::SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept
 	{
 		Dbg(L"*********** SendRelayStatus ***********");
 

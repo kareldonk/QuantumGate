@@ -1153,8 +1153,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (msgbuf)
 			{
 				Message msg;
-				if (msg.Read(msgbuf, symkey) &&
-					msg.IsValid())
+				if (msg.Read(msgbuf, symkey) && msg.IsValid())
 				{
 					++num;
 
