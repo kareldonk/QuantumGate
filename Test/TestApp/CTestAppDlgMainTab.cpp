@@ -432,7 +432,7 @@ void CTestAppDlgMainTab::OnPeerlistDisconnect()
 	{
 		if (!m_QuantumGate.DisconnectFrom(pluid, [](QuantumGate::PeerLUID pluid, const PeerUUID puuid) mutable
 		{
-			Dbg(L"Disconnect callback for LUID %llu", pluid);
+			LogInfo(L"Peer LUID %llu manually disconnected", pluid);
 		}))
 		{
 			LogErr(L"Failed to disconnect from peer LUID %llu", pluid);
