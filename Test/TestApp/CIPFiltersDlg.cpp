@@ -264,6 +264,7 @@ void CIPFiltersDlg::OnLvnItemchangedIpfiltersList(NMHDR* pNMHDR, LRESULT* pResul
 
 		SetValue(IDC_IP_RANGE2, GetIPRange(ip, mask));
 	}
+	else SetValue(IDC_IP_RANGE2, L"");
 
 	UpdateControls();
 
