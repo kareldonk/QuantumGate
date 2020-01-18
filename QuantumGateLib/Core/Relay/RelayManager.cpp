@@ -739,39 +739,53 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		auto success = false;
 
-		if (rl.GetPosition() == Position::Beginning)
+		switch (rl.GetPosition())
 		{
-			LogDbg(L"Connecting relay to peer %s on port %llu for hop %u (beginning); outgoing peer %s",
-				   rl.GetEndpoint().GetString().c_str(), rl.GetPort(), rl.GetHop(), out_peer->GetPeerName().c_str());
-
-			if (out_peer->GetMessageProcessor().SendBeginRelay(rl.GetPort(), rl.GetEndpoint(), rl.GetHop() - 1))
+			case Position::Beginning:
 			{
-				in_peer->GetSocket<Socket>().SetLocalEndpoint(out_peer->GetLocalEndpoint(), rl.GetPort(), rl.GetHop());
-				success = rl.UpdateStatus(Status::Connecting);
-			}
-		}
-		else if (rl.GetPosition() == Position::End)
-		{
-			LogDbg(L"Connecting relay to peer %s on port %llu for hop %u (end); incoming peer %s",
-				   rl.GetEndpoint().GetString().c_str(), rl.GetPort(), rl.GetHop(), in_peer->GetPeerName().c_str());
+				LogDbg(L"Connecting relay to peer %s on port %llu for hop %u (beginning); outgoing peer %s",
+					   rl.GetEndpoint().GetString().c_str(), rl.GetPort(), rl.GetHop(), out_peer->GetPeerName().c_str());
 
-			if (rl.SendRelayStatus(*in_peer, std::nullopt, RelayStatusUpdate::Connected))
-			{
-				if (rl.UpdateStatus(Status::Connected))
+				if (out_peer->GetMessageProcessor().SendBeginRelay(rl.GetPort(), rl.GetEndpoint(), rl.GetHop() - 1))
 				{
-					success = out_peer->GetSocket<Socket>().CompleteAccept();
+					in_peer->GetSocket<Socket>().SetLocalEndpoint(out_peer->GetLocalEndpoint(), rl.GetPort(), rl.GetHop());
+					success = rl.UpdateStatus(Status::Connecting);
 				}
-			}
-		}
-		else if (rl.GetPosition() == Position::Between)
-		{
-			LogDbg(L"Connecting relay to peer %s on port %llu for hop %u (between); incoming peer %s, outgoing peer %s",
-				   rl.GetEndpoint().GetString().c_str(), rl.GetPort(), rl.GetHop(),
-				   in_peer->GetPeerName().c_str(), out_peer->GetPeerName().c_str());
 
-			if (out_peer->GetMessageProcessor().SendBeginRelay(rl.GetPort(), rl.GetEndpoint(), rl.GetHop() - 1))
+				break;
+			}
+			case Position::End:
 			{
-				success = rl.UpdateStatus(Status::Connecting);
+				LogDbg(L"Connecting relay to peer %s on port %llu for hop %u (end); incoming peer %s",
+					   rl.GetEndpoint().GetString().c_str(), rl.GetPort(), rl.GetHop(), in_peer->GetPeerName().c_str());
+
+				if (rl.SendRelayStatus(*in_peer, std::nullopt, RelayStatusUpdate::Connected))
+				{
+					if (rl.UpdateStatus(Status::Connected))
+					{
+						success = out_peer->GetSocket<Socket>().CompleteAccept();
+					}
+				}
+
+				break;
+			}
+			case Position::Between:
+			{
+				LogDbg(L"Connecting relay to peer %s on port %llu for hop %u (between); incoming peer %s, outgoing peer %s",
+					   rl.GetEndpoint().GetString().c_str(), rl.GetPort(), rl.GetHop(),
+					   in_peer->GetPeerName().c_str(), out_peer->GetPeerName().c_str());
+
+				if (out_peer->GetMessageProcessor().SendBeginRelay(rl.GetPort(), rl.GetEndpoint(), rl.GetHop() - 1))
+				{
+					success = rl.UpdateStatus(Status::Connecting);
+				}
+
+				break;
+			}
+			default:
+			{
+				assert(false);
+				break;
 			}
 		}
 
@@ -891,35 +905,49 @@ namespace QuantumGate::Implementation::Core::Relay
 				break;
 		}
 
-		if (rl.GetPosition() == Position::Beginning)
+		switch (rl.GetPosition())
 		{
-			if (in_peer)
+			case Position::Beginning:
 			{
-				// In case the connection was closed properly we just enable read
-				// on the socket so that it will receive 0 bytes indicating the connection closed
-				if (wsaerror != -1) in_peer->GetSocket<Socket>().SetException(wsaerror);
-				else in_peer->GetSocket<Socket>().SetRead();
-			}
+				if (in_peer)
+				{
+					// In case the connection was closed properly we just enable read
+					// on the socket so that it will receive 0 bytes indicating the connection closed
+					if (wsaerror != -1) in_peer->GetSocket<Socket>().SetException(wsaerror);
+					else in_peer->GetSocket<Socket>().SetRead();
+				}
 
-			if (out_peer) DiscardReturnValue(rl.SendRelayStatus(*out_peer, std::nullopt, status_update));
-		}
-		else if (rl.GetPosition() == Position::End)
-		{
-			if (out_peer)
+				if (out_peer) DiscardReturnValue(rl.SendRelayStatus(*out_peer, std::nullopt, status_update));
+
+				break;
+			}
+			case Position::End:
 			{
-				// In case the connection was closed properly we just enable read
-				// on the socket so that it will receive 0 bytes indicating the connection closed
-				if (wsaerror != -1) out_peer->GetSocket<Socket>().SetException(wsaerror);
-				else out_peer->GetSocket<Socket>().SetRead();
+				if (out_peer)
+				{
+					// In case the connection was closed properly we just enable read
+					// on the socket so that it will receive 0 bytes indicating the connection closed
+					if (wsaerror != -1) out_peer->GetSocket<Socket>().SetException(wsaerror);
+					else out_peer->GetSocket<Socket>().SetRead();
+				}
+
+				if (in_peer) DiscardReturnValue(rl.SendRelayStatus(*in_peer, std::nullopt, status_update));
+
+				break;
 			}
+			case Position::Between:
+			{
+				if (in_peer) DiscardReturnValue(rl.SendRelayStatus(*in_peer, std::nullopt, status_update));
 
-			if (in_peer) DiscardReturnValue(rl.SendRelayStatus(*in_peer, std::nullopt, status_update));
-		}
-		else // Position::Between
-		{
-			if (in_peer) DiscardReturnValue(rl.SendRelayStatus(*in_peer, std::nullopt, status_update));
+				if (out_peer) DiscardReturnValue(rl.SendRelayStatus(*out_peer, std::nullopt, status_update));
 
-			if (out_peer) DiscardReturnValue(rl.SendRelayStatus(*out_peer, std::nullopt, status_update));
+				break;
+			}
+			default:
+			{
+				assert(false);
+				break;
+			}
 		}
 
 		rl.UpdateStatus(Status::Closed);

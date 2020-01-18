@@ -172,14 +172,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			// are cleared the peercount should be zero
 			for (const auto& thpool : m_ThreadPools)
 			{
-				assert(thpool.second->GetData().PeerCollection.Count == 0);
+				assert(thpool.second->GetData().PeerCollection.Map.WithSharedLock()->empty());
 			}
 		});
 
 		// If all peers were disconnected and our bookkeeping
 		// was done right then the below should be true
 		assert(m_LookupMaps.WithSharedLock()->IsEmpty());
-		assert(m_AllPeers.Count == 0);
 		assert(m_AllPeers.Map.WithSharedLock()->empty());
 
 		ResetState();
@@ -194,7 +193,6 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		m_LookupMaps.WithUniqueLock()->Clear();
 
-		m_AllPeers.Count = 0;
 		m_AllPeers.Map.WithUniqueLock()->clear();
 
 		m_ThreadPools.clear();
@@ -352,7 +350,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
-		std::shared_ptr<Peer_ThS> peerths = nullptr;
+		std::shared_ptr<Peer_ThS> peerths{ nullptr };
 
 		thpdata.Queue.IfUniqueLock([&](auto& queue)
 		{
@@ -393,7 +391,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	std::shared_ptr<Peer_ThS> Manager::Get(const PeerLUID pluid) const noexcept
 	{
-		std::shared_ptr<Peer_ThS> rval(nullptr);
+		std::shared_ptr<Peer_ThS> rval{ nullptr };
 
 		m_AllPeers.Map.WithSharedLock([&](const PeerMap& peers)
 		{
@@ -509,12 +507,9 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 				catch (...) { return; }
 
-				++m_AllPeers.Count;
-
 				auto sg = MakeScopeGuard([&]
 				{
 					m_AllPeers.Map.WithUniqueLock()->erase(apit);
-					--m_AllPeers.Count;
 				});
 
 				// Get the threadpool with the least amount of peers so that the connections
@@ -522,8 +517,8 @@ namespace QuantumGate::Implementation::Core::Peer
 				const auto thpit = std::min_element(m_ThreadPools.begin(), m_ThreadPools.end(),
 													[](const auto& a, const auto& b)
 				{
-					return (a.second->GetData().PeerCollection.Count <
-							b.second->GetData().PeerCollection.Count);
+					return (a.second->GetData().PeerCollection.Map.WithSharedLock()->size() <
+							b.second->GetData().PeerCollection.Map.WithSharedLock()->size());
 				});
 
 				assert(thpit != m_ThreadPools.end());
@@ -546,8 +541,6 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 				catch (...) { return; }
 
-				++thpit->second->GetData().PeerCollection.Count;
-
 				sg.Deactivate();
 
 				success = true;
@@ -564,17 +557,11 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	void Manager::Remove(const Peer& peer) noexcept
 	{
-		if (m_AllPeers.Map.WithUniqueLock()->erase(peer.GetLUID()) > 0)
-		{
-			--m_AllPeers.Count;
-		}
+		m_AllPeers.Map.WithUniqueLock()->erase(peer.GetLUID());
 
 		const auto& thpool = m_ThreadPools[peer.GetThreadPoolKey()];
 
-		if (thpool->GetData().PeerCollection.Map.WithUniqueLock()->erase(peer.GetLUID()) > 0)
-		{
-			--thpool->GetData().PeerCollection.Count;
-		}
+		thpool->GetData().PeerCollection.Map.WithUniqueLock()->erase(peer.GetLUID());
 	}
 
 	void Manager::Remove(const Containers::List<std::shared_ptr<Peer_ThS>>& peerlist) noexcept
@@ -591,12 +578,10 @@ namespace QuantumGate::Implementation::Core::Peer
 	void Manager::RemoveAll() noexcept
 	{
 		m_AllPeers.Map.WithUniqueLock()->clear();
-		m_AllPeers.Count = 0;
 
 		for (const auto& thpool : m_ThreadPools)
 		{
 			thpool.second->GetData().PeerCollection.Map.WithUniqueLock()->clear();
-			thpool.second->GetData().PeerCollection.Count = 0;
 		}
 	}
 
@@ -1008,33 +993,29 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	Result<> Manager::Broadcast(const MessageType msgtype, const Buffer& buffer, BroadcastCallback&& callback)
 	{
-		// If there are connections
-		if (m_AllPeers.Count > 0)
+		m_AllPeers.Map.WithSharedLock([&](const PeerMap& peers)
 		{
-			m_AllPeers.Map.WithSharedLock([&](const PeerMap& peers)
+			for (const auto it : peers)
 			{
-				for (const auto it : peers)
+				it.second->WithUniqueLock([&](Peer& peer)
 				{
-					it.second->WithUniqueLock([&](Peer& peer)
+					auto broadcast_result = BroadcastResult::Succeeded;
+
+					if (peer.IsReady())
 					{
-						auto broadcast_result = BroadcastResult::Succeeded;
-
-						if (peer.IsReady())
+						// Note the copy
+						auto bbuffer = buffer;
+						if (peer.Send(msgtype, std::move(bbuffer)).Failed())
 						{
-							// Note the copy
-							auto bbuffer = buffer;
-							if (peer.Send(msgtype, std::move(bbuffer)).Failed())
-							{
-								broadcast_result = BroadcastResult::SendFailure;
-							}
+							broadcast_result = BroadcastResult::SendFailure;
 						}
-						else broadcast_result = BroadcastResult::PeerNotReady;
+					}
+					else broadcast_result = BroadcastResult::PeerNotReady;
 
-						if (callback) callback(peer, broadcast_result);
-					});
-				}
-			});
-		}
+					if (callback) callback(peer, broadcast_result);
+				});
+			}
+		});
 
 		return ResultCode::Succeeded;
 	}
@@ -1084,8 +1065,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		return Send(extuuid, running, *peer, buffer, params, std::move(callback));
 	}
 
-	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							   Peer& peer, const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept
+	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, Peer& peer,
+							   const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
 		try
 		{
@@ -1116,8 +1097,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::Failed;
 	}
 
-	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
-							 Peer& peer, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
+	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, Peer& peer,
+							 Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
 		// Only if peer status is ready (handshake succeeded, etc.)
 		if (peer.IsReady())
@@ -1156,7 +1137,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	bool Manager::BroadcastExtenderUpdate()
 	{
 		// If there are no connections, don't bother
-		if (m_AllPeers.Count == 0) return true;
+		if (m_AllPeers.Map.WithSharedLock()->size() == 0) return true;
 
 		if (const auto result = GetExtenderUpdateData(); result.Succeeded())
 		{
@@ -1166,17 +1147,22 @@ namespace QuantumGate::Implementation::Core::Peer
 				switch (broadcast_result)
 				{
 					case BroadcastResult::PeerNotReady:
+					{
 						if (peer.IsInSessionInit())
 						{
 							// We'll need to send an extender update to the peer
 							// when it gets in the ready state
 							peer.SetNeedsExtenderUpdate();
 
-							LogDbg(L"Couldn't broadcast ExtenderUpdate message to peer LUID %llu; will send update when it gets in ready state", peer.GetLUID());
+							LogDbg(L"Couldn't broadcast ExtenderUpdate message to peer LUID %llu; will send update when it gets in ready state",
+								   peer.GetLUID());
 						}
 						break;
+					}
 					default:
+					{
 						break;
+					}
 				}
 			});
 
@@ -1209,23 +1195,24 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		assert(m_Running);
 
-		// If there are no connections, don't bother
-		if (m_AllPeers.Count == 0) return;
-
-		if (added)
 		{
-			// If an extender was added, update it with all existing connections
-			// in case the peers also support this extender
-			m_AllPeers.Map.WithSharedLock([&](const PeerMap& peers)
+			const auto peers = m_AllPeers.Map.WithSharedLock();
+
+			// If there are no connections, don't bother
+			if (peers->size() == 0) return;
+
+			if (added)
 			{
-				for (auto& it : peers)
+				// If an extender was added, update it with all existing connections
+				// in case the peers also support this extender
+				for (auto& it : *peers)
 				{
 					it.second->WithUniqueLock([&](Peer& peer)
 					{
 						peer.ProcessLocalExtenderUpdate(extuuids);
 					});
 				}
-			});
+			}
 		}
 
 		// Let connected peers know we added or removed an extender

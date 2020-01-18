@@ -21,6 +21,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		using PeerMap = Containers::UnorderedMap<PeerLUID, std::shared_ptr<Peer_ThS>>;
 		using PeerMap_ThS = Concurrency::ThreadSafe<PeerMap, Concurrency::RecursiveSharedMutex>;
+
 		using PeerQueue = Concurrency::Queue<std::shared_ptr<Peer_ThS>>;
 		using PeerQueue_ThS = Concurrency::ThreadSafe<PeerQueue, Concurrency::SpinMutex>;
 
@@ -31,7 +32,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		struct PeerCollection final
 		{
 			PeerMap_ThS Map;
-			std::atomic<Size> Count{ 0 };
 			std::atomic<UInt> AccessUpdateFlag;
 		};
 
