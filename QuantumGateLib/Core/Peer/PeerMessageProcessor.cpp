@@ -691,6 +691,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		try
 		{
 			Vector<ExtenderUUID> extlist;
+			extlist.reserve(sextlist.size());
 
 			// Check if the UUIDs are valid
 			for (const auto& suuid : sextlist)
@@ -703,7 +704,10 @@ namespace QuantumGate::Implementation::Core::Peer
 				else return std::nullopt;
 			}
 
-			return { std::move(extlist) };
+			if (Util::RemoveDuplicates(extlist))
+			{
+				return { std::move(extlist) };
+			}
 		}
 		catch (...) {}
 
