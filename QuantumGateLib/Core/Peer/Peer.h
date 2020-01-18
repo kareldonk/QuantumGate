@@ -210,6 +210,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		inline void SetNeedsExtenderUpdate() noexcept { SetFlag(Flags::NeedsExtenderUpdate, true); }
 		[[nodiscard]] inline bool NeedsExtenderUpdate() const noexcept { return IsFlagSet(Flags::NeedsExtenderUpdate); }
 
+		void ScheduleCallback(Callback<void()>&& callback) noexcept;
+
 		void OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const API::Extender::PeerEvent::Result& result) noexcept;
 
 	protected:
@@ -302,7 +304,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		ExtenderUUIDs m_PeerExtenderUUIDs;
 
-		PeerSendQueues m_SendQueues;
+		PeerSendQueues m_SendQueues{ *this };
 
 		EventBuffer m_ReceiveBuffer;
 		EventBuffer m_SendBuffer;

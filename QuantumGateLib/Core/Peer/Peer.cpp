@@ -611,7 +611,10 @@ namespace QuantumGate::Implementation::Core::Peer
 						cdetails.IsUsingGlobalSharedSecret = IsUsingGlobalSharedSecret();
 						cdetails.IsRelayed = IsRelayed();
 
-						m_ConnectCallbacks(GetLUID(), cdetails);
+						ScheduleCallback([cdetails, dispatcher = std::move(m_ConnectCallbacks)]() mutable
+						{
+							dispatcher(cdetails.PeerLUID, cdetails);
+						});
 					}
 
 					// Notify extenders of connected peer
@@ -635,11 +638,19 @@ namespace QuantumGate::Implementation::Core::Peer
 
 					if (!error) error = GetDisconnectConditionResultCode();
 
-					m_ConnectCallbacks(GetLUID(), *error);
+					ScheduleCallback([pluid = GetLUID(), cdetails = *error,
+									 dispatcher = std::move(m_ConnectCallbacks)]() mutable
+					{
+						dispatcher(pluid, cdetails);
+					});
 				}
 				else if (m_DisconnectCallbacks && old_status < Status::Disconnected)
 				{
-					m_DisconnectCallbacks(GetLUID(), GetPeerUUID());
+					ScheduleCallback([pluid = GetLUID(), puuid = GetPeerUUID(),
+									 dispatcher = std::move(m_DisconnectCallbacks)]() mutable
+					{
+						dispatcher(pluid, puuid);
+					});
 				}
 
 				if (old_status == Status::Ready)
@@ -657,6 +668,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		return true;
+	}
+
+	void Peer::ScheduleCallback(Callback<void()>&& callback) noexcept
+	{
+		m_PeerManager.SchedulePeerCallback(m_ThreadPoolKey, std::move(callback));
 	}
 
 	void Peer::SetAuthenticated(const bool auth) noexcept

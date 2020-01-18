@@ -25,20 +25,25 @@ namespace QuantumGate::Implementation::Core::Peer
 		using PeerQueue = Concurrency::Queue<std::shared_ptr<Peer_ThS>>;
 		using PeerQueue_ThS = Concurrency::ThreadSafe<PeerQueue, Concurrency::SpinMutex>;
 
+		struct Tasks final
+		{
+			struct PeerAccessCheck final {};
+			struct PeerCallback final { Callback<void()> Callback; };
+		};
+
+		using ThreadPoolTask = std::variant<Tasks::PeerAccessCheck, Tasks::PeerCallback>;
+		using ThreadPoolTaskQueue = Concurrency::Queue<ThreadPoolTask>;
+		using ThreadPoolTaskQueue_ThS = Concurrency::ThreadSafe<ThreadPoolTaskQueue, Concurrency::SpinMutex>;
+
 		enum class BroadcastResult { Succeeded, PeerNotReady, SendFailure };
 
 		using BroadcastCallback = Callback<void(Peer& peer, const BroadcastResult result)>;
 
-		struct PeerCollection final
-		{
-			PeerMap_ThS Map;
-			std::atomic<UInt> AccessUpdateFlag;
-		};
-
 		struct ThreadPoolData final
 		{
-			PeerCollection PeerCollection;
-			PeerQueue_ThS Queue;
+			PeerMap_ThS PeerMap;
+			PeerQueue_ThS PeerQueue;
+			ThreadPoolTaskQueue_ThS TaskQueue;
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
@@ -157,6 +162,8 @@ namespace QuantumGate::Implementation::Core::Peer
 										const API::Extender::PeerEvent::Result& result) noexcept;
 		void OnPeerEvent(const Peer& peer, const Event&& event) noexcept;
 
+		void SchedulePeerCallback(const UInt64 threadpool_key, Callback<void()>&& callback) noexcept;
+
 		void AddReportedPublicIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,
 										 const PeerConnectionType rep_con_type, const bool trusted) noexcept;
 
@@ -176,7 +183,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Extender::Manager& m_ExtenderManager;
 
 		LookupMaps_ThS m_LookupMaps;
-		PeerCollection m_AllPeers;
+		PeerMap_ThS m_AllPeers;
 		ThreadPoolMap m_ThreadPools;
 
 		Relay::Manager m_RelayManager{ *this };

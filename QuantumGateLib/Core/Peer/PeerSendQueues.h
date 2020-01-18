@@ -8,6 +8,8 @@
 
 namespace QuantumGate::Implementation::Core::Peer
 {
+	class Peer;
+
 	class PeerSendQueues final
 	{
 		struct DefaultMessage final
@@ -35,7 +37,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		using DelayedMessageQueue = Concurrency::Queue<DelayedMessage>;
 
 	public:
-		PeerSendQueues() noexcept = default;
+		PeerSendQueues(Peer& peer) noexcept : m_Peer(peer) {}
 		PeerSendQueues(const PeerSendQueues&) = delete;
 		PeerSendQueues(PeerSendQueues&&) noexcept = default;
 		~PeerSendQueues() = default;
@@ -81,6 +83,7 @@ namespace QuantumGate::Implementation::Core::Peer
 																 const Crypto::SymmetricKeyData& symkey) noexcept;
 
 	private:
+		Peer& m_Peer;
 		MessageQueue m_NormalQueue;
 		MessageQueue m_ExpeditedQueue;
 		DelayedMessageQueue m_DelayedQueue;

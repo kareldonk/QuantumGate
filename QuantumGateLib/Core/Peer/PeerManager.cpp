@@ -127,7 +127,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						if (!thpool->AddThread(L"QuantumGate Peers Thread",
 											   MakeCallback(this, &Manager::WorkerThreadProcessor),
-											   &thpool->GetData().Queue.WithUniqueLock()->Event()))
+											   &thpool->GetData().PeerQueue.WithUniqueLock()->Event()))
 						{
 							error = true;
 						}
@@ -160,7 +160,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			thpool.second->Shutdown();
 			thpool.second->Clear();
-			thpool.second->GetData().Queue.WithUniqueLock()->Clear();
+			thpool.second->GetData().PeerQueue.WithUniqueLock()->Clear();
 		}
 
 		// Disconnect and remove all peers
@@ -193,7 +193,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		m_LookupMaps.WithUniqueLock()->Clear();
 
-		m_AllPeers.Map.WithUniqueLock()->clear();
+		m_AllPeers.WithUniqueLock()->clear();
 
 		m_ThreadPools.clear();
 	}
@@ -275,25 +275,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		const auto max_handshake_duration = settings.Local.MaxHandshakeDuration;
 		const auto max_connect_duration = settings.Local.ConnectTimeout;
 
-		// Access check required?
-		const auto luv = m_AllPeers.AccessUpdateFlag.load();
-		if (thpdata.PeerCollection.AccessUpdateFlag != luv)
-		{
-			thpdata.PeerCollection.AccessUpdateFlag = luv;
-
-			thpdata.PeerCollection.Map.WithSharedLock([&](const PeerMap& peers)
-			{
-				for (auto it = peers.begin(); it != peers.end(); ++it)
-				{
-					it->second->WithUniqueLock([&](Peer& peer) noexcept
-					{
-						peer.SetNeedsAccessCheck();
-					});
-				}
-			});
-		}
-
-		thpdata.PeerCollection.Map.WithSharedLock([&](const PeerMap& peers)
+		thpdata.PeerMap.WithSharedLock([&](const PeerMap& peers)
 		{
 			for (auto it = peers.begin(); it != peers.end() && !shutdown_event.IsSet(); ++it)
 			{
@@ -314,7 +296,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 							Dbg(L"Adding peer %s to queue", peer.GetPeerName().c_str());
 
-							thpdata.Queue.WithUniqueLock()->Push(peerths, [&]() noexcept { peer.SetInQueue(true); });
+							thpdata.PeerQueue.WithUniqueLock()->Push(peerths, [&]() noexcept { peer.SetInQueue(true); });
 
 							result.DidWork = true;
 						}
@@ -342,6 +324,48 @@ namespace QuantumGate::Implementation::Core::Peer
 			result.DidWork = true;
 		}
 
+		// Execute any scheduled tasks
+		while (true)
+		{
+			std::optional<ThreadPoolTask> task;
+
+			thpdata.TaskQueue.IfUniqueLock([&](auto& queue)
+			{
+				if (!queue.Empty())
+				{
+					task = std::move(queue.Front());
+					queue.Pop();
+
+					// We had tasks in the queue so we did work
+					result.DidWork = true;
+				}
+			});
+
+			if (task.has_value())
+			{
+				std::visit(Util::Overloaded{
+						[&](Tasks::PeerAccessCheck& ptask)
+						{
+							thpdata.PeerMap.WithSharedLock([&](const PeerMap& peers)
+							{
+								for (auto it = peers.begin(); it != peers.end(); ++it)
+								{
+									it->second->WithUniqueLock([&](Peer& peer) noexcept
+									{
+										peer.SetNeedsAccessCheck();
+									});
+								}
+							});
+						},
+						[](Tasks::PeerCallback& ptask)
+						{
+							ptask.Callback();
+						}
+					}, *task);
+			}
+			else break;
+		}
+
 		return result;
 	}
 
@@ -352,7 +376,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		std::shared_ptr<Peer_ThS> peerths{ nullptr };
 
-		thpdata.Queue.IfUniqueLock([&](auto& queue)
+		thpdata.PeerQueue.IfUniqueLock([&](auto& queue)
 		{
 			if (!queue.Empty())
 			{
@@ -380,7 +404,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						// Peer should not already be in queue if we get here
 						assert(!peer.IsInQueue());
 
-						thpdata.Queue.WithUniqueLock()->Push(peerths, [&]() noexcept { peer.SetInQueue(true); });
+						thpdata.PeerQueue.WithUniqueLock()->Push(peerths, [&]() noexcept { peer.SetInQueue(true); });
 					}
 				}
 			});
@@ -393,7 +417,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		std::shared_ptr<Peer_ThS> rval{ nullptr };
 
-		m_AllPeers.Map.WithSharedLock([&](const PeerMap& peers)
+		m_AllPeers.WithSharedLock([&](const PeerMap& peers)
 		{
 			const auto p = peers.find(pluid);
 			if (p != peers.end()) rval = p->second;
@@ -478,6 +502,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		return nullptr;
 	}
 
+	void Manager::SchedulePeerCallback(const UInt64 threadpool_key, Callback<void()>&& callback) noexcept
+	{
+		const auto& thpool = m_ThreadPools[threadpool_key];
+
+		thpool->GetData().TaskQueue.WithUniqueLock()->Push(Tasks::PeerCallback{ std::move(callback) });
+	}
+
 	bool Manager::Add(std::shared_ptr<Peer_ThS>& peerths) noexcept
 	{
 		auto success = false;
@@ -494,7 +525,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					// If this fails there was already a peer in the map (this should not happen)
 					[[maybe_unused]] const auto [it, inserted] =
-						m_AllPeers.Map.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
+						m_AllPeers.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
 
 					assert(inserted);
 					if (!inserted)
@@ -509,7 +540,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				auto sg = MakeScopeGuard([&]
 				{
-					m_AllPeers.Map.WithUniqueLock()->erase(apit);
+					m_AllPeers.WithUniqueLock()->erase(apit);
 				});
 
 				// Get the threadpool with the least amount of peers so that the connections
@@ -517,8 +548,8 @@ namespace QuantumGate::Implementation::Core::Peer
 				const auto thpit = std::min_element(m_ThreadPools.begin(), m_ThreadPools.end(),
 													[](const auto& a, const auto& b)
 				{
-					return (a.second->GetData().PeerCollection.Map.WithSharedLock()->size() <
-							b.second->GetData().PeerCollection.Map.WithSharedLock()->size());
+					return (a.second->GetData().PeerMap.WithSharedLock()->size() <
+							b.second->GetData().PeerMap.WithSharedLock()->size());
 				});
 
 				assert(thpit != m_ThreadPools.end());
@@ -530,7 +561,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					// If this fails there was already a peer in the map (this should not happen)
 					[[maybe_unused]] const auto [it, inserted] =
-						thpit->second->GetData().PeerCollection.Map.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
+						thpit->second->GetData().PeerMap.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
 
 					assert(inserted);
 					if (!inserted)
@@ -557,16 +588,16 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	void Manager::Remove(const Peer& peer) noexcept
 	{
-		m_AllPeers.Map.WithUniqueLock()->erase(peer.GetLUID());
+		m_AllPeers.WithUniqueLock()->erase(peer.GetLUID());
 
 		const auto& thpool = m_ThreadPools[peer.GetThreadPoolKey()];
 
-		thpool->GetData().PeerCollection.Map.WithUniqueLock()->erase(peer.GetLUID());
+		thpool->GetData().PeerMap.WithUniqueLock()->erase(peer.GetLUID());
 	}
 
 	void Manager::Remove(const Containers::List<std::shared_ptr<Peer_ThS>>& peerlist) noexcept
 	{
-		m_AllPeers.Map.WithUniqueLock([&](PeerMap& peers)
+		m_AllPeers.WithUniqueLock([&](PeerMap& peers)
 		{
 			for (const auto& peerths : peerlist)
 			{
@@ -577,11 +608,11 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	void Manager::RemoveAll() noexcept
 	{
-		m_AllPeers.Map.WithUniqueLock()->clear();
+		m_AllPeers.WithUniqueLock()->clear();
 
 		for (const auto& thpool : m_ThreadPools)
 		{
-			thpool.second->GetData().PeerCollection.Map.WithUniqueLock()->clear();
+			thpool.second->GetData().PeerMap.WithUniqueLock()->clear();
 		}
 	}
 
@@ -639,7 +670,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	void Manager::DisconnectAndRemoveAll() noexcept
 	{
-		m_AllPeers.Map.WithSharedLock([&](const PeerMap& peers)
+		m_AllPeers.WithSharedLock([&](const PeerMap& peers)
 		{
 			for (auto& it : peers)
 			{
@@ -993,7 +1024,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	Result<> Manager::Broadcast(const MessageType msgtype, const Buffer& buffer, BroadcastCallback&& callback)
 	{
-		m_AllPeers.Map.WithSharedLock([&](const PeerMap& peers)
+		m_AllPeers.WithSharedLock([&](const PeerMap& peers)
 		{
 			for (const auto it : peers)
 			{
@@ -1137,7 +1168,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	bool Manager::BroadcastExtenderUpdate()
 	{
 		// If there are no connections, don't bother
-		if (m_AllPeers.Map.WithSharedLock()->size() == 0) return true;
+		if (m_AllPeers.WithSharedLock()->size() == 0) return true;
 
 		if (const auto result = GetExtenderUpdateData(); result.Succeeded())
 		{
@@ -1184,11 +1215,13 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		// This function should not update peers directly since
 		// it can get called by all kinds of outside threads and
-		// could cause deadlocks. We use a shared update flag instead.
-		// Increment the update flag; the change is simply used
-		// as an indication that we need to check all peers
-		// again for access rights in the main worker threads.
-		++m_AllPeers.AccessUpdateFlag;
+		// could cause deadlocks. A task is scheduled for the threadpools
+		// to handle updating the peers.
+
+		for (const auto& thpool : m_ThreadPools)
+		{
+			thpool.second->GetData().TaskQueue.WithUniqueLock()->Push(Tasks::PeerAccessCheck{});
+		}
 	}
 
 	void Manager::OnLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids, const bool added)
@@ -1196,7 +1229,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		assert(m_Running);
 
 		{
-			const auto peers = m_AllPeers.Map.WithSharedLock();
+			const auto peers = m_AllPeers.WithSharedLock();
 
 			// If there are no connections, don't bother
 			if (peers->size() == 0) return;

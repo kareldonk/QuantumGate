@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "PeerSendQueues.h"
+#include "Peer.h"
 
 namespace QuantumGate::Implementation::Core::Peer
 {
@@ -70,7 +71,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			if constexpr (std::is_same_v<T, MessageQueue> || std::is_same_v<T, DelayedMessageQueue>)
 			{
-				return std::make_tuple(queue.Front().Message.GetMessageType(), queue.Front().Message.GetMessageData().GetSize(), std::move(queue.Front().SendCallback));
+				return std::make_tuple(queue.Front().Message.GetMessageType(),
+									   queue.Front().Message.GetMessageData().GetSize(),
+									   std::move(queue.Front().SendCallback));
 			}
 			else
 			{
@@ -97,7 +100,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				break;
 		}
 
-		if (send_callback) send_callback();
+		if (send_callback) m_Peer.ScheduleCallback(std::move(send_callback));
 	}
 
 	std::pair<bool, Size> PeerSendQueues::GetMessages(Buffer& buffer, const Crypto::SymmetricKeyData& symkey,
