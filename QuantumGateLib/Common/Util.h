@@ -8,6 +8,9 @@
 
 namespace QuantumGate::Implementation::Util
 {
+	template<class... Ts> struct Overloaded : Ts... { using Ts::operator()...; };
+	template<class... Ts> Overloaded(Ts...)->Overloaded<Ts...>;
+
 	Export bool GetCurrentLocalTime(const WChar* format, std::array<WChar, 128>& timestr) noexcept;
 	Export String GetCurrentLocalTime(const WChar* format) noexcept;
 	Export SystemTime GetCurrentSystemTime() noexcept;
@@ -41,7 +44,7 @@ namespace QuantumGate::Implementation::Util
 			if (bitcount == CHAR_BIT)
 			{
 				txt[txt.size() - (pos + 2)] = '\'';
-				bitcount = 0;
+				bitcount = 0u;
 				++pos;
 			}
 
@@ -83,6 +86,22 @@ namespace QuantumGate::Implementation::Util
 		}
 
 		return vec;
+	}
+
+	template<typename T>
+	bool RemoveDuplicates(T& container) noexcept
+	{
+		try
+		{
+			std::sort(container.begin(), container.end());
+			const auto last = std::unique(container.begin(), container.end());
+			container.erase(last, container.end());
+
+			return true;
+		}
+		catch (...) {}
+
+		return false;
 	}
 
 	Export UInt64 GetNonPersistentHash(const String& txt) noexcept;
