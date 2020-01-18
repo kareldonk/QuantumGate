@@ -706,26 +706,19 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		if (event.has_value())
 		{
-			if (std::holds_alternative<Events::Connect>(*event))
-			{
-				ProcessRelayEvent(std::get<Events::Connect>(*event));
-			}
-			else if (std::holds_alternative<Events::StatusUpdate>(*event))
-			{
-				ProcessRelayEvent(std::get<Events::StatusUpdate>(*event));
-			}
-			else if (std::holds_alternative<Events::RelayData>(*event))
-			{
-				while (ProcessRelayEvent(std::get<Events::RelayData>(*event)) == RelayDataProcessResult::Retry && !shutdown_event.IsSet())
-				{
-					std::this_thread::sleep_for(1ms);
-				}
-			}
-			else if (std::holds_alternative<Events::RelayDataAck>(*event))
-			{
-				ProcessRelayEvent(std::get<Events::RelayDataAck>(*event));
-			}
-			else assert(false);
+			std::visit(Util::Overloaded{
+					[&](auto& revent)
+					{
+						ProcessRelayEvent(revent);
+					},
+					[&](Events::RelayData& revent)
+					{
+						while (ProcessRelayEvent(revent) == RelayDataProcessResult::Retry && !shutdown_event.IsSet())
+						{
+							std::this_thread::sleep_for(1ms);
+						}
+					}
+				}, *event);
 		}
 
 		return result;
