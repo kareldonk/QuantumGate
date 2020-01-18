@@ -54,8 +54,11 @@ END_MESSAGE_MAP()
 
 void CTestAppDlgAVExtenderTab::UpdateControls() noexcept
 {
-	GetDlgItem(IDC_PREVIEW_VIDEO)->EnableWindow(m_AVExtender != nullptr);
-	GetDlgItem(IDC_PREVIEW_AUDIO)->EnableWindow(m_AVExtender != nullptr);
+	const auto vdcombo = (CComboBox*)GetDlgItem(IDC_VIDEO_DEVICES_COMBO);
+	const auto adcombo = (CComboBox*)GetDlgItem(IDC_AUDIO_DEVICES_COMBO);
+
+	GetDlgItem(IDC_PREVIEW_VIDEO)->EnableWindow(m_AVExtender != nullptr && vdcombo->GetCurSel() != CB_ERR);
+	GetDlgItem(IDC_PREVIEW_AUDIO)->EnableWindow(m_AVExtender != nullptr && adcombo->GetCurSel() != CB_ERR);
 
 	GetDlgItem(IDC_VIDEO_COMPRESSION_CHECK)->EnableWindow(m_AVExtender != nullptr);
 	GetDlgItem(IDC_AUDIO_COMPRESSION_CHECK)->EnableWindow(m_AVExtender != nullptr);
