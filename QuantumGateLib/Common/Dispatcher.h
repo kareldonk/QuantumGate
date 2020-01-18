@@ -21,11 +21,22 @@ namespace QuantumGate::Implementation
 		using FunctionHandle = std::optional<typename FunctionList::const_iterator>;
 
 		Dispatcher() noexcept {}
+		
 		Dispatcher(const Dispatcher&) = delete;
-		Dispatcher(Dispatcher&&) noexcept = default;
+		
+		Dispatcher(Dispatcher&& other) noexcept :
+			m_Functions(std::move(other.m_Functions))
+		{}
+		
 		~Dispatcher() = default;
+		
 		Dispatcher& operator=(const Dispatcher&) = delete;
-		Dispatcher& operator=(Dispatcher&&) noexcept = default;
+
+		Dispatcher& operator=(Dispatcher&& other) noexcept
+		{
+			m_Functions = std::move(other.m_Functions);
+			return *this;
+		}
 
 		template<typename... Args, typename Sig2 = Sig,
 			typename = std::enable_if_t<!FunctionSignatureIsConstV<Sig2>>>
