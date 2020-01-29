@@ -50,23 +50,17 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		const auto extname = GetExtenderName();
 
-		Size numthreadpools{ 1 };
-		Size numthreadsperpool{ 1 };
-
 		const auto& settings = m_ExtenderManager.GetSettings();
 
-		const auto cth = std::thread::hardware_concurrency();
-		numthreadpools = (cth > settings.Local.Concurrency.MinThreadPools) ? cth : settings.Local.Concurrency.MinThreadPools;
-
-		if (numthreadsperpool < settings.Local.Concurrency.MinThreadsPerPool)
-		{
-			numthreadsperpool = settings.Local.Concurrency.MinThreadsPerPool;
-		}
+		const auto numthreadpools = Util::GetNumThreadPools(settings.Local.Concurrency.Extender.MinThreadPools,
+															settings.Local.Concurrency.Extender.MaxThreadPools, 1u);
+		const auto numthreadsperpool = Util::GetNumThreadsPerPool(settings.Local.Concurrency.Extender.ThreadsPerPool,
+																  settings.Local.Concurrency.Extender.ThreadsPerPool, 1u);
 
 		// Must have at least one thread pool, and at least one thread per pool 
 		assert(numthreadpools > 0 && numthreadsperpool > 0);
 
-		LogSys(L"Creating %u extender %s with %u worker %s %s",
+		LogSys(L"Creating %zu extender %s with %zu worker %s %s",
 			   numthreadpools, numthreadpools > 1 ? L"threadpools" : L"threadpool",
 			   numthreadsperpool, numthreadsperpool > 1 ? L"threads" : L"thread",
 			   numthreadpools > 1 ? L"each" : L"");

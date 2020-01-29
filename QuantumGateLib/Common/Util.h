@@ -110,6 +110,9 @@ namespace QuantumGate::Implementation::Util
 
 	Export bool SetThreadName(HANDLE thread, const String& name) noexcept;
 	Export bool SetCurrentThreadName(const String& name) noexcept;
+	
+	Size GetNumThreadPools(const Size min_threadpools, const Size max_threadpools, const Size min_req_threadpools) noexcept;
+	Size GetNumThreadsPerPool(const Size min_threads_per_pool, const Size max_threads_per_pool, const Size min_req_thread_per_pool) noexcept;
 
 	Export Int64 GetPseudoRandomNumber() noexcept;
 	Export Int64 GetPseudoRandomNumber(const Int64 min, const Int64 max) noexcept;

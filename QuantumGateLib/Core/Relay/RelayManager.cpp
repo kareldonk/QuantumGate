@@ -89,20 +89,16 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	bool Manager::StartupThreadPool() noexcept
 	{
-		Size numthreadsperpool{ 2 };
-
 		const auto& settings = GetSettings();
 
-		if (numthreadsperpool < settings.Local.Concurrency.MinThreadsPerPool)
-		{
-			numthreadsperpool = settings.Local.Concurrency.MinThreadsPerPool;
-		}
+		const auto numthreadsperpool = Util::GetNumThreadsPerPool(settings.Local.Concurrency.RelayManager.MinThreads,
+																  settings.Local.Concurrency.RelayManager.MaxThreads, 2u);
 
 		// Must have at least two threads in pool 
 		// one of which will be the primary thread
 		assert(numthreadsperpool > 1);
 
-		LogSys(L"Creating relay threadpool with %u worker %s",
+		LogSys(L"Creating relay threadpool with %zu worker %s",
 			   numthreadsperpool, numthreadsperpool > 1 ? L"threads" : L"thread");
 
 		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
@@ -707,18 +703,18 @@ namespace QuantumGate::Implementation::Core::Relay
 		if (event.has_value())
 		{
 			std::visit(Util::Overloaded{
-					[&](auto& revent)
-					{
-						ProcessRelayEvent(revent);
-					},
-					[&](Events::RelayData& revent)
-					{
-						while (ProcessRelayEvent(revent) == RelayDataProcessResult::Retry && !shutdown_event.IsSet())
-						{
-							std::this_thread::sleep_for(1ms);
-						}
-					}
-				}, *event);
+				[&](auto& revent)
+			{
+				ProcessRelayEvent(revent);
+			},
+					   [&](Events::RelayData& revent)
+			{
+				while (ProcessRelayEvent(revent) == RelayDataProcessResult::Retry && !shutdown_event.IsSet())
+				{
+					std::this_thread::sleep_for(1ms);
+				}
+			}
+					   }, *event);
 		}
 
 		return result;

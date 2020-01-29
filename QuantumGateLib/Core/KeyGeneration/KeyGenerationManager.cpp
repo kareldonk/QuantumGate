@@ -125,17 +125,18 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 
 	bool Manager::StartupThreadPool() noexcept
 	{
-		const auto cth = std::thread::hardware_concurrency();
-		const Size numthreadsperpool = (cth > 2) ? cth : 2;
+		const auto& settings = GetSettings();
+
+		const auto numthreadsperpool = Util::GetNumThreadsPerPool(settings.Local.Concurrency.KeyGenerationManager.MinThreads,
+																  settings.Local.Concurrency.KeyGenerationManager.MaxThreads, 2u);
 
 		// Must have at least two threads in pool 
 		// one of which will be the primary thread
 		assert(numthreadsperpool > 1);
 
-		LogSys(L"Creating keymanager threadpool with %u worker %s",
+		LogSys(L"Creating key generation threadpool with %zu worker %s",
 			   numthreadsperpool, numthreadsperpool > 1 ? L"threads" : L"thread");
 
-		const auto& settings = GetSettings();
 		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
 		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 

@@ -87,8 +87,32 @@ namespace QuantumGate::Implementation
 
 		struct
 		{
-			Size MinThreadPools{ 1 };										// Minimum number of thread pools
-			Size MinThreadsPerPool{ 4 };									// Minimum number of worker threads per pool
+			struct
+			{
+				Size MinThreads{ 2 };										// Minumum number of worker threads
+				Size MaxThreads{ 8 };										// Maximum number of worker threads
+			} KeyGenerationManager;
+
+			struct
+			{
+				Size MinThreads{ 2 };										// Minumum number of worker threads
+				Size MaxThreads{ 8 };										// Maximum number of worker threads
+			} RelayManager;
+
+			struct
+			{
+				Size MinThreadPools{ 1 };									// Minimum number of thread pools
+				Size MaxThreadPools{ 4 };									// Maximum number of thread pools
+				Size ThreadsPerPool{ 4 };									// Number of worker threads per pool
+			} PeerManager;
+
+			struct
+			{
+				Size MinThreadPools{ 1 };									// Minimum number of thread pools
+				Size MaxThreadPools{ 4 };									// Maximum number of thread pools
+				Size ThreadsPerPool{ 4 };									// Number of worker threads per pool
+			} Extender;
+
 			std::chrono::milliseconds WorkerThreadsMaxSleep{ 1 };			// Maximum number of milliseconds to sleep when there's no work
 			Size WorkerThreadsMaxBurst{ 64 };								// Maximum number of work items to process in a single burst
 		} Concurrency;

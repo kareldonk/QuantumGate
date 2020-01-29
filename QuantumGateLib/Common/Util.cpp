@@ -396,6 +396,30 @@ namespace QuantumGate::Implementation::Util
 		return SetThreadName(GetCurrentThread(), name);
 	}
 
+	Size GetNumThreadPools(const Size min_threadpools, const Size max_threadpools, const Size min_req_threadpools) noexcept
+	{
+		assert(min_threadpools <= max_threadpools);
+
+		const auto hwc = static_cast<Size>(std::thread::hardware_concurrency());
+		auto numthreadpools = std::max(hwc, min_threadpools);
+		numthreadpools = std::min(numthreadpools, max_threadpools);
+		numthreadpools = std::max(numthreadpools, min_req_threadpools);
+
+		return numthreadpools;
+	}
+
+	Size GetNumThreadsPerPool(const Size min_threads_per_pool, const Size max_threads_per_pool, const Size min_req_thread_per_pool) noexcept
+	{
+		assert(min_threads_per_pool <= max_threads_per_pool);
+
+		const auto hwc = static_cast<Size>(std::thread::hardware_concurrency());
+		auto numthreadsperpool = std::max(hwc, min_threads_per_pool);
+		numthreadsperpool = std::min(numthreadsperpool, max_threads_per_pool);
+		numthreadsperpool = std::max(numthreadsperpool, min_req_thread_per_pool);
+
+		return numthreadsperpool;
+	}
+
 	Export Int64 GetPseudoRandomNumber() noexcept
 	{
 		return Random::GetPseudoRandomNumber();

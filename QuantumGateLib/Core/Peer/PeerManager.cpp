@@ -76,25 +76,18 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		PreStartupThreadPools();
 
-		Size numthreadpools{ 1 };
-		Size numthreadsperpool{ 2 };
-
 		const auto& settings = GetSettings();
 
-		const auto cth = std::thread::hardware_concurrency();
-		numthreadpools = (cth > settings.Local.Concurrency.MinThreadPools) ?
-			cth : settings.Local.Concurrency.MinThreadPools;
+		const auto numthreadpools = Util::GetNumThreadPools(settings.Local.Concurrency.PeerManager.MinThreadPools,
+															settings.Local.Concurrency.PeerManager.MaxThreadPools, 1u);
+		const auto numthreadsperpool = Util::GetNumThreadsPerPool(settings.Local.Concurrency.PeerManager.ThreadsPerPool,
+																  settings.Local.Concurrency.PeerManager.ThreadsPerPool, 2u);
 
-		if (numthreadsperpool < settings.Local.Concurrency.MinThreadsPerPool)
-		{
-			numthreadsperpool = settings.Local.Concurrency.MinThreadsPerPool;
-		}
-
-		// Must have at least one thread pool, and at least two threads per pool 
-		// one of which will be the primary thread
+		// Must have at least one thread pool, and at least two threads
+		// per pool one of which will be the primary thread
 		assert(numthreadpools > 0 && numthreadsperpool > 1);
 
-		LogSys(L"Creating %u peer %s with %u worker %s %s",
+		LogSys(L"Creating %zu peer %s with %zu worker %s %s",
 			   numthreadpools, numthreadpools > 1 ? L"threadpools" : L"threadpool",
 			   numthreadsperpool, numthreadsperpool > 1 ? L"threads" : L"thread",
 			   numthreadpools > 1 ? L"each" : L"");
@@ -344,24 +337,24 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (task.has_value())
 			{
 				std::visit(Util::Overloaded{
-						[&](Tasks::PeerAccessCheck& ptask)
+					[&](Tasks::PeerAccessCheck& ptask)
+				{
+					thpdata.PeerMap.WithSharedLock([&](const PeerMap& peers)
+					{
+						for (auto it = peers.begin(); it != peers.end(); ++it)
 						{
-							thpdata.PeerMap.WithSharedLock([&](const PeerMap& peers)
+							it->second->WithUniqueLock([&](Peer& peer) noexcept
 							{
-								for (auto it = peers.begin(); it != peers.end(); ++it)
-								{
-									it->second->WithUniqueLock([&](Peer& peer) noexcept
-									{
-										peer.SetNeedsAccessCheck();
-									});
-								}
+								peer.SetNeedsAccessCheck();
 							});
-						},
-						[](Tasks::PeerCallback& ptask)
-						{
-							ptask.Callback();
 						}
-					}, *task);
+					});
+				},
+						   [](Tasks::PeerCallback& ptask)
+				{
+					ptask.Callback();
+				}
+						   }, *task);
 			}
 			else break;
 		}
