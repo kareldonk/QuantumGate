@@ -541,21 +541,12 @@ bool HandshakeExtender::GenerateDHKeyPair(Peer& peer)
 
 bool HandshakeExtender::GenerateSharedKey(Peer& peer)
 {
-	const auto result = crypto_key_exchange(reinterpret_cast<std::uint8_t*>(peer.SharedSecretKey.data()),
-											reinterpret_cast<std::uint8_t*>(peer.PrivateKey.data()),
-											reinterpret_cast<std::uint8_t*>(peer.PeerPublicKey.data()));
+	crypto_key_exchange(reinterpret_cast<std::uint8_t*>(peer.SharedSecretKey.data()),
+						reinterpret_cast<std::uint8_t*>(peer.PrivateKey.data()),
+						reinterpret_cast<std::uint8_t*>(peer.PeerPublicKey.data()));
 
-	if (result == 0)
-	{
-		std::wcout << L"Successfully generated shared key for peer " << peer.LUID << L"\r\n";
-		return true;
-	}
-	else
-	{
-		std::wcout << L"Failed to generate shared key for peer " << peer.LUID << L"\r\n";
-	}
-
-	return false;
+	std::wcout << L"Successfully generated shared key for peer " << peer.LUID << L"\r\n";
+	return true;
 }
 
 bool HandshakeExtender::GetRandomBytes(std::byte* buffer, const std::size_t buffer_len)

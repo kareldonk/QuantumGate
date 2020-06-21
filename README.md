@@ -32,14 +32,14 @@ You'll require the latest version of Microsoft Visual Studio 2019, as well as th
 | [OpenSSL](https://github.com/openssl/openssl) | At least 1.1.1 |
 | [PCG-Random](https://github.com/imneme/pcg-cpp) | Latest. |
 | [zlib](https://github.com/madler/zlib) | At least 1.2.11 |
-| [Zstandard](https://github.com/facebook/zstd) | At least 1.3.4 |
+| [Zstandard](https://github.com/facebook/zstd) | At least 1.4.5 |
 
 #### QuantumGate Test Applications/Extenders
 
 | Name | Version |
 |------|---------|
-| [Monocypher](https://github.com/LoupVaillant/Monocypher) | At least 2.0.6 |
-| [JSON for Modern C++](https://github.com/nlohmann/json) | At least 3.2.1 |
+| [Monocypher](https://github.com/LoupVaillant/Monocypher) | At least 3.1.1 |
+| [JSON for Modern C++](https://github.com/nlohmann/json) | At least 3.8.0 |
 
 #### Naming
 
