@@ -174,6 +174,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_COMMAND(ID_LOCAL_ENVIRONMENTINFO, &CTestAppDlg::OnLocalEnvironmentInfo)
 	ON_COMMAND(ID_UTILS_PING, &CTestAppDlg::OnUtilsPing)
 	ON_COMMAND(ID_LOCAL_FREEUNUSEDMEMORY, &CTestAppDlg::OnLocalFreeUnusedMemory)
+	ON_COMMAND(ID_BENCHMARKS_THREADPAUSE, &CTestAppDlg::OnBenchmarksThreadPause)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlg::OnInitDialog()
@@ -1622,4 +1623,9 @@ void CTestAppDlg::OnUtilsPing()
 void CTestAppDlg::OnLocalFreeUnusedMemory()
 {
 	m_QuantumGate.FreeUnusedMemory();
+}
+
+void CTestAppDlg::OnBenchmarksThreadPause()
+{
+	Benchmarks::BenchmarkThreadPause();
 }

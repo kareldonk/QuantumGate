@@ -20,6 +20,7 @@ public:
 
 	static void BenchmarkThreadLocalCache();
 	static void BenchmarkCallbacks();
+	static void BenchmarkThreadPause();
 	static void BenchmarkMutexes();
 	static void BenchmarkCompression();
 	static void BenchmarkConsole();

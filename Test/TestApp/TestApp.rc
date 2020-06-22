@@ -865,6 +865,7 @@ BEGIN
         MENUITEM "M&emory",                     ID_BENCHMARKS_MEMORY
         MENUITEM "&Mutexes",                    ID_BENCHMARKS_MUTEXES
         MENUITEM "&ThreadLocalCache",           ID_BENCHMARKS_THREADLOCALCACHE
+        MENUITEM "Thread&Pause",                ID_BENCHMARKS_THREADPAUSE
     END
     POPUP "&Utils"
     BEGIN

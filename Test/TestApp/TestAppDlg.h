@@ -134,6 +134,7 @@ protected:
 	afx_msg void OnLocalEnvironmentInfo();
 	afx_msg void OnUtilsPing();
 	afx_msg void OnLocalFreeUnusedMemory();
+	afx_msg void OnBenchmarksThreadPause();
 
 protected:
 	QuantumGate::StartupParameters m_StartupParameters;

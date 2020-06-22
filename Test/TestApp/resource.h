@@ -280,13 +280,14 @@
 #define ID_AVEXTENDER_USECOMPRESSION    32851
 #define ID_PEERLIST_CREATE_RELAY        32852
 #define ID_LOCAL_FREEUNUSEDMEMORY       32853
+#define ID_BENCHMARKS_THREADPAUSE       32854
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
-#define _APS_NEXT_COMMAND_VALUE         32854
+#define _APS_NEXT_COMMAND_VALUE         32855
 #define _APS_NEXT_CONTROL_VALUE         1084
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
