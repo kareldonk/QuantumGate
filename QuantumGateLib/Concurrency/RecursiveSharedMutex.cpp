@@ -78,7 +78,7 @@ namespace QuantumGate::Implementation::Concurrency
 		assert(m_ExclusiveThreadID == std::this_thread::get_id());
 
 		// Should have an exclusive lock before unlocking
-		assert(m_ExclusiveLockCount > 0);
+		assert(m_ExclusiveLockCount > 0 && m_SharedLockCount == 0);
 
 		--m_ExclusiveLockCount;
 		
@@ -140,7 +140,7 @@ namespace QuantumGate::Implementation::Concurrency
 			std::this_thread::yield();
 
 			++count;
-			if (count > 10)
+			if (count > 16)
 			{
 				count = 0;
 				std::this_thread::sleep_for(1ms);
