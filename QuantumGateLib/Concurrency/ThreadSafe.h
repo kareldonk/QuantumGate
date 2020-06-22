@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Concurrency
 	// http://www.drdobbs.com/cpp/enforcing-correct-mutex-usage-with-synch/225200269
 
 	template<typename T, typename M = std::mutex>
-	class ThreadSafe
+	class ThreadSafe final
 	{
 		template<typename ThS, typename Lck = std::unique_lock<M>>
 		class Value final

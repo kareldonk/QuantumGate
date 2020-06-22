@@ -11,7 +11,7 @@
 namespace QuantumGate::Implementation::Concurrency
 {
 	template<typename T, typename M = SpinMutex, UInt64 ID = 0>
-	class ThreadLocalCache
+	class ThreadLocalCache final
 	{
 		static_assert(std::is_default_constructible_v<T>, "Type must be default constructible.");
 		static_assert(std::is_copy_assignable_v<T>, "Type must be copy assignable.");
@@ -31,7 +31,7 @@ namespace QuantumGate::Implementation::Concurrency
 		
 		ThreadLocalCache(const ThreadLocalCache&) = delete;
 		ThreadLocalCache(ThreadLocalCache&&) = delete;
-		virtual ~ThreadLocalCache() = default;
+		~ThreadLocalCache() = default;
 		ThreadLocalCache& operator=(const ThreadLocalCache&) = delete;
 		ThreadLocalCache& operator=(ThreadLocalCache&&) = delete;
 

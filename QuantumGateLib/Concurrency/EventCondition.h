@@ -9,13 +9,13 @@
 
 namespace QuantumGate::Implementation::Concurrency
 {
-	class EventCondition
+	class EventCondition final
 	{
 	public:
 		EventCondition(const bool singlethread = false) noexcept : m_SingleThread(singlethread), m_State(false) {}
 		EventCondition(const EventCondition&) = delete;
 		EventCondition(EventCondition&&) = delete;
-		virtual ~EventCondition() = default;
+		~EventCondition() = default;
 		EventCondition& operator=(const EventCondition&) = delete;
 		EventCondition& operator=(EventCondition&&) = delete;
 

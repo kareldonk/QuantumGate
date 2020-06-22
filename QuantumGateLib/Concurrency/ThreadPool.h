@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation::Concurrency
 	struct NoThreadData final {};
 
 	template<typename ThPData = NoThreadPoolData, typename ThData = NoThreadData>
-	class ThreadPool
+	class ThreadPool final
 	{
 	public:
 		struct ThreadCallbackResult
@@ -108,7 +108,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 		ThreadPool(const ThreadPool&) = delete;
 		ThreadPool(ThreadPool&&) noexcept = default;
-		virtual ~ThreadPool() = default;
+		~ThreadPool() = default;
 		ThreadPool& operator=(const ThreadPool&) = delete;
 		ThreadPool& operator=(ThreadPool&&) noexcept = default;
 

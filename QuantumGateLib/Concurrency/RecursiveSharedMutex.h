@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Concurrency
 {
-	class Export RecursiveSharedMutex
+	class Export RecursiveSharedMutex final
 	{
 		using UniqueLockType = std::unique_lock<SpinMutex>;
 
@@ -15,7 +15,7 @@ namespace QuantumGate::Implementation::Concurrency
 		RecursiveSharedMutex() noexcept {}
 		RecursiveSharedMutex(const RecursiveSharedMutex&) = delete;
 		RecursiveSharedMutex(RecursiveSharedMutex&&) = delete;
-		virtual ~RecursiveSharedMutex() = default;
+		~RecursiveSharedMutex() = default;
 		RecursiveSharedMutex& operator=(const RecursiveSharedMutex&) = delete;
 		RecursiveSharedMutex& operator=(RecursiveSharedMutex&&) = delete;
 
