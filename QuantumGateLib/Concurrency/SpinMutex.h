@@ -4,6 +4,7 @@
 #pragma once
 
 #include <atomic>
+#include <thread>
 
 namespace QuantumGate::Implementation::Concurrency
 {
@@ -17,11 +18,33 @@ namespace QuantumGate::Implementation::Concurrency
 		SpinMutex& operator=(const SpinMutex&) = delete;
 		SpinMutex& operator=(SpinMutex&&) = delete;
 
-		void lock() noexcept { while (m_ExclusiveLock.test_and_set(std::memory_order_acquire)) {} }
-		bool try_lock() noexcept { return !m_ExclusiveLock.test_and_set(std::memory_order_acquire); }
-		void unlock() noexcept { m_ExclusiveLock.clear(std::memory_order_release); }
+        void lock()
+        {
+            for (int spin_count = 0; !try_lock(); ++spin_count)
+            {
+                if (spin_count < 16)
+                {
+                    _mm_pause();
+                }
+                else
+                {
+                    std::this_thread::yield();
+                    spin_count = 0;
+                }
+            }
+        }
 
-	private:
-		std::atomic_flag m_ExclusiveLock = ATOMIC_FLAG_INIT;
+        bool try_lock()
+        {
+            return (!locked.load(std::memory_order_relaxed) && !locked.exchange(true, std::memory_order_acquire));
+        }
+
+        void unlock()
+        {
+            locked.store(false, std::memory_order_release);
+        }
+
+    private:
+        std::atomic_bool locked{ false };
 	};
 }
