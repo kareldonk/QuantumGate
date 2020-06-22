@@ -281,7 +281,7 @@ namespace QuantumGate::Implementation
 						  "Remember to check for matching const and noexcept specifiers.");
 		}
 
-		~Callback() = default;
+		virtual ~Callback() = default;
 		Callback(const Callback&) = delete;
 		Callback(Callback&& other) noexcept = default;
 		Callback& operator=(const Callback&) = delete;
