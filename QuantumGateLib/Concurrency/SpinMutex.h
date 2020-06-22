@@ -8,13 +8,13 @@
 
 namespace QuantumGate::Implementation::Concurrency
 {
-	class SpinMutex
+	class SpinMutex final
 	{
 	public:
 		SpinMutex() noexcept {}
 		SpinMutex(const SpinMutex&) = delete;
 		SpinMutex(SpinMutex&&) = delete;
-		virtual ~SpinMutex() = default;
+		~SpinMutex() = default;
 		SpinMutex& operator=(const SpinMutex&) = delete;
 		SpinMutex& operator=(SpinMutex&&) = delete;
 
@@ -36,15 +36,15 @@ namespace QuantumGate::Implementation::Concurrency
 
         bool try_lock()
         {
-            return (!locked.load(std::memory_order_relaxed) && !locked.exchange(true, std::memory_order_acquire));
+            return (!m_Locked.load(std::memory_order_relaxed) && !m_Locked.exchange(true, std::memory_order_acquire));
         }
 
         void unlock()
         {
-            locked.store(false, std::memory_order_release);
+            m_Locked.store(false, std::memory_order_release);
         }
 
     private:
-        std::atomic_bool locked{ false };
+        std::atomic_bool m_Locked{ false };
 	};
 }
