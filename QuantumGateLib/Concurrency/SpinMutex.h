@@ -18,7 +18,7 @@ namespace QuantumGate::Implementation::Concurrency
 		SpinMutex& operator=(const SpinMutex&) = delete;
 		SpinMutex& operator=(SpinMutex&&) = delete;
 
-        void lock()
+        void lock() noexcept
         {
             for (int spin_count = 0; !try_lock(); ++spin_count)
             {
@@ -34,12 +34,12 @@ namespace QuantumGate::Implementation::Concurrency
             }
         }
 
-        bool try_lock()
+        bool try_lock() noexcept
         {
             return (!m_Locked.load(std::memory_order_relaxed) && !m_Locked.exchange(true, std::memory_order_acquire));
         }
 
-        void unlock()
+        void unlock() noexcept
         {
             m_Locked.store(false, std::memory_order_release);
         }
