@@ -187,7 +187,7 @@ void Benchmarks::BenchmarkThreadPause()
 	}
 
 	auto avg_time = total_time / maxtr;
-	LogSys(L"_mm_pause() result: %dns", avg_time.count());
+	LogSys(L"_mm_pause() average result: %dns", avg_time.count());
 
 	total_time = 0ns;
 
@@ -197,11 +197,11 @@ void Benchmarks::BenchmarkThreadPause()
 		std::this_thread::yield();
 		const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start);
 		total_time += elapsed;
-		LogInfo(L"_mm_pause() result: %dns", elapsed.count());
+		LogInfo(L"std::this_thread::yield() result: %dns", elapsed.count());
 	}
 
 	avg_time = total_time / maxtr;
-	LogSys(L"std::this_thread::yield() result: %dns", avg_time.count());
+	LogSys(L"std::this_thread::yield() average result: %dns", avg_time.count());
 
 	total_time = 0ns;
 
@@ -211,11 +211,11 @@ void Benchmarks::BenchmarkThreadPause()
 		std::this_thread::sleep_for(1ms);
 		const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start);
 		total_time += elapsed;
-		LogInfo(L"_mm_pause() result: %dns", elapsed.count());
+		LogInfo(L"std::this_thread::sleep_for(1ms) result: %dns", elapsed.count());
 	}
 
 	avg_time = total_time / maxtr;
-	LogSys(L"std::this_thread::sleep_for(1ms) result: %dns", avg_time.count());
+	LogSys(L"std::this_thread::sleep_for(1ms) average result: %dns", avg_time.count());
 }
 
 void Benchmarks::BenchmarkMutexes()
