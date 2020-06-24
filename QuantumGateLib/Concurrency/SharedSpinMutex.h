@@ -7,34 +7,55 @@
 
 namespace QuantumGate::Implementation::Concurrency
 {
-	class SharedSpinMutex
+	class SharedSpinMutex final
 	{
+		using StateType = unsigned long;
+		using SizeType = unsigned long;
+
 	public:
 		SharedSpinMutex() noexcept {}
 		SharedSpinMutex(const SharedSpinMutex&) = delete;
 		SharedSpinMutex(SharedSpinMutex&&) = delete;
-		virtual ~SharedSpinMutex() = default;
+		~SharedSpinMutex() = default;
 		SharedSpinMutex& operator=(const SharedSpinMutex&) = delete;
 		SharedSpinMutex& operator=(SharedSpinMutex&&) = delete;
 
 		void lock() noexcept
 		{
-			auto val = false;
-			while (!m_ExclusiveLocked.compare_exchange_strong(val, true, std::memory_order_seq_cst)) { val = false; }
+			// Set exclusive lock flag
+			DoUntilSucceeded([&]() -> bool
+			{
+				auto state = m_State.load(std::memory_order_relaxed);
+				if (!IsExclusiveLocked(state))
+				{
+					const auto new_state = SetExclusiveLocked(state);
+					return m_State.compare_exchange_weak(state, new_state, std::memory_order_release,
+														 std::memory_order_relaxed);
+				}
 
-			while (m_SharedCount.load() > 0) {}
+				return false;
+			});
+
+			// Wait for shared locks to get to zero
+			DoUntilSucceeded([&]() -> bool
+			{
+				if (GetSharedLocks(m_State.load(std::memory_order_relaxed)) == 0 &&
+					GetSharedLocks(m_State.load(std::memory_order_acquire)) == 0)
+				{
+					return true;
+				}
+
+				return false;
+			});
 		}
 
 		bool try_lock() noexcept
 		{
-			auto val = false;
-			if (m_ExclusiveLocked.compare_exchange_strong(val, true, std::memory_order_seq_cst))
+			auto state = m_State.load(std::memory_order_relaxed);
+			if (HasNoLocks(state))
 			{
-				if (m_SharedCount.load() == 0)
-				{
-					return true;
-				}
-				else m_ExclusiveLocked.store(false);
+				const auto new_state = SetExclusiveLocked(state);
+				return m_State.compare_exchange_strong(state, new_state, std::memory_order_release, std::memory_order_relaxed);
 			}
 
 			return false;
@@ -42,36 +63,124 @@ namespace QuantumGate::Implementation::Concurrency
 
 		void unlock() noexcept
 		{
-			assert(m_SharedCount.load() == 0 && m_ExclusiveLocked.load());
+			auto state = m_State.load(std::memory_order_relaxed);
+			while (true)
+			{
+				assert(IsExclusiveLocked(state));
 
-			m_ExclusiveLocked.store(false);
+				const auto new_state = UnsetExclusiveLocked(state);
+				if (m_State.compare_exchange_weak(state, new_state, std::memory_order_release, std::memory_order_relaxed))
+				{
+					return;
+				}
+			}
 		}
 
 		void lock_shared() noexcept
 		{
-			while (m_ExclusiveLocked.load()) {}
-
-			++m_SharedCount;
+			DoUntilSucceeded([&]() -> bool { return try_lock_shared(); });
 		};
 
 		bool try_lock_shared() noexcept
 		{
-			if (m_ExclusiveLocked.load()) return false;
+			auto state = m_State.load(std::memory_order_relaxed);
+			if (!IsExclusiveLocked(state))
+			{
+				auto scount = GetSharedLocks(state);
 
-			++m_SharedCount;
+				assert(scount <= MaxNumSharedLocks);
 
-			return true;
+				if (scount < MaxNumSharedLocks)
+				{
+					++scount;
+					const auto new_state = MakeState(IsExclusiveLocked(state), scount);
+					return m_State.compare_exchange_strong(state, new_state, std::memory_order_release,
+														   std::memory_order_relaxed);
+				}
+			}
+
+			return false;
 		}
 
 		void unlock_shared() noexcept
 		{
-			assert(m_SharedCount.load() > 0);
+			auto state = m_State.load(std::memory_order_relaxed);
+			while (true)
+			{
+				auto scount = GetSharedLocks(state);
 
-			--m_SharedCount;
+				assert(scount > 0);
+
+				--scount;
+				const auto new_state = MakeState(IsExclusiveLocked(state), scount);
+				if (m_State.compare_exchange_weak(state, new_state, std::memory_order_release, std::memory_order_relaxed))
+				{
+					return;
+				}
+			}
 		}
 
 	private:
-		std::atomic_bool m_ExclusiveLocked{ false };
-		std::atomic_ulong m_SharedCount{ 0 };
+		template<typename Func> requires std::is_same_v<std::invoke_result_t<Func>, bool>
+		void DoUntilSucceeded(Func&& func) noexcept
+		{
+			for (int spin_count = 0; !func(); ++spin_count)
+			{
+				if (spin_count < 16)
+				{
+					_mm_pause();
+				}
+				else
+				{
+					std::this_thread::yield();
+					spin_count = 0;
+				}
+			}
+		}
+
+		constexpr StateType MakeState(bool excl, SizeType shared_count) noexcept
+		{
+			StateType state = shared_count << 1;
+			if (excl) state |= ExclusiveLockFlag;
+			return state;
+		}
+
+		constexpr bool HasNoLocks(StateType state) noexcept
+		{
+			return (state == 0);
+		}
+
+		constexpr bool IsExclusiveLocked(StateType state) noexcept
+		{
+			return (state & ExclusiveLockFlag);
+		}
+
+		constexpr StateType SetExclusiveLocked(StateType state) noexcept
+		{
+			return (state | ExclusiveLockFlag);
+		}
+
+		constexpr StateType UnsetExclusiveLocked(StateType state) noexcept
+		{
+			state &= ~ExclusiveLockFlag;
+			return state;
+		}
+
+		constexpr bool HasSharedLocks(StateType state) noexcept
+		{
+			return (GetSharedLocks(state) > 0);
+		}
+
+		constexpr SizeType GetSharedLocks(StateType state) noexcept
+		{
+			return (state >> 1);
+		}
+
+	private:
+		static constexpr StateType ExclusiveLockFlag = 1ull;
+		static constexpr SizeType MaxNumSharedLocks = ~ExclusiveLockFlag;
+
+	private:
+		std::atomic<StateType> m_State{ 0 };
 	};
 }

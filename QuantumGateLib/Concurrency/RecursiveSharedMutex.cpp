@@ -8,7 +8,7 @@ using namespace std::literals;
 
 namespace QuantumGate::Implementation::Concurrency
 {
-	void RecursiveSharedMutex::lock() noexcept
+	void RecursiveSharedMutex::lock()
 	{
 		const auto id = std::this_thread::get_id();
 
@@ -18,8 +18,16 @@ namespace QuantumGate::Implementation::Concurrency
 		{
 			assert(m_ExclusiveLockCount > 0);
 
-			// Recursive locking
-			++m_ExclusiveLockCount;
+			if (m_ExclusiveLockCount < MaxNumLocks)
+			{
+				// Recursive locking
+				++m_ExclusiveLockCount;
+			}
+			else
+			{
+				throw std::system_error(std::make_error_code(std::errc::value_too_large),
+										"RecursiveSharedMutex recursion too deep.");
+			}
 		}
 		else
 		{
@@ -50,10 +58,13 @@ namespace QuantumGate::Implementation::Concurrency
 		{
 			assert(m_ExclusiveLockCount > 0);
 
-			// Recursive locking
-			++m_ExclusiveLockCount;
+			if (m_ExclusiveLockCount < MaxNumLocks)
+			{
+				// Recursive locking
+				++m_ExclusiveLockCount;
 
-			return true;
+				return true;
+			}
 		}
 		else
 		{
@@ -88,7 +99,7 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 	}
 	
-	void RecursiveSharedMutex::lock_shared() noexcept
+	void RecursiveSharedMutex::lock_shared()
 	{
 		UniqueLockType lock(m_Mutex);
 
@@ -101,7 +112,15 @@ namespace QuantumGate::Implementation::Concurrency
 			Wait(lock, [&]() { return (m_ExclusiveLockCount == 0); });
 		}
 
-		++m_SharedLockCount;
+		if (m_SharedLockCount < MaxNumLocks)
+		{
+			++m_SharedLockCount;
+		}
+		else
+		{
+			throw std::system_error(std::make_error_code(std::errc::value_too_large),
+									"RecursiveSharedMutex too many shared locks.");
+		}
 	}
 	
 	bool RecursiveSharedMutex::try_lock_shared() noexcept
@@ -111,7 +130,7 @@ namespace QuantumGate::Implementation::Concurrency
 		// Thread with exclusive lock may not get shared lock
 		assert(m_ExclusiveThreadID != std::this_thread::get_id());
 
-		if (m_ExclusiveLockCount > 0) return false;
+		if (m_ExclusiveLockCount > 0 || m_SharedLockCount == MaxNumLocks) return false;
 
 		++m_SharedLockCount;
 
@@ -128,23 +147,30 @@ namespace QuantumGate::Implementation::Concurrency
 		--m_SharedLockCount;
 	}
 
-	template<typename Func>
+	template<typename Func> requires std::is_same_v<std::invoke_result_t<Func>, bool>
 	void RecursiveSharedMutex::Wait(UniqueLockType& lock, Func&& func) noexcept
 	{
 		auto count = 0u;
 
-		while (func() == false)
+		while (!func())
 		{
 			lock.unlock();
 
-			std::this_thread::yield();
+			if (count >= 128)
+			{
+				std::this_thread::sleep_for(1ms);
+				count = 0;
+			}
+			else if (count >= 16)
+			{
+				std::this_thread::yield();
+			}
+			else
+			{
+				_mm_pause();
+			}
 
 			++count;
-			if (count > 16)
-			{
-				count = 0;
-				std::this_thread::sleep_for(1ms);
-			}
 
 			lock.lock();
 		}
