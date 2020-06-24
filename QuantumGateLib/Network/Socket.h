@@ -85,9 +85,12 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] bool SetConditionalAccept(const bool cond_accept) noexcept;
 		[[nodiscard]] bool SetNoDelay(const bool no_delay) noexcept;
 
-		[[nodiscard]] Size GetMaxDatagramMessageSize() const noexcept;
-		[[nodiscard]] Size GetSendBufferSize() const noexcept;
-		[[nodiscard]] Size GetReceiveBufferSize() const noexcept;
+		[[nodiscard]] bool SetSendBufferSize(const int len) noexcept;
+		[[nodiscard]] bool SetReceiveBufferSize(const int len) noexcept;
+
+		[[nodiscard]] int GetMaxDatagramMessageSize() const noexcept;
+		[[nodiscard]] int GetSendBufferSize() const noexcept;
+		[[nodiscard]] int GetReceiveBufferSize() const noexcept;
 
 		inline void SetConnectingCallback(ConnectingCallback&& callback) noexcept override
 		{
@@ -113,7 +116,7 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] static bool SockAddrGetIPEndpoint(const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept;
 
 		static constexpr std::chrono::seconds DefaultLingerTime{ 10 };
-		static constexpr Size ReadWriteBufferSize{ 65'535 }; //64Kb
+		static constexpr Size ReadWriteBufferSize{ 65'535 }; //64KB
 
 	protected:
 		inline SOCKET GetSocket() const noexcept { return m_Socket; }

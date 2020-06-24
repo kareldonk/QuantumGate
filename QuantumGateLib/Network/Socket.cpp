@@ -323,6 +323,36 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
+	bool Socket::SetSendBufferSize(const int len) noexcept
+	{
+		assert(m_Socket != INVALID_SOCKET);
+
+		const auto ret = setsockopt(m_Socket, SOL_SOCKET, SO_SNDBUF,
+									reinterpret_cast<const char*>(&len), sizeof(len));
+		if (ret == SOCKET_ERROR)
+		{
+			LogErr(L"Could not set socket send buffer size for socket (%s)", GetLastSysErrorString().c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	bool Socket::SetReceiveBufferSize(const int len) noexcept
+	{
+		assert(m_Socket != INVALID_SOCKET);
+
+		const auto ret = setsockopt(m_Socket, SOL_SOCKET, SO_RCVBUF,
+									reinterpret_cast<const char*>(&len), sizeof(len));
+		if (ret == SOCKET_ERROR)
+		{
+			LogErr(L"Could not set socket receive buffer size for socket (%s)", GetLastSysErrorString().c_str());
+			return false;
+		}
+
+		return true;
+	}
+
 	bool Socket::SetLinger(const std::chrono::seconds& seconds) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
@@ -1073,7 +1103,7 @@ namespace QuantumGate::Implementation::Network
 		return Type::Unspecified;
 	}
 
-	Size Socket::GetMaxDatagramMessageSize() const noexcept
+	int Socket::GetMaxDatagramMessageSize() const noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -1082,7 +1112,7 @@ namespace QuantumGate::Implementation::Network
 		return 0;
 	}
 
-	Size Socket::GetSendBufferSize() const noexcept
+	int Socket::GetSendBufferSize() const noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -1091,7 +1121,7 @@ namespace QuantumGate::Implementation::Network
 		return 0;
 	}
 
-	Size Socket::GetReceiveBufferSize() const noexcept
+	int Socket::GetReceiveBufferSize() const noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
