@@ -184,7 +184,7 @@ namespace TestExtender
 		HWND m_Window{ nullptr };
 
 		std::atomic_bool m_UseCompression{ true };
-		Concurrency::EventCondition m_ShutdownEvent{ false };
+		Concurrency::EventCondition m_ShutdownEvent;
 		std::thread m_Thread;
 		Peers_ThS m_Peers;
 

@@ -28,7 +28,7 @@ namespace QuantumGate::Socks5Extender
 
 	struct Listener final
 	{
-		Concurrency::EventCondition ShutdownEvent{ false };
+		Concurrency::EventCondition ShutdownEvent;
 		std::thread Thread;
 		Network::Socket Socket;
 		std::shared_mutex Mutex;

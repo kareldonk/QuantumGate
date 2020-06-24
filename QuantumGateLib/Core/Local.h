@@ -143,7 +143,7 @@ namespace QuantumGate::Implementation::Core
 
 	private:
 		std::atomic_bool m_Running{ false };
-		Concurrency::EventCondition m_ShutdownEvent{ false };
+		Concurrency::EventCondition m_ShutdownEvent;
 
 		Settings_CThS m_Settings;
 		SecurityLevel m_SecurityLevel{ SecurityLevel::One };

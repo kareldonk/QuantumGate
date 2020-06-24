@@ -162,7 +162,7 @@ namespace QuantumGate::AVExtender
 
 		std::atomic_bool m_CheckStopAVReaders{ false };
 
-		Concurrency::EventCondition m_ShutdownEvent{ false };
+		Concurrency::EventCondition m_ShutdownEvent;
 		std::thread m_Thread;
 
 		PreviewEventHandlers_ThS m_PreviewEventHandlers;

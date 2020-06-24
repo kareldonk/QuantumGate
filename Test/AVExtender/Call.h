@@ -229,7 +229,7 @@ namespace QuantumGate::AVExtender
 
 		SampleEventHandles_ThS m_SampleEventHandles;
 
-		Concurrency::EventCondition m_DisconnectEvent{ false };
+		Concurrency::EventCondition m_DisconnectEvent;
 
 		std::thread m_AudioInThread;
 		std::thread m_AudioOutThread;

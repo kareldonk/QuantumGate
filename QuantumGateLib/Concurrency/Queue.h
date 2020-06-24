@@ -103,7 +103,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 	private:
 		QueueType m_Queue;
-		EventCondition m_Event{ false };
+		EventCondition m_Event;
 	};
 }
 

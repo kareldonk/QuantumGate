@@ -12,22 +12,24 @@ namespace QuantumGate::Implementation::Concurrency
 	class EventCondition final
 	{
 	public:
-		EventCondition(const bool singlethread = false) noexcept : m_SingleThread(singlethread), m_State(false) {}
+		enum class NotifyOptions { One, All };
+
+		EventCondition() noexcept {}
 		EventCondition(const EventCondition&) = delete;
 		EventCondition(EventCondition&&) = delete;
 		~EventCondition() = default;
 		EventCondition& operator=(const EventCondition&) = delete;
 		EventCondition& operator=(EventCondition&&) = delete;
 
-		void Set() noexcept
+		void Set(const NotifyOptions notify_opt = NotifyOptions::All) noexcept
 		{
 			{
 				std::lock_guard<SpinMutex> lock(m_Mutex);
 				m_State = true;
 			}
 
-			if (m_SingleThread) m_Condition.notify_one();
-			else m_Condition.notify_all();
+			if (notify_opt == NotifyOptions::All) m_Condition.notify_all();
+			else m_Condition.notify_one();
 		}
 
 		inline void Reset() noexcept
@@ -55,9 +57,10 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 	private:
-		const bool m_SingleThread{ false };
 		bool m_State{ false };
 		mutable SpinMutex m_Mutex;
 		std::condition_variable_any m_Condition;
 	};
+
+	// TODO: This can maybe be implemented in terms of std::atomic_flag with wait() in CPP20
 }
