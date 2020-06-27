@@ -311,16 +311,20 @@ namespace TestExtender
 	{
 		const auto msecs = std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() -
 																				 m_TransferStartSteadyTime);
-		double kbsecs = static_cast<double>(m_FileSize);
+		double kbsecs = static_cast<double>(m_FileSize) / 1024.0;
+		double mbitsecs = ((static_cast<double>(m_FileSize) / 1024.0) / 1024.0) * 8.0;
 
 		if (msecs.count() > 0)
 		{
-			kbsecs = (static_cast<double>(m_FileSize) / (static_cast<double>(msecs.count()) / 1000.0)) / 1024.0;
+			kbsecs = kbsecs / (static_cast<double>(msecs.count()) / 1000.0);
+			mbitsecs = mbitsecs / (static_cast<double>(msecs.count()) / 1000.0);
 		}
 
-		SLogInfo(SLogFmt(FGBrightCyan) << L"Stats for filetransfer " << m_FileName << L": " << 
+		SLogInfo(SLogFmt(FGBrightCyan) << L"Stats for filetransfer " << m_FileName << L": " <<
+				 SLogFmt(FGBrightWhite) << m_FileSize << L" bytes" << SLogFmt(FGBrightCyan) << " in " <<
 				 SLogFmt(FGBrightYellow) << msecs.count() << L" ms" << SLogFmt(FGBrightCyan) << ", " <<
-				 SLogFmt(FGBrightGreen) << kbsecs << L" KB/s" << SLogFmt(Default));
+				 SLogFmt(FGBrightGreen) << kbsecs << L" KB/s " << SLogFmt(FGBrightCyan) << "(" <<
+				 SLogFmt(FGBrightMagenta) << mbitsecs << L" Mb/s" << SLogFmt(FGBrightCyan) << ")" << SLogFmt(Default));
 	}
 
 	Extender::Extender(HWND wnd) noexcept :
@@ -896,7 +900,7 @@ namespace TestExtender
 					{
 						filetransfers.insert({ ft->GetID(), std::move(ft) });
 
-						SLogInfo(SLogFmt(FGBrightCyan) << L"Starting file transfer for file " <<
+						SLogInfo(SLogFmt(FGBrightCyan) << L"Starting file transfer for " <<
 								 filename << SLogFmt(Default));
 
 						success = true;
@@ -939,7 +943,7 @@ namespace TestExtender
 					{
 						ft.SetStatus(FileTransferStatus::Transfering);
 
-						SLogInfo(SLogFmt(FGBrightCyan) << L"Starting file transfer for file " <<
+						SLogInfo(SLogFmt(FGBrightCyan) << L"Starting file transfer for " <<
 								 filename << SLogFmt(Default));
 
 						success = true;
