@@ -32,6 +32,7 @@ void CTestAppDlgTestExtenderTab::UpdateControls() noexcept
 	GetDlgItem(IDC_SENDSECONDS)->EnableWindow(m_QuantumGate.IsRunning() && m_SendThread == nullptr);
 	GetDlgItem(IDC_SENDFILE)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
 	GetDlgItem(IDC_AUTO_SENDFILE)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
+	GetDlgItem(IDC_START_BENCHMARK)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
 
 	GetDlgItem(IDC_SENDSTRESS)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
 	GetDlgItem(IDC_NUMSTRESSMESS)->EnableWindow(m_QuantumGate.IsRunning());
@@ -85,6 +86,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlgTestExtenderTab, CTabBase)
 	ON_BN_CLICKED(IDC_BROWSE, &CTestAppDlgTestExtenderTab::OnBnClickedBrowse)
 	ON_BN_CLICKED(IDC_AUTO_SENDFILE, &CTestAppDlgTestExtenderTab::OnBnClickedAutoSendfile)
 	ON_BN_CLICKED(IDC_SEND_PRIORITY, &CTestAppDlgTestExtenderTab::OnBnClickedSendPriority)
+	ON_BN_CLICKED(IDC_START_BENCHMARK, &CTestAppDlgTestExtenderTab::OnBnClickedStartBenchmark)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlgTestExtenderTab::OnInitDialog()
@@ -95,6 +97,7 @@ BOOL CTestAppDlgTestExtenderTab::OnInitDialog()
 	SetValue(IDC_SENDSECONDS, L"10");
 	SetValue(IDC_NUMSTRESSMESS, L"100000");
 	SetValue(IDC_SEND_DELAY, L"2000");
+	SetValue(IDC_BENCHMARK_SIZE, L"100000000");
 
 	auto lctrl = (CListCtrl*)GetDlgItem(IDC_FILETRANSFER_LIST);
 	lctrl->SetExtendedStyle(LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);
@@ -364,7 +367,7 @@ void CTestAppDlgTestExtenderTab::OnBnClickedSendfile()
 	{
 		CWaitCursor wait;
 
-		m_TestExtender->SendFile(*m_SelectedPeerLUID, path->GetString(), false);
+		m_TestExtender->SendFile(*m_SelectedPeerLUID, path->GetString(), false, false, 0);
 	}
 }
 
@@ -731,12 +734,32 @@ void CTestAppDlgTestExtenderTab::OnBnClickedAutoSendfile()
 	GetDlgItem(IDC_AUTO_SENDFILE)->EnableWindow(false);
 
 	// Enable button when we return
-	const auto sg = MakeScopeGuard([&]() noexcept {
-		UpdateControls();
-	});
+	const auto sg = MakeScopeGuard([&]() noexcept { UpdateControls(); });
 
 	CWaitCursor wait;
 
-	m_TestExtender->SendFile(*m_SelectedPeerLUID, path.GetString(), true);
+	m_TestExtender->SendFile(*m_SelectedPeerLUID, path.GetString(), true, false, 0);
 }
 
+void CTestAppDlgTestExtenderTab::OnBnClickedStartBenchmark()
+{
+	constexpr Size mins{ 2 << 9 };
+	constexpr Size maxs{ 2 << 29 };
+
+	const auto bsize = GetSizeValue(IDC_BENCHMARK_SIZE);
+	if (bsize < mins || bsize > maxs)
+	{
+		AfxMessageBox(Util::FormatString(L"Specify a benchmark size between %zu and %zu.", mins, maxs).c_str());
+		return;
+	}
+
+	// Disable button
+	GetDlgItem(IDC_START_BENCHMARK)->EnableWindow(false);
+
+	// Enable button when we return
+	const auto sg = MakeScopeGuard([&]() noexcept { UpdateControls(); });
+
+	CWaitCursor wait;
+
+	m_TestExtender->SendFile(*m_SelectedPeerLUID, L"Benchmark", true, true, bsize);
+}

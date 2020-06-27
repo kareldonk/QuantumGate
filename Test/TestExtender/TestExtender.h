@@ -51,10 +51,11 @@ namespace TestExtender
 	class FileTransfer final
 	{
 	public:
-		FileTransfer(QuantumGate::Peer& peer, const FileTransferType type, const Size trfbuf_size, const bool autotrf) noexcept;
+		FileTransfer(QuantumGate::Peer& peer, const FileTransferType type, const Size trfbuf_size,
+					 const bool autotrf, const bool benchmark, const Size benchmark_size) noexcept;
 		FileTransfer(QuantumGate::Peer& peer, const FileTransferType type, const FileTransferID id,
 					 const Size filesize, const String& filename, Buffer&& filehash,
-					 const Size trfbuf_size, const bool autotrf) noexcept;
+					 const Size trfbuf_size, const bool autotrf, const bool benchmark) noexcept;
 		~FileTransfer();
 
 		bool OpenSourceFile(const String& filename);
@@ -69,6 +70,7 @@ namespace TestExtender
 		const WChar* GetStatusString() const noexcept;
 		inline const FileTransferType GetType() const noexcept { return m_Type; }
 		inline bool IsAuto() const noexcept { return m_Auto; }
+		inline bool IsBenchmark() const noexcept { return m_Benchmark; }
 		inline const SteadyTime GetLastActiveSteadyTime() const noexcept { return m_LastActiveSteadyTime; }
 		inline const SteadyTime GetTransferStartSteadyTime() const noexcept { return m_TransferStartSteadyTime; }
 		inline String GetFileName() const noexcept { return m_FileName; }
@@ -87,6 +89,9 @@ namespace TestExtender
 		FileTransferType m_Type{ FileTransferType::Unknown };
 		FileTransferStatus m_Status{ FileTransferStatus::Unknown };
 		bool m_Auto{ false };
+		bool m_Benchmark{ false };
+		Size m_BenchmarkSize{ 0 };
+		Buffer m_BenchmarkBuffer;
 		FileTransferID m_ID{ 0 };
 		Buffer m_FileHash;
 		String m_FileName;
@@ -151,7 +156,8 @@ namespace TestExtender
 		bool SendBenchmarkStart(const PeerLUID pluid) noexcept;
 		bool SendBenchmarkEnd(const PeerLUID pluid) noexcept;
 
-		bool SendFile(const PeerLUID pluid, const String filename, const bool autotrf);
+		bool SendFile(const PeerLUID pluid, const String filename, const bool autotrf,
+					  const bool benchmark, const Size benchmark_size);
 		bool AcceptFile(const PeerLUID pluid, const FileTransferID ftid, const String& filename);
 
 		const Peers_ThS* GetPeers() const noexcept;

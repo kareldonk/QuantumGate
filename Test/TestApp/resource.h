@@ -77,6 +77,7 @@
 #define IDC_LOAD_STRESSEXTENDER         1019
 #define IDC_COND_ACCEPT                 1019
 #define IDC_HOPS                        1019
+#define IDC_START_BENCHMARK             1019
 #define IDC_USE_STRESSEXTENDER2         1020
 #define IDC_USE_STRESSEXTENDER          1020
 #define IDC_NUM_NOISE_MSG_MAX           1020
@@ -154,6 +155,7 @@
 #define IDC_FILE_PATH                   1065
 #define IDC_CHECK5                      1066
 #define IDC_IPREPUTATIONS_LIST          1066
+#define IDC_BENCHMARK_SIZE              1066
 #define IDC_CHECK6                      1067
 #define IDC_REPUTATION                  1067
 #define IDC_CHECK7                      1068

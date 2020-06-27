@@ -93,6 +93,7 @@ protected:
 	afx_msg void OnBnClickedBrowse();
 	afx_msg void OnBnClickedAutoSendfile();
 	afx_msg void OnBnClickedSendPriority();
+	afx_msg void OnBnClickedStartBenchmark();
 
 private:
 	QuantumGate::Local& m_QuantumGate;

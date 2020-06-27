@@ -25,16 +25,16 @@ using namespace std::literals;
 namespace TestExtender
 {
 	FileTransfer::FileTransfer(QuantumGate::Peer& peer, const FileTransferType type, const Size trfbuf_size,
-							   const bool autotrf) noexcept :
+							   const bool autotrf, const bool benchmark, const Size benchmark_size) noexcept :
 		m_Peer(peer), m_LastActiveSteadyTime(Util::GetCurrentSteadyTime()),	m_Type(type), m_Auto(autotrf),
-		m_TransferBuffer(trfbuf_size)
+		m_Benchmark(benchmark), m_BenchmarkSize(benchmark_size), m_TransferBuffer(trfbuf_size)
 	{}
 
 	FileTransfer::FileTransfer(QuantumGate::Peer& peer, const FileTransferType type, const FileTransferID id,
 							   const Size filesize, const String& filename, Buffer&& filehash,
-							   const Size trfbuf_size, const bool autotrf) noexcept :
+							   const Size trfbuf_size, const bool autotrf, const bool benchmark) noexcept :
 		m_Peer(peer), m_LastActiveSteadyTime(Util::GetCurrentSteadyTime()), m_Type(type), m_Auto(autotrf),
-		m_ID(id), m_FileSize(filesize), m_FileName(filename), m_FileHash(std::move(filehash)),
+		m_Benchmark(benchmark), m_ID(id), m_FileSize(filesize), m_FileName(filename), m_FileHash(std::move(filehash)),
 		m_TransferBuffer(trfbuf_size)
 	{}
 
@@ -47,7 +47,7 @@ namespace TestExtender
 		}
 
 		if (((m_Status != FileTransferStatus::Succeeded || IsAuto()) &&
-			 m_Type == FileTransferType::Incoming) && !m_FileName.empty())
+			 m_Type == FileTransferType::Incoming) && !m_FileName.empty() && !m_Benchmark)
 		{
 			DeleteFile(m_FileName.c_str());
 		}
@@ -57,36 +57,51 @@ namespace TestExtender
 	{
 		auto success = false;
 
-		if (fopen_s(&m_File, Util::ToStringA(filename).c_str(), "rb") == 0)
+		if (m_Benchmark)
 		{
-			// Seek to end
-			if (fseek(m_File, 0, SEEK_END) == 0)
+			m_FileSize = m_BenchmarkSize;
+			m_FileName = filename;
+			m_FileHash = Util::GetPseudoRandomBytes(64);
+			m_BenchmarkBuffer = Util::GetPseudoRandomBytes(Extender::GetMaximumMessageDataSize());
+
+			m_ID = Util::GetPersistentHash(*Util::ToBase64(m_FileHash));
+			m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+
+			success = true;
+		}
+		else
+		{
+			if (fopen_s(&m_File, Util::ToStringA(filename).c_str(), "rb") == 0)
 			{
-				m_FileSize = ftell(m_File);
-				m_FileName = filename;
-
-				if (CalcFileHash(m_FileHash))
+				// Seek to end
+				if (fseek(m_File, 0, SEEK_END) == 0)
 				{
-					// Seek to beginning
-					if (fseek(m_File, 0, SEEK_SET) == 0)
-					{
-						m_ID = Util::GetPersistentHash(*Util::ToBase64(m_FileHash));
-						m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+					m_FileSize = ftell(m_File);
+					m_FileName = filename;
 
-						success = true;
+					if (CalcFileHash(m_FileHash))
+					{
+						// Seek to beginning
+						if (fseek(m_File, 0, SEEK_SET) == 0)
+						{
+							m_ID = Util::GetPersistentHash(*Util::ToBase64(m_FileHash));
+							m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+
+							success = true;
+						}
+						else LogErr(L"Could not seek in file %s", filename.c_str());
 					}
-					else LogErr(L"Could not seek in file %s", filename.c_str());
+				}
+				else LogErr(L"Could not seek in file %s", filename.c_str());
+
+				if (!success)
+				{
+					fclose(m_File);
+					m_File = nullptr;
 				}
 			}
-			else LogErr(L"Could not seek in file %s", filename.c_str());
-
-			if (!success)
-			{
-				fclose(m_File);
-				m_File = nullptr;
-			}
+			else LogErr(L"Could not open file %s", filename.c_str());
 		}
-		else LogErr(L"Could not open file %s", filename.c_str());
 
 		return success;
 	}
@@ -96,19 +111,43 @@ namespace TestExtender
 		if (m_NumBytesTransferred == 0) m_TransferStartSteadyTime = Util::GetCurrentSteadyTime();
 
 		m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
-		const auto numread = fread(buffer, sizeof(Byte), size, m_File);
 
-		if (numread < size)
+		Size numread{ 0 };
+
+		if (m_Benchmark)
 		{
-			if (m_NumBytesTransferred + numread != m_FileSize)
+			assert(size <= m_BenchmarkBuffer.GetSize());
+
+			numread = size;
+			if (numread > (m_FileSize - m_NumBytesTransferred))
 			{
-				LogErr(L"Error reading file %s", m_FileName.c_str());
-				SetStatus(FileTransferStatus::Error);
+				numread = m_FileSize - m_NumBytesTransferred;
 			}
-			else
+
+			std::memcpy(buffer, m_BenchmarkBuffer.GetBytes(), numread);
+
+			if (numread < size)
 			{
 				// Transfer end
 				TransferEndStats();
+			}
+		}
+		else
+		{
+			numread = fread(buffer, sizeof(Byte), size, m_File);
+
+			if (numread < size)
+			{
+				if (m_NumBytesTransferred + numread != m_FileSize)
+				{
+					LogErr(L"Error reading file %s", m_FileName.c_str());
+					SetStatus(FileTransferStatus::Error);
+				}
+				else
+				{
+					// Transfer end
+					TransferEndStats();
+				}
 			}
 		}
 
@@ -119,15 +158,18 @@ namespace TestExtender
 
 	bool FileTransfer::OpenDestinationFile(const String& filename)
 	{
-		if (fopen_s(&m_File, Util::ToStringA(filename).c_str(), "w+b") == 0)
+		if (!m_Benchmark)
 		{
-			m_FileName = filename;
-			m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
-
-			return true;
+			if (fopen_s(&m_File, Util::ToStringA(filename).c_str(), "w+b") != 0)
+			{
+				return false;
+			}
 		}
 
-		return false;
+		m_FileName = filename;
+		m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+
+		return true;
 	}
 
 	bool FileTransfer::WriteToFile(const Byte* buffer, const Size size) noexcept
@@ -136,37 +178,54 @@ namespace TestExtender
 
 		m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
 
-		const auto numwritten = fwrite(buffer, sizeof(Byte), size, m_File);
-		if (numwritten == size)
+		if (m_Benchmark)
 		{
-			m_NumBytesTransferred += numwritten;
+			m_NumBytesTransferred += size;
 
 			if (m_NumBytesTransferred == m_FileSize)
 			{
 				// Transfer end
 				TransferEndStats();
 
-				Buffer hash;
-
-				if (CalcFileHash(hash) && hash == m_FileHash)
-				{
-					SetStatus(FileTransferStatus::Succeeded);
-				}
-				else
-				{
-					LogErr(L"File transfer error: hash for file %s doesn't match", m_FileName.c_str());
-
-					SetStatus(FileTransferStatus::Error);
-					return false;
-				}
+				SetStatus(FileTransferStatus::Succeeded);
 			}
 
 			return true;
 		}
+		else
+		{
+			const auto numwritten = fwrite(buffer, sizeof(Byte), size, m_File);
+			if (numwritten == size)
+			{
+				m_NumBytesTransferred += numwritten;
 
-		SetStatus(FileTransferStatus::Error);
+				if (m_NumBytesTransferred == m_FileSize)
+				{
+					// Transfer end
+					TransferEndStats();
 
-		return false;
+					Buffer hash;
+
+					if (CalcFileHash(hash) && hash == m_FileHash)
+					{
+						SetStatus(FileTransferStatus::Succeeded);
+					}
+					else
+					{
+						LogErr(L"File transfer error: hash for file %s doesn't match", m_FileName.c_str());
+
+						SetStatus(FileTransferStatus::Error);
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			SetStatus(FileTransferStatus::Error);
+
+			return false;
+		}
 	}
 
 	void FileTransfer::SetStatus(const FileTransferStatus status) noexcept
@@ -259,9 +318,9 @@ namespace TestExtender
 			kbsecs = (static_cast<double>(m_FileSize) / (static_cast<double>(msecs.count()) / 1000.0)) / 1024.0;
 		}
 
-		SLogInfo(SLogFmt(FGBrightCyan) << L"Stats for filetransfer " <<
-				 m_FileName << L": " << SLogFmt(FGBrightYellow) << msecs.count() << L" ms, " <<
-				 SLogFmt(FGBrightCyan) << kbsecs << L" KB/s" << SLogFmt(Default));
+		SLogInfo(SLogFmt(FGBrightCyan) << L"Stats for filetransfer " << m_FileName << L": " << 
+				 SLogFmt(FGBrightYellow) << msecs.count() << L" ms" << SLogFmt(FGBrightCyan) << ", " <<
+				 SLogFmt(FGBrightGreen) << kbsecs << L" KB/s" << SLogFmt(Default));
 	}
 
 	Extender::Extender(HWND wnd) noexcept :
@@ -442,6 +501,7 @@ namespace TestExtender
 							UInt64 fsize = 0;
 							Buffer fhash(64);
 							UInt8 autotrf{ 0 };
+							UInt8 benchmark{ 0 };
 
 							if (rdr.Read(fid, fsize))
 							{
@@ -456,7 +516,7 @@ namespace TestExtender
 								{
 									String fname;
 
-									if (rdr.Read(WithSize(fname, MaxSize::_1KB), fhash, autotrf))
+									if (rdr.Read(WithSize(fname, MaxSize::_1KB), fhash, autotrf, benchmark))
 									{
 										Dbg(L"Received FileTransferStart message from %llu", event.GetPeerLUID());
 
@@ -465,14 +525,15 @@ namespace TestExtender
 										{
 											auto ft = std::make_unique<FileTransfer>(peer, FileTransferType::Incoming, fid,
 																					 fsize2, fname, std::move(fhash),
-																					 GetFileTransferDataSize(), autotrf);
+																					 GetFileTransferDataSize(), autotrf,
+																					 benchmark);
 											ft->SetStatus(FileTransferStatus::NeedAccept);
 
 											const auto retval = filetransfers.insert({ fid, std::move(ft) });
 											result.Success = true;
 											auto error = false;
 
-											if (m_Window != nullptr && autotrf == 0)
+											if (m_Window != nullptr && autotrf == 0 && benchmark == 0)
 											{
 												// Must be deallocated in message handler
 												FileAccept* fa = new FileAccept();
@@ -485,18 +546,21 @@ namespace TestExtender
 													delete fa;
 												}
 											}
-											else
+											else if (autotrf == 1)
 											{
 												auto filepath = m_AutoFileTransferPath.WithSharedLock();
 												if (!filepath->empty())
 												{
-													// Random temporary filename because the file
-													// will get deleted after completion anyway and
-													// to reduce conflicts with multiple transfers
-													const auto rndfname = Util::FormatString(L"%llu.tmp",
-																							 Util::GetPseudoRandomNumber());
-													if (!AcceptFile(*filepath + rndfname,
-																	*retval.first->second))
+													if (benchmark == 0)
+													{
+														// Random temporary filename because the file
+														// will get deleted after completion anyway and
+														// to reduce conflicts with multiple transfers
+														fname = *filepath + Util::FormatString(L"%llu.tmp",
+																							   Util::GetPseudoRandomNumber());
+													}
+
+													if (!AcceptFile(fname, *retval.first->second))
 													{
 														error = true;
 													}
@@ -806,7 +870,8 @@ namespace TestExtender
 		return false;
 	}
 
-	bool Extender::SendFile(const PeerLUID pluid, const String filename, const bool autotrf)
+	bool Extender::SendFile(const PeerLUID pluid, const String filename, const bool autotrf,
+							const bool benchmark, const Size benchmark_size)
 	{
 		auto success = false;
 
@@ -815,7 +880,7 @@ namespace TestExtender
 		if (it != peers->end())
 		{
 			auto ft = std::make_unique<FileTransfer>(it->second->Peer, FileTransferType::Outgoing,
-													 GetFileTransferDataSize(), autotrf);
+													 GetFileTransferDataSize(), autotrf, benchmark, benchmark_size);
 
 			// Need to unlock because IfNotHasFileTransfer will
 			// lock again later
@@ -907,15 +972,22 @@ namespace TestExtender
 
 		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::FileTransferStart);
 		const UInt64 filesize = static_cast<UInt64>(ft.GetFileSize());
+
 		const UInt8 autotrf = [&]()
 		{
 			if (ft.IsAuto()) return 1;
 			else return 0;
 		}();
+		
+		const UInt8 benchmark = [&]()
+		{
+			if (ft.IsBenchmark()) return 1;
+			else return 0;
+		}();
 
 		BufferWriter writer(true);
-		if (writer.WriteWithPreallocation(msgtype, ft.GetID(), filesize,
-										  WithSize(filename, MaxSize::_1KB), *ft.GetFileHash(), autotrf))
+		if (writer.WriteWithPreallocation(msgtype, ft.GetID(), filesize, WithSize(filename, MaxSize::_1KB),
+										  *ft.GetFileHash(), autotrf, benchmark))
 		{
 			if (SendMessageTo(ft.GetPeer(), writer.MoveWrittenBytes(),
 							  QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded()) return true;
