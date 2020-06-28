@@ -102,10 +102,10 @@ namespace QuantumGate::Implementation::Core::Relay
 		Link_ThS* Get(const RelayPort rport) noexcept;
 
 		ThreadPool::ThreadCallbackResult PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																const Concurrency::EventCondition& shutdown_event);
+																const Concurrency::Event& shutdown_event);
 
 		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-															   const Concurrency::EventCondition& shutdown_event);
+															   const Concurrency::Event& shutdown_event);
 
 		[[nodiscard]] bool ProcessRelayConnect(Link& rc,
 											   Peer::Peer_ThS::UniqueLockedType& in_peer,

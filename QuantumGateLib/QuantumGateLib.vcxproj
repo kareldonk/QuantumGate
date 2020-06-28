@@ -554,7 +554,7 @@
     <ClInclude Include="Compression\Compression.h" />
     <ClInclude Include="Compression\ZlibStreams.h" />
     <ClInclude Include="Compression\ZstdStreams.h" />
-    <ClInclude Include="Concurrency\EventCondition.h" />
+    <ClInclude Include="Concurrency\Event.h" />
     <ClInclude Include="Concurrency\PriorityQueue.h" />
     <ClInclude Include="Concurrency\Queue.h" />
     <ClInclude Include="Concurrency\RecursiveSharedMutex.h" />

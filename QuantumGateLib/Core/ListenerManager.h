@@ -58,7 +58,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		void ResetState() noexcept;
 
 		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-															   const Concurrency::EventCondition& shutdown_event);
+															   const Concurrency::Event& shutdown_event);
 
 		void AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept;
 

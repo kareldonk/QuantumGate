@@ -3,8 +3,10 @@
 
 #pragma once
 
+#include <atomic>
+
 #include "QuantumGate.h"
-#include "Concurrency\EventCondition.h"
+#include "Concurrency\Event.h"
 #include "Concurrency\ThreadSafe.h"
 #include "Concurrency\ThreadPool.h"
 #include "Core\Access\IPFilters.h"
@@ -28,7 +30,7 @@ namespace QuantumGate::Socks5Extender
 
 	struct Listener final
 	{
-		Concurrency::EventCondition ShutdownEvent;
+		Concurrency::Event ShutdownEvent;
 		std::thread Thread;
 		Network::Socket Socket;
 		std::shared_mutex Mutex;
@@ -116,8 +118,8 @@ namespace QuantumGate::Socks5Extender
 		void ShutdownThreadPool() noexcept;
 
 		static void ListenerThreadLoop(Extender* extender);
-		ThreadPool::ThreadCallbackResult MainWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event);
-		ThreadPool::ThreadCallbackResult DataRelayWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event);
+		ThreadPool::ThreadCallbackResult MainWorkerThreadLoop(const Concurrency::Event& shutdown_event);
+		ThreadPool::ThreadCallbackResult DataRelayWorkerThreadLoop(const Concurrency::Event& shutdown_event);
 
 		[[nodiscard]] std::optional<IPAddress> ResolveDomainIP(const String& domain) noexcept;
 

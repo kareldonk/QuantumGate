@@ -268,7 +268,7 @@ namespace QuantumGate::Implementation::Core
 
 		if (!m_ThreadPool.AddThread(L"QuantumGate PublicIPEndpoints DataVerification Thread",
 									MakeCallback(this, &PublicIPEndpoints::DataVerificationWorkerThread),
-									&m_DataVerification.WithUniqueLock()->Queue.Event()))
+									&m_DataVerification.WithUniqueLock()->Queue.GetEvent()))
 		{
 			LogErr(L"Could not add PublicIPEndpoints data verification thread");
 			return false;
@@ -276,7 +276,7 @@ namespace QuantumGate::Implementation::Core
 
 		if (!m_ThreadPool.AddThread(L"QuantumGate PublicIPEndpoints HopVerification Thread",
 									MakeCallback(this, &PublicIPEndpoints::HopVerificationWorkerThread),
-									&m_HopVerification.WithUniqueLock()->Queue.Event()))
+									&m_HopVerification.WithUniqueLock()->Queue.GetEvent()))
 		{
 			LogErr(L"Could not add PublicIPEndpoints hop verification thread");
 			return false;
@@ -328,7 +328,7 @@ namespace QuantumGate::Implementation::Core
 	}
 
 	PublicIPEndpoints::ThreadPool::ThreadCallbackResult
-		PublicIPEndpoints::DataVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event)
+		PublicIPEndpoints::DataVerificationWorkerThread(const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
@@ -392,7 +392,7 @@ namespace QuantumGate::Implementation::Core
 	}
 
 	PublicIPEndpoints::ThreadPool::ThreadCallbackResult
-		PublicIPEndpoints::HopVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event)
+		PublicIPEndpoints::HopVerificationWorkerThread(const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 

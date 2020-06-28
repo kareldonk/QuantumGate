@@ -409,7 +409,7 @@ namespace QuantumGate::Implementation::Core
 
 		if (m_ThreadPool.AddThread(L"QuantumGate Local Thread",
 								   MakeCallback(this, &Local::WorkerThreadProcessor),
-								   &m_ThreadPool.GetData().EventQueue.WithUniqueLock()->Event()))
+								   &m_ThreadPool.GetData().EventQueue.WithUniqueLock()->GetEvent()))
 		{
 			if (m_ThreadPool.Startup())
 			{
@@ -429,7 +429,7 @@ namespace QuantumGate::Implementation::Core
 	}
 
 	Local::ThreadPool::ThreadCallbackResult Local::WorkerThreadProcessor(ThreadPoolData& thpdata,
-																		 const Concurrency::EventCondition& shutdown_event)
+																		 const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
@@ -901,7 +901,7 @@ namespace QuantumGate::Implementation::Core
 	{
 		if (IsRunning())
 		{
-			Concurrency::EventCondition cevent;
+			Concurrency::Event cevent;
 			Result<ConnectDetails> final_result{ ResultCode::Failed };
 
 			const auto result = m_PeerManager.ConnectTo(std::move(params),
@@ -989,7 +989,7 @@ namespace QuantumGate::Implementation::Core
 
 	Result<> Local::DisconnectFromImpl(API::Peer& peer) noexcept
 	{
-		Concurrency::EventCondition cevent;
+		Concurrency::Event cevent;
 
 		// Initiate disconnect from peer
 		auto result = m_PeerManager.DisconnectFrom(peer,

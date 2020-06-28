@@ -1004,7 +1004,7 @@ namespace QuantumGate::Socks5Extender
 		LogDbg(L"%s: listener thread %u exiting", extname.c_str(), std::this_thread::get_id());
 	}
 
-	Extender::ThreadPool::ThreadCallbackResult Extender::MainWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event)
+	Extender::ThreadPool::ThreadCallbackResult Extender::MainWorkerThreadLoop(const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
@@ -1047,7 +1047,7 @@ namespace QuantumGate::Socks5Extender
 		return result;
 	}
 
-	Extender::ThreadPool::ThreadCallbackResult Extender::DataRelayWorkerThreadLoop(const Concurrency::EventCondition& shutdown_event)
+	Extender::ThreadPool::ThreadCallbackResult Extender::DataRelayWorkerThreadLoop(const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 

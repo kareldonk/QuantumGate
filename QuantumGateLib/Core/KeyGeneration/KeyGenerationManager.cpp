@@ -160,7 +160,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			{
 				if (!m_ThreadPool.AddThread(L"QuantumGate KeyManager Thread",
 											MakeCallback(this, &Manager::WorkerThreadProcessor),
-											&m_ThreadPool.GetData().KeyGenEventQueue.WithUniqueLock()->Event()))
+											&m_ThreadPool.GetData().KeyGenEventQueue.WithUniqueLock()->GetEvent()))
 				{
 					error = true;
 					break;
@@ -214,7 +214,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 	}
 
 	Manager::ThreadPool::ThreadCallbackResult Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata,
-																			  const Concurrency::EventCondition& shutdown_event)
+																			  const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
@@ -304,7 +304,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 	}
 
 	Manager::ThreadPool::ThreadCallbackResult Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
-																			 const Concurrency::EventCondition& shutdown_event)
+																			 const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 

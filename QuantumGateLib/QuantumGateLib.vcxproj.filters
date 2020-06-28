@@ -144,9 +144,6 @@
     <ClInclude Include="Concurrency\RecursiveSharedMutex.h">
       <Filter>Header Files\Concurrency</Filter>
     </ClInclude>
-    <ClInclude Include="Concurrency\EventCondition.h">
-      <Filter>Header Files\Concurrency</Filter>
-    </ClInclude>
     <ClInclude Include="Crypto\Crypto.h">
       <Filter>Header Files\Crypto</Filter>
     </ClInclude>
@@ -422,6 +419,9 @@
     </ClInclude>
     <ClInclude Include="Core\Relay\RelayDataRateLimit.h">
       <Filter>Header Files\Core\Relay</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\Event.h">
+      <Filter>Header Files\Concurrency</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

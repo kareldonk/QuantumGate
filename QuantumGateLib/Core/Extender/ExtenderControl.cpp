@@ -81,7 +81,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				for (Size x = 0; x < numthreadsperpool; ++x)
 				{
 					if (!thpool->AddThread(extname + L" Thread", MakeCallback(this, &Control::WorkerThreadProcessor),
-										   &thpool->GetData().Queue.WithUniqueLock()->Event()))
+										   &thpool->GetData().Queue.WithUniqueLock()->GetEvent()))
 					{
 						error = true;
 						break;
@@ -119,7 +119,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	}
 
 	Control::ThreadPool::ThreadCallbackResult Control::WorkerThreadProcessor(ThreadPoolData& thpdata,
-																			 const Concurrency::EventCondition& shutdown_event)
+																			 const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 

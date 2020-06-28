@@ -9,7 +9,7 @@
 #include "VideoRenderer.h"
 #include "AudioRenderer.h"
 
-#include <Concurrency\EventCondition.h>
+#include <Concurrency\Event.h>
 #include <Concurrency\SpinMutex.h>
 #include <Concurrency\SharedSpinMutex.h>
 #include <Concurrency\Queue.h>
@@ -229,7 +229,7 @@ namespace QuantumGate::AVExtender
 
 		SampleEventHandles_ThS m_SampleEventHandles;
 
-		Concurrency::EventCondition m_DisconnectEvent;
+		Concurrency::Event m_DisconnectEvent;
 
 		std::thread m_AudioInThread;
 		std::thread m_AudioOutThread;

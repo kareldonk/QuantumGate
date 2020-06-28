@@ -5,10 +5,11 @@
 
 #include <unordered_map>
 #include <chrono>
+#include <atomic>
 
 #include <QuantumGate.h>
 #include <Concurrency\ThreadSafe.h>
-#include <Concurrency\EventCondition.h>
+#include <Concurrency\Event.h>
 
 namespace TestExtender
 {
@@ -190,7 +191,7 @@ namespace TestExtender
 		HWND m_Window{ nullptr };
 
 		std::atomic_bool m_UseCompression{ true };
-		Concurrency::EventCondition m_ShutdownEvent;
+		Concurrency::Event m_ShutdownEvent;
 		std::thread m_Thread;
 		Peers_ThS m_Peers;
 

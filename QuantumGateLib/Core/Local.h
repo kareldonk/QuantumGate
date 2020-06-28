@@ -139,11 +139,11 @@ namespace QuantumGate::Implementation::Core
 		void ProcessEvent(const Events::UnhandledExtenderException& event) noexcept;
 
 		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   const Concurrency::EventCondition& shutdown_event);
+															   const Concurrency::Event& shutdown_event);
 
 	private:
 		std::atomic_bool m_Running{ false };
-		Concurrency::EventCondition m_ShutdownEvent;
+		Concurrency::Event m_ShutdownEvent;
 
 		Settings_CThS m_Settings;
 		SecurityLevel m_SecurityLevel{ SecurityLevel::One };

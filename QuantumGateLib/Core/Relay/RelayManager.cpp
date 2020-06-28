@@ -126,7 +126,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 					if (m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Event Processor)",
 											   MakeCallback(this, &Manager::WorkerThreadProcessor), ThreadData(x),
-											   &m_ThreadPool.GetData().RelayEventQueues[x]->WithUniqueLock()->Event()))
+											   &m_ThreadPool.GetData().RelayEventQueues[x]->WithUniqueLock()->GetEvent()))
 					{
 						// Add entry for the total number of relay links this thread is handling
 						m_ThreadPool.GetData().ThreadKeyToLinkTotals.WithUniqueLock([&](ThreadKeyToLinkTotalMap& link_totals)
@@ -553,7 +553,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	}
 
 	Manager::ThreadPool::ThreadCallbackResult Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																			  const Concurrency::EventCondition& shutdown_event)
+																			  const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
@@ -681,7 +681,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	}
 
 	Manager::ThreadPool::ThreadCallbackResult Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																			 const Concurrency::EventCondition& shutdown_event)
+																			 const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 

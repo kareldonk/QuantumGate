@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "EventCondition.h"
+#include "Event.h"
 #include "..\Common\Containers.h"
 
 namespace QuantumGate::Implementation::Concurrency
@@ -91,19 +91,19 @@ namespace QuantumGate::Implementation::Concurrency
 			if (Empty()) m_Event.Reset();
 		}
 
-		inline EventCondition& Event() noexcept
+		inline Event& GetEvent() noexcept
 		{
 			return m_Event;
 		}
 
-		inline const EventCondition& Event() const noexcept
+		inline const Event& GetEvent() const noexcept
 		{
 			return m_Event;
 		}
 
 	private:
 		QueueType m_Queue;
-		EventCondition m_Event;
+		Event m_Event;
 	};
 }
 

@@ -153,8 +153,8 @@ namespace QuantumGate::Implementation::Core
 		std::pair<PublicIPEndpointDetails*, bool>
 			GetIPEndpointDetails(const BinaryIPAddress& pub_ip, IPEndpointsMap& ipendpoints) noexcept;
 
-		ThreadPool::ThreadCallbackResult DataVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event);
-		ThreadPool::ThreadCallbackResult HopVerificationWorkerThread(const Concurrency::EventCondition& shutdown_event);
+		ThreadPool::ThreadCallbackResult DataVerificationWorkerThread(const Concurrency::Event& shutdown_event);
+		ThreadPool::ThreadCallbackResult HopVerificationWorkerThread(const Concurrency::Event& shutdown_event);
 
 	public:
 		static constexpr const UInt8 MaxReportingPeerNetworks{ 32 };

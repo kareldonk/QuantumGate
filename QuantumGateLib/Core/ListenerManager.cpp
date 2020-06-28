@@ -298,7 +298,7 @@ namespace QuantumGate::Implementation::Core::Listener
 	}
 
 	Manager::ThreadPool::ThreadCallbackResult Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																			 const Concurrency::EventCondition& shutdown_event)
+																			 const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 

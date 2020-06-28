@@ -80,10 +80,10 @@ namespace QuantumGate::AVExtender
 	{
 		m_DisconnectEvent.Reset();
 
-		m_AudioInQueue.WithUniqueLock()->Event().Reset();
-		m_AudioOutQueue.WithUniqueLock()->Event().Reset();
-		m_VideoInQueue.WithUniqueLock()->Event().Reset();
-		m_VideoOutQueue.WithUniqueLock()->Event().Reset();
+		m_AudioInQueue.WithUniqueLock()->GetEvent().Reset();
+		m_AudioOutQueue.WithUniqueLock()->GetEvent().Reset();
+		m_VideoInQueue.WithUniqueLock()->GetEvent().Reset();
+		m_VideoOutQueue.WithUniqueLock()->GetEvent().Reset();
 
 		m_AudioInThread = std::thread(Call::AudioInWorkerThreadLoop, this);
 		m_AudioOutThread = std::thread(Call::AudioOutWorkerThreadLoop, this);
@@ -97,25 +97,25 @@ namespace QuantumGate::AVExtender
 		// threads begin exiting 
 		m_DisconnectEvent.Set();
 
-		m_AudioInQueue.WithUniqueLock()->Event().Set();
+		m_AudioInQueue.WithUniqueLock()->GetEvent().Set();
 		if (m_AudioInThread.joinable())
 		{
 			m_AudioInThread.join();
 		}
 
-		m_AudioOutQueue.WithUniqueLock()->Event().Set();
+		m_AudioOutQueue.WithUniqueLock()->GetEvent().Set();
 		if (m_AudioOutThread.joinable())
 		{
 			m_AudioOutThread.join();
 		}
 
-		m_VideoInQueue.WithUniqueLock()->Event().Set();
+		m_VideoInQueue.WithUniqueLock()->GetEvent().Set();
 		if (m_VideoInThread.joinable())
 		{
 			m_VideoInThread.join();
 		}
 
-		m_VideoOutQueue.WithUniqueLock()->Event().Set();
+		m_VideoOutQueue.WithUniqueLock()->GetEvent().Set();
 		if (m_VideoOutThread.joinable())
 		{
 			m_VideoOutThread.join();
@@ -139,7 +139,7 @@ namespace QuantumGate::AVExtender
 		AudioFormat rcv_audio_in_format;
 		AudioCompressor audio_decompressor{ AudioCompressor::Type::Decoder };
 
-		auto& event = call->m_AudioInQueue.WithUniqueLock()->Event();
+		auto& event = call->m_AudioInQueue.WithUniqueLock()->GetEvent();
 
 		while (true)
 		{
@@ -249,7 +249,7 @@ namespace QuantumGate::AVExtender
 			}
 		};
 
-		auto& event = call->m_AudioOutQueue.WithUniqueLock()->Event();
+		auto& event = call->m_AudioOutQueue.WithUniqueLock()->GetEvent();
 
 		while (true)
 		{
@@ -315,7 +315,7 @@ namespace QuantumGate::AVExtender
 		VideoFormat rcv_video_in_format;
 		VideoCompressor video_decompressor{ VideoCompressor::Type::Decoder };
 
-		auto& event = call->m_VideoInQueue.WithUniqueLock()->Event();
+		auto& event = call->m_VideoInQueue.WithUniqueLock()->GetEvent();
 
 		while (true)
 		{
@@ -418,7 +418,7 @@ namespace QuantumGate::AVExtender
 			}
 		};
 
-		auto& event = call->m_VideoOutQueue.WithUniqueLock()->Event();
+		auto& event = call->m_VideoOutQueue.WithUniqueLock()->GetEvent();
 
 		while (true)
 		{

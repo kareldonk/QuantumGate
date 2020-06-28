@@ -121,7 +121,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		void ResetState() noexcept;
 
 		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   const Concurrency::EventCondition& shutdown_event);
+															   const Concurrency::Event& shutdown_event);
 
 	private:
 		Manager& m_ExtenderManager;

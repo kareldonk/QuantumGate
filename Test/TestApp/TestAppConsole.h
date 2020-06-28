@@ -3,14 +3,16 @@
 
 #pragma once
 
+#include <mutex>
+
 #include "QuantumGate.h"
-#include "Concurrency\EventCondition.h"
+#include "Concurrency\Event.h"
 
 class TestAppConsole final : public QuantumGate::Console::Output
 {
 public:
 	inline QuantumGate::String* GetMessages() noexcept { return &m_Messages; }
-	inline QuantumGate::Implementation::Concurrency::EventCondition* GetNewMessageEvent() noexcept { return &m_NewMessageEvent; }
+	inline QuantumGate::Implementation::Concurrency::Event* GetNewMessageEvent() noexcept { return &m_NewMessageEvent; }
 
 	inline bool TryLock() { return m_Mutex.try_lock(); }
 	inline void Lock() { m_Mutex.lock(); }
@@ -28,6 +30,6 @@ public:
 protected:
 	std::mutex m_Mutex;
 	QuantumGate::String m_Messages;
-	QuantumGate::Implementation::Concurrency::EventCondition m_NewMessageEvent;
+	QuantumGate::Implementation::Concurrency::Event m_NewMessageEvent;
 };
 

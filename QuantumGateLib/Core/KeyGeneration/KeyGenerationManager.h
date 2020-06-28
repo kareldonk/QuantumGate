@@ -20,7 +20,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		struct ThreadPoolData final
 		{
 			EventQueue_ThS KeyGenEventQueue;
-			Concurrency::EventCondition PrimaryThreadEvent;
+			Concurrency::Event PrimaryThreadEvent;
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
@@ -53,10 +53,10 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		void ShutdownThreadPool() noexcept;
 
 		ThreadPool::ThreadCallbackResult PrimaryThreadProcessor(ThreadPoolData& thpdata,
-																const Concurrency::EventCondition& shutdown_event);
+																const Concurrency::Event& shutdown_event);
 
 		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   const Concurrency::EventCondition& shutdown_event);
+															   const Concurrency::Event& shutdown_event);
 
 	private:
 		std::atomic_bool m_Running{ false };
