@@ -31,6 +31,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		template<typename T>
 		T& GetSocket() noexcept { return *dynamic_cast<T*>(m_Socket); }
 
+		template<typename T>
+		const T& GetSocket() const noexcept { return *dynamic_cast<const T*>(m_Socket); }
+
 		GateType GetGateType() const noexcept { return m_Type; }
 
 		bool BeginConnect(const IPEndpoint& endpoint) noexcept
