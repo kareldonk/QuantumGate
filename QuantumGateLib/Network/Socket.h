@@ -5,6 +5,8 @@
 
 #include "SocketBase.h"
 
+// #define USE_WSA_EVENT
+
 namespace QuantumGate::Implementation::Network
 {
 	class Export Socket : public SocketBase
@@ -26,6 +28,12 @@ namespace QuantumGate::Implementation::Network
 		virtual ~Socket();
 		Socket& operator=(const Socket&) = delete;
 		Socket& operator=(Socket&& other) noexcept;
+
+		[[nodiscard]] inline SOCKET GetHandle() const noexcept { return m_Socket; }
+
+#ifdef USE_WSA_EVENT
+		[[nodiscard]] inline WSAEVENT GetWSAEvent() const noexcept { return m_WSAEvent; }
+#endif
 
 		[[nodiscard]] IP::AddressFamily GetAddressFamily() const noexcept;
 		[[nodiscard]] Type GetType() const noexcept;
@@ -118,13 +126,15 @@ namespace QuantumGate::Implementation::Network
 		static constexpr std::chrono::seconds DefaultLingerTime{ 10 };
 		static constexpr Size ReadWriteBufferSize{ 65'535 }; //64KB
 
-	protected:
-		inline SOCKET GetSocket() const noexcept { return m_Socket; }
-
 	private:
 		[[nodiscard]] bool SetSocket(const SOCKET s, const bool excl_addr_use = true,
 									 const bool blocking = false) noexcept;
 		void UpdateSocketInfo() noexcept;
+
+#ifdef USE_WSA_EVENT
+		[[nodiscard]] bool CreateWSAEvent() noexcept;
+		void CloseWSAEvent() noexcept;
+#endif
 
 		[[nodiscard]] Buffer& GetReceiveBuffer() const noexcept;
 
@@ -134,8 +144,19 @@ namespace QuantumGate::Implementation::Network
 		template<bool read, bool write, bool exception>
 		[[nodiscard]] bool UpdateIOStatusImpl(const std::chrono::milliseconds& mseconds) noexcept;
 
+		template<bool read, bool write, bool exception>
+		[[nodiscard]] bool UpdateIOStatusFDSet(const std::chrono::milliseconds& mseconds) noexcept;
+
+#ifdef USE_WSA_EVENT
+		template<bool read, bool write, bool exception>
+		[[nodiscard]] bool UpdateIOStatusWSAEvent(const std::chrono::milliseconds& mseconds) noexcept;
+#endif
+
 	private:
 		SOCKET m_Socket{ INVALID_SOCKET };
+#ifdef USE_WSA_EVENT
+		WSAEVENT m_WSAEvent{ WSA_INVALID_EVENT };
+#endif
 		IOStatus m_IOStatus;
 
 		Size m_BytesReceived{ 0 };

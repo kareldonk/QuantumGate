@@ -109,6 +109,9 @@ namespace QuantumGate::Implementation::Network
 
 	Socket::Socket(Socket&& other) noexcept :
 		m_Socket(std::exchange(other.m_Socket, INVALID_SOCKET)),
+#ifdef USE_WSA_EVENT
+		m_WSAEvent(std::exchange(other.m_WSAEvent, WSA_INVALID_EVENT)),
+#endif
 		m_IOStatus(std::exchange(other.m_IOStatus, IOStatus())),
 		m_BytesReceived(std::exchange(other.m_BytesReceived, 0)),
 		m_BytesSent(std::exchange(other.m_BytesSent, 0)),
@@ -123,6 +126,9 @@ namespace QuantumGate::Implementation::Network
 		if (this == &other) return *this;
 
 		m_Socket = std::exchange(other.m_Socket, INVALID_SOCKET);
+#ifdef USE_WSA_EVENT
+		m_WSAEvent = std::exchange(other.m_WSAEvent, WSA_INVALID_EVENT);
+#endif
 		m_IOStatus = std::exchange(other.m_IOStatus, IOStatus());
 
 		m_BytesReceived = std::exchange(other.m_BytesReceived, 0);
@@ -160,6 +166,10 @@ namespace QuantumGate::Implementation::Network
 			if (!SetNoDelay(true)) return false;
 		}
 
+#ifdef USE_WSA_EVENT
+		if (!CreateWSAEvent()) return false;
+#endif
+
 		return true;
 	}
 
@@ -177,10 +187,41 @@ namespace QuantumGate::Implementation::Network
 			else DiscardReturnValue(SetLinger(0s));
 		}
 
+#ifdef USE_WSA_EVENT
+		CloseWSAEvent();
+#endif
+
 		closesocket(m_Socket);
 
 		m_IOStatus.Reset();
 	}
+
+#ifdef USE_WSA_EVENT
+	bool Socket::CreateWSAEvent() noexcept
+	{
+		m_WSAEvent = WSACreateEvent();
+		if (m_WSAEvent != WSA_INVALID_EVENT)
+		{
+			const auto ret = WSAEventSelect(m_Socket, m_WSAEvent, FD_ACCEPT | FD_CONNECT | FD_READ | FD_WRITE | FD_CLOSE);
+			if (ret != SOCKET_ERROR)
+			{
+				return true;
+			}
+			else LogErr(L"Could not set event for socket (%s)", GetLastSysErrorString().c_str());
+		}
+		else LogErr(L"Could not create event for socket (%s)", GetLastSysErrorString().c_str());
+
+		return false;
+	}
+
+	void Socket::CloseWSAEvent() noexcept
+	{
+		if (m_WSAEvent != WSA_INVALID_EVENT)
+		{
+			WSACloseEvent(m_WSAEvent);
+		}
+	}
+#endif
 
 	void Socket::UpdateSocketInfo() noexcept
 	{
@@ -868,11 +909,75 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
+#ifdef USE_WSA_EVENT
+	template<bool read, bool write, bool exception>
+	bool Socket::UpdateIOStatusWSAEvent(const std::chrono::milliseconds& mseconds) noexcept
+	{
+		const auto ret = WSAWaitForMultipleEvents(1, &m_WSAEvent, false, static_cast<DWORD>(mseconds.count()), false);
+		if (ret != WSA_WAIT_FAILED)
+		{
+			WSANETWORKEVENTS events{ 0 };
+
+			const auto ret2 = WSAEnumNetworkEvents(m_Socket, m_WSAEvent, &events);
+			if (ret2 == WSA_WAIT_TIMEOUT) return true;
+			else if (ret2 != SOCKET_ERROR)
+			{
+				if constexpr (read)
+				{
+					m_IOStatus.SetRead((events.lNetworkEvents & FD_READ) ||
+									   (events.lNetworkEvents & FD_ACCEPT) ||
+									   (events.lNetworkEvents & FD_CLOSE));
+				}
+
+				if constexpr (write)
+				{
+					if (!m_IOStatus.CanWrite())
+					{
+						m_IOStatus.SetWrite((events.lNetworkEvents & FD_WRITE) || (events.lNetworkEvents & FD_CONNECT));
+					}
+				}
+
+				if constexpr (exception)
+				{
+					const auto set_error = [&](const int idx) noexcept
+					{
+						m_IOStatus.SetException(true);
+						m_IOStatus.SetErrorCode(events.iErrorCode[idx]);
+					};
+
+					if ((events.lNetworkEvents & FD_CONNECT) && events.iErrorCode[FD_CONNECT_BIT] != 0) set_error(FD_CONNECT_BIT);
+					else if ((events.lNetworkEvents & FD_READ) && events.iErrorCode[FD_READ_BIT] != 0) set_error(FD_READ_BIT);
+					else if ((events.lNetworkEvents & FD_WRITE) && events.iErrorCode[FD_WRITE_BIT] != 0) set_error(FD_WRITE_BIT);
+					else if ((events.lNetworkEvents & FD_CLOSE) && events.iErrorCode[FD_CLOSE_BIT] != 0) set_error(FD_CLOSE_BIT);
+					else if ((events.lNetworkEvents & FD_ACCEPT) && events.iErrorCode[FD_ACCEPT_BIT] != 0) set_error(FD_ACCEPT_BIT);
+				}
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+#endif
+
 	template<bool read, bool write, bool exception>
 	bool Socket::UpdateIOStatusImpl(const std::chrono::milliseconds& mseconds) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
+#ifdef USE_WSA_EVENT
+		if (m_WSAEvent != WSA_INVALID_EVENT)
+		{
+			return UpdateIOStatusWSAEvent<read, write, exception>(mseconds);
+		}
+#else
+		return UpdateIOStatusFDSet<read, write, exception>(mseconds);
+#endif
+	}
+
+	template<bool read, bool write, bool exception>
+	bool Socket::UpdateIOStatusFDSet(const std::chrono::milliseconds& mseconds) noexcept
+	{
 		fd_set rset{ 0 }, wset{ 0 }, eset{ 0 };
 		fd_set* rset_ptr{ nullptr };
 		fd_set* wset_ptr{ nullptr };
@@ -899,30 +1004,21 @@ namespace QuantumGate::Implementation::Network
 			eset_ptr = &eset;
 		}
 
-		TIMEVAL tval;
-		tval.tv_sec = 0;
-		tval.tv_usec = static_cast<long>(std::chrono::duration_cast<std::chrono::microseconds>(mseconds).count());
+		const TIMEVAL tval{
+			.tv_sec = 0,
+			.tv_usec = static_cast<long>(std::chrono::duration_cast<std::chrono::microseconds>(mseconds).count())
+		};
 
 		// Get socket status
 		const auto ret = select(0, rset_ptr, wset_ptr, eset_ptr, &tval);
-		if (ret == 0)
+		if (ret != SOCKET_ERROR)
 		{
-			// Select timed out,
-			// no events on socket
-			if constexpr (read) m_IOStatus.SetRead(false);
-			if constexpr (write) m_IOStatus.SetWrite(false);
-			if constexpr (exception) m_IOStatus.SetException(false);
-
-			return true;
-		}
-		else if (ret != SOCKET_ERROR)
-		{
-			if constexpr (read) m_IOStatus.SetRead(FD_ISSET(m_Socket, &rset));
-			if constexpr (write) m_IOStatus.SetWrite(FD_ISSET(m_Socket, &wset));
+			if constexpr (read) m_IOStatus.SetRead(FD_ISSET(m_Socket, rset_ptr));
+			if constexpr (write) m_IOStatus.SetWrite(FD_ISSET(m_Socket, wset_ptr));
 
 			if constexpr (exception)
 			{
-				if (FD_ISSET(m_Socket, &eset))
+				if (FD_ISSET(m_Socket, eset_ptr))
 				{
 					m_IOStatus.SetException(true);
 					m_IOStatus.SetErrorCode(GetError());
