@@ -262,7 +262,7 @@ void Stress::MultiInstanceStressThreadProc()
 				params.PeerIPEndpoint = IPEndpoint(IPAddress(m_MultiInstanceStressData.IP), m_MultiInstanceStressData.Port);
 				params.GlobalSharedSecret = m_MultiInstanceStressData.GlobalSharedSecret;
 
-				const auto connect_result = instance.ConnectTo(std::move(params), nullptr);
+				const auto connect_result = instance.ConnectTo(std::move(params));
 				if (connect_result.Failed())
 				{
 					LogErr(L"Connect instance stress: could not connect to peer (%s)",
