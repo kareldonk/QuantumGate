@@ -704,17 +704,17 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			std::visit(Util::Overloaded{
 				[&](auto& revent)
-			{
-				ProcessRelayEvent(revent);
-			},
-					   [&](Events::RelayData& revent)
-			{
-				while (ProcessRelayEvent(revent) == RelayDataProcessResult::Retry && !shutdown_event.IsSet())
 				{
-					std::this_thread::sleep_for(1ms);
+					ProcessRelayEvent(revent);
+				},
+				[&](Events::RelayData& revent)
+				{
+					while (ProcessRelayEvent(revent) == RelayDataProcessResult::Retry && !shutdown_event.IsSet())
+					{
+						std::this_thread::sleep_for(1ms);
+					}
 				}
-			}
-					   }, *event);
+			}, *event);
 		}
 
 		return result;
