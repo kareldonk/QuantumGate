@@ -121,7 +121,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						if (!thpool->AddThread(L"QuantumGate Peers Thread",
 											   MakeCallback(this, &Manager::WorkerThreadProcessor),
-											   &thpool->GetData().PeerQueue.WithUniqueLock()->GetEvent()))
+											   &thpool->GetData().TaskQueue.WithUniqueLock()->GetEvent()))
 						{
 							error = true;
 						}
@@ -154,7 +154,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			thpool.second->Shutdown();
 			thpool.second->Clear();
-			thpool.second->GetData().PeerQueue.WithUniqueLock()->Clear();
+			thpool.second->GetData().TaskQueue.WithUniqueLock()->Clear();
+			thpool.second->GetData().PollFDs.WithUniqueLock()->clear();
 		}
 
 		// Disconnect and remove all peers
@@ -307,7 +308,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 							Dbg(L"Adding peer %s to queue", peer.GetPeerName().c_str());
 
-							thpdata.PeerQueue.WithUniqueLock()->Push(peerths, [&]() noexcept { peer.SetInQueue(true); });
+							thpdata.TaskQueue.WithUniqueLock()->Push(Tasks::PeerEventUpdate{ peerths },
+																	 [&]() noexcept { peer.SetInQueue(true); });
 
 							result.DidWork = true;
 						}
@@ -335,48 +337,6 @@ namespace QuantumGate::Implementation::Core::Peer
 			result.DidWork = true;
 		}
 
-		// Execute any scheduled tasks
-		while (true)
-		{
-			std::optional<ThreadPoolTask> task;
-
-			thpdata.TaskQueue.IfUniqueLock([&](auto& queue)
-			{
-				if (!queue.Empty())
-				{
-					task = std::move(queue.Front());
-					queue.Pop();
-
-					// We had tasks in the queue so we did work
-					result.DidWork = true;
-				}
-			});
-
-			if (task.has_value())
-			{
-				std::visit(Util::Overloaded{
-					[&](Tasks::PeerAccessCheck& ptask)
-					{
-						thpdata.PeerMap.WithSharedLock([&](const PeerMap& peers)
-						{
-							for (auto it = peers.begin(); it != peers.end(); ++it)
-							{
-								it->second->WithUniqueLock([&](Peer& peer) noexcept
-								{
-									peer.SetNeedsAccessCheck();
-								});
-							}
-						});
-					},
-					[](Tasks::PeerCallback& ptask)
-					{
-						ptask.Callback();
-					}
-				}, *task);
-			}
-			else break;
-		}
-
 		return result;
 	}
 
@@ -385,40 +345,75 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
-		std::shared_ptr<Peer_ThS> peerths{ nullptr };
+		// Execute any scheduled tasks
+		std::optional<ThreadPoolTask> task;
 
-		thpdata.PeerQueue.IfUniqueLock([&](auto& queue)
+		thpdata.TaskQueue.WithUniqueLock([&](auto& queue)
 		{
 			if (!queue.Empty())
 			{
-				peerths = std::move(queue.Front());
+				task = std::move(queue.Front());
 				queue.Pop();
 
-				// We had peers in the queue so we did work
+				// We had tasks in the queue so we did work
 				result.DidWork = true;
 			}
 		});
 
-		if (peerths != nullptr)
+		if (task.has_value())
 		{
-			peerths->WithUniqueLock([&](Peer& peer)
-			{
-				peer.SetInQueue(false);
-				peer.ResetFastRequeue();
-
-				if (peer.ProcessEvents())
+			std::visit(Util::Overloaded{
+				[&](Tasks::PeerAccessCheck& ptask)
 				{
-					// If we still have events waiting to be processed add the
-					// peer back to the queue immediately to avoid extra delays
-					if (peer.UpdateSocketStatus() && peer.HasPendingEvents() && peer.IsFastRequeue())
+					thpdata.PeerMap.WithSharedLock([&](const PeerMap& peers)
 					{
-						// Peer should not already be in queue if we get here
-						assert(!peer.IsInQueue());
-
-						thpdata.PeerQueue.WithUniqueLock()->Push(peerths, [&]() noexcept { peer.SetInQueue(true); });
+						for (auto it = peers.begin(); it != peers.end(); ++it)
+						{
+							it->second->WithUniqueLock([&](Peer& peer) noexcept
+							{
+								peer.SetNeedsAccessCheck();
+							});
+						}
+					});
+				},
+				[](Tasks::PeerCallback& ptask)
+				{
+					try
+					{
+						ptask.Callback();
 					}
+					catch (const std::exception& e)
+					{
+						LogErr(L"Unhandled exception while executing peer callback - %s", Util::ToStringW(e.what()).c_str());
+					}
+					catch (...)
+					{
+						LogErr(L"Unhandled exception while executing peer callback");
+					}
+				},
+				[&](Tasks::PeerEventUpdate& ptask)
+				{
+					ptask.Peer->WithUniqueLock([&](Peer& peer)
+					{
+						peer.SetInQueue(false);
+						peer.ResetFastRequeue();
+
+						if (peer.ProcessEvents())
+						{
+							// If we still have events waiting to be processed add the
+							// peer back to the queue immediately to avoid extra delays
+							if (peer.UpdateSocketStatus() && peer.HasPendingEvents() && peer.IsFastRequeue())
+							{
+								// Peer should not already be in queue if we get here
+								assert(!peer.IsInQueue());
+
+								thpdata.TaskQueue.WithUniqueLock()->Push(Tasks::PeerEventUpdate{ ptask.Peer },
+																		 [&]() noexcept { peer.SetInQueue(true); });
+							}
+						}
+					});
 				}
-			});
+			}, *task);
 		}
 
 		return result;

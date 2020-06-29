@@ -22,16 +22,14 @@ namespace QuantumGate::Implementation::Core::Peer
 		using PeerMap = Containers::UnorderedMap<PeerLUID, std::shared_ptr<Peer_ThS>>;
 		using PeerMap_ThS = Concurrency::ThreadSafe<PeerMap, Concurrency::RecursiveSharedMutex>;
 
-		using PeerQueue = Concurrency::Queue<std::shared_ptr<Peer_ThS>>;
-		using PeerQueue_ThS = Concurrency::ThreadSafe<PeerQueue, Concurrency::SpinMutex>;
-
 		struct Tasks final
 		{
 			struct PeerAccessCheck final {};
+			struct PeerEventUpdate final { std::shared_ptr<Peer_ThS> Peer; };
 			struct PeerCallback final { Callback<void()> Callback; };
 		};
 
-		using ThreadPoolTask = std::variant<Tasks::PeerAccessCheck, Tasks::PeerCallback>;
+		using ThreadPoolTask = std::variant<Tasks::PeerAccessCheck, Tasks::PeerCallback, Tasks::PeerEventUpdate>;
 		using ThreadPoolTaskQueue = Concurrency::Queue<ThreadPoolTask>;
 		using ThreadPoolTaskQueue_ThS = Concurrency::ThreadSafe<ThreadPoolTaskQueue, Concurrency::SpinMutex>;
 		
@@ -44,7 +42,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		struct ThreadPoolData final
 		{
 			PeerMap_ThS PeerMap;
-			PeerQueue_ThS PeerQueue;
 			ThreadPoolTaskQueue_ThS TaskQueue;
 			PollFDVector_ThS PollFDs;
 		};
