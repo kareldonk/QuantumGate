@@ -587,10 +587,13 @@ namespace QuantumGate::Implementation::Core::Peer
 					thpit->second->GetData().PeerMap.WithUniqueLock()->erase(pit);
 				});
 
-				thpit->second->GetData().PollFDs.WithUniqueLock([&](auto& value)
+				if (peer.GetGateType() == GateType::Socket)
 				{
-					value.emplace_back(WSAPOLLFD{ .fd = peer.GetSocket<Socket>().GetHandle(), .events = POLLRDNORM });
-				});
+					thpit->second->GetData().PollFDs.WithUniqueLock([&](auto& value)
+					{
+						value.emplace_back(WSAPOLLFD{ .fd = peer.GetSocket<Socket>().GetHandle(), .events = POLLRDNORM });
+					});
+				}
 
 				sg.Deactivate();
 				sg2.Deactivate();
@@ -613,14 +616,17 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		const auto& thpool = m_ThreadPools[peer.GetThreadPoolKey()];
 
-		thpool->GetData().PollFDs.WithUniqueLock([&](auto& value)
+		if (peer.GetGateType() == GateType::Socket)
 		{
-			const auto it = std::find_if(value.begin(), value.end(), [&](const auto& wsapollfd)
+			thpool->GetData().PollFDs.WithUniqueLock([&](auto& value)
 			{
-				return (wsapollfd.fd == peer.GetSocket<Socket>().GetHandle());
+				const auto it = std::find_if(value.begin(), value.end(), [&](const auto& wsapollfd)
+				{
+					return (wsapollfd.fd == peer.GetSocket<Socket>().GetHandle());
+				});
+				if (it != value.end()) value.erase(it);
 			});
-			if (it != value.end()) value.erase(it);
-		});
+		}
 
 		thpool->GetData().PeerMap.WithUniqueLock()->erase(peer.GetLUID());
 	}
