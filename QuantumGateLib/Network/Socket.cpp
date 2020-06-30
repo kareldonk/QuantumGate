@@ -805,7 +805,7 @@ namespace QuantumGate::Implementation::Network
 		{
 			if (GetType() == Socket::Type::Stream)
 			{
-				LogDbg(L"Connection closed for endpoint %s", GetLocalName().c_str());
+				LogDbg(L"Connection closed for endpoint %s", GetPeerName().c_str());
 			}
 			else return true;
 		}
