@@ -862,8 +862,11 @@ namespace QuantumGate::Socks5Extender
 				sg.Deactivate();
 
 				// Start doing some processing for speed
-				auto didwork = false;
-				c->WithUniqueLock()->ProcessEvents(didwork);
+				c->WithUniqueLock([](Connection& connection)
+				{
+					auto didwork = false;
+					if (connection.IsActive()) connection.ProcessEvents(didwork);
+				});
 
 				SetConnectionSendEvent();
 			}

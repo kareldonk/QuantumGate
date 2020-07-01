@@ -1184,7 +1184,7 @@ namespace QuantumGate::Socks5Extender
 
 	bool Connection::Send(const BufferView buffer)
 	{
-		auto success = false;
+		auto success = true;
 
 		m_SendBuffer += buffer;
 
@@ -1204,7 +1204,7 @@ namespace QuantumGate::Socks5Extender
 
 	bool Connection::Send(Buffer&& buffer)
 	{
-		auto success = false;
+		auto success = true;
 
 		if (m_Socket.GetIOStatus().CanWrite())
 		{
