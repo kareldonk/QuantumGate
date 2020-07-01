@@ -64,13 +64,16 @@ namespace QuantumGate::Socks5Extender
 										   const Socks5Protocol::AddressTypes atype,
 										   const BufferView& address, const UInt16 port);
 
-		[[nodiscard]] bool SendRelayedData(const Buffer&& buffer);
+		[[nodiscard]] bool SendRelayedData(Buffer&& buffer);
 
 	protected:
 		[[nodiscard]] int GetNullPosition(const BufferView& buffer) const noexcept;
 
 		[[nodiscard]] bool SendAndReceive(bool& didwork);
 		void FlushBuffers();
+
+		[[nodiscard]] bool Send(const BufferView buffer);
+		[[nodiscard]] bool Send(Buffer&& buffer);
 
 		[[nodiscard]] bool DetermineProtocolVersion() noexcept;
 

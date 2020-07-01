@@ -41,6 +41,8 @@ namespace QuantumGate::Socks5Extender
 	{
 		assert(GetStatus() < Status::Disconnecting);
 
+		LogInfo(L"%s: disconnecting connection %llu from peer %llu", m_Extender.GetName().c_str(), GetID(), GetPeerLUID());
+
 		if (m_Socket.GetIOStatus().IsOpen()) m_Socket.Close();
 
 		if (IsPeerConnected())
@@ -152,9 +154,7 @@ namespace QuantumGate::Socks5Extender
 			std::memcpy(&msg.DestinationIP, address.GetBytes(), sizeof(msg.DestinationIP));
 		}
 
-		m_SendBuffer += BufferView(reinterpret_cast<Byte*>(&msg), sizeof(msg));
-
-		return true;
+		return Send(BufferView(reinterpret_cast<Byte*>(&msg), sizeof(msg)));
 	}
 
 	bool Connection::SendSocks5Reply(const Socks5Protocol::Replies reply)
@@ -169,7 +169,8 @@ namespace QuantumGate::Socks5Extender
 		Socks5Protocol::ReplyMsg msg;
 		msg.Reply = static_cast<UInt8>(reply);
 		msg.AddressType = static_cast<UInt8>(atype);
-		m_SendBuffer += BufferView(reinterpret_cast<Byte*>(&msg), sizeof(msg));
+
+		Buffer sndbuf{ BufferView(reinterpret_cast<Byte*>(&msg), sizeof(msg)) };
 
 		switch (atype)
 		{
@@ -180,7 +181,7 @@ namespace QuantumGate::Socks5Extender
 				Socks5Protocol::IPv4Address addr;
 				std::memcpy(&addr.Address, address.GetBytes(), 4);
 				addr.Port = Endian::ToNetworkByteOrder(port);
-				m_SendBuffer += BufferView(reinterpret_cast<Byte*>(&addr), sizeof(addr));
+				sndbuf += BufferView(reinterpret_cast<Byte*>(&addr), sizeof(addr));
 
 				break;
 			}
@@ -191,7 +192,7 @@ namespace QuantumGate::Socks5Extender
 				Socks5Protocol::IPv6Address addr;
 				std::memcpy(&addr.Address, address.GetBytes(), 16);
 				addr.Port = Endian::ToNetworkByteOrder(port);
-				m_SendBuffer += BufferView(reinterpret_cast<Byte*>(&addr), sizeof(addr));
+				sndbuf += BufferView(reinterpret_cast<Byte*>(&addr), sizeof(addr));
 
 				break;
 			}
@@ -202,9 +203,9 @@ namespace QuantumGate::Socks5Extender
 				const Byte size = static_cast<Byte>(address.GetSize());
 				const UInt16 nport = Endian::ToNetworkByteOrder(port);
 
-				m_SendBuffer += BufferView(&size, 1);
-				if (!address.IsEmpty()) m_SendBuffer += BufferView(address.GetBytes(), address.GetSize());
-				m_SendBuffer += BufferView(reinterpret_cast<const Byte*>(&nport), 2);
+				sndbuf += BufferView(&size, 1);
+				if (!address.IsEmpty()) sndbuf += BufferView(address.GetBytes(), address.GetSize());
+				sndbuf += BufferView(reinterpret_cast<const Byte*>(&nport), 2);
 
 				break;
 			}
@@ -215,12 +216,13 @@ namespace QuantumGate::Socks5Extender
 			}
 		}
 
-		return true;
+		return Send(std::move(sndbuf));
 	}
 
-	bool Connection::SendRelayedData(const Buffer&& data)
+	bool Connection::SendRelayedData(Buffer&& data)
 	{
-		m_SendBuffer += data;
+		if (!ShouldDisconnect()) return Send(std::move(data));
+
 		return true;
 	}
 
@@ -282,7 +284,13 @@ namespace QuantumGate::Socks5Extender
 				}
 			}
 		}
-		else SetDisconnectCondition();
+		else
+		{
+			LogDbg(L"%s: send/receive failed on connection %llu",
+				   m_Extender.GetName().c_str(), GetID());
+
+			SetDisconnectCondition();
+		}
 
 		if (ShouldDisconnect())
 		{
@@ -527,12 +535,17 @@ namespace QuantumGate::Socks5Extender
 							}
 						}
 
+						if (!m_ReceiveBuffer.IsEmpty()) m_Extender.SetConnectionReceiveEvent();
+
 						didwork = true;
 					}
 
 					if (m_Socket.GetIOStatus().CanWrite() && !m_SendBuffer.IsEmpty())
 					{
 						success = m_Socket.Send(m_SendBuffer);
+						
+						if (!m_SendBuffer.IsEmpty()) m_Extender.SetConnectionSendEvent();
+
 						didwork = true;
 					}
 				}
@@ -825,8 +838,8 @@ namespace QuantumGate::Socks5Extender
 					BufferView buffer(m_ReceiveBuffer);
 					buffer.RemoveFirst(sizeof(Socks5Protocol::MethodIdentificationMsg));
 
-					// Do we have enough data for the methods? If not
-					// we'll come back later
+					// Do we have enough data for the methods?
+					// If not we'll come back later
 					if (buffer.GetSize() >= msg.NumMethods)
 					{
 						for (UInt8 x = 0; x < msg.NumMethods; ++x)
@@ -854,8 +867,7 @@ namespace QuantumGate::Socks5Extender
 						}
 
 						// Remove what we already processed from the buffer
-						m_ReceiveBuffer.RemoveFirst(sizeof(Socks5Protocol::MethodIdentificationMsg) +
-													msg.NumMethods);
+						m_ReceiveBuffer.RemoveFirst(sizeof(Socks5Protocol::MethodIdentificationMsg) + msg.NumMethods);
 					}
 				}
 				else
@@ -867,21 +879,29 @@ namespace QuantumGate::Socks5Extender
 				// Send chosen method to client
 				Socks5Protocol::MethodSelectionMsg smsg;
 				smsg.Method = static_cast<UInt8>(chosen_method);
-				m_SendBuffer += BufferView(reinterpret_cast<Byte*>(&smsg), sizeof(smsg));
 
-				// If chosen method was valid we go to the next step in the handshake
-				// otherwise we'll close the connection
-				if (chosen_method != Socks5Protocol::AuthMethods::NoAcceptableMethods)
+				if (Send(BufferView(reinterpret_cast<Byte*>(&smsg), sizeof(smsg))))
 				{
-					if (m_Extender.IsAuthenticationRequired())
+					// If chosen method was valid we go to the next step in the handshake
+					// otherwise we'll close the connection
+					if (chosen_method != Socks5Protocol::AuthMethods::NoAcceptableMethods)
 					{
-						SetStatus(Status::Authenticating);
+						if (m_Extender.IsAuthenticationRequired())
+						{
+							SetStatus(Status::Authenticating);
+						}
+						else SetStatus(Status::Connecting);
 					}
-					else SetStatus(Status::Connecting);
+					else
+					{
+						LogErr(L"%s: did not receive any supported AuthMethods on socket %s",
+							   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
+						success = false;
+					}
 				}
 				else
 				{
-					LogErr(L"%s: did not receive any supported AuthMethods on socket %s",
+					LogErr(L"%s: could not send authorization method on socket %s",
 						   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
 					success = false;
 				}
@@ -953,10 +973,11 @@ namespace QuantumGate::Socks5Extender
 						   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str());
 				}
 
-				// Send authethication reply message to client
+				// Send authentication reply message to client
 				Socks5Protocol::AuthReplyMsg msg;
 				msg.Reply = static_cast<UInt8>(reply);
-				m_SendBuffer += BufferView(reinterpret_cast<Byte*>(&msg), sizeof(msg));
+
+				success = Send(BufferView(reinterpret_cast<Byte*>(&msg), sizeof(msg)));
 			}
 			else
 			{
@@ -1161,39 +1182,92 @@ namespace QuantumGate::Socks5Extender
 		return success;
 	}
 
+	bool Connection::Send(const BufferView buffer)
+	{
+		auto success = false;
+
+		m_SendBuffer += buffer;
+
+		if (m_Socket.GetIOStatus().CanWrite())
+		{
+			success = m_Socket.Send(m_SendBuffer);
+		}
+
+		// Any remaining data will be sent later
+		if (success && !m_SendBuffer.IsEmpty())
+		{
+			m_Extender.SetConnectionSendEvent();
+		}
+
+		return success;
+	}
+
+	bool Connection::Send(Buffer&& buffer)
+	{
+		auto success = false;
+
+		if (m_Socket.GetIOStatus().CanWrite())
+		{
+			success = m_Socket.Send(buffer);
+		}
+
+		// Add any remaining data to be sent later
+		if (success && !buffer.IsEmpty())
+		{
+			m_SendBuffer += buffer;
+			m_Extender.SetConnectionSendEvent();
+		}
+
+		return success;
+	}
+
 	bool Connection::RelayReceivedData(const Size max_send, Size& sent)
 	{
 		assert(IsReady());
 
+		auto success = true;
+
 		if (!m_ReceiveBuffer.IsEmpty())
 		{
-			BufferView buffer(m_ReceiveBuffer);
-
-			const auto size = (std::min)(buffer.GetSize(), max_send);
-
-			const auto result = m_Extender.SendDataRelay(GetPeerLUID(), GetID(), buffer.GetFirst(size));
-			if (result.Succeeded())
+			if (IsPeerConnected())
 			{
-				sent = size;
+				BufferView buffer(m_ReceiveBuffer);
 
-				if (m_ReceiveBuffer.GetSize() == size)
+				const auto size = (std::min)(buffer.GetSize(), max_send);
+
+				const auto result = m_Extender.SendDataRelay(GetPeerLUID(), GetID(), buffer.GetFirst(size));
+				if (result.Succeeded())
 				{
-					m_ReceiveBuffer.Clear();
+					sent = size;
+
+					if (m_ReceiveBuffer.GetSize() == size)
+					{
+						m_ReceiveBuffer.Clear();
+					}
+					else
+					{
+						m_ReceiveBuffer.RemoveFirst(size);
+						// We'll come back later to send the rest
+					}
+				}
+				else if (result == ResultCode::PeerSendBufferFull)
+				{
+					// Peer send buffer is currently full;
+					// we'll come back later to send the rest
 				}
 				else
 				{
-					m_ReceiveBuffer.RemoveFirst(size);
-					// We'll come back later to send the rest
+					LogErr(L"%s: could not send data relay message to peer %llu for connection %llu",
+						   m_Extender.GetName().c_str(), GetPeerLUID(), GetID());
+
+					success = false;
 				}
 			}
-			else if (result == ResultCode::PeerSendBufferFull)
-			{
-				// Peer send buffer is currently full;
-				// we'll come back later to send the rest
-			}
-			else return false;
+			else success = false;
 		}
 
-		return true;
+		if (success && !m_ReceiveBuffer.IsEmpty()) m_Extender.SetConnectionReceiveEvent();
+
+		return success;
 	}
 }

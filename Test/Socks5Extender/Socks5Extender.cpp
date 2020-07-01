@@ -102,7 +102,7 @@ namespace QuantumGate::Socks5Extender
 		if (!username.IsEmpty() && !password.IsEmpty())
 		{
 			ProtectedBuffer tmp(username.GetSize());
-			memcpy(tmp.GetBytes(), username.GetBytes(), username.GetSize());
+			std::memcpy(tmp.GetBytes(), username.GetBytes(), username.GetSize());
 
 			ProtectedBuffer usrhash;
 			if (Crypto::Hash(tmp, usrhash, Algorithm::Hash::BLAKE2B512))
@@ -110,7 +110,7 @@ namespace QuantumGate::Socks5Extender
 				if (m_Username == usrhash)
 				{
 					tmp.Resize(password.GetSize());
-					memcpy(tmp.GetBytes(), password.GetBytes(), password.GetSize());
+					std::memcpy(tmp.GetBytes(), password.GetBytes(), password.GetSize());
 
 					ProtectedBuffer pwdhash;
 					if (Crypto::Hash(tmp, pwdhash, Algorithm::Hash::BLAKE2B512))
@@ -186,6 +186,9 @@ namespace QuantumGate::Socks5Extender
 
 		m_Peers.WithUniqueLock()->clear();
 		m_AllConnections.WithUniqueLock()->clear();
+		m_AllConnectionFDs.WithUniqueLock()->clear();
+		m_AllConnectionsSendEvent.Reset();
+		m_AllConnectionsReceiveEvent.Reset();
 		m_DNSCache.WithUniqueLock()->clear();
 
 		DeInitializeIPFilters();
@@ -308,8 +311,12 @@ namespace QuantumGate::Socks5Extender
 		m_ThreadPool.SetWorkerThreadsMaxBurst(64);
 		m_ThreadPool.SetWorkerThreadsMaxSleep(1s);
 
-		if (m_ThreadPool.AddThread(GetName() + L" Main Worker Thread", MakeCallback(this, &Extender::MainWorkerThreadLoop)) &&
-			m_ThreadPool.AddThread(GetName() + L" DataRelay Worker Thread", MakeCallback(this, &Extender::DataRelayWorkerThreadLoop)))
+		if (m_ThreadPool.AddThread(GetName() + L" Main Worker Thread",
+								   MakeCallback(this, &Extender::MainWorkerThreadLoop), nullptr, false,
+								   MakeCallback(this, &Extender::MainWorkerThreadWaitProcessor)) &&
+			m_ThreadPool.AddThread(GetName() + L" DataRelay Worker Thread",
+								   MakeCallback(this, &Extender::DataRelayWorkerThreadLoop), nullptr, false,
+								   MakeCallback(this, &Extender::DataRelayWorkerThreadWaitProcessor)))
 		{
 			if (m_ThreadPool.Startup())
 			{
@@ -808,7 +815,14 @@ namespace QuantumGate::Socks5Extender
 	{
 		auto success = false;
 
-		Connection::Key key{ c->WithSharedLock()->GetKey() };
+		Connection::Key key{ 0 };
+		SOCKET shandle{ INVALID_SOCKET };
+		
+		c->WithSharedLock([&](const Connection& connection)
+		{
+			key = connection.GetKey();
+			shandle = connection.GetSocket().GetHandle();
+		});
 
 		m_AllConnections.WithUniqueLock([&](Connections& connections)
 		{
@@ -823,6 +837,8 @@ namespace QuantumGate::Socks5Extender
 			// Remove if we fail
 			auto sg = MakeScopeGuard([&]() noexcept { RemoveConnection(key); });
 
+			m_AllConnectionFDs.WithUniqueLock()->emplace_back(WSAPOLLFD{ .fd = shandle, .events = POLLRDNORM });
+
 			success = false;
 
 			const auto peer_ths = GetPeer(pluid);
@@ -830,7 +846,7 @@ namespace QuantumGate::Socks5Extender
 			{
 				peer_ths->WithUniqueLock([&](Peer& peer)
 				{
-					[[maybe_unused]] const auto [it, inserted] = peer.Connections.insert({ key, std::move(c) });
+					[[maybe_unused]] const auto [it, inserted] = peer.Connections.insert({ key, c});
 
 					assert(inserted);
 					success = inserted;
@@ -841,7 +857,16 @@ namespace QuantumGate::Socks5Extender
 				});
 			}
 
-			if (success) sg.Deactivate();
+			if (success)
+			{
+				sg.Deactivate();
+
+				// Start doing some processing for speed
+				auto didwork = false;
+				c->WithUniqueLock()->ProcessEvents(didwork);
+
+				SetConnectionSendEvent();
+			}
 		}
 
 		if (!success)
@@ -854,6 +879,7 @@ namespace QuantumGate::Socks5Extender
 
 	void Extender::RemoveConnection(const Connection::Key key) noexcept
 	{
+		std::optional<SOCKET> socket;
 		std::optional<PeerLUID> pluid;
 
 		m_AllConnections.WithUniqueLock([&](Connections& connections)
@@ -861,12 +887,29 @@ namespace QuantumGate::Socks5Extender
 			const auto it = connections.find(key);
 			if (it != connections.end())
 			{
-				pluid = it->second->WithSharedLock()->GetPeerLUID();
+				it->second->WithSharedLock([&](const Connection& c)
+				{
+					pluid = c.GetPeerLUID();
+					socket = c.GetSocket().GetHandle();
+				});
+
 				connections.erase(it);
 
 				LogDbg(L"%s: total number of connections: %zu", GetName().c_str(), connections.size());
 			}
 		});
+
+		if (socket)
+		{
+			m_AllConnectionFDs.WithUniqueLock([&](auto& value)
+			{
+				const auto it = std::find_if(value.begin(), value.end(), [&](const auto& wsapollfd)
+				{
+					return (wsapollfd.fd == socket);
+				});
+				if (it != value.end()) value.erase(it);
+			});
+		}
 
 		if (pluid)
 		{
@@ -1004,9 +1047,33 @@ namespace QuantumGate::Socks5Extender
 		LogDbg(L"%s: listener thread %u exiting", extname.c_str(), std::this_thread::get_id());
 	}
 
+	bool Extender::MainWorkerThreadWaitProcessor(std::chrono::milliseconds max_wait, const Concurrency::Event& shutdown_event)
+	{
+		auto waited = false;
+
+		// This could be made faster by waiting on multiple events with one call
+		// instead of 2 seperate calls
+		if (!m_AllConnectionsSendEvent.Wait(0ms))
+		{
+			m_AllConnectionFDs.IfUniqueLock([&](auto& value)
+			{
+				if (!value.empty())
+				{
+					const auto ret = WSAPoll(value.data(), static_cast<ULONG>(value.size()), static_cast<INT>(max_wait.count()));
+					waited = (ret != SOCKET_ERROR);
+				}
+			});
+		}
+		else waited = true;
+
+		return waited;
+	}
+
 	Extender::ThreadPool::ThreadCallbackResult Extender::MainWorkerThreadLoop(const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
+
+		m_AllConnectionsSendEvent.Reset();
 
 		std::vector<Connection::Key> rlist;
 
@@ -1047,9 +1114,18 @@ namespace QuantumGate::Socks5Extender
 		return result;
 	}
 
+	bool Extender::DataRelayWorkerThreadWaitProcessor(std::chrono::milliseconds max_wait,
+													  const Concurrency::Event& shutdown_event)
+	{
+		m_AllConnectionsReceiveEvent.Wait(max_wait);
+		return true;
+	}
+
 	Extender::ThreadPool::ThreadCallbackResult Extender::DataRelayWorkerThreadLoop(const Concurrency::Event& shutdown_event)
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
+
+		m_AllConnectionsReceiveEvent.Reset();
 
 		m_Peers.WithSharedLock([&](const Peers& peers)
 		{
@@ -1142,8 +1218,9 @@ namespace QuantumGate::Socks5Extender
 	bool Extender::SendConnectDomain(const PeerLUID pluid, const Connection::ID cid, const SocksProtocolVersion socks_version,
 									 const String& domain, const UInt16 port) const noexcept
 	{
-		LogInfo(L"%s: connecting to %s through peer %llu for connection %llu (Socks version %u)",
-				GetName().c_str(), domain.c_str(), pluid, cid, socks_version);
+		SLogInfo(GetName() << L": connecting to " << SLogFmt(FGBrightMagenta) << domain.c_str() <<
+				 SLogFmt(Default) << L" through peer " << pluid << L" for connection " << cid <<
+				 L" (Socks version " << static_cast<UInt8>(socks_version) << L")");
 
 		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectDomain);
 		const UInt8 socksv = static_cast<UInt8>(socks_version);
@@ -1166,8 +1243,9 @@ namespace QuantumGate::Socks5Extender
 	{
 		assert(ip.AddressFamily != BinaryIPAddress::Family::Unspecified);
 
-		LogInfo(L"%s: connecting to %s through peer %llu for connection %llu (Socks version %u)",
-				GetName().c_str(), IPEndpoint(IPAddress(ip), port).GetString().c_str(), pluid, cid, socks_version);
+		SLogInfo(GetName() << L": connecting to " << SLogFmt(FGBrightMagenta) <<
+				 IPEndpoint(IPAddress(ip), port).GetString().c_str() << SLogFmt(Default) << L" through peer " << pluid <<
+				 L" for connection " << cid << L" (Socks version " << static_cast<UInt8>(socks_version) << L")");
 
 		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectIP);
 		const UInt8 socksv = static_cast<UInt8>(socks_version);

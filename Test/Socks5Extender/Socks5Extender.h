@@ -40,6 +40,8 @@ namespace QuantumGate::Socks5Extender
 	using Connections = std::unordered_map<Connection::ID, std::shared_ptr<Connection_ThS>>;
 	using Connections_ThS = Concurrency::ThreadSafe<Connections, std::shared_mutex>;
 
+	using PollFD_ThS = Concurrency::ThreadSafe<std::vector<WSAPOLLFD>, std::shared_mutex>;
+
 	using DNSCache = std::unordered_map<String, IPAddress>;
 	using DNSCache_ThS = Concurrency::ThreadSafe<DNSCache, std::shared_mutex>;
 
@@ -118,7 +120,9 @@ namespace QuantumGate::Socks5Extender
 		void ShutdownThreadPool() noexcept;
 
 		static void ListenerThreadLoop(Extender* extender);
+		bool MainWorkerThreadWaitProcessor(std::chrono::milliseconds max_wait, const Concurrency::Event& shutdown_event);
 		ThreadPool::ThreadCallbackResult MainWorkerThreadLoop(const Concurrency::Event& shutdown_event);
+		bool DataRelayWorkerThreadWaitProcessor(std::chrono::milliseconds max_wait, const Concurrency::Event& shutdown_event);
 		ThreadPool::ThreadCallbackResult DataRelayWorkerThreadLoop(const Concurrency::Event& shutdown_event);
 
 		[[nodiscard]] std::optional<IPAddress> ResolveDomainIP(const String& domain) noexcept;
@@ -173,6 +177,9 @@ namespace QuantumGate::Socks5Extender
 
 		[[nodiscard]] bool Send(const PeerLUID pluid, Buffer&& buffer) const noexcept;
 
+		void SetConnectionSendEvent() noexcept { m_AllConnectionsSendEvent.Set(); }
+		void SetConnectionReceiveEvent() noexcept { m_AllConnectionsReceiveEvent.Set(); }
+
 		[[nodiscard]] Size GetDataRelayHeaderSize() const noexcept
 		{
 			return sizeof(MessageType) +
@@ -214,6 +221,9 @@ namespace QuantumGate::Socks5Extender
 		ThreadPool m_ThreadPool;
 		Peers_ThS m_Peers;
 		Connections_ThS m_AllConnections;
+		PollFD_ThS m_AllConnectionFDs;
+		Concurrency::Event m_AllConnectionsSendEvent;
+		Concurrency::Event m_AllConnectionsReceiveEvent;
 		DNSCache_ThS m_DNSCache;
 
 		std::atomic_bool m_UseCompression{ true };
