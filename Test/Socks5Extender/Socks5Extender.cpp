@@ -834,41 +834,46 @@ namespace QuantumGate::Socks5Extender
 
 		if (success)
 		{
+			success = false;
+
 			// Remove if we fail
 			auto sg = MakeScopeGuard([&]() noexcept { RemoveConnection(key); });
 
-			m_AllConnectionFDs.WithUniqueLock()->emplace_back(WSAPOLLFD{ .fd = shandle, .events = POLLRDNORM });
-
-			success = false;
-
-			const auto peer_ths = GetPeer(pluid);
-			if (peer_ths)
+			if (AddConnectionFD(shandle))
 			{
-				peer_ths->WithUniqueLock([&](Peer& peer)
+				// Remove if we fail
+				auto sg2 = MakeScopeGuard([&]() noexcept { RemoveConnectionFD(shandle); });
+
+				const auto peer_ths = GetPeer(pluid);
+				if (peer_ths)
 				{
-					[[maybe_unused]] const auto [it, inserted] = peer.Connections.insert({ key, c});
+					peer_ths->WithUniqueLock([&](Peer& peer)
+					{
+						[[maybe_unused]] const auto [it, inserted] = peer.Connections.insert({ key, c });
 
-					assert(inserted);
-					success = inserted;
+						assert(inserted);
+						success = inserted;
 
-					peer.CalcMaxSndRcvSize();
+						peer.CalcMaxSndRcvSize();
 
-					LogDbg(L"%s: MaxSndRcv size for peer %llu: %zu", GetName().c_str(), peer.ID, peer.MaxSndRcvSize);
-				});
-			}
+						LogDbg(L"%s: MaxSndRcv size for peer %llu: %zu", GetName().c_str(), peer.ID, peer.MaxSndRcvSize);
+					});
+				}
 
-			if (success)
-			{
-				sg.Deactivate();
-
-				// Start doing some processing for speed
-				c->WithUniqueLock([](Connection& connection)
+				if (success)
 				{
-					auto didwork = false;
-					if (connection.IsActive()) connection.ProcessEvents(didwork);
-				});
+					sg.Deactivate();
+					sg2.Deactivate();
 
-				SetConnectionSendEvent();
+					// Start doing some processing for speed
+					c->WithUniqueLock([](Connection& connection)
+					{
+						auto didwork = false;
+						if (connection.IsActive()) connection.ProcessEvents(didwork);
+					});
+
+					SetConnectionSendEvent();
+				}
 			}
 		}
 
@@ -904,14 +909,7 @@ namespace QuantumGate::Socks5Extender
 
 		if (socket)
 		{
-			m_AllConnectionFDs.WithUniqueLock([&](auto& value)
-			{
-				const auto it = std::find_if(value.begin(), value.end(), [&](const auto& wsapollfd)
-				{
-					return (wsapollfd.fd == socket);
-				});
-				if (it != value.end()) value.erase(it);
-			});
+			RemoveConnectionFD(*socket);
 		}
 
 		if (pluid)
@@ -931,6 +929,29 @@ namespace QuantumGate::Socks5Extender
 				});
 			}
 		}
+	}
+
+	[[nodiscard]] bool Extender::AddConnectionFD(const SOCKET s) noexcept
+	{
+		try
+		{
+			m_AllConnectionFDs.WithUniqueLock()->emplace_back(WSAPOLLFD{ .fd = s, .events = POLLRDNORM });
+		}
+		catch (...) { return false; }
+
+		return true;
+	}
+
+	void Extender::RemoveConnectionFD(const SOCKET s) noexcept
+	{
+		m_AllConnectionFDs.WithUniqueLock([&](auto& value)
+		{
+			const auto it = std::find_if(value.begin(), value.end(), [&](const auto& wsapollfd)
+			{
+				return (wsapollfd.fd == s);
+			});
+			if (it != value.end()) value.erase(it);
+		});
 	}
 
 	void Extender::RemoveConnections(const std::vector<Connection::Key>& conn_list) noexcept
@@ -1092,7 +1113,7 @@ namespace QuantumGate::Socks5Extender
 
 						if (connection.IsTimedOut())
 						{
-							LogDbg(L"%s: connection %llu timed out", GetName().c_str(), connection.GetID());
+							LogInfo(L"%s: connection %llu timed out; will disconnect", GetName().c_str(), connection.GetID());
 
 							connection.SetDisconnectCondition();
 						}

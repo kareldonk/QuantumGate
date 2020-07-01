@@ -284,13 +284,7 @@ namespace QuantumGate::Socks5Extender
 				}
 			}
 		}
-		else
-		{
-			LogDbg(L"%s: send/receive failed on connection %llu",
-				   m_Extender.GetName().c_str(), GetID());
-
-			SetDisconnectCondition();
-		}
+		else SetDisconnectCondition();
 
 		if (ShouldDisconnect())
 		{
@@ -533,6 +527,21 @@ namespace QuantumGate::Socks5Extender
 									}
 								}
 							}
+							else
+							{
+								if (WSAGetLastError() != 0)
+								{
+									LogErr(L"%s: receive failed on endpoint %s for connection %llu (%s)",
+										   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
+										   GetID(), GetLastSysErrorString().c_str());
+								}
+								else
+								{
+									LogInfo(L"%s: socket closed on endpoint %s for connection %llu",
+											m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
+											GetID());
+								}
+							}
 						}
 
 						if (!m_ReceiveBuffer.IsEmpty()) m_Extender.SetConnectionReceiveEvent();
@@ -543,6 +552,12 @@ namespace QuantumGate::Socks5Extender
 					if (m_Socket.GetIOStatus().CanWrite() && !m_SendBuffer.IsEmpty())
 					{
 						success = m_Socket.Send(m_SendBuffer);
+						if (!success)
+						{
+							LogErr(L"%s: send failed on endpoint %s for connection %llu (%s)",
+								   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
+								   GetID(), GetLastSysErrorString().c_str());
+						}
 						
 						if (!m_SendBuffer.IsEmpty()) m_Extender.SetConnectionSendEvent();
 
@@ -552,6 +567,12 @@ namespace QuantumGate::Socks5Extender
 			}
 		}
 		else success = false;
+
+		if (!success)
+		{
+			LogDbg(L"%s: send/receive failed on endpoint %s for connection %llu",
+				   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(), GetID());
+		}
 
 		return success;
 	}
@@ -1188,33 +1209,22 @@ namespace QuantumGate::Socks5Extender
 
 		m_SendBuffer += buffer;
 
-		if (m_Socket.GetIOStatus().CanWrite())
+		if (m_Socket.UpdateIOStatus(0ms) && !m_Socket.GetIOStatus().HasException())
 		{
-			success = m_Socket.Send(m_SendBuffer);
+			if (m_Socket.GetIOStatus().CanWrite())
+			{
+				success = m_Socket.Send(m_SendBuffer);
+				if (success)
+				{
+					m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
+				}
+			}
 		}
+		else success = false;
 
 		// Any remaining data will be sent later
 		if (success && !m_SendBuffer.IsEmpty())
 		{
-			m_Extender.SetConnectionSendEvent();
-		}
-
-		return success;
-	}
-
-	bool Connection::Send(Buffer&& buffer)
-	{
-		auto success = true;
-
-		if (m_Socket.GetIOStatus().CanWrite())
-		{
-			success = m_Socket.Send(buffer);
-		}
-
-		// Add any remaining data to be sent later
-		if (success && !buffer.IsEmpty())
-		{
-			m_SendBuffer += buffer;
 			m_Extender.SetConnectionSendEvent();
 		}
 

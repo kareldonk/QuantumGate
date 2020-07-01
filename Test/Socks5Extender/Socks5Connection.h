@@ -73,7 +73,6 @@ namespace QuantumGate::Socks5Extender
 		void FlushBuffers();
 
 		[[nodiscard]] bool Send(const BufferView buffer);
-		[[nodiscard]] bool Send(Buffer&& buffer);
 
 		[[nodiscard]] bool DetermineProtocolVersion() noexcept;
 

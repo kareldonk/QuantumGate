@@ -140,6 +140,9 @@ namespace QuantumGate::Socks5Extender
 		void RemoveConnections(const std::vector<Connection::Key>& conn_list) noexcept;
 		[[nodiscard]] std::shared_ptr<Connection_ThS> GetConnection(const PeerLUID pluid, const Connection::ID cid) const noexcept;
 
+		[[nodiscard]] bool AddConnectionFD(const SOCKET s) noexcept;
+		void RemoveConnectionFD(const SOCKET s) noexcept;
+
 		void Disconnect(Connection_ThS& c);
 		void Disconnect(Connection& c);
 		void DisconnectFor(const PeerLUID pluid);
