@@ -20,7 +20,7 @@ namespace QuantumGate::Implementation::Concurrency
 	class ThreadPool final
 	{
 	public:
-		struct ThreadCallbackResult
+		struct ThreadCallbackResult final
 		{
 			bool Success{ false };
 			bool DidWork{ false };
