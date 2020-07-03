@@ -104,8 +104,10 @@ namespace QuantumGate::Implementation::Core::Peer
 				thpool->SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
 				thpool->SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 			
+				error = !thpool->GetData().WorkEvents.Initialize();
+
 				// Create the worker threads
-				for (Size x = 0; x < numthreadsperpool; ++x)
+				for (Size x = 0; x < numthreadsperpool && !error; ++x)
 				{
 					// First thread is primary worker thread
 					if (x == 0)
@@ -126,8 +128,6 @@ namespace QuantumGate::Implementation::Core::Peer
 							error = true;
 						}
 					}
-
-					if (error) break;
 				}
 
 				if (!error && thpool->Startup())
@@ -155,7 +155,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			thpool.second->Shutdown();
 			thpool.second->Clear();
 			thpool.second->GetData().TaskQueue.WithUniqueLock()->Clear();
-			thpool.second->GetData().PollFDs.WithUniqueLock()->clear();
+			thpool.second->GetData().WorkEvents.Shutdown();
 		}
 
 		// Disconnect and remove all peers
@@ -261,18 +261,8 @@ namespace QuantumGate::Implementation::Core::Peer
 	bool Manager::PrimaryThreadWaitProcessor(ThreadPoolData& thpdata, std::chrono::milliseconds max_wait,
 											 const Concurrency::Event& shutdown_event)
 	{
-		auto waited = false;
-
-		thpdata.PollFDs.IfUniqueLock([&](auto& value)
-		{
-			if (!value.empty())
-			{
-				const auto ret = WSAPoll(value.data(), static_cast<ULONG>(value.size()), static_cast<INT>(max_wait.count()));
-				waited = (ret != SOCKET_ERROR);
-			}
-		});
-
-		return waited;
+		const auto result = thpdata.WorkEvents.Wait(max_wait);
+		return result.Waited;
 	}
 
 	Manager::ThreadPool::ThreadCallbackResult Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata,
@@ -589,10 +579,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				if (peer.GetGateType() == GateType::Socket)
 				{
-					thpit->second->GetData().PollFDs.WithUniqueLock([&](auto& value)
-					{
-						value.emplace_back(WSAPOLLFD{ .fd = peer.GetSocket<Socket>().GetHandle(), .events = POLLRDNORM });
-					});
+					if (!thpit->second->GetData().WorkEvents.AddEvent(peer.GetSocket<Socket>().GetWSAEvent())) return;
 				}
 
 				sg.Deactivate();
@@ -618,14 +605,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		if (peer.GetGateType() == GateType::Socket)
 		{
-			thpool->GetData().PollFDs.WithUniqueLock([&](auto& value)
-			{
-				const auto it = std::find_if(value.begin(), value.end(), [&](const auto& wsapollfd)
-				{
-					return (wsapollfd.fd == peer.GetSocket<Socket>().GetHandle());
-				});
-				if (it != value.end()) value.erase(it);
-			});
+			thpool->GetData().WorkEvents.RemoveEvent(peer.GetSocket<Socket>().GetWSAEvent());
 		}
 
 		thpool->GetData().PeerMap.WithUniqueLock()->erase(peer.GetLUID());

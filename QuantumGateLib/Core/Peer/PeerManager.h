@@ -8,6 +8,7 @@
 #include "..\..\Settings.h"
 #include "..\..\Concurrency\Queue.h"
 #include "..\..\Concurrency\ThreadPool.h"
+#include "..\..\Concurrency\EventGroup.h"
 #include "..\KeyGeneration\KeyGenerationManager.h"
 #include "..\Relay\RelayManager.h"
 #include "PeerLookupMaps.h"
@@ -43,7 +44,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			PeerMap_ThS PeerMap;
 			ThreadPoolTaskQueue_ThS TaskQueue;
-			PollFDVector_ThS PollFDs;
+			Concurrency::EventGroup WorkEvents;
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
