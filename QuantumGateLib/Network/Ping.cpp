@@ -176,10 +176,10 @@ namespace QuantumGate::Implementation::Network
 						return true;
 					}
 
-					error = Util::FormatString(L"failed to send ICMP echo request (%s)", GetLastSysErrorString().c_str());
+					error = Util::FormatString(L"failed to send ICMP echo request (%s)", GetLastSocketErrorString().c_str());
 				}
 			}
-			else error = Util::FormatString(L"failed to create ICMP file handle (%s)", GetLastSysErrorString().c_str());
+			else error = Util::FormatString(L"failed to create ICMP file handle (%s)", GetLastSocketErrorString().c_str());
 		}
 		catch (...)
 		{

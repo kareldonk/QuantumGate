@@ -533,7 +533,7 @@ namespace QuantumGate::Socks5Extender
 								{
 									LogErr(L"%s: receive failed on endpoint %s for connection %llu (%s)",
 										   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
-										   GetID(), GetLastSysErrorString().c_str());
+										   GetID(), GetLastSocketErrorString().c_str());
 								}
 								else
 								{
@@ -556,7 +556,7 @@ namespace QuantumGate::Socks5Extender
 						{
 							LogErr(L"%s: send failed on endpoint %s for connection %llu (%s)",
 								   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
-								   GetID(), GetLastSysErrorString().c_str());
+								   GetID(), GetLastSocketErrorString().c_str());
 						}
 						
 						if (!m_SendBuffer.IsEmpty()) m_Extender.SetConnectionSendEvent();

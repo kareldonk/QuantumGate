@@ -85,7 +85,7 @@ namespace QuantumGate::Implementation::Network
 		}
 
 		throw SocketException(Util::ToStringA(
-			Util::FormatString(L"Failed to create socket (%s)", GetLastSysErrorString().c_str())).c_str());
+			Util::FormatString(L"Failed to create socket (%s)", GetLastSocketErrorString().c_str())).c_str());
 	}
 
 	Socket::Socket(const SOCKET s)
@@ -207,9 +207,9 @@ namespace QuantumGate::Implementation::Network
 			{
 				return true;
 			}
-			else LogErr(L"Could not set event for socket (%s)", GetLastSysErrorString().c_str());
+			else LogErr(L"Could not set event for socket (%s)", GetLastSocketErrorString().c_str());
 		}
-		else LogErr(L"Could not create event for socket (%s)", GetLastSysErrorString().c_str());
+		else LogErr(L"Could not create event for socket (%s)", GetLastSocketErrorString().c_str());
 
 		return false;
 	}
@@ -266,7 +266,7 @@ namespace QuantumGate::Implementation::Network
 		if (ret == SOCKET_ERROR)
 		{
 			LogErr(L"Could not set socket blocking mode for endpoint %s (%s)",
-				   GetLocalName().c_str(), GetLastSysErrorString().c_str());
+				   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 
 			return false;
 		}
@@ -284,7 +284,7 @@ namespace QuantumGate::Implementation::Network
 									reinterpret_cast<const char*>(&optval), sizeof(optval));
 		if (ret == SOCKET_ERROR)
 		{
-			LogErr(L"Could not set exclusive address use for socket (%s)", GetLastSysErrorString().c_str());
+			LogErr(L"Could not set exclusive address use for socket (%s)", GetLastSocketErrorString().c_str());
 			return false;
 		}
 
@@ -306,7 +306,7 @@ namespace QuantumGate::Implementation::Network
 									reinterpret_cast<const char*>(&optval), sizeof(optval));
 		if (ret == SOCKET_ERROR)
 		{
-			LogErr(L"Could not set send timeout socket option for socket (%s)", GetLastSysErrorString().c_str());
+			LogErr(L"Could not set send timeout socket option for socket (%s)", GetLastSocketErrorString().c_str());
 			return false;
 		}
 
@@ -323,7 +323,7 @@ namespace QuantumGate::Implementation::Network
 									reinterpret_cast<const char*>(&optval), sizeof(optval));
 		if (ret == SOCKET_ERROR)
 		{
-			LogErr(L"Could not set receive timeout socket option for socket (%s)", GetLastSysErrorString().c_str());
+			LogErr(L"Could not set receive timeout socket option for socket (%s)", GetLastSocketErrorString().c_str());
 			return false;
 		}
 
@@ -340,7 +340,7 @@ namespace QuantumGate::Implementation::Network
 									reinterpret_cast<const char*>(&optval), sizeof(optval));
 		if (ret == SOCKET_ERROR)
 		{
-			LogErr(L"Could not set TTL socket option for socket (%s)", GetLastSysErrorString().c_str());
+			LogErr(L"Could not set TTL socket option for socket (%s)", GetLastSocketErrorString().c_str());
 			return false;
 		}
 
@@ -357,7 +357,7 @@ namespace QuantumGate::Implementation::Network
 									reinterpret_cast<const char*>(&optval), sizeof(optval));
 		if (ret == SOCKET_ERROR)
 		{
-			LogErr(L"Could not set reuse address socket option for socket (%s)", GetLastSysErrorString().c_str());
+			LogErr(L"Could not set reuse address socket option for socket (%s)", GetLastSocketErrorString().c_str());
 			return false;
 		}
 
@@ -372,7 +372,7 @@ namespace QuantumGate::Implementation::Network
 									reinterpret_cast<const char*>(&len), sizeof(len));
 		if (ret == SOCKET_ERROR)
 		{
-			LogErr(L"Could not set socket send buffer size for socket (%s)", GetLastSysErrorString().c_str());
+			LogErr(L"Could not set socket send buffer size for socket (%s)", GetLastSocketErrorString().c_str());
 			return false;
 		}
 
@@ -387,7 +387,7 @@ namespace QuantumGate::Implementation::Network
 									reinterpret_cast<const char*>(&len), sizeof(len));
 		if (ret == SOCKET_ERROR)
 		{
-			LogErr(L"Could not set socket receive buffer size for socket (%s)", GetLastSysErrorString().c_str());
+			LogErr(L"Could not set socket receive buffer size for socket (%s)", GetLastSocketErrorString().c_str());
 			return false;
 		}
 
@@ -416,7 +416,7 @@ namespace QuantumGate::Implementation::Network
 		if (ret == SOCKET_ERROR)
 		{
 			LogErr(L"Could not set socket linger option for endpoint %s (%s)",
-				   GetLocalName().c_str(), GetLastSysErrorString().c_str());
+				   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 
 			return false;
 		}
@@ -437,7 +437,7 @@ namespace QuantumGate::Implementation::Network
 		if (ret == SOCKET_ERROR)
 		{
 			LogErr(L"Could not set IPV6 protection level for endpoint %s (%s)",
-				   GetLocalName().c_str(), GetLastSysErrorString().c_str());
+				   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 
 			return false;
 		}
@@ -458,7 +458,7 @@ namespace QuantumGate::Implementation::Network
 		if (ret == SOCKET_ERROR)
 		{
 			LogErr(L"Could not set conditional accept socket option for endpoint %s (%s)",
-				   GetLocalName().c_str(), GetLastSysErrorString().c_str());
+				   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 
 			return false;
 		}
@@ -479,7 +479,7 @@ namespace QuantumGate::Implementation::Network
 		if (ret == SOCKET_ERROR)
 		{
 			LogErr(L"Could not disable nagle algorithm for endpoint %s (%s)",
-					GetLocalName().c_str(), GetLastSysErrorString().c_str());
+					GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 
 			return false;
 		}
@@ -507,13 +507,13 @@ namespace QuantumGate::Implementation::Network
 			else
 			{
 				LogErr(L"bind() error for endpoint %s (%s)",
-					   endpoint.GetString().c_str(), GetLastSysErrorString().c_str());
+					   endpoint.GetString().c_str(), GetLastSocketErrorString().c_str());
 			}
 		}
 		else
 		{
 			LogErr(L"Endpoint %s not supported or not correct (%s)",
-				   endpoint.GetString().c_str(), GetLastSysErrorString().c_str());
+				   endpoint.GetString().c_str(), GetLastSocketErrorString().c_str());
 		}
 
 		return false;
@@ -547,19 +547,19 @@ namespace QuantumGate::Implementation::Network
 				else
 				{
 					LogErr(L"listen() error for endpoint %s (%s)",
-						   endpoint.GetString().c_str(), GetLastSysErrorString().c_str());
+						   endpoint.GetString().c_str(), GetLastSocketErrorString().c_str());
 				}
 			}
 			else
 			{
 				LogErr(L"bind() error for endpoint %s (%s)",
-					   endpoint.GetString().c_str(), GetLastSysErrorString().c_str());
+					   endpoint.GetString().c_str(), GetLastSocketErrorString().c_str());
 			}
 		}
 		else
 		{
 			LogErr(L"Endpoint %s not supported or not correct (%s)",
-				   endpoint.GetString().c_str(), GetLastSysErrorString().c_str());
+				   endpoint.GetString().c_str(), GetLastSocketErrorString().c_str());
 		}
 
 		return false;
@@ -600,9 +600,9 @@ namespace QuantumGate::Implementation::Network
 		}
 		else
 		{
-			Dbg(GetLastSysErrorString().c_str());
+			Dbg(GetLastSocketErrorString().c_str());
 			LogErr(L"A connection could not be accepted on endpoint %s (%s)",
-				   GetLocalName().c_str(), GetLastSysErrorString().c_str());
+				   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 		}
 
 		return false;
@@ -622,7 +622,7 @@ namespace QuantumGate::Implementation::Network
 			if (ret == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)
 			{
 				LogErr(L"Error connecting to endpoint %s (%s)",
-					   endpoint.GetString().c_str(), GetLastSysErrorString().c_str());
+					   endpoint.GetString().c_str(), GetLastSocketErrorString().c_str());
 			}
 			else
 			{
@@ -692,14 +692,14 @@ namespace QuantumGate::Implementation::Network
 			{
 				// Send buffer is full or temporarily unavailable, we'll try again later
 				LogDbg(L"Send buffer full/unavailable for endpoint %s (%s)",
-					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+					   GetPeerName().c_str(), GetLastSocketErrorString().c_str());
 
 				return true;
 			}
 			else
 			{
 				LogDbg(L"Send error for endpoint %s (%s)",
-					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+					   GetPeerName().c_str(), GetLastSocketErrorString().c_str());
 			}
 		}
 
@@ -755,14 +755,14 @@ namespace QuantumGate::Implementation::Network
 			{
 				// Send buffer is full or temporarily unavailable, we'll try again later
 				LogDbg(L"Send buffer full/unavailable on endpoint %s (%s)",
-					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
+					   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 
 				return true;
 			}
 			else
 			{
 				LogDbg(L"Send error on endpoint %s (%s)",
-					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
+					   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 			}
 		}
 
@@ -816,14 +816,14 @@ namespace QuantumGate::Implementation::Network
 			{
 				// Buffer is temporarily unavailable, we'll try again later
 				LogDbg(L"Receive buffer unavailable for endpoint %s (%s)",
-					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+					   GetPeerName().c_str(), GetLastSocketErrorString().c_str());
 
 				return true;
 			}
 			else
 			{
 				LogDbg(L"Receive error for endpoint %s (%s)",
-					   GetPeerName().c_str(), GetLastSysErrorString().c_str());
+					   GetPeerName().c_str(), GetLastSocketErrorString().c_str());
 			}
 		}
 
@@ -891,7 +891,7 @@ namespace QuantumGate::Implementation::Network
 			{
 				// Buffer is temporarily unavailable, we'll try again later
 				LogDbg(L"Receive buffer unavailable on endpoint %s (%s)",
-					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
+					   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 
 				return true;
 			}
@@ -902,7 +902,7 @@ namespace QuantumGate::Implementation::Network
 			else
 			{
 				LogDbg(L"Receive error on endpoint %s (%s)",
-					   GetLocalName().c_str(), GetLastSysErrorString().c_str());
+					   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 			}
 		}
 
@@ -1145,7 +1145,7 @@ namespace QuantumGate::Implementation::Network
 					break;
 			}
 		}
-		else LogDbg(L"getsockopt() failed for option %d (%s)", SO_PROTOCOL_INFO, GetLastSysErrorString().c_str());
+		else LogDbg(L"getsockopt() failed for option %d (%s)", SO_PROTOCOL_INFO, GetLastSocketErrorString().c_str());
 
 		return IP::AddressFamily::Unspecified;
 	}
@@ -1174,7 +1174,7 @@ namespace QuantumGate::Implementation::Network
 					break;
 			}
 		}
-		else LogDbg(L"getsockopt() failed for option %d (%s)", SO_PROTOCOL_INFO, GetLastSysErrorString().c_str());
+		else LogDbg(L"getsockopt() failed for option %d (%s)", SO_PROTOCOL_INFO, GetLastSocketErrorString().c_str());
 
 		return IP::Protocol::Unspecified;
 	}
@@ -1243,7 +1243,7 @@ namespace QuantumGate::Implementation::Network
 		{
 			return value;
 		}
-		else LogDbg(L"getsockopt() failed for option %d (%s)", optname, GetLastSysErrorString().c_str());
+		else LogDbg(L"getsockopt() failed for option %d (%s)", optname, GetLastSocketErrorString().c_str());
 
 		return SOCKET_ERROR;
 	}

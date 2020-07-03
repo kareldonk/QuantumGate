@@ -123,7 +123,8 @@ namespace QuantumGate::Implementation::Util
 	Export void DisplayDebugMessage(const WChar* format, ...) noexcept;
 }
 
-#define GetLastSysErrorString() QuantumGate::Implementation::Util::GetSystemErrorString(WSAGetLastError())
+#define GetLastSocketErrorString() QuantumGate::Implementation::Util::GetSystemErrorString(::WSAGetLastError())
+#define GetLastSysErrorString() QuantumGate::Implementation::Util::GetSystemErrorString(::GetLastError())
 #define GetSysErrorString(x) QuantumGate::Implementation::Util::GetSystemErrorString(x)
 
 #define DiscardReturnValue(x) (void)(x)

@@ -132,7 +132,7 @@ namespace QuantumGate::Implementation::Core
 		}
 		catch (...) {}
 
-		LogErr(L"Could not get the name of the local host (%s)", Util::GetSystemErrorString(GetLastError()).c_str());
+		LogErr(L"Could not get the name of the local host (%s)", GetLastSysErrorString().c_str());
 
 		return ResultCode::Failed;
 	}
@@ -162,7 +162,7 @@ namespace QuantumGate::Implementation::Core
 				return std::move(alladdr);
 			}
 			else LogErr(L"Could not get addresses for host %s (%s)",
-						hostname.c_str(), Util::GetSystemErrorString(GetLastError()).c_str());
+						hostname.c_str(), GetLastSysErrorString().c_str());
 		}
 		catch (const std::exception& e)
 		{
@@ -231,7 +231,7 @@ namespace QuantumGate::Implementation::Core
 				return std::move(allifs);
 			}
 			else LogErr(L"Could not get addresses for local networking adapters (%s)",
-						Util::GetSystemErrorString(GetLastError()).c_str());
+						GetLastSysErrorString().c_str());
 		}
 		catch (const std::exception& e)
 		{
@@ -257,7 +257,7 @@ namespace QuantumGate::Implementation::Core
 		}
 		catch (...) {}
 
-		LogErr(L"Could not get the username for the current user (%s)", Util::GetSystemErrorString(GetLastError()).c_str());
+		LogErr(L"Could not get the username for the current user (%s)", GetLastSysErrorString().c_str());
 
 		return ResultCode::Failed;
 	}
