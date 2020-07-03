@@ -5,7 +5,7 @@
 
 #include "SocketBase.h"
 
-// #define USE_WSA_EVENT
+#define USE_WSA_EVENT
 
 namespace QuantumGate::Implementation::Network
 {
@@ -29,10 +29,10 @@ namespace QuantumGate::Implementation::Network
 		Socket& operator=(const Socket&) = delete;
 		Socket& operator=(Socket&& other) noexcept;
 
-		[[nodiscard]] inline SOCKET GetHandle() const noexcept { return m_Socket; }
+		[[nodiscard]] inline SOCKET GetHandle() const noexcept { assert(m_Socket != INVALID_SOCKET); return m_Socket; }
 
 #ifdef USE_WSA_EVENT
-		[[nodiscard]] inline WSAEVENT GetWSAEvent() const noexcept { return m_WSAEvent; }
+		[[nodiscard]] inline WSAEVENT GetWSAEvent() const noexcept { assert(m_WSAEvent != WSA_INVALID_EVENT); return m_WSAEvent; }
 #endif
 
 		[[nodiscard]] IP::AddressFamily GetAddressFamily() const noexcept;
@@ -131,9 +131,11 @@ namespace QuantumGate::Implementation::Network
 									 const bool blocking = false) noexcept;
 		void UpdateSocketInfo() noexcept;
 
+		void Release() noexcept;
+
 #ifdef USE_WSA_EVENT
-		[[nodiscard]] bool CreateWSAEvent() noexcept;
-		void CloseWSAEvent() noexcept;
+		[[nodiscard]] bool AttachWSAEvent() noexcept;
+		void DetachWSAEvent() noexcept;
 #endif
 
 		[[nodiscard]] Buffer& GetReceiveBuffer() const noexcept;

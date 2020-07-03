@@ -12,9 +12,13 @@ using namespace std::literals;
 namespace QuantumGate::Implementation::Network
 {
 	Socket::Socket() noexcept
-	{}
+	{
+#ifdef USE_WSA_EVENT
+		m_WSAEvent = WSACreateEvent();
+#endif
+	}
 
-	Socket::Socket(const IP::AddressFamily af, const Type type, const IP::Protocol protocol)
+	Socket::Socket(const IP::AddressFamily af, const Type type, const IP::Protocol protocol) : Socket()
 	{
 		int saf{ 0 };
 		int stype{ 0 };
@@ -104,7 +108,19 @@ namespace QuantumGate::Implementation::Network
 
 	Socket::~Socket()
 	{
+		Release();
+	}
+
+	void Socket::Release() noexcept
+	{
 		if (m_IOStatus.IsOpen()) Close();
+
+#ifdef USE_WSA_EVENT
+		if (m_WSAEvent != WSA_INVALID_EVENT)
+		{
+			WSACloseEvent(m_WSAEvent);
+		}
+#endif
 	}
 
 	Socket::Socket(Socket&& other) noexcept :
@@ -124,6 +140,8 @@ namespace QuantumGate::Implementation::Network
 	{
 		// Check for same object
 		if (this == &other) return *this;
+
+		Release();
 
 		m_Socket = std::exchange(other.m_Socket, INVALID_SOCKET);
 #ifdef USE_WSA_EVENT
@@ -167,7 +185,7 @@ namespace QuantumGate::Implementation::Network
 		}
 
 #ifdef USE_WSA_EVENT
-		if (!CreateWSAEvent()) return false;
+		if (!AttachWSAEvent()) return false;
 #endif
 
 		return true;
@@ -188,7 +206,7 @@ namespace QuantumGate::Implementation::Network
 		}
 
 #ifdef USE_WSA_EVENT
-		CloseWSAEvent();
+		DetachWSAEvent();
 #endif
 
 		closesocket(m_Socket);
@@ -197,9 +215,8 @@ namespace QuantumGate::Implementation::Network
 	}
 
 #ifdef USE_WSA_EVENT
-	bool Socket::CreateWSAEvent() noexcept
+	bool Socket::AttachWSAEvent() noexcept
 	{
-		m_WSAEvent = WSACreateEvent();
 		if (m_WSAEvent != WSA_INVALID_EVENT)
 		{
 			const auto ret = WSAEventSelect(m_Socket, m_WSAEvent, FD_ACCEPT | FD_CONNECT | FD_READ | FD_WRITE | FD_CLOSE);
@@ -214,11 +231,11 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	void Socket::CloseWSAEvent() noexcept
+	void Socket::DetachWSAEvent() noexcept
 	{
 		if (m_WSAEvent != WSA_INVALID_EVENT)
 		{
-			WSACloseEvent(m_WSAEvent);
+			WSAEventSelect(m_Socket, NULL, 0);
 		}
 	}
 #endif
@@ -970,6 +987,7 @@ namespace QuantumGate::Implementation::Network
 		{
 			return UpdateIOStatusWSAEvent<read, write, exception>(mseconds);
 		}
+		else return false;
 #else
 		return UpdateIOStatusFDSet<read, write, exception>(mseconds);
 #endif
