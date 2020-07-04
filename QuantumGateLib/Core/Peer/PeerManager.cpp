@@ -577,9 +577,16 @@ namespace QuantumGate::Implementation::Core::Peer
 					thpit->second->GetData().PeerMap.WithUniqueLock()->erase(pit);
 				});
 
-				if (peer.GetGateType() == GateType::Socket)
+				switch (peer.GetGateType())
 				{
-					if (!thpit->second->GetData().WorkEvents.AddEvent(peer.GetSocket<Socket>().GetWSAEvent())) return;
+					case GateType::Socket:
+						if (!thpit->second->GetData().WorkEvents.AddEvent(peer.GetSocket<Socket>().GetWSAEvent())) return;
+						break;
+					case GateType::RelaySocket:
+						if (!thpit->second->GetData().WorkEvents.AddEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle())) return;
+						break;
+					default:
+						break;
 				}
 
 				sg.Deactivate();
@@ -603,9 +610,16 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		const auto& thpool = m_ThreadPools[peer.GetThreadPoolKey()];
 
-		if (peer.GetGateType() == GateType::Socket)
+		switch (peer.GetGateType())
 		{
-			thpool->GetData().WorkEvents.RemoveEvent(peer.GetSocket<Socket>().GetWSAEvent());
+			case GateType::Socket:
+				thpool->GetData().WorkEvents.RemoveEvent(peer.GetSocket<Socket>().GetWSAEvent());
+				break;
+			case GateType::RelaySocket:
+				thpool->GetData().WorkEvents.RemoveEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
+				break;
+			default:
+				break;
 		}
 
 		thpool->GetData().PeerMap.WithUniqueLock()->erase(peer.GetLUID());

@@ -6,6 +6,7 @@
 #include "RelayLink.h"
 #include "RelayEvents.h"
 #include "..\..\Concurrency\SharedSpinMutex.h"
+#include "..\..\Concurrency\EventGroup.h"
 
 namespace QuantumGate::Implementation::Core::Relay
 {
@@ -38,6 +39,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			RelayPortToThreadKeyMap_ThS RelayPortToThreadKeys;
 			ThreadKeyToLinkTotalMap_ThS ThreadKeyToLinkTotals;
 			EventQueueMap RelayEventQueues;
+			Concurrency::EventGroup WorkEvents;
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
@@ -100,6 +102,9 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		const Link_ThS* Get(const RelayPort rport) const noexcept;
 		Link_ThS* Get(const RelayPort rport) noexcept;
+
+		bool PrimaryThreadWaitProcessor(ThreadPoolData& thpdata, ThreadData& thdata, std::chrono::milliseconds max_wait,
+										const Concurrency::Event& shutdown_event);
 
 		ThreadPool::ThreadCallbackResult PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
 																const Concurrency::Event& shutdown_event);

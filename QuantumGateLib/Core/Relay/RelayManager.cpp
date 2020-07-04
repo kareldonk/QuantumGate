@@ -104,16 +104,17 @@ namespace QuantumGate::Implementation::Core::Relay
 		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
 		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 
-		auto error = false;
+		auto error = !m_ThreadPool.GetData().WorkEvents.Initialize();
 
 		// Create the worker threads
-		for (Size x = 0; x < numthreadsperpool; ++x)
+		for (Size x = 0; x < numthreadsperpool && !error; ++x)
 		{
 			// First thread is primary worker thread
 			if (x == 0)
 			{
 				if (!m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Main)",
-											MakeCallback(this, &Manager::PrimaryThreadProcessor), ThreadData(x)))
+											MakeCallback(this, &Manager::PrimaryThreadProcessor), ThreadData(x), nullptr, false,
+											MakeCallback(this, &Manager::PrimaryThreadWaitProcessor)))
 				{
 					error = true;
 				}
@@ -142,8 +143,6 @@ namespace QuantumGate::Implementation::Core::Relay
 				}
 				catch (...) { error = true; }
 			}
-
-			if (error) break;
 		}
 
 		if (!error && m_ThreadPool.Startup())
@@ -158,6 +157,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		m_ThreadPool.Shutdown();
 		m_ThreadPool.Clear();
+		m_ThreadPool.GetData().WorkEvents.Shutdown();
 	}
 
 	std::optional<RelayPort> Manager::MakeRelayPort() const noexcept
@@ -378,17 +378,18 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			m_RelayLinks.WithUniqueLock([&](LinkMap& relays)
 			{
-				[[maybe_unused]] const auto [it, inserted] = relays.insert({ rport, std::move(rl) });
-
-				if (inserted)
+				const auto result = relays.insert({ rport, std::move(rl) });
+				if (result.second)
 				{
-					if (MapRelayPortToThreadKey(rport)) success = true;
-					else
-					{
-						LogErr(L"Failed to map relay port %llu to worker thread!", rport);
+					auto sg = MakeScopeGuard([&] { relays.erase(result.first); });
 
-						relays.erase(it);
+					if (MapRelayPortToThreadKey(rport))
+					{
+						success = true;
+
+						sg.Deactivate();
 					}
+					else LogErr(L"Failed to map relay port %llu to worker thread!", rport);
 				}
 				else LogErr(L"Attempt to add relay port %llu which already exists; this could mean relay loop!", rport);
 			});
@@ -435,8 +436,7 @@ namespace QuantumGate::Implementation::Core::Relay
 							Peer::Peer_ThS::UniqueLockedType out_peer;
 
 							// Get the peers and lock them
-							GetUniqueLocks(rl.GetIncomingPeer(), in_peer,
-										   rl.GetOutgoingPeer(), out_peer);
+							GetUniqueLocks(rl.GetIncomingPeer(), in_peer, rl.GetOutgoingPeer(), out_peer);
 
 							if (rl.GetStatus() != Status::Closed)
 							{
@@ -471,7 +471,6 @@ namespace QuantumGate::Implementation::Core::Relay
 		// class, otherwise we're going to get memory faults
 
 		if (ipeer.Peer == nullptr) ipeer.Peer = GetPeers().Get(ipeer.PeerLUID);
-
 		if (opeer.Peer == nullptr) opeer.Peer = GetPeers().Get(opeer.PeerLUID);
 
 		// Ensure deterministic lock order/direction to prevent possible deadlock
@@ -487,18 +486,16 @@ namespace QuantumGate::Implementation::Core::Relay
 			if (ipeer.Peer != nullptr) in_peer = ipeer.Peer->WithUniqueLock();
 		}
 
-		// If the peers are disconnected remove them and release the shared_ptr
+		// If the peers are disconnected remove them
 		{
 			if (in_peer && in_peer->GetStatus() == Peer::Status::Disconnected)
 			{
 				in_peer.Reset();
-				ipeer.Peer.reset();
 			}
 
 			if (out_peer && out_peer->GetStatus() == Peer::Status::Disconnected)
 			{
 				out_peer.Reset();
-				opeer.Peer.reset();
 			}
 		}
 	}
@@ -509,12 +506,11 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		if (rpeer.Peer != nullptr) peer = rpeer.Peer->WithUniqueLock();
 
-		// If the peer is disconnected remove it and release the shared_ptr
+		// If the peer is disconnected remove it
 		{
 			if (peer && peer->GetStatus() == Peer::Status::Disconnected)
 			{
 				peer.Reset();
-				rpeer.Peer.reset();
 			}
 		}
 	}
@@ -550,6 +546,13 @@ namespace QuantumGate::Implementation::Core::Relay
 	Link_ThS* Manager::Get(const RelayPort rport) noexcept
 	{
 		return const_cast<Link_ThS*>(const_cast<const Manager*>(this)->Get(rport));
+	}
+
+	bool Manager::PrimaryThreadWaitProcessor(ThreadPoolData& thpdata, ThreadData& thdata, std::chrono::milliseconds max_wait,
+											 const Concurrency::Event& shutdown_event)
+	{
+		const auto result = thpdata.WorkEvents.Wait(max_wait);
+		return result.Waited;
 	}
 
 	Manager::ThreadPool::ThreadCallbackResult Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
@@ -687,7 +690,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		std::optional<Event> event;
 
-		m_ThreadPool.GetData().RelayEventQueues[thdata.ThreadKey]->IfUniqueLock([&](auto& queue)
+		m_ThreadPool.GetData().RelayEventQueues[thdata.ThreadKey]->WithUniqueLock([&](auto& queue)
 		{
 			if (!queue.Empty())
 			{
@@ -727,11 +730,14 @@ namespace QuantumGate::Implementation::Core::Relay
 		assert(rl.GetStatus() == Status::Connect);
 
 		auto success = false;
+		Peer::Peer_ThS::UniqueLockedType* peer{ nullptr };
 
 		switch (rl.GetPosition())
 		{
 			case Position::Beginning:
 			{
+				peer = &in_peer;
+
 				LogDbg(L"Connecting relay to peer %s on port %llu for hop %u (beginning); outgoing peer %s",
 					   rl.GetEndpoint().GetString().c_str(), rl.GetPort(), rl.GetHop(), out_peer->GetPeerName().c_str());
 
@@ -745,6 +751,8 @@ namespace QuantumGate::Implementation::Core::Relay
 			}
 			case Position::End:
 			{
+				peer = &out_peer;
+
 				LogDbg(L"Connecting relay to peer %s on port %llu for hop %u (end); incoming peer %s",
 					   rl.GetEndpoint().GetString().c_str(), rl.GetPort(), rl.GetHop(), in_peer->GetPeerName().c_str());
 
@@ -776,6 +784,11 @@ namespace QuantumGate::Implementation::Core::Relay
 				assert(false);
 				break;
 			}
+		}
+
+		if (peer != nullptr)
+		{
+			success = m_ThreadPool.GetData().WorkEvents.AddEvent((*peer)->GetSocket<Socket>().GetSendEvent().GetHandle());
 		}
 
 		if (!success) rl.UpdateStatus(Status::Exception, Exception::GeneralFailure);
@@ -811,12 +824,12 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		if (orig_peer != nullptr)
 		{
-			auto& send_buffer = (*orig_peer)->GetSocket<Socket>().GetSendBuffer();
+			auto send_buffer = (*orig_peer)->GetSocket<Socket>().GetSendBuffer();
 
 			const auto send_size = std::invoke([&]()
 			{
 				// Shouldn't send more than available window size
-				auto size = std::min(send_buffer.GetSize(), rl.GetDataRateLimiter().GetAvailableWindowSize());
+				auto size = std::min(send_buffer->GetSize(), rl.GetDataRateLimiter().GetAvailableWindowSize());
 				// Shouldn't send more than maximum data a relay data message can handle
 				size = std::min(size, RelayDataMessage::MaxMessageDataSize);
 				return size;
@@ -831,12 +844,12 @@ namespace QuantumGate::Implementation::Core::Relay
 				Events::RelayData red;
 				red.Port = rl.GetPort();
 				red.MessageID = msg_id;
-				red.Data = BufferView(send_buffer).GetFirst(send_size);
+				red.Data = BufferView(*send_buffer).GetFirst(send_size);
 				red.Origin.PeerLUID = orig_luid;
 
 				if (AddRelayEvent(rl.GetPort(), std::move(red)))
 				{
-					send_buffer.RemoveFirst(send_size);
+					send_buffer->RemoveFirst(send_size);
 
 					success = rl.GetDataRateLimiter().AddDataMessage(msg_id, send_size, Util::GetCurrentSteadyTime());
 				}
@@ -894,16 +907,26 @@ namespace QuantumGate::Implementation::Core::Relay
 				break;
 		}
 
+		Peer::Peer_ThS::UniqueLockedType& peerref = in_peer;
+		Peer::Peer_ThS::UniqueLockedType* peer{ nullptr };
+
 		switch (rl.GetPosition())
 		{
 			case Position::Beginning:
 			{
 				if (in_peer)
 				{
+					peer = &in_peer;
+
 					// In case the connection was closed properly we just enable read
 					// on the socket so that it will receive 0 bytes indicating the connection closed
 					if (wsaerror != -1) in_peer->GetSocket<Socket>().SetException(wsaerror);
 					else in_peer->GetSocket<Socket>().SetRead();
+				}
+				else
+				{
+					peerref = rl.GetIncomingPeer().Peer->WithUniqueLock();
+					peer = &peerref;
 				}
 
 				if (out_peer) DiscardReturnValue(rl.SendRelayStatus(*out_peer, std::nullopt, status_update));
@@ -914,10 +937,17 @@ namespace QuantumGate::Implementation::Core::Relay
 			{
 				if (out_peer)
 				{
+					peer = &out_peer;
+
 					// In case the connection was closed properly we just enable read
 					// on the socket so that it will receive 0 bytes indicating the connection closed
 					if (wsaerror != -1) out_peer->GetSocket<Socket>().SetException(wsaerror);
 					else out_peer->GetSocket<Socket>().SetRead();
+				}
+				else
+				{
+					peerref = rl.GetOutgoingPeer().Peer->WithUniqueLock();
+					peer = &peerref;
 				}
 
 				if (in_peer) DiscardReturnValue(rl.SendRelayStatus(*in_peer, std::nullopt, status_update));
@@ -937,6 +967,11 @@ namespace QuantumGate::Implementation::Core::Relay
 				assert(false);
 				break;
 			}
+		}
+
+		if (peer != nullptr)
+		{
+			m_ThreadPool.GetData().WorkEvents.RemoveEvent((*peer)->GetSocket<Socket>().GetSendEvent().GetHandle());
 		}
 
 		rl.UpdateStatus(Status::Closed);
@@ -1245,12 +1280,16 @@ namespace QuantumGate::Implementation::Core::Relay
 								}
 								else
 								{
-									data_ack_needed = true;
-
-									if (dest_peer->GetSocket<Socket>().AddToReceiveQueue(std::move(event.Data)))
+									try
 									{
+										data_ack_needed = true;
+
+										auto rcv_buffer = dest_peer->GetSocket<Socket>().GetReceiveBuffer();
+										*rcv_buffer += event.Data;
+
 										retval = RelayDataProcessResult::Succeeded;
 									}
+									catch (...) {}
 								}
 								break;
 							}
@@ -1258,12 +1297,16 @@ namespace QuantumGate::Implementation::Core::Relay
 							{
 								if (event.Origin.PeerLUID == rl.GetIncomingPeer().PeerLUID)
 								{
-									data_ack_needed = true;
-
-									if (dest_peer->GetSocket<Socket>().AddToReceiveQueue(std::move(event.Data)))
+									try
 									{
+										data_ack_needed = true;
+
+										auto rcv_buffer = dest_peer->GetSocket<Socket>().GetReceiveBuffer();
+										*rcv_buffer += event.Data;
+
 										retval = RelayDataProcessResult::Succeeded;
 									}
+									catch (...) {}
 								}
 								else
 								{

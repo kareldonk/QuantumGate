@@ -6,6 +6,7 @@
 #include "..\..\Common\Containers.h"
 #include "..\..\Common\RateLimit.h"
 #include "..\..\Network\SocketBase.h"
+#include "..\..\Concurrency\Event.h"
 #include "..\Message.h"
 
 namespace QuantumGate::Implementation::Core::Relay
@@ -14,15 +15,46 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		friend class Manager;
 
-		using RelayDataQueue = Containers::Queue<Buffer>;
-
 	public:
+		class IOBuffer final
+		{
+		public:
+			IOBuffer() noexcept = delete;
+			
+			IOBuffer(Buffer& buffer, Concurrency::Event& event) noexcept :
+				m_Buffer(buffer), m_Event(event)
+			{}
+
+			IOBuffer(const IOBuffer&) = delete;
+			IOBuffer(IOBuffer&&) noexcept = default;
+			
+			~IOBuffer()
+			{
+				if (!m_Buffer.IsEmpty()) m_Event.Set();
+				else m_Event.Reset();
+			}
+			
+			IOBuffer& operator=(const IOBuffer&) = delete;
+			IOBuffer& operator=(IOBuffer&&) noexcept = default;
+
+			inline Buffer* operator->() noexcept { return &m_Buffer; }
+
+			inline Buffer& operator*() noexcept { return m_Buffer; }
+
+		private:
+			Buffer& m_Buffer;
+			Concurrency::Event& m_Event;
+		};
+
 		Socket() noexcept;
 		Socket(const Socket&) = delete;
 		Socket(Socket&&) noexcept = default;
 		virtual ~Socket();
 		Socket& operator=(const Socket&) = delete;
 		Socket& operator=(Socket&&) noexcept = default;
+
+		[[nodiscard]] inline const Concurrency::Event& GetReceiveEvent() const noexcept { return m_ReceiveEvent; }
+		[[nodiscard]] inline const Concurrency::Event& GetSendEvent() const noexcept { return m_SendEvent; }
 
 		inline void SetRelays(Manager* relays) noexcept { m_RelayManager = relays; }
 
@@ -82,8 +114,8 @@ namespace QuantumGate::Implementation::Core::Relay
 	private:
 		void SetLocalEndpoint(const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept;
 
-		[[nodiscard]] inline Buffer& GetSendBuffer() noexcept { return m_SendBuffer; }
-		[[nodiscard]] bool AddToReceiveQueue(Buffer&& buffer) noexcept;
+		[[nodiscard]] inline IOBuffer GetSendBuffer() noexcept { return { m_SendBuffer, m_SendEvent }; }
+		[[nodiscard]] inline IOBuffer GetReceiveBuffer() noexcept { return { m_ReceiveBuffer, m_ReceiveEvent }; }
 
 		inline void SetException(const Int errorcode) noexcept
 		{
@@ -92,7 +124,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		}
 
 		inline void SetWrite() noexcept { m_IOStatus.SetWrite(true); }
-		inline void SetRead() noexcept { m_ClosingRead = true; }
+		inline void SetRead() noexcept { m_ClosingRead = true; m_ReceiveEvent.Set(); }
 
 		inline void SetMaxSendBufferSize(const Size size) noexcept
 		{
@@ -123,10 +155,12 @@ namespace QuantumGate::Implementation::Core::Relay
 		IPEndpoint m_PeerEndpoint;
 
 		SteadyTime m_ConnectedSteadyTime;
-
+		
 		Size m_MaxSendBufferSize{ MinSendBufferSize };
 		Buffer m_SendBuffer;
-		RelayDataQueue m_ReceiveQueue;
+		Concurrency::Event m_SendEvent;
+		Buffer m_ReceiveBuffer;
+		Concurrency::Event m_ReceiveEvent;
 
 		ConnectingCallback m_ConnectingCallback{ []() mutable noexcept {} };
 		AcceptCallback m_AcceptCallback{ []() mutable noexcept {} };

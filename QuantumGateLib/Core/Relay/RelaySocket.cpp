@@ -123,8 +123,9 @@ namespace QuantumGate::Implementation::Core::Relay
 			if (sent_size > 0)
 			{
 				buffer.RemoveFirst(sent_size);
+				
+				m_SendEvent.Set();
 
-				// Update the total amount of bytes sent
 				m_BytesSent += sent_size;
 			}
 
@@ -151,17 +152,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		try
 		{
-			Size bytesrcv{ 0 };
-
-			while (!m_ReceiveQueue.empty())
-			{
-				bytesrcv += m_ReceiveQueue.front().GetSize();
-
-				if (buffer.IsEmpty()) buffer = std::move(m_ReceiveQueue.front());
-				else buffer += m_ReceiveQueue.front();
-
-				m_ReceiveQueue.pop();
-			}
+			const auto bytesrcv = m_ReceiveBuffer.GetSize();
 
 			if (bytesrcv == 0 && m_ClosingRead)
 			{
@@ -169,7 +160,11 @@ namespace QuantumGate::Implementation::Core::Relay
 			}
 			else
 			{
-				// Update the total amount of bytes received
+				buffer += m_ReceiveBuffer;
+				
+				m_ReceiveBuffer.Clear();
+				m_ReceiveEvent.Reset();
+
 				m_BytesReceived += bytesrcv;
 
 				success = true;
@@ -203,7 +198,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		if (m_IOStatus.IsConnected())
 		{
-			m_IOStatus.SetRead(!m_ReceiveQueue.empty() || m_ClosingRead);
+			m_IOStatus.SetRead(!m_ReceiveBuffer.IsEmpty() || m_ClosingRead);
 		}
 
 		return true;
@@ -214,18 +209,6 @@ namespace QuantumGate::Implementation::Core::Relay
 		const auto dif = std::chrono::duration_cast<std::chrono::seconds>(Util::GetCurrentSteadyTime() -
 																		  GetConnectedSteadyTime());
 		return (Util::GetCurrentSystemTime() - dif);
-	}
-
-	bool Socket::AddToReceiveQueue(Buffer&& buffer) noexcept
-	{
-		try
-		{
-			m_ReceiveQueue.push(std::move(buffer));
-			return true;
-		}
-		catch (...) {}
-
-		return false;
 	}
 }
 
