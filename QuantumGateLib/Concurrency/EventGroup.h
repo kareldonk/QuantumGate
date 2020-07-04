@@ -460,6 +460,4 @@ namespace QuantumGate::Implementation::Concurrency
 	private:
 		Data_ThS m_Data;
 	};
-
-	static constexpr Size eventgroupsize = sizeof(EventGroup);
 }
