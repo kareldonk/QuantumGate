@@ -907,7 +907,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				break;
 		}
 
-		Peer::Peer_ThS::UniqueLockedType& peerref = in_peer;
+		Peer::Peer_ThS::UniqueLockedType temp_peer;
 		Peer::Peer_ThS::UniqueLockedType* peer{ nullptr };
 
 		switch (rl.GetPosition())
@@ -925,8 +925,8 @@ namespace QuantumGate::Implementation::Core::Relay
 				}
 				else
 				{
-					peerref = rl.GetIncomingPeer().Peer->WithUniqueLock();
-					peer = &peerref;
+					temp_peer = rl.GetIncomingPeer().Peer->WithUniqueLock();
+					peer = &temp_peer;
 				}
 
 				if (out_peer) DiscardReturnValue(rl.SendRelayStatus(*out_peer, std::nullopt, status_update));
@@ -946,8 +946,8 @@ namespace QuantumGate::Implementation::Core::Relay
 				}
 				else
 				{
-					peerref = rl.GetOutgoingPeer().Peer->WithUniqueLock();
-					peer = &peerref;
+					temp_peer = rl.GetOutgoingPeer().Peer->WithUniqueLock();
+					peer = &temp_peer;
 				}
 
 				if (in_peer) DiscardReturnValue(rl.SendRelayStatus(*in_peer, std::nullopt, status_update));

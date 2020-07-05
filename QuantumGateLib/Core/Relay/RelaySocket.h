@@ -53,8 +53,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		Socket& operator=(const Socket&) = delete;
 		Socket& operator=(Socket&&) noexcept = default;
 
-		[[nodiscard]] inline const Concurrency::Event& GetReceiveEvent() const noexcept { return m_ReceiveEvent; }
-		[[nodiscard]] inline const Concurrency::Event& GetSendEvent() const noexcept { return m_SendEvent; }
+		[[nodiscard]] inline Concurrency::Event& GetReceiveEvent() noexcept { return m_ReceiveEvent; }
+		[[nodiscard]] inline Concurrency::Event& GetSendEvent() noexcept { return m_SendEvent; }
 
 		inline void SetRelays(Manager* relays) noexcept { m_RelayManager = relays; }
 

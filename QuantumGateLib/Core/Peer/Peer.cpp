@@ -786,9 +786,27 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		auto result = m_SendQueues.AddMessage(std::move(msg), priority, delay, std::move(callback));
-		if (result.Succeeded() && msg_size > 0)
+		if (result.Succeeded())
 		{
-			m_PeerData.WithUniqueLock()->ExtendersBytesSent += msg_size;
+			if (msg_size > 0) m_PeerData.WithUniqueLock()->ExtendersBytesSent += msg_size;
+
+			switch (GetGateType())
+			{
+				case GateType::Socket:
+					if (!::SetEvent(GetSocket<Socket>().GetWSAEvent()))
+					{
+						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
+					}
+					break;
+				case GateType::RelaySocket:
+					if (!GetSocket<Relay::Socket>().GetReceiveEvent().Set())
+					{
+						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
+					}
+					break;
+				default:
+					break;
+			}
 		}
 
 		return result;

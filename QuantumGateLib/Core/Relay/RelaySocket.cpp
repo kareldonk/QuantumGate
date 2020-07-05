@@ -157,6 +157,8 @@ namespace QuantumGate::Implementation::Core::Relay
 			if (bytesrcv == 0 && m_ClosingRead)
 			{
 				LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
+
+				m_ReceiveEvent.Reset();
 			}
 			else
 			{
@@ -194,11 +196,17 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		assert(m_IOStatus.IsOpen());
 
+		m_ReceiveEvent.Reset();
+
 		if (!m_IOStatus.IsOpen()) return false;
 
 		if (m_IOStatus.IsConnected())
 		{
-			m_IOStatus.SetRead(!m_ReceiveBuffer.IsEmpty() || m_ClosingRead);
+			const bool read = (!m_ReceiveBuffer.IsEmpty() || m_ClosingRead);
+
+			m_IOStatus.SetRead(read);
+
+			if (read) m_ReceiveEvent.Set();
 		}
 
 		return true;
