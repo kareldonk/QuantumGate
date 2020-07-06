@@ -54,9 +54,9 @@ namespace QuantumGate::Implementation::Core::Relay
 		Socket& operator=(Socket&&) noexcept = default;
 
 		[[nodiscard]] inline Concurrency::Event& GetReceiveEvent() noexcept { return m_ReceiveEvent; }
+		[[nodiscard]] inline const Concurrency::Event& GetReceiveEvent() const noexcept { return m_ReceiveEvent; }
 		[[nodiscard]] inline Concurrency::Event& GetSendEvent() noexcept { return m_SendEvent; }
-
-		inline void SetRelays(Manager* relays) noexcept { m_RelayManager = relays; }
+		[[nodiscard]] inline const Concurrency::Event& GetSendEvent() const noexcept { return m_SendEvent; }
 
 		[[nodiscard]] bool BeginAccept(const RelayPort rport, const RelayHop hop,
 									   const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept;
@@ -112,6 +112,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		}
 
 	private:
+		inline void SetRelayManager(Manager* manager) noexcept { m_RelayManager = manager; }
 		void SetLocalEndpoint(const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept;
 
 		[[nodiscard]] inline IOBuffer GetSendBuffer() noexcept { return { m_SendBuffer, m_SendEvent }; }

@@ -34,7 +34,7 @@ namespace QuantumGate::Implementation::Concurrency
 			{
 				assert(m_ShutdownEvent == nullptr);
 
-				m_ShutdownEvent = ::CreateEvent(nullptr, true, false, L"");
+				m_ShutdownEvent = ::CreateEvent(nullptr, true, false, nullptr);
 				if (m_ShutdownEvent != nullptr)
 				{
 					try

@@ -21,11 +21,6 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		if (shared_secret) m_GlobalSharedSecret = std::move(shared_secret);
 
-		if (GetGateType() == GateType::RelaySocket)
-		{
-			GetSocket<Relay::Socket>().SetRelays(&GetPeerManager().GetRelayManager());
-		}
-
 		m_PeerData.WithUniqueLock([&](Data& peer_data) noexcept
 		{
 			peer_data.Type = pctype;
@@ -793,7 +788,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			switch (GetGateType())
 			{
 				case GateType::Socket:
-					if (!::SetEvent(GetSocket<Socket>().GetWSAEvent()))
+					if (!GetSocket<Socket>().GetEvent().Set())
 					{
 						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
 					}

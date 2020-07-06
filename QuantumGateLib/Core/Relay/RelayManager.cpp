@@ -760,6 +760,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				{
 					if (rl.UpdateStatus(Status::Connected))
 					{
+						out_peer->GetSocket<Socket>().SetRelayManager(this);
 						success = out_peer->GetSocket<Socket>().CompleteAccept();
 					}
 				}
@@ -1182,6 +1183,7 @@ namespace QuantumGate::Implementation::Core::Relay
 							{
 								// We went to the connected state while we were connecting;
 								// the socket is now writable
+								in_peer->GetSocket<Socket>().SetRelayManager(this);
 								in_peer->GetSocket<Socket>().SetWrite();
 								success = true;
 							}

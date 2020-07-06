@@ -12,11 +12,10 @@ using namespace std::literals;
 namespace QuantumGate::Implementation::Network
 {
 	Socket::Socket() noexcept
-	{
-#ifdef USE_WSA_EVENT
-		m_WSAEvent = WSACreateEvent();
+#ifdef USE_SOCKET_EVENT
+		: m_Event(WSACreateEvent())
 #endif
-	}
+	{}
 
 	Socket::Socket(const IP::AddressFamily af, const Type type, const IP::Protocol protocol) : Socket()
 	{
@@ -115,20 +114,17 @@ namespace QuantumGate::Implementation::Network
 	{
 		if (m_IOStatus.IsOpen()) Close();
 
-#ifdef USE_WSA_EVENT
-		if (m_WSAEvent != WSA_INVALID_EVENT)
-		{
-			WSACloseEvent(m_WSAEvent);
-		}
+#ifdef USE_SOCKET_EVENT
+		m_Event.Release();
 #endif
 	}
 
 	Socket::Socket(Socket&& other) noexcept :
 		m_Socket(std::exchange(other.m_Socket, INVALID_SOCKET)),
-#ifdef USE_WSA_EVENT
-		m_WSAEvent(std::exchange(other.m_WSAEvent, WSA_INVALID_EVENT)),
+#ifdef USE_SOCKET_EVENT
+		m_Event(std::exchange(other.m_Event, Concurrency::Event{})),
 #endif
-		m_IOStatus(std::exchange(other.m_IOStatus, IOStatus())),
+		m_IOStatus(std::exchange(other.m_IOStatus, IOStatus{})),
 		m_BytesReceived(std::exchange(other.m_BytesReceived, 0)),
 		m_BytesSent(std::exchange(other.m_BytesSent, 0)),
 		m_LocalEndpoint(std::move(other.m_LocalEndpoint)),
@@ -144,8 +140,8 @@ namespace QuantumGate::Implementation::Network
 		Release();
 
 		m_Socket = std::exchange(other.m_Socket, INVALID_SOCKET);
-#ifdef USE_WSA_EVENT
-		m_WSAEvent = std::exchange(other.m_WSAEvent, WSA_INVALID_EVENT);
+#ifdef USE_SOCKET_EVENT
+		m_Event = std::exchange(other.m_Event, {});
 #endif
 		m_IOStatus = std::exchange(other.m_IOStatus, IOStatus());
 
@@ -184,8 +180,8 @@ namespace QuantumGate::Implementation::Network
 			if (!SetNoDelay(true)) return false;
 		}
 
-#ifdef USE_WSA_EVENT
-		if (!AttachWSAEvent()) return false;
+#ifdef USE_SOCKET_EVENT
+		if (!AttachEvent()) return false;
 #endif
 
 		return true;
@@ -205,8 +201,8 @@ namespace QuantumGate::Implementation::Network
 			else DiscardReturnValue(SetLinger(0s));
 		}
 
-#ifdef USE_WSA_EVENT
-		DetachWSAEvent();
+#ifdef USE_SOCKET_EVENT
+		DetachEvent();
 #endif
 
 		closesocket(m_Socket);
@@ -214,29 +210,23 @@ namespace QuantumGate::Implementation::Network
 		m_IOStatus.Reset();
 	}
 
-#ifdef USE_WSA_EVENT
-	bool Socket::AttachWSAEvent() noexcept
+#ifdef USE_SOCKET_EVENT
+	bool Socket::AttachEvent() noexcept
 	{
-		if (m_WSAEvent != WSA_INVALID_EVENT)
+		const auto ret = WSAEventSelect(m_Socket, m_Event.GetHandle(),
+										FD_ACCEPT | FD_CONNECT | FD_READ | FD_WRITE | FD_CLOSE);
+		if (ret != SOCKET_ERROR)
 		{
-			const auto ret = WSAEventSelect(m_Socket, m_WSAEvent, FD_ACCEPT | FD_CONNECT | FD_READ | FD_WRITE | FD_CLOSE);
-			if (ret != SOCKET_ERROR)
-			{
-				return true;
-			}
-			else LogErr(L"Could not set event for socket (%s)", GetLastSocketErrorString().c_str());
+			return true;
 		}
-		else LogErr(L"Could not create event for socket (%s)", GetLastSocketErrorString().c_str());
+		else LogErr(L"Could not set event for socket (%s)", GetLastSocketErrorString().c_str());
 
 		return false;
 	}
 
-	void Socket::DetachWSAEvent() noexcept
+	void Socket::DetachEvent() noexcept
 	{
-		if (m_WSAEvent != WSA_INVALID_EVENT)
-		{
-			WSAEventSelect(m_Socket, NULL, 0);
-		}
+		WSAEventSelect(m_Socket, nullptr, 0);
 	}
 #endif
 
@@ -926,16 +916,17 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-#ifdef USE_WSA_EVENT
+#ifdef USE_SOCKET_EVENT
 	template<bool read, bool write, bool exception>
-	bool Socket::UpdateIOStatusWSAEvent(const std::chrono::milliseconds& mseconds) noexcept
+	bool Socket::UpdateIOStatusEvent(const std::chrono::milliseconds& mseconds) noexcept
 	{
-		const auto ret = WSAWaitForMultipleEvents(1, &m_WSAEvent, false, static_cast<DWORD>(mseconds.count()), false);
+		const auto handle = m_Event.GetHandle();
+		const auto ret = WSAWaitForMultipleEvents(1, &handle, false, static_cast<DWORD>(mseconds.count()), false);
 		if (ret != WSA_WAIT_FAILED)
 		{
 			WSANETWORKEVENTS events{ 0 };
 
-			const auto ret2 = WSAEnumNetworkEvents(m_Socket, m_WSAEvent, &events);
+			const auto ret2 = WSAEnumNetworkEvents(m_Socket, handle, &events);
 			if (ret2 == WSA_WAIT_TIMEOUT) return true;
 			else if (ret2 != SOCKET_ERROR)
 			{
@@ -982,12 +973,8 @@ namespace QuantumGate::Implementation::Network
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
-#ifdef USE_WSA_EVENT
-		if (m_WSAEvent != WSA_INVALID_EVENT)
-		{
-			return UpdateIOStatusWSAEvent<read, write, exception>(mseconds);
-		}
-		else return false;
+#ifdef USE_SOCKET_EVENT
+		return UpdateIOStatusEvent<read, write, exception>(mseconds);
 #else
 		return UpdateIOStatusFDSet<read, write, exception>(mseconds);
 #endif

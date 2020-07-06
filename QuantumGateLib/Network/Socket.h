@@ -5,7 +5,11 @@
 
 #include "SocketBase.h"
 
-#define USE_WSA_EVENT
+#define USE_SOCKET_EVENT
+
+#ifdef USE_SOCKET_EVENT
+#include "..\Concurrency\Event.h"
+#endif
 
 namespace QuantumGate::Implementation::Network
 {
@@ -31,8 +35,9 @@ namespace QuantumGate::Implementation::Network
 
 		[[nodiscard]] inline SOCKET GetHandle() const noexcept { assert(m_Socket != INVALID_SOCKET); return m_Socket; }
 
-#ifdef USE_WSA_EVENT
-		[[nodiscard]] inline WSAEVENT GetWSAEvent() const noexcept { assert(m_WSAEvent != WSA_INVALID_EVENT); return m_WSAEvent; }
+#ifdef USE_SOCKET_EVENT
+		[[nodiscard]] inline Concurrency::Event& GetEvent() noexcept { return m_Event; }
+		[[nodiscard]] inline const Concurrency::Event& GetEvent() const noexcept { return m_Event; }
 #endif
 
 		[[nodiscard]] IP::AddressFamily GetAddressFamily() const noexcept;
@@ -133,9 +138,9 @@ namespace QuantumGate::Implementation::Network
 
 		void Release() noexcept;
 
-#ifdef USE_WSA_EVENT
-		[[nodiscard]] bool AttachWSAEvent() noexcept;
-		void DetachWSAEvent() noexcept;
+#ifdef USE_SOCKET_EVENT
+		[[nodiscard]] bool AttachEvent() noexcept;
+		void DetachEvent() noexcept;
 #endif
 
 		[[nodiscard]] Buffer& GetReceiveBuffer() const noexcept;
@@ -149,15 +154,15 @@ namespace QuantumGate::Implementation::Network
 		template<bool read, bool write, bool exception>
 		[[nodiscard]] bool UpdateIOStatusFDSet(const std::chrono::milliseconds& mseconds) noexcept;
 
-#ifdef USE_WSA_EVENT
+#ifdef USE_SOCKET_EVENT
 		template<bool read, bool write, bool exception>
-		[[nodiscard]] bool UpdateIOStatusWSAEvent(const std::chrono::milliseconds& mseconds) noexcept;
+		[[nodiscard]] bool UpdateIOStatusEvent(const std::chrono::milliseconds& mseconds) noexcept;
 #endif
 
 	private:
 		SOCKET m_Socket{ INVALID_SOCKET };
-#ifdef USE_WSA_EVENT
-		WSAEVENT m_WSAEvent{ WSA_INVALID_EVENT };
+#ifdef USE_SOCKET_EVENT
+		Concurrency::Event m_Event;
 #endif
 		IOStatus m_IOStatus;
 
