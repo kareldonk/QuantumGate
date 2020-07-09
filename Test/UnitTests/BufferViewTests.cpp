@@ -14,8 +14,8 @@ namespace UnitTests
 	public:
 		TEST_METHOD(General)
 		{
-			std::string str = "So long as they don't get violent, I want to let everyone say what they wish, \
-								for I myself have always said exactly what pleased me. – Albert Einstein";
+			std::string str = "So long as they don't get violent, I want to let everyone say what they wish, "
+								"for I myself have always said exactly what pleased me. – Albert Einstein";
 			
 			Buffer buf(reinterpret_cast<Byte*>(str.data()), str.size());
 

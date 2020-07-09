@@ -136,10 +136,10 @@ namespace UnitTests
 			BufferReader rdr3(datav);
 			Assert::AreEqual(false, rdr3.Read(uint64tr));
 
-			auto strt = String{ L"The abrogation of natural laws from human societies and their replacement \
-								by conventional laws is the fundamental danger that threatens freedom. Any \
-								ruling system must be made subservient to natural laws, not the reverse. \
-								- Muammar al-Qaddafi" };
+			auto strt = String{ L"The abrogation of natural laws from human societies and their replacement "
+								"by conventional laws is the fundamental danger that threatens freedom. Any "
+								"ruling system must be made subservient to natural laws, not the reverse. "
+								"- Muammar al-Qaddafi" };
 
 			BufferWriter wrt2;
 			Assert::AreEqual(true, wrt2.WriteWithPreallocation(WithSize(strt, MaxSize::UInt16)));

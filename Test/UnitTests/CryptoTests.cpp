@@ -18,12 +18,12 @@ namespace UnitTests
 			{
 				L"A",
 				L"Small string",
-				L"Voting for the lesser of the evils still means that you are voting for evil! It's aggression \
-				and idiotic to do so. The better and more logical option is not to vote for evil at all! \
-				This is similar to how people often mention that \"government is a necessary evil.\" \
-				The belief that government is a necessary evil, is a belief that evil is necessary. And I \
-				don't think I have to explain to you why that belief is a very dangerous and destructive belief \
-				to have. It really doesn't make sense to think that way."
+				L"Voting for the lesser of the evils still means that you are voting for evil! It's aggression "
+				"and idiotic to do so. The better and more logical option is not to vote for evil at all! "
+				"This is similar to how people often mention that \"government is a necessary evil.\" "
+				"The belief that government is a necessary evil, is a belief that evil is necessary. And I "
+				"don't think I have to explain to you why that belief is a very dangerous and destructive belief "
+				"to have. It really doesn't make sense to think that way."
 			};
 
 			std::vector<Buffer> inputbufs;

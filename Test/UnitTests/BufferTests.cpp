@@ -12,11 +12,11 @@ namespace UnitTests
 	public:
 		TEST_METHOD(General)
 		{
-			String txt = L"All discussions on the question of whether man is good or evil, a social or \
-				antisocial being, are philosophic game-playing. Whether man is a social being or a mass \
-				of protoplasm reacting in a peculiar and irrational way depends on whether his basic \
-				biological needs are in harmony or at variance with the institutions he has created for \
-				himself. - Wilhelm Reich";
+			String txt = L"All discussions on the question of whether man is good or evil, a social or "
+				"antisocial being, are philosophic game-playing. Whether man is a social being or a mass "
+				"of protoplasm reacting in a peculiar and irrational way depends on whether his basic "
+				"biological needs are in harmony or at variance with the institutions he has created for "
+				"himself. - Wilhelm Reich";
 
 			// Default constructor
 			Buffer b1;
@@ -111,8 +111,8 @@ namespace UnitTests
 
 		TEST_METHOD(BufferAndBufferView)
 		{
-			std::string txt = "Be a loner. That gives you time to wonder, to search for the truth. \
-								Have holy curiosity. Make your life worth living. - Albert Einstein";
+			std::string txt = "Be a loner. That gives you time to wonder, to search for the truth. "
+								"Have holy curiosity. Make your life worth living. - Albert Einstein";
 
 			Buffer b1(reinterpret_cast<Byte*>(txt.data()), txt.size());
 
