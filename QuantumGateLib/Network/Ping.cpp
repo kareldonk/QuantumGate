@@ -232,7 +232,7 @@ namespace QuantumGate::Implementation::Network
 			{
 				const auto snd_steady_time = Util::GetCurrentSteadyTime();
 
-				if (socket.UpdateIOStatus(m_Timeout, Socket::IOStatus::Update::Read | Socket::IOStatus::Update::Exception))
+				if (socket.UpdateIOStatus(m_Timeout))
 				{
 					const auto rcv_steady_time = Util::GetCurrentSteadyTime();
 

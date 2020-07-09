@@ -73,8 +73,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		void Close(const bool linger = false) noexcept override;
 
 		[[nodiscard]] inline const IOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
-		[[nodiscard]] bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
-										  const IOStatus::Update ioupdate = IOStatus::Update::All) noexcept override;
+		[[nodiscard]] bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept override;
 
 		[[nodiscard]] SystemTime GetConnectedTime() const noexcept override;
 		[[nodiscard]] inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }

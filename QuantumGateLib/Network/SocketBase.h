@@ -34,14 +34,6 @@ namespace QuantumGate::Implementation::Network
 			};
 
 		public:
-			enum class Update : UInt8
-			{
-				Read = 0b00000001,
-				Write = 0b00000010,
-				Exception = 0b00000100,
-				All = 0b00000111
-			};
-
 			inline void SetOpen(const bool state) noexcept { Set(StatusType::Open, state); }
 			inline void SetConnecting(const bool state) noexcept { Set(StatusType::Connecting, state); }
 			inline void SetConnected(const bool state) noexcept { Set(StatusType::Connected, state); }
@@ -105,8 +97,7 @@ namespace QuantumGate::Implementation::Network
 		virtual void Close(const bool linger = false) noexcept = 0;
 
 		virtual const IOStatus& GetIOStatus() const noexcept = 0;
-		virtual bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
-									const IOStatus::Update ioupdate = IOStatus::Update::All) noexcept = 0;
+		virtual bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept = 0;
 
 		virtual SystemTime GetConnectedTime() const noexcept = 0;
 		virtual const SteadyTime& GetConnectedSteadyTime() const noexcept = 0;
@@ -128,15 +119,4 @@ namespace QuantumGate::Implementation::Network
 		virtual void SetConnectCallback(ConnectCallback&& callback) noexcept = 0;
 		virtual void SetCloseCallback(CloseCallback&& callback) noexcept = 0;
 	};
-
-	inline constexpr SocketBase::IOStatus::Update operator|(SocketBase::IOStatus::Update a, SocketBase::IOStatus::Update b)
-	{
-		return static_cast<SocketBase::IOStatus::Update>(static_cast<int>(a) | static_cast<int>(b));
-	}
-
-	inline constexpr bool operator&(SocketBase::IOStatus::Update a, SocketBase::IOStatus::Update b)
-	{
-		if (static_cast<int>(a) & static_cast<int>(b)) return true;
-		return false;
-	}
 }

@@ -917,7 +917,6 @@ namespace QuantumGate::Implementation::Network
 	}
 
 #ifdef USE_SOCKET_EVENT
-	template<bool read, bool write, bool exception>
 	bool Socket::UpdateIOStatusEvent(const std::chrono::milliseconds& mseconds) noexcept
 	{
 		const auto handle = m_Event.GetHandle();
@@ -930,35 +929,31 @@ namespace QuantumGate::Implementation::Network
 			if (ret2 == WSA_WAIT_TIMEOUT) return true;
 			else if (ret2 != SOCKET_ERROR)
 			{
-				if constexpr (read)
+				m_IOStatus.SetRead((events.lNetworkEvents & FD_READ) ||
+									(events.lNetworkEvents & FD_ACCEPT) ||
+									(events.lNetworkEvents & FD_CLOSE));
+
+				if (!m_IOStatus.CanWrite())
 				{
-					m_IOStatus.SetRead((events.lNetworkEvents & FD_READ) ||
-									   (events.lNetworkEvents & FD_ACCEPT) ||
-									   (events.lNetworkEvents & FD_CLOSE));
+					m_IOStatus.SetWrite((events.lNetworkEvents & FD_WRITE) ||
+										(events.lNetworkEvents & FD_CONNECT && events.iErrorCode[FD_CONNECT_BIT] == 0));
+				}
+				else
+				{
+					m_IOStatus.SetWrite(!(events.lNetworkEvents & FD_CLOSE));
 				}
 
-				if constexpr (write)
+				const auto set_error = [&](const int idx) noexcept
 				{
-					if (!m_IOStatus.CanWrite())
-					{
-						m_IOStatus.SetWrite((events.lNetworkEvents & FD_WRITE) || (events.lNetworkEvents & FD_CONNECT));
-					}
-				}
+					m_IOStatus.SetException(true);
+					m_IOStatus.SetErrorCode(events.iErrorCode[idx]);
+				};
 
-				if constexpr (exception)
-				{
-					const auto set_error = [&](const int idx) noexcept
-					{
-						m_IOStatus.SetException(true);
-						m_IOStatus.SetErrorCode(events.iErrorCode[idx]);
-					};
-
-					if ((events.lNetworkEvents & FD_CONNECT) && events.iErrorCode[FD_CONNECT_BIT] != 0) set_error(FD_CONNECT_BIT);
-					else if ((events.lNetworkEvents & FD_READ) && events.iErrorCode[FD_READ_BIT] != 0) set_error(FD_READ_BIT);
-					else if ((events.lNetworkEvents & FD_WRITE) && events.iErrorCode[FD_WRITE_BIT] != 0) set_error(FD_WRITE_BIT);
-					else if ((events.lNetworkEvents & FD_CLOSE) && events.iErrorCode[FD_CLOSE_BIT] != 0) set_error(FD_CLOSE_BIT);
-					else if ((events.lNetworkEvents & FD_ACCEPT) && events.iErrorCode[FD_ACCEPT_BIT] != 0) set_error(FD_ACCEPT_BIT);
-				}
+				if ((events.lNetworkEvents & FD_CONNECT) && events.iErrorCode[FD_CONNECT_BIT] != 0) set_error(FD_CONNECT_BIT);
+				else if ((events.lNetworkEvents & FD_READ) && events.iErrorCode[FD_READ_BIT] != 0) set_error(FD_READ_BIT);
+				else if ((events.lNetworkEvents & FD_WRITE) && events.iErrorCode[FD_WRITE_BIT] != 0) set_error(FD_WRITE_BIT);
+				else if ((events.lNetworkEvents & FD_CLOSE) && events.iErrorCode[FD_CLOSE_BIT] != 0) set_error(FD_CLOSE_BIT);
+				else if ((events.lNetworkEvents & FD_ACCEPT) && events.iErrorCode[FD_ACCEPT_BIT] != 0) set_error(FD_ACCEPT_BIT);
 
 				return true;
 			}
@@ -968,19 +963,6 @@ namespace QuantumGate::Implementation::Network
 	}
 #endif
 
-	template<bool read, bool write, bool exception>
-	bool Socket::UpdateIOStatusImpl(const std::chrono::milliseconds& mseconds) noexcept
-	{
-		assert(m_Socket != INVALID_SOCKET);
-
-#ifdef USE_SOCKET_EVENT
-		return UpdateIOStatusEvent<read, write, exception>(mseconds);
-#else
-		return UpdateIOStatusFDSet<read, write, exception>(mseconds);
-#endif
-	}
-
-	template<bool read, bool write, bool exception>
 	bool Socket::UpdateIOStatusFDSet(const std::chrono::milliseconds& mseconds) noexcept
 	{
 		fd_set rset{ 0 }, wset{ 0 }, eset{ 0 };
@@ -988,26 +970,17 @@ namespace QuantumGate::Implementation::Network
 		fd_set* wset_ptr{ nullptr };
 		fd_set* eset_ptr{ nullptr };
 
-		if constexpr (read)
-		{
-			FD_ZERO(&rset);
-			FD_SET(m_Socket, &rset);
-			rset_ptr = &rset;
-		}
+		FD_ZERO(&rset);
+		FD_SET(m_Socket, &rset);
+		rset_ptr = &rset;
 
-		if constexpr (write)
-		{
-			FD_ZERO(&wset);
-			FD_SET(m_Socket, &wset);
-			wset_ptr = &wset;
-		}
+		FD_ZERO(&wset);
+		FD_SET(m_Socket, &wset);
+		wset_ptr = &wset;
 
-		if constexpr (exception)
-		{
-			FD_ZERO(&eset);
-			FD_SET(m_Socket, &eset);
-			eset_ptr = &eset;
-		}
+		FD_ZERO(&eset);
+		FD_SET(m_Socket, &eset);
+		eset_ptr = &eset;
 
 		const TIMEVAL tval{
 			.tv_sec = 0,
@@ -1018,16 +991,13 @@ namespace QuantumGate::Implementation::Network
 		const auto ret = select(0, rset_ptr, wset_ptr, eset_ptr, &tval);
 		if (ret != SOCKET_ERROR)
 		{
-			if constexpr (read) m_IOStatus.SetRead(FD_ISSET(m_Socket, rset_ptr));
-			if constexpr (write) m_IOStatus.SetWrite(FD_ISSET(m_Socket, wset_ptr));
+			m_IOStatus.SetRead(FD_ISSET(m_Socket, rset_ptr));
+			m_IOStatus.SetWrite(FD_ISSET(m_Socket, wset_ptr));
 
-			if constexpr (exception)
+			if (FD_ISSET(m_Socket, eset_ptr))
 			{
-				if (FD_ISSET(m_Socket, eset_ptr))
-				{
-					m_IOStatus.SetException(true);
-					m_IOStatus.SetErrorCode(GetError());
-				}
+				m_IOStatus.SetException(true);
+				m_IOStatus.SetErrorCode(GetError());
 			}
 
 			return true;
@@ -1036,30 +1006,15 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds, const IOStatus::Update ioupdate) noexcept
+	bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
 	{
-		switch (ioupdate)
-		{
-			case IOStatus::Update::All:
-				return UpdateIOStatusImpl<true, true, true>(mseconds);
-			case (IOStatus::Update::Read | IOStatus::Update::Exception):
-				return UpdateIOStatusImpl<true, false, true>(mseconds);
-			case (IOStatus::Update::Write | IOStatus::Update::Exception):
-				return UpdateIOStatusImpl<false, true, true>(mseconds);
-			case (IOStatus::Update::Read | IOStatus::Update::Write):
-				return UpdateIOStatusImpl<true, true, false>(mseconds);
-			case IOStatus::Update::Read:
-				return UpdateIOStatusImpl<true, false, false>(mseconds);
-			case IOStatus::Update::Write:
-				return UpdateIOStatusImpl<false, true, false>(mseconds);
-			case IOStatus::Update::Exception:
-				return UpdateIOStatusImpl<false, false, true>(mseconds);
-			default:
-				assert(false);
-				break;
-		}
+		assert(m_Socket != INVALID_SOCKET);
 
-		return false;
+#ifdef USE_SOCKET_EVENT
+		return UpdateIOStatusEvent(mseconds);
+#else
+		return UpdateIOStatusFDSet(mseconds);
+#endif
 	}
 
 	SystemTime Socket::GetConnectedTime() const noexcept

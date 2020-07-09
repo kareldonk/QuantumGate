@@ -192,7 +192,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		m_IOStatus.Reset();
 	}
 
-	bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds, const IOStatus::Update ioupdate) noexcept
+	bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
 

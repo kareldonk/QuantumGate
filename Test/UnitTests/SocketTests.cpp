@@ -185,14 +185,7 @@ namespace UnitTests
 				Assert::AreEqual(true, snd_buf1b.IsEmpty());
 				Assert::AreEqual(true, socket1.GetBytesSent() == snd_buf_len);
 
-				// Update IO status selectively
-				Assert::AreEqual(true, socket2.UpdateIOStatus(0ms,
-															  Socket::IOStatus::Update::Write |
-															  Socket::IOStatus::Update::Exception));
-				// No read yet
-				Assert::AreEqual(false, socket2.GetIOStatus().CanRead());
-				// Now update read
-				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms, Socket::IOStatus::Update::Read));
+				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms));
 				Assert::AreEqual(true, socket2.GetIOStatus().CanRead());
 
 				// Receive data sent by first socket
@@ -339,12 +332,7 @@ namespace UnitTests
 				Assert::AreEqual(true, snd_buf1b.IsEmpty());
 				Assert::AreEqual(true, socket1.GetBytesSent() == snd_buf_len);
 
-				// Selective IO update check
-				Assert::AreEqual(true, socket2.UpdateIOStatus(0ms,
-															  Socket::IOStatus::Update::Write |
-															  Socket::IOStatus::Update::Exception));
-				Assert::AreEqual(false, socket2.GetIOStatus().CanRead());
-				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms, Socket::IOStatus::Update::Read));
+				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms));
 				Assert::AreEqual(true, socket2.GetIOStatus().CanRead());
 
 				// Receive data on second socket
@@ -362,9 +350,7 @@ namespace UnitTests
 				Assert::AreEqual(false, socket1.GetIOStatus().IsOpen());
 
 				// Connection closed on second socket; read returns false
-				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms,
-															  Socket::IOStatus::Update::Read |
-															  Socket::IOStatus::Update::Exception));
+				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms));
 				Assert::AreEqual(false, socket2.Receive(rcv_buf));
 				socket2.Close();
 				Assert::AreEqual(false, socket2.GetIOStatus().IsOpen());

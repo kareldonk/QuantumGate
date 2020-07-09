@@ -145,9 +145,7 @@ namespace QuantumGate::Implementation::Core
 	Result<bool> PublicIPEndpoints::DataVerificationDetails::ReceiveVerification() noexcept
 	{
 		// Wait for read event on socket
-		if (m_Socket.UpdateIOStatus(1s,
-									Socket::IOStatus::Update::Read |
-									Socket::IOStatus::Update::Exception))
+		if (m_Socket.UpdateIOStatus(1s))
 		{
 			if (m_Socket.GetIOStatus().CanRead())
 			{

@@ -63,8 +63,7 @@ namespace QuantumGate::Implementation::Network
 		void Close(const bool linger = false) noexcept override;
 
 		[[nodiscard]] inline const IOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
-		[[nodiscard]] bool UpdateIOStatus(const std::chrono::milliseconds& mseconds,
-										  const IOStatus::Update ioupdate = IOStatus::Update::All) noexcept override;
+		[[nodiscard]] bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept override;
 
 		[[nodiscard]] SystemTime GetConnectedTime() const noexcept override;
 		[[nodiscard]] inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
@@ -148,14 +147,9 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] int GetError() const noexcept;
 		[[nodiscard]] int GetSockOptInt(const int optname) const noexcept;
 
-		template<bool read, bool write, bool exception>
-		[[nodiscard]] bool UpdateIOStatusImpl(const std::chrono::milliseconds& mseconds) noexcept;
-
-		template<bool read, bool write, bool exception>
 		[[nodiscard]] bool UpdateIOStatusFDSet(const std::chrono::milliseconds& mseconds) noexcept;
 
 #ifdef USE_SOCKET_EVENT
-		template<bool read, bool write, bool exception>
 		[[nodiscard]] bool UpdateIOStatusEvent(const std::chrono::milliseconds& mseconds) noexcept;
 #endif
 

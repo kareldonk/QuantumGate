@@ -1041,9 +1041,7 @@ namespace QuantumGate::Socks5Extender
 		while (!extender->m_Listener.ShutdownEvent.IsSet())
 		{
 			// Check if we have a read event waiting for us
-			if (extender->m_Listener.Socket.UpdateIOStatus(10ms,
-														   Network::Socket::IOStatus::Update::Read |
-														   Network::Socket::IOStatus::Update::Exception))
+			if (extender->m_Listener.Socket.UpdateIOStatus(10ms))
 			{
 				if (extender->m_Listener.Socket.GetIOStatus().CanRead())
 				{
