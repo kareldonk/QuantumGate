@@ -14,7 +14,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace QuantumGate::Implementation::Concurrency;
 using namespace QuantumGate::Implementation;
 
-void WaitFunc5s(Event* event) noexcept;
+void WaitFunc5s(Event* event) noexcept; // Implemented in EventTests.cpp
 
 namespace UnitTests
 {
@@ -80,13 +80,15 @@ namespace UnitTests
 			std::random_device dev;
 			std::mt19937_64 rng(dev());
 
+			// Randomly set events and remove them until
+			// they have all been removed
 			while (!events.empty())
 			{
 				const auto result = eventgroup.Wait(0s);
 				Assert::AreEqual(true, result.Waited);
 				Assert::AreEqual(false, result.HadEvent);
 
-				const std::uniform_int_distribution<Int64> dist(0, events.size() - 1);
+				const std::uniform_int_distribution<std::size_t> dist(0, events.size() - 1);
 				const auto idx = dist(rng);
 				events[idx].Set();
 
@@ -96,8 +98,6 @@ namespace UnitTests
 
 				eventgroup.RemoveEvent(events[idx]);
 				events.erase(events.begin() + idx);
-
-				Dbg(L"%d %d", idx, events.size());
 			}
 
 			eventgroup.Deinitialize();
