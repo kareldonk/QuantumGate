@@ -541,6 +541,7 @@
     <ClInclude Include="Common\Callback.h" />
     <ClInclude Include="Common\Console.h" />
     <ClInclude Include="Common\Containers.h" />
+    <ClInclude Include="Common\DiffTimer.h" />
     <ClInclude Include="Common\Dispatcher.h" />
     <ClInclude Include="Common\Endian.h" />
     <ClInclude Include="Common\Hash.h" />

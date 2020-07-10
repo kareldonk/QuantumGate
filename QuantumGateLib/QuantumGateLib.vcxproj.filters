@@ -426,6 +426,9 @@
     <ClInclude Include="Concurrency\EventGroup.h">
       <Filter>Header Files\Concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="Common\DiffTimer.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
