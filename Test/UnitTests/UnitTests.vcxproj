@@ -377,6 +377,8 @@
     <ClCompile Include="DispatcherTests.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="EndianTests.cpp" />
+    <ClCompile Include="EventGroupTests.cpp" />
+    <ClCompile Include="EventTests.cpp" />
     <ClCompile Include="IPEndPointTests.cpp" />
     <ClCompile Include="HashTests.cpp" />
     <ClCompile Include="IPAddressTests.cpp" />
