@@ -6,6 +6,8 @@
 #include <thread>
 #include <chrono>
 
+#include "Event.h"
+#include "ThreadSafe.h"
 #include "SharedSpinMutex.h"
 #include "..\Common\ScopeGuard.h"
 
@@ -15,7 +17,7 @@ namespace QuantumGate::Implementation::Concurrency
 	{
 		static constexpr Size MaxNumEvents{ MAXIMUM_WAIT_OBJECTS };
 
-		using EventHandle = HANDLE;
+		using EventHandle = Event::HandleType;
 		using EventHandles = Vector<EventHandle>;
 		using EventHandles_ThS = ThreadSafe<EventHandles, SharedSpinMutex>;
 
@@ -78,10 +80,11 @@ namespace QuantumGate::Implementation::Concurrency
 
 						if (m_EventThread.joinable()) m_EventThread.join();
 
+						::ResetEvent(m_MainEvent);
+
 						m_SubEvents.WithUniqueLock()->clear();
 
 						::CloseHandle(m_ShutdownEvent);
-
 						m_ShutdownEvent = nullptr;
 					}
 				}
@@ -98,8 +101,15 @@ namespace QuantumGate::Implementation::Concurrency
 				{
 					m_SubEvents.WithUniqueLock([&](EventHandles& handles)
 					{
-						if (handles.size() < (MaxNumEvents - 1)) handles.emplace_back(handle);
-						success = true;
+						if (handles.size() < MaxNumEvents)
+						{
+							handles.emplace_back(handle);
+							m_SubEventsChanged = true;
+
+							UpdateMainEvent(handles);
+
+							success = true;
+						}
 					});
 
 					if (success && !m_EventThread.joinable())
@@ -132,10 +142,19 @@ namespace QuantumGate::Implementation::Concurrency
 						{
 							handles.erase(it);
 
-							// Stop the thread if just the shutdown event
-							// is left in the array; the thread will get
-							// started again once another event is added
-							stop_thread = (handles.size() == 1);
+							m_SubEventsChanged = true;
+
+							if (handles.size() > 1)
+							{
+								UpdateMainEvent(handles);
+							}
+							else
+							{
+								// Stop the thread if just the shutdown event
+								// is left in the array; the thread will get
+								// started again once another event is added
+								stop_thread = true;
+							}
 						}
 					});
 
@@ -179,7 +198,7 @@ namespace QuantumGate::Implementation::Concurrency
 			{
 				assert(m_ShutdownEvent != nullptr);
 
-				return ((MaxNumEvents - 1) > m_SubEvents.WithSharedLock()->size());
+				return (MaxNumEvents > m_SubEvents.WithSharedLock()->size());
 			}
 
 			[[nodiscard]] bool IsEmpty() noexcept
@@ -190,6 +209,17 @@ namespace QuantumGate::Implementation::Concurrency
 			}
 
 		private:
+			void UpdateMainEvent(const EventHandles& handles) noexcept
+			{
+				const auto ret = ::WaitForMultipleObjectsEx(static_cast<DWORD>(handles.size()),
+															handles.data(), false, 0, false);
+				if (ret > WAIT_OBJECT_0 && ret < (WAIT_OBJECT_0 + handles.size()))
+				{
+					::SetEvent(m_MainEvent);
+				}
+				else ::ResetEvent(m_MainEvent);
+			}
+
 			static void ThreadProc(EventSubgroup* subgroup) noexcept
 			{
 				LogDbg(L"Event subgroup thread (%u) starting", std::this_thread::get_id());
@@ -204,6 +234,7 @@ namespace QuantumGate::Implementation::Concurrency
 					{
 						num_handles = static_cast<DWORD>(handles.size());
 						std::memcpy(event_handles.data(), handles.data(), num_handles * sizeof(EventHandle));
+						subgroup->m_SubEventsChanged = false;
 					});
 
 					const auto ret = ::WaitForMultipleObjectsEx(num_handles, event_handles.data(), false, 1, false);
@@ -211,21 +242,24 @@ namespace QuantumGate::Implementation::Concurrency
 					{
 						break;
 					}
-					else if (ret > WAIT_OBJECT_0 and ret < (WAIT_OBJECT_0 + num_handles))
+					else if (!subgroup->m_SubEventsChanged)
 					{
-						::SetEvent(subgroup->m_MainEvent);
-					}
-					else if (ret == WAIT_FAILED)
-					{
-						::ResetEvent(subgroup->m_MainEvent);
+						if (ret > WAIT_OBJECT_0 && ret < (WAIT_OBJECT_0 + num_handles))
+						{
+							::SetEvent(subgroup->m_MainEvent);
+						}
+						else if (ret == WAIT_FAILED)
+						{
+							::ResetEvent(subgroup->m_MainEvent);
 
-						LogErr(L"Wait() failed for event subgroup (%s)", GetLastSysErrorString().c_str());
+							LogErr(L"Wait() failed for event subgroup (%s)", GetLastSysErrorString().c_str());
 
-						std::this_thread::sleep_for(std::chrono::milliseconds(1));
-					}
-					else
-					{
-						::ResetEvent(subgroup->m_MainEvent);
+							std::this_thread::sleep_for(std::chrono::milliseconds(1));
+						}
+						else
+						{
+							::ResetEvent(subgroup->m_MainEvent);
+						}
 					}
 				}
 
@@ -236,6 +270,7 @@ namespace QuantumGate::Implementation::Concurrency
 			EventHandle m_ShutdownEvent{ nullptr };
 			EventHandle m_MainEvent{ nullptr };
 			EventHandles_ThS m_SubEvents;
+			std::atomic_bool m_SubEventsChanged{ false };
 			std::thread m_EventThread;
 		};
 
@@ -250,6 +285,8 @@ namespace QuantumGate::Implementation::Concurrency
 		using Data_ThS = ThreadSafe<Data, std::shared_mutex>;
 
 	public:
+		static constexpr Size MaximumNumberOfUserEvents{ MaxNumEvents * (MaxNumEvents - 1) };
+
 		struct WaitResult final
 		{
 			bool Waited{ false };
@@ -259,7 +296,7 @@ namespace QuantumGate::Implementation::Concurrency
 		EventGroup() noexcept {}
 		EventGroup(const EventGroup&) = delete;
 		EventGroup(EventGroup&&) = delete;
-		~EventGroup() { Shutdown(); }
+		~EventGroup() { Deinitialize(); }
 		EventGroup& operator=(const EventGroup&) = delete;
 		EventGroup& operator=(EventGroup&&) = delete;
 
@@ -289,7 +326,7 @@ namespace QuantumGate::Implementation::Concurrency
 			return success;
 		}
 
-		void Shutdown() noexcept
+		void Deinitialize() noexcept
 		{
 			try
 			{
@@ -378,7 +415,7 @@ namespace QuantumGate::Implementation::Concurrency
 			{
 				const auto ret = ::WaitForMultipleObjectsEx(num_handles, event_handles.data(), false,
 															static_cast<DWORD>(max_wait_time.count()), false);
-				if (ret >= WAIT_OBJECT_0 and ret < (WAIT_OBJECT_0 + num_handles))
+				if (ret >= WAIT_OBJECT_0 && ret < (WAIT_OBJECT_0 + num_handles))
 				{
 					result.Waited = true;
 					result.HadEvent = true;

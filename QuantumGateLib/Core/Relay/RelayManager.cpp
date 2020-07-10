@@ -157,7 +157,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		m_ThreadPool.Shutdown();
 		m_ThreadPool.Clear();
-		m_ThreadPool.GetData().WorkEvents.Shutdown();
+		m_ThreadPool.GetData().WorkEvents.Deinitialize();
 	}
 
 	std::optional<RelayPort> Manager::MakeRelayPort() const noexcept

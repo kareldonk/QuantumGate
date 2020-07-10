@@ -155,7 +155,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			thpool.second->Shutdown();
 			thpool.second->Clear();
 			thpool.second->GetData().TaskQueue.WithUniqueLock()->Clear();
-			thpool.second->GetData().WorkEvents.Shutdown();
+			thpool.second->GetData().WorkEvents.Deinitialize();
 		}
 
 		// Disconnect and remove all peers
