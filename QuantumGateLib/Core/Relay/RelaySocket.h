@@ -111,7 +111,6 @@ namespace QuantumGate::Implementation::Core::Relay
 		}
 
 	private:
-		inline void SetRelayManager(Manager* manager) noexcept { m_RelayManager = manager; }
 		void SetLocalEndpoint(const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept;
 
 		[[nodiscard]] inline IOBuffer GetSendBuffer() noexcept { return { m_SendBuffer, m_SendEvent }; }
@@ -145,7 +144,6 @@ namespace QuantumGate::Implementation::Core::Relay
 	private:
 		IOStatus m_IOStatus;
 
-		Manager* m_RelayManager{ nullptr };
 		bool m_ClosingRead{ false };
 
 		Size m_BytesReceived{ 0 };
