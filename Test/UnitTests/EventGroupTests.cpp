@@ -63,6 +63,14 @@ namespace UnitTests
 			Assert::AreEqual(true, result4.Waited);
 			Assert::AreEqual(false, result4.HadEvent);
 
+			Event event3;
+			Assert::AreEqual(true, event3.Set());
+			Assert::AreEqual(true, eventgroup.AddEvent(event3));
+
+			const auto result5 = eventgroup.Wait(0s);
+			Assert::AreEqual(true, result5.Waited);
+			Assert::AreEqual(true, result5.HadEvent);
+
 			eventgroup.Deinitialize();
 		}
 
