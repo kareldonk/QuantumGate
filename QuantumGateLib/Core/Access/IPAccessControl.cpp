@@ -29,7 +29,7 @@ namespace QuantumGate::Implementation::Core::Access
 			}
 
 			Int64 new_score{ static_cast<Int64>(m_Reputation.Score) +
-				(static_cast<Int64>(IPReputationUpdate::ImproveMinimal)* factor) };
+				(static_cast<Int64>(IPReputationUpdate::ImproveMinimal) * factor) };
 
 			if (new_score > IPReputation::ScoreLimits::Maximum)
 			{
