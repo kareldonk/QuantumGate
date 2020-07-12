@@ -5,7 +5,7 @@
 
 namespace QuantumGate::Implementation
 {
-	template<typename T, T MinSize = std::numeric_limits<T>::min(), T MaxSize = std::numeric_limits<T>::max()>
+	template<typename T, T MinSize = std::numeric_limits<T>::min(), T MaxSize = std::numeric_limits<T>::max(), bool NoExcept = true>
 	class RateLimit final
 	{
 		static_assert(std::is_arithmetic_v<T>, "T should be an arithmetic type.");
@@ -16,9 +16,26 @@ namespace QuantumGate::Implementation
 
 		constexpr RateLimit() noexcept = default;
 
-		constexpr RateLimit(const T value) noexcept : m_CurrentSize(value)
+		template<typename U> requires std::is_arithmetic_v<U>
+		constexpr RateLimit(U value) noexcept(NoExcept)
 		{
-			assert(m_CurrentSize >= MinSize && m_CurrentSize <= MaxSize);
+			if constexpr (NoExcept)
+			{
+				assert((value >= MinSize) && (value <= MaxSize));
+
+				if (value < MinSize) value = MinSize;
+				else if (value > MaxSize) value = MaxSize;
+			}
+			else
+			{
+				if (!((value >= MinSize) && (value <= MaxSize)))
+				{
+					throw std::invalid_argument("Value parameter is out of range.");
+					return;
+				}
+			}
+
+			m_CurrentSize = value;
 		}
 
 		constexpr RateLimit(const RateLimit&) noexcept = default;
@@ -27,28 +44,56 @@ namespace QuantumGate::Implementation
 		constexpr RateLimit& operator=(const RateLimit&) noexcept = default;
 		constexpr RateLimit& operator=(RateLimit&&) noexcept = default;
 
-		constexpr inline void Add(const SizeType num) noexcept
+		template<typename U> requires std::is_arithmetic_v<U>
+		constexpr inline void Add(const U num) noexcept(NoExcept)
 		{
-			assert(CanAdd(num));
+			if constexpr (NoExcept)
+			{
+				assert(CanAdd(num));
+			}
+			else
+			{
+				if (!CanAdd(num))
+				{
+					throw std::invalid_argument("Value parameter is out of range.");
+					return;
+				}
+			}
+
 			m_CurrentSize += num;
 		}
 
-		[[nodiscard]] constexpr inline bool CanAdd(const SizeType num) const noexcept
+		template<typename U> requires std::is_arithmetic_v<U>
+		[[nodiscard]] constexpr inline bool CanAdd(const U num) const noexcept
 		{
-			return (GetAvailable() >= num);
+			return ((m_CurrentSize + num >= MinSize) && (m_CurrentSize + num <= MaxSize));
 		}
 
 		[[nodiscard]] constexpr inline SizeType GetAvailable() const noexcept { return (MaxSize - m_CurrentSize); }
 
-		constexpr inline void Subtract(const SizeType num) noexcept
+		template<typename U> requires std::is_arithmetic_v<U>
+		constexpr inline void Subtract(const U num) noexcept(NoExcept)
 		{
-			assert(CanSubtract(num));
+			if constexpr (NoExcept)
+			{
+				assert(CanSubtract(num));
+			}
+			else
+			{
+				if (!CanSubtract(num))
+				{
+					throw std::invalid_argument("Value parameter is out of range.");
+					return;
+				}
+			}
+
 			m_CurrentSize -= num;
 		}
 
-		[[nodiscard]] constexpr inline bool CanSubtract(const SizeType num) const noexcept
+		template<typename U> requires std::is_arithmetic_v<U>
+		[[nodiscard]] constexpr inline bool CanSubtract(const U num) const noexcept
 		{
-			return ((m_CurrentSize >= num) && (m_CurrentSize - num >= MinSize));
+			return ((m_CurrentSize - num >= MinSize) && (m_CurrentSize - num <= MaxSize));
 		}
 
 		[[nodiscard]] constexpr inline SizeType GetCurrent() const noexcept { return m_CurrentSize; }
