@@ -7,7 +7,6 @@
 CAuthenticationDlg::CAuthenticationDlg(CWnd* pParent) : CDialogBase(CAuthenticationDlg::IDD, pParent)
 {}
 
-
 CAuthenticationDlg::~CAuthenticationDlg()
 {}
 
@@ -34,6 +33,12 @@ void CAuthenticationDlg::OnBnClickedOk()
 {
 	m_Username = GetTextValue(IDC_USERNAME);
 	m_Password = GetTextValue(IDC_PASSWORD);
+
+	if (m_Password.GetLength() > 0 && m_Username.GetLength() == 0)
+	{
+		AfxMessageBox(L"Please provide a username along with the password.", MB_ICONINFORMATION);
+		return;
+	}
 
 	CDialogBase::OnOK();
 }
