@@ -27,6 +27,7 @@
 #include "CSettingsDlg.h"
 #include "CInformationDlg.h"
 #include "CPingDlg.h"
+#include "CSocks5ExtenderConfigurationDlg.h"
 
 using namespace nlohmann;
 using namespace QuantumGate::Implementation;
@@ -175,6 +176,8 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_COMMAND(ID_UTILS_PING, &CTestAppDlg::OnUtilsPing)
 	ON_COMMAND(ID_LOCAL_FREEUNUSEDMEMORY, &CTestAppDlg::OnLocalFreeUnusedMemory)
 	ON_COMMAND(ID_BENCHMARKS_THREADPAUSE, &CTestAppDlg::OnBenchmarksThreadPause)
+	ON_COMMAND(ID_SOCKS5EXTENDER_CONFIGURATION, &CTestAppDlg::OnSocks5ExtenderConfiguration)
+	ON_UPDATE_COMMAND_UI(ID_SOCKS5EXTENDER_CONFIGURATION, &CTestAppDlg::OnUpdateSocks5ExtenderConfiguration)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlg::OnInitDialog()
@@ -1105,6 +1108,40 @@ void CTestAppDlg::OnUpdateSocks5ExtenderLoad(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_QuantumGate.HasExtender(Socks5Extender::Extender::UUID));
 }
 
+void CTestAppDlg::OnSocks5ExtenderConfiguration()
+{
+	auto extender = m_QuantumGate.GetExtender(Socks5Extender::Extender::UUID).lock();
+	if (extender)
+	{
+		auto socks5ext = std::static_pointer_cast<Socks5Extender::Extender>(extender);
+		if (socks5ext)
+		{
+			CSocks5ExtenderConfigurationDlg dlg;
+			dlg.SetTCPPort(socks5ext->GetTCPListenerPort());
+			if (dlg.DoModal() == IDOK)
+			{
+				socks5ext->SetTCPListenerPort(dlg.GetTCPPort());
+			}
+		}
+	}
+}
+
+void CTestAppDlg::OnUpdateSocks5ExtenderConfiguration(CCmdUI* pCmdUI)
+{
+	auto extender = m_QuantumGate.GetExtender(Socks5Extender::Extender::UUID).lock();
+	if (extender)
+	{
+		auto socks5ext = std::static_pointer_cast<Socks5Extender::Extender>(extender);
+		if (socks5ext)
+		{
+			pCmdUI->Enable(true);
+			return;
+		}
+	}
+
+	pCmdUI->Enable(false);
+}
+
 void CTestAppDlg::OnSocks5ExtenderAuthentication()
 {
 	auto extender = m_QuantumGate.GetExtender(Socks5Extender::Extender::UUID).lock();
@@ -1629,3 +1666,4 @@ void CTestAppDlg::OnBenchmarksThreadPause()
 {
 	Benchmarks::BenchmarkThreadPause();
 }
+

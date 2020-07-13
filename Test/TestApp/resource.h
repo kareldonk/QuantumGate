@@ -22,6 +22,7 @@
 #define IDD_INFO_DIALOG                 158
 #define IDD_PING_DIALOG                 160
 #define IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB 162
+#define IDD_SOCKS5EXTENDER_CONFIG       164
 #define IDC_INIT                        1000
 #define IDC_CONSOLE                     1001
 #define IDC_DEINIT                      1002
@@ -117,6 +118,7 @@
 #define IDC_NOISE_AUTO_SECONDS          1036
 #define IDC_IPSUBNETLIMIT_LIST          1037
 #define IDC_TTL                         1037
+#define IDC_TCP_PORT                    1037
 #define IDC_REMOVELIMIT                 1038
 #define IDC_TIMEOUT                     1038
 #define IDC_MAX_CONNECTIONS             1039
@@ -283,13 +285,14 @@
 #define ID_PEERLIST_CREATE_RELAY        32852
 #define ID_LOCAL_FREEUNUSEDMEMORY       32853
 #define ID_BENCHMARKS_THREADPAUSE       32854
+#define ID_SOCKS5EXTENDER_CONFIGURATION 32855
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        164
-#define _APS_NEXT_COMMAND_VALUE         32855
+#define _APS_NEXT_RESOURCE_VALUE        166
+#define _APS_NEXT_COMMAND_VALUE         32856
 #define _APS_NEXT_CONTROL_VALUE         1084
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

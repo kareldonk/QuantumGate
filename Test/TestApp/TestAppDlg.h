@@ -135,6 +135,8 @@ protected:
 	afx_msg void OnUtilsPing();
 	afx_msg void OnLocalFreeUnusedMemory();
 	afx_msg void OnBenchmarksThreadPause();
+	afx_msg void OnSocks5ExtenderConfiguration();
+	afx_msg void OnUpdateSocks5ExtenderConfiguration(CCmdUI* pCmdUI);
 
 protected:
 	QuantumGate::StartupParameters m_StartupParameters;

@@ -534,6 +534,7 @@
     <ClInclude Include="CPeerAccessDlg.h" />
     <ClInclude Include="CPingDlg.h" />
     <ClInclude Include="CSettingsDlg.h" />
+    <ClInclude Include="CSocks5ExtenderConfigurationDlg.h" />
     <ClInclude Include="CTabBase.h" />
     <ClInclude Include="CTestAppDlgAVExtenderTab.h" />
     <ClInclude Include="CTestAppDlgMainTab.h" />
@@ -581,6 +582,7 @@
     <ClCompile Include="CPeerAccessDlg.cpp" />
     <ClCompile Include="CPingDlg.cpp" />
     <ClCompile Include="CSettingsDlg.cpp" />
+    <ClCompile Include="CSocks5ExtenderConfigurationDlg.cpp" />
     <ClCompile Include="CTabBase.cpp" />
     <ClCompile Include="CTestAppDlgAVExtenderTab.cpp" />
     <ClCompile Include="CTestAppDlgMainTab.cpp" />
