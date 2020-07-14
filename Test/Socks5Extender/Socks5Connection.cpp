@@ -337,15 +337,12 @@ namespace QuantumGate::Socks5Extender
 		{
 			// This should send any remaining data such as
 			// Socks5 (error) replies
-			if (m_Socket.UpdateIOStatus(0ms))
+			if (!m_Socket.GetIOStatus().HasException() && m_Socket.GetIOStatus().CanWrite())
 			{
-				if (!m_Socket.GetIOStatus().HasException() && m_Socket.GetIOStatus().CanWrite())
+				while (m_Socket.Send(m_SendBuffer))
 				{
-					while (m_Socket.Send(m_SendBuffer))
-					{
-						if (m_SendBuffer.IsEmpty()) break;
-						else std::this_thread::sleep_for(1ms);
-					}
+					if (m_SendBuffer.IsEmpty()) break;
+					else std::this_thread::sleep_for(1ms);
 				}
 			}
 		}
@@ -506,45 +503,27 @@ namespace QuantumGate::Socks5Extender
 				}
 				else
 				{
-					if (m_Socket.GetIOStatus().CanRead() && m_ReceiveBuffer.GetSize() < MaxReceiveBufferSize)
+					if (m_Socket.GetIOStatus().CanRead())
 					{
-						// Get as much data as possible at once for efficiency
-						while (m_Socket.GetIOStatus().CanRead() && success && m_ReceiveBuffer.GetSize() < MaxReceiveBufferSize)
+						success = m_Socket.Receive(m_ReceiveBuffer);
+						if (!success)
 						{
-							success = m_Socket.Receive(m_ReceiveBuffer, MaxReceiveBufferSize - m_ReceiveBuffer.GetSize());
-							if (success)
+							const auto error_code = WSAGetLastError();
+							if (error_code != 0 && error_code != 5)
 							{
-								success = m_Socket.UpdateIOStatus(0ms);
-								if (success)
-								{
-									if (m_Socket.GetIOStatus().HasException())
-									{
-										LogErr(L"%s: got exception on socket %s (%s)",
-											   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
-											   GetSysErrorString(m_Socket.GetIOStatus().GetErrorCode()).c_str());
-										success = false;
-										break;
-									}
-								}
+								LogErr(L"%s: receive failed on endpoint %s for connection %llu (%s)",
+										m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
+										GetID(), GetSysErrorString(error_code).c_str());
 							}
 							else
 							{
-								if (WSAGetLastError() != 0)
-								{
-									LogErr(L"%s: receive failed on endpoint %s for connection %llu (%s)",
-										   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
-										   GetID(), GetLastSocketErrorString().c_str());
-								}
-								else
-								{
-									LogInfo(L"%s: socket closed on endpoint %s for connection %llu",
-											m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
-											GetID());
-								}
+								LogInfo(L"%s: socket closed on endpoint %s for connection %llu",
+										m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
+										GetID());
 							}
 						}
 
-						if (!m_ReceiveBuffer.IsEmpty()) m_Extender.SetConnectionReceiveEvent();
+						if (success && !m_ReceiveBuffer.IsEmpty()) m_Extender.SetConnectionReceiveEvent();
 
 						didwork = true;
 					}
@@ -559,7 +538,7 @@ namespace QuantumGate::Socks5Extender
 								   GetID(), GetLastSocketErrorString().c_str());
 						}
 						
-						if (!m_SendBuffer.IsEmpty()) m_Extender.SetConnectionSendEvent();
+						if (success && !m_SendBuffer.IsEmpty()) m_Extender.SetConnectionSendEvent();
 
 						didwork = true;
 					}
@@ -1209,7 +1188,7 @@ namespace QuantumGate::Socks5Extender
 
 		m_SendBuffer += buffer;
 
-		if (m_Socket.UpdateIOStatus(0ms) && !m_Socket.GetIOStatus().HasException())
+		if (!m_Socket.GetIOStatus().HasException())
 		{
 			if (m_Socket.GetIOStatus().CanWrite())
 			{
@@ -1219,14 +1198,14 @@ namespace QuantumGate::Socks5Extender
 					m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
 				}
 			}
+
+			// Any remaining data will be sent later
+			if (success && !m_SendBuffer.IsEmpty())
+			{
+				m_Extender.SetConnectionSendEvent();
+			}
 		}
 		else success = false;
-
-		// Any remaining data will be sent later
-		if (success && !m_SendBuffer.IsEmpty())
-		{
-			m_Extender.SetConnectionSendEvent();
-		}
 
 		return success;
 	}

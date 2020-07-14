@@ -92,9 +92,6 @@ namespace QuantumGate::Socks5Extender
 		[[nodiscard]] bool RelayReceivedData(const Size max_send, Size& sent);
 
 	private:
-		static constexpr Size MaxReceiveBufferSize{ 1u << 16 };
-
-	private:
 		SocksProtocolVersion m_ProtocolVersion{ SocksProtocolVersion::Unknown };
 		ID m_ID{ 0 };
 		PeerLUID m_PeerLUID{ 0 };

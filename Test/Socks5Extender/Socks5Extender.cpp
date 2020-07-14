@@ -334,7 +334,7 @@ namespace QuantumGate::Socks5Extender
 	bool Extender::StartupThreadPool()
 	{
 		m_ThreadPool.SetWorkerThreadsMaxBurst(64);
-		m_ThreadPool.SetWorkerThreadsMaxSleep(1s);
+		m_ThreadPool.SetWorkerThreadsMaxSleep(1ms);
 
 		if (m_ThreadPool.AddThread(GetName() + L" Main Worker Thread",
 								   MakeCallback(this, &Extender::MainWorkerThreadLoop), nullptr, false,
