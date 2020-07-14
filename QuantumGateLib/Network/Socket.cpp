@@ -926,21 +926,25 @@ namespace QuantumGate::Implementation::Network
 			WSANETWORKEVENTS events{ 0 };
 
 			const auto ret2 = WSAEnumNetworkEvents(m_Socket, handle, &events);
-			if (ret2 == WSA_WAIT_TIMEOUT) return true;
-			else if (ret2 != SOCKET_ERROR)
+			if (ret2 != SOCKET_ERROR)
 			{
+				// Behavior below tries to closely match the results a select() would 
+				// give in UpdateIOStatusFDSet()
+
+				if (!m_IOStatus.IsClosing()) m_IOStatus.SetClosing(events.lNetworkEvents & FD_CLOSE);
+
 				m_IOStatus.SetRead((events.lNetworkEvents & FD_READ) ||
-									(events.lNetworkEvents & FD_ACCEPT) ||
-									(events.lNetworkEvents & FD_CLOSE));
+									(events.lNetworkEvents & FD_ACCEPT) || m_IOStatus.IsClosing());
 
 				if (!m_IOStatus.CanWrite())
 				{
-					m_IOStatus.SetWrite((events.lNetworkEvents & FD_WRITE) ||
+					m_IOStatus.SetWrite((events.lNetworkEvents & FD_WRITE && events.iErrorCode[FD_WRITE_BIT] == 0) ||
 										(events.lNetworkEvents & FD_CONNECT && events.iErrorCode[FD_CONNECT_BIT] == 0));
 				}
 				else
 				{
-					m_IOStatus.SetWrite(!(events.lNetworkEvents & FD_CLOSE));
+					m_IOStatus.SetWrite(!(events.lNetworkEvents & FD_CLOSE ||
+										  (events.lNetworkEvents & FD_WRITE && events.iErrorCode[FD_WRITE_BIT] != 0)));
 				}
 
 				const auto set_error = [&](const int idx) noexcept
