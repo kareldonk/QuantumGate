@@ -30,6 +30,7 @@ namespace QuantumGate::Implementation::Network
 				Listening,
 				Read,
 				Write,
+				Closing,
 				Exception
 			};
 
@@ -40,6 +41,7 @@ namespace QuantumGate::Implementation::Network
 			inline void SetListening(const bool state) noexcept { Set(StatusType::Listening, state); }
 			inline void SetRead(const bool state) noexcept { Set(StatusType::Read, state); }
 			inline void SetWrite(const bool state) noexcept { Set(StatusType::Write, state); }
+			inline void SetClosing(const bool state) noexcept { Set(StatusType::Closing, state); }
 			inline void SetException(const bool state) noexcept { Set(StatusType::Exception, state); }
 			inline void SetErrorCode(const Int errorcode) noexcept { ErrorCode = errorcode; }
 
@@ -49,6 +51,7 @@ namespace QuantumGate::Implementation::Network
 			inline bool IsListening() const noexcept { return IsSet(StatusType::Listening); }
 			inline bool CanRead() const noexcept { return IsSet(StatusType::Read); }
 			inline bool CanWrite() const noexcept { return IsSet(StatusType::Write); }
+			inline bool IsClosing() const noexcept { return IsSet(StatusType::Closing); }
 			inline bool HasException() const noexcept { return IsSet(StatusType::Exception); }
 			inline Int GetErrorCode() const noexcept { return ErrorCode; }
 
