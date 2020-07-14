@@ -127,6 +127,31 @@ namespace QuantumGate::Socks5Extender
 		return false;
 	}
 
+	void Extender::SetTCPListenerPort(const UInt16 port) noexcept
+	{
+		auto restart_listener = false;
+
+		{
+			std::unique_lock<std::shared_mutex> lock(m_Listener.Mutex);
+
+			if (m_Listener.TCPPort != port)
+			{
+				m_Listener.TCPPort = port;
+
+				if (m_UseListener && IsRunning())
+				{
+					restart_listener = true;
+				}
+			}
+		}
+
+		if (restart_listener)
+		{
+			DiscardReturnValue(ShutdownListener());
+			DiscardReturnValue(StartupListener());
+		}
+	}
+
 	bool Extender::IsOutgoingIPAllowed(const IPAddress& ip) const noexcept
 	{
 		if (const auto result = m_IPFilters.WithSharedLock()->IsAllowed(ip); result.Succeeded())
@@ -272,7 +297,7 @@ namespace QuantumGate::Socks5Extender
 		{
 			m_Listener.ShutdownEvent.Reset();
 
-			const auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), 9090);
+			const auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), m_Listener.TCPPort);
 			m_Listener.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
 												Network::Socket::Type::Stream, IP::Protocol::TCP);
 			if (m_Listener.Socket.Listen(endpoint, false, false))

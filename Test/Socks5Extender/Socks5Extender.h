@@ -33,6 +33,7 @@ namespace QuantumGate::Socks5Extender
 		Concurrency::Event ShutdownEvent;
 		std::thread Thread;
 		Network::Socket Socket;
+		UInt16 TCPPort{ 9090 };
 		std::shared_mutex Mutex;
 	};
 
@@ -101,6 +102,9 @@ namespace QuantumGate::Socks5Extender
 
 		[[nodiscard]] bool SetCredentials(const ProtectedStringA& username, const ProtectedStringA& password);
 		[[nodiscard]] bool CheckCredentials(const BufferView& username, const BufferView& password) const;
+
+		void SetTCPListenerPort(const UInt16 port) noexcept;
+		inline UInt16 GetTCPListenerPort() const noexcept { return m_Listener.TCPPort; }
 
 		[[nodiscard]] bool IsOutgoingIPAllowed(const IPAddress& ip) const noexcept;
 
