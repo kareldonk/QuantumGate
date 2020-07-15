@@ -54,10 +54,11 @@ namespace QuantumGate::Implementation::Core::Extender
 		try
 		{
 			Vector<ExtenderUUID> startupext_list;
-			startupext_list.reserve(m_Extenders.WithSharedLock()->size());
 
-			m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
+			m_Extenders.WithSharedLock([&](const ExtenderMap& extenders)
 			{
+				startupext_list.reserve(extenders.size());
+
 				// Notify extenders of startup
 				for (const auto& e : extenders)
 				{
@@ -88,19 +89,19 @@ namespace QuantumGate::Implementation::Core::Extender
 				m_ExtenderUpdateCallbacks.WithUniqueLock()(startupext_list, true);
 			}
 
-			m_Extenders.WithUniqueLock([&](ExtenderMap& extenders) noexcept
+			m_Extenders.WithSharedLock([&](const ExtenderMap& extenders) noexcept
 			{
 				for (const auto& e : extenders)
 				{
-					e.second->WithUniqueLock([&](Control& extctrl) noexcept
+					auto extctrl = e.second->WithUniqueLock();
+					if (extctrl->HasExtender() && extctrl->GetStatus() == Control::Status::Running)
 					{
-						if (extctrl.HasExtender() &&
-							extctrl.GetStatus() == Control::Status::Running)
-						{
-							// Extender is now running and ready to be used
-							extctrl.GetExtender().OnEndStartup();
-						}
-					});
+						auto& extender = extctrl->GetExtender();
+
+						// Extender control should not be locked when calling OnEndStartup()
+						extctrl.Unlock();
+						extender.OnEndStartup();
+					}
 				}
 			});
 		}
@@ -119,10 +120,11 @@ namespace QuantumGate::Implementation::Core::Extender
 		try
 		{
 			Vector<ExtenderUUID> shutdownext_list;
-			shutdownext_list.reserve(m_Extenders.WithSharedLock()->size());
-
-			m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
+			
+			m_Extenders.WithSharedLock([&](const ExtenderMap& extenders)
 			{
+				shutdownext_list.reserve(extenders.size());
+
 				// Notify extenders of shutting down
 				for (const auto& e : extenders)
 				{
@@ -280,34 +282,42 @@ namespace QuantumGate::Implementation::Core::Extender
 	bool Manager::StartExtender(Control_ThS& extctrl_ths, const bool update_active)
 	{
 		auto success = false;
+		Extender* extender{ nullptr };
 		String extname;
 
-		extctrl_ths.WithUniqueLock([&](Control& extctrl) noexcept
 		{
-			extname = Control::GetExtenderName(extctrl.GetExtender());
+			auto extctrl = extctrl_ths.WithUniqueLock();
 
-			if (extctrl.GetStatus() != Control::Status::Stopped) return;
+			extender = &extctrl->GetExtender();
+			extname = Control::GetExtenderName(*extender);
 
-			LogSys(L"Extender %s starting...", extname.c_str());
-
-			if (extctrl.GetExtender().OnBeginStartup())
+			if (extctrl->GetStatus() == Control::Status::Stopped)
 			{
-				extctrl.SetStatus(Control::Status::Startup);
+				LogSys(L"Extender %s starting...", extname.c_str());
 
-				if (extctrl.StartupExtenderThreadPools())
+				if (extender->OnBeginStartup())
 				{
-					extctrl.SetStatus(Control::Status::Running);
-					success = true;
-				}
-				else
-				{
-					extctrl.GetExtender().OnBeginShutdown();
-					extctrl.ShutdownExtenderThreadPools();
-					extctrl.GetExtender().OnEndShutdown();
-					extctrl.SetStatus(Control::Status::Stopped);
+					extctrl->SetStatus(Control::Status::Startup);
+
+					if (extctrl->StartupExtenderThreadPools())
+					{
+						extctrl->SetStatus(Control::Status::Running);
+						success = true;
+					}
+					else
+					{
+						// Extender control should not be locked when calling OnBeginShutdown()
+						extctrl.Unlock();
+						extender->OnBeginShutdown();
+						extctrl.Lock();
+
+						extctrl->ShutdownExtenderThreadPools();
+						extender->OnEndShutdown();
+						extctrl->SetStatus(Control::Status::Stopped);
+					}
 				}
 			}
-		});
+		}
 
 		if (success)
 		{
@@ -319,15 +329,16 @@ namespace QuantumGate::Implementation::Core::Extender
 					UpdateActiveExtenderUUIDs(extenders);
 				});
 
-				const Vector<ExtenderUUID> extuuids{ extctrl_ths.WithSharedLock()->GetExtender().GetUUID() };
+				const Vector<ExtenderUUID> extuuids{ extender->GetUUID() };
 
 				// Let connected peers know we have added an extender.
 				// We shouldn't hold locks to extenders or extender controls
 				// before this call to avoid deadlock.
 				m_ExtenderUpdateCallbacks.WithUniqueLock()(extuuids, true);
 
-				// Extender is now initialized and ready to be used
-				extctrl_ths.WithUniqueLock()->GetExtender().OnEndStartup();
+				// Extender is now initialized and ready to be used.
+				// Extender control should not be locked when calling OnEndStartup().
+				extender->OnEndStartup();
 			}
 
 			LogSys(L"Extender %s startup successful", extname.c_str());
@@ -394,11 +405,13 @@ namespace QuantumGate::Implementation::Core::Extender
 	bool Manager::ShutdownExtender(Control_ThS& extctrl_ths, const bool update_active)
 	{
 		auto success = false;
+		Extender* extender{ nullptr };
 		String extname;
 
 		extctrl_ths.WithUniqueLock([&](Control& extctrl) noexcept
 		{
-			extname = Control::GetExtenderName(extctrl.GetExtender());
+			extender = &extctrl.GetExtender();
+			extname = Control::GetExtenderName(*extender);
 
 			if (extctrl.GetStatus() != Control::Status::Stopped)
 			{
@@ -424,19 +437,23 @@ namespace QuantumGate::Implementation::Core::Extender
 			}
 
 			// Now we actually shut down the extender
-			extctrl_ths.WithUniqueLock([&](Control& extctrl)
 			{
-				extctrl.GetExtender().OnBeginShutdown();
-				extctrl.ShutdownExtenderThreadPools();
-				extctrl.GetExtender().OnEndShutdown();
-				extctrl.SetStatus(Control::Status::Stopped);
+				// Extender control should not be locked when calling OnBeginShutdown()
+				extender->OnBeginShutdown();
 
-				LogSys(L"Extender %s shut down", extname.c_str());
-			});
+				extctrl_ths.WithUniqueLock([&](Control& extctrl)
+				{
+					extctrl.ShutdownExtenderThreadPools();
+					extender->OnEndShutdown();
+					extctrl.SetStatus(Control::Status::Stopped);
+
+					LogSys(L"Extender %s shut down", extname.c_str());
+				});
+			}
 
 			if (update_active)
 			{
-				Vector<ExtenderUUID> extuuids{ extctrl_ths.WithSharedLock()->GetExtender().GetUUID() };
+				Vector<ExtenderUUID> extuuids{ extender->GetUUID() };
 
 				// Let connected peers know we have removed an extender.
 				// We shouldn't hold locks to extenders or extender controls
