@@ -280,10 +280,12 @@ namespace QuantumGate::Implementation::Core::Extender
 	bool Manager::StartExtender(Control_ThS& extctrl_ths, const bool update_active)
 	{
 		auto success = false;
-		const auto extname = Control::GetExtenderName(extctrl_ths.WithSharedLock()->GetExtender());
+		String extname;
 
 		extctrl_ths.WithUniqueLock([&](Control& extctrl) noexcept
 		{
+			extname = Control::GetExtenderName(extctrl.GetExtender());
+
 			if (extctrl.GetStatus() != Control::Status::Stopped) return;
 
 			LogSys(L"Extender %s starting...", extname.c_str());
@@ -392,10 +394,12 @@ namespace QuantumGate::Implementation::Core::Extender
 	bool Manager::ShutdownExtender(Control_ThS& extctrl_ths, const bool update_active)
 	{
 		auto success = false;
-		const auto extname = Control::GetExtenderName(extctrl_ths.WithSharedLock()->GetExtender());
+		String extname;
 
 		extctrl_ths.WithUniqueLock([&](Control& extctrl) noexcept
 		{
+			extname = Control::GetExtenderName(extctrl.GetExtender());
+
 			if (extctrl.GetStatus() != Control::Status::Stopped)
 			{
 				LogSys(L"Extender %s shutting down...", extname.c_str());
@@ -419,16 +423,9 @@ namespace QuantumGate::Implementation::Core::Extender
 				});
 			}
 
-			Vector<ExtenderUUID> extuuids;
-
 			// Now we actually shut down the extender
 			extctrl_ths.WithUniqueLock([&](Control& extctrl)
 			{
-				if (update_active)
-				{
-					extuuids.emplace_back(extctrl.GetExtender().GetUUID());
-				}
-
 				extctrl.GetExtender().OnBeginShutdown();
 				extctrl.ShutdownExtenderThreadPools();
 				extctrl.GetExtender().OnEndShutdown();
@@ -439,6 +436,8 @@ namespace QuantumGate::Implementation::Core::Extender
 
 			if (update_active)
 			{
+				Vector<ExtenderUUID> extuuids{ extctrl_ths.WithSharedLock()->GetExtender().GetUUID() };
+
 				// Let connected peers know we have removed an extender.
 				// We shouldn't hold locks to extenders or extender controls
 				// before this call to avoid deadlock.

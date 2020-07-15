@@ -276,7 +276,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				}
 			}
 
-			UInt64 thpoolkey{ 0 };
+			ThreadPoolKey thpoolkey{ 0 };
 
 			peerctrl->WithUniqueLock([&](Peer& peer)
 			{

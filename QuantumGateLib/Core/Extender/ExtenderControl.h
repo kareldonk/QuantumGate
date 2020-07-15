@@ -16,13 +16,15 @@ namespace QuantumGate::Implementation::Core::Extender
 
 	class Control final
 	{
+		using ThreadPoolKey = UInt64;
+
 		struct Peer final
 		{
 			enum class Status { Unknown, Connected, Disconnected };
 
 			Peer() = delete;
 
-			Peer(const UInt64 thpkey, std::atomic<Size>& peercount, Status status) noexcept :
+			Peer(const ThreadPoolKey thpkey, std::atomic<Size>& peercount, Status status) noexcept :
 				Status(status), ThreadPoolKey(thpkey), ThreadPoolPeerCount(peercount)
 			{
 				++ThreadPoolPeerCount;
@@ -44,7 +46,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			Concurrency::Queue<Core::Peer::Event> MessageQueue;
 
 			bool IsInQueue{ false };
-			const UInt64 ThreadPoolKey{ 0 };
+			const ThreadPoolKey ThreadPoolKey{ 0 };
 			std::atomic<Size>& ThreadPoolPeerCount;
 		};
 
@@ -62,7 +64,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
-		using ThreadPoolMap = Containers::UnorderedMap<UInt64, std::unique_ptr<ThreadPool>>;
+		using ThreadPoolMap = Containers::UnorderedMap<ThreadPoolKey, std::unique_ptr<ThreadPool>>;
 
 	public:
 		enum class Status { Startup, Running, Shutdown, Stopped };
@@ -107,8 +109,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		static inline String GetExtenderName(const Extender& extender) noexcept
 		{
-			return Util::FormatString(L"'%s' (UUID: %s)", extender.GetName().c_str(),
-									  extender.GetUUID().GetString().c_str());
+			return Util::FormatString(L"'%s' (UUID: %s)", extender.GetName().c_str(), extender.GetUUID().GetString().c_str());
 		}
 
 		[[nodiscard]] bool AddPeerEvent(Core::Peer::Event&& event) noexcept;

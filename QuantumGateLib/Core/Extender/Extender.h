@@ -114,6 +114,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		inline void OnEndStartup() noexcept
 		{
 			m_Running = true;
+
 			try { m_PostStartupCallback(); }
 			catch (const std::exception& e) { OnException(e); }
 			catch (...) { OnException(); }
