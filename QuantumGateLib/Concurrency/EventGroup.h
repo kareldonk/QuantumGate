@@ -25,7 +25,10 @@ namespace QuantumGate::Implementation::Concurrency
 		{		
 		public:
 			EventSubgroup() noexcept = delete;
-			EventSubgroup(const EventHandle handle) noexcept : m_MainEvent(handle) {}
+
+			EventSubgroup(const EventHandle main_event, const EventHandle barrier_event) noexcept :
+				m_MainEvent(main_event), m_BarrierEvent(barrier_event) {}
+
 			EventSubgroup(const EventSubgroup&) = delete;
 			EventSubgroup(EventSubgroup&&) = delete;
 			~EventSubgroup() { Deinitialize(); };
@@ -39,6 +42,12 @@ namespace QuantumGate::Implementation::Concurrency
 				m_ShutdownEvent = ::CreateEvent(nullptr, true, false, nullptr);
 				if (m_ShutdownEvent != nullptr)
 				{
+					auto sg = MakeScopeGuard([&]
+					{
+						::CloseHandle(m_ShutdownEvent);
+						m_ShutdownEvent = nullptr;
+					});
+
 					try
 					{
 						m_SubEvents.WithUniqueLock([&](EventHandles& handles)
@@ -49,6 +58,10 @@ namespace QuantumGate::Implementation::Concurrency
 							// event in the array and should always be present
 							handles.emplace_back(m_ShutdownEvent);
 						});
+
+						sg.Deactivate();
+
+						return true;
 					}
 					catch (const std::exception& e)
 					{
@@ -56,8 +69,6 @@ namespace QuantumGate::Implementation::Concurrency
 							   Util::ToStringW(e.what()).c_str());
 					}
 					catch (...) {}
-
-					return true;
 				}
 				else
 				{
@@ -222,43 +233,81 @@ namespace QuantumGate::Implementation::Concurrency
 
 			static void ThreadProc(EventSubgroup* subgroup) noexcept
 			{
+				assert(subgroup->m_ShutdownEvent != nullptr && subgroup->m_BarrierEvent != nullptr);
+
 				LogDbg(L"Event subgroup thread (%u) starting", std::this_thread::get_id());
 
-				while (true)
+				auto exit = false;
+
+				while (!exit)
 				{
-					DWORD num_handles{ 0 };
+					std::array<EventHandle, 2> barrier_handles{
+						subgroup->m_ShutdownEvent,
+						subgroup->m_BarrierEvent
+					};
 
-					std::array<EventHandle, MaxNumEvents> event_handles{ nullptr };
-
-					subgroup->m_SubEvents.WithSharedLock([&](const EventHandles& handles)
-					{
-						num_handles = static_cast<DWORD>(handles.size());
-						std::memcpy(event_handles.data(), handles.data(), num_handles * sizeof(EventHandle));
-						subgroup->m_SubEventsChanged = false;
-					});
-
-					const auto ret = ::WaitForMultipleObjectsEx(num_handles, event_handles.data(), false, 1, false);
+					const auto ret = ::WaitForMultipleObjectsEx(static_cast<DWORD>(barrier_handles.size()),
+																barrier_handles.data(), false, INFINITE, false);
 					if (ret == WAIT_OBJECT_0)
 					{
-						break;
+						// Shutdown event
+						exit = true;
 					}
-					else if (!subgroup->m_SubEventsChanged)
+					else if (ret == WAIT_FAILED)
 					{
-						if (ret > WAIT_OBJECT_0 && ret < (WAIT_OBJECT_0 + num_handles))
-						{
-							::SetEvent(subgroup->m_MainEvent);
-						}
-						else if (ret == WAIT_FAILED)
-						{
-							::ResetEvent(subgroup->m_MainEvent);
+						::ResetEvent(subgroup->m_MainEvent);
 
-							LogErr(L"Wait() failed for event subgroup (%s)", GetLastSysErrorString().c_str());
+						LogErr(L"WaitForMultipleObjectsEx() failed for event subgroup barrier (%s)",
+							   GetLastSysErrorString().c_str());
 
-							std::this_thread::sleep_for(std::chrono::milliseconds(1));
-						}
-						else
+						// This is to prevent this thread from spinning and hogging CPU 
+						// in the case where the above wait fails repeatedly
+						std::this_thread::sleep_for(std::chrono::milliseconds(1));
+					}
+					else
+					{
+						while (true)
 						{
-							::ResetEvent(subgroup->m_MainEvent);
+							DWORD num_handles{ 0 };
+
+							std::array<EventHandle, MaxNumEvents> event_handles{ nullptr };
+
+							subgroup->m_SubEvents.WithSharedLock([&](const EventHandles& handles)
+							{
+								num_handles = static_cast<DWORD>(handles.size());
+								std::memcpy(event_handles.data(), handles.data(), num_handles * sizeof(EventHandle));
+								subgroup->m_SubEventsChanged = false;
+							});
+
+							const auto ret2 = ::WaitForMultipleObjectsEx(num_handles, event_handles.data(), false, 1, false);
+							if (ret2 == WAIT_OBJECT_0)
+							{
+								// Shutdown event
+								exit = true;
+								break;
+							}
+							else if (!subgroup->m_SubEventsChanged)
+							{
+								if (ret2 > WAIT_OBJECT_0 && ret2 < (WAIT_OBJECT_0 + num_handles))
+								{
+									// One or more of the events were set
+									::SetEvent(subgroup->m_MainEvent);
+								}
+								else if (ret2 == WAIT_TIMEOUT)
+								{
+									// None of the events were set
+									::ResetEvent(subgroup->m_MainEvent);
+								}
+								else if (ret2 == WAIT_FAILED)
+								{
+									::ResetEvent(subgroup->m_MainEvent);
+
+									LogErr(L"WaitForMultipleObjectsEx() failed for event subgroup (%s)",
+										   GetLastSysErrorString().c_str());
+								}
+
+								break;
+							}
 						}
 					}
 				}
@@ -269,6 +318,7 @@ namespace QuantumGate::Implementation::Concurrency
 		private:
 			EventHandle m_ShutdownEvent{ nullptr };
 			EventHandle m_MainEvent{ nullptr };
+			EventHandle m_BarrierEvent{ nullptr };
 			EventHandles_ThS m_SubEvents;
 			std::atomic_bool m_SubEventsChanged{ false };
 			std::thread m_EventThread;
@@ -279,6 +329,7 @@ namespace QuantumGate::Implementation::Concurrency
 		struct Data final
 		{
 			EventHandles MainHandles;
+			EventHandle EventSubgroupBarrier{ nullptr };
 			EventSubgroups EventSubgroups;
 		};
 
@@ -306,12 +357,20 @@ namespace QuantumGate::Implementation::Concurrency
 
 			try
 			{
-				m_Data.WithUniqueLock([](Data& data)
+				m_Data.WithUniqueLock([&](Data& data)
 				{
 					data.MainHandles.reserve(MaxNumEvents);
-				});
 
-				success = true;
+					data.EventSubgroupBarrier = ::CreateEvent(nullptr, true, false, nullptr);
+					if (data.EventSubgroupBarrier != nullptr)
+					{
+						success = true;
+					}
+					else
+					{
+						LogErr(L"Couldn't create event subgroup barrier (%s)", GetLastSysErrorString().c_str());
+					}
+				});
 			}
 			catch (const std::exception& e)
 			{
@@ -340,6 +399,12 @@ namespace QuantumGate::Implementation::Concurrency
 					}
 
 					data.MainHandles.clear();
+
+					if (data.EventSubgroupBarrier != nullptr)
+					{
+						::CloseHandle(data.EventSubgroupBarrier);
+						data.EventSubgroupBarrier = nullptr;
+					}
 				});
 			}
 			catch (...) {}
@@ -356,7 +421,10 @@ namespace QuantumGate::Implementation::Concurrency
 					auto subgroup = GetSubgroup(data);
 					if (subgroup != nullptr)
 					{
-						if (subgroup->AddEvent(handle)) success = true;
+						if (subgroup->AddEvent(handle))
+						{
+							success = true;
+						}
 						else
 						{
 							LogErr(L"Failed to add event to subgroup");
@@ -385,7 +453,10 @@ namespace QuantumGate::Implementation::Concurrency
 						{
 							(*it)->RemoveEvent(handle);
 
-							if ((*it)->IsEmpty()) data.EventSubgroups.erase(it);
+							if ((*it)->IsEmpty())
+							{
+								data.EventSubgroups.erase(it);
+							}
 
 							return;
 						}
@@ -402,17 +473,20 @@ namespace QuantumGate::Implementation::Concurrency
 			WaitResult result{ .Waited = false, .HadEvent = false };
 
 			DWORD num_handles{ 0 };
-
 			std::array<EventHandle, MaxNumEvents> event_handles{ nullptr };
+			EventHandle barrier_handle{ nullptr };
 
 			m_Data.WithSharedLock([&](const Data& data)
 			{
 				num_handles = static_cast<DWORD>(data.MainHandles.size());
 				std::memcpy(event_handles.data(), data.MainHandles.data(), num_handles * sizeof(EventHandle));
+				barrier_handle = data.EventSubgroupBarrier;
 			});
 
 			if (num_handles > 0)
 			{
+				::SetEvent(barrier_handle);
+
 				const auto ret = ::WaitForMultipleObjectsEx(num_handles, event_handles.data(), false,
 															static_cast<DWORD>(max_wait_time.count()), false);
 				if (ret >= WAIT_OBJECT_0 && ret < (WAIT_OBJECT_0 + num_handles))
@@ -428,6 +502,8 @@ namespace QuantumGate::Implementation::Concurrency
 				{
 					LogErr(L"Wait() failed for event group (%s)", GetLastSysErrorString().c_str());
 				}
+
+				::ResetEvent(barrier_handle);
 			}
 
 			return result;
@@ -445,49 +521,55 @@ namespace QuantumGate::Implementation::Concurrency
 
 			String error;
 
-			// Add another subgroup if possible
-			if (data.EventSubgroups.size() < MaxNumEvents)
+			try
 			{
-				const auto handle = ::CreateEvent(nullptr, true, false, L"");
-				if (handle != nullptr)
+				// Add another subgroup if possible
+				if (data.EventSubgroups.size() < MaxNumEvents)
 				{
-					auto sg = MakeScopeGuard([&] { ::CloseHandle(handle); });
-
-					try
+					const auto main_handle = ::CreateEvent(nullptr, true, false, nullptr);
+					if (main_handle != nullptr)
 					{
-						data.MainHandles.emplace_back(handle);
+						auto sg = MakeScopeGuard([&] { ::CloseHandle(main_handle); });
 
-						auto sg2 = MakeScopeGuard([&] { data.MainHandles.pop_back(); });
-
-						auto& subgroup = data.EventSubgroups.emplace_back(std::make_unique<EventSubgroup>(handle));
-
-						auto sg3 = MakeScopeGuard([&] { data.EventSubgroups.pop_back(); });
-
-						if (subgroup->Initialize())
+						try
 						{
-							sg.Deactivate();
-							sg2.Deactivate();
-							sg3.Deactivate();
+							data.MainHandles.emplace_back(main_handle);
 
-							return subgroup.get();
+							auto sg2 = MakeScopeGuard([&] { data.MainHandles.pop_back(); });
+
+							auto& subgroup = data.EventSubgroups.emplace_back(
+								std::make_unique<EventSubgroup>(main_handle, data.EventSubgroupBarrier)
+							);
+
+							auto sg3 = MakeScopeGuard([&] { data.EventSubgroups.pop_back(); });
+
+							if (subgroup->Initialize())
+							{
+								sg.Deactivate();
+								sg2.Deactivate();
+								sg3.Deactivate();
+
+								return subgroup.get();
+							}
+							else error = L"event subgroup initialization failed";
 						}
-						else error = L"event subgroup initialization failed";
+						catch (const std::exception& e)
+						{
+							error = Util::FormatString(L"an exception occured: %s", Util::ToStringW(e.what()).c_str());
+						}
+						catch (...)
+						{
+							error = Util::FormatString(L"an unknown exception occured");
+						}
 					}
-					catch (const std::exception& e)
+					else
 					{
-						error = Util::FormatString(L"an exception occured: %s", Util::ToStringW(e.what()).c_str());
-					}
-					catch (...)
-					{
-						error = Util::FormatString(L"an unknown exception occured");
+						error = Util::FormatString(L"couldn't create a new event (%s)", GetLastSysErrorString().c_str());
 					}
 				}
-				else
-				{
-					error = Util::FormatString(L"couldn't create a new event (%s)", GetLastSysErrorString().c_str());
-				}
+				else error = Util::FormatString(L"the maximum number of event subgroups (%zu) has been reached", MaxNumEvents);
 			}
-			else error = Util::FormatString(L"the maximum number of event subgroups (%zu) has been reached", MaxNumEvents);
+			catch (...) {}
 
 			LogErr(L"Failed to add a new event subgroup; %s", error.c_str());
 
