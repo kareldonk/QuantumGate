@@ -35,6 +35,8 @@ namespace QuantumGate::Implementation::Concurrency
 			EventSubgroup& operator=(const EventSubgroup&) = delete;
 			EventSubgroup& operator=(EventSubgroup&&) = delete;
 
+			EventHandle GetMainEvent() const noexcept { return m_MainEvent; }
+
 			[[nodiscard]] bool Initialize() noexcept
 			{
 				assert(m_ShutdownEvent == nullptr);
@@ -389,16 +391,9 @@ namespace QuantumGate::Implementation::Concurrency
 		{
 			try
 			{
-				m_Data.WithUniqueLock([](Data& data)
+				m_Data.WithUniqueLock([&](Data& data)
 				{
-					data.EventSubgroups.clear();
-
-					for (const auto& handle : data.MainHandles)
-					{
-						::CloseHandle(handle);
-					}
-
-					data.MainHandles.clear();
+					RemoveAllEvents(data);
 
 					if (data.EventSubgroupBarrier != nullptr)
 					{
@@ -453,8 +448,24 @@ namespace QuantumGate::Implementation::Concurrency
 						{
 							(*it)->RemoveEvent(handle);
 
+							// If the subgroup is empty we can remove it
 							if ((*it)->IsEmpty())
 							{
+								const auto mit = std::find_if(data.MainHandles.begin(), data.MainHandles.end(),
+															 [&](const auto mhandle)
+								{
+									return (mhandle == (*it)->GetMainEvent());
+								});
+
+								// Should always find the main handle
+								assert(mit != data.MainHandles.end());
+
+								if (mit != data.MainHandles.end())
+								{
+									::CloseHandle(*mit);
+									data.MainHandles.erase(mit);
+								}
+
 								data.EventSubgroups.erase(it);
 							}
 
@@ -464,6 +475,15 @@ namespace QuantumGate::Implementation::Concurrency
 
 					LogErr(L"Couldn't remove an event from a event subgroup; the event wasn't found");
 				});
+			}
+			catch (...) {}
+		}
+
+		void RemoveAllEvents() noexcept
+		{
+			try
+			{
+				RemoveAllEvents(*m_Data.WithUniqueLock());
 			}
 			catch (...) {}
 		}
@@ -478,6 +498,8 @@ namespace QuantumGate::Implementation::Concurrency
 
 			m_Data.WithSharedLock([&](const Data& data)
 			{
+				assert(data.MainHandles.size() <= MaxNumEvents);
+
 				num_handles = static_cast<DWORD>(data.MainHandles.size());
 				std::memcpy(event_handles.data(), data.MainHandles.data(), num_handles * sizeof(EventHandle));
 				barrier_handle = data.EventSubgroupBarrier;
@@ -510,6 +532,18 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 	private:
+		void RemoveAllEvents(Data& data) noexcept
+		{
+			data.EventSubgroups.clear();
+
+			for (const auto& handle : data.MainHandles)
+			{
+				::CloseHandle(handle);
+			}
+
+			data.MainHandles.clear();
+		}
+
 		[[nodiscard]] EventSubgroup* GetSubgroup(Data& data) noexcept
 		{
 			// First we look for an existing subgroup
@@ -524,7 +558,7 @@ namespace QuantumGate::Implementation::Concurrency
 			try
 			{
 				// Add another subgroup if possible
-				if (data.EventSubgroups.size() < MaxNumEvents)
+				if (data.MainHandles.size() < MaxNumEvents)
 				{
 					const auto main_handle = ::CreateEvent(nullptr, true, false, nullptr);
 					if (main_handle != nullptr)
@@ -535,11 +569,15 @@ namespace QuantumGate::Implementation::Concurrency
 						{
 							data.MainHandles.emplace_back(main_handle);
 
+							assert(data.MainHandles.size() <= MaxNumEvents);
+
 							auto sg2 = MakeScopeGuard([&] { data.MainHandles.pop_back(); });
 
 							auto& subgroup = data.EventSubgroups.emplace_back(
 								std::make_unique<EventSubgroup>(main_handle, data.EventSubgroupBarrier)
 							);
+
+							assert(data.EventSubgroups.size() <= MaxNumEvents);
 
 							auto sg3 = MakeScopeGuard([&] { data.EventSubgroups.pop_back(); });
 
