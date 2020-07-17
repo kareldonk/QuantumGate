@@ -307,9 +307,10 @@ namespace QuantumGate::Implementation::Core::Extender
 					else
 					{
 						// Extender control should not be locked when calling OnBeginShutdown()
-						extctrl.Unlock();
-						extender->OnBeginShutdown();
-						extctrl.Lock();
+						extctrl.WhileUnlocked([&]()
+						{
+							extender->OnBeginShutdown();
+						});
 
 						extctrl->ShutdownExtenderThreadPools();
 						extender->OnEndShutdown();

@@ -148,6 +148,30 @@ namespace QuantumGate::Implementation::Concurrency
 				if (m_Lock.owns_lock()) m_Lock.unlock();
 			}
 
+			template<typename F, typename Lck2 = Lck,
+				typename = std::enable_if_t<std::is_same_v<Lck2, std::unique_lock<M>>>>
+			inline void WhileUnlocked(F&& function) noexcept(noexcept(Unlock()) &&
+															 noexcept(function()) &&
+															 noexcept(Lock()))
+			{
+				assert(m_Lock.owns_lock());
+				Unlock();
+				function();
+				Lock();
+			}
+
+			template<typename F, typename Lck2 = Lck,
+				typename = std::enable_if_t<std::is_same_v<Lck2, std::shared_lock<M>>>>
+				inline void WhileUnlocked(F&& function) const noexcept(noexcept(UnlockShared()) &&
+																	   noexcept(function()) &&
+																	   noexcept(LockShared()))
+			{
+				assert(m_Lock.owns_lock());
+				UnlockShared();
+				function();
+				LockShared();
+			}
+
 		private:
 			ThS* m_ThS{ nullptr };
 			Lck m_Lock;
