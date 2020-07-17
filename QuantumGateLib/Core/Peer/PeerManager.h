@@ -21,7 +21,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		friend class Relay::Manager;
 
 		using PeerMap = Containers::UnorderedMap<PeerLUID, std::shared_ptr<Peer_ThS>>;
-		using PeerMap_ThS = Concurrency::ThreadSafe<PeerMap, Concurrency::RecursiveSharedMutex>;
+		using PeerMap_ThS = Concurrency::ThreadSafe<PeerMap, std::shared_mutex>;
 
 		struct Tasks final
 		{
@@ -136,7 +136,7 @@ namespace QuantumGate::Implementation::Core::Peer
 											  const Vector<BinaryIPAddress>& addresses) noexcept;
 
 		bool Add(std::shared_ptr<Peer_ThS>& peerths) noexcept;
-		void Remove(const Peer& peer) noexcept;
+		void Remove(const std::shared_ptr<Peer_ThS>& peer_ths) noexcept;
 		void Remove(const Containers::List<std::shared_ptr<Peer_ThS>>& peerlist) noexcept;
 		void RemoveAll() noexcept;
 

@@ -155,11 +155,15 @@ namespace QuantumGate::Implementation::Core::Peer
 			thpool.second->Shutdown();
 			thpool.second->Clear();
 			thpool.second->GetData().TaskQueue.WithUniqueLock()->Clear();
-			thpool.second->GetData().WorkEvents.Deinitialize();
 		}
 
 		// Disconnect and remove all peers
 		DisconnectAndRemoveAll();
+
+		for (const auto& thpool : m_ThreadPools)
+		{
+			thpool.second->GetData().WorkEvents.Deinitialize();
+		}
 
 		DbgInvoke([&]()
 		{
@@ -606,36 +610,39 @@ namespace QuantumGate::Implementation::Core::Peer
 		return success;
 	}
 
-	void Manager::Remove(const Peer& peer) noexcept
+	void Manager::Remove(const std::shared_ptr<Peer_ThS>& peer_ths) noexcept
 	{
-		m_AllPeers.WithUniqueLock()->erase(peer.GetLUID());
+		PeerLUID pluid{ 0 };
+		ThreadPool* thpool{ nullptr };
 
-		const auto& thpool = m_ThreadPools[peer.GetThreadPoolKey()];
-
-		switch (peer.GetGateType())
+		peer_ths->WithSharedLock([&](const Peer& peer)
 		{
-			case GateType::Socket:
-				thpool->GetData().WorkEvents.RemoveEvent(peer.GetSocket<Socket>().GetEvent().GetHandle());
-				break;
-			case GateType::RelaySocket:
-				thpool->GetData().WorkEvents.RemoveEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
-				break;
-			default:
-				break;
-		}
+			pluid = peer.GetLUID();
+			thpool = m_ThreadPools[peer.GetThreadPoolKey()].get();
 
-		thpool->GetData().PeerMap.WithUniqueLock()->erase(peer.GetLUID());
+			switch (peer.GetGateType())
+			{
+				case GateType::Socket:
+					thpool->GetData().WorkEvents.RemoveEvent(peer.GetSocket<Socket>().GetEvent().GetHandle());
+					break;
+				case GateType::RelaySocket:
+					thpool->GetData().WorkEvents.RemoveEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
+					break;
+				default:
+					break;
+			}
+		});
+
+		m_AllPeers.WithUniqueLock()->erase(pluid);
+		thpool->GetData().PeerMap.WithUniqueLock()->erase(pluid);
 	}
 
 	void Manager::Remove(const Containers::List<std::shared_ptr<Peer_ThS>>& peerlist) noexcept
 	{
-		m_AllPeers.WithUniqueLock([&](PeerMap& peers)
+		for (const auto& peerths : peerlist)
 		{
-			for (const auto& peerths : peerlist)
-			{
-				Remove(*peerths->WithSharedLock());
-			}
-		});
+			Remove(peerths);
+		}
 	}
 
 	void Manager::RemoveAll() noexcept
@@ -644,6 +651,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		for (const auto& thpool : m_ThreadPools)
 		{
+			thpool.second->GetData().WorkEvents.RemoveAllEvents();
 			thpool.second->GetData().PeerMap.WithUniqueLock()->clear();
 		}
 	}
