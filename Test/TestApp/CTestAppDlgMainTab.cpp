@@ -95,8 +95,7 @@ BOOL CTestAppDlgMainTab::OnInitDialog()
 	m_ConsoleBrush.CreateBrushIndirect(&br);
 
 	LOGFONT lf;
-	std::memset(&lf, 0, sizeof(LOGFONT));
-	lf.lfHeight = 14;
+	((CEdit*)GetDlgItem(IDC_CONSOLE))->GetFont()->GetLogFont(&lf);
 	const WCHAR font_name[] = L"Consolas";
 	_tcsncpy_s(lf.lfFaceName, LF_FACESIZE, font_name, sizeof(font_name) / sizeof(WCHAR));
 
