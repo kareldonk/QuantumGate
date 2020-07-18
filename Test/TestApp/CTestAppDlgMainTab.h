@@ -78,6 +78,7 @@ protected:
 private:
 	QuantumGate::Local& m_QuantumGate;
 	CBrush m_ConsoleBrush;
+	CFont m_ConsoleFont;
 
 	Vector<PeerLUID> m_PeerLUIDs;
 	PeerQueryParameters m_PeerQueryParams;

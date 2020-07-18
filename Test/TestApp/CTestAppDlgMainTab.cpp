@@ -94,6 +94,17 @@ BOOL CTestAppDlgMainTab::OnInitDialog()
 	br.lbHatch = 0;
 	m_ConsoleBrush.CreateBrushIndirect(&br);
 
+	LOGFONT lf;
+	std::memset(&lf, 0, sizeof(LOGFONT));
+	lf.lfHeight = 14;
+	const WCHAR font_name[] = L"Consolas";
+	_tcsncpy_s(lf.lfFaceName, LF_FACESIZE, font_name, sizeof(font_name) / sizeof(WCHAR));
+
+	if (m_ConsoleFont.CreateFontIndirect(&lf) != 0)
+	{
+		((CEdit*)GetDlgItem(IDC_CONSOLE))->SetFont(&m_ConsoleFont);
+	}
+
 	m_ConsoleTimer = SetTimer(CONSOLE_TIMER, 500, NULL);
 	m_PeerActivityTimer = SetTimer(PEER_ACTIVITY_TIMER, 500, NULL);
 
