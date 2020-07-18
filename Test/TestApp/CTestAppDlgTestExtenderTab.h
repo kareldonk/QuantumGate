@@ -34,6 +34,7 @@ protected:
 	LRESULT OnPeerFileAccept(WPARAM w, LPARAM l);
 	LRESULT OnExtenderInit(WPARAM w, LPARAM l);
 	LRESULT OnExtenderDeInit(WPARAM w, LPARAM l);
+	LRESULT OnPingResult(WPARAM w, LPARAM l);
 
 	virtual BOOL OnInitDialog();
 
@@ -94,6 +95,7 @@ protected:
 	afx_msg void OnBnClickedAutoSendfile();
 	afx_msg void OnBnClickedSendPriority();
 	afx_msg void OnBnClickedStartBenchmark();
+	afx_msg void OnBnClickedPing();
 
 private:
 	QuantumGate::Local& m_QuantumGate;

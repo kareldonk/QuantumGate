@@ -30,6 +30,12 @@ void CTestAppDlgTestExtenderTab::UpdateControls() noexcept
 	GetDlgItem(IDC_SENDBUTTON)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
 	GetDlgItem(IDC_SENDCHECK)->EnableWindow(m_QuantumGate.IsRunning() && (peerselected || m_SendThread != nullptr));
 	GetDlgItem(IDC_SENDSECONDS)->EnableWindow(m_QuantumGate.IsRunning() && m_SendThread == nullptr);
+	
+	const auto ping_active = (m_TestExtender != nullptr ? m_TestExtender->IsPingActive() : false);
+
+	GetDlgItem(IDC_PING)->EnableWindow(m_QuantumGate.IsRunning() && peerselected && !ping_active);
+	GetDlgItem(IDC_PING_NUM_BYTES)->EnableWindow(m_QuantumGate.IsRunning() && !ping_active);
+
 	GetDlgItem(IDC_SENDFILE)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
 	GetDlgItem(IDC_AUTO_SENDFILE)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
 	GetDlgItem(IDC_START_BENCHMARK)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
@@ -52,6 +58,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlgTestExtenderTab, CTabBase)
 	ON_MESSAGE(static_cast<UINT>(TestExtender::WindowsMessage::FileAccept), &CTestAppDlgTestExtenderTab::OnPeerFileAccept)
 	ON_MESSAGE(static_cast<UINT>(TestExtender::WindowsMessage::ExtenderInit), &CTestAppDlgTestExtenderTab::OnExtenderInit)
 	ON_MESSAGE(static_cast<UINT>(TestExtender::WindowsMessage::ExtenderDeinit), &CTestAppDlgTestExtenderTab::OnExtenderDeInit)
+	ON_MESSAGE(static_cast<UINT>(TestExtender::WindowsMessage::PingResult), &CTestAppDlgTestExtenderTab::OnPingResult)
 	ON_BN_CLICKED(IDC_SENDBUTTON, &CTestAppDlgTestExtenderTab::OnBnClickedSendbutton)
 	ON_BN_CLICKED(IDC_SENDCHECK, &CTestAppDlgTestExtenderTab::OnBnClickedSendcheck)
 	ON_BN_CLICKED(IDC_SENDFILE, &CTestAppDlgTestExtenderTab::OnBnClickedSendfile)
@@ -87,6 +94,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlgTestExtenderTab, CTabBase)
 	ON_BN_CLICKED(IDC_AUTO_SENDFILE, &CTestAppDlgTestExtenderTab::OnBnClickedAutoSendfile)
 	ON_BN_CLICKED(IDC_SEND_PRIORITY, &CTestAppDlgTestExtenderTab::OnBnClickedSendPriority)
 	ON_BN_CLICKED(IDC_START_BENCHMARK, &CTestAppDlgTestExtenderTab::OnBnClickedStartBenchmark)
+	ON_BN_CLICKED(IDC_PING, &CTestAppDlgTestExtenderTab::OnBnClickedPing)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlgTestExtenderTab::OnInitDialog()
@@ -97,6 +105,7 @@ BOOL CTestAppDlgTestExtenderTab::OnInitDialog()
 	SetValue(IDC_SENDSECONDS, L"10");
 	SetValue(IDC_NUMSTRESSMESS, L"100000");
 	SetValue(IDC_SEND_DELAY, L"2000");
+	SetValue(IDC_PING_NUM_BYTES, L"32");
 	SetValue(IDC_BENCHMARK_SIZE, L"100000000");
 
 	auto lctrl = (CListCtrl*)GetDlgItem(IDC_FILETRANSFER_LIST);
@@ -592,6 +601,22 @@ LRESULT CTestAppDlgTestExtenderTab::OnExtenderDeInit(WPARAM w, LPARAM l)
 	return 0;
 }
 
+LRESULT CTestAppDlgTestExtenderTab::OnPingResult(WPARAM w, LPARAM l)
+{
+	if (w == TRUE)
+	{
+		SetValue(IDC_PING_RESULT, Util::FormatString(L"%lldms", l));
+	}
+	else
+	{
+		SetValue(IDC_PING_RESULT, L"timed out");
+	}
+
+	UpdateControls();
+
+	return 0;
+}
+
 void CTestAppDlgTestExtenderTab::UpdateSelectedPeer() noexcept
 {
 	m_SelectedPeerLUID.reset();
@@ -762,4 +787,26 @@ void CTestAppDlgTestExtenderTab::OnBnClickedStartBenchmark()
 	CWaitCursor wait;
 
 	m_TestExtender->SendFile(*m_SelectedPeerLUID, L"Benchmark", true, true, bsize);
+}
+
+void CTestAppDlgTestExtenderTab::OnBnClickedPing()
+{
+	constexpr Size mins{ 32 };
+	const Size maxs{ m_TestExtender->GetMaxPingSize() };
+
+	const auto psize = GetSizeValue(IDC_PING_NUM_BYTES);
+	if (psize < mins || psize > maxs)
+	{
+		AfxMessageBox(Util::FormatString(L"Specify a ping size between %zu and %zu bytes.", mins, maxs).c_str());
+		return;
+	}
+
+	CWaitCursor wait;
+	
+	if (m_TestExtender->Ping(*m_SelectedPeerLUID, psize, std::chrono::milliseconds(5000)))
+	{
+		SetValue(IDC_PING_RESULT, L"...");
+
+		UpdateControls();
+	}
 }

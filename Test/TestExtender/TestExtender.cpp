@@ -674,6 +674,73 @@ namespace TestExtender
 							}
 							break;
 						}
+						case MessageType::Echo:
+						{
+							result.Handled = true;
+
+							BufferView echo_data{ *msgdata };
+							echo_data.RemoveFirst(sizeof(UInt16));
+
+							Dbg(L"Received Echo message from %llu with %zu bytes of data",
+								event.GetPeerLUID(), echo_data.GetSize());
+
+							SendEchoReply(event.GetPeerLUID(), echo_data);
+
+							result.Success = true;
+							break;
+						}
+						case MessageType::EchoReply:
+						{
+							result.Handled = true;
+
+							const auto time_received = Util::GetCurrentSteadyTime();
+
+							BufferView echo_data{ *msgdata };
+							echo_data.RemoveFirst(sizeof(UInt16));
+
+							Dbg(L"Received EchoReply message from %llu with %zu bytes of data",
+								event.GetPeerLUID(), echo_data.GetSize());
+
+							m_Ping.WithUniqueLock([&](PingData& ping)
+							{
+								if (ping.Active && ping.PeerLUID == event.GetPeerLUID())
+								{
+									if (ping.Data == echo_data)
+									{
+										if (time_received <= (ping.TimeSent + ping.TimeOut))
+										{
+											const auto elapsed_time =
+												std::chrono::duration_cast<std::chrono::milliseconds>(time_received - ping.TimeSent);
+
+											LogInfo(L"Ping reply from peer %llu (Buffer: %zu bytes, Result: %zums)",
+													event.GetPeerLUID(), echo_data.GetSize(), elapsed_time.count());
+
+											PostMessage(m_Window, static_cast<UINT>(WindowsMessage::PingResult),
+														static_cast<WPARAM>(TRUE), static_cast<LPARAM>(elapsed_time.count()));
+										}
+										else
+										{
+											LogInfo(L"Ping reply from peer %llu timed out (Buffer: %zu bytes)",
+													event.GetPeerLUID(), echo_data.GetSize());
+
+											PostMessage(m_Window, static_cast<UINT>(WindowsMessage::PingResult),
+														static_cast<WPARAM>(FALSE), 0);
+										}
+
+										result.Success = true;
+									}
+									else
+									{
+										LogErr(L"Received EchoReply data of %zu bytes from %llu does not match expected data",
+											   echo_data.GetSize(), event.GetPeerLUID());
+									}
+
+									ping.Reset();
+								}
+								else LogErr(L"Received EchoReply from %llu but there's no ping active", event.GetPeerLUID());
+							});
+							break;
+						}
 						default:
 						{
 							LogInfo(L"Received unknown msgtype from %llu: %u", event.GetPeerLUID(), type);
@@ -734,6 +801,23 @@ namespace TestExtender
 							else ++fit;
 						}
 					});
+				}
+			});
+
+			extender->m_Ping.IfUniqueLock([&](PingData& ping)
+			{
+				if (ping.Active)
+				{
+					if (Util::GetCurrentSteadyTime() > (ping.TimeSent + ping.TimeOut))
+					{
+						LogInfo(L"Ping reply from peer %llu timed out (Buffer: %zu bytes)",
+								ping.PeerLUID, ping.Data.GetSize());
+
+						PostMessage(extender->m_Window, static_cast<UINT>(WindowsMessage::PingResult),
+									static_cast<WPARAM>(FALSE), 0);
+
+						ping.Reset();
+					}
 				}
 			});
 
@@ -848,6 +932,44 @@ namespace TestExtender
 		}
 
 		return false;
+	}
+
+	bool Extender::Ping(const PeerLUID pluid, const Size size, const std::chrono::milliseconds timeout) noexcept
+	{
+		auto success = false;
+
+		m_Ping.WithUniqueLock([&](PingData& ping)
+		{
+			if (!ping.Active)
+			{
+				LogInfo(L"Pinging peer %llu (Buffer: %zu bytes, Timeout: %zums)", pluid, size, timeout.count());
+
+				ping.PeerLUID = pluid;
+				ping.Data = Util::GetPseudoRandomBytes(size);
+				ping.TimeSent = Util::GetCurrentSteadyTime();
+				ping.TimeOut = timeout;
+
+				if (SendEcho(pluid, ping.Data))
+				{
+					ping.Active = true;
+					success = true;
+				}
+				else ping.Reset();
+			}
+			else LogErr(L"Cannot ping peer %llu; there's another ping active", pluid);
+		});
+
+		return success;
+	}
+
+	Size Extender::GetMaxPingSize() const noexcept
+	{
+		return GetMaximumMessageDataSize() - sizeof(UInt16);
+	}
+
+	bool Extender::IsPingActive() const noexcept
+	{
+		return m_Ping.WithSharedLock()->Active;
 	}
 
 	bool Extender::SendMessage(const PeerLUID pluid, const String& msg, const SendParameters::PriorityOption priority,
@@ -1072,6 +1194,38 @@ namespace TestExtender
 		else LogErr(L"Could not prepare FileTransferDataAck message for peer");
 
 		ft.SetStatus(FileTransferStatus::Error);
+
+		return false;
+	}
+
+	bool Extender::SendEcho(const PeerLUID pluid, const BufferView ping_data) noexcept
+	{
+		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::Echo);
+
+		BufferWriter writer(true);
+		if (writer.WriteWithPreallocation(msgtype, ping_data))
+		{
+			if (SendMessageTo(pluid, writer.MoveWrittenBytes(),
+							  QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded()) return true;
+			else LogErr(L"Could not send Echo message to peer %llu", pluid);
+		}
+		else LogErr(L"Could not prepare Echo message for peer %llu", pluid);
+
+		return false;
+	}
+
+	bool Extender::SendEchoReply(const PeerLUID pluid, const BufferView ping_data) noexcept
+	{
+		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::EchoReply);
+
+		BufferWriter writer(true);
+		if (writer.WriteWithPreallocation(msgtype, ping_data))
+		{
+			if (SendMessageTo(pluid, writer.MoveWrittenBytes(),
+							  QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded()) return true;
+			else LogErr(L"Could not send EchoReply message to peer %llu", pluid);
+		}
+		else LogErr(L"Could not prepare EchoReply message for peer %llu", pluid);
 
 		return false;
 	}

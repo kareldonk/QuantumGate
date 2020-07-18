@@ -26,7 +26,9 @@ namespace TestExtender
 		FileTransferAccept,
 		FileTransferData,
 		FileTransferDataAck,
-		FileTransferCancel
+		FileTransferCancel,
+		Echo,
+		EchoReply
 	};
 
 	enum class FileTransferType : UInt16
@@ -129,7 +131,8 @@ namespace TestExtender
 		PeerEvent = WM_USER + 1,
 		FileAccept = WM_USER + 2,
 		ExtenderInit = WM_USER + 3,
-		ExtenderDeinit = WM_USER + 4
+		ExtenderDeinit = WM_USER + 4,
+		PingResult = WM_USER + 5
 	};
 
 	struct Event final
@@ -137,6 +140,27 @@ namespace TestExtender
 		QuantumGate::Extender::PeerEvent::Type Type{ QuantumGate::Extender::PeerEvent::Type::Unknown };
 		PeerLUID PeerLUID{ 0 };
 	};
+
+	struct PingData final
+	{
+		bool Active{ false };
+		PeerLUID PeerLUID{ 0 };
+		SteadyTime TimeSent;
+		std::chrono::milliseconds TimeOut{ 5000 };
+		Buffer Data;
+
+		void Reset()
+		{
+			Active = false;
+			PeerLUID = 0;
+			TimeSent = SteadyTime{};
+			TimeOut = std::chrono::milliseconds{ 5000 };
+			Data.Clear();
+			Data.FreeUnused();
+		}
+	};
+
+	using Ping_ThS = Implementation::Concurrency::ThreadSafe<PingData, std::shared_mutex>;
 
 	class Extender final : public QuantumGate::Extender
 	{
@@ -156,6 +180,10 @@ namespace TestExtender
 
 		bool SendBenchmarkStart(const PeerLUID pluid) noexcept;
 		bool SendBenchmarkEnd(const PeerLUID pluid) noexcept;
+
+		bool Ping(const PeerLUID pluid, const Size size, const std::chrono::milliseconds timeout) noexcept;
+		Size GetMaxPingSize() const noexcept;
+		[[nodiscard]] bool IsPingActive() const noexcept;
 
 		bool SendFile(const PeerLUID pluid, const String filename, const bool autotrf,
 					  const bool benchmark, const Size benchmark_size);
@@ -187,6 +215,9 @@ namespace TestExtender
 		bool SendFileData(FileTransfer& ft);
 		bool SendFileDataAck(FileTransfer& ft) noexcept;
 
+		bool SendEcho(const PeerLUID pluid, const BufferView ping_data) noexcept;
+		bool SendEchoReply(const PeerLUID pluid, const BufferView ping_data) noexcept;
+
 	private:
 		HWND m_Window{ nullptr };
 
@@ -194,6 +225,8 @@ namespace TestExtender
 		Concurrency::Event m_ShutdownEvent;
 		std::thread m_Thread;
 		Peers_ThS m_Peers;
+
+		Ping_ThS m_Ping;
 
 		String_ThS m_AutoFileTransferPath;
 

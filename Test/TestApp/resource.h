@@ -84,8 +84,11 @@
 #define IDC_NUM_NOISE_MSG_MAX           1020
 #define IDC_DISCONNECT_PEER             1020
 #define IDC_RELAY_PEER                  1020
+#define IDC_PING                        1020
 #define IDC_RELAY_CONNECT_TIMEOUT       1021
+#define IDC_PING_NUM_BYTES              1021
 #define IDC_RELAY_GRACEPERIOD           1022
+#define IDC_PING_RESULT                 1022
 #define IDC_AUTOCONNECT_DISCONNECT      1023
 #define IDC_RELAY_NUM_IPCON_ATTEMPTS    1023
 #define IDC_PEERLIST                    1024
