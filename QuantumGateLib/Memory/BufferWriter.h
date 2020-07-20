@@ -13,10 +13,10 @@ namespace QuantumGate::Implementation::Memory
 		BufferWriter(const bool network_byteorder = false) noexcept;
 		BufferWriter(Buffer& buffer, const bool network_byteorder = false) noexcept;
 		BufferWriter(const BufferWriter&) = delete;
-		BufferWriter(BufferWriter&&) noexcept = default;
+		BufferWriter(BufferWriter&&) = delete;
 		virtual ~BufferWriter() = default;
 		BufferWriter& operator=(const BufferWriter&) = delete;
-		BufferWriter& operator=(BufferWriter&&) noexcept = default;
+		BufferWriter& operator=(BufferWriter&&) = delete;
 
 		void Preallocate(const Size size) 
 		{ 

@@ -33,24 +33,24 @@ namespace QuantumGate::Implementation::Memory
 		assert(size <= maxsize);
 
 		if (size > maxsize) return false;
-		else if (size < MaxSize::UInt8 - 2)
+		else if (size < MaxSize::_UINT8 - 2)
 		{
 			return Write(static_cast<UInt8>(size));
 		}
-		else if (size <= MaxSize::UInt16)
+		else if (size <= MaxSize::_UINT16)
 		{
-			const UInt8 es = MaxSize::UInt8 - 2;
+			const UInt8 es = MaxSize::_UINT8 - 2;
 			return (Write(es) && Write(static_cast<UInt16>(size)));
 		}
-		else if (size <= MaxSize::UInt32)
+		else if (size <= MaxSize::_UINT32)
 		{
-			const UInt8 es = MaxSize::UInt8 - 1;
+			const UInt8 es = MaxSize::_UINT8 - 1;
 			return (Write(es) && Write(static_cast<UInt32>(size)));
 		}
 #ifdef _WIN64
 		else
 		{
-			const UInt8 es = MaxSize::UInt8;
+			const UInt8 es = MaxSize::_UINT8;
 			return (Write(es) && Write(static_cast<UInt64>(size)));
 		}
 #endif

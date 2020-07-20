@@ -280,7 +280,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					BufferWriter wrt(true);
 					if (wrt.WriteWithPreallocation(SerializedUUID{ m_Peer.GetLocalUUID() }, m_Peer.GetLocalSessionID(),
-												   WithSize(sig, MaxSize::UInt16)))
+												   WithSize(sig, MaxSize::_UINT16)))
 					{
 						if (m_Peer.SendWithRandomDelay(MessageType::BeginAuthentication, wrt.MoveWrittenBytes(),
 													   m_Peer.GetHandshakeDelayPerMessage()))
@@ -320,7 +320,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				Buffer psig;
 
 				BufferReader rdr(buffer, true);
-				if (rdr.Read(spuuid, psessionid, WithSize(psig, MaxSize::UInt16)))
+				if (rdr.Read(spuuid, psessionid, WithSize(psig, MaxSize::_UINT16)))
 				{
 					const UUID puuid{ spuuid };
 					if (puuid.GetType() == UUID::Type::Peer)
@@ -340,7 +340,7 @@ namespace QuantumGate::Implementation::Core::Peer
 								BufferWriter wrt(true);
 								if (wrt.WriteWithPreallocation(SerializedUUID{ m_Peer.GetLocalUUID() },
 															   m_Peer.GetLocalSessionID(),
-															   WithSize(sig, MaxSize::UInt16)))
+															   WithSize(sig, MaxSize::_UINT16)))
 								{
 									if (m_Peer.SendWithRandomDelay(MessageType::EndAuthentication, wrt.MoveWrittenBytes(),
 																   m_Peer.GetHandshakeDelayPerMessage()))
@@ -385,7 +385,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				Buffer psig;
 
 				BufferReader rdr(buffer, true);
-				if (rdr.Read(spuuid, psessionid, WithSize(psig, MaxSize::UInt16)))
+				if (rdr.Read(spuuid, psessionid, WithSize(psig, MaxSize::_UINT16)))
 				{
 					const UUID puuid{ spuuid };
 					if (puuid.GetType() == UUID::Type::Peer)
@@ -407,7 +407,7 @@ namespace QuantumGate::Implementation::Core::Peer
 							BufferWriter wrt(true);
 							if (wrt.WriteWithPreallocation(counter,
 														   m_Peer.GetPublicIPEndpointToReport(),
-														   WithSize(lsextlist, MaxSize::UInt16)))
+														   WithSize(lsextlist, MaxSize::_UINT16)))
 							{
 								if (m_Peer.Send(MessageType::BeginSessionInit, wrt.MoveWrittenBytes()))
 								{
@@ -458,7 +458,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				Vector<SerializedUUID> psextlist;
 
 				BufferReader rdr(buffer, true);
-				if (rdr.Read(pcounter, pub_endp, WithSize(psextlist, MaxSize::UInt16)))
+				if (rdr.Read(pcounter, pub_endp, WithSize(psextlist, MaxSize::_UINT16)))
 				{
 					m_Peer.SetPeerMessageCounter(pcounter);
 
@@ -480,7 +480,7 @@ namespace QuantumGate::Implementation::Core::Peer
 								BufferWriter wrt(true);
 								if (wrt.WriteWithPreallocation(counter,
 															   m_Peer.GetPublicIPEndpointToReport(),
-															   WithSize(lsextlist, MaxSize::UInt16)))
+															   WithSize(lsextlist, MaxSize::_UINT16)))
 								{
 									if (m_Peer.Send(MessageType::EndSessionInit, wrt.MoveWrittenBytes()))
 									{
@@ -520,7 +520,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				Vector<SerializedUUID> psextlist;
 
 				BufferReader rdr(buffer, true);
-				if (rdr.Read(pcounter, pub_endp, WithSize(psextlist, MaxSize::UInt16)))
+				if (rdr.Read(pcounter, pub_endp, WithSize(psextlist, MaxSize::_UINT16)))
 				{
 					m_Peer.SetPeerMessageCounter(pcounter);
 

@@ -20,25 +20,25 @@ namespace QuantumGate::Implementation::Memory
 		UInt8 es{ 0 };
 		if (Read(es))
 		{
-			if (es < MaxSize::UInt8 - 2)
+			if (es < MaxSize::_UINT8 - 2)
 			{
 				size = es;
 				success = true;
 			}
-			else if (es == MaxSize::UInt8 - 2)
+			else if (es == MaxSize::_UINT8 - 2)
 			{
 				UInt16 is{ 0 };
 				success = Read(is);
 				size = is;
 			}
-			else if (es == MaxSize::UInt8 - 1)
+			else if (es == MaxSize::_UINT8 - 1)
 			{
 				UInt32 is{ 0 };
 				success = Read(is);
 				size = is;
 			}
 #ifdef _WIN64
-			else if (es == MaxSize::UInt8)
+			else if (es == MaxSize::_UINT8)
 			{
 				UInt64 is{ 0 };
 				success = Read(is);

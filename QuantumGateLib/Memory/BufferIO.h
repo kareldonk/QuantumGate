@@ -31,23 +31,23 @@ namespace QuantumGate::Implementation::Memory
 
 		constexpr Size GetSize() const noexcept { return m_Size; }
 
-		static constexpr Size UInt8{ std::numeric_limits<UInt8>::max() };
-		static constexpr Size UInt16{ std::numeric_limits<UInt16>::max() };
-		static constexpr Size UInt32{ std::numeric_limits<UInt32>::max() };
+		static constexpr Size _UINT8{ std::numeric_limits<UInt8>::max() };
+		static constexpr Size _UINT16{ std::numeric_limits<UInt16>::max() };
+		static constexpr Size _UINT32{ std::numeric_limits<UInt32>::max() };
 
-		static constexpr Size _256B{ UInt8 };
+		static constexpr Size _256B{ _UINT8 };
 		static constexpr Size _1KB{ 0x00000400UL };
-		static constexpr Size _65KB{ UInt16 };
+		static constexpr Size _65KB{ _UINT16 };
 		static constexpr Size _1MB{ 0x00100000UL };
 		static constexpr Size _2MB{ 0x00200000UL };
 		static constexpr Size _4MB{ 0x00400000UL };
 		static constexpr Size _8MB{ 0x00800000UL };
 		static constexpr Size _16MB{ 0x00ffffffUL };
-		static constexpr Size _4GB{ UInt32 };
+		static constexpr Size _4GB{ _UINT32 };
 
 #ifdef _WIN64
-		static constexpr Size UInt64{ std::numeric_limits<QuantumGate::UInt64>::max() };
-		static constexpr Size _18EB{ UInt64 };
+		static constexpr Size _UINT64{ std::numeric_limits<QuantumGate::UInt64>::max() };
+		static constexpr Size _18EB{ _UINT64 };
 #endif
 
 	private:
@@ -89,9 +89,9 @@ namespace QuantumGate::Implementation::Memory
 		// size > UInt32 becomes 255 + 8 bytes)
 		static constexpr Size GetSizeOfEncodedSize(Size size) noexcept
 		{
-			if (size < MaxSize::UInt8 - 2) return sizeof(UInt8);
-			else if (size <= MaxSize::UInt16) return (sizeof(UInt8) + sizeof(UInt16));
-			else if (size <= MaxSize::UInt32) return (sizeof(UInt8) + sizeof(UInt32));
+			if (size < MaxSize::_UINT8 - 2) return sizeof(UInt8);
+			else if (size <= MaxSize::_UINT16) return (sizeof(UInt8) + sizeof(UInt16));
+			else if (size <= MaxSize::_UINT32) return (sizeof(UInt8) + sizeof(UInt32));
 			else return (sizeof(UInt8) + sizeof(UInt64));
 		}
 

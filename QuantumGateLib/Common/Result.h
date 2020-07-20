@@ -59,11 +59,11 @@ namespace QuantumGate::Implementation
 	Export std::ostream& operator<<(std::ostream& os, const ResultCode code);
 	Export std::wostream& operator<<(std::wostream& os, const ResultCode code);
 
-	Export [[nodiscard]] const std::error_category& GetResultCodeErrorCategory() noexcept;
+	[[nodiscard]] Export const std::error_category& GetResultCodeErrorCategory() noexcept;
 
 	// The following function overload is needed for the enum conversion 
 	// in one of the constructors for class std::error_code
-	Export [[nodiscard]] std::error_code make_error_code(const ResultCode code) noexcept;
+	[[nodiscard]] Export std::error_code make_error_code(const ResultCode code) noexcept;
 }
 
 namespace std
