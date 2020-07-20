@@ -76,39 +76,42 @@ namespace UnitTests
 
 		TEST_METHOD(MultipleEvents)
 		{
-			EventGroup eventgroup;
-			Assert::AreEqual(true, eventgroup.Initialize());
-
-			std::vector<Event> events(EventGroup::MaximumNumberOfUserEvents);
-			for (const auto& event : events)
+			for (int x = 0; x < 10; ++x)
 			{
-				Assert::AreEqual(true, eventgroup.AddEvent(event));
+				EventGroup eventgroup;
+				Assert::AreEqual(true, eventgroup.Initialize());
+
+				std::vector<Event> events(EventGroup::MaximumNumberOfUserEvents);
+				for (const auto& event : events)
+				{
+					Assert::AreEqual(true, eventgroup.AddEvent(event));
+				}
+
+				std::random_device dev;
+				std::mt19937_64 rng(dev());
+
+				// Randomly set events and remove them until
+				// they have all been removed
+				while (!events.empty())
+				{
+					const auto result = eventgroup.Wait(0s);
+					Assert::AreEqual(true, result.Waited);
+					Assert::AreEqual(false, result.HadEvent);
+
+					const std::uniform_int_distribution<std::size_t> dist(0, events.size() - 1);
+					const auto idx = dist(rng);
+					events[idx].Set();
+
+					const auto result2 = eventgroup.Wait(1s);
+					Assert::AreEqual(true, result2.Waited);
+					Assert::AreEqual(true, result2.HadEvent);
+
+					eventgroup.RemoveEvent(events[idx]);
+					events.erase(events.begin() + idx);
+				}
+
+				eventgroup.Deinitialize();
 			}
-
-			std::random_device dev;
-			std::mt19937_64 rng(dev());
-
-			// Randomly set events and remove them until
-			// they have all been removed
-			while (!events.empty())
-			{
-				const auto result = eventgroup.Wait(0s);
-				Assert::AreEqual(true, result.Waited);
-				Assert::AreEqual(false, result.HadEvent);
-
-				const std::uniform_int_distribution<std::size_t> dist(0, events.size() - 1);
-				const auto idx = dist(rng);
-				events[idx].Set();
-
-				const auto result2 = eventgroup.Wait(1s);
-				Assert::AreEqual(true, result2.Waited);
-				Assert::AreEqual(true, result2.HadEvent);
-
-				eventgroup.RemoveEvent(events[idx]);
-				events.erase(events.begin() + idx);
-			}
-
-			eventgroup.Deinitialize();
 		}
 
 		TEST_METHOD(MaximumEvents)
