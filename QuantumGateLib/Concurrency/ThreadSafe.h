@@ -119,6 +119,14 @@ namespace QuantumGate::Implementation::Concurrency
 
 			template<typename Lck2 = Lck,
 				typename = std::enable_if_t<std::is_same_v<Lck2, std::unique_lock<M>>>>
+			inline bool TryLock() noexcept(noexcept(m_Lock.try_lock()))
+			{
+				assert(!m_Lock.owns_lock());
+				return m_Lock.try_lock();
+			}
+
+			template<typename Lck2 = Lck,
+				typename = std::enable_if_t<std::is_same_v<Lck2, std::unique_lock<M>>>>
 			inline void Unlock() noexcept(noexcept(m_Lock.unlock()))
 			{
 				assert(m_Lock.owns_lock());
@@ -131,6 +139,14 @@ namespace QuantumGate::Implementation::Concurrency
 			{
 				assert(!m_Lock.owns_lock());
 				m_Lock.lock();
+			}
+
+			template<typename Lck2 = Lck,
+				typename = std::enable_if_t<std::is_same_v<Lck2, std::shared_lock<M>>>>
+			inline bool TryLockShared() noexcept(noexcept(m_Lock.try_lock()))
+			{
+				assert(!m_Lock.owns_lock());
+				return m_Lock.try_lock();
 			}
 
 			template<typename Lck2 = Lck,
@@ -162,9 +178,9 @@ namespace QuantumGate::Implementation::Concurrency
 
 			template<typename F, typename Lck2 = Lck,
 				typename = std::enable_if_t<std::is_same_v<Lck2, std::shared_lock<M>>>>
-				inline void WhileUnlocked(F&& function) const noexcept(noexcept(UnlockShared()) &&
-																	   noexcept(function()) &&
-																	   noexcept(LockShared()))
+			inline void WhileUnlockedShared(F&& function) noexcept(noexcept(UnlockShared()) &&
+																   noexcept(function()) &&
+																   noexcept(LockShared()))
 			{
 				assert(m_Lock.owns_lock());
 				UnlockShared();
@@ -253,30 +269,30 @@ namespace QuantumGate::Implementation::Concurrency
 
 		template<typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock)>>>
-		inline bool TryUniqueLock(UniqueLockedType& value) noexcept(noexcept(m_Mutex.try_lock()) &&
-																	noexcept(UniqueLockedType(this, std::adopt_lock)))
+		inline UniqueLockedType TryWithUniqueLock() noexcept(noexcept(m_Mutex.try_lock()) &&
+															 noexcept(UniqueLockedType(this, std::adopt_lock)) &&
+															 noexcept(UniqueLockedType(this, std::defer_lock)))
 		{
 			if (m_Mutex.try_lock())
 			{
-				value = UniqueLockedType(this, std::adopt_lock);
-				return true;
+				return UniqueLockedType(this, std::adopt_lock);
 			}
 
-			return false;
+			return UniqueLockedType(this, std::defer_lock);
 		}
 
 		template<typename M2 = M,
 			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock)>>>
-		inline bool TryUniqueLock(UniqueLockedConstType& value) const noexcept(noexcept(m_Mutex.try_lock()) &&
-																			   noexcept(UniqueLockedConstType(this, std::adopt_lock)))
+		inline UniqueLockedConstType TryWithUniqueLock() const noexcept(noexcept(m_Mutex.try_lock()) &&
+																		noexcept(UniqueLockedConstType(this, std::adopt_lock)) &&
+																		noexcept(UniqueLockedConstType(this, std::defer_lock)))
 		{
 			if (m_Mutex.try_lock())
 			{
-				value = UniqueLockedConstType(this, std::adopt_lock);
-				return true;
+				return UniqueLockedConstType(this, std::adopt_lock);
 			}
 
-			return false;
+			return UniqueLockedConstType(this, std::defer_lock);
 		}
 
 		template<typename M2 = M,
@@ -307,6 +323,20 @@ namespace QuantumGate::Implementation::Concurrency
 			}
 
 			return false;
+		}
+
+		template<typename M2 = M,
+			typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(&M2::try_lock_shared)>>>
+		inline SharedLockedConstType TryWithSharedLock() const noexcept(noexcept(m_Mutex.try_lock_shared()) &&
+																		noexcept(SharedLockedConstType(this, std::adopt_lock)) &&
+																		noexcept(SharedLockedConstType(this, std::defer_lock)))
+		{
+			if (m_Mutex.try_lock_shared())
+			{
+				return SharedLockedConstType(this, std::adopt_lock);
+			}
+
+			return SharedLockedConstType(this, std::defer_lock);
 		}
 
 	private:

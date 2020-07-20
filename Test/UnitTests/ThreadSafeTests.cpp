@@ -186,12 +186,14 @@ namespace UnitTests
 				std::unique_lock<DummyMutex> umtx(mtx);
 
 				auto tulock = test.WithUniqueLock();
-				
+				Assert::AreEqual(true, tulock.operator bool());
+
 				flag = 1;
 				th2_cv1.notify_one();
 				th1_cv1.wait(umtx);
 
 				tulock.Unlock();
+				Assert::AreEqual(false, tulock.operator bool());
 
 				Assert::AreEqual(true, test.WithUniqueLock()->Value == 111);
 
@@ -202,13 +204,14 @@ namespace UnitTests
 
 				// Stage 2 Begin
 				tulock.Lock();
+				Assert::AreEqual(true, tulock.operator bool());
+
 				tulock->Value = 999;
 
 				th2_cv2.notify_one();
 
 				std::this_thread::sleep_for(2s);
 
-				Assert::AreEqual(true, tulock.operator bool());
 				tulock.Unlock();
 				Assert::AreEqual(false, tulock.operator bool());
 			});
@@ -255,6 +258,34 @@ namespace UnitTests
 			thread2.join();
 		}
 
+		TEST_METHOD(TryWithUniqueLock)
+		{
+			ThreadSafe<TestType, std::mutex> test(111);
+			std::condition_variable_any th1_cv1;
+
+			auto thread1 = std::thread([&]()
+			{
+				DummyMutex mtx;
+				std::unique_lock<DummyMutex> umtx(mtx);
+
+				auto lock = test.WithUniqueLock();
+
+				th1_cv1.wait(umtx);
+			});
+
+			std::this_thread::sleep_for(1s);
+
+			auto testlock = test.TryWithUniqueLock();
+			Assert::AreEqual(false, testlock.operator bool());
+
+			th1_cv1.notify_one();
+
+			thread1.join();
+
+			Assert::AreEqual(true, testlock.TryLock());
+			Assert::AreEqual(true, testlock.operator bool());
+		}
+
 		TEST_METHOD(SharedLock)
 		{
 			ThreadSafe<TestType, std::shared_mutex> test(111);
@@ -278,6 +309,7 @@ namespace UnitTests
 				Assert::AreEqual(false, tulock.operator bool());
 
 				auto tulock2 = test.WithUniqueLock();
+				Assert::AreEqual(true, tulock2.operator bool());
 
 				th2_cv2.notify_one();
 
@@ -285,7 +317,6 @@ namespace UnitTests
 
 				std::this_thread::sleep_for(2s);
 				
-				Assert::AreEqual(true, tulock2.operator bool());
 				tulock2.Reset();
 				Assert::AreEqual(false, tulock2.operator bool());
 			});
@@ -325,6 +356,34 @@ namespace UnitTests
 			thread2.join();
 		}
 
+		TEST_METHOD(TryWithSharedLock)
+		{
+			ThreadSafe<TestType, std::shared_mutex> test(111);
+			std::condition_variable_any th1_cv1;
+			
+			auto thread1 = std::thread([&]()
+			{
+				DummyMutex mtx;
+				std::unique_lock<DummyMutex> umtx(mtx);
+
+				auto lock = test.WithUniqueLock();
+
+				th1_cv1.wait(umtx);
+			});
+			
+			std::this_thread::sleep_for(1s);
+			
+			auto testlock = test.TryWithSharedLock();
+			Assert::AreEqual(false, testlock.operator bool());
+			
+			th1_cv1.notify_one();
+			
+			thread1.join();
+			
+			Assert::AreEqual(true, testlock.TryLockShared());
+			Assert::AreEqual(true, testlock.operator bool());
+		}
+
 		TEST_METHOD(UniqueMethodsExceptionCheck)
 		{
 			{
@@ -338,8 +397,7 @@ namespace UnitTests
 				static_assert(noexcept(test.IfUniqueLock(NoexceptLambda)), "Should be noexcept");
 				static_assert(!noexcept(test.IfUniqueLock(ExceptLambda)), "Should not be noexcept");
 
-				ThreadSafe<TestType, DummyMutex>::UniqueLockedType val;
-				static_assert(!noexcept(test.TryUniqueLock(val)), "Should not be noexcept");
+				static_assert(!noexcept(test.TryWithUniqueLock()), "Should not be noexcept");
 			}
 
 			{
@@ -353,8 +411,7 @@ namespace UnitTests
 				static_assert(noexcept(test.IfUniqueLock(NoexceptLambda)), "Should be noexcept");
 				static_assert(!noexcept(test.IfUniqueLock(ExceptLambda)), "Should not be noexcept");
 
-				ThreadSafe<TestType, DummyMutex>::UniqueLockedConstType val;
-				static_assert(!noexcept(test.TryUniqueLock(val)), "Should not be noexcept");
+				static_assert(!noexcept(test.TryWithUniqueLock()), "Should not be noexcept");
 			}
 		}
 
@@ -373,6 +430,7 @@ namespace UnitTests
 
 				ThreadSafe<TestType, std::shared_mutex> test2(9);
 				static_assert(noexcept(test2.IfSharedLock(NoexceptLambda)), "Should be noexcept");
+				static_assert(!noexcept(test2.TryWithSharedLock()), "Should not be noexcept");
 			}
 
 			{
@@ -388,6 +446,7 @@ namespace UnitTests
 
 				const ThreadSafe<TestType, std::shared_mutex> test2(9);
 				static_assert(noexcept(test2.IfSharedLock(NoexceptLambda)), "Should be noexcept");
+				static_assert(!noexcept(test2.TryWithSharedLock()), "Should not be noexcept");
 			}
 		}
 
@@ -406,9 +465,16 @@ namespace UnitTests
 		TEST_METHOD(Value)
 		{
 			ThreadSafe<TestType, std::shared_mutex> test(111);
+			ThreadSafe<TestType, std::shared_mutex>::UniqueLockedType testul;
+			Assert::AreEqual(false, testul.operator bool());
+			testul = test.WithUniqueLock();
+			Assert::AreEqual(true, testul.operator bool());
+
 			const ThreadSafe<TestType, std::shared_mutex> ctest(111);
-			auto testul = test.WithUniqueLock();
-			auto ctestul = ctest.WithUniqueLock();
+			ThreadSafe<TestType, std::shared_mutex>::UniqueLockedConstType ctestul;
+			Assert::AreEqual(false, ctestul.operator bool());
+			ctestul = ctest.WithUniqueLock();
+			Assert::AreEqual(true, ctestul.operator bool());
 
 			ThreadSafe<TestTypeMA, std::shared_mutex> testma(999, 333);
 			const ThreadSafe<TestTypeMA, std::shared_mutex> ctestma(999, 333);
@@ -464,6 +530,7 @@ namespace UnitTests
 				TestType atest;
 				atest.Value = 336699;
 
+				Assert::AreEqual(true, testul != atest);
 				static_assert(noexcept(testul.operator=(atest)), "Should be no throw copy assignable");
 				testul = atest;
 				Assert::AreEqual(true, testul->Value == 336699);
@@ -472,6 +539,7 @@ namespace UnitTests
 				TestTypeMA atestma;
 				atestma.Value1 = 336699;
 
+				Assert::AreEqual(true, testmaul != atestma);
 				static_assert(!noexcept(testmaul.operator=(atestma)), "Should not be no throw copy assignable");
 				testmaul = atestma;
 				Assert::AreEqual(true, testmaul->Value1 == 336699);
@@ -494,6 +562,79 @@ namespace UnitTests
 				testmaul = std::move(atestma);
 				Assert::AreEqual(true, testmaul->Value1 == 669933);
 			}
+
+			testul.Reset();
+			Assert::AreEqual(false, testul.operator bool());
+			ctestul.Reset();
+			Assert::AreEqual(false, ctestul.operator bool());
+		}
+
+		TEST_METHOD(ValueWhileUnlockedUnique)
+		{
+			ThreadSafe<TestType, std::shared_mutex> test(111);
+			auto value = test.WithUniqueLock();
+			std::atomic_bool flag{ false };
+
+			auto thread1 = std::thread([&]()
+			{
+				DummyMutex mtx;
+				std::unique_lock<DummyMutex> umtx(mtx);
+
+				auto lock = test.WithUniqueLock();
+
+				flag = true;
+			});
+
+			std::this_thread::sleep_for(1s);
+
+			Assert::AreEqual(false, flag.load());
+
+			value.WhileUnlocked([&]()
+			{
+				Assert::AreEqual(false, value.operator bool());
+
+				std::this_thread::sleep_for(1s);
+
+				Assert::AreEqual(true, flag.load());
+			});
+
+			Assert::AreEqual(true, value.operator bool());
+
+			thread1.join();
+		}
+
+		TEST_METHOD(ValueWhileUnlockedShared)
+		{
+			ThreadSafe<TestType, std::shared_mutex> test(111);
+			auto value = test.WithSharedLock();
+			std::atomic_bool flag{ false };
+
+			auto thread1 = std::thread([&]()
+			{
+				DummyMutex mtx;
+				std::unique_lock<DummyMutex> umtx(mtx);
+
+				auto lock = test.WithUniqueLock();
+
+				flag = true;
+			});
+
+			std::this_thread::sleep_for(1s);
+
+			Assert::AreEqual(false, flag.load());
+
+			value.WhileUnlockedShared([&]()
+			{
+				Assert::AreEqual(false, value.operator bool());
+
+				std::this_thread::sleep_for(1s);
+
+				Assert::AreEqual(true, flag.load());
+			});
+
+			Assert::AreEqual(true, value.operator bool());
+
+			thread1.join();
 		}
 
 		TEST_METHOD(ShouldNotCompile)
