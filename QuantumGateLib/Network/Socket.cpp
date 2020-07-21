@@ -731,7 +731,7 @@ namespace QuantumGate::Implementation::Network
 			else return buffer.GetSize();
 		});
 
-		if (GetType() == Type::Datagram) assert(send_size < GetMaxDatagramMessageSize());
+		if (GetType() == Type::Datagram) assert(send_size < static_cast<Size>(GetMaxDatagramMessageSize()));
 
 		const auto bytessent = sendto(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()),
 									  static_cast<int>(send_size), 0,
