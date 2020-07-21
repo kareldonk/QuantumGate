@@ -77,7 +77,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 			else
 			{
-				static_assert(false, "No match for queue type.");
+				assert(false);
 			}
 		});
 

@@ -1066,7 +1066,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		m_AllPeers.WithSharedLock([&](const PeerMap& peers)
 		{
-			for (const auto it : peers)
+			for (const auto& it : peers)
 			{
 				it.second->WithUniqueLock([&](Peer& peer)
 				{

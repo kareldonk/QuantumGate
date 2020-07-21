@@ -63,6 +63,11 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (prev_status == Status::SecondaryExchange) m_Status = status;
 				else success = false;
 				break;
+			default:
+				// Shouldn't get here
+				assert(false);
+				success = false;
+				break;
 		}
 
 		return success;
