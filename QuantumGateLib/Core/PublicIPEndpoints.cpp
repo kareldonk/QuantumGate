@@ -719,7 +719,7 @@ namespace QuantumGate::Implementation::Core
 		{
 			auto ipendpoints = m_IPEndpoints.WithSharedLock();
 
-			for (const auto it : *ipendpoints)
+			for (const auto& it : *ipendpoints)
 			{
 				if (only_trusted_verified && !(it.second.IsTrusted() || it.second.IsVerified()))
 				{
@@ -753,7 +753,7 @@ namespace QuantumGate::Implementation::Core
 		{
 			auto ipendpoints = m_IPEndpoints.WithSharedLock();
 
-			for (const auto it : *ipendpoints)
+			for (const auto& it : *ipendpoints)
 			{
 				const auto it2 = std::find_if(ips.begin(), ips.end(), [&](const auto& ipd)
 				{
