@@ -49,7 +49,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 			else
 			{
-				static_assert(false, "No match for message type.");
+				assert(false);
 			}
 		}
 
@@ -73,7 +73,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 			else
 			{
-				static_assert(false, "No match for message type.");
+				assert(false);
 			}
 		}
 
@@ -97,7 +97,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 			else
 			{
-				static_assert(false, "No match for message type.");
+				assert(false);
 			}
 		}
 
@@ -118,7 +118,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 			else
 			{
-				static_assert(false, "No match for message type.");
+				assert(false);
 			}
 		}
 
