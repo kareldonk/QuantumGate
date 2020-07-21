@@ -19,7 +19,13 @@ Based on the architecture described in the [overview](https://github.com/kareldo
 
 QuantumGate is developed in C++20 and currently only supports the Microsoft Windows (x86/x64) platform. Support for Linux is planned for the future.
 
-## Build
+## Pre-built Binaries and Releases
+
+There are releases available on the [Releases page](https://github.com/kareldonk/QuantumGate/releases), some including pre-built binaries, that you can download to quickly try out. If you'd like to build from source then you can check the Manual Build section below.
+
+## Manual Build
+
+The `master` branch is generally kept as stable as possible so you can download the source code from there instead of from the [Releases page](https://github.com/kareldonk/QuantumGate/releases) if you prefer to work with the latest version.
 
 You'll require the latest version of Microsoft Visual Studio 2019, as well as the dependencies listed below. When the paths to the dependency includes and libraries have been configured properly, building is as simple as opening the `QuantumGate.sln` file in the project root with Visual Studio and issuing the build command for the entire solution.
 
@@ -51,26 +57,26 @@ The QuantumGate MSVC project is configured to look for specific naming of the Op
 | zlib | zlib32.lib, zlib32.dll | zlib32.lib, zlib32.dll | zlib64.lib, zlib64.dll | zlib64.lib, zlib64.dll |
 | Zstandard | zstd32.lib, zstd32.dll | zstd32.lib, zstd32.dll | zstd64.lib, zstd64.dll | zstd64.lib, zstd64.dll |
 
-### Documentation
+## Documentation
 
 Documentation can be found in the [Wiki](https://github.com/kareldonk/QuantumGate/wiki).
 
-### Examples
+## Examples
 
 A listing of examples to get you started quickly can be found in the [Wiki](https://github.com/kareldonk/QuantumGate/wiki/Examples).
 
-### License
+## License
 
 The license for the QuantumGate source code can be found in the [`LICENSE`](https://github.com/kareldonk/QuantumGate/blob/master/LICENSE) file in the project root. In addition, QuantumGate uses third party source code covered under separate licenses. This includes an implementation of SipHash (in `QuantumGateCryptoLib\SipHash`) and NewHope (`QuantumGateCryptoLib\NewHope`). Refer to the `LICENSE` files in the subfolders for details. **Licenses for implementations of NTRUPrime (`QuantumGateCryptoLib\NTRUPrime`) and Classic McEliece (`QuantumGateCryptoLib\McEliece`) have not yet been obtained.**
 
-### Contact
+## Contact
 
 For maximum efficiency and transparency [open an issue](https://github.com/kareldonk/QuantumGate/issues) on QuantumGate's GitHub repository with any questions and/or comments that you may have. Contact information for the author can be found at https://www.kareldonk.com.
 
-### Donations
+## Donations
 
 This project is self-funded. If you like it and would like to ensure its continued and speedy development, consider donating to the author. If this software has served you well (in commercial projects), consider supporting its further development through donations to the author. For details please contact the author using the above contact information. Please be advised, though, that **[the author does not accept contributions from governments, governmental organizations, government funded organizations, or other comparable terrorist organizations](https://blog.kareldonk.com/why-i-will-never-work-for-any-government-ever-again/)**. The author values the truth and will make no compromises with regard to the software, its mission and purpose.
 
-### Contributing
+## Contributing
 
 The author is currently especially looking for engineers who would like to review the source code, report bugs or other issues, do security audits, and especially cryptographers who want to help review the cryptographic protocols used including their implementation.
