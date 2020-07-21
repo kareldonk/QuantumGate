@@ -25,6 +25,7 @@ bld/
 [Bb]uild/
 [Ll]ib/
 [Ww]in32/
+[Dd]ist/
 
 # Temp folders
 enc_temp_folder/
