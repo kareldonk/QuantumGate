@@ -138,7 +138,9 @@ protected:
 	afx_msg void OnSocks5ExtenderConfiguration();
 	afx_msg void OnUpdateSocks5ExtenderConfiguration(CCmdUI* pCmdUI);
 
-protected:
+private:
+	static inline const char* m_SettingsFilename{ "TestAppSettings.json" };
+
 	QuantumGate::StartupParameters m_StartupParameters;
 	QuantumGate::Local m_QuantumGate;
 

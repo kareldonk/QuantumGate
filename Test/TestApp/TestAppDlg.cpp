@@ -340,10 +340,16 @@ LRESULT CTestAppDlg::OnQGUpdateControls(WPARAM w, LPARAM l)
 
 void CTestAppDlg::LoadSettings()
 {
-	auto filepath = Util::ToStringA(GetApp()->GetFolder()) + "QuantumGate.json";
+	auto filepath = Util::ToStringA(GetApp()->GetFolder()) + m_SettingsFilename;
 
 	// No settings file to load; we'll create one on exit
-	if (!std::filesystem::exists(Path(filepath))) return;
+	if (!std::filesystem::exists(Path(filepath)))
+	{
+		m_MainTab.SetValue(IDC_SERVERPORT, L"999");
+		m_DefaultIP = L"192.168.1.1";
+		m_DefaultPort = 999;
+		return;
+	}
 
 	try
 	{
@@ -394,11 +400,13 @@ void CTestAppDlg::LoadSettings()
 				{
 					m_DefaultIP = Util::ToStringW(set["ConnectIP"].get<std::string>()).c_str();
 				}
+				else m_DefaultIP = L"192.168.1.1";
 
 				if (set.find("ConnectPort") != set.end())
 				{
 					m_DefaultPort = set["ConnectPort"].get<int>();
 				}
+				else m_DefaultPort = 999;
 
 				if (set.find("AutoFileTransferFile") != set.end())
 				{
@@ -665,7 +673,7 @@ void CTestAppDlg::SaveSettings()
 			AfxMessageBox(L"Couldn't save PeerAccessSettings to settings file. Exception: " + CString(e.what()), MB_ICONERROR);
 		}
 
-		std::ofstream file(Util::ToStringA(GetApp()->GetFolder()) + "QuantumGate.json");
+		std::ofstream file(Util::ToStringA(GetApp()->GetFolder()) + m_SettingsFilename);
 		file << std::setw(4) << j << std::endl;
 	}
 	catch (const std::exception& e)
