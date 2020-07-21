@@ -23,10 +23,10 @@ CTestAppDlgMainTab::~CTestAppDlgMainTab()
 
 void CTestAppDlgMainTab::UpdateControls() noexcept
 {
-	GetDlgItem(IDC_SERVERPORT)->EnableWindow(!m_QuantumGate.IsRunning());
-	GetDlgItem(IDC_LOCAL_UUID)->EnableWindow(!m_QuantumGate.IsRunning());
+	((CEdit*)GetDlgItem(IDC_SERVERPORT))->SetReadOnly(m_QuantumGate.IsRunning());
+	((CEdit*)GetDlgItem(IDC_LOCAL_UUID))->SetReadOnly(m_QuantumGate.IsRunning());
 	GetDlgItem(IDC_CREATE_UUID)->EnableWindow(!m_QuantumGate.IsRunning());
-	GetDlgItem(IDC_PASSPHRASE)->EnableWindow(!m_QuantumGate.IsRunning());
+	((CEdit*)GetDlgItem(IDC_PASSPHRASE))->SetReadOnly(m_QuantumGate.IsRunning());
 }
 
 void CTestAppDlgMainTab::DoDataExchange(CDataExchange* pDX)
