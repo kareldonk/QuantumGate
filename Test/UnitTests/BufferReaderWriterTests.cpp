@@ -53,10 +53,10 @@ namespace UnitTests
 
 				BufferWriter wrt(nbo);
 				auto ret = wrt.WriteWithPreallocation(uint8t, uint16t, uint32t, uint64t, enumt, uuidt, ipt,
-													  WithSize(strte, MaxSize::UInt8), WithSize(strt, MaxSize::UInt16),
-													  WithSize(numvect, MaxSize::UInt8), WithSize(numvecte, MaxSize::UInt8),
-													  WithSize(enumvect, MaxSize::UInt8), WithSize(uuidvect, MaxSize::UInt8),
-													  WithSize(buf, MaxSize::UInt16), WithSize(bufe, MaxSize::UInt8));
+													  WithSize(strte, MaxSize::_UINT8), WithSize(strt, MaxSize::_UINT16),
+													  WithSize(numvect, MaxSize::_UINT8), WithSize(numvecte, MaxSize::_UINT8),
+													  WithSize(enumvect, MaxSize::_UINT8), WithSize(uuidvect, MaxSize::_UINT8),
+													  WithSize(buf, MaxSize::_UINT16), WithSize(bufe, MaxSize::_UINT8));
 
 				Assert::AreEqual(true, ret);
 
@@ -80,10 +80,10 @@ namespace UnitTests
 
 				BufferReader rdr(data, nbo);
 				ret = rdr.Read(uint8tr, uint16tr, uint32tr, uint64tr, enumtr, uuidtr, iptr,
-							   WithSize(strter, MaxSize::UInt8), WithSize(strtr, MaxSize::UInt16),
-							   WithSize(numvectr, MaxSize::UInt8), WithSize(numvecter, MaxSize::UInt8),
-							   WithSize(enumvectr, MaxSize::UInt8), WithSize(uuidvectr, MaxSize::UInt8),
-							   WithSize(bufr, MaxSize::UInt16), WithSize(bufe, MaxSize::UInt8));
+							   WithSize(strter, MaxSize::_UINT8), WithSize(strtr, MaxSize::_UINT16),
+							   WithSize(numvectr, MaxSize::_UINT8), WithSize(numvecter, MaxSize::_UINT8),
+							   WithSize(enumvectr, MaxSize::_UINT8), WithSize(uuidvectr, MaxSize::_UINT8),
+							   WithSize(bufr, MaxSize::_UINT16), WithSize(bufe, MaxSize::_UINT8));
 
 				Assert::AreEqual(true, ret);
 
@@ -142,23 +142,23 @@ namespace UnitTests
 								"- Muammar al-Qaddafi" };
 
 			BufferWriter wrt2;
-			Assert::AreEqual(true, wrt2.WriteWithPreallocation(WithSize(strt, MaxSize::UInt16)));
+			Assert::AreEqual(true, wrt2.WriteWithPreallocation(WithSize(strt, MaxSize::_UINT16)));
 			Buffer data2(wrt2.MoveWrittenBytes());
 
 			String strt2;
 			BufferReader rdr4(data2);
 
 			// Try to read data that's bigger than the max expected size
-			Assert::AreEqual(false, rdr4.Read(WithSize(strt2, MaxSize::UInt8)));
+			Assert::AreEqual(false, rdr4.Read(WithSize(strt2, MaxSize::_UINT8)));
 			// Bigger expected size should work
-			Assert::AreEqual(true, rdr4.Read(WithSize(strt2, MaxSize::UInt16)));
+			Assert::AreEqual(true, rdr4.Read(WithSize(strt2, MaxSize::_UINT16)));
 
 			BufferView datav2(data2);
 			datav2.RemoveLast(1);
 
 			// Data is smaller than the saved size encoded at the beginning; should fail
 			BufferReader rdr5(datav2);
-			Assert::AreEqual(false, rdr5.Read(WithSize(strt2, MaxSize::UInt16)));
+			Assert::AreEqual(false, rdr5.Read(WithSize(strt2, MaxSize::_UINT16)));
 		}
 	};
 }

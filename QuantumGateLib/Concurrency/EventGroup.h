@@ -485,7 +485,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 				num_handles = static_cast<DWORD>(data.MainEvents.size());
 				
-				for (int x = 0; x < data.MainEvents.size(); ++x)
+				for (MainEventHandles::size_type x = 0; x < data.MainEvents.size(); ++x)
 				{
 					event_handles[x] = data.MainEvents[x].Handle;
 				}
