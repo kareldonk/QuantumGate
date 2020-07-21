@@ -424,7 +424,7 @@ namespace QuantumGate::Implementation::Concurrency
 			return success;
 		}
 
-		[[nodiscard]] void RemoveEvent(const EventHandle handle) noexcept
+		void RemoveEvent(const EventHandle handle) noexcept
 		{
 			try
 			{
