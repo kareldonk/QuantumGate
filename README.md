@@ -59,11 +59,15 @@ The QuantumGate MSVC project is configured to look for specific naming of the Op
 
 ## Documentation
 
-Documentation can be found in the [Wiki](https://github.com/kareldonk/QuantumGate/wiki).
+Documentation can be found in the [wiki](https://github.com/kareldonk/QuantumGate/wiki).
 
 ## Examples
 
-A listing of examples to get you started quickly can be found in the [Wiki](https://github.com/kareldonk/QuantumGate/wiki/Examples).
+A listing of examples to get you started quickly can be found in the [wiki](https://github.com/kareldonk/QuantumGate/wiki/Examples).
+
+## Tutorials
+
+A small but growing collection of tutorials can be found in the [wiki](https://github.com/kareldonk/QuantumGate/wiki).
 
 ## License
 
