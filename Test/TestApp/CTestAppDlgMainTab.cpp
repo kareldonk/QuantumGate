@@ -656,7 +656,7 @@ void CTestAppDlgMainTab::OnBnClickedCreateUuid()
 				SetValue(IDC_LOCAL_UUID, uuid.GetString().c_str());
 
 				const auto msg = L"The UUID '" + uuid.GetString() +
-					L"' has been ceated. The associated asymmetric key-pair has been saved to the following files in the program folder:\r\n\r\n" +
+					L"' has been created. The associated asymmetric key pair has been saved to the following files in the program folder:\r\n\r\n" +
 					pubname + L"\r\n\r\n" + privname;
 
 				AfxMessageBox(msg.c_str(), MB_ICONINFORMATION);
