@@ -2,27 +2,68 @@
 # licensing information refer to the license file(s) in the project root.
 
 # This PowerShell script copies files from the Build folder to the Dist folder.
-# Debug and Release builds have to be created first before running this script.
+# Debug and Release builds have to be created first if they don't exist.
 # All files from the Dist folder are deleted before copying begins.
 
 param([string]$root_folder)
+
+$Global:LASTEXITCODE = 0
 
 Function ExitWithError
 {
 	Param ([String]$error_string) 
 
+	Write-Host("")
 	Write-Host "$error_string" -ForegroundColor red
 	Write-Host("")
 	exit 1
 }
 
-if ($root_folder.Length -eq 0)
+if ($root_folder.Length -eq 0) 
 {
-	ExitWithError("Please specify the path to the QuantumGate project root folder.")
+	$current = Get-Location
+	if ($current.Path.EndsWith("\Scripts"))
+	{
+		$root_folder = (get-item $current).Parent.FullName
+	}
+	else
+	{
+		$root_folder = Read-Host -Prompt "Please specify the full path to the QuantumGate project root folder"
+		if (![System.IO.Directory]::Exists($root_folder)) 
+		{
+			ExitWithError("The folder does not exist ($root_folder).")
+		}
+	}
 }
 
-$build_folder = $root_folder + "\Build"
-$dist_folder = $root_folder + "\Dist"
+if (!$root_folder.EndsWith("\"))
+{
+	$root_folder = $root_folder + "\"
+}
+
+$build_req = Read-Host -Prompt "Do you want to (re)build the QuantumGate solution first? (y/n)"
+Write-Host("")
+if ($build_req -eq "Y" -or $build_req -eq "y") 
+{
+	$current = Get-Location
+	$build_batch = $current.Path + "\BuildSolution.bat"
+
+	if (![System.IO.File]::Exists($build_batch)) 
+	{
+		ExitWithError("The build batchfile was not found ($build_batch).")
+	}
+
+	$expr = $build_batch + " " + $root_folder
+	Invoke-Expression $expr
+
+	if (!$? -or $LASTEXITCODE -ne 0)
+	{
+		ExitWithError("Build failed.")
+	}
+}
+
+$build_folder = $root_folder + "Build"
+$dist_folder = $root_folder + "Dist"
 
 if (![System.IO.Directory]::Exists($build_folder)) 
 {
@@ -57,9 +98,6 @@ Function CreateDistFile
 $dist_files = @(
 	# Win32 Debug files
 	CreateDistFile "CmdMess.exe" 								"Win32\Debug" "Win32\Debug"
-	CreateDistFile "libcrypto32d.dll" 							"Win32\Debug" "Win32\Debug"
-	CreateDistFile "libzstd32.dll" 								"Win32\Debug" "Win32\Debug"
-	CreateDistFile "zlib32.dll" 								"Win32\Debug" "Win32\Debug"
 	CreateDistFile "QuantumGate32D.dll" 						"Win32\Debug" "Win32\Debug"
 	CreateDistFile "QuantumGate32D.lib" 						"Win32\Debug" "Win32\Debug"
 	CreateDistFile "QuantumGateConsoleExample.exe" 				"Win32\Debug" "Win32\Debug"
@@ -69,12 +107,13 @@ $dist_files = @(
 	CreateDistFile "QuantumGateStartupExample.exe" 				"Win32\Debug" "Win32\Debug"
 	CreateDistFile "Socks5Extender32D.dll" 						"Win32\Debug" "Win32\Debug"
 	CreateDistFile "TestApp32.exe" 								"Win32\Debug" "Win32\Debug"
+	# Third party libraries
+	CreateDistFile "libcrypto32d.dll" 							"Win32\Debug" "Win32\Debug"
+	CreateDistFile "libzstd32.dll" 								"Win32\Debug" "Win32\Debug"
+	CreateDistFile "zlib32.dll" 								"Win32\Debug" "Win32\Debug"	
 
 	# Win32 Release files
 	CreateDistFile "CmdMess.exe" 								"Win32\Release" "Win32\Release"
-	CreateDistFile "libcrypto32.dll" 							"Win32\Release" "Win32\Release"
-	CreateDistFile "libzstd32.dll" 								"Win32\Release" "Win32\Release"
-	CreateDistFile "zlib32.dll" 								"Win32\Release" "Win32\Release"
 	CreateDistFile "QuantumGate32.dll" 							"Win32\Release" "Win32\Release"
 	CreateDistFile "QuantumGate32.lib" 							"Win32\Release" "Win32\Release"
 	CreateDistFile "QuantumGateConsoleExample.exe" 				"Win32\Release" "Win32\Release"
@@ -84,12 +123,13 @@ $dist_files = @(
 	CreateDistFile "QuantumGateStartupExample.exe" 				"Win32\Release" "Win32\Release"
 	CreateDistFile "Socks5Extender32.dll" 						"Win32\Release" "Win32\Release"
 	CreateDistFile "TestApp32.exe" 								"Win32\Release" "Win32\Release"	
+	# Third party libraries
+	CreateDistFile "libcrypto32.dll" 							"Win32\Release" "Win32\Release"
+	CreateDistFile "libzstd32.dll" 								"Win32\Release" "Win32\Release"
+	CreateDistFile "zlib32.dll" 								"Win32\Release" "Win32\Release"
 
 	# x64 Debug files
 	CreateDistFile "CmdMess.exe" 								"x64\Debug" "x64\Debug"
-	CreateDistFile "libcrypto64d.dll" 							"x64\Debug" "x64\Debug"
-	CreateDistFile "libzstd64.dll" 								"x64\Debug" "x64\Debug"
-	CreateDistFile "zlib64.dll" 								"x64\Debug" "x64\Debug"
 	CreateDistFile "QuantumGate64D.dll" 						"x64\Debug" "x64\Debug"
 	CreateDistFile "QuantumGate64D.lib" 						"x64\Debug" "x64\Debug"
 	CreateDistFile "QuantumGateConsoleExample.exe" 				"x64\Debug" "x64\Debug"
@@ -99,12 +139,13 @@ $dist_files = @(
 	CreateDistFile "QuantumGateStartupExample.exe" 				"x64\Debug" "x64\Debug"
 	CreateDistFile "Socks5Extender64D.dll" 						"x64\Debug" "x64\Debug"
 	CreateDistFile "TestApp64.exe" 								"x64\Debug" "x64\Debug"
+	# Third party libraries
+	CreateDistFile "libcrypto64d.dll" 							"x64\Debug" "x64\Debug"
+	CreateDistFile "libzstd64.dll" 								"x64\Debug" "x64\Debug"
+	CreateDistFile "zlib64.dll" 								"x64\Debug" "x64\Debug"
 
 	# x64 Release files
 	CreateDistFile "CmdMess.exe"								"x64\Release" "x64\Release"
-	CreateDistFile "libcrypto64.dll"							"x64\Release" "x64\Release"
-	CreateDistFile "libzstd64.dll"								"x64\Release" "x64\Release"
-	CreateDistFile "zlib64.dll"									"x64\Release" "x64\Release"
 	CreateDistFile "QuantumGate64.dll"							"x64\Release" "x64\Release"
 	CreateDistFile "QuantumGate64.lib"							"x64\Release" "x64\Release"
 	CreateDistFile "QuantumGateConsoleExample.exe"				"x64\Release" "x64\Release"
@@ -114,6 +155,10 @@ $dist_files = @(
 	CreateDistFile "QuantumGateStartupExample.exe"				"x64\Release" "x64\Release"
 	CreateDistFile "Socks5Extender64.dll"						"x64\Release" "x64\Release"
 	CreateDistFile "TestApp64.exe"								"x64\Release" "x64\Release"
+	# Third party libraries
+	CreateDistFile "libcrypto64.dll"							"x64\Release" "x64\Release"
+	CreateDistFile "libzstd64.dll"								"x64\Release" "x64\Release"
+	CreateDistFile "zlib64.dll"									"x64\Release" "x64\Release"
 );
 
 foreach ($file in $dist_files)
@@ -131,6 +176,11 @@ foreach ($file in $dist_files)
 
 	$src_file = -join($src_folder, "\", $file['FileName'])
 	$dest_file = -join($dest_folder, "\", $file['FileName'])
+
+	if (![System.IO.File]::Exists($src_file)) 
+	{
+		ExitWithError("A required file could not be found ($src_file). The solution may need to be built or a 3rd party file is missing.")
+	}
 
 	Write-Host("Copying file $src_file...")
 	
