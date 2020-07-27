@@ -3,8 +3,8 @@
 
 #pragma once
 
+#include "MessageTypes.h"
 #include "MessageTransport.h"
-#include "MessageDetails.h"
 #include "..\Memory\BufferIO.h"
 
 namespace QuantumGate::Implementation::Core

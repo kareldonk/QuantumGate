@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "ExtenderControl.h"
 #include "ExtenderManager.h"
+#include "..\Peer\Peer.h"
 
 namespace QuantumGate::Implementation::Core::Extender
 {
@@ -184,12 +185,15 @@ namespace QuantumGate::Implementation::Core::Extender
 
 				if (event)
 				{
-					const auto pluid = event.GetPeerLUID();
+					const auto peer_weakptr = event.GetPeerWeakPointer();
 					const auto evresult = GetExtender().OnPeerMessage(QuantumGate::API::Extender::PeerEvent(std::move(event)));
 					if ((!evresult.Handled || !evresult.Success) && !GetExtender().HadException())
 					{
-						m_ExtenderManager.GetUnhandledExtenderMessageCallbacks().WithUniqueLock()(GetExtender().GetUUID(),
-																								  pluid, evresult);
+						const auto peer_ths = peer_weakptr.lock();
+						if (peer_ths)
+						{
+							peer_ths->WithUniqueLock()->OnUnhandledExtenderMessage(GetExtender().GetUUID(), evresult);
+						}
 						break;
 					}
 				}

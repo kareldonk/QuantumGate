@@ -9,15 +9,15 @@ namespace QuantumGate::API
 {
 #ifdef _DEBUG
 #if !defined(_WIN64)
-	static constexpr int PeerEventSize{ 88 };
+	static constexpr int PeerEventSize{ 96 };
 #else
-	static constexpr int PeerEventSize{ 104 };
+	static constexpr int PeerEventSize{ 120 };
 #endif
 #else
 #if !defined(_WIN64)
-	static constexpr int PeerEventSize{ 80 };
+	static constexpr int PeerEventSize{ 88 };
 #else
-	static constexpr int PeerEventSize{ 96 };
+	static constexpr int PeerEventSize{ 112 };
 #endif
 #endif
 

@@ -20,13 +20,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		friend class Peer;
 		friend class Relay::Manager;
 
-		using PeerMap = Containers::UnorderedMap<PeerLUID, std::shared_ptr<Peer_ThS>>;
+		using PeerMap = Containers::UnorderedMap<PeerLUID, PeerSharedPointer>;
 		using PeerMap_ThS = Concurrency::ThreadSafe<PeerMap, std::shared_mutex>;
 
 		struct Tasks final
 		{
 			struct PeerAccessCheck final {};
-			struct PeerEventUpdate final { std::shared_ptr<Peer_ThS> Peer; };
+			struct PeerEventUpdate final { PeerSharedPointer Peer; };
 			struct PeerCallback final { Callback<void()> Callback; };
 		};
 
@@ -71,17 +71,17 @@ namespace QuantumGate::Implementation::Core::Peer
 		void ShutdownRelays() noexcept;
 		[[nodiscard]] inline bool AreRelaysRunning() const noexcept { return m_RelayManager.IsRunning(); }
 
-		std::shared_ptr<Peer_ThS> Get(const PeerLUID pluid) const noexcept;
+		PeerSharedPointer Get(const PeerLUID pluid) const noexcept;
 		Result<API::Peer> GetPeer(const PeerLUID pluid) const noexcept;
 
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
 
-		std::shared_ptr<Peer_ThS> Create(const PeerConnectionType pctype,
-										 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
-		std::shared_ptr<Peer_ThS> CreateRelay(const PeerConnectionType pctype,
-											  std::optional<ProtectedBuffer>&& shared_secret) noexcept;
+		PeerSharedPointer Create(const PeerConnectionType pctype,
+								 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
+		PeerSharedPointer CreateRelay(const PeerConnectionType pctype,
+									  std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
-		bool Accept(std::shared_ptr<Peer_ThS>& peerths) noexcept;
+		bool Accept(PeerSharedPointer& peerths) noexcept;
 
 		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept;
 
@@ -115,14 +115,14 @@ namespace QuantumGate::Implementation::Core::Peer
 		inline KeyGeneration::Manager& GetKeyGenerationManager() const noexcept { return m_KeyGenerationManager; }
 		inline Extender::Manager& GetExtenderManager() const noexcept { return m_ExtenderManager; }
 
-		inline std::shared_ptr<Peer_ThS>& GetPeerFromPeerStorage(API::Peer& peer) noexcept
+		inline PeerSharedPointer& GetPeerFromPeerStorage(API::Peer& peer) noexcept
 		{
-			return *static_cast<std::shared_ptr<Peer_ThS>*>(peer.GetPeerSharedPtrStorage());
+			return *static_cast<PeerSharedPointer*>(peer.GetPeerSharedPtrStorage());
 		}
 
-		std::shared_ptr<Peer_ThS> Create(const IP::AddressFamily af, const Socket::Type type,
-										 const IP::Protocol protocol, const PeerConnectionType pctype,
-										 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
+		PeerSharedPointer Create(const IP::AddressFamily af, const Socket::Type type,
+								 const IP::Protocol protocol, const PeerConnectionType pctype,
+								 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
 		inline Relay::Manager& GetRelayManager() noexcept { return m_RelayManager; }
 
@@ -135,9 +135,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		Result<bool> AreRelayIPsInSameNetwork(const BinaryIPAddress& ip,
 											  const Vector<BinaryIPAddress>& addresses) noexcept;
 
-		bool Add(std::shared_ptr<Peer_ThS>& peerths) noexcept;
-		void Remove(const std::shared_ptr<Peer_ThS>& peer_ths) noexcept;
-		void Remove(const Containers::List<std::shared_ptr<Peer_ThS>>& peerlist) noexcept;
+		bool Add(PeerSharedPointer& peerths) noexcept;
+		void Remove(const PeerSharedPointer& peer_ths) noexcept;
+		void Remove(const Containers::List<PeerSharedPointer>& peerlist) noexcept;
 		void RemoveAll() noexcept;
 
 		Result<PeerLUID> DirectConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept;
@@ -159,8 +159,6 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		void OnAccessUpdate() noexcept;
 		void OnLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids, const bool added);
-		void OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const PeerLUID pluid,
-										const API::Extender::PeerEvent::Result& result) noexcept;
 		void OnPeerEvent(const Peer& peer, const Event&& event) noexcept;
 
 		void SchedulePeerCallback(const UInt64 threadpool_key, Callback<void()>&& callback) noexcept;
@@ -194,6 +192,5 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Access::Manager::AccessUpdateCallbackHandle m_AccessUpdateCallbackHandle;
 		Extender::Manager::ExtenderUpdateCallbackHandle m_ExtenderUpdateCallbackHandle;
-		Extender::Manager::UnhandledExtenderMessageCallbackHandle m_UnhandledExtenderMessageCallbackHandle;
 	};
 }

@@ -43,7 +43,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	bool Peer::Initialize() noexcept
+	bool Peer::Initialize(PeerWeakPointer&& peer_ths) noexcept
 	{
 		// Delay for a few random milliseconds before we begin communication;
 		// this gives the peer a chance to sometimes start communicating first.
@@ -71,6 +71,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 			else return false;
 		}
+
+		m_PeerPointer = std::move(peer_ths);
 
 		return SetStatus(Status::Initialized);
 	}
@@ -697,7 +699,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			const auto data_size = static_cast<Size>(std::abs(Random::GetPseudoRandomNumber(minsize, maxsize)));
 
-			if (m_SendQueues.GetAvailableNoiseSendBufferSize() >= data_size)
+			if (GetAvailableNoiseSendBufferSize() >= data_size)
 			{
 				auto data = Random::GetPseudoRandomBytes(data_size);
 
@@ -1672,7 +1674,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	void Peer::ProcessEvent(const Event::Type etype) noexcept
 	{
 		// Notify peer manager of new peer event
-		GetPeerManager().OnPeerEvent(*this, Event(etype, GetLUID(), GetLocalUUID()));
+		GetPeerManager().OnPeerEvent(*this, Event(etype, GetLUID(), GetLocalUUID(), m_PeerPointer));
 
 		// Notify extenders of new peer event
 		ProcessEvent(GetPeerExtenderUUIDs().Current(), etype);
@@ -1680,7 +1682,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	void Peer::ProcessEvent(const Vector<ExtenderUUID>& extuuids, const Event::Type etype) noexcept
 	{
-		GetExtenderManager().OnPeerEvent(extuuids, Event(etype, GetLUID(), GetLocalUUID()));
+		GetExtenderManager().OnPeerEvent(extuuids, Event(etype, GetLUID(), GetLocalUUID(), m_PeerPointer));
 	}
 
 	MessageProcessor::Result Peer::ProcessMessage(MessageDetails&& msg)
@@ -1696,7 +1698,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				// Allow extenders to process received message
 				const auto retval = GetExtenderManager().OnPeerMessage(Event(Event::Type::Message, GetLUID(),
-																			 GetLocalUUID(), std::move(msg)));
+																			 GetLocalUUID(), m_PeerPointer, std::move(msg)));
 				if (!retval.first)
 				{
 					// Peer sent a message for an extender that's not running locally or

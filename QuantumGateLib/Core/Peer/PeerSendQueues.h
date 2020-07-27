@@ -56,21 +56,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] std::pair<bool, Size> GetMessages(Buffer& buffer, const Crypto::SymmetricKeyData& symkey,
 														const bool concatenate);
 
-		[[nodiscard]] inline Size GetAvailableNoiseSendBufferSize() const noexcept
-		{
-			return m_RateLimits.GetAvailable<MessageRateLimits::Type::Noise>();
-		}
-
-		[[nodiscard]] inline Size GetAvailableRelayDataSendBufferSize() const noexcept
-		{
-			return m_RateLimits.GetAvailable<MessageRateLimits::Type::RelayData>();
-		}
-
-		[[nodiscard]] inline Size GetAvailableExtenderCommunicationSendBufferSize() const noexcept
-		{
-			return m_RateLimits.GetAvailable<MessageRateLimits::Type::ExtenderCommunication>();
-		}
-
 	private:
 		template<MessageRateLimits::Type type>
 		Result<> AddMessageImpl(Message&& msg, const SendParameters::PriorityOption priority,
@@ -87,6 +72,5 @@ namespace QuantumGate::Implementation::Core::Peer
 		MessageQueue m_NormalQueue;
 		MessageQueue m_ExpeditedQueue;
 		DelayedMessageQueue m_DelayedQueue;
-		MessageRateLimits m_RateLimits;
 	};
 }

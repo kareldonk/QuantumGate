@@ -580,7 +580,6 @@
     <ClInclude Include="Core\LocalEnvironment.h" />
     <ClInclude Include="Core\Local.h" />
     <ClInclude Include="Core\Message.h" />
-    <ClInclude Include="Core\MessageDetails.h" />
     <ClInclude Include="Core\MessageTransport.h" />
     <ClInclude Include="Core\MessageTypes.h" />
     <ClInclude Include="Core\Peer\Peer.h" />
@@ -592,12 +591,14 @@
     <ClInclude Include="Core\Peer\PeerKeys.h" />
     <ClInclude Include="Core\Peer\PeerKeyUpdate.h" />
     <ClInclude Include="Core\Peer\PeerLookupMaps.h" />
+    <ClInclude Include="Core\Peer\PeerMessageDetails.h" />
     <ClInclude Include="Core\Peer\PeerMessageProcessor.h" />
     <ClInclude Include="Core\Peer\PeerMessageRateLimits.h" />
     <ClInclude Include="Core\Peer\PeerNoiseQueue.h" />
     <ClInclude Include="Core\Peer\PeerNoiseItem.h" />
     <ClInclude Include="Core\Peer\PeerManager.h" />
     <ClInclude Include="Core\Peer\PeerSendQueues.h" />
+    <ClInclude Include="Core\Peer\PeerTypes.h" />
     <ClInclude Include="Core\PublicIPEndpoints.h" />
     <ClInclude Include="Core\Relay\RelayDataRateLimit.h" />
     <ClInclude Include="Core\Relay\RelayEvents.h" />

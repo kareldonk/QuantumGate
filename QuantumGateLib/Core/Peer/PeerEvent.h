@@ -3,7 +3,8 @@
 
 #pragma once
 
-#include "..\MessageDetails.h"
+#include "PeerTypes.h"
+#include "PeerMessageDetails.h"
 #include "..\..\API\Extender.h"
 
 namespace QuantumGate::Implementation::Core::Peer
@@ -14,22 +15,20 @@ namespace QuantumGate::Implementation::Core::Peer
 		using Type = QuantumGate::API::Extender::PeerEvent::Type;
 
 		Event() noexcept = default;
-		Event(Type type, PeerLUID pluid, PeerUUID puuid) noexcept;
-		Event(Type type, PeerLUID pluid, PeerUUID puuid, MessageDetails&& msg) noexcept;
+		Event(const Type type, const PeerLUID pluid, const PeerUUID puuid, const PeerWeakPointer& peerptr) noexcept;
+		Event(const Type type, const PeerLUID pluid, const PeerUUID puuid, const PeerWeakPointer& peerptr, MessageDetails&& msg) noexcept;
 		Event(const Event& other) noexcept;
 		Event(Event&& other) noexcept;
-		~Event() = default;
-		Event& operator=(const Event&) = default;
+		~Event();
+		Event& operator=(const Event&) = delete;
 		Event& operator=(Event&& other) noexcept;
-
-		void swap(Event& other) noexcept;
 
 		explicit operator bool() const noexcept;
 
 		inline Type GetType() const noexcept { return m_Type; }
 		inline PeerLUID GetPeerLUID() const noexcept { return m_PeerLUID; }
 		inline const PeerUUID& GetPeerUUID() const noexcept { return m_PeerUUID; }
-
+		inline PeerWeakPointer GetPeerWeakPointer() const noexcept { return m_PeerPointer; }
 		const ExtenderUUID* GetExtenderUUID() const noexcept;
 		const Buffer* GetMessageData() const noexcept;
 
@@ -37,6 +36,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Type m_Type{ Type::Unknown };
 		PeerLUID m_PeerLUID{ 0 };
 		PeerUUID m_PeerUUID;
+		PeerWeakPointer m_PeerPointer;
 		std::optional<MessageDetails> m_Message;
 	};
 }

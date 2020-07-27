@@ -5,7 +5,6 @@
 
 #include "..\..\Version.h"
 #include "..\..\Common\Dispatcher.h"
-#include "..\..\Concurrency\RecursiveSharedMutex.h"
 #include "..\KeyGeneration\KeyGenerationManager.h"
 #include "..\Access\AccessManager.h"
 #include "..\Extender\ExtenderManager.h"
@@ -66,7 +65,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Peer& operator=(const Peer&) = delete;
 		Peer& operator=(Peer&&) noexcept = default;
 
-		[[nodiscard]] bool Initialize() noexcept;
+		[[nodiscard]] bool Initialize(PeerWeakPointer&& peer_ths) noexcept;
 
 		const Settings& GetSettings() const noexcept;
 		KeyGeneration::Manager& GetKeyGenerationManager() const noexcept;
@@ -131,14 +130,21 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] Result<> SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
 												   const std::chrono::milliseconds maxdelay) noexcept;
 
+		[[nodiscard]] inline MessageRateLimits& GetMessageRateLimits() noexcept { return m_RateLimits; }
+
 		[[nodiscard]] inline Size GetAvailableExtenderCommunicationSendBufferSize() const noexcept
 		{
-			return m_SendQueues.GetAvailableExtenderCommunicationSendBufferSize();
+			return m_RateLimits.GetAvailable<MessageRateLimits::Type::ExtenderCommunicationSend>();
 		}
 
 		[[nodiscard]] inline Size GetAvailableRelayDataSendBufferSize() const noexcept
 		{
-			return m_SendQueues.GetAvailableRelayDataSendBufferSize();
+			return m_RateLimits.GetAvailable<MessageRateLimits::Type::RelayDataSend>();
+		}
+
+		[[nodiscard]] inline Size GetAvailableNoiseSendBufferSize() const noexcept
+		{
+			return m_RateLimits.GetAvailable<MessageRateLimits::Type::NoiseSend>();
 		}
 
 		[[nodiscard]] std::chrono::milliseconds GetHandshakeDelayPerMessage() const noexcept;
@@ -289,6 +295,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Data_ThS m_PeerData;
 
+		PeerWeakPointer m_PeerPointer;
+
 		SteadyTime m_LastStatusChangeSteadyTime;
 
 		std::bitset<8> m_Flags{ 0 };
@@ -304,6 +312,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		ExtenderUUIDs m_PeerExtenderUUIDs;
 
+		MessageRateLimits m_RateLimits;
 		PeerSendQueues m_SendQueues{ *this };
 
 		EventBuffer m_ReceiveBuffer;
@@ -331,6 +340,4 @@ namespace QuantumGate::Implementation::Core::Peer
 		Dispatcher<void(const PeerLUID, const Result<ConnectDetails> result)> m_ConnectCallbacks;
 		Dispatcher<void(const PeerLUID, const PeerUUID)> m_DisconnectCallbacks;
 	};
-
-	using Peer_ThS = Concurrency::ThreadSafe<Peer, Concurrency::RecursiveSharedMutex>;
 }

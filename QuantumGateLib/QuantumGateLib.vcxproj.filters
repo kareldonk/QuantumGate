@@ -348,9 +348,6 @@
     <ClInclude Include="Memory\PoolAllocator.h">
       <Filter>Header Files\Memory</Filter>
     </ClInclude>
-    <ClInclude Include="Core\MessageDetails.h">
-      <Filter>Header Files\Core</Filter>
-    </ClInclude>
     <ClInclude Include="Core\MessageTypes.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
@@ -428,6 +425,12 @@
     </ClInclude>
     <ClInclude Include="Common\DiffTimer.h">
       <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerMessageDetails.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Peer\PeerTypes.h">
+      <Filter>Header Files\Core\Peer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -28,7 +28,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	struct PeerDetails final
 	{
 		PeerLUID PeerLUID{ 0 };
-		std::shared_ptr<Peer::Peer_ThS> Peer{ nullptr };
+		Peer::PeerSharedPointer Peer{ nullptr };
 		bool GetStatusUpdates{ true };
 	};
 

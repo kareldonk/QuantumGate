@@ -13,11 +13,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		switch (msg.GetMessageType())
 		{
 			case MessageType::ExtenderCommunication:
-				return AddMessageImpl<MessageRateLimits::Type::ExtenderCommunication>(std::move(msg), priority, delay, std::move(callback));
+				return AddMessageImpl<MessageRateLimits::Type::ExtenderCommunicationSend>(std::move(msg), priority, delay, std::move(callback));
 			case MessageType::Noise:
-				return AddMessageImpl<MessageRateLimits::Type::Noise>(std::move(msg), priority, delay, std::move(callback));
+				return AddMessageImpl<MessageRateLimits::Type::NoiseSend>(std::move(msg), priority, delay, std::move(callback));
 			case MessageType::RelayData:
-				return AddMessageImpl<MessageRateLimits::Type::RelayData>(std::move(msg), priority, delay, std::move(callback));
+				return AddMessageImpl<MessageRateLimits::Type::RelayDataSend>(std::move(msg), priority, delay, std::move(callback));
 			default:
 				return AddMessageImpl<MessageRateLimits::Type::Default>(std::move(msg), priority, delay, std::move(callback));
 		}
@@ -29,7 +29,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		const auto msg_size = msg.GetMessageData().GetSize();
 
-		if (!m_RateLimits.CanAdd<type>(msg_size))
+		if (!m_Peer.GetMessageRateLimits().CanAdd<type>(msg_size))
 		{
 			return ResultCode::PeerSendBufferFull;
 		}
@@ -53,7 +53,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					break;
 			}
 
-			m_RateLimits.Add<type>(msg_size);
+			m_Peer.GetMessageRateLimits().Add<type>(msg_size);
 		}
 		catch (...)
 		{
@@ -88,13 +88,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		switch (message_type)
 		{
 			case MessageType::ExtenderCommunication:
-				m_RateLimits.Subtract<MessageRateLimits::Type::ExtenderCommunication>(data_size);
+				m_Peer.GetMessageRateLimits().Subtract<MessageRateLimits::Type::ExtenderCommunicationSend>(data_size);
 				break;
 			case MessageType::Noise:
-				m_RateLimits.Subtract<MessageRateLimits::Type::Noise>(data_size);
+				m_Peer.GetMessageRateLimits().Subtract<MessageRateLimits::Type::NoiseSend>(data_size);
 				break;
 			case MessageType::RelayData:
-				m_RateLimits.Subtract<MessageRateLimits::Type::RelayData>(data_size);
+				m_Peer.GetMessageRateLimits().Subtract<MessageRateLimits::Type::RelayDataSend>(data_size);
 				break;
 			default:
 				break;

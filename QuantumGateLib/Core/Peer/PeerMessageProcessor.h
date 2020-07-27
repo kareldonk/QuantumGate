@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "..\Message.h"
+#include "PeerMessageDetails.h"
 #include "..\Relay\RelaySocket.h"
 
 namespace QuantumGate::Implementation::Core::Peer
@@ -31,8 +31,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		bool SendBeginPrimaryKeyUpdateExchange() const noexcept;
 
-		bool SendBeginRelay(const RelayPort rport, const IPEndpoint& endpoint,
-							const RelayHop hops) const noexcept;
+		bool SendBeginRelay(const RelayPort rport, const IPEndpoint& endpoint, const RelayHop hops) const noexcept;
 		bool SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept;
 		QuantumGate::Result<> SendRelayData(const RelayDataMessage& msg) const noexcept;
 		bool SendRelayDataAck(const RelayDataAckMessage& msg) const noexcept;

@@ -226,21 +226,6 @@ namespace QuantumGate::Implementation::Core::Peer
 			});
 		}
 
-		if (success)
-		{
-			m_ExtenderManager.GetUnhandledExtenderMessageCallbacks().WithUniqueLock([&](auto& callbacks)
-			{
-				m_UnhandledExtenderMessageCallbackHandle = callbacks.Add(MakeCallback(this,
-																					  &Manager::OnUnhandledExtenderMessage));
-				if (!m_UnhandledExtenderMessageCallbackHandle)
-				{
-
-					LogErr(L"Couldn't register 'UnhandledExtenderMessageCallback' for peers");
-					success = false;
-				}
-			});
-		}
-
 		return success;
 	}
 
@@ -254,11 +239,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		m_ExtenderManager.GetExtenderUpdateCallbacks().WithUniqueLock([&](auto& callbacks)
 		{
 			callbacks.Remove(m_ExtenderUpdateCallbackHandle);
-		});
-
-		m_ExtenderManager.GetUnhandledExtenderMessageCallbacks().WithUniqueLock([&](auto& callbacks)
-		{
-			callbacks.Remove(m_UnhandledExtenderMessageCallbackHandle);
 		});
 	}
 
@@ -274,7 +254,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		ThreadPool::ThreadCallbackResult result{ .Success = true };
 
-		Containers::List<std::shared_ptr<Peer_ThS>> remove_list;
+		Containers::List<PeerSharedPointer> remove_list;
 
 		const auto& settings = GetSettings();
 		const auto noise_enabled = settings.Noise.Enabled;
@@ -413,9 +393,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result;
 	}
 
-	std::shared_ptr<Peer_ThS> Manager::Get(const PeerLUID pluid) const noexcept
+	PeerSharedPointer Manager::Get(const PeerLUID pluid) const noexcept
 	{
-		std::shared_ptr<Peer_ThS> rval{ nullptr };
+		PeerSharedPointer rval{ nullptr };
 
 		m_AllPeers.WithSharedLock([&](const PeerMap& peers)
 		{
@@ -462,40 +442,40 @@ namespace QuantumGate::Implementation::Core::Peer
 											   settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits);
 	}
 
-	std::shared_ptr<Peer_ThS> Manager::Create(const PeerConnectionType pctype,
-											  std::optional<ProtectedBuffer>&& shared_secret) noexcept
+	PeerSharedPointer Manager::Create(const PeerConnectionType pctype,
+									  std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		try
 		{
 			auto peer = std::make_shared<Peer_ThS>(*this, GateType::Socket, pctype, std::move(shared_secret));
-			if (peer->WithUniqueLock()->Initialize()) return peer;
+			if (peer->WithUniqueLock()->Initialize(peer)) return peer;
 		}
 		catch (...) {}
 
 		return nullptr;
 	}
 
-	std::shared_ptr<Peer_ThS> Manager::Create(const IP::AddressFamily af, const Socket::Type type,
-											  const IP::Protocol protocol, const PeerConnectionType pctype,
-											  std::optional<ProtectedBuffer>&& shared_secret) noexcept
+	PeerSharedPointer Manager::Create(const IP::AddressFamily af, const Socket::Type type,
+									  const IP::Protocol protocol, const PeerConnectionType pctype,
+									  std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		try
 		{
 			auto peer = std::make_shared<Peer_ThS>(*this, af, type, protocol, pctype, std::move(shared_secret));
-			if (peer->WithUniqueLock()->Initialize()) return peer;
+			if (peer->WithUniqueLock()->Initialize(peer)) return peer;
 		}
 		catch (...) {}
 
 		return nullptr;
 	}
 
-	std::shared_ptr<Peer_ThS> Manager::CreateRelay(const PeerConnectionType pctype,
-												   std::optional<ProtectedBuffer>&& shared_secret) noexcept
+	PeerSharedPointer Manager::CreateRelay(const PeerConnectionType pctype,
+										   std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		try
 		{
 			auto peer = std::make_shared<Peer_ThS>(*this, GateType::RelaySocket, pctype, std::move(shared_secret));
-			if (peer->WithUniqueLock()->Initialize()) return peer;
+			if (peer->WithUniqueLock()->Initialize(peer)) return peer;
 		}
 		catch (...) {}
 
@@ -509,7 +489,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		thpool->GetData().TaskQueue.WithUniqueLock()->Push(Tasks::PeerCallback{ std::move(callback) });
 	}
 
-	bool Manager::Add(std::shared_ptr<Peer_ThS>& peerths) noexcept
+	bool Manager::Add(PeerSharedPointer& peerths) noexcept
 	{
 		auto success = false;
 
@@ -610,7 +590,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return success;
 	}
 
-	void Manager::Remove(const std::shared_ptr<Peer_ThS>& peer_ths) noexcept
+	void Manager::Remove(const PeerSharedPointer& peer_ths) noexcept
 	{
 		PeerLUID pluid{ 0 };
 		ThreadPool* thpool{ nullptr };
@@ -637,7 +617,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		thpool->GetData().PeerMap.WithUniqueLock()->erase(pluid);
 	}
 
-	void Manager::Remove(const Containers::List<std::shared_ptr<Peer_ThS>>& peerlist) noexcept
+	void Manager::Remove(const Containers::List<PeerSharedPointer>& peerlist) noexcept
 	{
 		for (const auto& peerths : peerlist)
 		{
@@ -724,7 +704,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		RemoveAll();
 	}
 
-	bool Manager::Accept(std::shared_ptr<Peer_ThS>& peerths) noexcept
+	bool Manager::Accept(PeerSharedPointer& peerths) noexcept
 	{
 		return Add(peerths);
 	}
@@ -738,7 +718,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			auto reused = false;
 			PeerLUID pluid{ 0 };
-			std::shared_ptr<Peer_ThS> peerths{ nullptr };
+			PeerSharedPointer peerths{ nullptr };
 
 			if (params.ReuseExistingConnection)
 			{
@@ -1290,21 +1270,6 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		// Let connected peers know we added or removed an extender
 		BroadcastExtenderUpdate();
-	}
-
-	void Manager::OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const PeerLUID pluid,
-											 const API::Extender::PeerEvent::Result& result) noexcept
-	{
-		assert(m_Running);
-
-		// If the peer is still connected
-		if (auto peerths = Get(pluid); peerths != nullptr)
-		{
-			peerths->WithUniqueLock([&](Peer& peer) noexcept
-			{
-				peer.OnUnhandledExtenderMessage(extuuid, result);
-			});
-		}
 	}
 
 	void Manager::OnPeerEvent(const Peer& peer, const Event&& event) noexcept

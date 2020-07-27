@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "MessageTypes.h"
+#include "..\MessageTypes.h"
 
-namespace QuantumGate::Implementation::Core
+namespace QuantumGate::Implementation::Core::Peer
 {
 	class MessageDetails final
 	{

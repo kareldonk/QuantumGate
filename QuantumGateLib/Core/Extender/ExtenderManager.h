@@ -30,11 +30,6 @@ namespace QuantumGate::Implementation::Core::Extender
 		using ExtenderUpdateCallbackHandle = ExtenderUpdateCallbacks::FunctionHandle;
 		using ExtenderUpdateCallbacks_ThS = Concurrency::ThreadSafe<ExtenderUpdateCallbacks, std::shared_mutex>;
 
-		using UnhandledExtenderMessageCallbacks = Dispatcher<void(const ExtenderUUID&, const PeerLUID,
-																  const API::Extender::PeerEvent::Result&) noexcept>;
-		using UnhandledExtenderMessageCallbackHandle = UnhandledExtenderMessageCallbacks::FunctionHandle;
-		using UnhandledExtenderMessageCallbacks_ThS = Concurrency::ThreadSafe<UnhandledExtenderMessageCallbacks, std::mutex>;
-
 		Manager() = delete;
 		Manager(const Settings_CThS& settings) noexcept;
 		Manager(const Manager&) = delete;
@@ -65,11 +60,6 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		inline ExtenderUpdateCallbacks_ThS& GetExtenderUpdateCallbacks() noexcept { return m_ExtenderUpdateCallbacks; }
 
-		inline UnhandledExtenderMessageCallbacks_ThS& GetUnhandledExtenderMessageCallbacks() noexcept
-		{
-			return m_UnhandledExtenderMessageCallbacks;
-		}
-
 	private:
 		[[nodiscard]] bool StartExtenders() noexcept;
 		void ShutdownExtenders() noexcept;
@@ -95,6 +85,5 @@ namespace QuantumGate::Implementation::Core::Extender
 		CachedActiveExtenderUUIDs_ThS m_ActiveExtenderUUIDs;
 
 		ExtenderUpdateCallbacks_ThS m_ExtenderUpdateCallbacks;
-		UnhandledExtenderMessageCallbacks_ThS m_UnhandledExtenderMessageCallbacks;
 	};
 }
