@@ -592,6 +592,8 @@ namespace QuantumGate::Implementation::Network
 			as = accept(m_Socket, reinterpret_cast<sockaddr*>(&addr), &addrlen);
 		}
 
+		m_IOStatus.SetRead(false);
+
 		if (as != INVALID_SOCKET)
 		{
 			if (s.SetSocket(as))
@@ -792,6 +794,8 @@ namespace QuantumGate::Implementation::Network
 
 		Dbg(L"%d bytes received", bytesrcv);
 
+		m_IOStatus.SetRead(false);
+
 		if (bytesrcv > 0)
 		{
 			try
@@ -856,6 +860,8 @@ namespace QuantumGate::Implementation::Network
 									   0, reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len);
 
 		Dbg(L"%d bytes received", bytesrcv);
+
+		m_IOStatus.SetRead(false);
 
 		if (sock_addr.ss_family != 0)
 		{
@@ -933,8 +939,11 @@ namespace QuantumGate::Implementation::Network
 
 				if (!m_IOStatus.IsClosing()) m_IOStatus.SetClosing(events.lNetworkEvents & FD_CLOSE);
 
-				m_IOStatus.SetRead((events.lNetworkEvents & FD_READ) ||
-									(events.lNetworkEvents & FD_ACCEPT) || m_IOStatus.IsClosing());
+				if (!m_IOStatus.CanRead())
+				{
+					m_IOStatus.SetRead((events.lNetworkEvents & FD_READ) ||
+									   (events.lNetworkEvents & FD_ACCEPT) || m_IOStatus.IsClosing());
+				}
 
 				if (!m_IOStatus.CanWrite())
 				{

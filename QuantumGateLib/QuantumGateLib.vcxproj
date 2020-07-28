@@ -597,6 +597,7 @@
     <ClInclude Include="Core\Peer\PeerNoiseQueue.h" />
     <ClInclude Include="Core\Peer\PeerNoiseItem.h" />
     <ClInclude Include="Core\Peer\PeerManager.h" />
+    <ClInclude Include="Core\Peer\PeerReceiveQueues.h" />
     <ClInclude Include="Core\Peer\PeerSendQueues.h" />
     <ClInclude Include="Core\Peer\PeerTypes.h" />
     <ClInclude Include="Core\PublicIPEndpoints.h" />
@@ -678,6 +679,7 @@
     <ClCompile Include="Core\Peer\PeerGate.cpp" />
     <ClCompile Include="Core\Peer\PeerKeyUpdate.cpp" />
     <ClCompile Include="Core\Peer\PeerLookupMaps.cpp" />
+    <ClCompile Include="Core\Peer\PeerMessageDetails.cpp" />
     <ClCompile Include="Core\Peer\PeerMessageProcessor.cpp" />
     <ClCompile Include="Core\Peer\PeerMessageProcessorReadyState.cpp" />
     <ClCompile Include="Core\Peer\PeerNoiseQueue.cpp" />

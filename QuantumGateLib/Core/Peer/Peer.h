@@ -15,6 +15,7 @@
 #include "PeerMessageProcessor.h"
 #include "PeerNoiseQueue.h"
 #include "PeerSendQueues.h"
+#include "PeerReceiveQueues.h"
 
 #include <bitset>
 
@@ -66,6 +67,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		Peer& operator=(Peer&&) noexcept = default;
 
 		[[nodiscard]] bool Initialize(PeerWeakPointer&& peer_ths) noexcept;
+
+		[[nodiscard]] const PeerWeakPointer& GetWeakPointer() const noexcept { return m_PeerPointer; }
 
 		const Settings& GetSettings() const noexcept;
 		KeyGeneration::Manager& GetKeyGenerationManager() const noexcept;
@@ -245,7 +248,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline bool HasReceiveEvents() noexcept
 		{
-			return (GetIOStatus().CanRead() || m_ReceiveBuffer.IsEventSet());
+			return (GetIOStatus().CanRead() || m_ReceiveBuffer.IsEventSet() || m_ReceiveQueues.HaveMessages());
 		}
 
 		[[nodiscard]] inline bool HasSendEvents() noexcept
@@ -256,14 +259,14 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] bool SendFromQueues(const Settings& settings);
 
+		[[nodiscard]] bool ProcessFromReceiveQueues(const Settings& settings);
 		[[nodiscard]] bool ReceiveAndProcess(const Settings& settings);
-		[[nodiscard]] std::tuple<bool, Size, UInt16> ProcessMessage(const BufferView msgbuf,
-																	const Settings& settings);
-		[[nodiscard]] std::pair<bool, Size> ProcessMessages(BufferView buffer,
-															const Crypto::SymmetricKeyData& symkey);
+		[[nodiscard]] std::tuple<bool, Size, UInt16> ProcessMessageTransport(const BufferView msgbuf, const Settings& settings);
+		[[nodiscard]] std::pair<bool, Size> ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey);
 
+		[[nodiscard]] bool QueueOrProcessMessage(Message&& msg) noexcept;
 		[[nodiscard]] bool ProcessMessage(Message& msg);
-		[[nodiscard]] MessageProcessor::Result ProcessMessage(MessageDetails&& msg);
+		[[nodiscard]] MessageProcessor::Result ProcessMessage(MessageDetails&& msg) noexcept;
 
 		void ProcessEvent(const Event::Type etype) noexcept;
 		void ProcessEvent(const Vector<ExtenderUUID>& extuuids, const Event::Type etype) noexcept;
@@ -313,6 +316,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		ExtenderUUIDs m_PeerExtenderUUIDs;
 
 		MessageRateLimits m_RateLimits;
+		PeerReceiveQueues m_ReceiveQueues;
 		PeerSendQueues m_SendQueues{ *this };
 
 		EventBuffer m_ReceiveBuffer;

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "PeerTypes.h"
 #include "..\MessageTypes.h"
 
 namespace QuantumGate::Implementation::Core::Peer
@@ -10,13 +11,10 @@ namespace QuantumGate::Implementation::Core::Peer
 	class MessageDetails final
 	{
 	public:
-		MessageDetails(const MessageType type, const ExtenderUUID& extuuid, Buffer&& msgdata) noexcept :
-			m_MessageType(type), m_ExtenderUUID(extuuid), m_MessageData(std::move(msgdata))
-		{}
-
+		MessageDetails(Peer& peer, const MessageType type, const ExtenderUUID& extuuid, Buffer&& msgdata) noexcept;
 		MessageDetails(const MessageDetails&) = delete;
 		MessageDetails(MessageDetails&&) noexcept = default;
-		~MessageDetails() = default;
+		~MessageDetails();
 		MessageDetails& operator=(const MessageDetails&) = delete;
 		MessageDetails& operator=(MessageDetails&&) noexcept = default;
 
@@ -40,5 +38,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		MessageType m_MessageType{ MessageType::Unknown };
 		ExtenderUUID m_ExtenderUUID;
 		Buffer m_MessageData;
+		PeerWeakPointer m_PeerPointer;
 	};
 }

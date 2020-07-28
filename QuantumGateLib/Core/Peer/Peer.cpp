@@ -1001,9 +1001,57 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
+	bool Peer::ProcessFromReceiveQueues(const Settings& settings)
+	{
+		Size num{ 0 };
+
+		while (m_ReceiveQueues.HaveMessages())
+		{
+			if (m_RateLimits.CanAdd<MessageRateLimits::Type::ExtenderCommunicationReceive>(m_ReceiveQueues.GetNextMessageSize()))
+			{
+				auto msg = m_ReceiveQueues.GetMessage();
+				if (!ProcessMessage(msg)) return false;
+
+				++num;
+
+				// Check if the processing limit has been reached; in that case break
+				// and set the event again so that we'll return to continue processing later.
+				// This prevents this socket from hoarding all the processing capacity.
+				if (num >= settings.Local.Concurrency.WorkerThreadsMaxBurst)
+				{
+					break;
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		DbgInvoke([&]()
+		{
+			if (num > 0)
+			{
+				LogDbg(L"Processed %zu messages from receive queue", num);
+			}
+		});
+
+		return true;
+	}
+
 	bool Peer::ReceiveAndProcess(const Settings& settings)
 	{
-		auto success = true;
+		// Empty receive queues first
+		if (!ProcessFromReceiveQueues(settings)) return false;
+
+		// Receive queues need to be empty
+		if (m_ReceiveQueues.HaveMessages())
+		{
+			// Too many messages in flight; don't come back too soon
+			SetFastRequeue(false);
+
+			return true;
+		}
 
 		m_ReceiveBuffer.ResetEvent();
 
@@ -1015,68 +1063,82 @@ namespace QuantumGate::Implementation::Core::Peer
 		// data to receive from the peer, otherwise proceed to process what we have
 		if (msgchk != MessageTransportCheck::CompleteMessage)
 		{
-			success = Receive(m_ReceiveBuffer);
-
-			// Check if we have a complete message now
-			if (success) msgchk = MessageTransport::Peek(m_NextPeerRandomDataPrefixLength,
-														 m_MessageTransportDataSizeSettings, m_ReceiveBuffer);
+			if (Receive(m_ReceiveBuffer))
+			{
+				// Check if we have a complete message now
+				msgchk = MessageTransport::Peek(m_NextPeerRandomDataPrefixLength,
+												m_MessageTransportDataSizeSettings, m_ReceiveBuffer);
+			}
+			else return false;
 		}
 
-		if (msgchk == MessageTransportCheck::CompleteMessage)
+		switch (msgchk)
 		{
-			Size num{ 0 };
-			Buffer msgbuf;
-
-			// Get as many completed messages from the receive buffer
-			// as possible and process them
-			while (true)
+			case MessageTransportCheck::CompleteMessage:
 			{
-				if (MessageTransport::GetFromBuffer(m_NextPeerRandomDataPrefixLength,
-													m_MessageTransportDataSizeSettings,
-													m_ReceiveBuffer, msgbuf) == MessageTransportCheck::CompleteMessage)
+				Size num{ 0 };
+				Buffer msgbuf;
+
+				// Get as many completed messages from the receive buffer
+				// as possible and process them
+				while (true)
 				{
-					const auto& [retval, nump, nrndplen] = ProcessMessage(msgbuf, settings);
-					if (retval)
+					if (MessageTransport::GetFromBuffer(m_NextPeerRandomDataPrefixLength,
+														m_MessageTransportDataSizeSettings,
+														m_ReceiveBuffer, msgbuf) == MessageTransportCheck::CompleteMessage)
 					{
-						num += nump;
-						m_NextPeerRandomDataPrefixLength = nrndplen;
-
-						// Check if the processing limit has been reached; in that case break
-						// and set the event again so that we'll return to continue processing later.
-						// This prevents this socket from hoarding all the processing capacity.
-						if (num >= settings.Local.Concurrency.WorkerThreadsMaxBurst)
+						const auto& [retval, nump, nrndplen] = ProcessMessageTransport(msgbuf, settings);
+						if (retval)
 						{
-							if (!m_ReceiveBuffer.IsEmpty()) m_ReceiveBuffer.SetEvent();
+							num += nump;
+							m_NextPeerRandomDataPrefixLength = nrndplen;
 
-							break;
+							// Check if the processing limit has been reached; in that case break
+							// and set the event again so that we'll return to continue processing later.
+							// This prevents this socket from hoarding all the processing capacity.
+							if (num >= settings.Local.Concurrency.WorkerThreadsMaxBurst)
+							{
+								if (!m_ReceiveBuffer.IsEmpty()) m_ReceiveBuffer.SetEvent();
+								return true;
+							}
+						}
+						else
+						{
+							// Error occured
+							return false;
 						}
 					}
 					else
 					{
-						// Error occured
-						success = false;
-						break;
+						// No complete message anymore;
+						// we'll come back later
+						return true;
 					}
 				}
-				else
-				{
-					// No complete message anymore;
-					// we'll come back later
-					break;
-				}
+				break;
+			}
+			case MessageTransportCheck::NotEnoughData:
+			{
+				return true;
+			}
+			case MessageTransportCheck::TooMuchData:
+			{
+				LogErr(L"Peer %s sent a message that's too large (or contains bad data)", GetPeerName().c_str());
+				UpdateReputation(Access::IPReputationUpdate::DeteriorateSevere);
+				break;
+			}
+			default:
+			{
+				// Shouldn't get here
+				assert(false);
+				break;
 			}
 		}
-		else if (msgchk == MessageTransportCheck::TooMuchData)
-		{
-			LogErr(L"Peer %s sent a message that's too large (or contains bad data)", GetPeerName().c_str());
-			UpdateReputation(Access::IPReputationUpdate::DeteriorateSevere);
-			success = false;
-		}
 
-		return success;
+		return false;
 	}
 
-	std::tuple<bool, Size, UInt16> Peer::ProcessMessage(const BufferView msgbuf, const Settings& settings)
+	std::tuple<bool, Size, UInt16> Peer::ProcessMessageTransport(const BufferView msgbuf, const Settings& settings)
 	{
 		const auto nonce_seed = MessageTransport::GetNonceSeedFromBuffer(msgbuf);
 		if (nonce_seed)
@@ -1179,7 +1241,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					}
 					else
 					{
-						if (!ProcessMessage(msg))
+						if (!QueueOrProcessMessage(std::move(msg)))
 						{
 							success = false;
 							break;
@@ -1223,6 +1285,36 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::make_pair(success, num);
 	}
 
+	bool Peer::QueueOrProcessMessage(Message&& msg) noexcept
+	{
+		const auto msg_size = msg.GetMessageData().GetSize();
+
+		LogDbg(L"Receive queue avail: %zu", m_RateLimits.GetAvailable<MessageRateLimits::Type::ExtenderCommunicationReceive>());
+
+		// Messages have to be processed in the order in which they are received, so
+		// if the ReceiveQueues aren't empty then the messages need to go to the back
+		// of the queue even if there's room in the receive rate limit
+		if (!m_ReceiveQueues.HaveMessages() &&
+			m_RateLimits.CanAdd<MessageRateLimits::Type::ExtenderCommunicationReceive>(msg_size))
+		{
+			// Process immediately
+			return ProcessMessage(msg);
+		}
+		else
+		{
+			// Rate limit would get exceeded so add to the queue for later processing
+			if (m_ReceiveQueues.AddMessage(std::move(msg)))
+			{
+				// Too many messages in flight; don't come back too soon
+				SetFastRequeue(false);
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	bool Peer::ProcessMessage(Message& msg)
 	{
 		auto msg_sequence_error = false;
@@ -1241,8 +1333,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					LogDbg(L"Message fragment from peer %s (sequence begin)", GetPeerName().c_str());
 
-					m_MessageFragments = MessageDetails(msg.GetMessageType(),
-														msg.GetExtenderUUID(),
+					m_MessageFragments = MessageDetails(*this, msg.GetMessageType(), msg.GetExtenderUUID(),
 														msg.MoveMessageData());
 					return true;
 				}
@@ -1316,8 +1407,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 					return retval;
 				}
-				else return ProcessMessage(MessageDetails(msg.GetMessageType(),
-														  msg.GetExtenderUUID(),
+				else return ProcessMessage(MessageDetails(*this, msg.GetMessageType(), msg.GetExtenderUUID(),
 														  msg.MoveMessageData()));
 			});
 
@@ -1685,7 +1775,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		GetExtenderManager().OnPeerEvent(extuuids, Event(etype, GetLUID(), GetLocalUUID(), m_PeerPointer));
 	}
 
-	MessageProcessor::Result Peer::ProcessMessage(MessageDetails&& msg)
+	MessageProcessor::Result Peer::ProcessMessage(MessageDetails&& msg) noexcept
 	{
 		if (IsReady() && msg.GetMessageType() == MessageType::ExtenderCommunication)
 		{

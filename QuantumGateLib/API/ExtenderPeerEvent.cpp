@@ -9,21 +9,21 @@ namespace QuantumGate::API
 {
 #ifdef _DEBUG
 #if !defined(_WIN64)
-	static constexpr int PeerEventSize{ 96 };
+	static constexpr int PeerEventSize{ 104 };
 #else
-	static constexpr int PeerEventSize{ 120 };
+	static constexpr int PeerEventSize{ 136 };
 #endif
 #else
 #if !defined(_WIN64)
-	static constexpr int PeerEventSize{ 88 };
+	static constexpr int PeerEventSize{ 96 };
 #else
-	static constexpr int PeerEventSize{ 112 };
+	static constexpr int PeerEventSize{ 128 };
 #endif
 #endif
 
 	static_assert(sizeof(QuantumGate::Implementation::Core::Peer::Event) == PeerEventSize,
 				  "Size of event object changed; check size of m_PeerEvent (should be large enough) and update the PeerEventSize");
-
+	
 	// Size of event object plus one byte to use as a flag
 	static constexpr int MinimumPeerEventStorageSize{ sizeof(QuantumGate::Implementation::Core::Peer::Event) + 1 };
 

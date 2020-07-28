@@ -432,6 +432,9 @@
     <ClInclude Include="Core\Peer\PeerTypes.h">
       <Filter>Header Files\Core\Peer</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Peer\PeerReceiveQueues.h">
+      <Filter>Header Files\Core\Peer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -607,6 +610,9 @@
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Peer\PeerMessageDetails.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
