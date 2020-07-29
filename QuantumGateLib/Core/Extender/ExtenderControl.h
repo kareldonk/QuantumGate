@@ -59,18 +59,38 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		struct ThreadPoolData final
 		{
+			const Manager& ExtenderManager;
+			Extender* const ExtenderPointer{ nullptr };
+
 			Queue_ThS Queue;
 			std::atomic<Size> PeerCount{ 0 };
+
+			ThreadPoolData(const Manager& mgr, Extender* extender_ptr) noexcept :
+				ExtenderManager(mgr), ExtenderPointer(extender_ptr)
+			{}
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
 		using ThreadPoolMap = Containers::UnorderedMap<ThreadPoolKey, std::unique_ptr<ThreadPool>>;
 
+		struct Data final
+		{
+			std::shared_ptr<QuantumGate::API::Extender> Extender;
+			ExtenderModuleID ExtenderModuleID{ 0 };
+			SteadyTime SteadyTimeAdded;
+			SteadyTime SteadyTimeRemoved;
+
+			PeerMap Peers;
+			ThreadPoolMap ThreadPools;
+		};
+
+		using Data_ThS = Concurrency::ThreadSafe<Data, std::shared_mutex>;
+
 	public:
 		enum class Status { Startup, Running, Shutdown, Stopped };
 
 		Control() = delete;
-		Control(Manager& mgr, const std::shared_ptr<QuantumGate::API::Extender>& extender,
+		Control(const Manager& mgr, const std::shared_ptr<QuantumGate::API::Extender>& extender,
 				const ExtenderModuleID moduleid) noexcept;
 		Control(const Control&) = delete;
 		Control(Control&&) noexcept = default;
@@ -80,22 +100,25 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		void SetStatus(const Status status) noexcept;
 		inline Status GetStatus() const noexcept { return m_Status; }
-		inline SteadyTime GetSteadyTimeRemoved() const noexcept { return m_SteadyTimeRemoved; }
 
-		inline bool HasExtender() const noexcept { return (m_Extender != nullptr); }
+		inline SteadyTime GetSteadyTimeRemoved() const noexcept { return m_Data.WithSharedLock()->SteadyTimeRemoved; }
+
+		inline bool HasExtender() const noexcept { return (m_Data.WithSharedLock()->Extender != nullptr); }
 
 		[[nodiscard]] inline bool IsSameExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender,
 												 const ExtenderModuleID moduleid) const noexcept
 		{
-			return (m_Extender.get() == extender.get() && m_ExtenderModuleID == moduleid);
+			auto data = m_Data.WithSharedLock();
+			return (data->Extender.get() == extender.get() && data->ExtenderModuleID == moduleid);
 		}
 
-		inline void ReleaseExtender() noexcept { m_Extender.reset(); }
+		inline void ReleaseExtender() noexcept { m_Data.WithUniqueLock()->Extender.reset(); }
 
 		inline const Extender& GetExtender() const noexcept
 		{
-			assert(m_Extender != nullptr && m_Extender->m_Extender != nullptr);
-			return *m_Extender->m_Extender;
+			auto data = m_Data.WithSharedLock();
+			assert(data->Extender != nullptr && data->Extender->m_Extender != nullptr);
+			return *data->Extender->m_Extender;
 		}
 
 		inline Extender& GetExtender() noexcept
@@ -103,7 +126,10 @@ namespace QuantumGate::Implementation::Core::Extender
 			return const_cast<Extender&>(const_cast<const Control*>(this)->GetExtender());
 		}
 
-		inline const std::shared_ptr<QuantumGate::API::Extender>& GetAPIExtender() const noexcept { return m_Extender; }
+		inline const std::shared_ptr<QuantumGate::API::Extender>& GetAPIExtender() const noexcept
+		{
+			return m_Data.WithSharedLock()->Extender;
+		}
 
 		inline String GetExtenderName() const noexcept { return GetExtenderName(GetExtender()); }
 
@@ -118,24 +144,16 @@ namespace QuantumGate::Implementation::Core::Extender
 		void ShutdownExtenderThreadPools() noexcept;
 
 	private:
-		void PreStartupExtenderThreadPools() noexcept;
-		void ResetState() noexcept;
+		void PreStartupExtenderThreadPools(Data& data) noexcept;
+		void ResetState(Data& data) noexcept;
 
-		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   const Concurrency::Event& shutdown_event);
+		static ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
+																	  const Concurrency::Event& shutdown_event);
 
 	private:
-		Manager& m_ExtenderManager;
+		const Manager& m_ExtenderManager;
 
-		Status m_Status{ Status::Stopped };
-		std::shared_ptr<QuantumGate::API::Extender> m_Extender;
-		ExtenderModuleID m_ExtenderModuleID{ 0 };
-		SteadyTime m_SteadyTimeAdded;
-		SteadyTime m_SteadyTimeRemoved;
-
-		PeerMap m_Peers;
-		ThreadPoolMap m_ThreadPools;
+		std::atomic<Status> m_Status{ Status::Stopped };
+		Data_ThS m_Data;
 	};
-
-	using Control_ThS = Concurrency::ThreadSafe<Control, std::shared_mutex>;
 }

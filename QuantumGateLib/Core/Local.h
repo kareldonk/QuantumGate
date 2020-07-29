@@ -124,14 +124,16 @@ namespace QuantumGate::Implementation::Core
 		bool ValidateSupportedAlgorithms(const Algorithms& algorithms) const noexcept;
 		bool ValidateSecurityParameters(const SecurityParameters& params) const noexcept;
 
-		Result<Size> Send(const ExtenderUUID& uuid, const std::atomic_bool& running, const PeerLUID id,
-						  const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
-		Result<Size> Send(const ExtenderUUID& uuid, const std::atomic_bool& running, API::Peer& peer,
-						  const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
-		Result<> SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running, const PeerLUID id,
-						Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
-		Result<> SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running, API::Peer& peer,
-						Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
+		Result<Size> Send(const ExtenderUUID& uuid, const std::atomic_bool& running, const std::atomic_bool& ready,
+						  const PeerLUID id, const BufferView& buffer, const SendParameters& params,
+						  SendCallback&& callback) noexcept;
+		Result<Size> Send(const ExtenderUUID& uuid, const std::atomic_bool& running, const std::atomic_bool& ready,
+						  API::Peer& peer, const BufferView& buffer, const SendParameters& params,
+						  SendCallback&& callback) noexcept;
+		Result<> SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running, const std::atomic_bool& ready,
+						const PeerLUID id, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
+		Result<> SendTo(const ExtenderUUID& uuid, const std::atomic_bool& running, const std::atomic_bool& ready,
+						API::Peer& peer, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
 
 		Result<> DisconnectFromImpl(API::Peer& peer) noexcept;
 

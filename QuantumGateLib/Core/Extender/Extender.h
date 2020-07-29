@@ -120,12 +120,18 @@ namespace QuantumGate::Implementation::Core::Extender
 			catch (...) { OnException(); }
 		}
 
+		inline void OnReady() noexcept
+		{
+			m_Ready = true;
+		}
+
 		inline void OnBeginShutdown() noexcept
 		{
 			try { m_PreShutdownCallback(); }
 			catch (const std::exception& e) { OnException(e); }
 			catch (...) { OnException(); }
 
+			m_Ready = false;
 			m_Running = false;
 		}
 
@@ -178,6 +184,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	private:
 		std::atomic<Core::Local*> m_Local{ nullptr };
 		std::atomic_bool m_Running{ false };
+		std::atomic_bool m_Ready{ false };
 		std::atomic_bool m_Exception{ false };
 		const ExtenderUUID m_UUID;
 		const String m_Name{ L"Unknown" };

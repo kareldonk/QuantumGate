@@ -22,7 +22,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		friend class Control;
 
-		using ExtenderMap = Containers::UnorderedMap<ExtenderUUID, std::unique_ptr<Control_ThS>>;
+		using ExtenderMap = Containers::UnorderedMap<ExtenderUUID, std::unique_ptr<Control>>;
 		using ExtenderMap_ThS = Concurrency::ThreadSafe<ExtenderMap, std::shared_mutex>;
 
 	public:
@@ -64,11 +64,11 @@ namespace QuantumGate::Implementation::Core::Extender
 		[[nodiscard]] bool StartExtenders() noexcept;
 		void ShutdownExtenders() noexcept;
 
-		Result<Control_ThS*> GetExtenderControl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
-												const std::optional<ExtenderModuleID> moduleid = std::nullopt) const noexcept;
+		Result<Control*> GetExtenderControl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
+											const std::optional<ExtenderModuleID> moduleid = std::nullopt) const noexcept;
 
-		[[nodiscard]] bool StartExtender(Control_ThS& extctrl_ths, const bool update_active);
-		[[nodiscard]] bool ShutdownExtender(Control_ThS& extctrl_ths, const bool update_active);
+		[[nodiscard]] bool StartExtender(Control& extctrl_ths, const bool update_active);
+		[[nodiscard]] bool ShutdownExtender(Control& extctrl_ths, const bool update_active);
 
 		void UpdateActiveExtenderUUIDs(const ExtenderMap& extenders) noexcept;
 
@@ -80,6 +80,8 @@ namespace QuantumGate::Implementation::Core::Extender
 	private:
 		std::atomic_bool m_Running{ false };
 		const Settings_CThS& m_Settings;
+
+		std::mutex m_Mutex;
 
 		ExtenderMap_ThS m_Extenders;
 		CachedActiveExtenderUUIDs_ThS m_ActiveExtenderUUIDs;

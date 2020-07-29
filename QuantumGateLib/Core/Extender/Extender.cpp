@@ -61,7 +61,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		assert(IsRunning());
 
-		return m_Local.load()->Send(GetUUID(), m_Running, pluid, buffer, params, std::move(callback));
+		return m_Local.load()->Send(GetUUID(), m_Running, m_Ready, pluid, buffer, params, std::move(callback));
 	}
 
 	Result<Size> Extender::SendMessage(API::Peer& peer, const BufferView& buffer,
@@ -69,7 +69,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		assert(IsRunning());
 
-		return m_Local.load()->Send(GetUUID(), m_Running, peer, buffer, params, std::move(callback));
+		return m_Local.load()->Send(GetUUID(), m_Running, m_Ready, peer, buffer, params, std::move(callback));
 	}
 
 	Result<> Extender::SendMessageTo(const PeerLUID pluid, Buffer&& buffer,
@@ -77,7 +77,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		assert(IsRunning());
 
-		return m_Local.load()->SendTo(GetUUID(), m_Running, pluid, std::move(buffer), params, std::move(callback));
+		return m_Local.load()->SendTo(GetUUID(), m_Running, m_Ready, pluid, std::move(buffer), params, std::move(callback));
 	}
 
 	Result<> Extender::SendMessageTo(API::Peer& peer, Buffer&& buffer,
@@ -85,7 +85,7 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		assert(IsRunning());
 
-		return m_Local.load()->SendTo(GetUUID(), m_Running, peer, std::move(buffer), params, std::move(callback));
+		return m_Local.load()->SendTo(GetUUID(), m_Running, m_Ready, peer, std::move(buffer), params, std::move(callback));
 	}
 
 	Result<API::Peer> Extender::GetPeer(const PeerLUID pluid) const noexcept

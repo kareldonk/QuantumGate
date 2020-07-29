@@ -8,11 +8,13 @@
 
 namespace QuantumGate::Implementation::Core::Extender
 {
-	Control::Control(Manager& mgr, const std::shared_ptr<QuantumGate::API::Extender>& extender,
-					 const ExtenderModuleID moduleid) noexcept :
-		m_ExtenderManager(mgr), m_Extender(extender), m_ExtenderModuleID(moduleid)
+	Control::Control(const Manager& mgr, const std::shared_ptr<QuantumGate::API::Extender>& extender,
+					 const ExtenderModuleID moduleid) noexcept : m_ExtenderManager(mgr)
 	{
-		m_SteadyTimeAdded = Util::GetCurrentSteadyTime();
+		auto data = m_Data.WithUniqueLock();
+		data->Extender = extender;
+		data->ExtenderModuleID = moduleid;
+		data->SteadyTimeAdded = Util::GetCurrentSteadyTime();
 	}
 
 	void Control::SetStatus(const Status status) noexcept
@@ -24,7 +26,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				break;
 			case Status::Shutdown:
 			case Status::Stopped:
-				m_SteadyTimeRemoved = Util::GetCurrentSteadyTime();
+				m_Data.WithUniqueLock()->SteadyTimeRemoved = Util::GetCurrentSteadyTime();
 				break;
 			default:
 				assert(false);
@@ -34,22 +36,22 @@ namespace QuantumGate::Implementation::Core::Extender
 		m_Status = status;
 	}
 
-	void Control::PreStartupExtenderThreadPools() noexcept
+	void Control::PreStartupExtenderThreadPools(Data& data) noexcept
 	{
-		ResetState();
+		ResetState(data);
 	}
 
-	void Control::ResetState() noexcept
+	void Control::ResetState(Data& data) noexcept
 	{
-		m_Peers.clear();
-		m_ThreadPools.clear();
+		data.Peers.clear();
+		data.ThreadPools.clear();
 	}
 
 	bool Control::StartupExtenderThreadPools() noexcept
 	{
-		PreStartupExtenderThreadPools();
+		auto data = m_Data.WithUniqueLock();
 
-		const auto extname = GetExtenderName();
+		PreStartupExtenderThreadPools(*data);
 
 		const auto& settings = m_ExtenderManager.GetSettings();
 
@@ -73,7 +75,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		{
 			try
 			{
-				auto thpool = std::make_unique<ThreadPool>();
+				auto thpool = std::make_unique<ThreadPool>(m_ExtenderManager, data->Extender->m_Extender.get());
 
 				thpool->SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
 				thpool->SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
@@ -81,7 +83,8 @@ namespace QuantumGate::Implementation::Core::Extender
 				// Create the worker threads
 				for (Size x = 0; x < numthreadsperpool; ++x)
 				{
-					if (!thpool->AddThread(extname + L" Thread", MakeCallback(this, &Control::WorkerThreadProcessor),
+					if (!thpool->AddThread(data->Extender->GetName() + L" Thread",
+										   MakeCallback(&Control::WorkerThreadProcessor),
 										   &thpool->GetData().Queue.WithUniqueLock()->GetEvent()))
 					{
 						error = true;
@@ -91,7 +94,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 				if (!error && thpool->Startup())
 				{
-					m_ThreadPools[i] = std::move(thpool);
+					data->ThreadPools[i] = std::move(thpool);
 				}
 				else
 				{
@@ -109,14 +112,15 @@ namespace QuantumGate::Implementation::Core::Extender
 
 	void Control::ShutdownExtenderThreadPools() noexcept
 	{
-		for (const auto& thpool : m_ThreadPools)
+		auto data = m_Data.WithUniqueLock();
+		for (const auto& thpool : data->ThreadPools)
 		{
 			thpool.second->Shutdown();
 			thpool.second->Clear();
 			thpool.second->GetData().Queue.WithUniqueLock()->Clear();
 		}
 
-		ResetState();
+		ResetState(*data);
 	}
 
 	Control::ThreadPool::ThreadCallbackResult Control::WorkerThreadProcessor(ThreadPoolData& thpdata,
@@ -145,7 +149,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			// Peer events have priority; process as many as we can from the queue,
 			// then move on to message events if the peer is still connected
 
-			const auto maxnum = m_ExtenderManager.GetSettings().Local.Concurrency.WorkerThreadsMaxBurst;
+			const auto maxnum = thpdata.ExtenderManager.GetSettings().Local.Concurrency.WorkerThreadsMaxBurst;
 			Size num{ 0 };
 
 			while (num < maxnum && !shutdown_event.IsSet())
@@ -164,7 +168,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 				if (event)
 				{
-					GetExtender().OnPeerEvent(QuantumGate::API::Extender::PeerEvent(std::move(event)));
+					thpdata.ExtenderPointer->OnPeerEvent(QuantumGate::API::Extender::PeerEvent(std::move(event)));
 				}
 				else break;
 			}
@@ -186,13 +190,13 @@ namespace QuantumGate::Implementation::Core::Extender
 				if (event)
 				{
 					const auto peer_weakptr = event.GetPeerWeakPointer();
-					const auto evresult = GetExtender().OnPeerMessage(QuantumGate::API::Extender::PeerEvent(std::move(event)));
-					if ((!evresult.Handled || !evresult.Success) && !GetExtender().HadException())
+					const auto evresult = thpdata.ExtenderPointer->OnPeerMessage(QuantumGate::API::Extender::PeerEvent(std::move(event)));
+					if ((!evresult.Handled || !evresult.Success) && !thpdata.ExtenderPointer->HadException())
 					{
 						const auto peer_ths = peer_weakptr.lock();
 						if (peer_ths)
 						{
-							peer_ths->WithUniqueLock()->OnUnhandledExtenderMessage(GetExtender().GetUUID(), evresult);
+							peer_ths->WithUniqueLock()->OnUnhandledExtenderMessage(thpdata.ExtenderPointer->GetUUID(), evresult);
 						}
 						break;
 					}
@@ -223,6 +227,8 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		try
 		{
+			auto data = m_Data.WithUniqueLock();
+
 			std::shared_ptr<Peer_ThS> peerctrl = nullptr;
 
 			if (event.GetType() == Core::Peer::Event::Type::Connected)
@@ -230,19 +236,19 @@ namespace QuantumGate::Implementation::Core::Extender
 				// Connect event means we should add a new peer;
 				// get the threadpool with the least amount of peers so
 				// that there's an even distribution among all available pools
-				const auto thpit = std::min_element(m_ThreadPools.begin(), m_ThreadPools.end(),
+				const auto thpit = std::min_element(data->ThreadPools.begin(), data->ThreadPools.end(),
 													[](const auto& a, const auto& b)
 				{
 					return (a.second->GetData().PeerCount < b.second->GetData().PeerCount);
 				});
 
-				assert(thpit != m_ThreadPools.end());
+				assert(thpit != data->ThreadPools.end());
 
 				peerctrl = std::make_shared<Peer_ThS>(thpit->first,
 													  thpit->second->GetData().PeerCount, Peer::Status::Connected);
 
 				// If this fails there was already a peer in the map; this should not happen
-				[[maybe_unused]] const auto [it, inserted] = m_Peers.insert({ event.GetPeerLUID(), peerctrl });
+				[[maybe_unused]] const auto [it, inserted] = data->Peers.insert({ event.GetPeerLUID(), peerctrl });
 
 				assert(inserted);
 
@@ -255,7 +261,7 @@ namespace QuantumGate::Implementation::Core::Extender
 			else
 			{
 				// Peer should already exist if we get here
-				if (const auto it = m_Peers.find(event.GetPeerLUID()); it != m_Peers.end())
+				if (const auto it = data->Peers.find(event.GetPeerLUID()); it != data->Peers.end())
 				{
 					// Making a copy of the shared_ptr to take shared
 					// ownership; important for when peer gets removed
@@ -267,7 +273,9 @@ namespace QuantumGate::Implementation::Core::Extender
 					// Should never get here
 					assert(false);
 
-					LogErr(L"Couldn't find peer with LUID %llu in extender peer map", event.GetPeerLUID());
+					LogErr(L"Couldn't find peer with LUID %llu in peer map for extender with UUID %s",
+						   event.GetPeerLUID(), event.GetExtenderUUID()->GetString().c_str());
+
 					return false;
 				}
 
@@ -276,7 +284,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				if (event.GetType() == Core::Peer::Event::Type::Disconnected)
 				{
 					peerctrl->WithUniqueLock()->Status = Peer::Status::Disconnected;
-					m_Peers.erase(event.GetPeerLUID());
+					data->Peers.erase(event.GetPeerLUID());
 				}
 			}
 
@@ -294,8 +302,8 @@ namespace QuantumGate::Implementation::Core::Extender
 
 				if (!peer.IsInQueue)
 				{
-					m_ThreadPools[thpoolkey]->GetData().Queue.WithUniqueLock()->Push(peerctrl,
-																					 [&]() { peer.IsInQueue = true; });
+					data->ThreadPools[thpoolkey]->GetData().Queue.WithUniqueLock()->Push(peerctrl,
+																						 [&]() { peer.IsInQueue = true; });
 				}
 			});
 

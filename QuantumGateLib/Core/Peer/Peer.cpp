@@ -1289,8 +1289,6 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		const auto msg_size = msg.GetMessageData().GetSize();
 
-		LogDbg(L"Receive queue avail: %zu", m_RateLimits.GetAvailable<MessageRateLimits::Type::ExtenderCommunicationReceive>());
-
 		// Messages have to be processed in the order in which they are received, so
 		// if the ReceiveQueues aren't empty then the messages need to go to the back
 		// of the queue even if there's room in the receive rate limit

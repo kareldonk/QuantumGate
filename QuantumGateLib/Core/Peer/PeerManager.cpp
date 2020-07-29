@@ -1076,48 +1076,52 @@ namespace QuantumGate::Implementation::Core::Peer
 		return m_LocalEnvironment.WithSharedLock()->GetTrustedAndVerifiedIPAddresses();
 	}
 
-	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, const PeerLUID pluid,
-							 Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
+	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
+							 const PeerLUID pluid, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
 		if (auto peerths = Get(pluid); peerths != nullptr)
 		{
 			auto peer = peerths->WithUniqueLock();
-			return SendTo(extuuid, running, *peer, std::move(buffer), params, std::move(callback));
+			return SendTo(extuuid, running, ready, *peer, std::move(buffer), params, std::move(callback));
 		}
 
 		return ResultCode::PeerNotFound;
 	}
 
-	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, const PeerLUID pluid,
-							   const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept
+	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
+							   const PeerLUID pluid, const BufferView& buffer, const SendParameters& params,
+							   SendCallback&& callback) noexcept
 	{
 		if (auto peerths = Get(pluid); peerths != nullptr)
 		{
 			auto peer = peerths->WithUniqueLock();
-			return Send(extuuid, running, *peer, buffer, params, std::move(callback));
+			return Send(extuuid, running, ready, *peer, buffer, params, std::move(callback));
 		}
 
 		return ResultCode::PeerNotFound;
 	}
 
-	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, API::Peer& api_peer,
-							 Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
+	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
+							 API::Peer& api_peer, Buffer&& buffer, const SendParameters& params,
+							 SendCallback&& callback) noexcept
 	{
 		auto& peerths = GetPeerFromPeerStorage(api_peer);
 		auto peer = peerths->WithUniqueLock();
-		return SendTo(extuuid, running, *peer, std::move(buffer), params, std::move(callback));
+		return SendTo(extuuid, running, ready, *peer, std::move(buffer), params, std::move(callback));
 	}
 
-	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, API::Peer& api_peer,
-							   const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept
+	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
+							   API::Peer& api_peer, const BufferView& buffer, const SendParameters& params,
+							   SendCallback&& callback) noexcept
 	{
 		auto& peerths = GetPeerFromPeerStorage(api_peer);
 		auto peer = peerths->WithUniqueLock();
-		return Send(extuuid, running, *peer, buffer, params, std::move(callback));
+		return Send(extuuid, running, ready, *peer, buffer, params, std::move(callback));
 	}
 
-	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, Peer& peer,
-							   const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept
+	Result<Size> Manager::Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
+							   Peer& peer, const BufferView& buffer, const SendParameters& params,
+							   SendCallback&& callback) noexcept
 	{
 		try
 		{
@@ -1129,7 +1133,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				// Note the copy
 				Buffer snd_buf = buffer.GetFirst(snd_size);
 
-				if (const auto result = SendTo(extuuid, running, peer, std::move(snd_buf), params, std::move(callback)); result.Succeeded())
+				if (const auto result = SendTo(extuuid, running, ready, peer, std::move(snd_buf), params, std::move(callback)); result.Succeeded())
 				{
 					return snd_size;
 				}
@@ -1148,8 +1152,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		return ResultCode::Failed;
 	}
 
-	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, Peer& peer,
-							 Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
+	Result<> Manager::SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
+							 Peer& peer, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept
 	{
 		// Only if peer status is ready (handshake succeeded, etc.)
 		if (peer.IsReady())
@@ -1160,9 +1164,14 @@ namespace QuantumGate::Implementation::Core::Peer
 				// If local extender is still running
 				if (running)
 				{
-					return peer.Send(Message(MessageOptions(MessageType::ExtenderCommunication,
-															extuuid, std::move(buffer), params.Compress)),
-									 params.Priority, params.Delay, std::move(callback));
+					// If extender is ready
+					if (ready)
+					{
+						return peer.Send(Message(MessageOptions(MessageType::ExtenderCommunication,
+																extuuid, std::move(buffer), params.Compress)),
+										 params.Priority, params.Delay, std::move(callback));
+					}
+					else return ResultCode::FailedRetry;
 				}
 				else return ResultCode::NotRunning;
 			}

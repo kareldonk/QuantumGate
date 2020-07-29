@@ -16,6 +16,8 @@ namespace QuantumGate::Implementation::Core::Extender
 	{
 		if (m_Running) return true;
 
+		std::unique_lock lock(m_Mutex);
+
 		LogSys(L"Extendermanager starting...");
 
 		if (!StartExtenders())
@@ -37,6 +39,8 @@ namespace QuantumGate::Implementation::Core::Extender
 	void Manager::Shutdown() noexcept
 	{
 		if (!m_Running) return;
+
+		std::unique_lock lock(m_Mutex);
 
 		LogSys(L"Extendermanager shutting down...");
 
@@ -62,23 +66,24 @@ namespace QuantumGate::Implementation::Core::Extender
 				// Notify extenders of startup
 				for (const auto& e : extenders)
 				{
-					auto startup = false;
+					assert(e.second->GetStatus() == Control::Status::Stopped);
 
-					e.second->WithSharedLock([&](const Control& extctrl) noexcept
+					if (e.second->HasExtender() && StartExtender(*e.second, false))
 					{
-						assert(extctrl.GetStatus() == Control::Status::Stopped);
-
-						if (extctrl.HasExtender()) startup = true;
-					});
-
-					if (startup && StartExtender(*e.second, false))
-					{
-						startupext_list.emplace_back(e.second->WithSharedLock()->GetExtender().GetUUID());
+						startupext_list.emplace_back(e.second->GetExtender().GetUUID());
 					}
 				}
 
 				// Needs to be done before calling update callbacks
 				UpdateActiveExtenderUUIDs(extenders);
+
+				for (const auto& e : extenders)
+				{
+					if (e.second->HasExtender() && e.second->GetStatus() == Control::Status::Running)
+					{
+						e.second->GetExtender().OnEndStartup();
+					}
+				}
 			});
 
 			if (!startupext_list.empty())
@@ -93,14 +98,9 @@ namespace QuantumGate::Implementation::Core::Extender
 			{
 				for (const auto& e : extenders)
 				{
-					auto extctrl = e.second->WithUniqueLock();
-					if (extctrl->HasExtender() && extctrl->GetStatus() == Control::Status::Running)
+					if (e.second->HasExtender() && e.second->GetStatus() == Control::Status::Running)
 					{
-						auto& extender = extctrl->GetExtender();
-
-						// Extender control should not be locked when calling OnEndStartup()
-						extctrl.Unlock();
-						extender.OnEndStartup();
+						e.second->GetExtender().OnReady();
 					}
 				}
 			});
@@ -128,21 +128,11 @@ namespace QuantumGate::Implementation::Core::Extender
 				// Notify extenders of shutting down
 				for (const auto& e : extenders)
 				{
-					auto shutdown = false;
-
-					e.second->WithSharedLock([&](const Control& extctrl) noexcept
-					{
-						if (extctrl.HasExtender() && extctrl.GetStatus() != Control::Status::Stopped)
-						{
-							shutdown = true;
-						}
-					});
-
-					if (shutdown)
+					if (e.second->GetStatus() != Control::Status::Stopped && e.second->HasExtender())
 					{
 						DiscardReturnValue(ShutdownExtender(*e.second, false));
 
-						shutdownext_list.emplace_back(e.second->WithSharedLock()->GetExtender().GetUUID());
+						shutdownext_list.emplace_back(e.second->GetExtender().GetUUID());
 					}
 				}
 
@@ -165,39 +155,37 @@ namespace QuantumGate::Implementation::Core::Extender
 		}
 	}
 
-	Result<Control_ThS*> Manager::GetExtenderControl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
-													 const std::optional<ExtenderModuleID> moduleid) const noexcept
+	Result<Control*> Manager::GetExtenderControl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
+												 const std::optional<ExtenderModuleID> moduleid) const noexcept
 	{
 		auto result_code = ResultCode::Failed;
-		Control_ThS* extctrl_ths{ nullptr };
+		Control* extctrl{ nullptr };
 
-		m_Extenders.WithUniqueLock([&](const ExtenderMap& extenders) noexcept
+		m_Extenders.WithSharedLock([&](const ExtenderMap& extenders) noexcept
 		{
 			if (const auto it = extenders.find(extender->GetUUID()); it != extenders.end())
 			{
-				extctrl_ths = it->second.get();
-				extctrl_ths->WithUniqueLock([&](Control& extctrl) noexcept
+				extctrl = it->second.get();
+
+				if (extctrl->HasExtender())
 				{
-					if (extctrl.HasExtender())
+					if (moduleid.has_value())
 					{
-						if (moduleid.has_value())
+						// Should be same object
+						if (extctrl->IsSameExtender(extender, *moduleid))
 						{
-							// Should be same object
-							if (extctrl.IsSameExtender(extender, *moduleid))
-							{
-								result_code = ResultCode::Succeeded;
-							}
-							else result_code = ResultCode::ExtenderObjectDifferent;
+							result_code = ResultCode::Succeeded;
 						}
-						else result_code = ResultCode::Succeeded;
+						else result_code = ResultCode::ExtenderObjectDifferent;
 					}
-					else result_code = ResultCode::ExtenderAlreadyRemoved;
-				});
+					else result_code = ResultCode::Succeeded;
+				}
+				else result_code = ResultCode::ExtenderAlreadyRemoved;
 			}
 			else result_code = ResultCode::ExtenderNotFound;
 		});
 
-		if (result_code == ResultCode::Succeeded) return extctrl_ths;
+		if (result_code == ResultCode::Succeeded) return extctrl;
 
 		return result_code;
 	}
@@ -209,6 +197,8 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		if (extender == nullptr) return ResultCode::InvalidArgument;
 
+		std::unique_lock lock(m_Mutex);
+
 		auto result_code = ResultCode::Failed;
 		const auto extname = Control::GetExtenderName(*extender->m_Extender);
 
@@ -216,8 +206,8 @@ namespace QuantumGate::Implementation::Core::Extender
 		{
 			LogDbg(L"Adding extender %s", extname.c_str());
 
-			auto extctrl = std::make_unique<Control_ThS>(*this, extender, moduleid);
-			Control_ThS* extctrl_ths = extctrl.get();
+			auto extctrl = std::make_unique<Control>(*this, extender, moduleid);
+			auto extctrl_ptr = extctrl.get();
 
 			m_Extenders.WithUniqueLock([&](ExtenderMap& extenders)
 			{
@@ -225,7 +215,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				{
 					// If extender already existed in the map replace it;
 					// existing extender should have been removed already
-					if (!it->second->WithSharedLock()->HasExtender())
+					if (!it->second->HasExtender())
 					{
 						it->second.reset(extctrl.release());
 						result_code = ResultCode::Succeeded;
@@ -264,7 +254,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				if (IsRunning())
 				{
 					// If we're running, start the extender
-					started = StartExtender(*extctrl_ths, true);
+					started = StartExtender(*extctrl_ptr, true);
 				}
 
 				return started;
@@ -279,42 +269,35 @@ namespace QuantumGate::Implementation::Core::Extender
 		return result_code;
 	}
 
-	bool Manager::StartExtender(Control_ThS& extctrl_ths, const bool update_active)
+	bool Manager::StartExtender(Control& extctrl, const bool update_active)
 	{
 		auto success = false;
 		Extender* extender{ nullptr };
 		String extname;
 
 		{
-			auto extctrl = extctrl_ths.WithUniqueLock();
-
-			extender = &extctrl->GetExtender();
+			extender = &extctrl.GetExtender();
 			extname = Control::GetExtenderName(*extender);
 
-			if (extctrl->GetStatus() == Control::Status::Stopped)
+			if (extctrl.GetStatus() == Control::Status::Stopped)
 			{
 				LogSys(L"Extender %s starting...", extname.c_str());
 
 				if (extender->OnBeginStartup())
 				{
-					extctrl->SetStatus(Control::Status::Startup);
+					extctrl.SetStatus(Control::Status::Startup);
 
-					if (extctrl->StartupExtenderThreadPools())
+					if (extctrl.StartupExtenderThreadPools())
 					{
-						extctrl->SetStatus(Control::Status::Running);
+						extctrl.SetStatus(Control::Status::Running);
 						success = true;
 					}
 					else
 					{
-						// Extender control should not be locked when calling OnBeginShutdown()
-						extctrl.WhileUnlocked([&]()
-						{
-							extender->OnBeginShutdown();
-						});
-
-						extctrl->ShutdownExtenderThreadPools();
+						extender->OnBeginShutdown();
+						extctrl.ShutdownExtenderThreadPools();
 						extender->OnEndShutdown();
-						extctrl->SetStatus(Control::Status::Stopped);
+						extctrl.SetStatus(Control::Status::Stopped);
 					}
 				}
 			}
@@ -330,6 +313,8 @@ namespace QuantumGate::Implementation::Core::Extender
 					UpdateActiveExtenderUUIDs(extenders);
 				});
 
+				extender->OnEndStartup();
+
 				const Vector<ExtenderUUID> extuuids{ extender->GetUUID() };
 
 				// Let connected peers know we have added an extender.
@@ -337,9 +322,8 @@ namespace QuantumGate::Implementation::Core::Extender
 				// before this call to avoid deadlock.
 				m_ExtenderUpdateCallbacks.WithUniqueLock()(extuuids, true);
 
-				// Extender is now initialized and ready to be used.
-				// Extender control should not be locked when calling OnEndStartup().
-				extender->OnEndStartup();
+				// Extender is now initialized and ready to be used
+				extender->OnReady();
 			}
 
 			LogSys(L"Extender %s startup successful", extname.c_str());
@@ -356,6 +340,8 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		if (extender == nullptr) return ResultCode::InvalidArgument;
 
+		std::unique_lock lock(m_Mutex);
+
 		auto result_code = ResultCode::Failed;
 		const auto extname = Control::GetExtenderName(*extender->m_Extender);
 
@@ -369,7 +355,7 @@ namespace QuantumGate::Implementation::Core::Extender
 				// First shut down extender if it's running
 				DiscardReturnValue(ShutdownExtender(*(result.GetValue()), true));
 
-				result.GetValue()->WithUniqueLock()->ReleaseExtender();
+				result.GetValue()->ReleaseExtender();
 
 				result_code = ResultCode::Succeeded;
 			}
@@ -403,28 +389,25 @@ namespace QuantumGate::Implementation::Core::Extender
 		return result_code;
 	}
 
-	bool Manager::ShutdownExtender(Control_ThS& extctrl_ths, const bool update_active)
+	bool Manager::ShutdownExtender(Control& extctrl, const bool update_active)
 	{
 		auto success = false;
 		Extender* extender{ nullptr };
 		String extname;
 
-		extctrl_ths.WithUniqueLock([&](Control& extctrl) noexcept
+		extender = &extctrl.GetExtender();
+		extname = Control::GetExtenderName(*extender);
+
+		if (extctrl.GetStatus() != Control::Status::Stopped)
 		{
-			extender = &extctrl.GetExtender();
-			extname = Control::GetExtenderName(*extender);
+			LogSys(L"Extender %s shutting down...", extname.c_str());
 
-			if (extctrl.GetStatus() != Control::Status::Stopped)
-			{
-				LogSys(L"Extender %s shutting down...", extname.c_str());
+			// Set status so that extender stops getting used;
+			// we'll actually shut it down safely later below
+			extctrl.SetStatus(Control::Status::Shutdown);
 
-				// Set status so that extender stops getting used;
-				// we'll actually shut it down safely later below
-				extctrl.SetStatus(Control::Status::Shutdown);
-
-				success = true;
-			}
-		});
+			success = true;
+		}
 
 		if (success)
 		{
@@ -439,17 +422,12 @@ namespace QuantumGate::Implementation::Core::Extender
 
 			// Now we actually shut down the extender
 			{
-				// Extender control should not be locked when calling OnBeginShutdown()
 				extender->OnBeginShutdown();
+				extctrl.ShutdownExtenderThreadPools();
+				extender->OnEndShutdown();
+				extctrl.SetStatus(Control::Status::Stopped);
 
-				extctrl_ths.WithUniqueLock([&](Control& extctrl)
-				{
-					extctrl.ShutdownExtenderThreadPools();
-					extender->OnEndShutdown();
-					extctrl.SetStatus(Control::Status::Stopped);
-
-					LogSys(L"Extender %s shut down", extname.c_str());
-				});
+				LogSys(L"Extender %s shut down", extname.c_str());
 			}
 
 			if (update_active)
@@ -468,6 +446,8 @@ namespace QuantumGate::Implementation::Core::Extender
 
 	Result<> Manager::StartExtender(const ExtenderUUID& extuuid) noexcept
 	{
+		std::unique_lock lock(m_Mutex);
+
 		auto result_code = ResultCode::Failed;
 
 		const auto extender = GetExtender(extuuid).lock();
@@ -520,6 +500,8 @@ namespace QuantumGate::Implementation::Core::Extender
 
 	Result<> Manager::ShutdownExtender(const ExtenderUUID& extuuid) noexcept
 	{
+		std::unique_lock lock(m_Mutex);
+
 		auto result_code = ResultCode::Failed;
 
 		const auto extender = GetExtender(extuuid).lock();
@@ -578,7 +560,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		{
 			if (const auto it = extenders.find(extuuid); it != extenders.end())
 			{
-				found = it->second->WithSharedLock()->HasExtender();
+				found = it->second->HasExtender();
 			}
 		});
 
@@ -593,14 +575,11 @@ namespace QuantumGate::Implementation::Core::Extender
 		{
 			if (const auto it = extenders.find(extuuid); it != extenders.end())
 			{
-				it->second->WithSharedLock([&](const Control& extctrl) noexcept
+				auto& extender = it->second->GetAPIExtender();
+				if (extender != nullptr)
 				{
-					auto& extender = extctrl.GetAPIExtender();
-					if (extender != nullptr)
-					{
-						retval = extender;
-					}
-				});
+					retval = extender;
+				}
 			}
 		});
 
@@ -624,19 +603,16 @@ namespace QuantumGate::Implementation::Core::Extender
 				// Do/did we have the extender running locally?
 				if (const auto it = extenders.find(extuuid); it != extenders.end())
 				{
-					it->second->WithUniqueLock([&](Control& extctrl) noexcept
+					// If extender exists and is running let it process the event
+					if (it->second->GetStatus() == Control::Status::Running)
 					{
-						// If extender exists and is running let it process the event
-						if (extctrl.GetStatus() == Control::Status::Running)
+						// Note the copy
+						auto eventc = event;
+						if (!it->second->AddPeerEvent(std::move(eventc)))
 						{
-							// Note the copy
-							auto eventc = event;
-							if (!extctrl.AddPeerEvent(std::move(eventc)))
-							{
-								LogErr(L"Failed to add peer event to extender %s", extctrl.GetExtenderName().c_str());
-							}
+							LogErr(L"Failed to add peer event to extender %s", it->second->GetExtenderName().c_str());
 						}
-					});
+					}
 				}
 			}
 		});
@@ -654,25 +630,36 @@ namespace QuantumGate::Implementation::Core::Extender
 			// Do/did we have the extender running locally?
 			if (const auto it = extenders.find(*event.GetExtenderUUID()); it != extenders.end())
 			{
-				it->second->WithUniqueLock([&](Control& extctrl)
+				switch (it->second->GetStatus())
 				{
-					// If extender exists and is running let it process the message
-					if (extctrl.GetStatus() == Control::Status::Running)
+					case Control::Status::Running:
 					{
-						if (extctrl.AddPeerEvent(std::move(event)))
+						// If extender exists and is running let it process the message
+						if (it->second->AddPeerEvent(std::move(event)))
 						{
 							// Return (handled, successful)
 							retval.first = true;
 							retval.second = true;
 						}
-						else LogErr(L"Failed to add peer event to extender %s", extctrl.GetExtenderName().c_str());
+						else
+						{
+							LogErr(L"Failed to add peer message event to extender %s", it->second->GetExtenderName().c_str());
+						}
+						break;
 					}
-					else
+					case Control::Status::Startup:
+					case Control::Status::Shutdown:
+					{
+						// Return (handled, unsuccessful)
+						retval.first = true;
+						break;
+					}
+					case Control::Status::Stopped:
 					{
 						// If the extender was not running, keep unsuccessfully handling messages
 						// for a grace period so that the connection doesn't get closed. (Peers might still
 						// think the extender is running locally while an extender update message is in transit.)
-						if ((Util::GetCurrentSteadyTime() - extctrl.GetSteadyTimeRemoved()) <=
+						if ((Util::GetCurrentSteadyTime() - it->second->GetSteadyTimeRemoved()) <=
 							m_Settings->Message.ExtenderGracePeriod)
 						{
 							// Return (handled, unsuccessful)
@@ -683,8 +670,15 @@ namespace QuantumGate::Implementation::Core::Extender
 							LogErr(L"MessageTransport for extender with UUID %s timed out (arrived outside of grace period)",
 								   event.GetExtenderUUID()->GetString().c_str());
 						}
+						break;
 					}
-				});
+					default:
+					{
+						// Shouldn't get here
+						assert(false);
+						break;
+					}
+				}
 			}
 			else
 			{
@@ -707,7 +701,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 				for (const auto& e : extenders)
 				{
-					if (e.second->WithSharedLock()->GetStatus() == Control::Status::Running)
+					if (e.second->GetStatus() == Control::Status::Running)
 					{
 						extuuids.UUIDs.emplace_back(e.first);
 						extuuids.SerializedUUIDs.push_back(e.first);

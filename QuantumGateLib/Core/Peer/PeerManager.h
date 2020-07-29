@@ -88,14 +88,14 @@ namespace QuantumGate::Implementation::Core::Peer
 		Result<> DisconnectFrom(const PeerLUID pluid, DisconnectCallback&& function) noexcept;
 		Result<> DisconnectFrom(API::Peer& peer, DisconnectCallback&& function) noexcept;
 
-		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
 						  const PeerLUID pluid, const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
-		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
 						  API::Peer& api_peer, const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
 
-		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
 						const PeerLUID pluid, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
-		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
 						API::Peer& api_peer, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
 
 		Result<> Broadcast(const MessageType msgtype, const Buffer& buffer, BroadcastCallback&& callback);
@@ -149,10 +149,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		void Disconnect(Peer& peer, const bool graceful) noexcept;
 		void DisconnectAndRemoveAll() noexcept;
 
-		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+		Result<Size> Send(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
 						  Peer& peer, const BufferView& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
 
-		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running,
+		Result<> SendTo(const ExtenderUUID& extuuid, const std::atomic_bool& running, const std::atomic_bool& ready,
 						Peer& peer, Buffer&& buffer, const SendParameters& params, SendCallback&& callback) noexcept;
 
 		bool BroadcastExtenderUpdate();
