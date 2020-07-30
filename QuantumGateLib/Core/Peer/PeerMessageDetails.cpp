@@ -21,4 +21,23 @@ namespace QuantumGate::Implementation::Core::Peer
 			peer_ths->WithUniqueLock()->GetMessageRateLimits().Subtract<MessageRateLimits::Type::ExtenderCommunicationReceive>(m_MessageData.GetSize());
 		}
 	}
+
+	bool MessageDetails::AddToMessageData(const Buffer& data) noexcept
+	{
+		try
+		{
+			m_MessageData += data;
+
+			auto peer_ths = m_PeerPointer.lock();
+			if (peer_ths)
+			{
+				peer_ths->WithUniqueLock()->GetMessageRateLimits().Add<MessageRateLimits::Type::ExtenderCommunicationReceive>(data.GetSize());
+			}
+
+			return true;
+		}
+		catch (...) {}
+
+		return false;
+	}
 }

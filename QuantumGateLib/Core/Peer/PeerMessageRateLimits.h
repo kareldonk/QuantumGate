@@ -14,7 +14,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		using ExtenderCommunicationSendRateLimit = RateLimit<Size, 0, Message::MaxMessageDataSize>;
 
 		// Enough space to hold 1 full size message (and more smaller ones)
-		using ExtenderCommunicationReceiveRateLimit = RateLimit<Size, 0, Message::MaxMessageDataSize>;
+		using ExtenderCommunicationReceiveRateLimit = RateLimit<Size, 0, 2 * Message::MaxMessageDataSize>;
 
 		// Enough space to hold 1 full size message (and more smaller ones)
 		using NoiseSendRateLimit = RateLimit<Size, 0, Message::MaxMessageDataSize>;

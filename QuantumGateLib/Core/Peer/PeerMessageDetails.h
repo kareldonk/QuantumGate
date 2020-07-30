@@ -18,17 +18,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		MessageDetails& operator=(const MessageDetails&) = delete;
 		MessageDetails& operator=(MessageDetails&&) noexcept = default;
 
-		[[nodiscard]] inline bool AddToMessageData(const Buffer& data) noexcept
-		{
-			try
-			{
-				m_MessageData += data;
-				return true;
-			}
-			catch (...) {}
-
-			return false;
-		}
+		[[nodiscard]] bool AddToMessageData(const Buffer& data) noexcept;
 
 		inline MessageType GetMessageType() const noexcept { return m_MessageType; }
 		inline const ExtenderUUID& GetExtenderUUID() const noexcept { return m_ExtenderUUID; }
