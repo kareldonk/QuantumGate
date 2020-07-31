@@ -685,6 +685,7 @@
     <ClCompile Include="Core\Peer\PeerNoiseQueue.cpp" />
     <ClCompile Include="Core\Peer\PeerNoiseItem.cpp" />
     <ClCompile Include="Core\Peer\PeerManager.cpp" />
+    <ClCompile Include="Core\Peer\PeerReceiveQueues.cpp" />
     <ClCompile Include="Core\Peer\PeerSendQueues.cpp" />
     <ClCompile Include="Core\PublicIPEndpoints.cpp" />
     <ClCompile Include="Core\Relay\RelayManager.cpp" />

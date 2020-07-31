@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "..\Peer\PeerMessageDetails.h"
+
 namespace QuantumGate::Implementation::Core::Relay::Events
 {
 	struct Connect final
@@ -58,6 +60,7 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 		{
 			PeerLUID PeerLUID{ 0 };
 		} Origin;
+		Peer::MessageDetails::MessageRate MessageRate;
 	};
 
 	struct RelayDataAck final

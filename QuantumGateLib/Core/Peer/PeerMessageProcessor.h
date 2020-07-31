@@ -37,20 +37,20 @@ namespace QuantumGate::Implementation::Core::Peer
 		bool SendRelayDataAck(const RelayDataAckMessage& msg) const noexcept;
 		bool SendEndRelay(const RelayPort rport) const noexcept;
 
-		Result ProcessMessage(const MessageDetails& msg) const;
+		Result ProcessMessage(MessageDetails&& msg) const;
 
 	private:
 		bool SendBeginPrimaryKeyExchange() const noexcept;
 		bool SendBeginKeyExchange(const MessageType type) const noexcept;
 
-		Result ProcessMessageMetaExchange(const MessageDetails& msg) const;
-		Result ProcessMessagePrimaryKeyExchange(const MessageDetails& msg) const;
-		Result ProcessMessageSecondaryKeyExchange(const MessageDetails& msg) const;
-		Result ProcessMessageAuthentication(const MessageDetails& msg) const;
-		Result ProcessMessageSessionInit(const MessageDetails& msg) const;
-		Result ProcessMessageReadyState(const MessageDetails& msg) const;
+		Result ProcessMessageMetaExchange(MessageDetails&& msg) const;
+		Result ProcessMessagePrimaryKeyExchange(MessageDetails&& msg) const;
+		Result ProcessMessageSecondaryKeyExchange(MessageDetails&& msg) const;
+		Result ProcessMessageAuthentication(MessageDetails&& msg) const;
+		Result ProcessMessageSessionInit(MessageDetails&& msg) const;
+		Result ProcessMessageReadyState(MessageDetails&& msg) const;
 		
-		Result ProcessKeyExchange(const MessageDetails& msg) const;
+		Result ProcessKeyExchange(MessageDetails&& msg) const;
 
 		bool GetSignature(Buffer& sig) const;
 

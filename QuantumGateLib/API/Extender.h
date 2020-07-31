@@ -73,7 +73,7 @@ namespace QuantumGate::API
 			void Reset() noexcept;
 
 		private:
-			typename std::aligned_storage<144>::type m_PeerEvent{ 0 };
+			typename std::aligned_storage<160>::type m_PeerEvent{ 0 };
 		};
 
 		using StartupCallback = Callback<bool(void)>;

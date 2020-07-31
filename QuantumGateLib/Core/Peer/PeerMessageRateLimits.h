@@ -10,17 +10,16 @@ namespace QuantumGate::Implementation::Core::Peer
 {
 	class MessageRateLimits final
 	{
-		// Enough space to hold 1 full size message (and more smaller ones)
+		// Rate limits should be large enough to hold at least one full size message
+		// and can be larger to buffer more data at the cost of using more memory
+		// per peer connection, and the increased risk of out of memory attacks
 		using ExtenderCommunicationSendRateLimit = RateLimit<Size, 0, Message::MaxMessageDataSize>;
+		using ExtenderCommunicationReceiveRateLimit = RateLimit<Size, 0, Message::MaxMessageDataSize>;
 
-		// Enough space to hold 1 full size message (and more smaller ones)
-		using ExtenderCommunicationReceiveRateLimit = RateLimit<Size, 0, 2 * Message::MaxMessageDataSize>;
-
-		// Enough space to hold 1 full size message (and more smaller ones)
 		using NoiseSendRateLimit = RateLimit<Size, 0, Message::MaxMessageDataSize>;
-
-		// Enough space to hold 1 full size message (and more smaller ones)
+		
 		using RelayDataSendRateLimit = RateLimit<Size, 0, Message::MaxMessageDataSize>;
+		using RelayDataReceiveRateLimit = RateLimit<Size, 0, Message::MaxMessageDataSize>;
 
 	public:
 		enum Type
@@ -29,7 +28,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			ExtenderCommunicationSend,
 			ExtenderCommunicationReceive,
 			NoiseSend,
-			RelayDataSend
+			RelayDataSend,
+			RelayDataReceive
 		};
 
 		template<Type type>
@@ -50,6 +50,10 @@ namespace QuantumGate::Implementation::Core::Peer
 			else if constexpr (type == Type::RelayDataSend)
 			{
 				return m_RelayDataSend.CanAdd(num);
+			}
+			else if constexpr (type == Type::RelayDataReceive)
+			{
+				return m_RelayDataReceive.CanAdd(num);
 			}
 			else if constexpr (type == Type::Default)
 			{
@@ -80,6 +84,10 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				m_RelayDataSend.Add(num);
 			}
+			else if constexpr (type == Type::RelayDataReceive)
+			{
+				m_RelayDataReceive.Add(num);
+			}
 			else if constexpr (type == Type::Default)
 			{
 			}
@@ -107,6 +115,10 @@ namespace QuantumGate::Implementation::Core::Peer
 			else if constexpr (type == Type::RelayDataSend)
 			{
 				m_RelayDataSend.Subtract(num);
+			}
+			else if constexpr (type == Type::RelayDataReceive)
+			{
+				m_RelayDataReceive.Subtract(num);
 			}
 			else if constexpr (type == Type::Default)
 			{
@@ -136,6 +148,10 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				return m_RelayDataSend.GetAvailable();
 			}
+			else if constexpr (type == Type::RelayDataReceive)
+			{
+				return m_RelayDataReceive.GetAvailable();
+			}
 			else
 			{
 				assert(false);
@@ -147,5 +163,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		ExtenderCommunicationReceiveRateLimit m_ExtenderCommunicationReceive;
 		NoiseSendRateLimit m_NoiseSend;
 		RelayDataSendRateLimit m_RelayDataSend;
+		RelayDataReceiveRateLimit m_RelayDataReceive;
 	};
 }

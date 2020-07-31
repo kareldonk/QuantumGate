@@ -243,4 +243,19 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		return std::make_pair(success, num);
 	}
+
+	Size PeerSendQueues::GetAvailableExtenderCommunicationBufferSize() const noexcept
+	{
+		return m_Peer.GetMessageRateLimits().GetAvailable<MessageRateLimits::Type::ExtenderCommunicationSend>();
+	}
+
+	Size PeerSendQueues::GetAvailableRelayDataBufferSize() const noexcept
+	{
+		return m_Peer.GetMessageRateLimits().GetAvailable<MessageRateLimits::Type::RelayDataSend>();
+	}
+
+	Size PeerSendQueues::GetAvailableNoiseBufferSize() const noexcept
+	{
+		return m_Peer.GetMessageRateLimits().GetAvailable<MessageRateLimits::Type::NoiseSend>();
+	}
 }

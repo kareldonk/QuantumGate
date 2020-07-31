@@ -117,7 +117,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessageReadyState(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageReadyState(MessageDetails&& msg) const
 	{
 		MessageProcessor::Result result;
 
@@ -259,6 +259,11 @@ namespace QuantumGate::Implementation::Core::Peer
 							red.Data = std::move(data);
 							red.Origin.PeerLUID = m_Peer.GetLUID();
 
+							// Take ownership of rate management for this message;
+							// this will keep this message size in the total rate
+							// count until the relay data actually gets processed
+							red.MessageRate = msg.MoveMessageRate();
+
 							if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(red)))
 							{
 								LogErr(L"Could not add relay event for port %llu", rport);
@@ -322,7 +327,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						if (m_Peer.InitializeKeyExchange())
 						{
-							result = ProcessKeyExchange(msg);
+							result = ProcessKeyExchange(std::move(msg));
 							if (result.Handled && result.Success)
 							{
 								result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::SecondaryExchange);
@@ -338,7 +343,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::PrimaryExchange &&
 					m_Peer.GetConnectionType() == PeerConnectionType::Inbound)
 				{
-					result = ProcessKeyExchange(msg);
+					result = ProcessKeyExchange(std::move(msg));
 					if (result.Handled && result.Success)
 					{
 						result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::SecondaryExchange);
@@ -352,7 +357,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::SecondaryExchange &&
 					m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
 				{
-					result = ProcessKeyExchange(msg);
+					result = ProcessKeyExchange(std::move(msg));
 					if (result.Handled && result.Success)
 					{
 						result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::ReadyWait);
@@ -366,7 +371,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::SecondaryExchange &&
 					m_Peer.GetConnectionType() == PeerConnectionType::Inbound)
 				{
-					result = ProcessKeyExchange(msg);
+					result = ProcessKeyExchange(std::move(msg));
 					if (result.Handled && result.Success)
 					{
 						if (m_Peer.Send(MessageType::KeyUpdateReady, Buffer()))

@@ -16,23 +16,27 @@ namespace QuantumGate::Implementation::Core::Peer
 		using MessageQueue = Concurrency::Queue<Message>;
 
 	public:
-		PeerReceiveQueues() noexcept = default;
+		PeerReceiveQueues(Peer& peer) noexcept : m_Peer(peer) {}
 		PeerReceiveQueues(const PeerReceiveQueues&) = delete;
 		PeerReceiveQueues(PeerReceiveQueues&&) noexcept = default;
 		~PeerReceiveQueues() = default;
 		PeerReceiveQueues& operator=(const PeerReceiveQueues&) = delete;
 		PeerReceiveQueues& operator=(PeerReceiveQueues&&) noexcept = default;
 
+		[[nodiscard]] bool ShouldDeferMessage(const Message& msg) const noexcept;
+
+		[[nodiscard]] bool CanProcessNextDeferredMessage() const noexcept;
+
 		[[nodiscard]] inline bool HaveMessages() const noexcept
 		{
-			return !m_NormalQueue.Empty();
+			return !m_DeferredQueue.Empty();
 		}
 
-		[[nodiscard]] bool AddMessage(Message&& msg) noexcept
+		[[nodiscard]] bool DeferMessage(Message&& msg) noexcept
 		{
 			try
 			{
-				m_NormalQueue.Push(std::move(msg));
+				m_DeferredQueue.Push(std::move(msg));
 				return true;
 			}
 			catch (...) {}
@@ -40,22 +44,20 @@ namespace QuantumGate::Implementation::Core::Peer
 			return false;
 		}
 
-		[[nodiscard]] Message GetMessage() noexcept
+		[[nodiscard]] Message GetDeferredMessage() noexcept
 		{
-			assert(!m_NormalQueue.Empty());
+			assert(!m_DeferredQueue.Empty());
 
-			auto msg = std::move(m_NormalQueue.Front());
-			m_NormalQueue.Pop();
+			auto msg = std::move(m_DeferredQueue.Front());
+			m_DeferredQueue.Pop();
 			return msg;
 		}
 
-		[[nodiscard]] Size GetNextMessageSize() noexcept
-		{
-			assert(!m_NormalQueue.Empty());
-			return m_NormalQueue.Front().GetMessageData().GetSize();
-		}
+		void AddMessageRate(const MessageType type, const Size msg_size);
+		void SubtractMessageRate(const MessageType type, const Size msg_size);
 
 	private:
-		MessageQueue m_NormalQueue;
+		Peer& m_Peer;
+		MessageQueue m_DeferredQueue;
 	};
 }

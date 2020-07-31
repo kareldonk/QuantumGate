@@ -108,22 +108,22 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessage(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessage(MessageDetails&& msg) const
 	{
 		switch (m_Peer.GetStatus())
 		{
 			case Status::MetaExchange:
-				return ProcessMessageMetaExchange(msg);
+				return ProcessMessageMetaExchange(std::move(msg));
 			case Status::PrimaryKeyExchange:
-				return ProcessMessagePrimaryKeyExchange(msg);
+				return ProcessMessagePrimaryKeyExchange(std::move(msg));
 			case Status::SecondaryKeyExchange:
-				return ProcessMessageSecondaryKeyExchange(msg);
+				return ProcessMessageSecondaryKeyExchange(std::move(msg));
 			case Status::Authentication:
-				return ProcessMessageAuthentication(msg);
+				return ProcessMessageAuthentication(std::move(msg));
 			case Status::SessionInit:
-				return ProcessMessageSessionInit(msg);
+				return ProcessMessageSessionInit(std::move(msg));
 			case Status::Ready:
-				return ProcessMessageReadyState(msg);
+				return ProcessMessageReadyState(std::move(msg));
 			default:
 				break;
 		}
@@ -132,7 +132,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return MessageProcessor::Result{ .Handled = false, .Success = false };
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessageMetaExchange(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageMetaExchange(MessageDetails&& msg) const
 	{
 		MessageProcessor::Result result;
 
@@ -238,14 +238,14 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessagePrimaryKeyExchange(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessagePrimaryKeyExchange(MessageDetails&& msg) const
 	{
 		MessageProcessor::Result result;
 
 		if (msg.GetMessageType() == MessageType::BeginPrimaryKeyExchange ||
 			msg.GetMessageType() == MessageType::EndPrimaryKeyExchange)
 		{
-			result = ProcessKeyExchange(msg);
+			result = ProcessKeyExchange(std::move(msg));
 			if (result.Handled && result.Success)
 			{
 				result.Success = m_Peer.SetStatus(Status::SecondaryKeyExchange);
@@ -255,13 +255,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessageSecondaryKeyExchange(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageSecondaryKeyExchange(MessageDetails&& msg) const
 	{
 		MessageProcessor::Result result;
 
 		if (msg.GetMessageType() == MessageType::BeginSecondaryKeyExchange)
 		{
-			result = ProcessKeyExchange(msg);
+			result = ProcessKeyExchange(std::move(msg));
 			if (result.Handled && result.Success)
 			{
 				result.Success = m_Peer.SetStatus(Status::Authentication);
@@ -269,7 +269,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 		else if (msg.GetMessageType() == MessageType::EndSecondaryKeyExchange)
 		{
-			result = ProcessKeyExchange(msg);
+			result = ProcessKeyExchange(std::move(msg));
 			if (result.Handled && result.Success)
 			{
 				result.Success = false;
@@ -302,7 +302,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessageAuthentication(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageAuthentication(MessageDetails&& msg) const
 	{
 		MessageProcessor::Result result;
 
@@ -440,7 +440,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessageSessionInit(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageSessionInit(MessageDetails&& msg) const
 	{
 		MessageProcessor::Result result;
 
@@ -714,7 +714,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::nullopt;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessKeyExchange(const MessageDetails& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessKeyExchange(MessageDetails&& msg) const
 	{
 		MessageProcessor::Result result;
 

@@ -29,6 +29,10 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	class Peer final : public Gate
 	{
+		friend MessageDetails;
+		friend PeerSendQueues;
+		friend PeerReceiveQueues;
+
 		enum class Flags
 		{
 			InQueue = 0,
@@ -133,21 +137,19 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] Result<> SendWithRandomDelay(const MessageType msgtype, Buffer&& buffer,
 												   const std::chrono::milliseconds maxdelay) noexcept;
 
-		[[nodiscard]] inline MessageRateLimits& GetMessageRateLimits() noexcept { return m_RateLimits; }
-
 		[[nodiscard]] inline Size GetAvailableExtenderCommunicationSendBufferSize() const noexcept
 		{
-			return m_RateLimits.GetAvailable<MessageRateLimits::Type::ExtenderCommunicationSend>();
+			return m_SendQueues.GetAvailableExtenderCommunicationBufferSize();
 		}
 
 		[[nodiscard]] inline Size GetAvailableRelayDataSendBufferSize() const noexcept
 		{
-			return m_RateLimits.GetAvailable<MessageRateLimits::Type::RelayDataSend>();
+			return m_SendQueues.GetAvailableRelayDataBufferSize();
 		}
 
 		[[nodiscard]] inline Size GetAvailableNoiseSendBufferSize() const noexcept
 		{
-			return m_RateLimits.GetAvailable<MessageRateLimits::Type::NoiseSend>();
+			return m_SendQueues.GetAvailableNoiseBufferSize();
 		}
 
 		[[nodiscard]] std::chrono::milliseconds GetHandshakeDelayPerMessage() const noexcept;
@@ -259,12 +261,15 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] bool SendFromQueues(const Settings& settings);
 
+		[[nodiscard]] inline MessageRateLimits& GetMessageRateLimits() noexcept { return m_RateLimits; }
+
 		[[nodiscard]] bool ProcessFromReceiveQueues(const Settings& settings);
 		[[nodiscard]] bool ReceiveAndProcess(const Settings& settings);
 		[[nodiscard]] std::tuple<bool, Size, UInt16> ProcessMessageTransport(const BufferView msgbuf, const Settings& settings);
 		[[nodiscard]] std::pair<bool, Size> ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey);
 
-		[[nodiscard]] bool QueueOrProcessMessage(Message&& msg) noexcept;
+		[[nodiscard]] PeerReceiveQueues& GetReceiveQueues() noexcept { return m_ReceiveQueues; }
+		[[nodiscard]] bool QueueOrProcessReceivedMessage(Message&& msg) noexcept;
 		[[nodiscard]] bool ProcessMessage(Message& msg);
 		[[nodiscard]] MessageProcessor::Result ProcessMessage(MessageDetails&& msg) noexcept;
 
@@ -316,7 +321,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		ExtenderUUIDs m_PeerExtenderUUIDs;
 
 		MessageRateLimits m_RateLimits;
-		PeerReceiveQueues m_ReceiveQueues;
+		PeerReceiveQueues m_ReceiveQueues{ *this };
 		PeerSendQueues m_SendQueues{ *this };
 
 		EventBuffer m_ReceiveBuffer;

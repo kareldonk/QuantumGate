@@ -614,6 +614,9 @@
     <ClCompile Include="Core\Peer\PeerMessageDetails.cpp">
       <Filter>Source Files\Core\Peer</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Peer\PeerReceiveQueues.cpp">
+      <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="QuantumGate.rc">

@@ -56,6 +56,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] std::pair<bool, Size> GetMessages(Buffer& buffer, const Crypto::SymmetricKeyData& symkey,
 														const bool concatenate);
 
+		[[nodiscard]] Size GetAvailableExtenderCommunicationBufferSize() const noexcept;
+		[[nodiscard]] Size GetAvailableRelayDataBufferSize() const noexcept;
+		[[nodiscard]] Size GetAvailableNoiseBufferSize() const noexcept;
+
 	private:
 		template<MessageRateLimits::Type type>
 		Result<> AddMessageImpl(Message&& msg, const SendParameters::PriorityOption priority,

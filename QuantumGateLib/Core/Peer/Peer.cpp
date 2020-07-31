@@ -1007,15 +1007,14 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		while (m_ReceiveQueues.HaveMessages())
 		{
-			if (m_RateLimits.CanAdd<MessageRateLimits::Type::ExtenderCommunicationReceive>(m_ReceiveQueues.GetNextMessageSize()))
+			if (m_ReceiveQueues.CanProcessNextDeferredMessage())
 			{
-				auto msg = m_ReceiveQueues.GetMessage();
+				auto msg = m_ReceiveQueues.GetDeferredMessage();
 				if (!ProcessMessage(msg)) return false;
 
 				++num;
 
-				// Check if the processing limit has been reached; in that case break
-				// and set the event again so that we'll return to continue processing later.
+				// Check if the processing limit has been reached; in that case break.
 				// This prevents this socket from hoarding all the processing capacity.
 				if (num >= settings.Local.Concurrency.WorkerThreadsMaxBurst)
 				{
@@ -1041,16 +1040,27 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	bool Peer::ReceiveAndProcess(const Settings& settings)
 	{
-		// Empty receive queues first
-		if (!ProcessFromReceiveQueues(settings)) return false;
-
-		// Receive queues need to be empty
-		if (m_ReceiveQueues.HaveMessages())
+		// Receive queues need to be empty before we
+		// continue beyond this block
 		{
-			// Too many messages in flight; don't come back too soon
-			SetFastRequeue(false);
+			if (m_ReceiveQueues.HaveMessages())
+			{
+				// Try to empty receive queues first
+				if (!ProcessFromReceiveQueues(settings)) return false;
 
-			return true;
+				// If receive queues are still not empty
+				if (m_ReceiveQueues.HaveMessages())
+				{
+					// Too many messages in flight; don't come back too soon
+					SetFastRequeue(false);
+
+					return true;
+				}
+				else
+				{
+					if (!m_ReceiveBuffer.IsEventSet() && !GetIOStatus().CanRead()) return true;
+				}
+			}
 		}
 
 		m_ReceiveBuffer.ResetEvent();
@@ -1241,7 +1251,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					}
 					else
 					{
-						if (!QueueOrProcessMessage(std::move(msg)))
+						if (!QueueOrProcessReceivedMessage(std::move(msg)))
 						{
 							success = false;
 							break;
@@ -1285,15 +1295,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::make_pair(success, num);
 	}
 
-	bool Peer::QueueOrProcessMessage(Message&& msg) noexcept
+	bool Peer::QueueOrProcessReceivedMessage(Message&& msg) noexcept
 	{
-		const auto msg_size = msg.GetMessageData().GetSize();
-
-		// Messages have to be processed in the order in which they are received, so
-		// if the ReceiveQueues aren't empty then the messages need to go to the back
-		// of the queue even if there's room in the receive rate limit
-		if (!m_ReceiveQueues.HaveMessages() &&
-			m_RateLimits.CanAdd<MessageRateLimits::Type::ExtenderCommunicationReceive>(msg_size))
+		if (!m_ReceiveQueues.ShouldDeferMessage(msg))
 		{
 			// Process immediately
 			return ProcessMessage(msg);
@@ -1301,7 +1305,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		else
 		{
 			// Rate limit would get exceeded so add to the queue for later processing
-			if (m_ReceiveQueues.AddMessage(std::move(msg)))
+			if (m_ReceiveQueues.DeferMessage(std::move(msg)))
 			{
 				// Too many messages in flight; don't come back too soon
 				SetFastRequeue(false);
@@ -1807,7 +1811,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 		else
 		{
-			const auto result = m_MessageProcessor.ProcessMessage(msg);
+			const auto result = m_MessageProcessor.ProcessMessage(std::move(msg));
 			if (!result.Handled)
 			{
 				// Unhandled message; the message may not have been recognized;

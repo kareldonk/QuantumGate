@@ -916,10 +916,10 @@ namespace QuantumGate::Implementation::Core::Peer
 				if (excl_addr != nullptr)
 				{
 					// Don't include addresses/network of local instance
-					const auto result = AreRelayIPsInSameNetwork(params.PeerIPEndpoint.GetIPAddress().GetBinary(), *excl_addr);
-					if (result.Succeeded())
+					//const auto result = AreRelayIPsInSameNetwork(params.PeerIPEndpoint.GetIPAddress().GetBinary(), *excl_addr);
+					//if (result.Succeeded())
 					{
-						if (!result.GetValue())
+						//if (!result.GetValue())
 						{
 							if (params.Relay.GatewayPeer)
 							{
@@ -959,9 +959,9 @@ namespace QuantumGate::Implementation::Core::Peer
 								}
 							}
 						}
-						else error_details = L"the destination endpoint is on the same network as the local instance";
+						//else error_details = L"the destination endpoint is on the same network as the local instance";
 					}
-					else error_details = L"couldn't check if the destination endpoint is on the same network as the local instance";
+					//else error_details = L"couldn't check if the destination endpoint is on the same network as the local instance";
 				}
 				else error_details = L"couldn't get IP addresses of local instance";
 			}
