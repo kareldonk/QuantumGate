@@ -390,7 +390,7 @@ namespace TestExtender
 		}
 	}
 
-	void Extender::OnPeerEvent(const PeerEvent& event)
+	void Extender::OnPeerEvent(PeerEvent&& event)
 	{
 		String ev(L"Unknown");
 
@@ -429,7 +429,7 @@ namespace TestExtender
 		}
 	}
 
-	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(const PeerEvent& event)
+	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(PeerEvent&& event)
 	{
 		PeerEvent::Result result;
 

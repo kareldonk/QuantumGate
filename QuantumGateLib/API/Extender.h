@@ -80,8 +80,8 @@ namespace QuantumGate::API
 		using PostStartupCallback = Callback<void(void)>;
 		using PreShutdownCallback = Callback<void(void)>;
 		using ShutdownCallback = Callback<void(void)>;
-		using PeerEventCallback = Callback<void(const PeerEvent&)>;
-		using PeerMessageCallback = Callback<PeerEvent::Result(const PeerEvent&)>;
+		using PeerEventCallback = Callback<void(PeerEvent&&)>;
+		using PeerMessageCallback = Callback<PeerEvent::Result(PeerEvent&&)>;
 
 		Extender() = delete;
 		Extender(const Extender&) = delete;

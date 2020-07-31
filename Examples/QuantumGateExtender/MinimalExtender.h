@@ -17,7 +17,7 @@ protected:
 	void OnPostStartup();
 	void OnPreShutdown();
 	void OnShutdown();
-	void OnPeerEvent(const QuantumGate::Extender::PeerEvent& event);
-	QuantumGate::Extender::PeerEvent::Result OnPeerMessage(const QuantumGate::Extender::PeerEvent& event);
+	void OnPeerEvent(QuantumGate::Extender::PeerEvent&& event);
+	QuantumGate::Extender::PeerEvent::Result OnPeerMessage(QuantumGate::Extender::PeerEvent&& event);
 };
 

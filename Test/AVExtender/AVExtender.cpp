@@ -117,7 +117,7 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	void Extender::OnPeerEvent(const PeerEvent& event)
+	void Extender::OnPeerEvent(PeerEvent&& event)
 	{
 		String ev(L"Unknown");
 
@@ -155,7 +155,7 @@ namespace QuantumGate::AVExtender
 		}
 	}
 
-	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(const PeerEvent& event)
+	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(PeerEvent&& event)
 	{
 		assert(event.GetType() == PeerEvent::Type::Message);
 

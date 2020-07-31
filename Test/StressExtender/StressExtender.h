@@ -51,8 +51,8 @@ namespace StressExtender
 		void OnPostStartup();
 		void OnPreShutdown();
 		void OnShutdown();
-		void OnPeerEvent(const PeerEvent& event);
-		QuantumGate::Extender::PeerEvent::Result OnPeerMessage(const PeerEvent& event);
+		void OnPeerEvent(PeerEvent&& event);
+		QuantumGate::Extender::PeerEvent::Result OnPeerMessage(PeerEvent&& event);
 
 	private:
 		std::atomic_bool m_UseCompression{ true };

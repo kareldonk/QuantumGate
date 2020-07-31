@@ -359,7 +359,7 @@ namespace QuantumGate::Socks5Extender
 		m_ThreadPool.Clear();
 	}
 
-	void Extender::OnPeerEvent(const PeerEvent& event)
+	void Extender::OnPeerEvent(PeerEvent&& event)
 	{
 		String ev(L"Unknown");
 
@@ -393,7 +393,7 @@ namespace QuantumGate::Socks5Extender
 		LogInfo(L"Extender '%s' got peer event: %s, Peer LUID: %llu", GetName().c_str(), ev.c_str(), event.GetPeerLUID());
 	}
 
-	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(const PeerEvent& event)
+	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(PeerEvent&& event)
 	{
 		assert(event.GetType() == PeerEvent::Type::Message);
 

@@ -98,8 +98,8 @@ namespace QuantumGate::AVExtender
 		void OnPostStartup();
 		void OnPreShutdown();
 		void OnShutdown();
-		void OnPeerEvent(const PeerEvent& event);
-		QuantumGate::Extender::PeerEvent::Result OnPeerMessage(const PeerEvent& event);
+		void OnPeerEvent(PeerEvent&& event);
+		QuantumGate::Extender::PeerEvent::Result OnPeerMessage(PeerEvent&& event);
 
 		[[nodiscard]] Result<> SendCallAudioSample(const PeerLUID pluid, const AudioFormat& afmt, const UInt64 timestamp,
 												   const BufferView data, const bool compressed) const noexcept;

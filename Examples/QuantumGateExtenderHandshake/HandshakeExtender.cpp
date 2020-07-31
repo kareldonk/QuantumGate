@@ -95,7 +95,7 @@ void HandshakeExtender::OnShutdown()
 	std::wcout << L"HandshakeExtender::OnShutdown() called...\r\n";
 }
 
-void HandshakeExtender::OnPeerEvent(const QuantumGate::Extender::PeerEvent& event)
+void HandshakeExtender::OnPeerEvent(QuantumGate::Extender::PeerEvent&& event)
 {
 	// This callback function gets called by the QuantumGate instance to notify an
 	// extender of a peer event
@@ -154,7 +154,7 @@ void HandshakeExtender::OnPeerEvent(const QuantumGate::Extender::PeerEvent& even
 	}
 }
 
-QuantumGate::Extender::PeerEvent::Result HandshakeExtender::OnPeerMessage(const QuantumGate::Extender::PeerEvent& event)
+QuantumGate::Extender::PeerEvent::Result HandshakeExtender::OnPeerMessage(QuantumGate::Extender::PeerEvent&& event)
 {
 	// This callback function gets called by the QuantumGate instance to notify an
 	// extender of a peer message event

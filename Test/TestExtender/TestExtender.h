@@ -195,8 +195,8 @@ namespace TestExtender
 		bool OnStartup();
 		void OnPostStartup();
 		void OnShutdown();
-		void OnPeerEvent(const PeerEvent& event);
-		QuantumGate::Extender::PeerEvent::Result OnPeerMessage(const PeerEvent& event);
+		void OnPeerEvent(PeerEvent&& event);
+		QuantumGate::Extender::PeerEvent::Result OnPeerMessage(PeerEvent&& event);
 
 	private:
 		static void WorkerThreadLoop(Extender* extender);

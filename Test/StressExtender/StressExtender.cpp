@@ -70,7 +70,7 @@ namespace StressExtender
 		// Deinitialization and cleanup here
 	}
 
-	void Extender::OnPeerEvent(const PeerEvent& event)
+	void Extender::OnPeerEvent(PeerEvent&& event)
 	{
 		String ev(L"Unknown");
 
@@ -82,7 +82,7 @@ namespace StressExtender
 		if (m_ExceptionTest.PeerEvent) throw(std::exception("Test PeerEvent exception"));
 	}
 
-	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(const PeerEvent& event)
+	QuantumGate::Extender::PeerEvent::Result Extender::OnPeerMessage(PeerEvent&& event)
 	{
 		if (m_ExceptionTest.PeerMessage) throw(std::exception("Test PeerMessage exception"));
 
