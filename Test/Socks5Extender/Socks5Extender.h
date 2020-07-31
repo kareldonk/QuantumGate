@@ -113,8 +113,8 @@ namespace QuantumGate::Socks5Extender
 		void OnPostStartup();
 		void OnPreShutdown();
 		void OnShutdown();
-		void OnPeerEvent(PeerEvent&& event);
-		QuantumGate::Extender::PeerEvent::Result OnPeerMessage(PeerEvent&& event);
+		void OnPeerEvent(const PeerEvent& event);
+		QuantumGate::Extender::PeerEvent::Result OnPeerMessage(const PeerEvent& event);
 
 		[[nodiscard]] bool InitializeIPFilters();
 		void DeInitializeIPFilters() noexcept;

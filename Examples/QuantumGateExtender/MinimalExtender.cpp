@@ -67,7 +67,7 @@ void MinimalExtender::OnShutdown()
 	std::wcout << L"MinimalExtender::OnShutdown() called...\r\n";
 }
 
-void MinimalExtender::OnPeerEvent(QuantumGate::Extender::PeerEvent&& event)
+void MinimalExtender::OnPeerEvent(const QuantumGate::Extender::PeerEvent& event)
 {
 	// This callback function gets called by the QuantumGate instance to notify an
 	// extender of a peer event
@@ -99,7 +99,7 @@ void MinimalExtender::OnPeerEvent(QuantumGate::Extender::PeerEvent&& event)
 	}
 }
 
-QuantumGate::Extender::PeerEvent::Result MinimalExtender::OnPeerMessage(QuantumGate::Extender::PeerEvent&& event)
+QuantumGate::Extender::PeerEvent::Result MinimalExtender::OnPeerMessage(const QuantumGate::Extender::PeerEvent& event)
 {
 	// This callback function gets called by the QuantumGate instance to notify an
 	// extender of a peer message event

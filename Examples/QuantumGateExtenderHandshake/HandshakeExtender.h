@@ -68,8 +68,8 @@ protected:
 	void OnPostStartup();
 	void OnPreShutdown();
 	void OnShutdown();
-	void OnPeerEvent(QuantumGate::Extender::PeerEvent&& event);
-	QuantumGate::Extender::PeerEvent::Result OnPeerMessage(QuantumGate::Extender::PeerEvent&& event);
+	void OnPeerEvent(const QuantumGate::Extender::PeerEvent& event);
+	QuantumGate::Extender::PeerEvent::Result OnPeerMessage(const QuantumGate::Extender::PeerEvent& event);
 
 private:
 	bool GetRandomBytes(std::byte* buffer, const std::size_t buffer_len);

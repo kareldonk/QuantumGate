@@ -142,17 +142,17 @@ namespace QuantumGate::Implementation::Core::Extender
 			catch (...) { OnException(); }
 		}
 
-		inline void OnPeerEvent(QuantumGate::API::Extender::PeerEvent&& event) noexcept
+		inline void OnPeerEvent(const QuantumGate::API::Extender::PeerEvent& event) noexcept
 		{
-			try { m_PeerEventCallback(std::move(event)); }
+			try { m_PeerEventCallback(event); }
 			catch (const std::exception& e) { OnException(e); }
 			catch (...) { OnException(); }
 		}
 
 		[[nodiscard]] inline QuantumGate::API::Extender::PeerEvent::Result
-			OnPeerMessage(QuantumGate::API::Extender::PeerEvent&& event) noexcept
+			OnPeerMessage(const QuantumGate::API::Extender::PeerEvent& event) noexcept
 		{
-			try { return m_PeerMessageCallback(std::move(event)); }
+			try { return m_PeerMessageCallback(event); }
 			catch (const std::exception& e) { OnException(e); }
 			catch (...) { OnException(); }
 
@@ -193,8 +193,8 @@ namespace QuantumGate::Implementation::Core::Extender
 		PostStartupCallback m_PostStartupCallback{ []() mutable {} };
 		PreShutdownCallback m_PreShutdownCallback{ []() mutable {} };
 		ShutdownCallback m_ShutdownCallback{ []() mutable {} };
-		PeerEventCallback m_PeerEventCallback{ [](QuantumGate::API::Extender::PeerEvent&&) mutable {} };
+		PeerEventCallback m_PeerEventCallback{ [](const QuantumGate::API::Extender::PeerEvent&) mutable {} };
 		PeerMessageCallback m_PeerMessageCallback
-		{ [](QuantumGate::API::Extender::PeerEvent&&) mutable -> QuantumGate::API::Extender::PeerEvent::Result { return {}; } };
+		{ [](const QuantumGate::API::Extender::PeerEvent&) mutable -> QuantumGate::API::Extender::PeerEvent::Result { return {}; } };
 	};
 }
