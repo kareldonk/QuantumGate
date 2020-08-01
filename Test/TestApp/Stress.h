@@ -21,6 +21,7 @@ class Stress final
 		String IP;
 		UInt16 Port{ 0 };
 		RelayHop Hops{ 0 };
+		bool ReuseConnection{ false };
 		std::optional<PeerLUID> RelayPeer;
 		ProtectedBuffer GlobalSharedSecret;
 		std::atomic_bool Stop{ false };
@@ -45,7 +46,7 @@ public:
 	static void StopExtenderStartupShutdownStress();
 	static bool IsExtenderStartupShutdownStressRunning() noexcept;
 
-	static bool StartConnectStress(Local& qg, const CString& ip, const UInt16 port, const RelayHop hops,
+	static bool StartConnectStress(Local& qg, const CString& ip, const UInt16 port, const RelayHop hops, const bool reuse,
 								   const std::optional<PeerLUID>& rpeer, const ProtectedBuffer& gsecret);
 	static void StopConnectStress();
 	static bool IsConnectStressRunning() noexcept;

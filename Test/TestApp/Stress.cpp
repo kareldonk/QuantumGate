@@ -70,7 +70,7 @@ void Stress::ExtenderStartupShutdownStressThreadProc(Local* qg)
 	}
 }
 
-bool Stress::StartConnectStress(Local& qg, const CString& ip, const UInt16 port, const RelayHop hops,
+bool Stress::StartConnectStress(Local& qg, const CString& ip, const UInt16 port, const RelayHop hops, const bool reuse,
 								const std::optional<PeerLUID>& rpeer, const ProtectedBuffer& gsecret)
 {
 	if (!m_ConnectStressData.Thread.joinable())
@@ -79,6 +79,7 @@ bool Stress::StartConnectStress(Local& qg, const CString& ip, const UInt16 port,
 		m_ConnectStressData.IP = (LPCWSTR)ip;
 		m_ConnectStressData.Port = port;
 		m_ConnectStressData.Hops = hops;
+		m_ConnectStressData.ReuseConnection = reuse;
 		m_ConnectStressData.RelayPeer = rpeer;
 		m_ConnectStressData.GlobalSharedSecret = gsecret;
 		m_ConnectStressData.Thread = std::thread(Stress::ConnectStressThreadProc, &qg);
@@ -119,6 +120,7 @@ void Stress::ConnectStressThreadProc(Local* qg)
 			params.GlobalSharedSecret = m_ConnectStressData.GlobalSharedSecret;
 			params.Relay.Hops = m_ConnectStressData.Hops;
 			params.Relay.GatewayPeer = m_ConnectStressData.RelayPeer;
+			params.ReuseExistingConnection = m_ConnectStressData.ReuseConnection;
 
 			const auto connect_result = qg->ConnectTo(std::move(params));
 			if (connect_result.Succeeded())

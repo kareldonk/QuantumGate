@@ -1073,7 +1073,7 @@ void CTestAppDlg::OnStressConnectAndDisconnect()
 			}
 
 			Stress::StartConnectStress(m_QuantumGate, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort(),
-									   dlg.GetRelayHops(), dlg.GetRelayGatewayPeer(), gsecret);
+									   dlg.GetRelayHops(), dlg.GetReuseConnection(), dlg.GetRelayGatewayPeer(), gsecret);
 		}
 	}
 	else Stress::StopConnectStress();
