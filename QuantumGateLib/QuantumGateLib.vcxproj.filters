@@ -435,6 +435,12 @@
     <ClInclude Include="Core\Peer\PeerReceiveQueues.h">
       <Filter>Header Files\Core\Peer</Filter>
     </ClInclude>
+    <ClInclude Include="Concurrency\CriticalSection.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="Concurrency\ConditionVariable.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
