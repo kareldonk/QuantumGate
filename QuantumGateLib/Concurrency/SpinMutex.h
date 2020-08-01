@@ -34,7 +34,7 @@ namespace QuantumGate::Implementation::Concurrency
             }
         }
 
-        bool try_lock() noexcept
+        [[nodiscard]] bool try_lock() noexcept
         {
             return (!m_Locked.load(std::memory_order_relaxed) && !m_Locked.exchange(true, std::memory_order_acquire));
         }

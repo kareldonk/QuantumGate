@@ -49,7 +49,7 @@ namespace QuantumGate::Implementation::Concurrency
 			});
 		}
 
-		bool try_lock() noexcept
+		[[nodiscard]] bool try_lock() noexcept
 		{
 			auto state = m_State.load(std::memory_order_relaxed);
 			if (HasNoLocks(state))
@@ -81,7 +81,7 @@ namespace QuantumGate::Implementation::Concurrency
 			DoUntilSucceeded([&]() -> bool { return try_lock_shared(); });
 		};
 
-		bool try_lock_shared() noexcept
+		[[nodiscard]] bool try_lock_shared() noexcept
 		{
 			auto state = m_State.load(std::memory_order_relaxed);
 			if (!IsExclusiveLocked(state))
@@ -138,19 +138,19 @@ namespace QuantumGate::Implementation::Concurrency
 			}
 		}
 
-		constexpr StateType MakeState(bool excl, SizeType shared_count) noexcept
+		[[nodiscard]] constexpr StateType MakeState(bool excl, SizeType shared_count) noexcept
 		{
 			StateType state = shared_count << 1;
 			if (excl) state |= ExclusiveLockFlag;
 			return state;
 		}
 
-		constexpr bool HasNoLocks(StateType state) noexcept
+		[[nodiscard]] constexpr bool HasNoLocks(StateType state) noexcept
 		{
 			return (state == 0);
 		}
 
-		constexpr bool IsExclusiveLocked(StateType state) noexcept
+		[[nodiscard]] constexpr bool IsExclusiveLocked(StateType state) noexcept
 		{
 			return (state & ExclusiveLockFlag);
 		}
@@ -166,12 +166,12 @@ namespace QuantumGate::Implementation::Concurrency
 			return state;
 		}
 
-		constexpr bool HasSharedLocks(StateType state) noexcept
+		[[nodiscard]] constexpr bool HasSharedLocks(StateType state) noexcept
 		{
 			return (GetSharedLocks(state) > 0);
 		}
 
-		constexpr SizeType GetSharedLocks(StateType state) noexcept
+		[[nodiscard]] constexpr SizeType GetSharedLocks(StateType state) noexcept
 		{
 			return (state >> 1);
 		}
