@@ -273,8 +273,7 @@ namespace QuantumGate::Implementation::Core::Extender
 					// Should never get here
 					assert(false);
 
-					LogErr(L"Couldn't find peer with LUID %llu in peer map for extender with UUID %s",
-						   event.GetPeerLUID(), event.GetExtenderUUID()->GetString().c_str());
+					LogErr(L"Couldn't find peer with LUID %llu in extender peer map", event.GetPeerLUID());
 
 					return false;
 				}
