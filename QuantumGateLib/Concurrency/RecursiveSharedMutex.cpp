@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation::Concurrency
 	{
 		const auto id = std::this_thread::get_id();
 
-		UniqueLockType lock(m_Mutex);
+		LockGuardType lock(m_CriticalSection);
 
 		if (m_ExclusiveThreadID == id)
 		{
@@ -34,7 +34,7 @@ namespace QuantumGate::Implementation::Concurrency
 			if (m_ExclusiveLockCount != 0)
 			{
 				// Wait for other thread to release exclusive lock
-				Wait(lock, [&]() { return (m_ExclusiveLockCount == 0); });
+				m_Condition1.Wait(m_CriticalSection, [&]() { return (m_ExclusiveLockCount == 0); });
 			}
 
 			m_ExclusiveThreadID = id;
@@ -43,7 +43,7 @@ namespace QuantumGate::Implementation::Concurrency
 			if (m_SharedLockCount != 0)
 			{
 				// Wait for other threads to release their shared locks
-				Wait(lock, [&]() { return (m_SharedLockCount == 0); });
+				m_Condition2.Wait(m_CriticalSection, [&]() { return (m_SharedLockCount == 0); });
 			}
 		}
 	}
@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Concurrency
 	{
 		const auto id = std::this_thread::get_id();
 
-		UniqueLockType lock(m_Mutex);
+		LockGuardType lock(m_CriticalSection);
 
 		if (m_ExclusiveThreadID == id)
 		{
@@ -83,54 +83,60 @@ namespace QuantumGate::Implementation::Concurrency
 	
 	void RecursiveSharedMutex::unlock() noexcept
 	{
-		UniqueLockType lock(m_Mutex);
+		bool notify = false;
 
-		// Only the thread with exclusive lock should call unlock
-		assert(m_ExclusiveThreadID == std::this_thread::get_id());
-
-		// Should have an exclusive lock before unlocking
-		assert(m_ExclusiveLockCount > 0 && m_SharedLockCount == 0);
-
-		--m_ExclusiveLockCount;
-		
-		if (m_ExclusiveLockCount == 0)
 		{
-			m_ExclusiveThreadID = std::thread::id();
+			LockGuardType lock(m_CriticalSection);
+
+			// Only the thread with exclusive lock should call unlock
+			assert(m_ExclusiveThreadID == std::this_thread::get_id());
+
+			// Should have an exclusive lock before unlocking
+			assert(m_ExclusiveLockCount > 0 && m_SharedLockCount == 0);
+
+			--m_ExclusiveLockCount;
+
+			if (m_ExclusiveLockCount == 0)
+			{
+				m_ExclusiveThreadID = std::thread::id();
+
+				notify = true;
+			}
 		}
+
+		if (notify) m_Condition1.NotifyAll();
 	}
 	
-	void RecursiveSharedMutex::lock_shared()
+	void RecursiveSharedMutex::lock_shared() noexcept
 	{
-		UniqueLockType lock(m_Mutex);
+		LockGuardType lock(m_CriticalSection);
 
 		// Thread with exclusive lock may not get shared lock
 		assert(m_ExclusiveThreadID != std::this_thread::get_id());
 
-		if (m_ExclusiveLockCount != 0)
+		if (m_ExclusiveLockCount != 0 || m_SharedLockCount == MaxNumLocks)
 		{
-			// Wait for other thread to release exclusive lock
-			Wait(lock, [&]() { return (m_ExclusiveLockCount == 0); });
+			// Wait for other threads to release (exclusive) locks
+			m_Condition1.Wait(m_CriticalSection, [&]()
+			{
+				return (m_ExclusiveLockCount == 0 && m_SharedLockCount < MaxNumLocks);
+			});
 		}
 
-		if (m_SharedLockCount < MaxNumLocks)
-		{
-			++m_SharedLockCount;
-		}
-		else
-		{
-			throw std::system_error(std::make_error_code(std::errc::value_too_large),
-									"RecursiveSharedMutex too many shared locks.");
-		}
+		++m_SharedLockCount;
 	}
 	
 	bool RecursiveSharedMutex::try_lock_shared() noexcept
 	{
-		UniqueLockType lock(m_Mutex);
+		LockGuardType lock(m_CriticalSection);
 
 		// Thread with exclusive lock may not get shared lock
 		assert(m_ExclusiveThreadID != std::this_thread::get_id());
 
-		if (m_ExclusiveLockCount > 0 || m_SharedLockCount == MaxNumLocks) return false;
+		if (m_ExclusiveLockCount > 0 || m_SharedLockCount == MaxNumLocks)
+		{
+			return false;
+		}
 
 		++m_SharedLockCount;
 
@@ -139,40 +145,33 @@ namespace QuantumGate::Implementation::Concurrency
 	
 	void RecursiveSharedMutex::unlock_shared() noexcept
 	{
-		UniqueLockType lock(m_Mutex);
+		auto wake = 0u;
 
-		// Should have shared lock before unlocking
-		assert(m_SharedLockCount > 0);
-
-		--m_SharedLockCount;
-	}
-
-	template<typename Func> requires std::is_same_v<std::invoke_result_t<Func>, bool>
-	void RecursiveSharedMutex::Wait(UniqueLockType& lock, Func&& func) noexcept
-	{
-		auto count = 0u;
-
-		while (!func())
 		{
-			lock.unlock();
+			LockGuardType lock(m_CriticalSection);
 
-			if (count >= 128)
+			// Should have shared lock before unlocking
+			assert(m_SharedLockCount > 0);
+
+			--m_SharedLockCount;
+
+			if (m_ExclusiveLockCount > 0)
 			{
-				std::this_thread::sleep_for(1ms);
-				count = 0;
-			}
-			else if (count >= 16)
-			{
-				std::this_thread::yield();
+				if (m_SharedLockCount == 0)
+				{
+					wake = 1u;
+				}
 			}
 			else
 			{
-				_mm_pause();
+				if (m_SharedLockCount == MaxNumLocks - 1)
+				{
+					wake = 2u;
+				}
 			}
-
-			++count;
-
-			lock.lock();
 		}
+
+		if (wake == 1u) m_Condition2.NotifyOne();
+		else if (wake == 2u) m_Condition1.NotifyOne();
 	}
 }

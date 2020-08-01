@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "SpinMutex.h"
+#include "ConditionVariable.h"
 
 namespace QuantumGate::Implementation::Concurrency
 {
 	class Export RecursiveSharedMutex final
 	{
-		using UniqueLockType = std::unique_lock<SpinMutex>;
+		using LockGuardType = std::lock_guard<CriticalSection>;
 		using SizeType = unsigned long;
 
 	public:
@@ -21,16 +21,12 @@ namespace QuantumGate::Implementation::Concurrency
 		RecursiveSharedMutex& operator=(RecursiveSharedMutex&&) = delete;
 
 		void lock();
-		bool try_lock() noexcept;
+		[[nodiscard]] bool try_lock() noexcept;
 		void unlock() noexcept;
 
-		void lock_shared();
-		bool try_lock_shared() noexcept;
+		void lock_shared() noexcept;
+		[[nodiscard]] bool try_lock_shared() noexcept;
 		void unlock_shared() noexcept;
-
-	private:
-		template<typename Func> requires std::is_same_v<std::invoke_result_t<Func>, bool>
-		void Wait(UniqueLockType& lock, Func&& func) noexcept;
 
 	private:
 		static constexpr SizeType MaxNumLocks{ (std::numeric_limits<SizeType>::max)() };
@@ -40,6 +36,8 @@ namespace QuantumGate::Implementation::Concurrency
 		SizeType m_ExclusiveLockCount{ 0 };
 		SizeType m_SharedLockCount{ 0 };
 
-		SpinMutex m_Mutex;
+		CriticalSection m_CriticalSection;
+		ConditionVariable m_Condition1;
+		ConditionVariable m_Condition2;
 	};
 }
