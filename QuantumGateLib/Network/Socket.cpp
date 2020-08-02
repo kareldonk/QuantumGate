@@ -927,7 +927,7 @@ namespace QuantumGate::Implementation::Network
 	{
 		const auto handle = m_Event.GetHandle();
 		const auto ret = WSAWaitForMultipleEvents(1, &handle, false, static_cast<DWORD>(mseconds.count()), false);
-		if (ret != WSA_WAIT_FAILED)
+		if (ret == WSA_WAIT_EVENT_0)
 		{
 			WSANETWORKEVENTS events{ 0 };
 
@@ -970,6 +970,10 @@ namespace QuantumGate::Implementation::Network
 
 				return true;
 			}
+		}
+		else if (ret == WSA_WAIT_TIMEOUT)
+		{
+			return true;
 		}
 
 		return false;
