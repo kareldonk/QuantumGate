@@ -370,7 +370,6 @@ namespace QuantumGate::Implementation::Core::Peer
 					ptask.Peer->WithUniqueLock([&](Peer& peer)
 					{
 						peer.SetInQueue(false);
-						peer.ResetFastRequeue();
 
 						if (peer.ProcessEvents())
 						{

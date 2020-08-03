@@ -360,6 +360,8 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		if (ShouldDisconnect()) return false;
 
+		ResetFastRequeue();
+
 		const auto& settings = GetSettings();
 
 		// First we check if we have data waiting to be received;
