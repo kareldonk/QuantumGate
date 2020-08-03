@@ -34,8 +34,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		using ThreadPoolTaskQueue = Concurrency::Queue<ThreadPoolTask>;
 		using ThreadPoolTaskQueue_ThS = Concurrency::ThreadSafe<ThreadPoolTaskQueue, Concurrency::SpinMutex>;
 		
-		using PollFDVector_ThS = Concurrency::ThreadSafe<Vector<WSAPOLLFD>, Concurrency::SpinMutex>;
-
 		enum class BroadcastResult { Succeeded, PeerNotReady, SendFailure };
 
 		using BroadcastCallback = Callback<void(Peer& peer, const BroadcastResult result)>;
