@@ -73,6 +73,15 @@ namespace QuantumGate::Implementation::Core
 			}
 		}
 
+		if (params.GlobalSharedSecret.has_value())
+		{
+			if (params.GlobalSharedSecret->GetSize() < 64 || !Crypto::ValidateBuffer(*params.GlobalSharedSecret))
+			{
+				LogErr(L"The Global Shared Secret specified in the initialization parameters isn't valid");
+				return false;
+			}
+		}
+
 		if (!ValidateSupportedAlgorithms(params.SupportedAlgorithms))
 		{
 			return false;
