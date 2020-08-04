@@ -925,58 +925,53 @@ namespace QuantumGate::Implementation::Network
 #ifdef USE_SOCKET_EVENT
 	bool Socket::UpdateIOStatusEvent(const std::chrono::milliseconds& mseconds) noexcept
 	{
-		const auto handle = m_Event.GetHandle();
-		const auto ret = WSAWaitForMultipleEvents(1, &handle, false, static_cast<DWORD>(mseconds.count()), false);
-		if (ret == WSA_WAIT_EVENT_0)
+		if (mseconds.count() > 0)
 		{
-			WSANETWORKEVENTS events{ 0 };
-
-			const auto ret2 = WSAEnumNetworkEvents(m_Socket, handle, &events);
-			if (ret2 != SOCKET_ERROR)
-			{
-				// Behavior below tries to closely match the results a select() would 
-				// give in UpdateIOStatusFDSet()
-
-				if (!m_IOStatus.IsClosing()) m_IOStatus.SetClosing(events.lNetworkEvents & FD_CLOSE);
-
-				if (!m_IOStatus.CanRead())
-				{
-					m_IOStatus.SetRead((events.lNetworkEvents & FD_READ) ||
-									   (events.lNetworkEvents & FD_ACCEPT) || m_IOStatus.IsClosing());
-				}
-
-				if (!m_IOStatus.CanWrite())
-				{
-					m_IOStatus.SetWrite((events.lNetworkEvents & FD_WRITE && events.iErrorCode[FD_WRITE_BIT] == 0) ||
-										(events.lNetworkEvents & FD_CONNECT && events.iErrorCode[FD_CONNECT_BIT] == 0));
-				}
-				else
-				{
-					m_IOStatus.SetWrite(!(events.lNetworkEvents & FD_CLOSE ||
-										  (events.lNetworkEvents & FD_WRITE && events.iErrorCode[FD_WRITE_BIT] != 0)));
-				}
-
-				const auto set_error = [&](const int idx) noexcept
-				{
-					m_IOStatus.SetException(true);
-					m_IOStatus.SetErrorCode(events.iErrorCode[idx]);
-				};
-
-				if ((events.lNetworkEvents & FD_CONNECT) && events.iErrorCode[FD_CONNECT_BIT] != 0) set_error(FD_CONNECT_BIT);
-				else if ((events.lNetworkEvents & FD_READ) && events.iErrorCode[FD_READ_BIT] != 0) set_error(FD_READ_BIT);
-				else if ((events.lNetworkEvents & FD_WRITE) && events.iErrorCode[FD_WRITE_BIT] != 0) set_error(FD_WRITE_BIT);
-				else if ((events.lNetworkEvents & FD_CLOSE) && events.iErrorCode[FD_CLOSE_BIT] != 0) set_error(FD_CLOSE_BIT);
-				else if ((events.lNetworkEvents & FD_ACCEPT) && events.iErrorCode[FD_ACCEPT_BIT] != 0) set_error(FD_ACCEPT_BIT);
-
-				return true;
-			}
-		}
-		else if (ret == WSA_WAIT_TIMEOUT)
-		{
-			return true;
+			const auto handle = m_Event.GetHandle();
+			const auto ret = WSAWaitForMultipleEvents(1, &handle, false, static_cast<DWORD>(mseconds.count()), false);
+			if (ret == WSA_WAIT_FAILED) return false;
 		}
 
-		return false;
+		WSANETWORKEVENTS events{ 0 };
+
+		const auto ret = WSAEnumNetworkEvents(m_Socket, m_Event.GetHandle(), &events);
+		if (ret == SOCKET_ERROR) return false;
+
+		// Behavior below tries to closely match the results a select() would 
+		// give in UpdateIOStatusFDSet()
+
+		if (!m_IOStatus.IsClosing()) m_IOStatus.SetClosing(events.lNetworkEvents & FD_CLOSE);
+
+		if (!m_IOStatus.CanRead())
+		{
+			m_IOStatus.SetRead((events.lNetworkEvents & FD_READ) ||
+								(events.lNetworkEvents & FD_ACCEPT) || m_IOStatus.IsClosing());
+		}
+
+		if (!m_IOStatus.CanWrite())
+		{
+			m_IOStatus.SetWrite((events.lNetworkEvents & FD_WRITE && events.iErrorCode[FD_WRITE_BIT] == 0) ||
+								(events.lNetworkEvents & FD_CONNECT && events.iErrorCode[FD_CONNECT_BIT] == 0));
+		}
+		else
+		{
+			m_IOStatus.SetWrite(!(events.lNetworkEvents & FD_CLOSE ||
+								  (events.lNetworkEvents & FD_WRITE && events.iErrorCode[FD_WRITE_BIT] != 0)));
+		}
+
+		const auto set_error = [&](const int idx) noexcept
+		{
+			m_IOStatus.SetException(true);
+			m_IOStatus.SetErrorCode(events.iErrorCode[idx]);
+		};
+
+		if ((events.lNetworkEvents & FD_CONNECT) && events.iErrorCode[FD_CONNECT_BIT] != 0) set_error(FD_CONNECT_BIT);
+		else if ((events.lNetworkEvents & FD_READ) && events.iErrorCode[FD_READ_BIT] != 0) set_error(FD_READ_BIT);
+		else if ((events.lNetworkEvents & FD_WRITE) && events.iErrorCode[FD_WRITE_BIT] != 0) set_error(FD_WRITE_BIT);
+		else if ((events.lNetworkEvents & FD_CLOSE) && events.iErrorCode[FD_CLOSE_BIT] != 0) set_error(FD_CLOSE_BIT);
+		else if ((events.lNetworkEvents & FD_ACCEPT) && events.iErrorCode[FD_ACCEPT_BIT] != 0) set_error(FD_ACCEPT_BIT);
+
+		return true;
 	}
 #endif
 
