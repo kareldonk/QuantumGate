@@ -1001,21 +1001,18 @@ namespace QuantumGate::Implementation::Network
 
 		// Get socket status
 		const auto ret = select(0, rset_ptr, wset_ptr, eset_ptr, &tval);
-		if (ret != SOCKET_ERROR)
+		if (ret == SOCKET_ERROR) return false;
+
+		m_IOStatus.SetRead(FD_ISSET(m_Socket, rset_ptr));
+		m_IOStatus.SetWrite(FD_ISSET(m_Socket, wset_ptr));
+
+		if (FD_ISSET(m_Socket, eset_ptr))
 		{
-			m_IOStatus.SetRead(FD_ISSET(m_Socket, rset_ptr));
-			m_IOStatus.SetWrite(FD_ISSET(m_Socket, wset_ptr));
-
-			if (FD_ISSET(m_Socket, eset_ptr))
-			{
-				m_IOStatus.SetException(true);
-				m_IOStatus.SetErrorCode(GetError());
-			}
-
-			return true;
+			m_IOStatus.SetException(true);
+			m_IOStatus.SetErrorCode(GetError());
 		}
 
-		return false;
+		return true;
 	}
 
 	bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
