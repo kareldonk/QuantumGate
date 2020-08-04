@@ -6,6 +6,7 @@
 namespace QuantumGate::Implementation::Core::Peer
 {
 	class Manager;
+	class Event;
 }
 
 namespace QuantumGate::API
@@ -13,6 +14,7 @@ namespace QuantumGate::API
 	class Export Peer
 	{
 		friend class QuantumGate::Implementation::Core::Peer::Manager;
+		friend class QuantumGate::Implementation::Core::Peer::Event;
 
 	public:
 		using ConnectionType = QuantumGate::Implementation::PeerConnectionType;
@@ -37,11 +39,11 @@ namespace QuantumGate::API
 		};
 
 		Peer() noexcept;
-		Peer(const Peer&) noexcept;
-		Peer(Peer&&) noexcept;
+		Peer(const Peer& other) noexcept;
+		Peer(Peer&& other) noexcept;
 		virtual ~Peer();
-		Peer& operator=(const Peer&) noexcept;
-		Peer& operator=(Peer&&) noexcept;
+		Peer& operator=(const Peer& other) noexcept;
+		Peer& operator=(Peer&& other) noexcept;
 
 		explicit operator bool() const noexcept;
 
