@@ -684,7 +684,8 @@ namespace TestExtender
 							Dbg(L"Received Echo message from %llu with %zu bytes of data",
 								event.GetPeerLUID(), echo_data.GetSize());
 
-							SendEchoReply(event.GetPeerLUID(), echo_data);
+							auto retval = event.GetPeer();
+							if (retval.Succeeded()) SendEchoReply(*retval, echo_data);
 
 							result.Success = true;
 							break;
@@ -1214,18 +1215,18 @@ namespace TestExtender
 		return false;
 	}
 
-	bool Extender::SendEchoReply(const PeerLUID pluid, const BufferView ping_data) noexcept
+	bool Extender::SendEchoReply(Peer& peer, const BufferView ping_data) noexcept
 	{
 		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::EchoReply);
 
 		BufferWriter writer(true);
 		if (writer.WriteWithPreallocation(msgtype, ping_data))
 		{
-			if (SendMessageTo(pluid, writer.MoveWrittenBytes(),
+			if (SendMessageTo(peer, writer.MoveWrittenBytes(),
 							  QuantumGate::SendParameters{ .Compress = m_UseCompression }).Succeeded()) return true;
-			else LogErr(L"Could not send EchoReply message to peer %llu", pluid);
+			else LogErr(L"Could not send EchoReply message to peer %llu", peer.GetLUID());
 		}
-		else LogErr(L"Could not prepare EchoReply message for peer %llu", pluid);
+		else LogErr(L"Could not prepare EchoReply message for peer %llu", peer.GetLUID());
 
 		return false;
 	}

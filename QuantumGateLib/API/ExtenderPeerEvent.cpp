@@ -122,6 +122,13 @@ namespace QuantumGate::API
 		return GetEvent()->GetPeerUUID();
 	}
 
+	QuantumGate::Result<Peer> Extender::PeerEvent::GetPeer() const noexcept
+	{
+		assert(HasEvent());
+
+		return GetEvent()->GetPeer();
+	}
+
 	const Buffer* Extender::PeerEvent::GetMessageData() const noexcept
 	{
 		assert(HasEvent());

@@ -59,6 +59,7 @@ namespace QuantumGate::API
 			[[nodiscard]] Type GetType() const noexcept;
 			[[nodiscard]] PeerLUID GetPeerLUID() const noexcept;
 			[[nodiscard]] const PeerUUID& GetPeerUUID() const noexcept;
+			[[nodiscard]] QuantumGate::Result<Peer> GetPeer() const noexcept;
 			[[nodiscard]] const Buffer* GetMessageData() const noexcept;
 
 		private:

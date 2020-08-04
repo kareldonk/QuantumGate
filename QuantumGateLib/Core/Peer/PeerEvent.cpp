@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "PeerEvent.h"
+#include "Peer.h"
 
 namespace QuantumGate::Implementation::Core::Peer
 {
@@ -50,6 +51,17 @@ namespace QuantumGate::Implementation::Core::Peer
 	Event::operator bool() const noexcept
 	{
 		return (m_Type != Type::Unknown);
+	}
+
+	Result<API::Peer> Event::GetPeer() const noexcept
+	{
+		const auto peerptr = m_PeerPointer.lock();
+		if (peerptr)
+		{
+			return API::Peer(m_PeerLUID, &peerptr);
+		}
+
+		return ResultCode::PeerNotFound;
 	}
 
 	const ExtenderUUID* Event::GetExtenderUUID() const noexcept

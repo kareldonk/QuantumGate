@@ -216,7 +216,7 @@ namespace TestExtender
 		bool SendFileDataAck(FileTransfer& ft) noexcept;
 
 		bool SendEcho(const PeerLUID pluid, const BufferView ping_data) noexcept;
-		bool SendEchoReply(const PeerLUID pluid, const BufferView ping_data) noexcept;
+		bool SendEchoReply(Peer& peer, const BufferView ping_data) noexcept;
 
 	private:
 		HWND m_Window{ nullptr };

@@ -28,6 +28,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		inline Type GetType() const noexcept { return m_Type; }
 		inline PeerLUID GetPeerLUID() const noexcept { return m_PeerLUID; }
 		inline const PeerUUID& GetPeerUUID() const noexcept { return m_PeerUUID; }
+		Result<API::Peer> GetPeer() const noexcept;
 		inline PeerWeakPointer GetPeerWeakPointer() const noexcept { return m_PeerPointer; }
 		const ExtenderUUID* GetExtenderUUID() const noexcept;
 		const Buffer* GetMessageData() const noexcept;
