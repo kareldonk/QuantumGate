@@ -26,11 +26,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		struct Tasks final
 		{
 			struct PeerAccessCheck final {};
-			struct PeerEventUpdate final { PeerSharedPointer Peer; };
 			struct PeerCallback final { Callback<void()> Callback; };
 		};
 
-		using ThreadPoolTask = std::variant<Tasks::PeerAccessCheck, Tasks::PeerCallback, Tasks::PeerEventUpdate>;
+		using ThreadPoolTask = std::variant<Tasks::PeerAccessCheck, Tasks::PeerCallback>;
 		using ThreadPoolTaskQueue = Concurrency::Queue<ThreadPoolTask>;
 		using ThreadPoolTaskQueue_ThS = Concurrency::ThreadSafe<ThreadPoolTaskQueue, Concurrency::SpinMutex>;
 		
@@ -40,9 +39,20 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		struct ThreadPoolData final
 		{
+		public:
 			PeerMap_ThS PeerMap;
 			ThreadPoolTaskQueue_ThS TaskQueue;
+
+		private:
 			Concurrency::EventGroup WorkEvents;
+
+		public:
+			[[nodiscard]] inline bool InitializeWorkEvents() noexcept { return WorkEvents.Initialize(); }
+			inline void DeinitializeWorkEvents() noexcept { WorkEvents.Deinitialize(); }
+			inline void ClearWorkEvents() noexcept { WorkEvents.RemoveAllEvents(); }
+			inline auto WaitForWorkEvent(const std::chrono::milliseconds time) noexcept { return WorkEvents.Wait(time); }
+			[[nodiscard]] bool AddWorkEvent(const Peer& peer) noexcept;
+			void RemoveWorkEvent(const Peer& peer) noexcept;
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;

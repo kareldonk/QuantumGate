@@ -13,6 +13,40 @@ using namespace std::literals;
 
 namespace QuantumGate::Implementation::Core::Peer
 {
+	bool Manager::ThreadPoolData::AddWorkEvent(const Peer& peer) noexcept
+	{
+		switch (peer.GetGateType())
+		{
+			case GateType::Socket:
+				return WorkEvents.AddEvent(peer.GetSocket<Socket>().GetEvent().GetHandle());
+			case GateType::RelaySocket:
+				return WorkEvents.AddEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
+			default:
+				// Shouldn't get here
+				assert(false);
+				break;
+		}
+
+		return false;
+	}
+
+	void Manager::ThreadPoolData::RemoveWorkEvent(const Peer& peer) noexcept
+	{
+		switch (peer.GetGateType())
+		{
+			case GateType::Socket:
+				WorkEvents.RemoveEvent(peer.GetSocket<Socket>().GetEvent().GetHandle());
+				break;
+			case GateType::RelaySocket:
+				WorkEvents.RemoveEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
+				break;
+			default:
+				// Shouldn't get here
+				assert(false);
+				break;
+		}
+	}
+
 	Manager::Manager(const Settings_CThS& settings, LocalEnvironment_ThS& environment,
 					 KeyGeneration::Manager& keymgr, Access::Manager& accessmgr,
 					 Extender::Manager& extenders) noexcept :
@@ -104,7 +138,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				thpool->SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
 				thpool->SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 			
-				error = !thpool->GetData().WorkEvents.Initialize();
+				error = !thpool->GetData().InitializeWorkEvents();
 
 				// Create the worker threads
 				for (Size x = 0; x < numthreadsperpool && !error; ++x)
@@ -162,7 +196,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		for (const auto& thpool : m_ThreadPools)
 		{
-			thpool.second->GetData().WorkEvents.Deinitialize();
+			thpool.second->GetData().DeinitializeWorkEvents();
 		}
 
 		DbgInvoke([&]()
@@ -245,7 +279,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	bool Manager::PrimaryThreadWaitProcessor(ThreadPoolData& thpdata, std::chrono::milliseconds max_wait,
 											 const Concurrency::Event& shutdown_event)
 	{
-		const auto result = thpdata.WorkEvents.Wait(max_wait);
+		const auto result = thpdata.WaitForWorkEvent(max_wait);
 		return result.Waited;
 	}
 
@@ -267,23 +301,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				auto& peerths = it->second;
 
-				peerths->IfUniqueLock([&](Peer& peer)
+				peerths->WithUniqueLock([&](Peer& peer)
 				{
-					// If the peer is already in the worker queue or thread, skip it
-					if (peer.IsInQueue()) return;
-
 					if (peer.CheckStatus(noise_enabled, max_connect_duration, max_handshake_duration))
 					{
 						if (peer.HasPendingEvents())
 						{
-							// If there are events to be processed add the peer to the queue;
-							// Peer should not already be in queue if we get here
-							assert(!peer.IsInQueue());
-
-							Dbg(L"Adding peer %s to queue", peer.GetPeerName().c_str());
-
-							thpdata.TaskQueue.WithUniqueLock()->Push(Tasks::PeerEventUpdate{ peerths },
-																	 [&]() noexcept { peer.SetInQueue(true); });
+							DiscardReturnValue(peer.ProcessEvents());
 
 							result.DidWork = true;
 						}
@@ -364,27 +388,6 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						LogErr(L"Unhandled exception while executing peer callback");
 					}
-				},
-				[&](Tasks::PeerEventUpdate& ptask)
-				{
-					ptask.Peer->WithUniqueLock([&](Peer& peer)
-					{
-						peer.SetInQueue(false);
-
-						if (peer.ProcessEvents())
-						{
-							// If we still have events waiting to be processed add the
-							// peer back to the queue immediately to avoid extra delays
-							if (peer.UpdateSocketStatus() && peer.HasPendingEvents() && peer.IsFastRequeue())
-							{
-								// Peer should not already be in queue if we get here
-								assert(!peer.IsInQueue());
-
-								thpdata.TaskQueue.WithUniqueLock()->Push(Tasks::PeerEventUpdate{ ptask.Peer },
-																		 [&]() noexcept { peer.SetInQueue(true); });
-							}
-						}
-					});
 				}
 			}, *task);
 		}
@@ -560,19 +563,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					thpit->second->GetData().PeerMap.WithUniqueLock()->erase(pit);
 				});
 
-				switch (peer.GetGateType())
-				{
-					case GateType::Socket:
-						if (!thpit->second->GetData().WorkEvents.AddEvent(
-							peer.GetSocket<Socket>().GetEvent().GetHandle())) return;
-						break;
-					case GateType::RelaySocket:
-						if (!thpit->second->GetData().WorkEvents.AddEvent(
-							peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle())) return;
-						break;
-					default:
-						break;
-				}
+				if (!thpit->second->GetData().AddWorkEvent(peer)) return;
 
 				sg.Deactivate();
 				sg2.Deactivate();
@@ -598,18 +589,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			pluid = peer.GetLUID();
 			thpool = m_ThreadPools[peer.GetThreadPoolKey()].get();
-
-			switch (peer.GetGateType())
-			{
-				case GateType::Socket:
-					thpool->GetData().WorkEvents.RemoveEvent(peer.GetSocket<Socket>().GetEvent().GetHandle());
-					break;
-				case GateType::RelaySocket:
-					thpool->GetData().WorkEvents.RemoveEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
-					break;
-				default:
-					break;
-			}
+			thpool->GetData().RemoveWorkEvent(peer);
 		});
 
 		m_AllPeers.WithUniqueLock()->erase(pluid);
@@ -630,7 +610,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		for (const auto& thpool : m_ThreadPools)
 		{
-			thpool.second->GetData().WorkEvents.RemoveAllEvents();
+			thpool.second->GetData().ClearWorkEvents();
 			thpool.second->GetData().PeerMap.WithUniqueLock()->clear();
 		}
 	}

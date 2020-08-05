@@ -227,10 +227,6 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	bool Peer::UpdateSocketStatus() noexcept
 	{
-		if (NeedsAccessCheck()) CheckAccess();
-
-		if (ShouldDisconnect()) return false;
-
 		if (UpdateIOStatus(0ms))
 		{
 			if (GetIOStatus().HasException())
@@ -253,6 +249,11 @@ namespace QuantumGate::Implementation::Core::Peer
 	bool Peer::CheckStatus(const bool noise_enabled, const std::chrono::seconds max_connect_duration,
 						   std::chrono::seconds max_handshake_duration) noexcept
 	{
+		if (NeedsAccessCheck())
+		{
+			if (!CheckAccess()) return false;
+		}
+
 		if (!UpdateSocketStatus()) return false;
 
 		const auto status = GetStatus();
@@ -359,8 +360,6 @@ namespace QuantumGate::Implementation::Core::Peer
 	bool Peer::ProcessEvents()
 	{
 		if (ShouldDisconnect()) return false;
-
-		ResetFastRequeue();
 
 		const auto& settings = GetSettings();
 
@@ -888,20 +887,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		// If the send buffer isn't empty yet
 		if (!m_SendBuffer.IsEmpty())
 		{
-			const auto buf_size = m_SendBuffer.GetSize();
-
 			if (!Gate::Send(m_SendBuffer))
 			{
 				return false;
 			}
 			else if (!m_SendBuffer.IsEmpty())
 			{
-				if (buf_size == m_SendBuffer.GetSize())
-				{
-					// Nothing was sent; buffer probably full so don't come back too soon
-					SetFastRequeue(false);
-				}
-
 				// If we weren't able to send (all) data we'll try again later
 				return true;
 			}
@@ -1053,16 +1044,18 @@ namespace QuantumGate::Implementation::Core::Peer
 				// If receive queues are still not empty
 				if (m_ReceiveQueues.HaveMessages())
 				{
-					// Too many messages in flight; don't come back too soon
-					SetFastRequeue(false);
-
 					return true;
 				}
-				else
-				{
-					if (!m_ReceiveBuffer.IsEventSet() && !GetIOStatus().CanRead()) return true;
-				}
 			}
+		}
+
+		// Read as much data as possible
+		while (GetIOStatus().CanRead() &&
+			   (m_ReceiveBuffer.GetSize() < (MessageTransport::MaxMessageSize + m_NextPeerRandomDataPrefixLength)))
+		{
+			if (!Receive(m_ReceiveBuffer)) return false;
+
+			if (!UpdateSocketStatus()) return false;
 		}
 
 		m_ReceiveBuffer.ResetEvent();
@@ -1070,20 +1063,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		// Check if there's a message in the receive buffer
 		MessageTransportCheck msgchk = MessageTransport::Peek(m_NextPeerRandomDataPrefixLength,
 															  m_MessageTransportDataSizeSettings, m_ReceiveBuffer);
-
-		// If there was no data in the buffer or an incomplete message, check if there's
-		// data to receive from the peer, otherwise proceed to process what we have
-		if (msgchk != MessageTransportCheck::CompleteMessage)
-		{
-			if (Receive(m_ReceiveBuffer))
-			{
-				// Check if we have a complete message now
-				msgchk = MessageTransport::Peek(m_NextPeerRandomDataPrefixLength,
-												m_MessageTransportDataSizeSettings, m_ReceiveBuffer);
-			}
-			else return false;
-		}
-
 		switch (msgchk)
 		{
 			case MessageTransportCheck::CompleteMessage:
@@ -1309,9 +1288,6 @@ namespace QuantumGate::Implementation::Core::Peer
 			// Rate limit would get exceeded so add to the queue for later processing
 			if (m_ReceiveQueues.DeferMessage(std::move(msg)))
 			{
-				// Too many messages in flight; don't come back too soon
-				SetFastRequeue(false);
-
 				return true;
 			}
 		}
@@ -1830,12 +1806,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	void Peer::CheckAccess() noexcept
+	bool Peer::CheckAccess() noexcept
 	{
 		SetFlag(Flags::NeedsAccessCheck, false);
 
 		// If peer is already flagged to be disconnected no use checking at this time
-		if (ShouldDisconnect()) return;
+		if (ShouldDisconnect()) return false;
 
 		LogDbg(L"Checking access for peer %s", GetPeerName().c_str());
 
@@ -1847,6 +1823,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			SetDisconnectCondition(DisconnectCondition::IPNotAllowed);
 
 			LogWarn(L"IP for peer %s is not allowed anymore; will disconnect peer", GetPeerName().c_str());
+
+			return false;
 		}
 		else
 		{
@@ -1864,9 +1842,13 @@ namespace QuantumGate::Implementation::Core::Peer
 
 					LogWarn(L"Peer UUID %s is not allowed anymore; will disconnect peer %s",
 							GetPeerUUID().GetString().c_str(), GetPeerName().c_str());
+
+					return false;
 				}
 			}
 		}
+
+		return true;
 	}
 
 	void Peer::OnUnhandledExtenderMessage(const ExtenderUUID& extuuid, const API::Extender::PeerEvent::Result& result) noexcept
