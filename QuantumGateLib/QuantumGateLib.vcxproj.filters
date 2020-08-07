@@ -441,6 +441,9 @@
     <ClInclude Include="Concurrency\ConditionVariable.h">
       <Filter>Header Files\Concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="Concurrency\ConditionEvent.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

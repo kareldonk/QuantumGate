@@ -558,6 +558,7 @@
     <ClInclude Include="Concurrency\ConditionVariable.h" />
     <ClInclude Include="Concurrency\CriticalSection.h" />
     <ClInclude Include="Concurrency\Event.h" />
+    <ClInclude Include="Concurrency\ConditionEvent.h" />
     <ClInclude Include="Concurrency\EventGroup.h" />
     <ClInclude Include="Concurrency\PriorityQueue.h" />
     <ClInclude Include="Concurrency\Queue.h" />
