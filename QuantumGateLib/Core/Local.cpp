@@ -412,13 +412,10 @@ namespace QuantumGate::Implementation::Core
 	{
 		LogSys(L"Creating local threadpool with 1 worker thread");
 
-		const auto& settings = GetSettings().GetCache();
-		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
-		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
-
 		if (m_ThreadPool.AddThread(L"QuantumGate Local Thread",
 								   MakeCallback(this, &Local::WorkerThreadProcessor),
-								   &m_ThreadPool.GetData().EventQueue.WithUniqueLock()->GetEvent()))
+								   MakeCallback(this, &Local::WorkerThreadWait),
+								   MakeCallback(this, &Local::WorkerThreadWaitInterrupt)))
 		{
 			if (m_ThreadPool.Startup())
 			{
@@ -437,24 +434,24 @@ namespace QuantumGate::Implementation::Core
 		m_ThreadPool.Clear();
 	}
 
-	Local::ThreadPool::ThreadCallbackResult Local::WorkerThreadProcessor(ThreadPoolData& thpdata,
-																		 const Concurrency::Event& shutdown_event)
+	void Local::WorkerThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
+		thpdata.EventQueue.Wait(shutdown_event);
+	}
 
+	void Local::WorkerThreadWaitInterrupt(ThreadPoolData& thpdata)
+	{
+		thpdata.EventQueue.InterruptWait();
+	}
+
+	void Local::WorkerThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
+	{
 		std::optional<Event> event;
 
-		m_ThreadPool.GetData().EventQueue.IfUniqueLock([&](auto& queue)
+		thpdata.EventQueue.PopFrontIf([&](auto& fevent) noexcept -> bool
 		{
-			if (!queue.Empty())
-			{
-				event = std::move(queue.Front());
-				queue.Pop();
-
-				// We had events in the queue
-				// so we did work
-				result.DidWork = true;
-			}
+			event = std::move(fevent);
+			return true;
 		});
 
 		if (event.has_value())
@@ -469,8 +466,6 @@ namespace QuantumGate::Implementation::Core
 			}
 			else assert(false);
 		}
-
-		return result;
 	}
 
 	void Local::ProcessEvent(const Events::LocalEnvironmentChange& event) noexcept
@@ -668,26 +663,20 @@ namespace QuantumGate::Implementation::Core
 
 	void Local::OnLocalEnvironmentChanged() noexcept
 	{
-		m_ThreadPool.GetData().EventQueue.WithUniqueLock([&](EventQueue& queue) noexcept
+		try
 		{
-			try
-			{
-				queue.Push(Events::LocalEnvironmentChange{});
-			}
-			catch (...) {}
-		});
+			m_ThreadPool.GetData().EventQueue.Push(Events::LocalEnvironmentChange{});
+		}
+		catch (...) {}
 	}
 
 	void Local::OnUnhandledExtenderException(const ExtenderUUID extuuid) noexcept
 	{
-		m_ThreadPool.GetData().EventQueue.WithUniqueLock([&](EventQueue& queue) noexcept
+		try
 		{
-			try
-			{
-				queue.Push(Events::UnhandledExtenderException{ extuuid });
-			}
-			catch (...) {}
-		});
+			m_ThreadPool.GetData().EventQueue.Push(Events::UnhandledExtenderException{ extuuid });
+		}
+		catch (...) {}
 	}
 
 	Result<bool> Local::AddExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,

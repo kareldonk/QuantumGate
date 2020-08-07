@@ -19,6 +19,9 @@ namespace QuantumGate::Implementation::Containers
 	template<typename T>
 	using Queue = std::queue<T, Deque<T>>;
 
+	template <typename T, typename C = Vector<T>, typename Pred = std::less<typename C::value_type>>
+	using PriorityQueue = std::priority_queue<T, C, Pred>;
+
 	template<typename Key, typename T, typename C = std::less<Key>>
 	using Map = std::map<Key, T, C, Memory::DefaultAllocator<std::pair<const Key, T>>>;
 

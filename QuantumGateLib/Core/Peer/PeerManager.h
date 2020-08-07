@@ -30,8 +30,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		};
 
 		using ThreadPoolTask = std::variant<Tasks::PeerAccessCheck, Tasks::PeerCallback>;
-		using ThreadPoolTaskQueue = Concurrency::Queue<ThreadPoolTask>;
-		using ThreadPoolTaskQueue_ThS = Concurrency::ThreadSafe<ThreadPoolTaskQueue, Concurrency::SpinMutex>;
+		using ThreadPoolTaskQueue_ThS = Concurrency::Queue<ThreadPoolTask>;
 		
 		enum class BroadcastResult { Succeeded, PeerNotReady, SendFailure };
 
@@ -176,13 +175,12 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<Buffer> GetExtenderUpdateData() const noexcept;
 
-		bool PrimaryThreadWaitProcessor(ThreadPoolData& thpdata, std::chrono::milliseconds max_wait,
-										const Concurrency::Event& shutdown_event);
+		void PrimaryThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
+		void PrimaryThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
 
-		ThreadPool::ThreadCallbackResult PrimaryThreadProcessor(ThreadPoolData& thpdata,
-																const Concurrency::Event& shutdown_event);
-		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   const Concurrency::Event& shutdown_event);
+		void WorkerThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
+		void WorkerThreadWaitInterrupt(ThreadPoolData& thpdata);
+		void WorkerThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
 
 	private:
 		std::atomic_bool m_Running{ false };

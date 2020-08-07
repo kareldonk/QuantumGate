@@ -42,8 +42,8 @@ namespace QuantumGate::Implementation::Core::Extender
 			Peer& operator=(Peer&&) noexcept = default;
 
 			Status Status{ Status::Unknown };
-			Concurrency::Queue<Core::Peer::Event> EventQueue;
-			Concurrency::Queue<Core::Peer::Event> MessageQueue;
+			Containers::Queue<Core::Peer::Event> EventQueue;
+			Containers::Queue<Core::Peer::Event> MessageQueue;
 
 			bool IsInQueue{ false };
 			const ThreadPoolKey ThreadPoolKey{ 0 };
@@ -54,8 +54,7 @@ namespace QuantumGate::Implementation::Core::Extender
 
 		using PeerMap = Containers::UnorderedMap<PeerLUID, std::shared_ptr<Peer_ThS>>;
 
-		using Queue = Concurrency::Queue<std::shared_ptr<Peer_ThS>>;
-		using Queue_ThS = Concurrency::ThreadSafe<Queue, Concurrency::SpinMutex>;
+		using Queue_ThS = Concurrency::Queue<std::shared_ptr<Peer_ThS>>;
 
 		struct ThreadPoolData final
 		{
@@ -147,8 +146,9 @@ namespace QuantumGate::Implementation::Core::Extender
 		void PreStartupExtenderThreadPools(Data& data) noexcept;
 		void ResetState(Data& data) noexcept;
 
-		static ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
-																	  const Concurrency::Event& shutdown_event);
+		static void WorkerThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
+		static void WorkerThreadWaitInterrupt(ThreadPoolData& thpdata);
+		static void WorkerThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
 
 	private:
 		const Manager& m_ExtenderManager;

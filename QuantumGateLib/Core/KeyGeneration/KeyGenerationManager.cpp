@@ -5,6 +5,8 @@
 #include "KeyGenerationManager.h"
 #include "..\..\Crypto\Crypto.h"
 
+using namespace std::literals;
+
 namespace QuantumGate::Implementation::Core::KeyGeneration
 {
 	Manager::Manager(const Settings_CThS& settings) noexcept :
@@ -68,7 +70,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 	{
 		// Events need to be cleared first because
 		// they contain pointers to the key queues
-		m_ThreadPool.GetData().KeyGenEventQueue.WithUniqueLock()->Clear();
+		m_ThreadPool.GetData().KeyGenEventQueue.Clear();
 
 		ClearKeyQueues();
 	}
@@ -137,9 +139,6 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		LogSys(L"Creating key generation threadpool with %zu worker %s",
 			   numthreadsperpool, numthreadsperpool > 1 ? L"threads" : L"thread");
 
-		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
-		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
-
 		auto error = false;
 
 		// Create the worker threads
@@ -150,7 +149,8 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			{
 				if (!m_ThreadPool.AddThread(L"QuantumGate KeyManager Thread (Main)",
 											MakeCallback(this, &Manager::PrimaryThreadProcessor),
-											&m_ThreadPool.GetData().PrimaryThreadEvent))
+											MakeCallback(this, &Manager::PrimaryThreadWait),
+											MakeCallback(this, &Manager::PrimaryThreadWaitInterrupt)))
 				{
 					error = true;
 					break;
@@ -160,7 +160,8 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			{
 				if (!m_ThreadPool.AddThread(L"QuantumGate KeyManager Thread",
 											MakeCallback(this, &Manager::WorkerThreadProcessor),
-											&m_ThreadPool.GetData().KeyGenEventQueue.WithUniqueLock()->GetEvent()))
+											MakeCallback(this, &Manager::WorkerThreadWait),
+											MakeCallback(this, &Manager::WorkerThreadWaitInterrupt)))
 				{
 					error = true;
 					break;
@@ -213,11 +214,18 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		return keydata;
 	}
 
-	Manager::ThreadPool::ThreadCallbackResult Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata,
-																			  const Concurrency::Event& shutdown_event)
+	void Manager::PrimaryThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
+		thpdata.PrimaryThreadEvent.Wait(shutdown_event);
+	}
 
+	void Manager::PrimaryThreadWaitInterrupt(ThreadPoolData& thpdata)
+	{
+		thpdata.PrimaryThreadEvent.InterruptWait();
+	}
+
+	void Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
+	{
 		auto has_inactive = false;
 
 		m_KeyQueues.WithSharedLock([&](const KeyQueueMap& queues)
@@ -225,7 +233,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 			// Reset event; after we check and generate the keys below
 			// this event will be set again when a key gets removed from the queues
 			// and we need to fill the queue again
-			m_ThreadPool.GetData().PrimaryThreadEvent.Reset();
+			thpdata.PrimaryThreadEvent.Reset();
 
 			for (auto it = queues.begin(); it != queues.end() && !shutdown_event.IsSet(); ++it)
 			{
@@ -258,11 +266,9 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 
 						while (numkeys > 0)
 						{
-							thpdata.KeyGenEventQueue.WithUniqueLock()->Push({ it->second.get() });
+							thpdata.KeyGenEventQueue.Push({ it->second.get() });
 							--numkeys;
 						}
-
-						result.DidWork = true;
 					}
 				}
 				else
@@ -296,30 +302,26 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 					else ++it;
 				}
 			});
-
-			result.DidWork = true;
 		}
-
-		return result;
 	}
 
-	Manager::ThreadPool::ThreadCallbackResult Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
-																			 const Concurrency::Event& shutdown_event)
+	void Manager::WorkerThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
+		thpdata.KeyGenEventQueue.Wait(shutdown_event);
+	}
 
+	void Manager::WorkerThreadWaitInterrupt(ThreadPoolData& thpdata)
+	{
+		thpdata.KeyGenEventQueue.InterruptWait();
+	}
+
+	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
+	{
 		Event event;
-		m_ThreadPool.GetData().KeyGenEventQueue.IfUniqueLock([&](auto& queue)
+		thpdata.KeyGenEventQueue.PopFrontIf([&](auto& fevent) noexcept -> bool
 		{
-			if (!queue.Empty())
-			{
-				event = std::move(queue.Front());
-				queue.Pop();
-
-				// We had items in the queue
-				// so we did work
-				result.DidWork = true;
-			}
+			event = std::move(fevent);
+			return true;
 		});
 
 		if (event)
@@ -341,7 +343,7 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 
 				if (Crypto::GenerateAsymmetricKeys(keydata))
 				{
-					event.GetQueue()->WithUniqueLock()->Queue.push(std::move(keydata));
+					event.GetQueue()->WithUniqueLock()->Queue.emplace(std::move(keydata));
 				}
 				else
 				{
@@ -352,7 +354,5 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 				}
 			}
 		}
-
-		return result;
 	}
 }

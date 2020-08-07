@@ -77,15 +77,13 @@ namespace QuantumGate::Implementation::Core::Extender
 			{
 				auto thpool = std::make_unique<ThreadPool>(m_ExtenderManager, data->Extender->m_Extender.get());
 
-				thpool->SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
-				thpool->SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
-
 				// Create the worker threads
 				for (Size x = 0; x < numthreadsperpool; ++x)
 				{
 					if (!thpool->AddThread(data->Extender->GetName() + L" Thread",
 										   MakeCallback(&Control::WorkerThreadProcessor),
-										   &thpool->GetData().Queue.WithUniqueLock()->GetEvent()))
+										   MakeCallback(&Control::WorkerThreadWait),
+										   MakeCallback(&Control::WorkerThreadWaitInterrupt)))
 					{
 						error = true;
 						break;
@@ -117,31 +115,30 @@ namespace QuantumGate::Implementation::Core::Extender
 		{
 			thpool.second->Shutdown();
 			thpool.second->Clear();
-			thpool.second->GetData().Queue.WithUniqueLock()->Clear();
+			thpool.second->GetData().Queue.Clear();
 		}
 
 		ResetState(*data);
 	}
 
-	Control::ThreadPool::ThreadCallbackResult Control::WorkerThreadProcessor(ThreadPoolData& thpdata,
-																			 const Concurrency::Event& shutdown_event)
+	void Control::WorkerThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
+		thpdata.Queue.Wait(shutdown_event);
+	}
 
+	void Control::WorkerThreadWaitInterrupt(ThreadPoolData& thpdata)
+	{
+		thpdata.Queue.InterruptWait();
+	}
+
+	void Control::WorkerThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
+	{
 		std::shared_ptr<Peer_ThS> peerctrl = nullptr;
 
-		thpdata.Queue.IfUniqueLock([&](auto& queue)
+		thpdata.Queue.PopFrontIf([&](auto& fpeer) noexcept -> bool
 		{
-			if (!queue.Empty())
-			{
-				// Make copy of shared_ptr (instead of reference) to take shared ownership 
-				// in case peer gets removed while we do work
-				peerctrl = queue.Front();
-				queue.Pop();
-
-				// We had peers in the queue so we did work
-				result.DidWork = true;
-			}
+			peerctrl = std::move(fpeer);
+			return true;
 		});
 
 		if (peerctrl != nullptr)
@@ -157,10 +154,10 @@ namespace QuantumGate::Implementation::Core::Extender
 				Core::Peer::Event event;
 				peerctrl->WithUniqueLock([&](Peer& peer)
 				{
-					if (!peer.EventQueue.Empty())
+					if (!peer.EventQueue.empty())
 					{
-						event = std::move(peer.EventQueue.Front());
-						peer.EventQueue.Pop();
+						event = std::move(peer.EventQueue.front());
+						peer.EventQueue.pop();
 
 						++num;
 					}
@@ -178,10 +175,10 @@ namespace QuantumGate::Implementation::Core::Extender
 				Core::Peer::Event event;
 				peerctrl->WithUniqueLock([&](Peer& peer)
 				{
-					if (!peer.MessageQueue.Empty() && peer.Status == Peer::Status::Connected)
+					if (!peer.MessageQueue.empty() && peer.Status == Peer::Status::Connected)
 					{
-						event = std::move(peer.MessageQueue.Front());
-						peer.MessageQueue.Pop();
+						event = std::move(peer.MessageQueue.front());
+						peer.MessageQueue.pop();
 
 						++num;
 					}
@@ -209,16 +206,14 @@ namespace QuantumGate::Implementation::Core::Extender
 				// If we still have peer events or, messages while the peer is
 				// still connected, then add it back into the queue and we'll come 
 				// back later to continue processing
-				if (!peer.EventQueue.Empty() ||
-					(!peer.MessageQueue.Empty() && peer.Status == Peer::Status::Connected))
+				if (!peer.EventQueue.empty() ||
+					(!peer.MessageQueue.empty() && peer.Status == Peer::Status::Connected))
 				{
-					thpdata.Queue.WithUniqueLock()->Push(peerctrl);
+					thpdata.Queue.Push(peerctrl);
 				}
 				else peer.IsInQueue = false;
 			});
 		}
-
-		return result;
 	}
 
 	bool Control::AddPeerEvent(Core::Peer::Event&& event) noexcept
@@ -295,14 +290,14 @@ namespace QuantumGate::Implementation::Core::Extender
 
 				if (event.GetType() == Core::Peer::Event::Type::Message)
 				{
-					peer.MessageQueue.Push(std::move(event));
+					peer.MessageQueue.emplace(std::move(event));
 				}
-				else peer.EventQueue.Push(std::move(event));
+				else peer.EventQueue.emplace(std::move(event));
 
 				if (!peer.IsInQueue)
 				{
-					data->ThreadPools[thpoolkey]->GetData().Queue.WithUniqueLock()->Push(peerctrl,
-																						 [&]() { peer.IsInQueue = true; });
+					data->ThreadPools[thpoolkey]->GetData().Queue.Push(peerctrl,
+																	   [&]() noexcept { peer.IsInQueue = true; });
 				}
 			});
 

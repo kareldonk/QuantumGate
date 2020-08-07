@@ -31,6 +31,9 @@ namespace QuantumGate::Implementation::Core
 
 	class PublicIPEndpoints final
 	{
+		using IPAddressSet = Containers::UnorderedSet<BinaryIPAddress>;
+		using IPAddressSet_ThS = Concurrency::ThreadSafe<IPAddressSet, std::shared_mutex>;
+
 		struct HopVerificationDetails final
 		{
 			BinaryIPAddress IPAddress;
@@ -48,17 +51,15 @@ namespace QuantumGate::Implementation::Core
 
 		struct HopVerification final
 		{
-			Containers::UnorderedSet<BinaryIPAddress> Set;
+			IPAddressSet_ThS Set;
 			HopVerificationQueue Queue;
 
 			inline void Clear() noexcept
 			{
-				Set.clear();
+				Set.WithUniqueLock()->clear();
 				Queue.Clear();
 			}
 		};
-
-		using HopVerification_ThS = Concurrency::ThreadSafe<HopVerification, std::shared_mutex>;
 
 		class DataVerificationDetails final
 		{
@@ -92,17 +93,15 @@ namespace QuantumGate::Implementation::Core
 
 		struct DataVerification final
 		{
-			Containers::UnorderedSet<BinaryIPAddress> Set;
+			IPAddressSet_ThS Set;
 			DataVerificationQueue Queue;
 
 			inline void Clear() noexcept
 			{
-				Set.clear();
+				Set.WithUniqueLock()->clear();
 				Queue.Clear();
 			}
 		};
-
-		using DataVerification_ThS = Concurrency::ThreadSafe<DataVerification, std::shared_mutex>;
 
 		using IPEndpointsMap = Containers::UnorderedMap<BinaryIPAddress, PublicIPEndpointDetails>;
 		using IPEndpointsMap_ThS = Concurrency::ThreadSafe<IPEndpointsMap, std::shared_mutex>;
@@ -153,8 +152,13 @@ namespace QuantumGate::Implementation::Core
 		std::pair<PublicIPEndpointDetails*, bool>
 			GetIPEndpointDetails(const BinaryIPAddress& pub_ip, IPEndpointsMap& ipendpoints) noexcept;
 
-		ThreadPool::ThreadCallbackResult DataVerificationWorkerThread(const Concurrency::Event& shutdown_event);
-		ThreadPool::ThreadCallbackResult HopVerificationWorkerThread(const Concurrency::Event& shutdown_event);
+		void DataVerificationWorkerThreadWait(const Concurrency::Event& shutdown_event);
+		void DataVerificationWorkerThreadWaitInterrupt();
+		void DataVerificationWorkerThread(const Concurrency::Event& shutdown_event);
+
+		void HopVerificationWorkerThreadWait(const Concurrency::Event& shutdown_event);
+		void HopVerificationWorkerThreadWaitInterrupt();
+		void HopVerificationWorkerThread(const Concurrency::Event& shutdown_event);
 
 	public:
 		static constexpr const UInt8 MaxReportingPeerNetworks{ 32 };
@@ -169,8 +173,8 @@ namespace QuantumGate::Implementation::Core
 
 		const Settings_CThS& m_Settings;
 
-		DataVerification_ThS m_DataVerification;
-		HopVerification_ThS m_HopVerification;
+		DataVerification m_DataVerification;
+		HopVerification m_HopVerification;
 
 		IPEndpointsMap_ThS m_IPEndpoints;
 		ReportingNetworkMap m_ReportingNetworks;

@@ -124,10 +124,10 @@ namespace QuantumGate::Socks5Extender
 		void ShutdownThreadPool() noexcept;
 
 		static void ListenerThreadLoop(Extender* extender);
-		bool MainWorkerThreadWaitProcessor(std::chrono::milliseconds max_wait, const Concurrency::Event& shutdown_event);
-		ThreadPool::ThreadCallbackResult MainWorkerThreadLoop(const Concurrency::Event& shutdown_event);
-		bool DataRelayWorkerThreadWaitProcessor(std::chrono::milliseconds max_wait, const Concurrency::Event& shutdown_event);
-		ThreadPool::ThreadCallbackResult DataRelayWorkerThreadLoop(const Concurrency::Event& shutdown_event);
+		void MainWorkerThreadWait(const Concurrency::Event& shutdown_event);
+		void MainWorkerThreadLoop(const Concurrency::Event& shutdown_event);
+		void DataRelayWorkerThreadWait(const Concurrency::Event& shutdown_event);
+		void DataRelayWorkerThreadLoop(const Concurrency::Event& shutdown_event);
 
 		[[nodiscard]] std::optional<IPAddress> ResolveDomainIP(const String& domain) noexcept;
 

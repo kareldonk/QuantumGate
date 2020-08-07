@@ -39,13 +39,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			switch (priority)
 			{
 				case SendParameters::PriorityOption::Normal:
-					m_NormalQueue.Push(DefaultMessage{ std::move(msg), std::move(callback) });
+					m_NormalQueue.push(DefaultMessage{ std::move(msg), std::move(callback) });
 					break;
 				case SendParameters::PriorityOption::Expedited:
-					m_ExpeditedQueue.Push(DefaultMessage{ std::move(msg), std::move(callback) });
+					m_ExpeditedQueue.push(DefaultMessage{ std::move(msg), std::move(callback) });
 					break;
 				case SendParameters::PriorityOption::Delayed:
-					m_DelayedQueue.Push(DelayedMessage{ std::move(msg), Util::GetCurrentSteadyTime(), delay, std::move(callback) });
+					m_DelayedQueue.push(DelayedMessage{ std::move(msg), Util::GetCurrentSteadyTime(), delay, std::move(callback) });
 					break;
 				default:
 					// Shouldn't get here
@@ -71,9 +71,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			if constexpr (std::is_same_v<T, MessageQueue> || std::is_same_v<T, DelayedMessageQueue>)
 			{
-				return std::make_tuple(queue.Front().Message.GetMessageType(),
-									   queue.Front().Message.GetMessageData().GetSize(),
-									   std::move(queue.Front().SendCallback));
+				return std::make_tuple(queue.front().Message.GetMessageType(),
+									   queue.front().Message.GetMessageData().GetSize(),
+									   std::move(queue.front().SendCallback));
 			}
 			else
 			{
@@ -81,7 +81,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 		});
 
-		queue.Pop();
+		queue.pop();
 
 		auto& [message_type, data_size, send_callback] = result;
 
@@ -107,7 +107,7 @@ namespace QuantumGate::Implementation::Core::Peer
 													  const bool concatenate)
 	{
 		// Expedited queue messages always go first
-		if (!m_ExpeditedQueue.Empty())
+		if (!m_ExpeditedQueue.empty())
 		{
 			return GetExpeditedMessages(buffer, symkey);
 		}
@@ -124,9 +124,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		// there's room left in the message transport buffer. This is to
 		// give priority and bandwidth to real traffic when it's busy
 
-		while (!m_NormalQueue.Empty())
+		while (!m_NormalQueue.empty())
 		{
-			auto& msg = m_NormalQueue.Front();
+			auto& msg = m_NormalQueue.front();
 			if (msg.Message.Write(tempbuf, symkey))
 			{
 				if (buffer.GetSize() + tempbuf.GetSize() <= MessageTransport::MaxMessageDataSize)
@@ -161,9 +161,9 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		if (success && !stop)
 		{
-			while (!m_DelayedQueue.Empty())
+			while (!m_DelayedQueue.empty())
 			{
-				auto& dmsg = m_DelayedQueue.Front();
+				auto& dmsg = m_DelayedQueue.front();
 				if (dmsg.IsTime())
 				{
 					if (dmsg.Message.Write(tempbuf, symkey))
@@ -218,7 +218,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	std::pair<bool, Size> PeerSendQueues::GetExpeditedMessages(Buffer& buffer,
 															   const Crypto::SymmetricKeyData& symkey) noexcept
 	{
-		assert(!m_ExpeditedQueue.Empty());
+		assert(!m_ExpeditedQueue.empty());
 
 		auto success = true;
 		Size num{ 0 };
@@ -229,7 +229,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		// this is a tradeoff when speed is needed such as in real-time
 		// communications
 
-		auto& msg = m_ExpeditedQueue.Front();
+		auto& msg = m_ExpeditedQueue.front();
 		if (msg.Message.Write(buffer, symkey))
 		{
 			RemoveMessage(m_ExpeditedQueue);

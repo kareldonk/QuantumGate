@@ -333,15 +333,12 @@ namespace QuantumGate::Socks5Extender
 
 	bool Extender::StartupThreadPool()
 	{
-		m_ThreadPool.SetWorkerThreadsMaxBurst(64);
-		m_ThreadPool.SetWorkerThreadsMaxSleep(1ms);
-
 		if (m_ThreadPool.AddThread(GetName() + L" Main Worker Thread",
-								   MakeCallback(this, &Extender::MainWorkerThreadLoop), nullptr, false,
-								   MakeCallback(this, &Extender::MainWorkerThreadWaitProcessor)) &&
+								   MakeCallback(this, &Extender::MainWorkerThreadLoop),
+								   MakeCallback(this, &Extender::MainWorkerThreadWait)) &&
 			m_ThreadPool.AddThread(GetName() + L" DataRelay Worker Thread",
-								   MakeCallback(this, &Extender::DataRelayWorkerThreadLoop), nullptr, false,
-								   MakeCallback(this, &Extender::DataRelayWorkerThreadWaitProcessor)))
+								   MakeCallback(this, &Extender::DataRelayWorkerThreadLoop),
+								   MakeCallback(this, &Extender::DataRelayWorkerThreadWait)))
 		{
 			if (m_ThreadPool.Startup())
 			{
@@ -893,8 +890,7 @@ namespace QuantumGate::Socks5Extender
 					// Start doing some processing for speed
 					c->WithUniqueLock([](Connection& connection)
 					{
-						auto didwork = false;
-						if (connection.IsActive()) connection.ProcessEvents(didwork);
+						if (connection.IsActive()) connection.ProcessEvents();
 					});
 
 					SetConnectionSendEvent();
@@ -1094,7 +1090,7 @@ namespace QuantumGate::Socks5Extender
 		LogDbg(L"%s: listener thread %u exiting", extname.c_str(), std::this_thread::get_id());
 	}
 
-	bool Extender::MainWorkerThreadWaitProcessor(std::chrono::milliseconds max_wait, const Concurrency::Event& shutdown_event)
+	void Extender::MainWorkerThreadWait(const Concurrency::Event& shutdown_event)
 	{
 		auto waited = false;
 
@@ -1106,20 +1102,18 @@ namespace QuantumGate::Socks5Extender
 			{
 				if (!value.empty())
 				{
-					const auto ret = WSAPoll(value.data(), static_cast<ULONG>(value.size()), static_cast<INT>(max_wait.count()));
+					const auto ret = WSAPoll(value.data(), static_cast<ULONG>(value.size()), 1);
 					waited = (ret != SOCKET_ERROR);
 				}
 			});
 		}
 		else waited = true;
 
-		return waited;
+		if (!waited) shutdown_event.Wait(1ms);
 	}
 
-	Extender::ThreadPool::ThreadCallbackResult Extender::MainWorkerThreadLoop(const Concurrency::Event& shutdown_event)
+	void Extender::MainWorkerThreadLoop(const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
-
 		m_AllConnectionsSendEvent.Reset();
 
 		std::vector<Connection::Key> rlist;
@@ -1132,7 +1126,7 @@ namespace QuantumGate::Socks5Extender
 				{
 					if (connection.IsActive())
 					{
-						connection.ProcessEvents(result.DidWork);
+						connection.ProcessEvents();
 
 						if (connection.IsTimedOut())
 						{
@@ -1155,23 +1149,16 @@ namespace QuantumGate::Socks5Extender
 		{
 			RemoveConnections(rlist);
 			rlist.clear();
-			result.DidWork = true;
 		}
-
-		return result;
 	}
 
-	bool Extender::DataRelayWorkerThreadWaitProcessor(std::chrono::milliseconds max_wait,
-													  const Concurrency::Event& shutdown_event)
+	void Extender::DataRelayWorkerThreadWait(const Concurrency::Event& shutdown_event)
 	{
-		m_AllConnectionsReceiveEvent.Wait(max_wait);
-		return true;
+		m_AllConnectionsReceiveEvent.Wait(1ms);
 	}
 
-	Extender::ThreadPool::ThreadCallbackResult Extender::DataRelayWorkerThreadLoop(const Concurrency::Event& shutdown_event)
+	void Extender::DataRelayWorkerThreadLoop(const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
-
 		m_AllConnectionsReceiveEvent.Reset();
 
 		m_Peers.WithSharedLock([&](const Peers& peers)
@@ -1195,7 +1182,7 @@ namespace QuantumGate::Socks5Extender
 						{
 							if (connection.IsActive())
 							{
-								connection.ProcessRelayEvents(result.DidWork, act_send, sent);
+								connection.ProcessRelayEvents(act_send, sent);
 							}
 						});
 
@@ -1227,8 +1214,6 @@ namespace QuantumGate::Socks5Extender
 				});
 			}
 		});
-
-		return result;
 	}
 
 	void Extender::AcceptIncomingConnection()

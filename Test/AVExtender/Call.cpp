@@ -80,11 +80,6 @@ namespace QuantumGate::AVExtender
 	{
 		m_DisconnectEvent.Reset();
 
-		m_AudioInQueue.WithUniqueLock()->GetEvent().Reset();
-		m_AudioOutQueue.WithUniqueLock()->GetEvent().Reset();
-		m_VideoInQueue.WithUniqueLock()->GetEvent().Reset();
-		m_VideoOutQueue.WithUniqueLock()->GetEvent().Reset();
-
 		m_AudioInThread = std::thread(Call::AudioInWorkerThreadLoop, this);
 		m_AudioOutThread = std::thread(Call::AudioOutWorkerThreadLoop, this);
 		m_VideoInThread = std::thread(Call::VideoInWorkerThreadLoop, this);
@@ -97,25 +92,25 @@ namespace QuantumGate::AVExtender
 		// threads begin exiting 
 		m_DisconnectEvent.Set();
 
-		m_AudioInQueue.WithUniqueLock()->GetEvent().Set();
+		m_AudioInQueue.InterruptWait();
 		if (m_AudioInThread.joinable())
 		{
 			m_AudioInThread.join();
 		}
 
-		m_AudioOutQueue.WithUniqueLock()->GetEvent().Set();
+		m_AudioOutQueue.InterruptWait();
 		if (m_AudioOutThread.joinable())
 		{
 			m_AudioOutThread.join();
 		}
 
-		m_VideoInQueue.WithUniqueLock()->GetEvent().Set();
+		m_VideoInQueue.InterruptWait();
 		if (m_VideoInThread.joinable())
 		{
 			m_VideoInThread.join();
 		}
 
-		m_VideoOutQueue.WithUniqueLock()->GetEvent().Set();
+		m_VideoOutQueue.InterruptWait();
 		if (m_VideoOutThread.joinable())
 		{
 			m_VideoOutThread.join();
@@ -123,11 +118,10 @@ namespace QuantumGate::AVExtender
 
 		m_AVInFormats.WithUniqueLock()->Clear();
 
-		// Clear queues
-		m_AudioInQueue.WithUniqueLock()->Clear();
-		m_VideoInQueue.WithUniqueLock()->Clear();
-		m_AudioOutQueue.WithUniqueLock()->Clear();
-		m_VideoOutQueue.WithUniqueLock()->Clear();
+		m_AudioInQueue.Clear();
+		m_VideoInQueue.Clear();
+		m_AudioOutQueue.Clear();
+		m_VideoOutQueue.Clear();
 	}
 
 	void Call::AudioInWorkerThreadLoop(Call* call)
@@ -139,12 +133,10 @@ namespace QuantumGate::AVExtender
 		AudioFormat rcv_audio_in_format;
 		AudioCompressor audio_decompressor{ AudioCompressor::Type::Decoder };
 
-		auto& event = call->m_AudioInQueue.WithUniqueLock()->GetEvent();
-
 		while (true)
 		{
 			// Wait for work
-			event.Wait();
+			call->m_AudioInQueue.Wait(call->m_DisconnectEvent);
 
 			// If the shutdown event is set quit the loop
 			if (call->m_DisconnectEvent.IsSet()) break;
@@ -249,12 +241,10 @@ namespace QuantumGate::AVExtender
 			}
 		};
 
-		auto& event = call->m_AudioOutQueue.WithUniqueLock()->GetEvent();
-
 		while (true)
 		{
 			// Wait for work
-			event.Wait();
+			call->m_AudioOutQueue.Wait(call->m_DisconnectEvent);
 
 			// If the shutdown event is set quit the loop
 			if (call->m_DisconnectEvent.IsSet()) break;
@@ -315,13 +305,11 @@ namespace QuantumGate::AVExtender
 		VideoFormat rcv_video_in_format;
 		VideoCompressor video_decompressor{ VideoCompressor::Type::Decoder };
 
-		auto& event = call->m_VideoInQueue.WithUniqueLock()->GetEvent();
-
 		while (true)
 		{
 			// Wait for work for a brief period
 			// to allow updating video window
-			event.Wait(100ms);
+			call->m_VideoInQueue.Wait(100ms, call->m_DisconnectEvent);
 
 			// If the shutdown event is set quit the loop
 			if (call->m_DisconnectEvent.IsSet()) break;
@@ -418,12 +406,10 @@ namespace QuantumGate::AVExtender
 			}
 		};
 
-		auto& event = call->m_VideoOutQueue.WithUniqueLock()->GetEvent();
-
 		while (true)
 		{
 			// Wait for work
-			event.Wait();
+			call->m_VideoOutQueue.Wait(call->m_DisconnectEvent);
 
 			// If the shutdown event is set quit the loop
 			if (call->m_DisconnectEvent.IsSet()) break;
@@ -594,19 +580,16 @@ namespace QuantumGate::AVExtender
 			max_queue_size = 16u;
 		}
 
-		queue_ths.WithUniqueLock([&](auto& queue)
+		try
 		{
-			try
+			if (queue_ths.GetSize() < max_queue_size)
 			{
-				if (queue.GetSize() <= max_queue_size)
-				{
-					queue.Push(std::move(sample));
-				}
-
-				success = true;
+				queue_ths.Push(std::move(sample));
 			}
-			catch (...) {}
-		});
+
+			success = true;
+		}
+		catch (...) {}
 
 		if (!success)
 		{
@@ -626,15 +609,15 @@ namespace QuantumGate::AVExtender
 	template<typename T, typename U>
 	std::optional<T> Call::GetSampleFromQueue(U& queue_ths) noexcept
 	{
-		auto queue = queue_ths.WithUniqueLock();
-		if (!queue->Empty())
-		{
-			T sample = std::move(queue->Front());
-			queue->Pop();
-			return sample;
-		}
+		std::optional<T> sample;
 
-		return std::nullopt;
+		queue_ths.PopFrontIf([&](auto& fsample) noexcept -> bool
+		{
+			sample = std::move(fsample);
+			return true;
+		});
+
+		return sample;
 	}
 
 	const WChar* Call::GetStatusString() const noexcept

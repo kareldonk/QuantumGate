@@ -34,19 +34,19 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	bool PeerReceiveQueues::CanProcessNextDeferredMessage() const noexcept
 	{
-		assert(!m_DeferredQueue.Empty());
+		assert(!m_DeferredQueue.empty());
 
-		switch (m_DeferredQueue.Front().GetMessageType())
+		switch (m_DeferredQueue.front().GetMessageType())
 		{
 			case MessageType::ExtenderCommunication:
 				return m_Peer.GetMessageRateLimits().CanAdd<MessageRateLimits::Type::ExtenderCommunicationReceive>(
-					m_DeferredQueue.Front().GetMessageData().GetSize());
+					m_DeferredQueue.front().GetMessageData().GetSize());
 			case MessageType::RelayData:
 				return m_Peer.GetMessageRateLimits().CanAdd<MessageRateLimits::Type::RelayDataReceive>(
-					m_DeferredQueue.Front().GetMessageData().GetSize());
+					m_DeferredQueue.front().GetMessageData().GetSize());
 			default:
 				return m_Peer.GetMessageRateLimits().CanAdd<MessageRateLimits::Type::Default>(
-					m_DeferredQueue.Front().GetMessageData().GetSize());
+					m_DeferredQueue.front().GetMessageData().GetSize());
 		}
 
 		return false;

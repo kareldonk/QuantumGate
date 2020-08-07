@@ -226,7 +226,7 @@ namespace QuantumGate::Socks5Extender
 		return true;
 	}
 
-	void Connection::ProcessEvents(bool& didwork)
+	void Connection::ProcessEvents()
 	{
 		assert(!IsDisconnecting() && !IsDisconnected());
 
@@ -305,11 +305,10 @@ namespace QuantumGate::Socks5Extender
 		if (dw)
 		{
 			m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
-			didwork = true;
 		}
 	}
 
-	void Connection::ProcessRelayEvents(bool& didwork, const Size max_send, Size& sent)
+	void Connection::ProcessRelayEvents(const Size max_send, Size& sent)
 	{
 		assert(!IsDisconnecting() && !IsDisconnected());
 
@@ -325,7 +324,6 @@ namespace QuantumGate::Socks5Extender
 				if (sent > 0)
 				{
 					m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
-					didwork = true;
 				}
 			}
 		}

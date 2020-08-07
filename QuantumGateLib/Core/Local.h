@@ -26,8 +26,7 @@ namespace QuantumGate::Implementation::Core
 		};
 
 		using Event = std::variant<Events::LocalEnvironmentChange, Events::UnhandledExtenderException>;
-		using EventQueue = Concurrency::Queue<Event>;
-		using EventQueue_ThS = Concurrency::ThreadSafe<EventQueue, std::shared_mutex>;
+		using EventQueue_ThS = Concurrency::Queue<Event>;
 
 		struct ThreadPoolData final
 		{
@@ -140,8 +139,9 @@ namespace QuantumGate::Implementation::Core
 		void ProcessEvent(const Events::LocalEnvironmentChange& event) noexcept;
 		void ProcessEvent(const Events::UnhandledExtenderException& event) noexcept;
 
-		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   const Concurrency::Event& shutdown_event);
+		void WorkerThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
+		void WorkerThreadWaitInterrupt(ThreadPoolData& thpdata);
+		void WorkerThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
 
 	private:
 		std::atomic_bool m_Running{ false };

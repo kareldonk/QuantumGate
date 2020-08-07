@@ -41,9 +41,9 @@ namespace QuantumGate::Implementation::Core::Peer
 				const auto num = std::abs(Random::GetPseudoRandomNumber(minmsg, maxmsg));
 				for (auto x = 0ll; x < num; ++x)
 				{
-					m_NoiseQueue.Push(NoiseItem(interval,
-												settings.Noise.MinMessageSize,
-												settings.Noise.MaxMessageSize));
+					m_NoiseQueue.emplace(interval,
+										 settings.Noise.MinMessageSize,
+										 settings.Noise.MaxMessageSize);
 				}
 			}
 		}
@@ -57,12 +57,12 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	std::optional<NoiseItem> NoiseQueue::GetQueuedNoise() noexcept
 	{
-		if (!m_NoiseQueue.Empty())
+		if (!m_NoiseQueue.empty())
 		{
-			if (m_NoiseQueue.Top().IsTime())
+			if (m_NoiseQueue.top().IsTime())
 			{
-				std::optional<NoiseItem> noiseitm = m_NoiseQueue.Top();
-				m_NoiseQueue.Pop();
+				std::optional<NoiseItem> noiseitm = m_NoiseQueue.top();
+				m_NoiseQueue.pop();
 
 				Dbg(L"\r\nQueued noiseitem - time:%u, sec:%u, min:%u, max:%u\r\n",
 					(noiseitm->ScheduleSteadyTime).time_since_epoch().count(),

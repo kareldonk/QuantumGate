@@ -16,10 +16,10 @@ namespace QuantumGate::Implementation::Concurrency
 	public:
 		ConditionEvent() noexcept = default;
 		ConditionEvent(const ConditionEvent&) = delete;
-		ConditionEvent(ConditionEvent&&) noexcept = default;
+		ConditionEvent(ConditionEvent&&) = delete;
 		~ConditionEvent() = default;
 		ConditionEvent& operator=(const ConditionEvent&) = delete;
-		ConditionEvent& operator=(ConditionEvent&&) noexcept = default;
+		ConditionEvent& operator=(ConditionEvent&&) = delete;
 
 		inline void Set() noexcept
 		{

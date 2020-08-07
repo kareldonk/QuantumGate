@@ -52,8 +52,8 @@ namespace QuantumGate::Socks5Extender
 
 		void SetStatus(Status status) noexcept;
 
-		void ProcessEvents(bool& didwork);
-		void ProcessRelayEvents(bool& didwork, const Size max_send, Size& sent);
+		void ProcessEvents();
+		void ProcessRelayEvents(const Size max_send, Size& sent);
 
 		[[nodiscard]] bool SendSocks4Reply(const Socks4Protocol::Replies reply);
 		[[nodiscard]] bool SendSocks4Reply(const Socks4Protocol::Replies reply,

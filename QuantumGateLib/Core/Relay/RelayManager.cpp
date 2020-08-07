@@ -101,9 +101,6 @@ namespace QuantumGate::Implementation::Core::Relay
 		LogSys(L"Creating relay threadpool with %zu worker %s",
 			   numthreadsperpool, numthreadsperpool > 1 ? L"threads" : L"thread");
 
-		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
-		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
-
 		auto error = !m_ThreadPool.GetData().WorkEvents.Initialize();
 
 		// Create the worker threads
@@ -112,9 +109,9 @@ namespace QuantumGate::Implementation::Core::Relay
 			// First thread is primary worker thread
 			if (x == 0)
 			{
-				if (!m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Main)",
-											MakeCallback(this, &Manager::PrimaryThreadProcessor), ThreadData(x), nullptr, false,
-											MakeCallback(this, &Manager::PrimaryThreadWaitProcessor)))
+				if (!m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Main)", ThreadData(x),
+											MakeCallback(this, &Manager::PrimaryThreadProcessor),
+											MakeCallback(this, &Manager::PrimaryThreadWait)))
 				{
 					error = true;
 				}
@@ -125,9 +122,10 @@ namespace QuantumGate::Implementation::Core::Relay
 				{
 					m_ThreadPool.GetData().RelayEventQueues[x] = std::make_unique<EventQueue_ThS>();
 
-					if (m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Event Processor)",
-											   MakeCallback(this, &Manager::WorkerThreadProcessor), ThreadData(x),
-											   &m_ThreadPool.GetData().RelayEventQueues[x]->WithUniqueLock()->GetEvent()))
+					if (m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Event Processor)", ThreadData(x),
+											   MakeCallback(this, &Manager::WorkerThreadProcessor),
+											   MakeCallback(this, &Manager::WorkerThreadWait),
+											   MakeCallback(this, &Manager::WorkerThreadWaitInterrupt)))
 					{
 						// Add entry for the total number of relay links this thread is handling
 						m_ThreadPool.GetData().ThreadKeyToLinkTotals.WithUniqueLock([&](ThreadKeyToLinkTotalMap& link_totals)
@@ -357,10 +355,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 			if (thkey)
 			{
-				m_ThreadPool.GetData().RelayEventQueues[*thkey]->WithUniqueLock([&](EventQueue& queue)
-				{
-					queue.Push(std::move(event));
-				});
+				m_ThreadPool.GetData().RelayEventQueues[*thkey]->Push(std::move(event));
 
 				success = true;
 			}
@@ -548,18 +543,17 @@ namespace QuantumGate::Implementation::Core::Relay
 		return const_cast<Link_ThS*>(const_cast<const Manager*>(this)->Get(rport));
 	}
 
-	bool Manager::PrimaryThreadWaitProcessor(ThreadPoolData& thpdata, ThreadData& thdata, std::chrono::milliseconds max_wait,
-											 const Concurrency::Event& shutdown_event)
+	void Manager::PrimaryThreadWait(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
-		const auto result = thpdata.WorkEvents.Wait(max_wait);
-		return result.Waited;
+		const auto result = thpdata.WorkEvents.Wait(1ms);
+		if (!result.Waited)
+		{
+			shutdown_event.Wait(1ms);
+		}
 	}
 
-	Manager::ThreadPool::ThreadCallbackResult Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																			  const Concurrency::Event& shutdown_event)
+	void Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
-
 		Containers::List<RelayPort> remove_list;
 
 		const auto& settings = GetSettings();
@@ -597,7 +591,6 @@ namespace QuantumGate::Implementation::Core::Relay
 							}
 
 							rc.UpdateStatus(Status::Exception, exception);
-							result.DidWork = true;
 						}
 						else if (!out_peer)
 						{
@@ -620,7 +613,6 @@ namespace QuantumGate::Implementation::Core::Relay
 							}
 
 							rc.UpdateStatus(Status::Exception, exception);
-							result.DidWork = true;
 						}
 						else // Both peers are present
 						{
@@ -631,7 +623,6 @@ namespace QuantumGate::Implementation::Core::Relay
 								LogErr(L"Relay link on port %llu timed out; will remove", rc.GetPort());
 
 								rc.UpdateStatus(Status::Exception, Exception::TimedOut);
-								result.DidWork = true;
 							}
 							else if (rc.GetStatus() == Status::Connect)
 							{
@@ -644,20 +635,17 @@ namespace QuantumGate::Implementation::Core::Relay
 								else
 								{
 									DiscardReturnValue(ProcessRelayConnect(rc, in_peer, out_peer));
-									result.DidWork = true;
 								}
 							}
 							else if (rc.GetStatus() == Status::Connected)
 							{
-								[[maybe_unused]] const auto [success, did_work] = ProcessRelayConnected(rc, in_peer, out_peer);
-								if (did_work) result.DidWork = true;
+								DiscardReturnValue(ProcessRelayConnected(rc, in_peer, out_peer));
 							}
 						}
 
 						if (rc.GetStatus() == Status::Disconnected || rc.GetStatus() == Status::Exception)
 						{
 							ProcessRelayDisconnect(rc, in_peer, out_peer);
-							result.DidWork = true;
 						}
 					}
 					else if (rc.GetStatus() == Status::Closed &&
@@ -677,30 +665,27 @@ namespace QuantumGate::Implementation::Core::Relay
 			Remove(remove_list);
 
 			remove_list.clear();
-			result.DidWork = true;
 		}
-
-		return result;
 	}
 
-	Manager::ThreadPool::ThreadCallbackResult Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																			 const Concurrency::Event& shutdown_event)
+	void Manager::WorkerThreadWait(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
+		thpdata.RelayEventQueues[thdata.ThreadKey]->Wait(shutdown_event);
+	}
 
+	void Manager::WorkerThreadWaitInterrupt(ThreadPoolData& thpdata, ThreadData& thdata)
+	{
+		thpdata.RelayEventQueues[thdata.ThreadKey]->InterruptWait();
+	}
+
+	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
+	{
 		std::optional<Event> event;
 
-		m_ThreadPool.GetData().RelayEventQueues[thdata.ThreadKey]->WithUniqueLock([&](auto& queue)
+		thpdata.RelayEventQueues[thdata.ThreadKey]->PopFrontIf([&](auto& fevent) noexcept -> bool
 		{
-			if (!queue.Empty())
-			{
-				event = std::move(queue.Front());
-				queue.Pop();
-
-				// We had events in the queue
-				// so we did work
-				result.DidWork = true;
-			}
+			event = std::move(fevent);
+			return true;
 		});
 
 		if (event.has_value())
@@ -719,8 +704,6 @@ namespace QuantumGate::Implementation::Core::Relay
 				}
 			}, *event);
 		}
-
-		return result;
 	}
 
 	bool Manager::ProcessRelayConnect(Link& rl,
@@ -796,14 +779,13 @@ namespace QuantumGate::Implementation::Core::Relay
 		return success;
 	}
 
-	std::pair<bool, bool> Manager::ProcessRelayConnected(Link& rl,
-														 Peer::Peer_ThS::UniqueLockedType& in_peer,
-														 Peer::Peer_ThS::UniqueLockedType& out_peer)
+	bool Manager::ProcessRelayConnected(Link& rl,
+										Peer::Peer_ThS::UniqueLockedType& in_peer,
+										Peer::Peer_ThS::UniqueLockedType& out_peer)
 	{
 		assert(rl.GetStatus() == Status::Connected);
 
 		bool success = true;
-		bool did_work = false;
 
 		PeerLUID orig_luid{ 0 };
 		Peer::Peer_ThS::UniqueLockedType* orig_peer{ nullptr };
@@ -837,8 +819,6 @@ namespace QuantumGate::Implementation::Core::Relay
 
 			if (send_size > 0)
 			{
-				did_work = true;
-
 				const auto msg_id = rl.GetDataRateLimiter().GetNewDataMessageID();
 
 				Events::RelayData red;
@@ -862,7 +842,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			}
 		}
 
-		return std::make_pair(success, did_work);
+		return success;
 	}
 
 	void Manager::ProcessRelayDisconnect(Link& rl,

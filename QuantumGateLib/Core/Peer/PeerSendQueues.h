@@ -20,21 +20,21 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		struct DelayedMessage final
 		{
+			Message Message;
+			SteadyTime ScheduleSteadyTime;
+			std::chrono::milliseconds Delay{ 0 };
+			SendCallback SendCallback{ nullptr };
+
 			[[nodiscard]] inline bool IsTime() const noexcept
 			{
 				if ((Util::GetCurrentSteadyTime() - ScheduleSteadyTime) >= Delay) return true;
 
 				return false;
 			}
-
-			Message Message;
-			SteadyTime ScheduleSteadyTime;
-			std::chrono::milliseconds Delay{ 0 };
-			SendCallback SendCallback{ nullptr };
 		};
 
-		using MessageQueue = Concurrency::Queue<DefaultMessage>;
-		using DelayedMessageQueue = Concurrency::Queue<DelayedMessage>;
+		using MessageQueue = Containers::Queue<DefaultMessage>;
+		using DelayedMessageQueue = Containers::Queue<DelayedMessage>;
 
 	public:
 		PeerSendQueues(Peer& peer) noexcept : m_Peer(peer) {}
@@ -46,8 +46,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline bool HaveMessages() const noexcept
 		{
-			return (!m_NormalQueue.Empty() || !m_ExpeditedQueue.Empty() ||
-				(!m_DelayedQueue.Empty() && m_DelayedQueue.Front().IsTime()));
+			return (!m_NormalQueue.empty() || !m_ExpeditedQueue.empty() ||
+				(!m_DelayedQueue.empty() && m_DelayedQueue.front().IsTime()));
 		}
 
 		Result<> AddMessage(Message&& msg, const SendParameters::PriorityOption priority,

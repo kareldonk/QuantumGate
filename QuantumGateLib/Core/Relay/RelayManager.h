@@ -14,8 +14,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		using ThreadKey = UInt64;
 
-		using EventQueue = Concurrency::Queue<Event>;
-		using EventQueue_ThS = Concurrency::ThreadSafe<EventQueue, std::shared_mutex>;
+		using EventQueue_ThS = Concurrency::Queue<Event>;
 		using EventQueueMap = Containers::UnorderedMap<ThreadKey, std::unique_ptr<EventQueue_ThS>>;
 
 		using RelayPortToThreadKeyMap = Containers::UnorderedMap<RelayPort, ThreadKey>;
@@ -103,22 +102,20 @@ namespace QuantumGate::Implementation::Core::Relay
 		const Link_ThS* Get(const RelayPort rport) const noexcept;
 		Link_ThS* Get(const RelayPort rport) noexcept;
 
-		bool PrimaryThreadWaitProcessor(ThreadPoolData& thpdata, ThreadData& thdata, std::chrono::milliseconds max_wait,
-										const Concurrency::Event& shutdown_event);
+		void PrimaryThreadWait(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
+		void PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
-		ThreadPool::ThreadCallbackResult PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																const Concurrency::Event& shutdown_event);
-
-		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-															   const Concurrency::Event& shutdown_event);
+		void WorkerThreadWait(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
+		void WorkerThreadWaitInterrupt(ThreadPoolData& thpdata, ThreadData& thdata);
+		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
 		[[nodiscard]] bool ProcessRelayConnect(Link& rc,
 											   Peer::Peer_ThS::UniqueLockedType& in_peer,
 											   Peer::Peer_ThS::UniqueLockedType& out_peer);
 
-		[[nodiscard]] std::pair<bool, bool> ProcessRelayConnected(Link& rc,
-																  Peer::Peer_ThS::UniqueLockedType& in_peer,
-																  Peer::Peer_ThS::UniqueLockedType& out_peer);
+		[[nodiscard]] bool ProcessRelayConnected(Link& rc,
+												 Peer::Peer_ThS::UniqueLockedType& in_peer,
+												 Peer::Peer_ThS::UniqueLockedType& out_peer);
 
 		void ProcessRelayDisconnect(Link& rc,
 									Peer::Peer_ThS::UniqueLockedType& in_peer,

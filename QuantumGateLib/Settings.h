@@ -113,7 +113,6 @@ namespace QuantumGate::Implementation
 				Size ThreadsPerPool{ 4 };									// Number of worker threads per pool
 			} Extender;
 
-			std::chrono::milliseconds WorkerThreadsMaxSleep{ 1 };			// Maximum number of milliseconds to sleep when there's no work
 			Size WorkerThreadsMaxBurst{ 64 };								// Maximum number of work items to process in a single burst
 		} Concurrency;
 	};

@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	class PeerReceiveQueues final
 	{
-		using MessageQueue = Concurrency::Queue<Message>;
+		using MessageQueue = Containers::Queue<Message>;
 
 	public:
 		PeerReceiveQueues(Peer& peer) noexcept : m_Peer(peer) {}
@@ -29,14 +29,14 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline bool HaveMessages() const noexcept
 		{
-			return !m_DeferredQueue.Empty();
+			return !m_DeferredQueue.empty();
 		}
 
 		[[nodiscard]] bool DeferMessage(Message&& msg) noexcept
 		{
 			try
 			{
-				m_DeferredQueue.Push(std::move(msg));
+				m_DeferredQueue.emplace(std::move(msg));
 				return true;
 			}
 			catch (...) {}
@@ -46,10 +46,10 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] Message GetDeferredMessage() noexcept
 		{
-			assert(!m_DeferredQueue.Empty());
+			assert(!m_DeferredQueue.empty());
 
-			auto msg = std::move(m_DeferredQueue.Front());
-			m_DeferredQueue.Pop();
+			auto msg = std::move(m_DeferredQueue.front());
+			m_DeferredQueue.pop();
 			return msg;
 		}
 

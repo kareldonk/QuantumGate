@@ -560,7 +560,6 @@
     <ClInclude Include="Concurrency\Event.h" />
     <ClInclude Include="Concurrency\ConditionEvent.h" />
     <ClInclude Include="Concurrency\EventGroup.h" />
-    <ClInclude Include="Concurrency\PriorityQueue.h" />
     <ClInclude Include="Concurrency\Queue.h" />
     <ClInclude Include="Concurrency\RecursiveSharedMutex.h" />
     <ClInclude Include="Concurrency\SharedSpinMutex.h" />

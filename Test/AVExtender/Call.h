@@ -98,11 +98,8 @@ namespace QuantumGate::AVExtender
 	using AudioSample = MediaSample<AudioFormat>;
 	using VideoSample = MediaSample<VideoFormat>;
 
-	using AudioSampleQueue = Concurrency::Queue<AudioSample>;
-	using AudioSampleQueue_ThS = Concurrency::ThreadSafe<AudioSampleQueue, Concurrency::SharedSpinMutex>;
-
-	using VideoSampleQueue = Concurrency::Queue<VideoSample>;
-	using VideoSampleQueue_ThS = Concurrency::ThreadSafe<VideoSampleQueue, Concurrency::SharedSpinMutex>;
+	using AudioSampleQueue_ThS = Concurrency::Queue<AudioSample>;
+	using VideoSampleQueue_ThS = Concurrency::Queue<VideoSample>;
 
 	class Call final
 	{

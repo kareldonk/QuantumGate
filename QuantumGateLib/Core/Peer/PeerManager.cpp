@@ -135,9 +135,6 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				auto thpool = std::make_unique<ThreadPool>();
 
-				thpool->SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
-				thpool->SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
-			
 				error = !thpool->GetData().InitializeWorkEvents();
 
 				// Create the worker threads
@@ -147,8 +144,8 @@ namespace QuantumGate::Implementation::Core::Peer
 					if (x == 0)
 					{
 						if (!thpool->AddThread(L"QuantumGate Peers Thread (Main)",
-											   MakeCallback(this, &Manager::PrimaryThreadProcessor), nullptr, false,
-											   MakeCallback(this, &Manager::PrimaryThreadWaitProcessor)))
+											   MakeCallback(this, &Manager::PrimaryThreadProcessor),
+											   MakeCallback(this, &Manager::PrimaryThreadWait)))
 						{
 							error = true;
 						}
@@ -157,7 +154,8 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						if (!thpool->AddThread(L"QuantumGate Peers Thread",
 											   MakeCallback(this, &Manager::WorkerThreadProcessor),
-											   &thpool->GetData().TaskQueue.WithUniqueLock()->GetEvent()))
+											   MakeCallback(this, &Manager::WorkerThreadWait),
+											   MakeCallback(this, &Manager::WorkerThreadWaitInterrupt)))
 						{
 							error = true;
 						}
@@ -188,7 +186,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			thpool.second->Shutdown();
 			thpool.second->Clear();
-			thpool.second->GetData().TaskQueue.WithUniqueLock()->Clear();
+			thpool.second->GetData().TaskQueue.Clear();
 		}
 
 		// Disconnect and remove all peers
@@ -225,9 +223,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	void Manager::ResetState() noexcept
 	{
 		m_LookupMaps.WithUniqueLock()->Clear();
-
 		m_AllPeers.WithUniqueLock()->clear();
-
 		m_ThreadPools.clear();
 	}
 
@@ -276,18 +272,17 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	bool Manager::PrimaryThreadWaitProcessor(ThreadPoolData& thpdata, std::chrono::milliseconds max_wait,
-											 const Concurrency::Event& shutdown_event)
+	void Manager::PrimaryThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
 	{
-		const auto result = thpdata.WaitForWorkEvent(max_wait);
-		return result.Waited;
+		const auto result = thpdata.WaitForWorkEvent(1ms);
+		if (!result.Waited)
+		{
+			shutdown_event.Wait(1ms);
+		}
 	}
 
-	Manager::ThreadPool::ThreadCallbackResult Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata,
-																			  const Concurrency::Event& shutdown_event)
+	void Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
-
 		Containers::List<PeerSharedPointer> remove_list;
 
 		const auto& settings = GetSettings();
@@ -308,8 +303,6 @@ namespace QuantumGate::Implementation::Core::Peer
 						if (peer.HasPendingEvents())
 						{
 							DiscardReturnValue(peer.ProcessEvents());
-
-							result.DidWork = true;
 						}
 					}
 
@@ -332,30 +325,28 @@ namespace QuantumGate::Implementation::Core::Peer
 			Remove(remove_list);
 
 			remove_list.clear();
-			result.DidWork = true;
 		}
-
-		return result;
 	}
 
-	Manager::ThreadPool::ThreadCallbackResult Manager::WorkerThreadProcessor(ThreadPoolData& thpdata,
-																			 const Concurrency::Event& shutdown_event)
+	void Manager::WorkerThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
+		thpdata.TaskQueue.Wait(shutdown_event);
+	}
 
+	void Manager::WorkerThreadWaitInterrupt(ThreadPoolData& thpdata)
+	{
+		thpdata.TaskQueue.InterruptWait();
+	}
+
+	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
+	{
 		// Execute any scheduled tasks
 		std::optional<ThreadPoolTask> task;
-
-		thpdata.TaskQueue.WithUniqueLock([&](auto& queue)
+		
+		thpdata.TaskQueue.PopFrontIf([&](auto& ftask) noexcept -> bool
 		{
-			if (!queue.Empty())
-			{
-				task = std::move(queue.Front());
-				queue.Pop();
-
-				// We had tasks in the queue so we did work
-				result.DidWork = true;
-			}
+			task = std::move(ftask);
+			return true;
 		});
 
 		if (task.has_value())
@@ -391,8 +382,6 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 			}, *task);
 		}
-
-		return result;
 	}
 
 	PeerSharedPointer Manager::Get(const PeerLUID pluid) const noexcept
@@ -488,7 +477,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		const auto& thpool = m_ThreadPools[threadpool_key];
 
-		thpool->GetData().TaskQueue.WithUniqueLock()->Push(Tasks::PeerCallback{ std::move(callback) });
+		thpool->GetData().TaskQueue.Push(Tasks::PeerCallback{ std::move(callback) });
 	}
 
 	bool Manager::Add(PeerSharedPointer& peerths) noexcept
@@ -1228,7 +1217,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		for (const auto& thpool : m_ThreadPools)
 		{
-			thpool.second->GetData().TaskQueue.WithUniqueLock()->Push(Tasks::PeerAccessCheck{});
+			thpool.second->GetData().TaskQueue.Push(Tasks::PeerAccessCheck{});
 		}
 	}
 

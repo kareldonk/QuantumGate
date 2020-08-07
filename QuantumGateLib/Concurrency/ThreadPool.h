@@ -19,13 +19,6 @@ namespace QuantumGate::Implementation::Concurrency
 	template<typename ThPData = NoThreadPoolData, typename ThData = NoThreadData>
 	class ThreadPool final
 	{
-	public:
-		struct ThreadCallbackResult final
-		{
-			bool Success{ false };
-			bool DidWork{ false };
-		};
-
 	private:
 		template<typename U>
 		static constexpr bool has_threadpool_data = !std::is_same_v<std::remove_cv_t<std::decay_t<U>>, NoThreadPoolData>;
@@ -36,74 +29,99 @@ namespace QuantumGate::Implementation::Concurrency
 		template<bool thpdata = has_threadpool_data<ThPData>, bool thdata = has_thread_data<ThData>>
 		struct thread_callback
 		{
-			using type = Callback<ThreadCallbackResult(const Event&)>;
+			using type = Callback<void(const Event&)>;
 		};
 
 		template<>
 		struct thread_callback<true, false>
 		{
-			using type = Callback<ThreadCallbackResult(ThPData&, const Event&)>;
+			using type = Callback<void(ThPData&, const Event&)>;
 		};
 
 		template<>
 		struct thread_callback<false, true>
 		{
-			using type = Callback<ThreadCallbackResult(ThData&, const Event&)>;
+			using type = Callback<void(ThData&, const Event&)>;
 		};
 
 		template<>
 		struct thread_callback<true, true>
 		{
-			using type = Callback<ThreadCallbackResult(ThPData&, ThData&, const Event&)>;
+			using type = Callback<void(ThPData&, ThData&, const Event&)>;
 		};
 
 		template<bool thpdata = has_threadpool_data<ThPData>, bool thdata = has_thread_data<ThData>>
 		struct thread_wait_callback
 		{
-			using type = Callback<bool(std::chrono::milliseconds, const Event&)>;
+			using type = Callback<void(const Event&)>;
 		};
 
 		template<>
 		struct thread_wait_callback<true, false>
 		{
-			using type = Callback<bool(ThPData&, std::chrono::milliseconds, const Event&)>;
+			using type = Callback<void(ThPData&, const Event&)>;
 		};
 
 		template<>
 		struct thread_wait_callback<false, true>
 		{
-			using type = Callback<bool(ThData&, std::chrono::milliseconds, const Event&)>;
+			using type = Callback<void(ThData&, const Event&)>;
 		};
 
 		template<>
 		struct thread_wait_callback<true, true>
 		{
-			using type = Callback<bool(ThPData&, ThData&, std::chrono::milliseconds, const Event&)>;
+			using type = Callback<void(ThPData&, ThData&, const Event&)>;
+		};
+
+		template<bool thpdata = has_threadpool_data<ThPData>, bool thdata = has_thread_data<ThData>>
+		struct thread_wait_interrupt_callback
+		{
+			using type = Callback<void()>;
+		};
+
+		template<>
+		struct thread_wait_interrupt_callback<true, false>
+		{
+			using type = Callback<void(ThPData&)>;
+		};
+
+		template<>
+		struct thread_wait_interrupt_callback<false, true>
+		{
+			using type = Callback<void(ThData&)>;
+		};
+
+		template<>
+		struct thread_wait_interrupt_callback<true, true>
+		{
+			using type = Callback<void(ThPData&, ThData&)>;
 		};
 
 	public:
 		using ThreadCallbackType = typename thread_callback<>::type;
 		using ThreadWaitCallbackType = typename thread_wait_callback<>::type;
+		using ThreadWaitInterruptCallbackType = typename thread_wait_interrupt_callback<>::type;
 
 	private:
 		struct ThreadCtrl final
 		{
-			ThreadCtrl(const String& thname, ThreadCallbackType&& thcallback, ThData&& thdata,
-					   Event* thevent = nullptr, ThreadWaitCallbackType&& thwaitcb = nullptr) :
+			ThreadCtrl(const String& thname, ThData&& thdata, ThreadCallbackType&& thcallback,
+					   ThreadWaitCallbackType&& thwaitcb = nullptr, ThreadWaitInterruptCallbackType&& thwaitintcb = nullptr) :
 				ThreadName(thname),
-				ThreadCallback(std::move(thcallback)),
 				ThreadData(std::move(thdata)),
-				ThreadEvent(thevent),
-				ThreadWaitCallback(std::move(thwaitcb))
+				ThreadCallback(std::move(thcallback)),
+				ThreadWaitCallback(std::move(thwaitcb)),
+				ThreadWaitInterruptCallback(std::move(thwaitintcb))
 			{}
 
 			String ThreadName;
-			ThreadCallbackType ThreadCallback{ nullptr };
 			ThData ThreadData;
-			Event* ThreadEvent{ nullptr };
-			ThreadWaitCallbackType ThreadWaitCallback{ nullptr };
 			Event ShutdownEvent;
 			std::thread Thread;
+			ThreadCallbackType ThreadCallback{ nullptr };
+			ThreadWaitCallbackType ThreadWaitCallback{ nullptr };
+			ThreadWaitInterruptCallbackType ThreadWaitInterruptCallback{ nullptr };
 		};
 
 		using ThreadList = Containers::List<ThreadCtrl>;
@@ -138,16 +156,6 @@ namespace QuantumGate::Implementation::Concurrency
 		ThreadPool& operator=(const ThreadPool&) = delete;
 		ThreadPool& operator=(ThreadPool&&) noexcept = default;
 
-		inline void SetWorkerThreadsMaxBurst(Size max_burst) noexcept
-		{
-			m_WorkerThreadsMaxBurst = max_burst;
-		}
-
-		inline void SetWorkerThreadsMaxSleep(std::chrono::milliseconds max_sleep) noexcept
-		{
-			m_WorkerThreadsMaxSleep = max_sleep;
-		}
-
 		inline bool IsRunning() const noexcept
 		{
 			// If at least one thread is active
@@ -162,19 +170,19 @@ namespace QuantumGate::Implementation::Concurrency
 
 		template<typename U = ThData, typename = std::enable_if_t<!has_thread_data<U>>>
 		[[nodiscard]] inline bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
-											Event* thevent = nullptr, const bool event_reset = true,
-											ThreadWaitCallbackType&& thwaitcb = nullptr) noexcept
+											ThreadWaitCallbackType&& thwaitcb = nullptr,
+											ThreadWaitInterruptCallbackType&& thwaitintcb = nullptr) noexcept
 		{
-			return AddThreadImpl(thname, std::move(thcallback), NoThreadData{}, thevent, event_reset, std::move(thwaitcb));
+			return AddThreadImpl(thname, NoThreadData{}, std::move(thcallback), std::move(thwaitcb), std::move(thwaitintcb));
 		}
 
 		template<typename U = ThData, typename = std::enable_if_t<has_thread_data<U>>>
-		[[nodiscard]] inline bool AddThread(const String& thname, ThreadCallbackType&& thcallback,
-											ThData&& thdata, Event* thevent = nullptr,
-											const bool event_reset = true,
-											ThreadWaitCallbackType&& thwaitcb = nullptr) noexcept
+		[[nodiscard]] inline bool AddThread(const String& thname, ThData&& thdata,
+											ThreadCallbackType&& thcallback,
+											ThreadWaitCallbackType&& thwaitcb = nullptr,
+											ThreadWaitInterruptCallbackType&& thwaitintcb = nullptr) noexcept
 		{
-			return AddThreadImpl(thname, std::move(thcallback), std::move(thdata), thevent, event_reset, std::move(thwaitcb));
+			return AddThreadImpl(thname, std::move(thdata), std::move(thcallback), std::move(thwaitcb), std::move(thwaitintcb));
 		}
 
 		[[nodiscard]] inline std::pair<bool, std::optional<Thread>> RemoveThread(Thread&& thread) noexcept
@@ -255,18 +263,20 @@ namespace QuantumGate::Implementation::Concurrency
 		inline const ThPData& GetData() const noexcept { return m_Data; }
 
 	private:
-		[[nodiscard]] bool AddThreadImpl(const String& thname, ThreadCallbackType&& thcallback, ThData&& thdata,
-										 Event* thevent, const bool event_reset, ThreadWaitCallbackType&& thwaitcb) noexcept
+		[[nodiscard]] bool AddThreadImpl(const String& thname, ThData&& thdata,
+										 ThreadCallbackType&& thcallback,
+										 ThreadWaitCallbackType&& thwaitcb,
+										 ThreadWaitInterruptCallbackType&& thwaitintcb) noexcept
 		{
 			assert(thcallback);
 
 			try
 			{
-				auto& threadctrl = m_Threads.emplace_back(thname, std::move(thcallback), std::move(thdata),
-														  thevent, std::move(thwaitcb));
+				auto& threadctrl = m_Threads.emplace_back(thname, std::move(thdata), std::move(thcallback),
+														  std::move(thwaitcb), std::move(thwaitintcb));
 				if (IsRunning())
 				{
-					return StartThread(threadctrl, event_reset);
+					return StartThread(threadctrl);
 				}
 				else return true;
 			}
@@ -280,16 +290,11 @@ namespace QuantumGate::Implementation::Concurrency
 			return false;
 		}
 
-		bool StartThread(ThreadCtrl& threadctrl, const bool event_reset = true) noexcept
+		bool StartThread(ThreadCtrl& threadctrl) noexcept
 		{
 			try
 			{
 				threadctrl.ShutdownEvent.Reset();
-
-				if (threadctrl.ThreadEvent != nullptr && event_reset)
-				{
-					threadctrl.ThreadEvent->Reset();
-				}
 
 				threadctrl.Thread = std::thread(&ThreadPool::WorkerThreadLoop, std::ref(*this), std::ref(threadctrl));
 				return true;
@@ -314,10 +319,22 @@ namespace QuantumGate::Implementation::Concurrency
 					// that we're shutting down
 					threadctrl.ShutdownEvent.Set();
 
-					if (threadctrl.ThreadEvent != nullptr)
+					if (threadctrl.ThreadWaitInterruptCallback)
 					{
-						// Set event to wake up thread
-						threadctrl.ThreadEvent->Set();
+						// Wake up thread
+						if constexpr (has_threadpool_data<ThPData> && has_thread_data<ThData>)
+						{
+							threadctrl.ThreadWaitInterruptCallback(m_Data, threadctrl.ThreadData);
+						}
+						else if constexpr (has_threadpool_data<ThPData> && !has_thread_data<ThData>)
+						{
+							threadctrl.ThreadWaitInterruptCallback(m_Data);
+						}
+						else if constexpr (!has_threadpool_data<ThPData> && has_thread_data<ThData>)
+						{
+							threadctrl.ThreadWaitInterruptCallback(threadctrl.ThreadData);
+						}
+						else threadctrl.ThreadWaitInterruptCallback();
 					}
 
 					// Wait for thread to exit
@@ -338,40 +355,26 @@ namespace QuantumGate::Implementation::Concurrency
 
 			Util::SetCurrentThreadName(thctrl.ThreadName);
 
-			auto sleepms = std::chrono::milliseconds(1);
-			Size workburst{ 0 };
-			ThreadCallbackResult result;
-
 			while (true)
 			{
 				try
 				{
-					// Thread with event to wait for work
-					if (thctrl.ThreadEvent != nullptr)
+					// Thread with callback to wait for work
+					if (thctrl.ThreadWaitCallback)
 					{
-						thctrl.ThreadEvent->Wait();
-					}
-					else if (thctrl.ThreadWaitCallback)
-					{
-						auto waited = false;
-
 						if constexpr (has_threadpool_data<ThPData> && has_thread_data<ThData>)
 						{
-							waited = thctrl.ThreadWaitCallback(thpool.m_Data, thctrl.ThreadData, sleepms, thctrl.ShutdownEvent);
+							thctrl.ThreadWaitCallback(thpool.m_Data, thctrl.ThreadData, thctrl.ShutdownEvent);
 						}
 						else if constexpr (has_threadpool_data<ThPData> && !has_thread_data<ThData>)
 						{
-							waited = thctrl.ThreadWaitCallback(thpool.m_Data, sleepms, thctrl.ShutdownEvent);
+							thctrl.ThreadWaitCallback(thpool.m_Data, thctrl.ShutdownEvent);
 						}
 						else if constexpr (!has_threadpool_data<ThPData> && has_thread_data<ThData>)
 						{
-							waited = thctrl.ThreadWaitCallback(thctrl.ThreadData, sleepms, thctrl.ShutdownEvent);
+							thctrl.ThreadWaitCallback(thctrl.ThreadData, thctrl.ShutdownEvent);
 						}
-						else waited = thctrl.ThreadWaitCallback(sleepms, thctrl.ShutdownEvent);
-
-						// If wait callback was unable to wait then sleep for
-						// a while, while waiting for shutdown event
-						if (!waited && thctrl.ShutdownEvent.Wait(sleepms)) break;
+						else thctrl.ThreadWaitCallback(thctrl.ShutdownEvent);
 					}
 
 					// If the shutdown event is set exit the loop
@@ -380,64 +383,17 @@ namespace QuantumGate::Implementation::Concurrency
 					// Execute thread function
 					if constexpr (has_threadpool_data<ThPData> && has_thread_data<ThData>)
 					{
-						result = thctrl.ThreadCallback(thpool.m_Data, thctrl.ThreadData, thctrl.ShutdownEvent);
+						thctrl.ThreadCallback(thpool.m_Data, thctrl.ThreadData, thctrl.ShutdownEvent);
 					}
 					else if constexpr (has_threadpool_data<ThPData> && !has_thread_data<ThData>)
 					{
-						result = thctrl.ThreadCallback(thpool.m_Data, thctrl.ShutdownEvent);
+						thctrl.ThreadCallback(thpool.m_Data, thctrl.ShutdownEvent);
 					}
 					else if constexpr (!has_threadpool_data<ThPData> && has_thread_data<ThData>)
 					{
-						result = thctrl.ThreadCallback(thctrl.ThreadData, thctrl.ShutdownEvent);
+						thctrl.ThreadCallback(thctrl.ThreadData, thctrl.ShutdownEvent);
 					}
-					else result = thctrl.ThreadCallback(thctrl.ShutdownEvent);
-
-					if (!result.Success)
-					{
-						// An error occured; exit the thread
-						break;
-					}
-
-					// If we did work that means it's busy so sleep
-					// less, otherwise sleep increasingly longer
-					if (result.DidWork)
-					{
-						sleepms = std::chrono::milliseconds(1);
-						++workburst;
-
-						if (workburst > thpool.m_WorkerThreadsMaxBurst)
-						{
-							workburst = 0;
-						}
-					}
-					else
-					{
-						if (!thctrl.ThreadEvent && sleepms < thpool.m_WorkerThreadsMaxSleep)
-						{
-							sleepms *= 2;
-
-							if (sleepms > thpool.m_WorkerThreadsMaxSleep)
-							{
-								sleepms = thpool.m_WorkerThreadsMaxSleep;
-							}
-						}
-
-						workburst = 0;
-					}
-
-					if (workburst == 0)
-					{
-						if (thctrl.ThreadEvent || thctrl.ThreadWaitCallback)
-						{
-							// Yield to other threads to allow them to do some work
-							std::this_thread::yield();
-						}
-						else
-						{
-							// Sleep for a while, while waiting for shutdown event
-							if (thctrl.ShutdownEvent.Wait(sleepms)) break;
-						}
-					}
+					else thctrl.ThreadCallback(thctrl.ShutdownEvent);
 				}
 				catch (const std::exception& e)
 				{
@@ -455,9 +411,6 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 	private:
-		Size m_WorkerThreadsMaxBurst{ 64 };
-		std::chrono::milliseconds m_WorkerThreadsMaxSleep{ 1 };
-
 		ThPData m_Data;
 		ThreadList m_Threads;
 	};

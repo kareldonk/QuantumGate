@@ -63,9 +63,6 @@ namespace QuantumGate::Implementation::Core::Listener
 			}
 		}
 
-		m_ListenerThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
-		m_ListenerThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
-
 		if (m_ListenerThreadPool.Startup())
 		{
 			m_Running = true;
@@ -116,9 +113,6 @@ namespace QuantumGate::Implementation::Core::Listener
 			}
 		}
 
-		m_ListenerThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
-		m_ListenerThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
-
 		if (m_ListenerThreadPool.Startup())
 		{
 			m_Running = true;
@@ -152,8 +146,7 @@ namespace QuantumGate::Implementation::Core::Listener
 				if (ltd.Socket.Listen(endpoint, true, nat_traversal))
 				{
 					if (m_ListenerThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
-													   MakeCallback(this, &Manager::WorkerThreadProcessor),
-													   std::move(ltd)))
+													   std::move(ltd), MakeCallback(this, &Manager::WorkerThreadProcessor)))
 					{
 						LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
 					}
@@ -297,13 +290,10 @@ namespace QuantumGate::Implementation::Core::Listener
 		m_ListenerThreadPool.Clear();
 	}
 
-	Manager::ThreadPool::ThreadCallbackResult Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata,
-																			 const Concurrency::Event& shutdown_event)
+	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
-
 		// Check if we have a read event waiting for us
-		if (thdata.Socket.UpdateIOStatus(0ms))
+		if (thdata.Socket.UpdateIOStatus(1ms))
 		{
 			if (thdata.Socket.GetIOStatus().CanRead())
 			{
@@ -312,27 +302,19 @@ namespace QuantumGate::Implementation::Core::Listener
 						thdata.Socket.GetLocalEndpoint().GetString().c_str());
 
 				AcceptConnection(thdata.Socket, thdata.UseConditionalAcceptFunction);
-
-				result.DidWork = true;
 			}
 			else if (thdata.Socket.GetIOStatus().HasException())
 			{
 				LogErr(L"Exception on listener socket for endpoint %s (%s)",
 					   thdata.Socket.GetLocalEndpoint().GetString().c_str(),
 					   GetSysErrorString(thdata.Socket.GetIOStatus().GetErrorCode()).c_str());
-
-				result.Success = false;
 			}
 		}
 		else
 		{
 			LogErr(L"Could not get status of listener socket for endpoint %s",
 				   thdata.Socket.GetLocalEndpoint().GetString().c_str());
-
-			result.Success = false;
 		}
-
-		return result;
 	}
 
 	void Manager::AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept

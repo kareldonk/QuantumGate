@@ -6,6 +6,7 @@
 #include "KeyGenerationEvent.h"
 #include "..\..\Concurrency\ThreadPool.h"
 #include "..\..\Concurrency\Queue.h"
+#include "..\..\Concurrency\ConditionEvent.h"
 
 namespace QuantumGate::Implementation::Core::KeyGeneration
 {
@@ -14,13 +15,12 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		using KeyQueueMap = Containers::UnorderedMap<Algorithm::Asymmetric, std::unique_ptr<KeyQueue_ThS>>;
 		using KeyQueueMap_ThS = Concurrency::ThreadSafe<KeyQueueMap, Concurrency::SharedSpinMutex>;
 
-		using EventQueue = Concurrency::Queue<Event>;
-		using EventQueue_ThS = Concurrency::ThreadSafe<EventQueue, Concurrency::SpinMutex>;
+		using EventQueue_ThS = Concurrency::Queue<Event>;
 
 		struct ThreadPoolData final
 		{
 			EventQueue_ThS KeyGenEventQueue;
-			Concurrency::Event PrimaryThreadEvent;
+			Concurrency::ConditionEvent PrimaryThreadEvent;
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData>;
@@ -52,11 +52,13 @@ namespace QuantumGate::Implementation::Core::KeyGeneration
 		bool StartupThreadPool() noexcept;
 		void ShutdownThreadPool() noexcept;
 
-		ThreadPool::ThreadCallbackResult PrimaryThreadProcessor(ThreadPoolData& thpdata,
-																const Concurrency::Event& shutdown_event);
+		void PrimaryThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
+		void PrimaryThreadWaitInterrupt(ThreadPoolData& thpdata);
+		void PrimaryThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
 
-		ThreadPool::ThreadCallbackResult WorkerThreadProcessor(ThreadPoolData& thpdata,
-															   const Concurrency::Event& shutdown_event);
+		void WorkerThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
+		void WorkerThreadWaitInterrupt(ThreadPoolData& thpdata);
+		void WorkerThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event);
 
 	private:
 		std::atomic_bool m_Running{ false };

@@ -4,13 +4,13 @@
 #pragma once
 
 #include "PeerNoiseItem.h"
-#include "..\..\Concurrency\PriorityQueue.h"
+#include "..\..\Common\Containers.h"
 
 namespace QuantumGate::Implementation::Core::Peer
 {
 	class NoiseQueue final
 	{
-		using NoiseItemQueue = Concurrency::PriorityQueue<NoiseItem, decltype(&NoiseItem::Compare)>;
+		using NoiseItemQueue = Containers::PriorityQueue<NoiseItem, Vector<NoiseItem>, decltype(&NoiseItem::Compare)>;
 
 	public:
 		[[nodiscard]] bool QueueNoise(const Settings& settings, const bool inhandshake) noexcept;
@@ -19,15 +19,15 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline bool IsQueuedNoiseReady() const noexcept
 		{
-			if (!m_NoiseQueue.Empty())
+			if (!m_NoiseQueue.empty())
 			{
-				return m_NoiseQueue.Top().IsTime();
+				return m_NoiseQueue.top().IsTime();
 			}
 
 			return false;
 		}
 
-		[[nodiscard]] inline bool IsEmpty() const noexcept { return m_NoiseQueue.Empty(); }
+		[[nodiscard]] inline bool IsEmpty() const noexcept { return m_NoiseQueue.empty(); }
 
 	private:
 		NoiseItemQueue m_NoiseQueue{ &NoiseItem::Compare };

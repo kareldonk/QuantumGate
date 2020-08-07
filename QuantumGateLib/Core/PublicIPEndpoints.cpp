@@ -266,7 +266,8 @@ namespace QuantumGate::Implementation::Core
 
 		if (!m_ThreadPool.AddThread(L"QuantumGate PublicIPEndpoints DataVerification Thread",
 									MakeCallback(this, &PublicIPEndpoints::DataVerificationWorkerThread),
-									&m_DataVerification.WithUniqueLock()->Queue.GetEvent()))
+									MakeCallback(this, &PublicIPEndpoints::DataVerificationWorkerThreadWait),
+									MakeCallback(this, &PublicIPEndpoints::DataVerificationWorkerThreadWaitInterrupt)))
 		{
 			LogErr(L"Could not add PublicIPEndpoints data verification thread");
 			return false;
@@ -274,16 +275,14 @@ namespace QuantumGate::Implementation::Core
 
 		if (!m_ThreadPool.AddThread(L"QuantumGate PublicIPEndpoints HopVerification Thread",
 									MakeCallback(this, &PublicIPEndpoints::HopVerificationWorkerThread),
-									&m_HopVerification.WithUniqueLock()->Queue.GetEvent()))
+									MakeCallback(this, &PublicIPEndpoints::HopVerificationWorkerThreadWait),
+									MakeCallback(this, &PublicIPEndpoints::HopVerificationWorkerThreadWaitInterrupt)))
 		{
 			LogErr(L"Could not add PublicIPEndpoints hop verification thread");
 			return false;
 		}
 
 		const auto& settings = m_Settings.GetCache();
-
-		m_ThreadPool.SetWorkerThreadsMaxBurst(settings.Local.Concurrency.WorkerThreadsMaxBurst);
-		m_ThreadPool.SetWorkerThreadsMaxSleep(settings.Local.Concurrency.WorkerThreadsMaxSleep);
 
 		if (!m_ThreadPool.Startup())
 		{
@@ -318,31 +317,31 @@ namespace QuantumGate::Implementation::Core
 	{
 		m_ThreadPool.Clear();
 
-		m_DataVerification.WithUniqueLock()->Clear();
-		m_HopVerification.WithUniqueLock()->Clear();
+		m_DataVerification.Clear();
+		m_HopVerification.Clear();
 
 		m_IPEndpoints.WithUniqueLock()->clear();
 		m_ReportingNetworks.clear();
 	}
 
-	PublicIPEndpoints::ThreadPool::ThreadCallbackResult
-		PublicIPEndpoints::DataVerificationWorkerThread(const Concurrency::Event& shutdown_event)
+	void PublicIPEndpoints::DataVerificationWorkerThreadWait(const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
+		m_DataVerification.Queue.Wait(shutdown_event);
+	}
 
+	void PublicIPEndpoints::DataVerificationWorkerThreadWaitInterrupt()
+	{
+		m_DataVerification.Queue.InterruptWait();
+	}
+
+	void PublicIPEndpoints::DataVerificationWorkerThread(const Concurrency::Event& shutdown_event)
+	{
 		std::optional<DataVerificationDetails> data_verification;
 
-		m_DataVerification.IfUniqueLock([&](auto& verification_data)
+		m_DataVerification.Queue.PopFrontIf([&](auto& fdata) noexcept -> bool
 		{
-			if (!verification_data.Queue.Empty())
-			{
-				data_verification = std::move(verification_data.Queue.Front());
-				verification_data.Queue.Pop();
-
-				// We had data in the queue
-				// so we did work
-				result.DidWork = true;
-			}
+			data_verification = std::move(fdata);
+			return true;
 		});
 
 		if (data_verification.has_value())
@@ -373,40 +372,35 @@ namespace QuantumGate::Implementation::Core
 			if (data_verification->IsVerifying())
 			{
 				// Put at the back of the queue again so we can try again later
-				m_DataVerification.WithUniqueLock()->Queue.Push(std::move(*data_verification));
+				m_DataVerification.Queue.Push(std::move(*data_verification));
 			}
 			else
 			{
 				// Remove from the set so that the IP address can potentially
 				// be added back to the queue if verification failed
-				m_DataVerification.WithUniqueLock([&](auto& verification_data)
-				{
-					verification_data.Set.erase(data_verification->GetIPAddress());
-				});
+				m_DataVerification.Set.WithUniqueLock()->erase(data_verification->GetIPAddress());
 			}
 		}
-
-		return result;
 	}
 
-	PublicIPEndpoints::ThreadPool::ThreadCallbackResult
-		PublicIPEndpoints::HopVerificationWorkerThread(const Concurrency::Event& shutdown_event)
+	void PublicIPEndpoints::HopVerificationWorkerThreadWait(const Concurrency::Event& shutdown_event)
 	{
-		ThreadPool::ThreadCallbackResult result{ .Success = true };
+		m_HopVerification.Queue.Wait(shutdown_event);
+	}
 
+	void PublicIPEndpoints::HopVerificationWorkerThreadWaitInterrupt()
+	{
+		m_HopVerification.Queue.InterruptWait();
+	}
+
+	void PublicIPEndpoints::HopVerificationWorkerThread(const Concurrency::Event& shutdown_event)
+	{
 		std::optional<HopVerificationDetails> hop_verification;
 
-		m_HopVerification.IfUniqueLock([&](auto& verification_data)
+		m_HopVerification.Queue.PopFrontIf([&](auto& fdata) noexcept -> bool
 		{
-			if (!verification_data.Queue.Empty())
-			{
-				hop_verification = std::move(verification_data.Queue.Front());
-				verification_data.Queue.Pop();
-
-				// We had data in the queue
-				// so we did work
-				result.DidWork = true;
-			}
+			hop_verification = std::move(fdata);
+			return true;
 		});
 
 		if (hop_verification.has_value())
@@ -433,28 +427,23 @@ namespace QuantumGate::Implementation::Core
 
 			// Remove from the set so that the IP address can potentially
 			// be added back to the queue if verification failed
-			m_HopVerification.WithUniqueLock([&](auto& verification_data)
-			{
-				verification_data.Set.erase(hop_verification->IPAddress);
-			});
+			m_HopVerification.Set.WithUniqueLock()->erase(hop_verification->IPAddress);
 		}
-
-		return result;
 	}
 
 	bool PublicIPEndpoints::AddIPAddressDataVerification(const BinaryIPAddress& ip) noexcept
 	{
 		try
 		{
-			auto data_verification = m_DataVerification.WithUniqueLock();
+			auto ipaddress_set = m_DataVerification.Set.WithUniqueLock();
 
-			const auto result = data_verification->Set.emplace(ip);
+			const auto result = ipaddress_set->emplace(ip);
 			if (result.second)
 			{
 				// Upon failure to add to the queue, remove from the set
-				auto sg = MakeScopeGuard([&] { data_verification->Set.erase(result.first); });
+				auto sg = MakeScopeGuard([&] { ipaddress_set->erase(result.first); });
 
-				data_verification->Queue.Push(DataVerificationDetails{ ip });
+				m_DataVerification.Queue.Push(DataVerificationDetails{ ip });
 
 				sg.Deactivate();
 
@@ -484,15 +473,15 @@ namespace QuantumGate::Implementation::Core
 	{
 		try
 		{
-			auto verification_data = m_HopVerification.WithUniqueLock();
+			auto ipaddress_set = m_HopVerification.Set.WithUniqueLock();
 
-			const auto result = verification_data->Set.emplace(ip);
+			const auto result = ipaddress_set->emplace(ip);
 			if (result.second)
 			{
 				// Upon failure to add to the queue, remove from the set
-				auto sg = MakeScopeGuard([&] { verification_data->Set.erase(result.first); });
+				auto sg = MakeScopeGuard([&] { ipaddress_set->erase(result.first); });
 
-				verification_data->Queue.Push(HopVerificationDetails{ ip });
+				m_HopVerification.Queue.Push(HopVerificationDetails{ ip });
 
 				sg.Deactivate();
 
