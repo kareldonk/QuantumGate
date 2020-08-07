@@ -28,7 +28,8 @@ namespace QuantumGate::Implementation::Concurrency
         {
             while (!pred())
             {
-                if (!::SleepConditionVariableCS(&m_ConditionVariable, &critical_section.GetNative(), time.count()))
+                if (!::SleepConditionVariableCS(&m_ConditionVariable, &critical_section.GetNative(),
+                                                static_cast<DWORD>(time.count())))
                 {
                     return false;
                 }
