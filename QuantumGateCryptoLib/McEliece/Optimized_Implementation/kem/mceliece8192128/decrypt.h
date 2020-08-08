@@ -1,3 +1,7 @@
+/*
+  This file is for Nieddereiter decryption
+*/
+
 #ifndef DECRYPT_H
 #define DECRYPT_H
 

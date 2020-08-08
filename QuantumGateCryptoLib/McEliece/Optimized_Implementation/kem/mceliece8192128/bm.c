@@ -1,8 +1,16 @@
+/*
+  This file is for the Berlekamp-Massey algorithm
+  see http://crypto.stanford.edu/~mironov/cs359/massey.pdf
+*/
+
 #include "params.h"
 #include "gf.h"
 
 #define min(a, b) ((a < b) ? a : b)
 
+/* the Berlekamp-Massey algorithm */
+/* input: s, sequence of field elements */
+/* output: out, minimal polynomial of s */
 void bm(gf *out, gf *s)
 {
 	int i;
@@ -53,7 +61,8 @@ void bm(gf *out, gf *s)
 
 		b = (b & ~mle) | (d & mle);
 
-		for (i = SYS_T; i >= 1; i--) B[i] = B[i-1]; B[0] = 0;
+		for (i = SYS_T; i >= 1; i--) B[i] = B[i-1];
+		B[0] = 0;
 	}
 
 	for (i = 0; i <= SYS_T; i++)

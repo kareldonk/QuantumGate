@@ -1,9 +1,13 @@
-#include "util.h"
-
-#include "params.h"
+/*
+  This file is for loading/storing data in a little-endian fashion
+*/
 
 #include <cassert>
 #include <openssl/evp.h>
+
+#include "util.h"
+
+#include "params.h"
 
 void store2(unsigned char *dest, gf a)
 {
@@ -20,6 +24,20 @@ uint16_t load2(const unsigned char *src)
 	a |= src[0];
 
 	return a & GFMASK;
+}
+
+uint32_t load4(const unsigned char * in)
+{
+	int i;
+	uint32_t ret = in[3];
+
+	for (i = 2; i >= 0; i--)
+	{
+		ret <<= 8;
+		ret |= in[i];
+	}
+
+	return ret;
 }
 
 void store8(unsigned char *out, uint64_t in)
@@ -58,14 +76,14 @@ gf bitrev(gf a)
 	return a >> 3;
 }
 
-int crypto_hash_32b(unsigned char * out, const unsigned char * in, unsigned int inlen)
+int crypto_hash_32b(unsigned char* out, const unsigned char* in, unsigned int inlen)
 {
 	int retcode = -1;
 
-	EVP_MD_CTX * context = EVP_MD_CTX_create();
+	EVP_MD_CTX* context = EVP_MD_CTX_create();
 	if (context != NULL)
 	{
-		const EVP_MD * md = EVP_sha3_256(); // Keccak r=1088, c=512	
+		const EVP_MD* md = EVP_sha3_256(); // Keccak r=1088, c=512	
 
 		if (EVP_DigestInit_ex(context, md, NULL))
 		{

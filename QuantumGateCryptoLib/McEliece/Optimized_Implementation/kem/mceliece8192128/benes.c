@@ -1,7 +1,12 @@
+/*
+  This file is for Benes network related functions
+*/
+
 #include "util.h"
 #include "transpose.h"
 #include "params.h"
 
+/* middle layers of the benes network */
 static void layer_in(uint64_t data[2][64], uint64_t * bits, int lgs)
 {
 	int i, j, s;
@@ -26,6 +31,7 @@ static void layer_in(uint64_t data[2][64], uint64_t * bits, int lgs)
 	}
 }
 
+/* first and last layers of the benes network */
 static void layer_ex(uint64_t * data, uint64_t * bits, int lgs)
 {
 	int i, j, s;
@@ -45,6 +51,10 @@ static void layer_ex(uint64_t * data, uint64_t * bits, int lgs)
 	}
 }
 
+/* input: r, sequence of bits to be permuted */
+/*        bits, condition bits of the Benes network */
+/*        rev, 0 for normal application; !0 for inverse */
+/* output: r, permuted bits */
 void apply_benes(unsigned char * r, const unsigned char * bits, int rev)
 {
 	int i, iter, inc;
@@ -131,6 +141,8 @@ void apply_benes(unsigned char * r, const unsigned char * bits, int rev)
 	}
 }
 
+/* input: condition bits c */
+/* output: support s */
 void support_gen(gf * s, const unsigned char *c)
 {
 	gf a;
@@ -154,8 +166,6 @@ void support_gen(gf * s, const unsigned char *c)
 
 	for (i = 0; i < SYS_N; i++)
 	{
-		a = bitrev((gf) i);
-	
 		s[i] = 0;
 		for (j = GFBITS-1; j >= 0; j--)
 		{

@@ -1,14 +1,16 @@
 #include "operations.h"
 
+#include "..\..\..\..\Common\aes256ctr.h"
+#include "controlbits.h"
+#include "randombytes.h"
 #include "crypto_hash.h"
-
+#include "encrypt.h"
+#include "decrypt.h"
 #include "params.h"
 #include "sk_gen.h"
 #include "pk_gen.h"
-#include "encrypt.h"
-#include "decrypt.h"
+#include "util.h"
 
-#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
@@ -29,10 +31,10 @@ int crypto_kem_enc(
 
 	if (crypto_hash_32b(c + SYND_BYTES, two_e, sizeof(two_e)) == -1) return -1;
 
-	memcpy(one_ec + 1,e,SYS_N/8);
-	memcpy(one_ec + 1 + SYS_N/8,c,SYND_BYTES + 32);
+	memcpy(one_ec + 1, e, SYS_N/8);
+	memcpy(one_ec + 1 + SYS_N/8, c, SYND_BYTES + 32);
 
-	if (crypto_hash_32b(key, one_ec, sizeof one_ec) == -1) return -1;
+	if (crypto_hash_32b(key, one_ec, sizeof(one_ec)) == -1) return -1;
 
 	return 0;
 }
@@ -54,6 +56,7 @@ int crypto_kem_dec(
 	unsigned char two_e[ 1 + SYS_N/8 ] = {2};
 	unsigned char *e = two_e + 1;
 	unsigned char preimage[ 1 + SYS_N/8 + (SYND_BYTES + 32) ];
+	unsigned char *x = preimage;
 
 	//
 
@@ -61,21 +64,15 @@ int crypto_kem_dec(
 
 	if (crypto_hash_32b(conf, two_e, sizeof(two_e)) == -1) return -1;
 
-	for (i = 0; i < 32; i++)
-		ret_confirm |= conf[i] ^ c[SYND_BYTES + i];
+	for (i = 0; i < 32; i++) ret_confirm |= conf[i] ^ c[SYND_BYTES + i];
 
 	m = ret_decrypt | ret_confirm;
 	m -= 1;
 	m >>= 8;
 
-	{
-		unsigned char *x = preimage;
-		*x++ = (~m & 0) |  (m & 1);
-		for (i = 0; i < SYS_N/8; i++) 
-			*x++ = (~m & sk[i]) | (m & e[i]);
-		for (i = 0; i < SYND_BYTES + 32; i++) 
-			*x++ = c[i];
-	}
+	                                      *x++ = (~m &     0) | (m &    1);
+	for (i = 0; i < SYS_N/8;         i++) *x++ = (~m & sk[i]) | (m & e[i]);
+	for (i = 0; i < SYND_BYTES + 32; i++) *x++ = c[i];
 
 	if (crypto_hash_32b(key, preimage, sizeof(preimage)) == -1) return -1;
 
@@ -88,26 +85,48 @@ int crypto_kem_keypair
        unsigned char *sk 
 )
 {
-	int matmem_bytes = (GFBITS * SYS_T) * (SYS_N / 8) * sizeof(unsigned char);
-	int gfmem_bytes = ((SYS_T + 1) + SYS_N + SYS_N) * sizeof(gf);
+	int i;
+	unsigned char seed[ 32 ];
+	unsigned char r[ SYS_T*2 + (1 << GFBITS)*sizeof(uint32_t) + SYS_N/8 + 32 ];
+	unsigned char nonce[ 16 ] = {0};
+	unsigned char *rp;
 
-	unsigned char * memory = (unsigned char*)malloc(matmem_bytes + gfmem_bytes);
-	if (memory == NULL) return -1;
+	gf f[ SYS_T ]; // element in GF(2^mt)
+	gf irr[ SYS_T ]; // Goppa polynomial
+	uint32_t perm[ 1 << GFBITS ]; // random permutation 
 
-	unsigned char* matmem = memory;
-	gf* gfmem = (gf*)(memory + matmem_bytes);
+	int matmem_size = (GFBITS*SYS_T) * (SYS_N/8) * sizeof(unsigned char);
+	unsigned char* matmem = (unsigned char*)malloc(matmem_size);
+	if (matmem == NULL) return -1;
+
+	randombytes(seed, sizeof(seed));
+
+	int ret = -1;
 
 	while (1)
 	{
-		if (sk_gen(sk) == 0)
-		{
-			if (pk_gen(pk, sk + SYS_N / 8, matmem, gfmem) == 0)
-				break;
-		}
-	}
-	
-	free(memory);
+		rp = r;
+		if (aes256ctr(r, sizeof(r), nonce, seed) != 0) break;
 
-	return 0;
+		memcpy(seed, &r[ sizeof(r)-32 ], 32);
+
+		for (i = 0; i < SYS_T; i++) f[i] = load2(rp + i*2); rp += sizeof(f);
+		if (genpoly_gen(irr, f)) continue;
+
+		for (i = 0; i < (1 << GFBITS); i++) perm[i] = load4(rp + i*4); rp += sizeof(perm);
+		if (perm_check(perm)) continue;
+
+		for (i = 0; i < SYS_T;   i++) store2(sk + SYS_N/8 + i*2, irr[i]);
+		if (pk_gen(pk, sk + SYS_N/8, perm, matmem)) continue;
+
+		memcpy(sk, rp, SYS_N/8);
+		ret = controlbits(sk + SYS_N/8 + IRR_BYTES, perm);
+
+		break;
+	}
+
+	free(matmem);
+
+	return ret;
 }
 

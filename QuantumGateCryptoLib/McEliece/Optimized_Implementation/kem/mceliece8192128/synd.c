@@ -1,3 +1,7 @@
+/*
+  This file is for syndrome computation
+*/
+
 #include "synd.h"
 
 #include "params.h"
@@ -5,6 +9,8 @@
 
 #include <stdio.h>
 
+/* input: Goppa polynomial f, support L, received word r */
+/* output: out, the syndrome of length 2t */
 void synd(gf *out, gf *f, gf *L, unsigned char *r)
 {
 	int i, j;

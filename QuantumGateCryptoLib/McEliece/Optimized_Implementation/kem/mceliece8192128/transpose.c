@@ -1,7 +1,13 @@
+/*
+  This file is for matrix transposition
+*/
+
 #include "transpose.h"
 
 #include <stdint.h>
 
+/* input: in, a 64x64 matrix over GF(2) */
+/* output: out, transpose of in */
 void transpose_64x64(uint64_t * out, uint64_t * in)
 {
 	int i, j, s, d;

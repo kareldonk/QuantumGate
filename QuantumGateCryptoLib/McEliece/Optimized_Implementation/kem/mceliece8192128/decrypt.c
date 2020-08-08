@@ -1,3 +1,7 @@
+/*
+  This file is for Niederreiter decryption
+*/
+
 #include <stdio.h>
 #include "decrypt.h"
 
@@ -9,6 +13,11 @@
 #include "gf.h"
 #include "bm.h"
 
+/* Niederreiter decryption with the Berlekamp decoder */
+/* intput: sk, secret key */
+/*         c, ciphertext */
+/* output: e, error vector */
+/* return: 0 for success; 1 for failure */
 int decrypt(unsigned char *e, const unsigned char *sk, const unsigned char *c)
 {
 	int i, w = 0; 

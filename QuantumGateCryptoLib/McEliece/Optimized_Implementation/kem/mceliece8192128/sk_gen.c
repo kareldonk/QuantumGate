@@ -1,3 +1,7 @@
+/*
+  This file is for secret-key generation
+*/
+
 #include "sk_gen.h"
 
 #include "randombytes.h"
@@ -6,18 +10,17 @@
 #include "util.h"
 #include "gf.h"
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-static int irr_gen(gf *out, gf *f)
+/* input: f, element in GF((2^m)^t) */
+/* output: out, minimal polynomial of f */
+/* return: 0 for success and -1 for failure */
+int genpoly_gen(gf *out, gf *f)
 {
 	int i, j, k, c;
 
 	gf mat[ SYS_T+1 ][ SYS_T ];
 	gf mask, inv, t;
 
-	//
+	// fill matrix
 
 	mat[0][0] = 1;
 
@@ -30,7 +33,7 @@ static int irr_gen(gf *out, gf *f)
 	for (j = 2; j <= SYS_T; j++)
 		GF_mul(mat[j], mat[j-1], f);
 
-	//
+	// gaussian
 
 	for (j = 0; j < SYS_T; j++)
 	{
@@ -71,28 +74,22 @@ static int irr_gen(gf *out, gf *f)
 	return 0;
 }
 
-int sk_gen(unsigned char *sk)
+/* input: permutation p represented as a list of 32-bit intergers */
+/* output: -1 if some interger repeats in p */
+/*          0 otherwise */
+int perm_check(uint32_t *p)
 {
 	int i;
+	uint64_t list[1 << GFBITS];
 
-	gf g[ SYS_T ]; // irreducible polynomial
-	gf a[ SYS_T ]; // random element in GF(2^mt)
-	
-	while (1)
-	{
-		randombytes((unsigned char *) a, sizeof(a)); 
-
-		for (i = 0; i < SYS_T; i++) a[i] &= GFMASK;
-
-		if ( irr_gen(g, a) == 0 ) break;
-	}
-
-	for (i = 0; i < SYS_T; i++) 
-		store2( sk + SYS_N/8 + i*2, g[i] );
-
-	randombytes(sk, SYS_N/8);
-
-	if (controlbits(sk + SYS_N / 8 + IRR_BYTES) == -1) return -1;
+	for (i = 0; i < (1 << GFBITS); i++)
+		list[i] = p[i];
+        
+	sort_63b(1 << GFBITS, list);
+        
+	for (i = 1; i < (1 << GFBITS); i++)
+		if (list[i-1] == list[i])
+			return -1;
 
 	return 0;
 }

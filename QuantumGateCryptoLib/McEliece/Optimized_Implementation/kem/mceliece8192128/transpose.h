@@ -1,3 +1,7 @@
+/*
+  This file is for matrix transposition
+*/
+
 #ifndef TRANSPOSE_H
 #define TRANSPOSE_H
 
