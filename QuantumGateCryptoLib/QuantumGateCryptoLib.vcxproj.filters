@@ -60,32 +60,8 @@
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\controlbits.h">
       <Filter>Header Files\McEliece</Filter>
     </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_hash_sha512.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_int8.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_int16.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_int32.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem_mceliece8192128.h">
       <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_kem_sntrup4591761.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_verify_32.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_uint16.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_uint32.h">
-      <Filter>Header Files\NTRUPrime</Filter>
     </ClInclude>
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\gf.h">
       <Filter>Header Files\McEliece</Filter>
@@ -105,26 +81,8 @@
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\pk_gen.h">
       <Filter>Header Files\McEliece</Filter>
     </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\params.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\mod3.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\modq.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\int32_sort.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\r3.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\randombytes.h">
       <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\randombytes.h">
-      <Filter>Header Files\NTRUPrime</Filter>
     </ClInclude>
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\root.h">
       <Filter>Header Files\McEliece</Filter>
@@ -132,17 +90,8 @@
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\sk_gen.h">
       <Filter>Header Files\McEliece</Filter>
     </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\small.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\synd.h">
       <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\swap.h">
-      <Filter>Header Files\NTRUPrime</Filter>
     </ClInclude>
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\transpose.h">
       <Filter>Header Files\McEliece</Filter>
@@ -182,6 +131,51 @@
     </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\aes256ctr.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem_sntrup857.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Decode.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Encode.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int8.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int16.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int32.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\params.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\paramsmenu.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\randombytes.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\sha512.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint16.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint64.h">
+      <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem.h">
+      <Filter>Header Files\NTRUPrime</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -227,60 +221,6 @@
     <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\sk_gen.c">
       <Filter>Source Files\McEliece</Filter>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\swap.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\small.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_rounded.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_round3.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_recip3.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_mult.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\randomweightw.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\randomsmall.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\random32.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\r3_recip.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\r3_mult.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\keypair.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\int32_sort.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\enc.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\dec.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_verify_32.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_hash_sha512.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
     <ClCompile Include="NewHope\ref\ccakem.c">
       <Filter>Source Files\NewHope</Filter>
     </ClCompile>
@@ -310,6 +250,30 @@
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\aes256ctr.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Decode.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Encode.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int32.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\kem.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\sha512.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32.c">
+      <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32_sort.c">
+      <Filter>Source Files\NTRUPrime</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

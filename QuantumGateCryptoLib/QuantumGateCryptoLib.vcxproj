@@ -197,23 +197,21 @@
     <ClInclude Include="NewHope\ref\poly.h" />
     <ClInclude Include="NewHope\ref\reduce.h" />
     <ClInclude Include="NewHope\ref\verify.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_hash_sha512.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_int16.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_int32.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_int8.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_kem_sntrup4591761.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_uint16.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_uint32.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_verify_32.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\int32_sort.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\mod3.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\modq.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\params.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\r3.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\randombytes.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\small.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\swap.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\aes256ctr.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem_sntrup857.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Decode.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Encode.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int16.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int32.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int8.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\params.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\paramsmenu.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\randombytes.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\sha512.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint16.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32.h" />
+    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint64.h" />
     <ClInclude Include="QuantumGateCryptoLib.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="targetver.h" />
@@ -351,109 +349,49 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_hash_sha512.c">
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\aes256ctr.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_verify_32.c">
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Decode.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\dec.c">
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Encode.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\enc.c">
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int32.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\int32_sort.c">
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\kem.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\keypair.c">
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\sha512.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\r3_mult.c">
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\r3_recip.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\random32.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\randomsmall.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\randomweightw.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_mult.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_recip3.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_round3.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\rq_rounded.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\small.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup4591761\swap.c">
+    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32_sort.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

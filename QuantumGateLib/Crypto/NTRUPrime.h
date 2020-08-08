@@ -20,8 +20,8 @@ namespace QuantumGate::Implementation::Crypto
 				keydata.LocalPublicKey.Allocate(m_PublicKeySize);
 				keydata.LocalPrivateKey.Allocate(m_PrivateKeySize);
 
-				if (crypto_kem_sntrup4591761_ref_keypair(reinterpret_cast<UChar*>(keydata.LocalPublicKey.GetBytes()),
-														 reinterpret_cast<UChar*>(keydata.LocalPrivateKey.GetBytes())) == 0)
+				if (crypto_kem_sntrup857_ref_keypair(reinterpret_cast<UChar*>(keydata.LocalPublicKey.GetBytes()),
+													 reinterpret_cast<UChar*>(keydata.LocalPrivateKey.GetBytes())) == 0)
 				{
 					return true;
 				}
@@ -48,9 +48,9 @@ namespace QuantumGate::Implementation::Crypto
 						keydata.SharedSecret.Allocate(m_SharedSecretSize);
 						keydata.EncryptedSharedSecret.Allocate(m_SharedSecretEncryptedSize);
 
-						if (crypto_kem_sntrup4591761_ref_enc(reinterpret_cast<UChar*>(keydata.EncryptedSharedSecret.GetBytes()),
-															 reinterpret_cast<UChar*>(keydata.SharedSecret.GetBytes()),
-															 reinterpret_cast<UChar*>(keydata.PeerPublicKey.GetBytes())) == 0)
+						if (crypto_kem_sntrup857_ref_enc(reinterpret_cast<UChar*>(keydata.EncryptedSharedSecret.GetBytes()),
+														 reinterpret_cast<UChar*>(keydata.SharedSecret.GetBytes()),
+														 reinterpret_cast<UChar*>(keydata.PeerPublicKey.GetBytes())) == 0)
 						{
 							Dbg(L"\r\nNTRUPrime (Bob):");
 							Dbg(L"PSharedSecret: %u bytes - %s", keydata.SharedSecret.GetSize(),
@@ -70,9 +70,9 @@ namespace QuantumGate::Implementation::Crypto
 						// by Bob with her private key
 						keydata.SharedSecret.Allocate(m_SharedSecretSize);
 
-						if (crypto_kem_sntrup4591761_ref_dec(reinterpret_cast<UChar*>(keydata.SharedSecret.GetBytes()),
-															 reinterpret_cast<UChar*>(keydata.EncryptedSharedSecret.GetBytes()),
-															 reinterpret_cast<UChar*>(keydata.LocalPrivateKey.GetBytes())) == 0)
+						if (crypto_kem_sntrup857_ref_dec(reinterpret_cast<UChar*>(keydata.SharedSecret.GetBytes()),
+														 reinterpret_cast<UChar*>(keydata.EncryptedSharedSecret.GetBytes()),
+														 reinterpret_cast<UChar*>(keydata.LocalPrivateKey.GetBytes())) == 0)
 						{
 							Dbg(L"\r\nNTRUPrime (Alice):");
 							Dbg(L"PSharedSecret: %u bytes - %s", keydata.SharedSecret.GetSize(),
@@ -104,9 +104,9 @@ namespace QuantumGate::Implementation::Crypto
 		}
 
 	private:
-		inline static Size m_PublicKeySize{ crypto_kem_sntrup4591761_ref_PUBLICKEYBYTES };
-		inline static Size m_PrivateKeySize{ crypto_kem_sntrup4591761_ref_SECRETKEYBYTES };
-		inline static Size m_SharedSecretSize{ crypto_kem_sntrup4591761_ref_BYTES };
-		inline static Size m_SharedSecretEncryptedSize{ crypto_kem_sntrup4591761_ref_CIPHERTEXTBYTES };
+		inline static Size m_PublicKeySize{ crypto_kem_sntrup857_ref_PUBLICKEYBYTES };
+		inline static Size m_PrivateKeySize{ crypto_kem_sntrup857_ref_SECRETKEYBYTES };
+		inline static Size m_SharedSecretSize{ crypto_kem_sntrup857_ref_BYTES };
+		inline static Size m_SharedSecretEncryptedSize{ crypto_kem_sntrup857_ref_CIPHERTEXTBYTES };
 	};
 }

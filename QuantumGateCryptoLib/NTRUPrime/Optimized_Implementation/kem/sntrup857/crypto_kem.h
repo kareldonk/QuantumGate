@@ -1,0 +1,15 @@
+#ifndef crypto_kem_H
+#define crypto_kem_H
+
+#include "crypto_kem_sntrup857.h"
+
+#define crypto_kem_keypair crypto_kem_sntrup857_keypair
+#define crypto_kem_enc crypto_kem_sntrup857_enc
+#define crypto_kem_dec crypto_kem_sntrup857_dec
+#define crypto_kem_PUBLICKEYBYTES crypto_kem_sntrup857_PUBLICKEYBYTES
+#define crypto_kem_SECRETKEYBYTES crypto_kem_sntrup857_SECRETKEYBYTES
+#define crypto_kem_BYTES crypto_kem_sntrup857_BYTES
+#define crypto_kem_CIPHERTEXTBYTES crypto_kem_sntrup857_CIPHERTEXTBYTES
+#define crypto_kem_PRIMITIVE "sntrup857"
+
+#endif

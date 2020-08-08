@@ -1,23 +1,22 @@
-/* See https://ntruprime.cr.yp.to/software.html for detailed documentation. */
+#include "uint32.h"
 
-#include "int32_sort.h"
-#include "crypto_uint32.h"
+#pragma warning (disable: 4146)
 
-static void minmax(crypto_int32 *x,crypto_int32 *y)
+static void minmax(uint32 *x,uint32 *y)
 {
-  crypto_uint32 xi = *x;
-  crypto_uint32 yi = *y;
-  crypto_uint32 xy = xi ^ yi;
-  crypto_uint32 c = yi - xi;
-  c ^= xy & (c ^ yi);
+  uint32 xi = *x;
+  uint32 yi = *y;
+  uint32 xy = xi ^ yi;
+  uint32 c = yi - xi;
+  c ^= xy & (c ^ yi ^ 0x80000000);
   c >>= 31;
-  c = (crypto_uint32)(-(crypto_int32)c);
+  c = -c;
   c &= xy;
   *x = xi ^ c;
   *y = yi ^ c;
 }
 
-void int32_sort(crypto_int32 *x,int n)
+void uint32_sort(uint32 *x,int n)
 {
   int top,p,q,i;
 

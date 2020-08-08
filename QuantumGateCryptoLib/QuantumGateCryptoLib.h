@@ -5,7 +5,7 @@
 
 #include "Common\Random.h"
 #include "McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem_mceliece8192128.h"
-#include "NTRUPrime\Optimized_Implementation\kem\sntrup4591761\crypto_kem_sntrup4591761.h"
+#include "NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem_sntrup857.h"
 #include "NewHope\ref\ccakem.h"
 
 // The siphash function is defined in the siphash.c reference
