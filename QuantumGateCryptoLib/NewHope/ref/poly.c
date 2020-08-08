@@ -381,8 +381,8 @@ void poly_sub(poly *r, const poly *a, const poly *b)
 **************************************************/
 void poly_ntt(poly *r)
 {
-  mul_coefficients(r->coeffs, psis_bitrev_montgomery);
-  ntt((uint16_t *)r->coeffs, omegas_bitrev_montgomery);
+  mul_coefficients(r->coeffs, gammas_bitrev_montgomery);
+  ntt((uint16_t *)r->coeffs, gammas_bitrev_montgomery);
 }
 
 /*************************************************
@@ -398,6 +398,6 @@ void poly_invntt(poly *r)
 {
   bitrev_vector(r->coeffs);
   ntt((uint16_t *)r->coeffs, omegas_inv_bitrev_montgomery);
-  mul_coefficients(r->coeffs, psis_inv_montgomery);
+  mul_coefficients(r->coeffs, gammas_inv_montgomery);
 }
 

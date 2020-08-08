@@ -52,16 +52,18 @@ int crypto_kem_newhope_keypair(unsigned char *pk, unsigned char *sk)
 int crypto_kem_newhope_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
 {
   unsigned char k_coins_d[3*NEWHOPE_SYMBYTES];                                                /* Will contain key, coins, qrom-hash */
-  unsigned char buf[2*NEWHOPE_SYMBYTES];
+  unsigned char buf[2*NEWHOPE_SYMBYTES+1];
   int i;
 
-  randombytes(buf,NEWHOPE_SYMBYTES);
+  buf[0] = 0x04;
+  randombytes(buf+1,NEWHOPE_SYMBYTES);
 
-  shake256(buf,NEWHOPE_SYMBYTES,buf,NEWHOPE_SYMBYTES);                                        /* Don't release system RNG output */
-  shake256(buf+NEWHOPE_SYMBYTES, NEWHOPE_SYMBYTES, pk, NEWHOPE_CCAKEM_PUBLICKEYBYTES);        /* Multitarget countermeasure for coins + contributory KEM */
-  shake256(k_coins_d, 3*NEWHOPE_SYMBYTES, buf, 2*NEWHOPE_SYMBYTES);
+  shake256(buf+1,NEWHOPE_SYMBYTES,buf,NEWHOPE_SYMBYTES+1);                                    /* Don't release system RNG output */
+  shake256(buf+1+NEWHOPE_SYMBYTES, NEWHOPE_SYMBYTES, pk, NEWHOPE_CCAKEM_PUBLICKEYBYTES);      /* Multitarget countermeasure for coins + contributory KEM */
+  buf[0] = 0x08;
+  shake256(k_coins_d, 3*NEWHOPE_SYMBYTES, buf, 2*NEWHOPE_SYMBYTES+1);
 
-  cpapke_enc(ct, buf, pk, k_coins_d+NEWHOPE_SYMBYTES);                                        /* coins are in k_coins_d+NEWHOPE_SYMBYTES */
+  cpapke_enc(ct, buf+1, pk, k_coins_d+NEWHOPE_SYMBYTES);                                      /* coins are in k_coins_d+NEWHOPE_SYMBYTES */
 
   for(i=0;i<NEWHOPE_SYMBYTES;i++)
     ct[i+NEWHOPE_CPAPKE_CIPHERTEXTBYTES] = k_coins_d[i+2*NEWHOPE_SYMBYTES];                   /* copy Targhi-Unruh hash into ct */
@@ -89,17 +91,18 @@ int crypto_kem_newhope_dec(unsigned char *ss, const unsigned char *ct, const uns
 {
   int i, fail;
   unsigned char ct_cmp[NEWHOPE_CCAKEM_CIPHERTEXTBYTES];
-  unsigned char buf[2*NEWHOPE_SYMBYTES];
+  unsigned char buf[2*NEWHOPE_SYMBYTES+1];
   unsigned char k_coins_d[3*NEWHOPE_SYMBYTES];                                                /* Will contain key, coins, qrom-hash */
   const unsigned char *pk = sk+NEWHOPE_CPAPKE_SECRETKEYBYTES;
 
-  cpapke_dec(buf, ct, sk);
+  buf[0] = 0x08;
+  cpapke_dec(buf+1, ct, sk);
 
   for(i=0;i<NEWHOPE_SYMBYTES;i++)                                                             /* Use hash of pk stored in sk */
-    buf[NEWHOPE_SYMBYTES+i] = sk[NEWHOPE_CCAKEM_SECRETKEYBYTES-2*NEWHOPE_SYMBYTES+i];
-  shake256(k_coins_d, 3*NEWHOPE_SYMBYTES, buf, 2*NEWHOPE_SYMBYTES);
+    buf[1+NEWHOPE_SYMBYTES+i] = sk[NEWHOPE_CCAKEM_SECRETKEYBYTES-2*NEWHOPE_SYMBYTES+i];
+  shake256(k_coins_d, 3*NEWHOPE_SYMBYTES, buf, 2*NEWHOPE_SYMBYTES+1);
 
-  cpapke_enc(ct_cmp, buf, pk, k_coins_d+NEWHOPE_SYMBYTES);                                    /* coins are in k_coins_d+NEWHOPE_SYMBYTES */
+  cpapke_enc(ct_cmp, buf+1, pk, k_coins_d+NEWHOPE_SYMBYTES);                                  /* coins are in k_coins_d+NEWHOPE_SYMBYTES */
 
   for(i=0;i<NEWHOPE_SYMBYTES;i++)
     ct_cmp[i+NEWHOPE_CPAPKE_CIPHERTEXTBYTES] = k_coins_d[i+2*NEWHOPE_SYMBYTES];
@@ -110,5 +113,5 @@ int crypto_kem_newhope_dec(unsigned char *ss, const unsigned char *ct, const uns
   cmov(k_coins_d, sk+NEWHOPE_CCAKEM_SECRETKEYBYTES-NEWHOPE_SYMBYTES, NEWHOPE_SYMBYTES, fail); /* Overwrite pre-k with z on re-encryption failure */
   shake256(ss, NEWHOPE_SYMBYTES, k_coins_d, 2*NEWHOPE_SYMBYTES);                              /* hash concatenation of pre-k and h(c) to k */
 
-  return -fail;
+  return 0;
 }
