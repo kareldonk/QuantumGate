@@ -135,7 +135,7 @@ void sort_63b(int n, uint64_t *x)
 static void composeinv(int n,uint32_t *y,uint32_t *x,uint32_t *pi) // NC
 {
   int i;
-  uint32_t *t = (uint32_t*)malloc(n*sizeof(uint32_t));
+  uint32_t *t = (uint32_t*)_malloca(n*sizeof(uint32_t));
 
   for (i = 0;i < n;++i) 
     t[i] = x[i] | (pi[i] << 16);
@@ -145,7 +145,7 @@ static void composeinv(int n,uint32_t *y,uint32_t *x,uint32_t *pi) // NC
   for (i = 0;i < n;++i)
     y[i] = t[i] & 0xFFFF;
 
-  free(t);
+  _freea(t);
 }
 
 /* ip[i] = j iff pi[i] = j */
