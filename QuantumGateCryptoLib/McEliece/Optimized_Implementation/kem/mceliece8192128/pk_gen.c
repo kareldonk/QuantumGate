@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include <stdlib.h>
 
 #include "controlbits.h"
 #include "pk_gen.h"
@@ -14,12 +13,6 @@
 #include "benes.h"
 #include "root.h"
 #include "util.h"
-
-// gets pointer to element mat[row][col] from array mat[x][y]
-static inline unsigned char * get(unsigned char * mat, int row, int col)
-{
-	return mat+((SYS_N/8)*row)+col;
-}
 
 /* input: secret key sk */
 /* output: public key pk */
@@ -31,8 +24,12 @@ int pk_gen(unsigned char * pk, unsigned char * sk, uint32_t * perm, unsigned cha
 	uint64_t buf[1 << GFBITS];
 
 	// unsigned char mat[ GFBITS * SYS_T ][ SYS_N/8 ];
-	// allocated on the heap instead avoid exhausting the stack
-	unsigned char *mat = matmem;
+	// allocated on the heap instead to avoid exhausting the stack
+	unsigned char *mat[GFBITS * SYS_T];
+	for (int x = 0; x < (GFBITS * SYS_T); x++)
+	{
+		mat[x] = matmem + (x * (SYS_N/8));
+	}
 
 	unsigned char mask;
 	unsigned char b;
@@ -68,7 +65,7 @@ int pk_gen(unsigned char * pk, unsigned char * sk, uint32_t * perm, unsigned cha
 
 	for (i = 0; i < PK_NROWS; i++)
 	for (j = 0; j < SYS_N/8; j++)
-		*get(mat,i,j) = 0;
+		mat[i][j] = 0;
 
 	for (i = 0; i < SYS_T; i++)
 	{
@@ -84,7 +81,7 @@ int pk_gen(unsigned char * pk, unsigned char * sk, uint32_t * perm, unsigned cha
 			b |= (inv[j+1] >> k) & 1; b <<= 1;
 			b |= (inv[j+0] >> k) & 1;
 
-			*get(mat,i*GFBITS + k,j/8) = b;
+			mat[ i*GFBITS + k ][ j/8 ] = b;
 		}
 
 		for (j = 0; j < SYS_N; j++)
@@ -104,16 +101,16 @@ int pk_gen(unsigned char * pk, unsigned char * sk, uint32_t * perm, unsigned cha
 
 		for (k = row + 1; k < GFBITS * SYS_T; k++)
 		{
-			mask = *get(mat,row,i) ^ *get(mat,k,i);
+			mask = mat[ row ][ i ] ^ mat[ k ][ i ];
 			mask >>= j;
 			mask &= 1;
 			mask = -mask;
 
 			for (c = 0; c < SYS_N/8; c++)
-				*get(mat,row,c) ^= *get(mat,k,c) & mask;
+				mat[ row ][ c ] ^= mat[ k ][ c ] & mask;
 		}
 
-		if ( ((*get(mat,row,i) >> j) & 1) == 0 ) // return if not systematic
+		if ( ((mat[ row ][ i ] >> j) & 1) == 0 ) // return if not systematic
 		{
 			return -1;
 		}
@@ -122,18 +119,18 @@ int pk_gen(unsigned char * pk, unsigned char * sk, uint32_t * perm, unsigned cha
 		{
 			if (k != row)
 			{
-				mask = *get(mat,k,i) >> j;
+				mask = mat[ k ][ i ] >> j;
 				mask &= 1;
 				mask = -mask;
 
 				for (c = 0; c < SYS_N/8; c++)
-					*get(mat,k,c) ^= *get(mat,row,c) & mask;
+					mat[ k ][ c ] ^= mat[ row ][ c ] & mask;
 			}
 		}
 	}
 
 	for (i = 0; i < PK_NROWS; i++)
-		memcpy(pk + i*PK_ROW_BYTES, get(mat,i,0) + PK_NROWS/8, PK_ROW_BYTES);
+		memcpy(pk + i*PK_ROW_BYTES, mat[i] + PK_NROWS/8, PK_ROW_BYTES);
 
 	return 0;
 }
