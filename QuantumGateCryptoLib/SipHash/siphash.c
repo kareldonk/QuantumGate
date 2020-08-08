@@ -15,13 +15,18 @@
    <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 #include <assert.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 /* default: SipHash-2-4 */
-#define cROUNDS 2
-#define dROUNDS 4
+#ifndef cROUNDS
+    #define cROUNDS 2
+#endif
+#ifndef dROUNDS
+    #define dROUNDS 4
+#endif
 
 #define ROTL(x, b) (uint64_t)(((x) << (b)) | ((x) >> (64 - (b))))
 
@@ -62,14 +67,10 @@
 #ifdef DEBUG
 #define TRACE                                                                  \
     do {                                                                       \
-        printf("(%3d) v0 %08x %08x\n", (int)inlen, (uint32_t)(v0 >> 32),       \
-               (uint32_t)v0);                                                  \
-        printf("(%3d) v1 %08x %08x\n", (int)inlen, (uint32_t)(v1 >> 32),       \
-               (uint32_t)v1);                                                  \
-        printf("(%3d) v2 %08x %08x\n", (int)inlen, (uint32_t)(v2 >> 32),       \
-               (uint32_t)v2);                                                  \
-        printf("(%3d) v3 %08x %08x\n", (int)inlen, (uint32_t)(v3 >> 32),       \
-               (uint32_t)v3);                                                  \
+        printf("(%3zu) v0 %016"PRIx64"\n", inlen, v0);                         \
+        printf("(%3zu) v1 %016"PRIx64"\n", inlen, v1);                         \
+        printf("(%3zu) v2 %016"PRIx64"\n", inlen, v2);                         \
+        printf("(%3zu) v3 %016"PRIx64"\n", inlen, v3);                         \
     } while (0)
 #else
 #define TRACE
@@ -79,10 +80,10 @@ int siphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
             uint8_t *out, const size_t outlen) {
 
     assert((outlen == 8) || (outlen == 16));
-    uint64_t v0 = 0x736f6d6570736575ULL;
-    uint64_t v1 = 0x646f72616e646f6dULL;
-    uint64_t v2 = 0x6c7967656e657261ULL;
-    uint64_t v3 = 0x7465646279746573ULL;
+    uint64_t v0 = UINT64_C(0x736f6d6570736575);
+    uint64_t v1 = UINT64_C(0x646f72616e646f6d);
+    uint64_t v2 = UINT64_C(0x6c7967656e657261);
+    uint64_t v3 = UINT64_C(0x7465646279746573);
     uint64_t k0 = U8TO64_LE(k);
     uint64_t k1 = U8TO64_LE(k + 8);
     uint64_t m;

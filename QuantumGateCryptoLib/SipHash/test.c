@@ -13,6 +13,7 @@
  */
 
 #include "vectors.h"
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,10 +44,13 @@ const char *labels[4] = {
 
 size_t lengths[4] = {8, 16, 4, 8};
 
-int main() {
+int siphash_test() {
     uint8_t in[64], out[16], k[16];
     int i;
+    bool any_failed = false;
+#ifndef GETVECTORS
     int fails = 0;
+#endif
 
     for (i = 0; i < 16; ++i)
         k[i] = i;
@@ -89,6 +93,7 @@ int main() {
             if (memcmp(out, v + (i * len), len)) {
                 printf("fail for %d bytes\n", i);
                 fails++;
+                any_failed = true;
             }
 #endif
         }
@@ -98,9 +103,10 @@ int main() {
 #else
         if (!fails)
             printf("OK\n");
-#endif
+
         fails = 0;
+#endif
     }
 
-    return 0;
+    return any_failed;
 }

@@ -14,21 +14,20 @@
    <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 #include <assert.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 /* default: SipHash-2-4 */
-#define cROUNDS 2
-#define dROUNDS 4
+#ifndef cROUNDS
+    #define cROUNDS 2
+#endif
+#ifndef dROUNDS
+    #define dROUNDS 4
+#endif
 
 #define ROTL(x, b) (uint32_t)(((x) << (b)) | ((x) >> (32 - (b))))
-
-#define U32TO8_LE(p, v)                                                        \
-    (p)[0] = (uint8_t)((v));                                                   \
-    (p)[1] = (uint8_t)((v) >> 8);                                              \
-    (p)[2] = (uint8_t)((v) >> 16);                                             \
-    (p)[3] = (uint8_t)((v) >> 24);
 
 #define U32TO8_LE(p, v)                                                        \
     (p)[0] = (uint8_t)((v));                                                   \
@@ -61,10 +60,10 @@
 #ifdef DEBUG
 #define TRACE                                                                  \
     do {                                                                       \
-        printf("(%3d) v0 %08x\n", (int)inlen, v0);                             \
-        printf("(%3d) v1 %08x\n", (int)inlen, v1);                             \
-        printf("(%3d) v2 %08x\n", (int)inlen, v2);                             \
-        printf("(%3d) v3 %08x\n", (int)inlen, v3);                             \
+        printf("(%3zu) v0 %08"PRIx32"\n", inlen, v0);                          \
+        printf("(%3zu) v1 %08"PRIx32"\n", inlen, v1);                          \
+        printf("(%3zu) v2 %08"PRIx32"\n", inlen, v2);                          \
+        printf("(%3zu) v3 %08"PRIx32"\n", inlen, v3);                          \
     } while (0)
 #else
 #define TRACE
@@ -76,8 +75,8 @@ int halfsiphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
     assert((outlen == 4) || (outlen == 8));
     uint32_t v0 = 0;
     uint32_t v1 = 0;
-    uint32_t v2 = 0x6c796765;
-    uint32_t v3 = 0x74656462;
+    uint32_t v2 = UINT32_C(0x6c796765);
+    uint32_t v3 = UINT32_C(0x74656462);
     uint32_t k0 = U8TO32_LE(k);
     uint32_t k1 = U8TO32_LE(k + 4);
     uint32_t m;
