@@ -170,6 +170,7 @@
     <Lib />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Common\aes256ctr.h" />
     <ClInclude Include="Common\Random.h" />
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\benes.h" />
     <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\bm.h" />
@@ -197,7 +198,6 @@
     <ClInclude Include="NewHope\ref\poly.h" />
     <ClInclude Include="NewHope\ref\reduce.h" />
     <ClInclude Include="NewHope\ref\verify.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\aes256ctr.h" />
     <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem.h" />
     <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem_sntrup857.h" />
     <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Decode.h" />
@@ -217,6 +217,12 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Common\aes256ctr.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Common\Random.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
@@ -344,12 +350,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="NewHope\ref\verify.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\aes256ctr.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

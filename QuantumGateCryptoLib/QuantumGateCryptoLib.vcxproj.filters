@@ -132,9 +132,6 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\aes256ctr.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
     <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem_sntrup857.h">
       <Filter>Header Files\NTRUPrime</Filter>
     </ClInclude>
@@ -176,6 +173,9 @@
     </ClInclude>
     <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem.h">
       <Filter>Header Files\NTRUPrime</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\aes256ctr.h">
+      <Filter>Header Files\Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -251,9 +251,6 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\aes256ctr.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
     <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Decode.c">
       <Filter>Source Files\NTRUPrime</Filter>
     </ClCompile>
@@ -274,6 +271,9 @@
     </ClCompile>
     <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32_sort.c">
       <Filter>Source Files\NTRUPrime</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\aes256ctr.c">
+      <Filter>Source Files\Common</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
