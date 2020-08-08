@@ -144,6 +144,8 @@ static void composeinv(int n,uint32_t *y,uint32_t *x,uint32_t *pi) // NC
 
   for (i = 0;i < n;++i)
     y[i] = t[i] & 0xFFFF;
+
+  free(t);
 }
 
 /* ip[i] = j iff pi[i] = j */
