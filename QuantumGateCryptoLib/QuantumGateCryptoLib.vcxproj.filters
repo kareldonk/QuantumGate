@@ -40,6 +40,24 @@
     <Filter Include="Header Files\NewHope">
       <UniqueIdentifier>{2da00a30-7c2b-4b3f-8a06-dfc79614d142}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\McEliece\Ref">
+      <UniqueIdentifier>{0b76e09c-f87c-4ee2-9e61-c22210b41205}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\McEliece\Ref">
+      <UniqueIdentifier>{6fa6e5dc-fbf6-4cd7-a208-c16f506a05e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\McEliece\Vec">
+      <UniqueIdentifier>{0417a8f5-5fe0-43eb-83ae-2fc04705c221}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\McEliece\Vec">
+      <UniqueIdentifier>{4bbc3d1b-2249-4c42-9f9a-064fc0c3616e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\NTRUPrime\Ref">
+      <UniqueIdentifier>{6ec0d67e-e7b1-4b4b-9dd8-95f3b846968f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\NTRUPrime\Ref">
+      <UniqueIdentifier>{90ca6734-9e1b-4651-a1f2-d59cd01a07c2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -47,60 +65,6 @@
     </ClInclude>
     <ClInclude Include="QuantumGateCryptoLib.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_hash.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\benes.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\bm.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\controlbits.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem_mceliece8192128.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\gf.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\decrypt.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\encrypt.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\operations.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\params.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\pk_gen.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\randombytes.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\root.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\sk_gen.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\synd.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\transpose.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\util.h">
-      <Filter>Header Files\McEliece</Filter>
-    </ClInclude>
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem.h">
-      <Filter>Header Files\McEliece</Filter>
     </ClInclude>
     <ClInclude Include="NewHope\ref\ccakem.h">
       <Filter>Header Files\NewHope</Filter>
@@ -132,94 +96,142 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem_sntrup857.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Decode.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Encode.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int8.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int16.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int32.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\params.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\paramsmenu.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\randombytes.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\sha512.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint16.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint64.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem.h">
-      <Filter>Header Files\NTRUPrime</Filter>
-    </ClInclude>
     <ClInclude Include="Common\aes256ctr.h">
       <Filter>Header Files\Common</Filter>
     </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\benes.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\bm.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\controlbits.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\crypto_hash.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\decrypt.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\encrypt.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\gf.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\operations.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\params.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\pk_gen.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\root.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\sk_gen.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\synd.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\transpose.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\ref\util.h">
+      <Filter>Header Files\McEliece\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\benes.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\bm.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\decrypt.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\encrypt.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\fft.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\fft_tr.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\gf.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\operations.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\pk_gen.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\sk_gen.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\util.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\vec\vec.h">
+      <Filter>Header Files\McEliece\Vec</Filter>
+    </ClInclude>
+    <ClInclude Include="McEliece\mceliece8192128\mceliece8192128.h">
+      <Filter>Header Files\McEliece</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\CPUInstructionSet.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\randombytes.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\uint64.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\crypto_kem.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\crypto_kem_sntrup857.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\Decode.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\Encode.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\int8.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\int16.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\int32.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\params.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\paramsmenu.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\sha512.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\uint16.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
+    <ClInclude Include="NTRUPrime\sntrup857\ref\uint32.h">
+      <Filter>Header Files\NTRUPrime\Ref</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\controlbits.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\benes.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\bm.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\decrypt.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\encrypt.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\gf.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\operations.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\pk_gen.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\root.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\synd.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\util.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\transpose.c">
-      <Filter>Source Files\McEliece</Filter>
-    </ClCompile>
     <ClCompile Include="SipHash\siphash.c">
       <Filter>Source Files\SipHash</Filter>
-    </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\sk_gen.c">
-      <Filter>Source Files\McEliece</Filter>
     </ClCompile>
     <ClCompile Include="NewHope\ref\ccakem.c">
       <Filter>Source Files\NewHope</Filter>
@@ -251,29 +263,104 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Decode.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Encode.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int32.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\kem.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\sha512.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32_sort.c">
-      <Filter>Source Files\NTRUPrime</Filter>
-    </ClCompile>
     <ClCompile Include="Common\aes256ctr.c">
       <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\benes.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\bm.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\controlbits.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\decrypt.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\encrypt.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\gf.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\operations.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\pk_gen.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\root.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\sk_gen.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\synd.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\transpose.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\util.c">
+      <Filter>Source Files\McEliece\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\benes.c">
+      <Filter>Source Files\McEliece\Vec</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\bm.c">
+      <Filter>Source Files\McEliece\Vec</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\decrypt.c">
+      <Filter>Source Files\McEliece\Vec</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\encrypt.c">
+      <Filter>Source Files\McEliece\Vec</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\fft.c">
+      <Filter>Source Files\McEliece\Vec</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\fft_tr.c">
+      <Filter>Source Files\McEliece\Vec</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\gf.c">
+      <Filter>Source Files\McEliece\Vec</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\operations.c">
+      <Filter>Source Files\McEliece\Vec</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\pk_gen.c">
+      <Filter>Source Files\McEliece\Vec</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\sk_gen.c">
+      <Filter>Source Files\McEliece\Vec</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\vec.c">
+      <Filter>Source Files\McEliece\Vec</Filter>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\mceliece8192128.cpp">
+      <Filter>Source Files\McEliece</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\sntrup857\ref\uint32_sort.c">
+      <Filter>Source Files\NTRUPrime\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\sntrup857\ref\Decode.c">
+      <Filter>Source Files\NTRUPrime\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\sntrup857\ref\Encode.c">
+      <Filter>Source Files\NTRUPrime\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\sntrup857\ref\int32.c">
+      <Filter>Source Files\NTRUPrime\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\sntrup857\ref\kem.c">
+      <Filter>Source Files\NTRUPrime\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\sntrup857\ref\sha512.c">
+      <Filter>Source Files\NTRUPrime\Ref</Filter>
+    </ClCompile>
+    <ClCompile Include="NTRUPrime\sntrup857\ref\uint32.c">
+      <Filter>Source Files\NTRUPrime\Ref</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

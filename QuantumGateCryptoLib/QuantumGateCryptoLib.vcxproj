@@ -53,8 +53,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
-  </ImportGroup>
+  <ImportGroup Label="ExtensionSettings" />
   <ImportGroup Label="Shared">
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -105,6 +104,8 @@
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -112,6 +113,10 @@
     </Link>
     <Lib />
     <Lib />
+    <Lib>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -122,12 +127,18 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib />
+    <Lib>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -140,6 +151,8 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -148,6 +161,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib />
+    <Lib>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -160,6 +177,8 @@
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ObjectFileName>$(IntDir)%(RelativeDir)\</ObjectFileName>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -168,28 +187,44 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib />
+    <Lib>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Common\aes256ctr.h" />
+    <ClInclude Include="Common\CPUInstructionSet.h" />
     <ClInclude Include="Common\Random.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\benes.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\bm.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\controlbits.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_hash.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem_mceliece8192128.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\decrypt.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\encrypt.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\gf.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\operations.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\params.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\pk_gen.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\randombytes.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\root.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\sk_gen.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\synd.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\transpose.h" />
-    <ClInclude Include="McEliece\Optimized_Implementation\kem\mceliece8192128\util.h" />
+    <ClInclude Include="Common\randombytes.h" />
+    <ClInclude Include="McEliece\mceliece8192128\mceliece8192128.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\benes.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\bm.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\controlbits.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\crypto_hash.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\decrypt.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\encrypt.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\gf.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\operations.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\params.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\pk_gen.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\root.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\sk_gen.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\synd.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\transpose.h" />
+    <ClInclude Include="McEliece\mceliece8192128\ref\util.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\benes.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\bm.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\decrypt.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\encrypt.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\fft.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\fft_tr.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\gf.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\operations.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\pk_gen.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\sk_gen.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\util.h" />
+    <ClInclude Include="McEliece\mceliece8192128\vec\vec.h" />
     <ClInclude Include="NewHope\ref\ccakem.h" />
     <ClInclude Include="NewHope\ref\cpapke.h" />
     <ClInclude Include="NewHope\ref\fips202.h" />
@@ -198,20 +233,19 @@
     <ClInclude Include="NewHope\ref\poly.h" />
     <ClInclude Include="NewHope\ref\reduce.h" />
     <ClInclude Include="NewHope\ref\verify.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem_sntrup857.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Decode.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Encode.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int16.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int32.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int8.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\params.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\paramsmenu.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\randombytes.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\sha512.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint16.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32.h" />
-    <ClInclude Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint64.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\crypto_kem.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\crypto_kem_sntrup857.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\Decode.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\Encode.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\int16.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\int32.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\int8.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\params.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\paramsmenu.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\sha512.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\uint16.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\uint32.h" />
+    <ClInclude Include="NTRUPrime\sntrup857\ref\uint64.h" />
     <ClInclude Include="QuantumGateCryptoLib.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="targetver.h" />
@@ -229,79 +263,151 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\benes.c">
+    <ClCompile Include="McEliece\mceliece8192128\mceliece8192128.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\ref\benes.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\bm.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\bm.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\controlbits.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\controlbits.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\decrypt.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\decrypt.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\encrypt.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\encrypt.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\gf.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\gf.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\operations.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\operations.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\pk_gen.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\pk_gen.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\root.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\root.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\sk_gen.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\sk_gen.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\synd.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\synd.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\transpose.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\transpose.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="McEliece\Optimized_Implementation\kem\mceliece8192128\util.c">
+    <ClCompile Include="McEliece\mceliece8192128\ref\util.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\benes.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\bm.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\decrypt.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\encrypt.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\fft.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\fft_tr.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\gf.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\operations.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\pk_gen.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\sk_gen.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="McEliece\mceliece8192128\vec\vec.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -355,43 +461,43 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Decode.c">
+    <ClCompile Include="NTRUPrime\sntrup857\ref\Decode.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\Encode.c">
+    <ClCompile Include="NTRUPrime\sntrup857\ref\Encode.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\int32.c">
+    <ClCompile Include="NTRUPrime\sntrup857\ref\int32.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\kem.c">
+    <ClCompile Include="NTRUPrime\sntrup857\ref\kem.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\sha512.c">
+    <ClCompile Include="NTRUPrime\sntrup857\ref\sha512.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32.c">
+    <ClCompile Include="NTRUPrime\sntrup857\ref\uint32.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NTRUPrime\Optimized_Implementation\kem\sntrup857\uint32_sort.c">
+    <ClCompile Include="NTRUPrime\sntrup857\ref\uint32_sort.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -411,6 +517,5 @@
     </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

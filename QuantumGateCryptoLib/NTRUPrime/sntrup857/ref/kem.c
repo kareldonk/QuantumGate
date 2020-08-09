@@ -6,10 +6,10 @@
 
 #include "params.h"
 
-#include "randombytes.h"
+#include "..\..\..\Common\randombytes.h"
 #include "sha512.h"
 #ifdef LPR
-#include "..\..\..\..\Common\aes256ctr.h"
+#include "..\..\..\Common\aes256ctr.h"
 #endif
 
 #include "int8.h"

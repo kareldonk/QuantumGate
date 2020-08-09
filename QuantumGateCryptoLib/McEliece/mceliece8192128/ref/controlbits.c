@@ -5,7 +5,7 @@
 
 #include "controlbits.h"
 
-#include "randombytes.h"
+#include "..\..\..\Common\randombytes.h"
 #include "params.h"
 
 #include <stdint.h>

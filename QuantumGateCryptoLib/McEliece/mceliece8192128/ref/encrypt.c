@@ -6,7 +6,7 @@
 
 #include "util.h"
 #include "params.h"
-#include "randombytes.h"
+#include "..\..\..\Common\randombytes.h"
 
 #include <stdint.h>
 #include <stdio.h>

@@ -102,9 +102,9 @@ namespace QuantumGate::Implementation::Crypto
 		}
 
 	private:
-		inline static Size m_PublicKeySize{ crypto_kem_mceliece8192128_ref_PUBLICKEYBYTES };
-		inline static Size m_PrivateKeySize{ crypto_kem_mceliece8192128_ref_SECRETKEYBYTES };
-		inline static Size m_SharedSecretSize{ crypto_kem_mceliece8192128_ref_BYTES };
-		inline static Size m_SharedSecretEncryptedSize{ crypto_kem_mceliece8192128_ref_CIPHERTEXTBYTES };
+		inline static Size m_PublicKeySize{ crypto_kem_mceliece8192128_PUBLICKEYBYTES };
+		inline static Size m_PrivateKeySize{ crypto_kem_mceliece8192128_SECRETKEYBYTES };
+		inline static Size m_SharedSecretSize{ crypto_kem_mceliece8192128_BYTES };
+		inline static Size m_SharedSecretEncryptedSize{ crypto_kem_mceliece8192128_CIPHERTEXTBYTES };
 	};
 }

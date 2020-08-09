@@ -11,5 +11,7 @@
 void sort_63b(int, uint64_t *);
 int controlbits(unsigned char *, uint32_t *);
 
+void composeinv(int, uint32_t *, uint32_t *, uint32_t *);
+
 #endif
 

@@ -4,8 +4,8 @@
 #pragma once
 
 #include "Common\Random.h"
-#include "McEliece\Optimized_Implementation\kem\mceliece8192128\crypto_kem_mceliece8192128.h"
-#include "NTRUPrime\Optimized_Implementation\kem\sntrup857\crypto_kem_sntrup857.h"
+#include "McEliece\mceliece8192128\mceliece8192128.h"
+#include "NTRUPrime\sntrup857\ref\crypto_kem_sntrup857.h"
 #include "NewHope\ref\ccakem.h"
 
 // The siphash function is defined in the siphash.c reference
