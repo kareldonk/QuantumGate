@@ -14,10 +14,78 @@ namespace UnitTests
 	public:
 		TEST_METHOD(General)
 		{
-			std::string str = "So long as they don't get violent, I want to let everyone say what they wish, "
-								"for I myself have always said exactly what pleased me. – Albert Einstein";
+			char quote[] = "When you are presented with a choice between two evils, "
+							" do not choose the lesser. Choose the exit. - Robert Higgs";
+
+			// Default constructor
+			{
+				BufferView bview;
+				Assert::AreEqual(false, bview.operator bool());
+				Assert::AreEqual(true, bview.IsEmpty());
+				Assert::AreEqual(true, bview.GetSize() == 0);
+				Assert::AreEqual(true, bview.GetBytes() == nullptr);
+			}
+
+			// nullptr constructor
+			{
+				BufferView bview;
+				Assert::AreEqual(false, bview.operator bool());
+				Assert::AreEqual(true, bview.IsEmpty());
+				Assert::AreEqual(true, bview.GetSize() == 0);
+				Assert::AreEqual(true, bview.GetBytes() == nullptr);
+			}
+
+			// Copy constructor
+			{
+				BufferView bview1(reinterpret_cast<Byte*>(quote), sizeof(quote));
+
+				BufferView bview2(bview1);
+				Assert::AreEqual(true, bview2.operator bool());
+				Assert::AreEqual(false, bview2.IsEmpty());
+				Assert::AreEqual(true, bview2.GetSize() == 115);
+				Assert::AreEqual(true, bview2.GetBytes() != nullptr);
+			}
+
+			// Copy assignment
+			{
+				BufferView bview1(reinterpret_cast<Byte*>(quote), sizeof(quote));
+
+				BufferView bview2 = bview1;
+				Assert::AreEqual(true, bview2.operator bool());
+				Assert::AreEqual(false, bview2.IsEmpty());
+				Assert::AreEqual(true, bview2.GetSize() == 115);
+				Assert::AreEqual(true, bview2.GetBytes() != nullptr);
+			}
+
+			// Move constructor
+			{
+				BufferView bview1(reinterpret_cast<Byte*>(quote), sizeof(quote));
+
+				BufferView bview2(std::move(bview1));
+				Assert::AreEqual(true, bview2.operator bool());
+				Assert::AreEqual(false, bview2.IsEmpty());
+				Assert::AreEqual(true, bview2.GetSize() == 115);
+				Assert::AreEqual(true, bview2.GetBytes() != nullptr);
+			}
+
+			// Move assignment
+			{
+				BufferView bview1(reinterpret_cast<Byte*>(quote), sizeof(quote));
+
+				BufferView bview2 = std::move(bview1);
+				Assert::AreEqual(true, bview2.operator bool());
+				Assert::AreEqual(false, bview2.IsEmpty());
+				Assert::AreEqual(true, bview2.GetSize() == 115);
+				Assert::AreEqual(true, bview2.GetBytes() != nullptr);
+			}
+		}
+
+		TEST_METHOD(Operations)
+		{
+			char quote[] = "So long as they don't get violent, I want to let everyone say what they wish, "
+							"for I myself have always said exactly what pleased me. – Albert Einstein";
 			
-			Buffer buf(reinterpret_cast<Byte*>(str.data()), str.size());
+			Buffer buf(reinterpret_cast<Byte*>(quote), sizeof(quote));
 
 			BufferView bview(buf);
 			Assert::AreEqual(true, bview.operator bool());
@@ -27,8 +95,8 @@ namespace UnitTests
 			bview.RemoveFirst(3);
 			Assert::AreEqual(true, (bview.GetSize() == buf.GetSize() - 3));
 
-			bview.RemoveLast(9);
-			Assert::AreEqual(true, (bview.GetSize() == buf.GetSize() - 12));
+			bview.RemoveLast(10);
+			Assert::AreEqual(true, (bview.GetSize() == buf.GetSize() - 13));
 
 			Assert::AreEqual(true, (bview[0] == Byte{ 'l' }));
 			Assert::AreEqual(true, (bview[bview.GetSize() - 1] == Byte{ 't' }));
@@ -38,6 +106,7 @@ namespace UnitTests
 
 			auto bviewsub = bview.GetSubView(0, 4);
 			Assert::AreEqual(true, (bviewsub.GetSize() == 4));
+			Assert::AreEqual(true, std::memcmp(bviewsub.GetBytes(), "long", bviewsub.GetSize()) == 0);
 
 			Assert::AreEqual(true, (bviewsub == bviewf));
 
@@ -46,6 +115,7 @@ namespace UnitTests
 
 			auto bviewsub2 = bview.GetSubView(bview.GetSize()-6, 6);
 			Assert::AreEqual(true, (bviewsub2.GetSize() == 6));
+			Assert::AreEqual(true, std::memcmp(bviewsub2.GetBytes(), "Albert", bviewsub2.GetSize()) == 0);
 
 			Assert::AreEqual(true, (bviewsub2 == bviewl));
 
