@@ -18,11 +18,13 @@ namespace QuantumGate::API
 
 	public:
 		using ConnectionType = QuantumGate::Implementation::PeerConnectionType;
+		using ConnectionAlgorithms = QuantumGate::Implementation::PeerConnectionAlgorithms;
 
 		struct Details
 		{
 			PeerUUID PeerUUID;
 			ConnectionType ConnectionType{ ConnectionType::Unknown };
+			ConnectionAlgorithms ConnectionAlgorithms;
 			bool IsAuthenticated{ false };
 			bool IsRelayed{ false };
 			bool IsUsingGlobalSharedSecret{ false };
@@ -55,6 +57,7 @@ namespace QuantumGate::API
 		Result<PeerUUID> GetUUID() const noexcept;
 
 		Result<ConnectionType> GetConnectionType() const noexcept;
+		Result<ConnectionAlgorithms> GetConnectionAlgorithms() const noexcept;
 		Result<bool> IsAuthenticated() const noexcept;
 		Result<bool> IsRelayed() const noexcept;
 		Result<bool> IsUsingGlobalSharedSecret() const noexcept;

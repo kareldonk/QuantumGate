@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "PeerKeys.h"
 #include "..\..\API\Peer.h"
 
 namespace QuantumGate::Implementation::Core::Peer
@@ -21,6 +22,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Status Status{ Status::Unknown };
 
 		PeerConnectionType Type{ PeerConnectionType::Unknown };
+		Algorithms Algorithms;
 
 		bool IsRelayed{ false };
 		bool IsAuthenticated{ false };
@@ -65,6 +67,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				pdetails.PeerUUID = PeerUUID;
 				pdetails.ConnectionType = Type;
+				pdetails.ConnectionAlgorithms = Algorithms;
 				pdetails.IsRelayed = IsRelayed;
 				pdetails.IsAuthenticated = IsAuthenticated;
 				pdetails.IsUsingGlobalSharedSecret = IsUsingGlobalSharedSecret;

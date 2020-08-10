@@ -63,20 +63,6 @@ namespace QuantumGate
 	using RelayMessageID = UInt16;
 }
 
-namespace QuantumGate::Implementation
-{
-	struct ProtocolVersion final
-	{
-		static constexpr const UInt8 Major{ 0 };
-		static constexpr const UInt8 Minor{ 1 };
-	};
-
-	enum class PeerConnectionType : UInt16
-	{
-		Unknown, Inbound, Outbound
-	};
-}
-
 #include "Memory\RingBuffer.h"
 #include "Memory\BufferView.h"
 
@@ -119,6 +105,29 @@ namespace QuantumGate
 #include "API\Result.h"
 #include "API\Callback.h"
 #include "Network\IPEndpoint.h"
+
+namespace QuantumGate::Implementation
+{
+	struct ProtocolVersion final
+	{
+		static constexpr const UInt8 Major{ 0 };
+		static constexpr const UInt8 Minor{ 1 };
+	};
+
+	enum class PeerConnectionType : UInt16
+	{
+		Unknown, Inbound, Outbound
+	};
+
+	struct PeerConnectionAlgorithms
+	{
+		Algorithm::Hash Hash{ Algorithm::Hash::Unknown };
+		Algorithm::Asymmetric PrimaryAsymmetric{ Algorithm::Asymmetric::Unknown };
+		Algorithm::Asymmetric SecondaryAsymmetric{ Algorithm::Asymmetric::Unknown };
+		Algorithm::Symmetric Symmetric{ Algorithm::Symmetric::Unknown };
+		Algorithm::Compression Compression{ Algorithm::Compression::Unknown };
+	};
+}
 
 namespace QuantumGate
 {

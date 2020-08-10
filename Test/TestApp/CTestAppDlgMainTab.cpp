@@ -9,6 +9,7 @@
 
 #include "Console.h"
 #include "Common\Util.h"
+#include "Crypto\Crypto.h"
 
 using namespace QuantumGate::Implementation;
 
@@ -262,6 +263,15 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 
 				pitxt += Util::FormatString(L"Connection type:\t\t%s\r\n",
 											retval->ConnectionType == QuantumGate::Peer::ConnectionType::Inbound ? L"Inbound" : L"Outbound");
+
+				String alg = Util::FormatString(L"Hash: %s\r\n", Crypto::GetAlgorithmName(retval->ConnectionAlgorithms.Hash));
+				alg += Util::FormatString(L"\t\t\tPrimary Asymmetric: %s\r\n", Crypto::GetAlgorithmName(retval->ConnectionAlgorithms.PrimaryAsymmetric));
+				alg += Util::FormatString(L"\t\t\tSecondary Asymmetric: %s\r\n", Crypto::GetAlgorithmName(retval->ConnectionAlgorithms.SecondaryAsymmetric));
+				alg += Util::FormatString(L"\t\t\tSymmetric: %s\r\n", Crypto::GetAlgorithmName(retval->ConnectionAlgorithms.Symmetric));
+				alg += Util::FormatString(L"\t\t\tCompression: %s\r\n", Crypto::GetAlgorithmName(retval->ConnectionAlgorithms.Compression));
+
+				pitxt += Util::FormatString(L"Connection algorithms:\t%s\r\n", alg.c_str());
+
 				pitxt += Util::FormatString(L"Local endpoint:\t\t%s\r\n",
 											retval->LocalIPEndpoint.GetString().c_str());
 				pitxt += Util::FormatString(L"Peer endpoint:\t\t%s\r\n",
@@ -335,6 +345,17 @@ void CTestAppDlgMainTab::LogPeerDetails(const QuantumGate::Peer& peer)
 	{
 		pitxt += Util::FormatString(L"Connection type:\t\t%s\r\n",
 									*result == QuantumGate::Peer::ConnectionType::Inbound ? L"Inbound" : L"Outbound");
+	});
+
+	peer.GetConnectionAlgorithms().Succeeded([&](auto& result)
+	{
+		String alg = Util::FormatString(L"Hash: %s\r\n", Crypto::GetAlgorithmName(result->Hash));
+		alg += Util::FormatString(L"\t\t\t\tPrimary Asymmetric: %s\r\n", Crypto::GetAlgorithmName(result->PrimaryAsymmetric));
+		alg += Util::FormatString(L"\t\t\t\tSecondary Asymmetric: %s\r\n", Crypto::GetAlgorithmName(result->SecondaryAsymmetric));
+		alg += Util::FormatString(L"\t\t\t\tSymmetric: %s\r\n", Crypto::GetAlgorithmName(result->Symmetric));
+		alg += Util::FormatString(L"\t\t\t\tCompression: %s\r\n", Crypto::GetAlgorithmName(result->Compression));
+
+		pitxt += Util::FormatString(L"Connection algorithms:\t\t%s\r\n", alg.c_str());
 	});
 
 	peer.GetLocalIPEndpoint().Succeeded([&](auto& result)

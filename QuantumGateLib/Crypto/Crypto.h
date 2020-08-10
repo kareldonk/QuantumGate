@@ -7,10 +7,10 @@
 
 namespace QuantumGate::Implementation::Crypto
 {
-	const WChar* GetAlgorithmName(const Algorithm::Asymmetric alg) noexcept;
-	const WChar* GetAlgorithmName(const Algorithm::Symmetric alg) noexcept;
-	const WChar* GetAlgorithmName(const Algorithm::Hash alg) noexcept;
-	const WChar* GetAlgorithmName(const Algorithm::Compression alg) noexcept;
+	Export const WChar* GetAlgorithmName(const Algorithm::Asymmetric alg) noexcept;
+	Export const WChar* GetAlgorithmName(const Algorithm::Symmetric alg) noexcept;
+	Export const WChar* GetAlgorithmName(const Algorithm::Hash alg) noexcept;
+	Export const WChar* GetAlgorithmName(const Algorithm::Compression alg) noexcept;
 
 	template<typename T>
 	void SortAlgorithms(Vector<T>& list);

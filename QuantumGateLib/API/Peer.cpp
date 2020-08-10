@@ -198,6 +198,13 @@ namespace QuantumGate::API
 														  [](auto& peer_data) { return peer_data->Type; });
 	}
 
+	Result<API::Peer::ConnectionAlgorithms> Peer::GetConnectionAlgorithms() const noexcept
+	{
+		assert(HasPeer());
+		return GetPeerDataItem<API::Peer::ConnectionAlgorithms>(PeerDataCast(GetPeerDataStorage()),
+																[](auto& peer_data) { return peer_data->Algorithms; });
+	}
+
 	Result<bool> Peer::IsAuthenticated() const noexcept
 	{
 		assert(HasPeer());

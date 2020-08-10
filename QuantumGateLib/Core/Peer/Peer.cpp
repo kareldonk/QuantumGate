@@ -1583,11 +1583,14 @@ namespace QuantumGate::Implementation::Core::Peer
 			return false;
 		}
 
-		m_Algorithms.Hash = ha;
-		m_Algorithms.PrimaryAsymmetric = paa;
-		m_Algorithms.SecondaryAsymmetric = saa;
-		m_Algorithms.Symmetric = sa;
-		m_Algorithms.Compression = ca;
+		m_PeerData.WithUniqueLock([&](Data& peer_data) noexcept
+		{
+			peer_data.Algorithms.Hash = ha;
+			peer_data.Algorithms.PrimaryAsymmetric = paa;
+			peer_data.Algorithms.SecondaryAsymmetric = saa;
+			peer_data.Algorithms.Symmetric = sa;
+			peer_data.Algorithms.Compression = ca;
+		});
 
 		return true;
 	}

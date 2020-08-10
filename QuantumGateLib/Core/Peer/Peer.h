@@ -158,7 +158,7 @@ namespace QuantumGate::Implementation::Core::Peer
 										 const Algorithm::Asymmetric saa, const Algorithm::Symmetric sa,
 										 const Algorithm::Compression ca) noexcept;
 
-		[[nodiscard]] inline const Algorithms& GetAlgorithms() const noexcept { return m_Algorithms; }
+		[[nodiscard]] inline Algorithms GetAlgorithms() const noexcept { return m_PeerData.WithSharedLock()->Algorithms; }
 
 		[[nodiscard]] inline bool IsUsingGlobalSharedSecret() const noexcept { return !GetGlobalSharedSecret().IsEmpty(); }
 		[[nodiscard]] const ProtectedBuffer& GetGlobalSharedSecret() const noexcept;
@@ -326,8 +326,6 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		std::chrono::milliseconds m_SendDisabledDuration{ 0 };
 		SteadyTime m_SendDisabledSteadyTime;
-
-		Algorithms m_Algorithms;
 
 		SymmetricKeys m_Keys;
 		std::unique_ptr<KeyExchange> m_KeyExchange{ nullptr };
