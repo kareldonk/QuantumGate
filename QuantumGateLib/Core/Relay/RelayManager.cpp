@@ -37,7 +37,8 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		if (!StartupThreadPool())
 		{
-			ShutdownThreadPool();
+			BeginShutdownThreadPool();
+			EndShutdownThreadPool();
 
 			LogErr(L"Relaymanager startup failed");
 
@@ -59,7 +60,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		LogSys(L"Relaymanager shutting down...");
 
-		ShutdownThreadPool();
+		BeginShutdownThreadPool();
 
 		// Disconnect and remove all relays
 		DisconnectAndRemoveAll();
@@ -151,10 +152,14 @@ namespace QuantumGate::Implementation::Core::Relay
 		return false;
 	}
 
-	void Manager::ShutdownThreadPool() noexcept
+	void Manager::BeginShutdownThreadPool() noexcept
 	{
 		m_ThreadPool.Shutdown();
 		m_ThreadPool.Clear();
+	}
+
+	void Manager::EndShutdownThreadPool() noexcept
+	{
 		m_ThreadPool.GetData().WorkEvents.Deinitialize();
 	}
 

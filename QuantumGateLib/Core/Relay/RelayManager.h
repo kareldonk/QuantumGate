@@ -76,7 +76,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		void ResetState() noexcept;
 
 		[[nodiscard]] bool StartupThreadPool() noexcept;
-		void ShutdownThreadPool() noexcept;
+		void BeginShutdownThreadPool() noexcept;
+		void EndShutdownThreadPool() noexcept;
 
 		std::optional<ThreadKey> GetThreadKey(const RelayPort rport) const noexcept;
 
