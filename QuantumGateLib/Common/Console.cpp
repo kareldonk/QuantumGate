@@ -31,9 +31,28 @@ namespace QuantumGate::Implementation
 		return ConsoleObj;
 	}
 
-	Console::Window::Window() noexcept
+	Console::Window::Window(const bool close_button_enabled, const bool ctrl_break_enabled) noexcept
 	{
 		AllocConsole();
+
+		if (!close_button_enabled)
+		{
+			const auto hwnd = GetConsoleWindow();
+			if (hwnd != nullptr)
+			{
+				const auto hmenu = GetSystemMenu(hwnd, FALSE);
+				if (hmenu != nullptr)
+				{
+					EnableMenuItem(hmenu, SC_CLOSE, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
+				}
+			}
+		}
+
+		if (!ctrl_break_enabled)
+		{
+			// Disables Ctrl+C/Break (but will still work if process is being debugged
+			SetConsoleCtrlHandler(nullptr, true);
+		}
 
 		_wfreopen_s(&m_ConsoleInput, L"CONIN$", L"r", stdin);
 		_wfreopen_s(&m_ConsoleOutput, L"CONOUT$", L"w", stdout);
@@ -354,9 +373,12 @@ namespace QuantumGate::Implementation
 #endif
 	}
 
-	Console::WindowOutput::WindowOutput() noexcept
+	Console::WindowOutput::WindowOutput() noexcept : WindowOutput(false, false)
+	{}
+
+	Console::WindowOutput::WindowOutput(const bool close_button_enabled, const bool ctrl_break_enabled) noexcept
 	{
-		m_ConsoleWindow = std::make_unique<Console::Window>();
+		m_ConsoleWindow = std::make_unique<Console::Window>(close_button_enabled, ctrl_break_enabled);
 
 		InitConsole();
 	}

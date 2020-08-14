@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation
 		class Window
 		{
 		public:
-			Window() noexcept;
+			Window(const bool close_button_enabled, const bool ctrl_break_enabled) noexcept;
 			Window(const Window&) = delete;
 			Window(Window&&) noexcept = default;
 			~Window();
@@ -111,15 +111,15 @@ namespace QuantumGate::Implementation
 			Output& operator=(const Output&) = delete;
 			Output& operator=(Output&&) noexcept = default;
 
-			virtual const WChar* GetFormat(const MessageType type, const Format fmt) const = 0;
-			virtual void AddMessage(const MessageType type, const WChar* message) = 0;
+			virtual const WChar* GetFormat(const MessageType, const Format) const = 0;
+			virtual void AddMessage(const MessageType, const WChar*) = 0;
 		};
 
 		class Export DummyOutput : public Output
 		{
 		public:
-			const WChar* GetFormat(const MessageType type, const Format fmt) const noexcept override { return L""; }
-			void AddMessage(const MessageType type, const WChar* message) noexcept override {}
+			const WChar* GetFormat(const MessageType, const Format) const noexcept override { return L""; }
+			void AddMessage(const MessageType, const WChar*) noexcept override {}
 		};
 
 		class Export TerminalOutput : public Output
@@ -202,6 +202,7 @@ namespace QuantumGate::Implementation
 		{
 		public:
 			WindowOutput() noexcept;
+			WindowOutput(const bool close_button_enabled, const bool ctrl_break_enabled) noexcept;
 			~WindowOutput();
 
 			void AddMessage(const MessageType type, const WChar* message) override;
