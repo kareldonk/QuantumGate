@@ -243,6 +243,8 @@ namespace QuantumGate::Implementation
 		FunctionSignatureIsConstV<Sig>, FunctionSignatureIsNoexceptV<Sig>>
 	{
 	public:
+		using FunctionSignature = Sig;
+
 		Callback() noexcept {}
 		Callback(std::nullptr_t) noexcept {}
 
