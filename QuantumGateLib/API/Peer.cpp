@@ -112,7 +112,7 @@ namespace QuantumGate::API
 		new (GetPeerSharedPtrStorage()) PeerSharedPtr(*peer_ptr);
 
 		// Also store a pointer to peer data for quicker access
-		auto peer_data_ptr = &(*PeerSharedPtrCast(GetPeerSharedPtrStorage()))->WithSharedLock()->GetPeerData();
+		auto peer_data_ptr = &(*PeerSharedPtrCast(GetPeerSharedPtrStorage()))->WithUniqueLock()->GetPeerData();
 		auto peer_data_storage = GetPeerDataStorage();
 		*peer_data_storage = reinterpret_cast<std::uintptr_t>(peer_data_ptr);
 
@@ -205,20 +205,20 @@ namespace QuantumGate::API
 																[](auto& peer_data) { return peer_data->Algorithms; });
 	}
 
-	Result<bool> Peer::IsAuthenticated() const noexcept
+	Result<bool> Peer::GetAuthenticated() const noexcept
 	{
 		assert(HasPeer());
 		return GetPeerDataItem<bool>(PeerDataCast(GetPeerDataStorage()),
 									 [](auto& peer_data) { return peer_data->IsAuthenticated; });
 	}
 
-	Result<bool> Peer::IsRelayed() const noexcept
+	Result<bool> Peer::GetRelayed() const noexcept
 	{
 		assert(HasPeer());
 		return GetPeerDataItem<bool>(PeerDataCast(GetPeerDataStorage()), [](auto& peer_data) { return peer_data->IsRelayed; });
 	}
 
-	Result<bool> Peer::IsUsingGlobalSharedSecret() const noexcept
+	Result<bool> Peer::GetUsingGlobalSharedSecret() const noexcept
 	{
 		assert(HasPeer());
 		return GetPeerDataItem<bool>(PeerDataCast(GetPeerDataStorage()),

@@ -6,6 +6,7 @@
 namespace QuantumGate::Implementation::Core::Peer
 {
 	class Manager;
+	class Peer;
 	class Event;
 }
 
@@ -14,6 +15,7 @@ namespace QuantumGate::API
 	class Export Peer
 	{
 		friend class QuantumGate::Implementation::Core::Peer::Manager;
+		friend class QuantumGate::Implementation::Core::Peer::Peer;
 		friend class QuantumGate::Implementation::Core::Peer::Event;
 
 	public:
@@ -58,9 +60,9 @@ namespace QuantumGate::API
 
 		Result<ConnectionType> GetConnectionType() const noexcept;
 		Result<ConnectionAlgorithms> GetConnectionAlgorithms() const noexcept;
-		Result<bool> IsAuthenticated() const noexcept;
-		Result<bool> IsRelayed() const noexcept;
-		Result<bool> IsUsingGlobalSharedSecret() const noexcept;
+		Result<bool> GetAuthenticated() const noexcept;
+		Result<bool> GetRelayed() const noexcept;
+		Result<bool> GetUsingGlobalSharedSecret() const noexcept;
 
 		Result<IPEndpoint> GetLocalIPEndpoint() const noexcept;
 		Result<IPEndpoint> GetPeerIPEndpoint() const noexcept;

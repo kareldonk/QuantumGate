@@ -161,14 +161,14 @@ bool HandleCommand(const String& cmdline)
 					{
 						const auto endp = IPEndpoint(addr, static_cast<UInt16>(port));
 
-						const auto result = m_QuantumGate.ConnectTo({ endp }, [&](PeerLUID pluid, Result<ConnectDetails> cresult) mutable
+						const auto result = m_QuantumGate.ConnectTo({ endp }, [&](PeerLUID pluid, Result<Peer> cresult) mutable
 						{
 							if (cresult.Succeeded())
 							{
 								PrintInfoLine(L"Successfully connected to endpoint %s with peer LUID %llu (%s, %s).",
 											  endp.GetString().c_str(), pluid,
-											  cresult->IsAuthenticated ? L"Authenticated" : L"NOT Authenticated",
-											  cresult->IsRelayed ? L"Relayed" : L"NOT Relayed");
+											  cresult->GetAuthenticated().GetValue() ? L"Authenticated" : L"NOT Authenticated",
+											  cresult->GetRelayed().GetValue() ? L"Relayed" : L"NOT Relayed");
 							}
 							else
 							{

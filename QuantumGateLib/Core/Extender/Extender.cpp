@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		assert(uuid.GetType() == UUID::Type::Extender && !name.empty());
 	}
 
-	Result<ConnectDetails> Extender::ConnectTo(ConnectParameters&& params) noexcept
+	Result<API::Peer> Extender::ConnectTo(ConnectParameters&& params) noexcept
 	{
 		assert(IsRunning());
 

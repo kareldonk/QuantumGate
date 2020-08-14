@@ -100,7 +100,7 @@ namespace QuantumGate::API
 
 		[[nodiscard]] bool IsRunning() const noexcept;
 
-		Result<ConnectDetails> ConnectTo(ConnectParameters&& params) noexcept;
+		Result<Peer> ConnectTo(ConnectParameters&& params) noexcept;
 		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept;
 
 		Result<> DisconnectFrom(const PeerLUID pluid) noexcept;

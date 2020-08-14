@@ -186,7 +186,7 @@ namespace QuantumGate::API
 		return m_Local->GetExtender(extuuid);
 	}
 
-	Result<ConnectDetails> Local::ConnectTo(ConnectParameters&& params) noexcept
+	Result<Peer> Local::ConnectTo(ConnectParameters&& params) noexcept
 	{
 		return m_Local->ConnectTo(std::move(params));
 	}

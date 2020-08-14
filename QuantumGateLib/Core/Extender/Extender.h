@@ -41,7 +41,7 @@ namespace QuantumGate::Implementation::Core::Extender
 		Result<std::pair<UInt, UInt>> GetLocalProtocolVersion() const noexcept;
 		Result<PeerUUID> GetLocalUUID() const noexcept;
 
-		Result<ConnectDetails> ConnectTo(ConnectParameters&& params) noexcept;
+		Result<API::Peer> ConnectTo(ConnectParameters&& params) noexcept;
 		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params,
 													ConnectCallback&& function) noexcept;
 

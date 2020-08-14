@@ -326,17 +326,17 @@ void CTestAppDlgMainTab::LogPeerDetails(const QuantumGate::Peer& peer)
 		pitxt += Util::FormatString(L"Peer UUID:\t\t\t%s\r\n\r\n", result->GetString().c_str());
 	});
 
-	peer.IsAuthenticated().Succeeded([&](auto& result)
+	peer.GetAuthenticated().Succeeded([&](auto& result)
 	{
 		pitxt += Util::FormatString(L"Authenticated:\t\t\t%s\r\n", *result ? L"Yes" : L"No");
 	});
 
-	peer.IsRelayed().Succeeded([&](auto& result)
+	peer.GetRelayed().Succeeded([&](auto& result)
 	{
 		pitxt += Util::FormatString(L"Relayed:\t\t\t%s\r\n", *result ? L"Yes" : L"No");
 	});
 
-	peer.IsUsingGlobalSharedSecret().Succeeded([&](auto& result)
+	peer.GetUsingGlobalSharedSecret().Succeeded([&](auto& result)
 	{
 		pitxt += Util::FormatString(L"Global shared secret:\t\t%s\r\n\r\n", *result ? L"Yes" : L"No");
 	});

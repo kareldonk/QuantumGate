@@ -1369,13 +1369,19 @@ void CTestAppDlg::OnUpdateLocalConnect(CCmdUI* pCmdUI)
 	pCmdUI->Enable(m_QuantumGate.IsRunning());
 }
 
-void CTestAppDlg::OnPeerConnected(PeerLUID pluid, Result<ConnectDetails> result)
+void CTestAppDlg::OnPeerConnected(PeerLUID pluid, Result<Peer> result)
 {
 	if (result.Succeeded())
 	{
+		const auto authr = result->GetAuthenticated();
+		const bool auth = authr.Succeeded() ? authr.GetValue() : false;
+
+		const auto relayedr = result->GetRelayed();
+		const bool relayed = relayedr.Succeeded() ? relayedr.GetValue() : false;
+
 		LogInfo(L"Successfully connected to peer LUID %llu (%s, %s)",
-				pluid, result->IsAuthenticated ? L"Authenticated" : L"NOT Authenticated",
-				result->IsRelayed ? L"Relayed" : L"NOT Relayed");
+				pluid, auth ? L"Authenticated" : L"NOT Authenticated",
+				relayed ? L"Relayed" : L"NOT Relayed");
 
 		// Using PostMessage because the current QuantumGate worker thread should NOT be calling directly to the UI;
 		// only the thread that created the Window should do that, to avoid deadlocks
@@ -1422,7 +1428,7 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 		}
 
 		const auto result = m_QuantumGate.ConnectTo(std::move(params),
-													[](PeerLUID pluid, Result<ConnectDetails> result) mutable noexcept
+													[](PeerLUID pluid, Result<Peer> result) mutable noexcept
 		{
 			if (result.Succeeded())
 			{

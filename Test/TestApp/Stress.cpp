@@ -125,7 +125,7 @@ void Stress::ConnectStressThreadProc(Local* qg)
 			const auto connect_result = qg->ConnectTo(std::move(params));
 			if (connect_result.Succeeded())
 			{
-				pluid = connect_result->PeerLUID;
+				pluid = connect_result->GetLUID();
 				m_ConnectStressData.Connected = true;
 			}
 			else

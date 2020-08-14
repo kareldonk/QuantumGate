@@ -42,7 +42,7 @@ protected:
 
 	void UpdateControls();
 
-	void OnPeerConnected(PeerLUID pluid, Result<ConnectDetails> result);
+	void OnPeerConnected(PeerLUID pluid, Result<Peer> result);
 
 	void SetSecurityLevel(const QuantumGate::SecurityLevel level);
 

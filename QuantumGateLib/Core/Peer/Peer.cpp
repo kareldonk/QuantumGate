@@ -602,16 +602,17 @@ namespace QuantumGate::Implementation::Core::Peer
 
 					if (m_ConnectCallbacks)
 					{
-						ConnectDetails cdetails;
-						cdetails.PeerLUID = GetLUID();
-						cdetails.PeerUUID = GetPeerUUID();
-						cdetails.IsAuthenticated = IsAuthenticated();
-						cdetails.IsUsingGlobalSharedSecret = IsUsingGlobalSharedSecret();
-						cdetails.IsRelayed = IsRelayed();
+						const auto pluid = GetLUID();
+						Result<API::Peer> result{ ResultCode::Failed };
 
-						ScheduleCallback([cdetails, dispatcher = std::move(m_ConnectCallbacks)]() mutable
+						const auto peer_ptr = m_PeerPointer.lock();
+						if (peer_ptr) result = API::Peer(pluid, &peer_ptr);
+
+						ScheduleCallback([dpluid = pluid,
+										 dresult = std::move(result),
+										 dispatcher = std::move(m_ConnectCallbacks)]() mutable
 						{
-							dispatcher(cdetails.PeerLUID, cdetails);
+							dispatcher(dpluid, std::move(dresult));
 						});
 					}
 
@@ -636,18 +637,18 @@ namespace QuantumGate::Implementation::Core::Peer
 
 					if (!error) error = GetDisconnectConditionResultCode();
 
-					ScheduleCallback([pluid = GetLUID(), cdetails = *error,
+					ScheduleCallback([dpluid = GetLUID(), dresult = *error,
 									 dispatcher = std::move(m_ConnectCallbacks)]() mutable
 					{
-						dispatcher(pluid, cdetails);
+						dispatcher(dpluid, dresult);
 					});
 				}
 				else if (m_DisconnectCallbacks && old_status < Status::Disconnected)
 				{
-					ScheduleCallback([pluid = GetLUID(), puuid = GetPeerUUID(),
+					ScheduleCallback([dpluid = GetLUID(), dpuuid = GetPeerUUID(),
 									 dispatcher = std::move(m_DisconnectCallbacks)]() mutable
 					{
-						dispatcher(pluid, puuid);
+						dispatcher(dpluid, dpuuid);
 					});
 				}
 

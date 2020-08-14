@@ -27,7 +27,7 @@ namespace QuantumGate::API
 		return m_Extender->IsRunning();
 	}
 
-	Result<ConnectDetails> Extender::ConnectTo(ConnectParameters&& params) noexcept
+	Result<Peer> Extender::ConnectTo(ConnectParameters&& params) noexcept
 	{
 		return m_Extender->ConnectTo(std::move(params));
 	}

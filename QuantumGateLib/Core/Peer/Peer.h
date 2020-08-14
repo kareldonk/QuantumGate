@@ -335,7 +335,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		MessageProcessor m_MessageProcessor{ *this };
 
-		Dispatcher<void(const PeerLUID, const Result<ConnectDetails> result)> m_ConnectCallbacks;
-		Dispatcher<void(const PeerLUID, const PeerUUID)> m_DisconnectCallbacks;
+		Dispatcher<ConnectCallback::FunctionSignature> m_ConnectCallbacks;
+		Dispatcher<DisconnectCallback::FunctionSignature> m_DisconnectCallbacks;
 	};
 }

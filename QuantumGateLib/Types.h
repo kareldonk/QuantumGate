@@ -151,7 +151,7 @@ namespace QuantumGate
 		std::optional<PeerUUID::PeerKeys> Keys;					// The private and public keys for the local peer
 		std::optional<ProtectedBuffer> GlobalSharedSecret;		// Global shared secret to use for all connections with peers (in addition to each individual secret key for every peer)
 		bool RequireAuthentication{ true };						// Whether authentication is required for connecting peers
-		
+
 		Algorithms SupportedAlgorithms;							// The supported algorithms
 		Size NumPreGeneratedKeysPerAlgorithm{ 5 };				// The number of pregenerated keys per supported algorithm
 
@@ -182,7 +182,7 @@ namespace QuantumGate
 		struct
 		{
 			bool UseConditionalAcceptFunction{ true };							// Whether to use the conditional accept function before accepting connections
-			
+
 			std::chrono::seconds ConnectTimeout{ 0 };							// Maximum number of seconds to wait for a connection to be established
 
 			std::chrono::milliseconds MaxHandshakeDelay{ 0 };					// Maximum number of milliseconds to delay a handshake
@@ -238,16 +238,16 @@ namespace QuantumGate
 		} Noise;
 	};
 
-	struct ConnectDetails
-	{
-		PeerLUID PeerLUID{ 0 };
-		PeerUUID PeerUUID;
-		bool IsAuthenticated{ false };
-		bool IsRelayed{ false };
-		bool IsUsingGlobalSharedSecret{ false };
-	};
+}
 
-	using ConnectCallback = Callback<void(PeerLUID, Result<ConnectDetails> result)>;
+namespace QuantumGate::API
+{
+	class Peer;
+}
+
+namespace QuantumGate
+{
+	using ConnectCallback = Callback<void(PeerLUID, Result<API::Peer>)>;
 	using DisconnectCallback = Callback<void(PeerLUID, PeerUUID)>;
 	using SendCallback = Callback<void()>;
 

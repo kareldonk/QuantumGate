@@ -112,7 +112,7 @@ namespace QuantumGate::API
 		[[nodiscard]] bool HasExtender(const ExtenderUUID& extuuid) const noexcept;
 		[[nodiscard]] std::weak_ptr<Extender> GetExtender(const ExtenderUUID& extuuid) const noexcept;
 
-		Result<ConnectDetails> ConnectTo(ConnectParameters&& params) noexcept;
+		Result<Peer> ConnectTo(ConnectParameters&& params) noexcept;
 		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params,
 													ConnectCallback&& function) noexcept;
 

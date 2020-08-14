@@ -895,15 +895,15 @@ namespace QuantumGate::Implementation::Core
 		return m_ExtenderManager.GetExtender(extuuid);
 	}
 
-	Result<ConnectDetails> Local::ConnectTo(ConnectParameters&& params) noexcept
+	Result<API::Peer> Local::ConnectTo(ConnectParameters&& params) noexcept
 	{
 		if (IsRunning())
 		{
 			Concurrency::Event cevent;
-			Result<ConnectDetails> final_result{ ResultCode::Failed };
+			Result<API::Peer> final_result{ ResultCode::Failed };
 
 			const auto result = m_PeerManager.ConnectTo(std::move(params),
-														[&](PeerLUID pluid, Result<ConnectDetails> connect_result) mutable noexcept
+														[&](PeerLUID pluid, Result<API::Peer> connect_result) mutable noexcept
 			{
 				final_result = std::move(connect_result);
 
@@ -922,21 +922,10 @@ namespace QuantumGate::Implementation::Core
 				else
 				{
 					// Reused connection; get connection details and return them
-					const auto result1 = GetPeer(result->first);
+					auto result1 = GetPeer(result->first);
 					if (result1.Succeeded())
 					{
-						const auto result2 = result1->GetDetails();
-						if (result2.Succeeded())
-						{
-							ConnectDetails cdetails;
-							cdetails.PeerLUID = result1->GetLUID();
-							cdetails.PeerUUID = result2->PeerUUID;
-							cdetails.IsAuthenticated = result2->IsAuthenticated;
-							cdetails.IsUsingGlobalSharedSecret = result2->IsUsingGlobalSharedSecret;
-							cdetails.IsRelayed = result2->IsRelayed;
-
-							return cdetails;
-						}
+						return result1;
 					}
 
 					return ResultCode::FailedRetry;
