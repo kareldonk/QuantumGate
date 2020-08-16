@@ -51,8 +51,8 @@ namespace QuantumGate::Implementation::Core::Access
 
 		Result<Vector<IPFilter>> GetFilters() const noexcept;
 
-		Result<bool> IsAllowed(const WChar* ip) const noexcept;
-		Result<bool> IsAllowed(const IPAddress& ipaddr) const noexcept;
+		Result<bool> GetAllowed(const WChar* ip) const noexcept;
+		Result<bool> GetAllowed(const IPAddress& ipaddr) const noexcept;
 
 	private:
 		Result<IPFilterID> AddFilterImpl(const IPAddress& ip, const IPAddress& mask,

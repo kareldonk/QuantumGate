@@ -105,16 +105,16 @@ namespace QuantumGate::API::Access
 		void ResetAllIPReputations() noexcept;
 		Result<Vector<IPReputation>> GetAllIPReputations() const noexcept;
 
-		Result<bool> IsIPAllowed(const WChar* ip_str, const CheckType check) const noexcept;
-		Result<bool> IsIPAllowed(const String& ip_str, const CheckType check) const noexcept;
-		Result<bool> IsIPAllowed(const IPAddress& ip, const CheckType check) const noexcept;
+		Result<bool> GetIPAllowed(const WChar* ip_str, const CheckType check) const noexcept;
+		Result<bool> GetIPAllowed(const String& ip_str, const CheckType check) const noexcept;
+		Result<bool> GetIPAllowed(const IPAddress& ip, const CheckType check) const noexcept;
 
 		Result<> AddPeer(PeerSettings&& pas) noexcept;
 		Result<> UpdatePeer(PeerSettings&& pas) noexcept;
 		Result<> RemovePeer(const PeerUUID& puuid) noexcept;
 		void RemoveAllPeers() noexcept;
 
-		Result<bool> IsPeerAllowed(const PeerUUID& puuid) const noexcept;
+		Result<bool> GetPeerAllowed(const PeerUUID& puuid) const noexcept;
 
 		void SetPeerAccessDefault(const PeerAccessDefault pad) noexcept;
 		[[nodiscard]] PeerAccessDefault GetPeerAccessDefault() const noexcept;

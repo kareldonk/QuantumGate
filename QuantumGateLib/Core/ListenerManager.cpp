@@ -369,7 +369,7 @@ namespace QuantumGate::Implementation::Core::Listener
 		if (m_AccessManager.AddIPConnectionAttempt(ipaddr))
 		{
 			// Check if IP is allowed through filters/limits and if it has acceptible reputation
-			if (const auto result = m_AccessManager.IsIPConnectionAllowed(ipaddr, Access::CheckType::All); result.Succeeded())
+			if (const auto result = m_AccessManager.GetIPConnectionAllowed(ipaddr, Access::CheckType::All); result.Succeeded())
 			{
 				return *result;
 			}

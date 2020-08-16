@@ -154,7 +154,7 @@ namespace QuantumGate::Socks5Extender
 
 	bool Extender::IsOutgoingIPAllowed(const IPAddress& ip) const noexcept
 	{
-		if (const auto result = m_IPFilters.WithSharedLock()->IsAllowed(ip); result.Succeeded())
+		if (const auto result = m_IPFilters.WithSharedLock()->GetAllowed(ip); result.Succeeded())
 		{
 			return *result;
 		}

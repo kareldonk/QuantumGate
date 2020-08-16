@@ -68,7 +68,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return ResultCode::Failed;
 	}
 
-	Result<bool> PeerAccessControl::IsAllowed(const PeerUUID& puuid) const noexcept
+	Result<bool> PeerAccessControl::GetAllowed(const PeerUUID& puuid) const noexcept
 	{
 		assert(puuid.IsValid());
 

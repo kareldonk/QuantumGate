@@ -35,7 +35,7 @@ namespace UnitTests
 
 			// Peer not allowed
 			Assert::AreEqual(false,
-							 pac.IsAllowed(QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54")).GetValue());
 
 			// Add peer
 			{
@@ -51,7 +51,7 @@ namespace UnitTests
 			}
 
 			// Peer allowed
-			Assert::AreEqual(true, pac.IsAllowed(QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54")).GetValue());
+			Assert::AreEqual(true, pac.GetAllowed(QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54")).GetValue());
 
 			// Add peer invalid/unset UUID
 			{
@@ -106,7 +106,7 @@ namespace UnitTests
 
 			// Peer allowed
 			Assert::AreEqual(true,
-							 pac.IsAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
 
 			// Update peer that already exists
 			{
@@ -119,7 +119,7 @@ namespace UnitTests
 
 			// Peer not allowed anymore
 			Assert::AreEqual(false,
-							 pac.IsAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
 
 			// Update peer that doesn't exists
 			{
@@ -187,13 +187,13 @@ namespace UnitTests
 
 			// Unknown peer allowed because of default setting
 			Assert::AreEqual(true,
-							 pac.IsAllowed(QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54")).GetValue());
 
 			pac.SetAccessDefault(PeerAccessDefault::NotAllowed);
 
 			// Unknown peer not allowed because of default setting
 			Assert::AreEqual(false,
-							 pac.IsAllowed(QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54")).GetValue());
 
 			// Add peer
 			{
@@ -210,7 +210,7 @@ namespace UnitTests
 
 			// Peer allowed because it's now known
 			Assert::AreEqual(true,
-							 pac.IsAllowed(QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54")).GetValue());
 
 
 			// Add peer that's not allowed
@@ -228,13 +228,13 @@ namespace UnitTests
 
 			// Not allowed because of peer setting
 			Assert::AreEqual(false,
-							 pac.IsAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
 
 			pac.SetAccessDefault(PeerAccessDefault::Allowed);
 
 			// Still not allowed
 			Assert::AreEqual(false,
-							 pac.IsAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
 
 			pac.SetAccessDefault(PeerAccessDefault::NotAllowed);
 
@@ -258,7 +258,7 @@ namespace UnitTests
 
 			// Peer not allowed due to authentication required setting while peer doesn't have a public key
 			Assert::AreEqual(false,
-							 pac.IsAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
 
 			settings.UpdateValue([](Settings& set)
 			{
@@ -267,7 +267,7 @@ namespace UnitTests
 
 			// Peer is now allowed
 			Assert::AreEqual(true,
-							 pac.IsAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
 
 			// Remove peer
 			Assert::AreEqual(true,
@@ -275,13 +275,13 @@ namespace UnitTests
 
 			// Peer is not allowed due to access default
 			Assert::AreEqual(false,
-							 pac.IsAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
 
 			pac.SetAccessDefault(PeerAccessDefault::Allowed);
 
 			// Peer is allowed due to access default
 			Assert::AreEqual(true,
-							 pac.IsAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
 
 			settings.UpdateValue([](Settings& set)
 			{
@@ -290,7 +290,7 @@ namespace UnitTests
 
 			// Peer is not allowed due to authentication requirements
 			Assert::AreEqual(false,
-							 pac.IsAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
+							 pac.GetAllowed(QuantumGate::UUID(L"e938164b-52c1-69d4-0b84-75d3d11dbfad")).GetValue());
 		}
 	};
 }

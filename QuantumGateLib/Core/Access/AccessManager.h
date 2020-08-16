@@ -66,17 +66,17 @@ namespace QuantumGate::Implementation::Core::Access
 		[[nodiscard]] bool AddIPConnection(const IPAddress& ip) noexcept;
 		[[nodiscard]] bool RemoveIPConnection(const IPAddress& ip) noexcept;
 
-		Result<bool> IsIPAllowed(const WChar* ip_str, const CheckType check) noexcept;
-		Result<bool> IsIPAllowed(const IPAddress& ip, const CheckType check) noexcept;
+		Result<bool> GetIPAllowed(const WChar* ip_str, const CheckType check) noexcept;
+		Result<bool> GetIPAllowed(const IPAddress& ip, const CheckType check) noexcept;
 
-		Result<bool> IsIPConnectionAllowed(const IPAddress& ip, const CheckType check) noexcept;
+		Result<bool> GetIPConnectionAllowed(const IPAddress& ip, const CheckType check) noexcept;
 
 		Result<> AddPeer(PeerSettings&& pas) noexcept;
 		Result<> UpdatePeer(PeerSettings&& pas) noexcept;
 		Result<> RemovePeer(const PeerUUID& puuid) noexcept;
 		void RemoveAllPeers() noexcept;
 
-		Result<bool> IsPeerAllowed(const PeerUUID& puuid) const noexcept;
+		Result<bool> GetPeerAllowed(const PeerUUID& puuid) const noexcept;
 
 		const ProtectedBuffer* GetPeerPublicKey(const PeerUUID& puuid) const noexcept;
 

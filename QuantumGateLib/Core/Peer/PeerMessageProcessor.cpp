@@ -600,7 +600,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		// Should have a peer UUID by now
 		assert(m_Peer.GetPeerUUID().IsValid());
 
-		if (const auto allowed = m_Peer.GetAccessManager().IsPeerAllowed(m_Peer.GetPeerUUID()); allowed && *allowed)
+		if (const auto allowed = m_Peer.GetAccessManager().GetPeerAllowed(m_Peer.GetPeerUUID()); allowed && *allowed)
 		{
 			const auto authenticated = VerifySignature(psig);
 			if (authenticated || (!authenticated && !m_Peer.GetSettings().Local.RequireAuthentication))

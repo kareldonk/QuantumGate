@@ -1820,7 +1820,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		LogDbg(L"Checking access for peer %s", GetPeerName().c_str());
 
 		// Check if peer IP is still allowed access
-		const auto result = GetAccessManager().IsIPAllowed(GetPeerIPAddress(), Access::CheckType::All);
+		const auto result = GetAccessManager().GetIPAllowed(GetPeerIPAddress(), Access::CheckType::All);
 		if (!result || !(*result))
 		{
 			// Peer IP isn't allowed anymore; disconnect the peer as soon as possible
@@ -1838,7 +1838,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (status == Status::Ready || status == Status::SessionInit)
 			{
 				// Check if peer UUID is still allowed access
-				const auto result2 = GetAccessManager().IsPeerAllowed(GetPeerUUID());
+				const auto result2 = GetAccessManager().GetPeerAllowed(GetPeerUUID());
 				if (!result2 || !(*result2))
 				{
 					// Peer UUID isn't allowed anymore; disconnect the peer as soon as possible

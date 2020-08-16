@@ -108,19 +108,19 @@ namespace QuantumGate::API::Access
 		return m_AccessManager->GetAllIPReputations();
 	}
 
-	Result<bool> Manager::IsIPAllowed(const WChar* ip_str, const CheckType check) const noexcept
+	Result<bool> Manager::GetIPAllowed(const WChar* ip_str, const CheckType check) const noexcept
 	{
-		return m_AccessManager->IsIPAllowed(ip_str, check);
+		return m_AccessManager->GetIPAllowed(ip_str, check);
 	}
 
-	Result<bool> Manager::IsIPAllowed(const String& ip_str, const CheckType check) const noexcept
+	Result<bool> Manager::GetIPAllowed(const String& ip_str, const CheckType check) const noexcept
 	{
-		return m_AccessManager->IsIPAllowed(ip_str.c_str(), check);
+		return m_AccessManager->GetIPAllowed(ip_str.c_str(), check);
 	}
 
-	Result<bool> Manager::IsIPAllowed(const IPAddress& ip, const CheckType check) const noexcept
+	Result<bool> Manager::GetIPAllowed(const IPAddress& ip, const CheckType check) const noexcept
 	{
-		return m_AccessManager->IsIPAllowed(ip, check);
+		return m_AccessManager->GetIPAllowed(ip, check);
 	}
 
 	Result<> Manager::AddPeer(PeerSettings&& pas) noexcept
@@ -143,9 +143,9 @@ namespace QuantumGate::API::Access
 		m_AccessManager->RemoveAllPeers();
 	}
 
-	Result<bool> Manager::IsPeerAllowed(const PeerUUID& puuid) const noexcept
+	Result<bool> Manager::GetPeerAllowed(const PeerUUID& puuid) const noexcept
 	{
-		return m_AccessManager->IsPeerAllowed(puuid);
+		return m_AccessManager->GetPeerAllowed(puuid);
 	}
 
 	void Manager::SetPeerAccessDefault(const PeerAccessDefault pad) noexcept

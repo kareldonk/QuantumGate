@@ -33,7 +33,7 @@ namespace QuantumGate::Implementation::Core::Access
 		Result<> UpdatePeer(PeerSettings&& pas) noexcept;
 		Result<> RemovePeer(const PeerUUID& puuid) noexcept;
 
-		Result<bool> IsAllowed(const PeerUUID& puuid) const noexcept;
+		Result<bool> GetAllowed(const PeerUUID& puuid) const noexcept;
 
 		const ProtectedBuffer* GetPublicKey(const PeerUUID& puuid) const noexcept;
 

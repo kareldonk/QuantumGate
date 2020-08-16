@@ -243,12 +243,12 @@ namespace QuantumGate::Implementation::Core::Access
 		return Hash::GetNonPersistentHash(ip.GetString() + mask.GetString());
 	}
 
-	Result<bool> IPFilters::IsAllowed(const WChar* ip) const noexcept
+	Result<bool> IPFilters::GetAllowed(const WChar* ip) const noexcept
 	{
 		IPAddress ipaddr;
 		if (IPAddress::TryParse(ip, ipaddr))
 		{
-			return IsAllowed(ipaddr);
+			return GetAllowed(ipaddr);
 		}
 
 		LogErr(L"Could not check if IP is allowed: unrecognized IP address");
@@ -256,7 +256,7 @@ namespace QuantumGate::Implementation::Core::Access
 		return ResultCode::AddressInvalid;
 	}
 
-	Result<bool> IPFilters::IsAllowed(const IPAddress& ipaddr) const noexcept
+	Result<bool> IPFilters::GetAllowed(const IPAddress& ipaddr) const noexcept
 	{
 		// IP addresses are blocked by default unless they are allowed via a filter in the
 		// allowed filter ranges. Even if they are allowed via one of the allowed filter

@@ -681,8 +681,8 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		auto result_code = ResultCode::Failed;
 
-		if (const auto allowed = m_AccessManager.IsIPConnectionAllowed(params.PeerIPEndpoint.GetIPAddress(),
-																	   Access::CheckType::All); allowed && *allowed)
+		if (const auto allowed = m_AccessManager.GetIPConnectionAllowed(params.PeerIPEndpoint.GetIPAddress(),
+																		Access::CheckType::All); allowed && *allowed)
 		{
 			auto reused = false;
 			PeerLUID pluid{ 0 };
