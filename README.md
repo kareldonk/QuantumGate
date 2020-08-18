@@ -21,11 +21,11 @@ QuantumGate is developed in C++20 and currently only supports the Microsoft Wind
 
 ## Pre-built Binaries and Releases
 
-There are releases available on the [Releases page](https://github.com/kareldonk/QuantumGate/releases), some including pre-built binaries, that you can download to quickly try out. If you'd like to build from source then you can check the Manual Build section below.
+There are releases available on the [releases page](https://github.com/kareldonk/QuantumGate/releases), some including pre-built binaries, that you can download to quickly try out. If you'd like to build from source then you can check the Manual Build section below.
 
 ## Manual Build
 
-The `master` branch is generally kept as stable as possible so you can download the source code from there instead of from the [Releases page](https://github.com/kareldonk/QuantumGate/releases) if you prefer to work with the latest version.
+The `master` branch is generally kept as stable as possible so you can download the source code from there instead of from the [releases page](https://github.com/kareldonk/QuantumGate/releases) if you prefer to work with the latest version.
 
 You'll require the latest version of Microsoft Visual Studio 2019, as well as the dependencies listed below. When the paths to the dependency includes and libraries have been configured properly, building is as simple as opening the `QuantumGate.sln` file in the project root with Visual Studio and issuing the build command for the entire solution.
 
@@ -67,7 +67,7 @@ A listing of examples to get you started quickly can be found in the [wiki](http
 
 ## Tutorials
 
-A small but growing collection of tutorials can be found in the [wiki](https://github.com/kareldonk/QuantumGate/wiki).
+A small but growing collection of tutorials can be found in the [wiki](https://github.com/kareldonk/QuantumGate/wiki/Tutorials).
 
 ## License
 
