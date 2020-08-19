@@ -578,7 +578,6 @@
     <ClInclude Include="Core\Extender\ExtenderManager.h" />
     <ClInclude Include="Core\KeyGeneration\KeyGenerationEvent.h" />
     <ClInclude Include="Core\KeyGeneration\KeyGenerationManager.h" />
-    <ClInclude Include="Core\ListenerManager.h" />
     <ClInclude Include="Core\LocalEnvironment.h" />
     <ClInclude Include="Core\Local.h" />
     <ClInclude Include="Core\Message.h" />
@@ -608,6 +607,9 @@
     <ClInclude Include="Core\Relay\RelayLink.h" />
     <ClInclude Include="Core\Relay\RelayManager.h" />
     <ClInclude Include="Core\Relay\RelaySocket.h" />
+    <ClInclude Include="Core\TCP\TCPListenerManager.h" />
+    <ClInclude Include="Core\UDP\UDPListenerManager.h" />
+    <ClInclude Include="Core\UDP\UDPSocket.h" />
     <ClInclude Include="Crypto\Crypto.h" />
     <ClInclude Include="Crypto\KeyData.h" />
     <ClInclude Include="Crypto\McEliece.h" />
@@ -670,7 +672,6 @@
     <ClCompile Include="Core\Extender\ExtenderModule.cpp" />
     <ClCompile Include="Core\Extender\ExtenderManager.cpp" />
     <ClCompile Include="Core\KeyGeneration\KeyGenerationManager.cpp" />
-    <ClCompile Include="Core\ListenerManager.cpp" />
     <ClCompile Include="Core\LocalEnvironment.cpp" />
     <ClCompile Include="Core\Local.cpp" />
     <ClCompile Include="Core\Message.cpp" />
@@ -692,6 +693,9 @@
     <ClCompile Include="Core\PublicIPEndpoints.cpp" />
     <ClCompile Include="Core\Relay\RelayManager.cpp" />
     <ClCompile Include="Core\Relay\RelaySocket.cpp" />
+    <ClCompile Include="Core\TCP\TCPListenerManager.cpp" />
+    <ClCompile Include="Core\UDP\UDPListenerManager.cpp" />
+    <ClCompile Include="Core\UDP\UDPSocket.cpp" />
     <ClCompile Include="Crypto\Crypto.cpp" />
     <ClCompile Include="Crypto\KeyData.cpp" />
     <ClCompile Include="dllmain.cpp">

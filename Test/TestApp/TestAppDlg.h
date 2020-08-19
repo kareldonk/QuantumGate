@@ -137,6 +137,8 @@ protected:
 	afx_msg void OnBenchmarksThreadPause();
 	afx_msg void OnSocks5ExtenderConfiguration();
 	afx_msg void OnUpdateSocks5ExtenderConfiguration(CCmdUI* pCmdUI);
+	afx_msg void OnLocalUDPListenersEnabled();
+	afx_msg void OnUpdateLocalUDPListenersEnabled(CCmdUI* pCmdUI);
 
 private:
 	static inline const char* m_SettingsFilename{ "TestAppSettings.json" };

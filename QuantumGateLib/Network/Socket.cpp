@@ -455,6 +455,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::SetConditionalAccept(const bool cond_accept) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
+		assert(GetProtocol() == IP::Protocol::TCP);
 
 		// Enable conditional accept (in order to check IP access settings before allowing connection)
 		// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/dd264794(v=vs.85).aspx
@@ -497,6 +498,8 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::Bind(const IPEndpoint& endpoint, const bool nat_traversal) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
+		assert(GetProtocol() == IP::Protocol::ICMP || GetProtocol() == IP::Protocol::UDP);
+		assert(endpoint.GetProtocol() == IP::Protocol::ICMP || endpoint.GetProtocol() == IP::Protocol::UDP);
 
 		if (!SetNATTraversal(nat_traversal)) return false;
 
@@ -530,6 +533,7 @@ namespace QuantumGate::Implementation::Network
 						const bool nat_traversal) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
+		assert(endpoint.GetProtocol() == IP::Protocol::TCP);
 
 		if (!SetConditionalAccept(cond_accept)) return false;
 
@@ -575,6 +579,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::Accept(Socket& s, const bool cond_accept, const LPCONDITIONPROC cond_func, void* cbdata) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
+		assert(GetProtocol() == IP::Protocol::TCP);
 
 		sockaddr_storage addr{ 0 };
 		int addrlen = sizeof(sockaddr_storage);
@@ -620,6 +625,8 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::BeginConnect(const IPEndpoint& endpoint) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
+		assert(GetProtocol() == IP::Protocol::TCP);
+		assert(endpoint.GetProtocol() == IP::Protocol::TCP);
 
 		m_IOStatus.SetConnecting(false);
 
@@ -654,6 +661,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::CompleteConnect() noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
+		assert(GetProtocol() == IP::Protocol::TCP);
 
 		m_IOStatus.SetConnecting(false);
 		m_IOStatus.SetConnected(true);
@@ -666,6 +674,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::Send(Buffer& buffer, const Size max_snd_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
+		assert(GetProtocol() == IP::Protocol::TCP);
 
 		const auto send_size = std::invoke([&]()
 		{
@@ -718,6 +727,8 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::SendTo(const IPEndpoint& endpoint, Buffer& buffer, const Size max_snd_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
+		assert(GetProtocol() == IP::Protocol::ICMP || GetProtocol() == IP::Protocol::UDP);
+		assert(endpoint.GetProtocol() == IP::Protocol::ICMP || endpoint.GetProtocol() == IP::Protocol::UDP);
 
 		sockaddr_storage sock_addr{ 0 };
 		if (!SockAddrSetEndpoint(sock_addr, endpoint))
@@ -781,6 +792,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::Receive(Buffer& buffer, const Size max_rcv_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
+		assert(GetProtocol() == IP::Protocol::TCP);
 
 		auto& rcvbuf = GetReceiveBuffer();
 
@@ -844,6 +856,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
+		assert(GetProtocol() == IP::Protocol::ICMP || GetProtocol() == IP::Protocol::UDP);
 
 		auto& rcvbuf = GetReceiveBuffer();
 
@@ -865,7 +878,7 @@ namespace QuantumGate::Implementation::Network
 
 		if (sock_addr.ss_family != 0)
 		{
-			if (!SockAddrGetIPEndpoint(GetProtocol(), &sock_addr, endpoint))
+			if (!SockAddrGetIPEndpoint(IP::Protocol::UDP, &sock_addr, endpoint))
 			{
 				LogDbg(L"Receive error on endpoint %s - SockAddrGetIPEndpoint() failed",
 					   GetLocalName().c_str());

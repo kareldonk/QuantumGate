@@ -178,6 +178,8 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_COMMAND(ID_BENCHMARKS_THREADPAUSE, &CTestAppDlg::OnBenchmarksThreadPause)
 	ON_COMMAND(ID_SOCKS5EXTENDER_CONFIGURATION, &CTestAppDlg::OnSocks5ExtenderConfiguration)
 	ON_UPDATE_COMMAND_UI(ID_SOCKS5EXTENDER_CONFIGURATION, &CTestAppDlg::OnUpdateSocks5ExtenderConfiguration)
+	ON_COMMAND(ID_LOCAL_UDPLISTENERSENABLED, &CTestAppDlg::OnLocalUDPListenersEnabled)
+	ON_UPDATE_COMMAND_UI(ID_LOCAL_UDPLISTENERSENABLED, &CTestAppDlg::OnUpdateLocalUDPListenersEnabled)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlg::OnInitDialog()
@@ -766,8 +768,10 @@ void CTestAppDlg::OnLocalInitialize()
 		return;
 	}
 
-	params.Listeners.Enable = true;
-	params.Listeners.TCPPorts = GetPorts(ports);
+	params.Listeners.TCP.Enable = true;
+	params.Listeners.TCP.Ports = GetPorts(ports);
+	params.Listeners.UDP.Enable = true;
+	params.Listeners.UDP.Ports = GetPorts(ports);
 	params.Listeners.EnableNATTraversal = true;
 	params.EnableExtenders = true;
 	params.Relays.Enable = true;
@@ -986,25 +990,49 @@ void CTestAppDlg::OnUpdateAttacksConnectAndWait(CCmdUI* pCmdUI)
 
 void CTestAppDlg::OnLocalListenersEnabled()
 {
-	if (!m_QuantumGate.AreListenersEnabled())
+	if (!m_QuantumGate.AreListenersEnabled(Local::ListenerType::TCP))
 	{
-		m_QuantumGate.EnableListeners().Failed([](auto& result)
+		m_QuantumGate.EnableListeners(Local::ListenerType::TCP).Failed([](auto& result)
 		{
-			LogErr(L"Failed to enable listeners: %s", result.GetErrorString().c_str());
+			LogErr(L"Failed to enable TCP listeners: %s", result.GetErrorString().c_str());
 		});
 	}
 	else
 	{
-		m_QuantumGate.DisableListeners().Failed([](auto& result)
+		m_QuantumGate.DisableListeners(Local::ListenerType::TCP).Failed([](auto& result)
 		{
-			LogErr(L"Failed to disable listeners: %s", result.GetErrorString().c_str());
+			LogErr(L"Failed to disable TCP listeners: %s", result.GetErrorString().c_str());
 		});
 	}
 }
 
 void CTestAppDlg::OnUpdateLocalListenersEnabled(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_QuantumGate.AreListenersEnabled());
+	pCmdUI->SetCheck(m_QuantumGate.AreListenersEnabled(Local::ListenerType::TCP));
+	pCmdUI->Enable(m_QuantumGate.IsRunning());
+}
+
+void CTestAppDlg::OnLocalUDPListenersEnabled()
+{
+	if (!m_QuantumGate.AreListenersEnabled(Local::ListenerType::UDP))
+	{
+		m_QuantumGate.EnableListeners(Local::ListenerType::UDP).Failed([](auto& result)
+		{
+			LogErr(L"Failed to enable UDP listeners: %s", result.GetErrorString().c_str());
+		});
+	}
+	else
+	{
+		m_QuantumGate.DisableListeners(Local::ListenerType::UDP).Failed([](auto& result)
+		{
+			LogErr(L"Failed to disable UDP listeners: %s", result.GetErrorString().c_str());
+		});
+	}
+}
+
+void CTestAppDlg::OnUpdateLocalUDPListenersEnabled(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_QuantumGate.AreListenersEnabled(Local::ListenerType::UDP));
 	pCmdUI->Enable(m_QuantumGate.IsRunning());
 }
 
@@ -1521,7 +1549,7 @@ void CTestAppDlg::OnStressMultipleInstances()
 				return;
 			}
 
-			params.Listeners.Enable = false;
+			params.Listeners.TCP.Enable = false;
 			params.EnableExtenders = true;
 			params.RequireAuthentication = false;
 

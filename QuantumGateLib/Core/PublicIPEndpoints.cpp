@@ -283,8 +283,6 @@ namespace QuantumGate::Implementation::Core
 			return false;
 		}
 
-		const auto& settings = m_Settings.GetCache();
-
 		if (!m_ThreadPool.Startup())
 		{
 			LogErr(L"PublicIPEndpoints threadpool initialization failed");

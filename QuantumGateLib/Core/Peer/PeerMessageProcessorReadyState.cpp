@@ -174,23 +174,28 @@ namespace QuantumGate::Implementation::Core::Peer
 						{
 							if (protocol == IP::Protocol::UDP || protocol == IP::Protocol::TCP)
 							{
-								Relay::Events::Connect rce;
-								rce.Port = rport;
-								rce.Endpoint = IPEndpoint(protocol, IPAddress{ ip }, port);
-								rce.Hop = hop;
-								rce.Origin.PeerLUID = m_Peer.GetLUID();
-								rce.Origin.LocalEndpoint = m_Peer.GetLocalEndpoint();
-								rce.Origin.PeerEndpoint = m_Peer.GetPeerEndpoint();
-
-								if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rce)))
+								if (ip.AddressFamily == IP::AddressFamily::IPv4 || ip.AddressFamily == IP::AddressFamily::IPv6)
 								{
-									// Let the peer know we couldn't accept
-									SendRelayStatus(rport, RelayStatusUpdate::GeneralFailure);
-								}
+									Relay::Events::Connect rce;
+									rce.Port = rport;
+									rce.Endpoint = IPEndpoint(protocol, IPAddress{ ip }, port);
+									rce.Hop = hop;
+									rce.Origin.PeerLUID = m_Peer.GetLUID();
+									rce.Origin.LocalEndpoint = m_Peer.GetLocalEndpoint();
+									rce.Origin.PeerEndpoint = m_Peer.GetPeerEndpoint();
 
-								result.Success = true;
+									if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rce)))
+									{
+										// Let the peer know we couldn't accept
+										SendRelayStatus(rport, RelayStatusUpdate::GeneralFailure);
+									}
+
+									result.Success = true;
+								}
+								else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported internetwork address family",
+											m_Peer.GetPeerName().c_str());
 							}
-							else LogDbg(L"Invalid RelayCreate message from peer %s; unknown protocol",
+							else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported internetwork protocol",
 										m_Peer.GetPeerName().c_str());
 						}
 						else LogDbg(L"Invalid RelayCreate message from peer %s; couldn't read message data",

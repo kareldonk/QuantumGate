@@ -266,7 +266,8 @@ namespace QuantumGate::Implementation::Core
 					settings.Local.SupportedAlgorithms.Compression = Util::SetToVector(params.SupportedAlgorithms.Compression);
 				}
 
-				settings.Local.Listeners.TCP.Ports = Util::SetToVector(params.Listeners.TCPPorts);
+				settings.Local.Listeners.TCP.Ports = Util::SetToVector(params.Listeners.TCP.Ports);
+				settings.Local.Listeners.UDP.Ports = Util::SetToVector(params.Listeners.UDP.Ports);
 				settings.Local.Listeners.NATTraversal = params.Listeners.EnableNATTraversal;
 				settings.Local.NumPreGeneratedKeysPerAlgorithm = params.NumPreGeneratedKeysPerAlgorithm;
 				settings.Relay.IPv4ExcludedNetworksCIDRLeadingBits = params.Relays.IPv4ExcludedNetworksCIDRLeadingBits;
@@ -337,24 +338,29 @@ namespace QuantumGate::Implementation::Core
 		// Upon failure shut down relay manager when we return
 		auto sg3 = MakeScopeGuard([&]() noexcept { m_PeerManager.ShutdownRelays(); });
 
+		if (params.Listeners.TCP.Enable &&
+			!m_TCPListenerManager.Startup(m_LocalEnvironment.WithSharedLock()->GetEthernetInterfaces()))
 		{
-			const auto local_env = m_LocalEnvironment.WithSharedLock();
-
-			if (params.Listeners.Enable &&
-				!m_ListenerManager.Startup(local_env->GetEthernetInterfaces()))
-			{
-				return ResultCode::FailedListenerManagerStartup;
-			}
+			return ResultCode::FailedListenerManagerStartup;
 		}
 
-		// Upon failure shut down listener manager when we return
-		auto sg4 = MakeScopeGuard([&]() noexcept { m_ListenerManager.Shutdown(); });
+		// Upon failure shut down TCP listener manager when we return
+		auto sg4 = MakeScopeGuard([&]() noexcept { m_TCPListenerManager.Shutdown(); });
+
+		if (params.Listeners.UDP.Enable &&
+			!m_UDPListenerManager.Startup(m_LocalEnvironment.WithSharedLock()->GetEthernetInterfaces()))
+		{
+			return ResultCode::FailedListenerManagerStartup;
+		}
+
+		// Upon failure shut down UDP listener manager when we return
+		auto sg5 = MakeScopeGuard([&]() noexcept { m_UDPListenerManager.Shutdown(); });
 
 		// Enter running state; important for extenders
 		m_Running = true;
 
 		// Upon failure exit running state when we return
-		auto sg5 = MakeScopeGuard([&]() noexcept { m_Running = false; });
+		auto sg6 = MakeScopeGuard([&]() noexcept { m_Running = false; });
 
 		if (params.EnableExtenders && !m_ExtenderManager.Startup())
 		{
@@ -367,6 +373,7 @@ namespace QuantumGate::Implementation::Core
 		sg3.Deactivate();
 		sg4.Deactivate();
 		sg5.Deactivate();
+		sg6.Deactivate();
 
 		LogSys(L"QuantumGate startup successful");
 
@@ -388,7 +395,8 @@ namespace QuantumGate::Implementation::Core
 		m_ShutdownEvent.Set();
 
 		// Stop accepting connections
-		m_ListenerManager.Shutdown();
+		m_TCPListenerManager.Shutdown();
+		m_UDPListenerManager.Shutdown();
 
 		// Shut down extenders
 		m_ExtenderManager.Shutdown();
@@ -472,13 +480,13 @@ namespace QuantumGate::Implementation::Core
 	{
 		if (m_LocalEnvironment.WithUniqueLock()->Update())
 		{
-			if (IsRunning() && m_ListenerManager.IsRunning())
+			if (IsRunning() && (m_TCPListenerManager.IsRunning() || m_UDPListenerManager.IsRunning()))
 			{
-				LogDbg(L"Updating Listenermanager because of local environment change");
+				LogDbg(L"Updating listeners because of local environment change");
 
 				if (UpdateListeners().Failed())
 				{
-					LogErr(L"Failed to update Listenermanager after local environment change");
+					LogErr(L"Failed to update listeners after local environment change");
 				}
 			}
 		}
@@ -505,7 +513,7 @@ namespace QuantumGate::Implementation::Core
 		}
 	}
 
-	Result<> Local::EnableListeners() noexcept
+	Result<> Local::EnableListeners(const API::Local::ListenerType type) noexcept
 	{
 		if (IsRunning())
 		{
@@ -513,51 +521,108 @@ namespace QuantumGate::Implementation::Core
 
 			auto local_env = m_LocalEnvironment.WithSharedLock();
 
-			if (m_ListenerManager.Startup(local_env->GetEthernetInterfaces()))
+			auto result = ResultCode::Failed;
+
+			switch (type)
 			{
-				return ResultCode::Succeeded;
+				case API::Local::ListenerType::TCP:
+					if (m_TCPListenerManager.Startup(local_env->GetEthernetInterfaces()))
+					{
+						result = ResultCode::Succeeded;
+					}
+					break;
+				case API::Local::ListenerType::UDP:
+					if (m_UDPListenerManager.Startup(local_env->GetEthernetInterfaces()))
+					{
+						result = ResultCode::Succeeded;
+					}
+					break;
+				default:
+					assert(false);
+					result = ResultCode::InvalidArgument;
+					break;
 			}
-			else return ResultCode::Failed;
+
+			return result;
 		}
 
 		return ResultCode::NotRunning;
+	}
+
+	Result<> Local::DisableListeners(const API::Local::ListenerType type) noexcept
+	{
+		if (IsRunning())
+		{
+			std::unique_lock<std::shared_mutex> lock(m_Mutex);
+
+			auto result = ResultCode::Succeeded;
+
+			switch (type)
+			{
+				case API::Local::ListenerType::TCP:
+					m_TCPListenerManager.Shutdown();
+					break;
+				case API::Local::ListenerType::UDP:
+					m_UDPListenerManager.Shutdown();
+					break;
+				default:
+					assert(false);
+					result = ResultCode::InvalidArgument;
+					break;
+			}
+
+			return result;
+		}
+
+		return ResultCode::NotRunning;
+	}
+
+	bool Local::AreListenersEnabled(const API::Local::ListenerType type) const noexcept
+	{
+		switch (type)
+		{
+			case API::Local::ListenerType::TCP:
+				return m_TCPListenerManager.IsRunning();
+			case API::Local::ListenerType::UDP:
+				return m_UDPListenerManager.IsRunning();
+			default:
+				assert(false);
+				break;
+		}
+
+		return false;
 	}
 
 	Result<> Local::UpdateListeners() noexcept
 	{
-		if (IsRunning() && m_ListenerManager.IsRunning())
+		if (IsRunning())
 		{
 			std::unique_lock<std::shared_mutex> lock(m_Mutex);
 
 			auto local_env = m_LocalEnvironment.WithSharedLock();
 
-			if (m_ListenerManager.Update(local_env->GetEthernetInterfaces()))
+			auto result = ResultCode::Succeeded;
+
+			if (m_TCPListenerManager.IsRunning())
 			{
-				return ResultCode::Succeeded;
+				if (!m_TCPListenerManager.Update(local_env->GetEthernetInterfaces()))
+				{
+					result = ResultCode::Failed;
+				}
 			}
 
-			return ResultCode::Failed;
+			if (m_UDPListenerManager.IsRunning())
+			{
+				if (!m_UDPListenerManager.Update(local_env->GetEthernetInterfaces()))
+				{
+					result = ResultCode::Failed;
+				}
+			}
+
+			return result;
 		}
 
 		return ResultCode::NotRunning;
-	}
-
-	Result<> Local::DisableListeners() noexcept
-	{
-		if (IsRunning())
-		{
-			std::unique_lock<std::shared_mutex> lock(m_Mutex);
-
-			m_ListenerManager.Shutdown();
-			return ResultCode::Succeeded;
-		}
-
-		return ResultCode::NotRunning;
-	}
-
-	bool Local::AreListenersEnabled() const noexcept
-	{
-		return m_ListenerManager.IsRunning();
 	}
 
 	Result<> Local::EnableExtenders() noexcept
@@ -679,7 +744,7 @@ namespace QuantumGate::Implementation::Core
 		catch (...) {}
 	}
 
-	Result<bool> Local::AddExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
+	Result<bool> Local::AddExtenderImpl(const std::shared_ptr<API::Extender>& extender,
 										const Extender::ExtenderModuleID moduleid) noexcept
 	{
 		assert(extender);
@@ -702,7 +767,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	Result<> Local::RemoveExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
+	Result<> Local::RemoveExtenderImpl(const std::shared_ptr<API::Extender>& extender,
 									   const Extender::ExtenderModuleID moduleid) noexcept
 	{
 		assert(extender);
@@ -722,14 +787,14 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	Result<bool> Local::AddExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender) noexcept
+	Result<bool> Local::AddExtender(const std::shared_ptr<API::Extender>& extender) noexcept
 	{
 		std::unique_lock<std::shared_mutex> lock(m_Mutex);
 
 		return AddExtenderImpl(extender);
 	}
 
-	Result<> Local::RemoveExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender) noexcept
+	Result<> Local::RemoveExtender(const std::shared_ptr<API::Extender>& extender) noexcept
 	{
 		std::unique_lock<std::shared_mutex> lock(m_Mutex);
 

@@ -15,23 +15,13 @@ namespace QuantumGate::Implementation::Network
 		constexpr IPEndpoint() noexcept {}
 
 		constexpr IPEndpoint(const Protocol protocol, const IPAddress& ipaddr, const UInt16 port) :
-			m_Protocol(protocol), m_Address(ipaddr), m_Port(port)
-		{
-			if (protocol != Protocol::UDP && protocol != Protocol::TCP)
-			{
-				throw std::invalid_argument("Invalid protocol");
-			}
-		}
+			m_Protocol(ValidateProtocol(protocol)), m_Address(ipaddr), m_Port(port)
+		{}
 
 		constexpr IPEndpoint(const Protocol protocol, const IPAddress& ipaddr, const UInt16 port,
 							 const RelayPort rport, const RelayHop hop) :
-			m_Protocol(protocol), m_Address(ipaddr), m_Port(port), m_RelayPort(rport), m_RelayHop(hop)
-		{
-			if (protocol != Protocol::UDP && protocol != Protocol::TCP)
-			{
-				throw std::invalid_argument("Invalid protocol");
-			}
-		}
+			m_Protocol(ValidateProtocol(protocol)), m_Address(ipaddr), m_Port(port), m_RelayPort(rport), m_RelayHop(hop)
+		{}
 
 		constexpr IPEndpoint(const IPEndpoint& other) noexcept :
 			m_Protocol(other.m_Protocol), m_Address(other.m_Address), m_Port(other.m_Port),
@@ -47,12 +37,7 @@ namespace QuantumGate::Implementation::Network
 		{
 			assert(addr != nullptr);
 
-			if (protocol != Protocol::UDP && protocol != Protocol::TCP)
-			{
-				throw std::invalid_argument("Invalid protocol");
-			}
-
-			m_Protocol = protocol;
+			m_Protocol = ValidateProtocol(protocol);
 			m_Address = IPAddress(addr);
 
 			switch (addr->ss_family)
@@ -125,6 +110,22 @@ namespace QuantumGate::Implementation::Network
 
 		friend Export std::ostream& operator<<(std::ostream& stream, const IPEndpoint& endpoint);
 		friend Export std::wostream& operator<<(std::wostream& stream, const IPEndpoint& endpoint);
+
+	private:
+		constexpr inline Protocol ValidateProtocol(const Protocol protocol)
+		{
+			switch (protocol)
+			{
+				case Protocol::ICMP:
+				case Protocol::UDP:
+				case Protocol::TCP:
+					return protocol;
+				default:
+					throw std::invalid_argument("Unsupported internetwork protocol");
+			}
+
+			return Protocol::Unspecified;
+		}
 
 	private:
 		Protocol m_Protocol{ Protocol::Unspecified };

@@ -64,6 +64,8 @@ namespace QuantumGate::API
 			const void* m_LocalEnvironment{ nullptr };
 		};
 
+		enum class ListenerType : UInt8 { TCP, UDP };
+
 		Local();
 		Local(const Local&) = delete;
 		Local(Local&&) noexcept = default;
@@ -75,9 +77,9 @@ namespace QuantumGate::API
 		Result<> Shutdown() noexcept;
 		[[nodiscard]] bool IsRunning() const noexcept;
 
-		Result<> EnableListeners() noexcept;
-		Result<> DisableListeners() noexcept;
-		[[nodiscard]] bool AreListenersEnabled() const noexcept;
+		Result<> EnableListeners(const ListenerType type) noexcept;
+		Result<> DisableListeners(const ListenerType type) noexcept;
+		[[nodiscard]] bool AreListenersEnabled(const ListenerType type) const noexcept;
 
 		Result<> EnableExtenders() noexcept;
 		Result<> DisableExtenders() noexcept;
