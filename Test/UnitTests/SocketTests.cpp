@@ -144,7 +144,7 @@ namespace UnitTests
 			for (const auto& ip : ips)
 			{
 				// Create first socket
-				const auto endp1 = IPEndpoint(ip, 9000);
+				const auto endp1 = IPEndpoint(IPEndpoint::Protocol::UDP, ip, 9000);
 				Socket socket1(endp1.GetIPAddress().GetFamily(), Socket::Type::Datagram, IP::Protocol::UDP);
 				Assert::AreEqual(true, socket1.Bind(endp1, false));
 
@@ -161,7 +161,7 @@ namespace UnitTests
 				Assert::AreEqual(true, socket1.GetBytesSent() == 0);
 
 				// Create second socket
-				const auto endp2 = IPEndpoint(ip, 9001);
+				const auto endp2 = IPEndpoint(IPEndpoint::Protocol::UDP, ip, 9001);
 				Socket socket2(endp2.GetIPAddress().GetFamily(), Socket::Type::Datagram, IP::Protocol::UDP);
 				Assert::AreEqual(true, socket2.Bind(endp2, true));
 
@@ -228,8 +228,8 @@ namespace UnitTests
 
 				socket1.Close();
 				Assert::AreEqual(false, socket1.GetIOStatus().IsOpen());
-				socket2.Close();
-				Assert::AreEqual(false, socket2.GetIOStatus().IsOpen());
+				socket3.Close();
+				Assert::AreEqual(false, socket3.GetIOStatus().IsOpen());
 			}
 
 			WSACleanup();
@@ -247,7 +247,7 @@ namespace UnitTests
 			for (const auto& ip : ips)
 			{
 				// Create listener socket
-				const auto listen_endp = IPEndpoint(ip, 9000);
+				const auto listen_endp = IPEndpoint(IPEndpoint::Protocol::TCP, ip, 9000);
 				Socket listener(listen_endp.GetIPAddress().GetFamily(), Socket::Type::Stream, IP::Protocol::TCP);
 				Assert::AreEqual(true, listener.Listen(listen_endp, false, false));
 
@@ -371,7 +371,7 @@ namespace UnitTests
 			for (const auto& ip : ips)
 			{
 				// Create listener socket
-				const auto listen_endp = IPEndpoint(ip, 9000);
+				const auto listen_endp = IPEndpoint(IPEndpoint::Protocol::TCP, ip, 9000);
 				Socket listener(listen_endp.GetIPAddress().GetFamily(), Socket::Type::Stream, IP::Protocol::TCP);
 				Assert::AreEqual(true, listener.Listen(listen_endp, true, true));
 

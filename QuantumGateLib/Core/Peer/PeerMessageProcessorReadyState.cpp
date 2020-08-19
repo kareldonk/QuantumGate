@@ -19,7 +19,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		Dbg(L"*********** SendBeginRelay ***********");
 
 		BufferWriter wrt(true);
-		if (wrt.WriteWithPreallocation(rport, Network::SerializedBinaryIPAddress{ endpoint.GetIPAddress().GetBinary() },
+		if (wrt.WriteWithPreallocation(rport, endpoint.GetProtocol(),
+									   Network::SerializedBinaryIPAddress{ endpoint.GetIPAddress().GetBinary() },
 									   endpoint.GetPort(), hops))
 		{
 			if (m_Peer.Send(MessageType::RelayCreate, wrt.MoveWrittenBytes()))
@@ -163,28 +164,34 @@ namespace QuantumGate::Implementation::Core::Peer
 					if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 					{
 						RelayPort rport{ 0 };
-						Network::SerializedBinaryIPAddress ip;
+						IP::Protocol protocol{ IPEndpoint::Protocol::Unspecified };
+						SerializedBinaryIPAddress ip;
 						UInt16 port{ 0 };
 						RelayHop hop{ 0 };
 
 						BufferReader rdr(buffer, true);
-						if (rdr.Read(rport, ip, port, hop))
+						if (rdr.Read(rport, protocol, ip, port, hop))
 						{
-							Relay::Events::Connect rce;
-							rce.Port = rport;
-							rce.Endpoint = IPEndpoint(IPAddress{ ip }, port);
-							rce.Hop = hop;
-							rce.Origin.PeerLUID = m_Peer.GetLUID();
-							rce.Origin.LocalEndpoint = m_Peer.GetLocalEndpoint();
-							rce.Origin.PeerEndpoint = m_Peer.GetPeerEndpoint();
-
-							if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rce)))
+							if (protocol == IP::Protocol::UDP || protocol == IP::Protocol::TCP)
 							{
-								// Let the peer know we couldn't accept
-								SendRelayStatus(rport, RelayStatusUpdate::GeneralFailure);
-							}
+								Relay::Events::Connect rce;
+								rce.Port = rport;
+								rce.Endpoint = IPEndpoint(protocol, IPAddress{ ip }, port);
+								rce.Hop = hop;
+								rce.Origin.PeerLUID = m_Peer.GetLUID();
+								rce.Origin.LocalEndpoint = m_Peer.GetLocalEndpoint();
+								rce.Origin.PeerEndpoint = m_Peer.GetPeerEndpoint();
 
-							result.Success = true;
+								if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rce)))
+								{
+									// Let the peer know we couldn't accept
+									SendRelayStatus(rport, RelayStatusUpdate::GeneralFailure);
+								}
+
+								result.Success = true;
+							}
+							else LogDbg(L"Invalid RelayCreate message from peer %s; unknown protocol",
+										m_Peer.GetPeerName().c_str());
 						}
 						else LogDbg(L"Invalid RelayCreate message from peer %s; couldn't read message data",
 									m_Peer.GetPeerName().c_str());

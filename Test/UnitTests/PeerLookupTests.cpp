@@ -68,13 +68,15 @@ namespace UnitTests
 			const auto uuid1 = QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54");
 			const auto uuid2 = QuantumGate::UUID(L"e938194b-52c1-69d4-0b84-75d3d11dbfad");
 
-			const auto ep1 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.10"), 9000), uuid1);
-			const auto ep2 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.11"), 9001), uuid1);
-			const auto ep3 = MakePeerData(IPEndpoint(IPAddress(L"192.168.10.11"), 8000), uuid2);
-			const auto ep4 = MakePeerData(IPEndpoint(IPAddress(L"192.168.10.11"), 8000), uuid2);
+			const auto ep1 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.10"), 9000), uuid1);
+			const auto ep2 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.11"), 9001), uuid1);
+			const auto ep2a = MakePeerData(IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"192.168.1.12"), 9002), uuid1);
+			const auto ep3 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.10.11"), 8000), uuid2);
+			const auto ep4 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.10.11"), 8000), uuid2);
 
 			Assert::AreEqual(true, lum.AddPeerData(*ep1));
 			Assert::AreEqual(true, lum.AddPeerData(*ep2));
+			Assert::AreEqual(true, lum.AddPeerData(*ep2a));
 			Assert::AreEqual(true, lum.AddPeerData(*ep3));
 			Assert::AreEqual(false, lum.AddPeerData(*ep4));
 
@@ -85,8 +87,8 @@ namespace UnitTests
 				const auto it = lum.GetUUIDMap().find(uuid1);
 				Assert::AreEqual(true, it != lum.GetUUIDMap().end());
 
-				// Should have 2 LUIDs
-				Assert::AreEqual(true, it->second.size() == 2);
+				// Should have 3 LUIDs
+				Assert::AreEqual(true, it->second.size() == 3);
 			}
 
 			{
@@ -108,6 +110,11 @@ namespace UnitTests
 				Assert::AreEqual(true, lum.GetUUIDMap().size() == 2);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep2));
+
+				// Should still have 2 UUIDs
+				Assert::AreEqual(true, lum.GetUUIDMap().size() == 2);
+
+				Assert::AreEqual(true, lum.RemovePeerData(*ep2a));
 
 				// Should have 1 UUID
 				Assert::AreEqual(true, lum.GetUUIDMap().size() == 1);
@@ -131,16 +138,18 @@ namespace UnitTests
 			const auto uuid1 = QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54");
 			const auto uuid2 = QuantumGate::UUID(L"e938194b-52c1-69d4-0b84-75d3d11dbfad");
 
-			const auto ep1 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.10"), 9000, 1000, 3), uuid1);
-			const auto ep2 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.10"), 9000, 2000, 3), uuid1);
-			const auto ep3 = MakePeerData(IPEndpoint(IPAddress(L"192.168.10.11"), 8000, 1000, 2), uuid2);
+			const auto ep1 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.10"), 9000, 1000, 3), uuid1);
+			const auto ep2 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.10"), 9000, 2000, 3), uuid1);
+			const auto ep3 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.10.11"), 8000, 1000, 2), uuid2);
+			const auto ep4 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"192.168.10.11"), 8000, 2000, 2), uuid2);
 
 			Assert::AreEqual(true, lum.AddPeerData(*ep1));
 			Assert::AreEqual(true, lum.AddPeerData(*ep2));
 			Assert::AreEqual(true, lum.AddPeerData(*ep3));
+			Assert::AreEqual(true, lum.AddPeerData(*ep4));
 
-			// Should have 2 IPEndpoint combinations
-			Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 2);
+			// Should have 3 IPEndpoint combinations
+			Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 3);
 
 			{
 				const auto it = lum.GetIPEndpointMap().find(lum.GetIPEndpointHash(ep1->WithSharedLock()->Cached.PeerEndpoint));
@@ -165,15 +174,20 @@ namespace UnitTests
 			{
 				Assert::AreEqual(true, lum.RemovePeerData(*ep1));
 
-				// Should still have 2 IPEndpoint combinations
-				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 2);
+				// Should still have 3 IPEndpoint combinations
+				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 3);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep2));
+
+				// Should have 2 IPEndpoint combination
+				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 2);
+
+				Assert::AreEqual(true, lum.RemovePeerData(*ep3));
 
 				// Should have 1 IPEndpoint combination
 				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 1);
 
-				Assert::AreEqual(true, lum.RemovePeerData(*ep3));
+				Assert::AreEqual(true, lum.RemovePeerData(*ep4));
 
 				// Should have no IPEndpoint combinations
 				Assert::AreEqual(true, lum.GetIPEndpointMap().empty());
@@ -192,23 +206,27 @@ namespace UnitTests
 			const auto uuid1 = QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54");
 			const auto uuid2 = QuantumGate::UUID(L"e938194b-52c1-69d4-0b84-75d3d11dbfad");
 
-			const auto ep1 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.10"), 9000, 1000, 2), uuid1);
-			const auto ep2 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.10"), 9000, 2000, 3), uuid1);
-			const auto ep3 = MakePeerData(IPEndpoint(IPAddress(L"192.168.10.11"), 8000, 1000, 2), uuid2);
+			const auto ep1 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.10"), 9000, 1000, 2), uuid1);
+			const auto ep2 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.10"), 9000, 2000, 3), uuid1);
+			const auto ep2a = MakePeerData(IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"192.168.1.10"), 9000, 2000, 3), uuid1);
+			const auto ep3 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.10.11"), 8000, 1000, 2), uuid2);
+			const auto ep4 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"192.168.10.12"), 8000, 1000, 2), uuid2);
 
 			Assert::AreEqual(true, lum.AddPeerData(*ep1));
 			Assert::AreEqual(true, lum.AddPeerData(*ep2));
+			Assert::AreEqual(true, lum.AddPeerData(*ep2a));
 			Assert::AreEqual(true, lum.AddPeerData(*ep3));
+			Assert::AreEqual(true, lum.AddPeerData(*ep4));
 
-			// Should have 2 IPs
-			Assert::AreEqual(true, lum.GetIPMap().size() == 2);
+			// Should have 3 IPs
+			Assert::AreEqual(true, lum.GetIPMap().size() == 3);
 
 			{
 				const auto it = lum.GetIPMap().find(IPAddress(L"192.168.1.10").GetBinary());
 				Assert::AreEqual(true, it != lum.GetIPMap().end());
 
-				// Should have 2 LUIDs
-				Assert::AreEqual(true, it->second.size() == 2);
+				// Should have 3 LUIDs
+				Assert::AreEqual(true, it->second.size() == 3);
 			}
 
 			{
@@ -222,19 +240,41 @@ namespace UnitTests
 				Assert::AreEqual(true, it2 != it->second.end());
 			}
 
+			{
+				const auto it = lum.GetIPMap().find(IPAddress(L"192.168.10.12").GetBinary());
+				Assert::AreEqual(true, it != lum.GetIPMap().end());
+
+				// Should have 1 LUID
+				Assert::AreEqual(true, it->second.size() == 1);
+
+				const auto it2 = std::find(it->second.begin(), it->second.end(), ep4->WithSharedLock()->LUID);
+				Assert::AreEqual(true, it2 != it->second.end());
+			}
+
+
 			// Remove
 			{
 				Assert::AreEqual(true, lum.RemovePeerData(*ep1));
 
-				// Should still have 2 IPs
-				Assert::AreEqual(true, lum.GetIPMap().size() == 2);
+				// Should still have 3 IPs
+				Assert::AreEqual(true, lum.GetIPMap().size() == 3);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep2));
+
+				// Should still have 3 IPs
+				Assert::AreEqual(true, lum.GetIPMap().size() == 3);
+
+				Assert::AreEqual(true, lum.RemovePeerData(*ep2a));
+
+				// Should have 2 IPs
+				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 2);
+
+				Assert::AreEqual(true, lum.RemovePeerData(*ep3));
 
 				// Should have 1 IP
 				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 1);
 
-				Assert::AreEqual(true, lum.RemovePeerData(*ep3));
+				Assert::AreEqual(true, lum.RemovePeerData(*ep4));
 
 				// Should have no IPs
 				Assert::AreEqual(true, lum.GetIPEndpointMap().empty());
@@ -381,13 +421,13 @@ namespace UnitTests
 			const auto uuid1 = QuantumGate::UUID(L"3c0c4c02-5ebc-f99a-0b5e-acdd238b1e54");
 
 			// Connected peers
-			const auto ep1 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.10"), 9000, 1000, 2), uuid1);
-			const auto ep2 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.10"), 9000, 2000, 3), uuid1);
-			const auto ep3 = MakePeerData(IPEndpoint(IPAddress(L"192.168.10.11"), 8000, 1000, 2), uuid1);
-			const auto ep4 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.20"), 8000), uuid1);
-			const auto ep5 = MakePeerData(IPEndpoint(IPAddress(L"192.168.5.40"), 9000), uuid1);
-			const auto ep6 = MakePeerData(IPEndpoint(IPAddress(L"fe80:c11a:3a9c:ef11:e795::"), 9000), uuid1);
-			const auto ep7 = MakePeerData(IPEndpoint(IPAddress(L"200.168.5.51"), 9000), uuid1);
+			const auto ep1 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.10"), 9000, 1000, 2), uuid1);
+			const auto ep2 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.10"), 9000, 2000, 3), uuid1);
+			const auto ep3 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.10.11"), 8000, 1000, 2), uuid1);
+			const auto ep4 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.20"), 8000), uuid1);
+			const auto ep5 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.5.40"), 9000), uuid1);
+			const auto ep6 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"fe80:c11a:3a9c:ef11:e795::"), 9000), uuid1);
+			const auto ep7 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"200.168.5.51"), 9000), uuid1);
 
 			Assert::AreEqual(true, lum.AddPeerData(*ep1));
 			Assert::AreEqual(true, lum.AddPeerData(*ep2));
@@ -399,7 +439,7 @@ namespace UnitTests
 
 			// Trying to find relay peer for 192.168.1.10 to 200.168.5.40
 			{
-				const auto dest_ep = IPEndpoint(IPAddress(L"200.168.5.40"), 9000);
+				const auto dest_ep = IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"200.168.5.40"), 9000);
 
 				const Vector<PeerLUID> excl_pluids =
 				{
@@ -475,7 +515,7 @@ namespace UnitTests
 
 			// Trying to find relay peer for 200.168.5.51 to fe80:c11a:3a9c:ef10:e795::
 			{
-				const auto dest_ep = IPEndpoint(IPAddress(L"fe80:c11a:3a9c:ef10:e795::"), 9000);
+				const auto dest_ep = IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"fe80:c11a:3a9c:ef10:e795::"), 9000);
 
 				const Vector<PeerLUID> excl_pluids =
 				{
@@ -583,13 +623,13 @@ namespace UnitTests
 			const auto euuid1 = QuantumGate::UUID(L"bbcbb357-1140-d91b-ced5-e78cabc471bc");
 			const auto euuid2 = QuantumGate::UUID(L"67871eec-a143-09ed-d636-7b9c5dac0f2d");
 
-			const auto ep1 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.10"), 9000, 1000, 2), puuid1,
+			const auto ep1 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.10"), 9000, 1000, 2), puuid1,
 										  PeerConnectionType::Outbound, true, true, { euuid1 });
-			const auto ep2 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.20"), 9000), puuid2,
+			const auto ep2 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.20"), 9000), puuid2,
 										  PeerConnectionType::Inbound, false, false, {});
-			const auto ep3 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.30"), 8000), puuid3,
+			const auto ep3 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.30"), 8000), puuid3,
 										  PeerConnectionType::Inbound, false, true, { euuid2 });
-			const auto ep4 = MakePeerData(IPEndpoint(IPAddress(L"192.168.1.40"), 8000, 1000, 2), puuid3,
+			const auto ep4 = MakePeerData(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"192.168.1.40"), 8000, 1000, 2), puuid3,
 										  PeerConnectionType::Inbound, true, false, { euuid1, euuid2 });
 
 			Assert::AreEqual(true, lum.AddPeerData(*ep1));

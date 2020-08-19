@@ -61,9 +61,21 @@ namespace QuantumGate::Implementation
 		LocalAlgorithms SupportedAlgorithms;								// The supported algorithms
 		Size NumPreGeneratedKeysPerAlgorithm{ 5 };							// The number of pregenerated keys per supported algorithm
 
-		Vector<UInt16> ListenerPorts{ 999 };								// Which ports to listen on
-		bool NATTraversal{ false };											// Whether NAT traversal is enabled
-		bool UseConditionalAcceptFunction{ true };							// Whether to use the conditional accept function before accepting connections
+		struct
+		{
+			struct
+			{
+				Vector<UInt16> Ports{ 999 };								// Which ports to listen on
+				bool UseConditionalAcceptFunction{ true };					// Whether to use the conditional accept function before accepting connections
+			} TCP;
+			
+			struct
+			{
+				Vector<UInt16> Ports{ 999 };								// Which ports to listen on
+			} UDP;
+
+			bool NATTraversal{ false };										// Whether NAT traversal is enabled
+		} Listeners;
 
 		std::chrono::seconds ConnectTimeout{ 60 };							// Maximum number of seconds to wait for a connection to be established
 		std::chrono::milliseconds MaxHandshakeDelay{ 0 };					// Maximum number of milliseconds to wait in between handshake messages

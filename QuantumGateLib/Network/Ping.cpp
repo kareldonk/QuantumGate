@@ -228,7 +228,7 @@ namespace QuantumGate::Implementation::Network
 
 			if (!socket.SetIPTimeToLive(m_TTL)) return false;
 
-			if (socket.SendTo(IPEndpoint(m_DestinationIPAddress, 0), icmp_msg) && icmp_msg.IsEmpty())
+			if (socket.SendTo(IPEndpoint(IP::Protocol::ICMP, m_DestinationIPAddress, 0), icmp_msg) && icmp_msg.IsEmpty())
 			{
 				const auto snd_steady_time = Util::GetCurrentSteadyTime();
 

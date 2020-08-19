@@ -24,9 +24,9 @@ namespace QuantumGate::Implementation::Core::Listener
 		PreStartup();
 
 		const auto& settings = m_Settings.GetCache();
-		const auto& listener_ports = settings.Local.ListenerPorts;
-		const auto nat_traversal = settings.Local.NATTraversal;
-		const auto cond_accept = settings.Local.UseConditionalAcceptFunction;
+		const auto& listener_ports = settings.Local.Listeners.TCP.Ports;
+		const auto nat_traversal = settings.Local.Listeners.NATTraversal;
+		const auto cond_accept = settings.Local.Listeners.TCP.UseConditionalAcceptFunction;
 
 		// Should have at least one port
 		if (listener_ports.empty())
@@ -59,7 +59,7 @@ namespace QuantumGate::Implementation::Core::Listener
 
 			if (address.has_value())
 			{
-				DiscardReturnValue(AddListenerThreads(*address, listener_ports, cond_accept, nat_traversal));
+				DiscardReturnValue(AddTCPListenerThreads(*address, listener_ports, cond_accept, nat_traversal));
 			}
 		}
 
@@ -85,9 +85,9 @@ namespace QuantumGate::Implementation::Core::Listener
 		PreStartup();
 
 		const auto& settings = m_Settings.GetCache();
-		const auto& listener_ports = settings.Local.ListenerPorts;
-		const auto nat_traversal = settings.Local.NATTraversal;
-		const auto cond_accept = settings.Local.UseConditionalAcceptFunction;
+		const auto& listener_ports = settings.Local.Listeners.TCP.Ports;
+		const auto nat_traversal = settings.Local.Listeners.NATTraversal;
+		const auto cond_accept = settings.Local.Listeners.TCP.UseConditionalAcceptFunction;
 
 		// Should have at least one port
 		if (listener_ports.empty())
@@ -106,7 +106,7 @@ namespace QuantumGate::Implementation::Core::Listener
 					// Only for IPv4 and IPv6 addresses
 					if (address.GetFamily() == IPAddress::Family::IPv4 || address.GetFamily() == IPAddress::Family::IPv6)
 					{
-						DiscardReturnValue(AddListenerThreads(address, listener_ports, cond_accept, nat_traversal));
+						DiscardReturnValue(AddTCPListenerThreads(address, listener_ports, cond_accept, nat_traversal));
 					}
 					else assert(false);
 				}
@@ -125,27 +125,67 @@ namespace QuantumGate::Implementation::Core::Listener
 		return m_Running;
 	}
 
-	bool Manager::AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
-									 const bool cond_accept, const bool nat_traversal) noexcept
+	bool Manager::AddTCPListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
+										const bool cond_accept, const bool nat_traversal) noexcept
 	{
 		// Separate listener for every port
 		for (const auto port : ports)
 		{
 			try
 			{
-				const auto endpoint = IPEndpoint(address, port);
+				const auto endpoint = IPEndpoint(IPEndpoint::Protocol::TCP, address, port);
 
-				ThreadData ltd;
-				ltd.UseConditionalAcceptFunction = cond_accept;
+				TCPListenerData ldata{
+					.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), Network::Socket::Type::Stream, Network::IP::Protocol::TCP),
+					.UseConditionalAcceptFunction = cond_accept
+				};
 
 				// Create and start the listenersocket
-				ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
-											 Network::Socket::Type::Stream,
-											 Network::IP::Protocol::TCP);
-
-				if (ltd.Socket.Listen(endpoint, true, nat_traversal))
+				if (ldata.Socket.Listen(endpoint, true, nat_traversal))
 				{
-					if (m_ListenerThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
+					ThreadData ltd(std::move(ldata));
+
+					if (m_ListenerThreadPool.AddThread(L"QuantumGate Listener Thread (TCP) " + endpoint.GetString(),
+													   std::move(ltd), MakeCallback(this, &Manager::WorkerThreadProcessor)))
+					{
+						LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
+					}
+					else
+					{
+						LogErr(L"Could not add listener thread for endpoint %s", endpoint.GetString().c_str());
+					}
+				}
+			}
+			catch (const std::exception& e)
+			{
+				LogErr(L"Could not add listener thread for IP %s due to exception: %s",
+					   address.GetString().c_str(), Util::ToStringW(e.what()).c_str());
+			}
+			catch (...) {}
+		}
+
+		return true;
+	}
+
+	bool Manager::AddUDPListenerThreads(const IPAddress& address, const Vector<UInt16> ports, const bool nat_traversal) noexcept
+	{
+		// Separate listener for every port
+		for (const auto port : ports)
+		{
+			try
+			{
+				const auto endpoint = IPEndpoint(IPEndpoint::Protocol::UDP, address, port);
+
+				UDPListenerData ldata{
+					.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), Network::Socket::Type::Datagram, Network::IP::Protocol::UDP),
+				};
+
+				// Create and start the listenersocket
+				if (ldata.Socket.Bind(endpoint, nat_traversal))
+				{
+					ThreadData ltd(std::move(ldata));
+
+					if (m_ListenerThreadPool.AddThread(L"QuantumGate Listener Thread (UDP) " + endpoint.GetString(),
 													   std::move(ltd), MakeCallback(this, &Manager::WorkerThreadProcessor)))
 					{
 						LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
@@ -169,7 +209,19 @@ namespace QuantumGate::Implementation::Core::Listener
 
 	std::optional<Manager::ThreadPool::Thread> Manager::RemoveListenerThread(Manager::ThreadPool::Thread&& thread) noexcept
 	{
-		const IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
+		IPEndpoint endpoint;
+		String type;
+
+		std::visit(Util::Overloaded{
+			[&](TCPListenerData& data)
+			{
+				endpoint = data.Socket.GetLocalEndpoint();
+			},
+			[&](UDPListenerData& data)
+			{
+				endpoint = data.Socket.GetLocalEndpoint();
+			}
+		}, thread.GetData().ListenerData);
 
 		const auto [success, next_thread] = m_ListenerThreadPool.RemoveThread(std::move(thread));
 		if (success)
@@ -194,9 +246,9 @@ namespace QuantumGate::Implementation::Core::Listener
 		LogSys(L"Updating Listenermanager...");
 
 		const auto& settings = m_Settings.GetCache();
-		const auto& listener_ports = settings.Local.ListenerPorts;
-		const auto nat_traversal = settings.Local.NATTraversal;
-		const auto cond_accept = settings.Local.UseConditionalAcceptFunction;
+		const auto& listener_ports = settings.Local.Listeners.TCP.Ports;
+		const auto nat_traversal = settings.Local.Listeners.NATTraversal;
+		const auto cond_accept = settings.Local.Listeners.TCP.UseConditionalAcceptFunction;
 
 		// Check for interfaces/IP addresses that were added for which
 		// there are no listeners; we add listeners for those
@@ -215,9 +267,19 @@ namespace QuantumGate::Implementation::Core::Listener
 
 						while (thread.has_value())
 						{
-							if (thread->GetData().Socket.GetLocalIPAddress() == address)
+							std::visit(Util::Overloaded{
+								[&](const TCPListenerData& data)
+								{
+									found = (data.Socket.GetLocalIPAddress() == address);
+								},
+								[&](const UDPListenerData& data)
+								{
+									found = (data.Socket.GetLocalIPAddress() == address);
+								}
+							}, thread->GetData().ListenerData);
+
+							if (found)
 							{
-								found = true;
 								break;
 							}
 							else thread = m_ListenerThreadPool.GetNextThread(*thread);
@@ -225,7 +287,7 @@ namespace QuantumGate::Implementation::Core::Listener
 
 						if (!found)
 						{
-							DiscardReturnValue(AddListenerThreads(address, listener_ports, cond_accept, nat_traversal));
+							DiscardReturnValue(AddTCPListenerThreads(address, listener_ports, cond_accept, nat_traversal));
 						}
 					}
 				}
@@ -246,12 +308,22 @@ namespace QuantumGate::Implementation::Core::Listener
 				{
 					for (const auto& address : ifs.IPAddresses)
 					{
-						if (thread->GetData().Socket.GetLocalIPAddress() == address)
-						{
-							found = true;
-						}
+						std::visit(Util::Overloaded{
+							[&](const TCPListenerData& data)
+							{
+								found = (data.Socket.GetLocalIPAddress() == address);
+							},
+							[&](const UDPListenerData& data)
+							{
+								found = (data.Socket.GetLocalIPAddress() == address);
+							}
+						}, thread->GetData().ListenerData);
+
+						if (found) break;
 					}
 				}
+
+				if (found) break;
 			}
 
 			if (!found)
@@ -292,32 +364,57 @@ namespace QuantumGate::Implementation::Core::Listener
 
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
-		// Check if we have a read event waiting for us
-		if (thdata.Socket.UpdateIOStatus(1ms))
-		{
-			if (thdata.Socket.GetIOStatus().CanRead())
-			{
-				// Probably have a connection waiting to accept
-				LogInfo(L"Accepting new connection on endpoint %s",
-						thdata.Socket.GetLocalEndpoint().GetString().c_str());
+		Network::Socket* socket{ nullptr };
 
-				AcceptConnection(thdata.Socket, thdata.UseConditionalAcceptFunction);
-			}
-			else if (thdata.Socket.GetIOStatus().HasException())
+		std::visit(Util::Overloaded{
+			[&](TCPListenerData& data)
 			{
-				LogErr(L"Exception on listener socket for endpoint %s (%s)",
-					   thdata.Socket.GetLocalEndpoint().GetString().c_str(),
-					   GetSysErrorString(thdata.Socket.GetIOStatus().GetErrorCode()).c_str());
+				socket = &data.Socket;
+			},
+			[&](UDPListenerData& data)
+			{
+				socket = &data.Socket;
 			}
-		}
-		else
+		}, thdata.ListenerData);
+
+		while (!shutdown_event.IsSet())
 		{
-			LogErr(L"Could not get status of listener socket for endpoint %s",
-				   thdata.Socket.GetLocalEndpoint().GetString().c_str());
+			// Check if we have a read event waiting for us
+			if (socket->UpdateIOStatus(1ms))
+			{
+				if (socket->GetIOStatus().CanRead())
+				{
+					// Probably have a connection waiting to accept
+					LogInfo(L"Accepting new connection on endpoint %s",
+							socket->GetLocalEndpoint().GetString().c_str());
+
+					std::visit(Util::Overloaded{
+						[&](TCPListenerData& data)
+						{
+							AcceptTCPConnection(*socket, data.UseConditionalAcceptFunction);
+						},
+						[&](UDPListenerData& data)
+						{
+							AcceptUDPConnection(*socket);
+						}
+					}, thdata.ListenerData);
+				}
+				else if (socket->GetIOStatus().HasException())
+				{
+					LogErr(L"Exception on listener socket for endpoint %s (%s)",
+						   socket->GetLocalEndpoint().GetString().c_str(),
+						   GetSysErrorString(socket->GetIOStatus().GetErrorCode()).c_str());
+				}
+			}
+			else
+			{
+				LogErr(L"Could not get status of listener socket for endpoint %s",
+					   socket->GetLocalEndpoint().GetString().c_str());
+			}
 		}
 	}
 
-	void Manager::AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept
+	void Manager::AcceptTCPConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept
 	{
 		auto peerths = m_PeerManager.Create(PeerConnectionType::Inbound, std::nullopt);
 		if (peerths != nullptr)
@@ -327,7 +424,7 @@ namespace QuantumGate::Implementation::Core::Listener
 				if (cond_accept)
 				{
 					if (!listener_socket.Accept(peer.GetSocket<Network::Socket>(), true,
-												&Manager::AcceptConditionFunction, this))
+												&Manager::TCPAcceptConditionFunction, this))
 					{
 						// Couldn't accept for some reason
 						return;
@@ -362,6 +459,39 @@ namespace QuantumGate::Implementation::Core::Listener
 		}
 	}
 
+	void Manager::AcceptUDPConnection(Network::Socket& listener_socket) noexcept
+	{
+		auto peerths = m_PeerManager.Create(PeerConnectionType::Inbound, std::nullopt);
+		if (peerths != nullptr)
+		{
+			peerths->WithUniqueLock([&](Peer::Peer& peer)
+			{
+				if (listener_socket.Accept(peer.GetSocket<Network::Socket>(), false, nullptr, nullptr))
+				{
+					// Check if the IP address is allowed
+					if (!CanAcceptConnection(peer.GetPeerIPAddress()))
+					{
+						peer.Close();
+						LogWarn(L"Incoming connection from peer %s was rejected; IP address is not allowed by access configuration",
+								peer.GetPeerName().c_str());
+
+						return;
+					}
+				}
+
+				if (m_PeerManager.Accept(peerths))
+				{
+					LogInfo(L"Connection accepted from peer %s", peer.GetPeerName().c_str());
+				}
+				else
+				{
+					peer.Close();
+					LogErr(L"Could not accept connection from peer %s", peer.GetPeerName().c_str());
+				}
+			});
+		}
+	}
+
 	bool Manager::CanAcceptConnection(const IPAddress& ipaddr) const noexcept
 	{
 		// Increase connection attempts for this IP; if attempts get too high
@@ -379,11 +509,11 @@ namespace QuantumGate::Implementation::Core::Listener
 		return false;
 	}
 
-	int CALLBACK Manager::AcceptConditionFunction(LPWSABUF lpCallerId, LPWSABUF lpCallerData, LPQOS lpSQOS, LPQOS lpGQOS,
-												  LPWSABUF lpCalleeId, LPWSABUF lpCalleeData, GROUP FAR* g,
-												  DWORD_PTR dwCallbackData) noexcept
+	int CALLBACK Manager::TCPAcceptConditionFunction(LPWSABUF lpCallerId, LPWSABUF lpCallerData, LPQOS lpSQOS, LPQOS lpGQOS,
+													 LPWSABUF lpCalleeId, LPWSABUF lpCalleeData, GROUP FAR* g,
+													 DWORD_PTR dwCallbackData) noexcept
 	{
-		const IPEndpoint endpoint(reinterpret_cast<sockaddr_storage*>(lpCallerId->buf));
+		const IPEndpoint endpoint(IPEndpoint::Protocol::TCP, reinterpret_cast<sockaddr_storage*>(lpCallerId->buf));
 
 		if (reinterpret_cast<Manager*>(dwCallbackData)->CanAcceptConnection(endpoint.GetIPAddress()))
 		{

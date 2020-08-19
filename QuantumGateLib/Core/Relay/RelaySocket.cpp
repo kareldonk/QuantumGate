@@ -22,10 +22,11 @@ namespace QuantumGate::Implementation::Core::Relay
 							 const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
+		assert(lendpoint.GetProtocol() == pendpoint.GetProtocol());
 
-		m_LocalEndpoint = IPEndpoint(lendpoint.GetIPAddress(),
+		m_LocalEndpoint = IPEndpoint(lendpoint.GetProtocol(), lendpoint.GetIPAddress(),
 									 lendpoint.GetPort(), rport, hop);
-		m_PeerEndpoint = IPEndpoint(pendpoint.GetIPAddress(),
+		m_PeerEndpoint = IPEndpoint(pendpoint.GetProtocol(), pendpoint.GetIPAddress(),
 									pendpoint.GetPort(), rport, hop);
 
 		m_AcceptCallback();
@@ -74,10 +75,12 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	void Socket::SetLocalEndpoint(const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept
 	{
-		m_LocalEndpoint = IPEndpoint(endpoint.GetIPAddress(),
+		assert(endpoint.GetProtocol() == m_PeerEndpoint.GetProtocol());
+
+		m_LocalEndpoint = IPEndpoint(endpoint.GetProtocol(), endpoint.GetIPAddress(),
 									 endpoint.GetPort(),
 									 rport, hop);
-		m_PeerEndpoint = IPEndpoint(m_PeerEndpoint.GetIPAddress(),
+		m_PeerEndpoint = IPEndpoint(m_PeerEndpoint.GetProtocol(), m_PeerEndpoint.GetIPAddress(),
 									m_PeerEndpoint.GetPort(),
 									rport, hop);
 	}

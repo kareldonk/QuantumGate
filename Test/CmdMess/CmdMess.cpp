@@ -159,7 +159,7 @@ bool HandleCommand(const String& cmdline)
 					IPAddress addr;
 					if (IPAddress::TryParse(m[1].str().c_str(), addr))
 					{
-						const auto endp = IPEndpoint(addr, static_cast<UInt16>(port));
+						const auto endp = IPEndpoint(IPEndpoint::Protocol::TCP, addr, static_cast<UInt16>(port));
 
 						const auto result = m_QuantumGate.ConnectTo({ endp }, [&](PeerLUID pluid, Result<Peer> cresult) mutable
 						{

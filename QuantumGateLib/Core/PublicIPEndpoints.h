@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "..\Common\Containers.h"
 #include "..\Concurrency\ThreadPool.h"
 #include "..\Concurrency\Queue.h"
 #include "..\Network\Socket.h"
@@ -12,7 +13,7 @@ namespace QuantumGate::Implementation::Core
 {
 	struct PublicIPEndpointDetails final
 	{
-		Set<UInt16> Ports;
+		Containers::Map<IPEndpoint::Protocol, Set<UInt16>> PortsMap;
 		bool Trusted{ false };
 		bool DataVerified{ false };
 		bool HopVerified{ false };
@@ -166,7 +167,8 @@ namespace QuantumGate::Implementation::Core
 		static constexpr const UInt8 ReportingPeerNetworkIPv6CIDR{ 48 };
 
 		static constexpr const UInt8 MaxIPEndpoints{ 32 };
-		static constexpr const UInt8 MaxPortsPerIPAddress{ 16 };
+		static constexpr const UInt8 MaxProtocolsPerIPAddress{ 2 };
+		static constexpr const UInt8 MaxPortsPerProtocol{ 16 };
 
 	private:
 		std::atomic_bool m_Initialized{ false };

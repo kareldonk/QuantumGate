@@ -266,8 +266,8 @@ namespace QuantumGate::Implementation::Core
 					settings.Local.SupportedAlgorithms.Compression = Util::SetToVector(params.SupportedAlgorithms.Compression);
 				}
 
-				settings.Local.ListenerPorts = Util::SetToVector(params.Listeners.TCPPorts);
-				settings.Local.NATTraversal = params.Listeners.EnableNATTraversal;
+				settings.Local.Listeners.TCP.Ports = Util::SetToVector(params.Listeners.TCPPorts);
+				settings.Local.Listeners.NATTraversal = params.Listeners.EnableNATTraversal;
 				settings.Local.NumPreGeneratedKeysPerAlgorithm = params.NumPreGeneratedKeysPerAlgorithm;
 				settings.Relay.IPv4ExcludedNetworksCIDRLeadingBits = params.Relays.IPv4ExcludedNetworksCIDRLeadingBits;
 				settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits = params.Relays.IPv6ExcludedNetworksCIDRLeadingBits;
@@ -1304,7 +1304,7 @@ namespace QuantumGate::Implementation::Core
 								LogWarn(L"Setting security level to Custom");
 							}
 
-							settings.Local.UseConditionalAcceptFunction = params->General.UseConditionalAcceptFunction;
+							settings.Local.Listeners.TCP.UseConditionalAcceptFunction = params->General.UseConditionalAcceptFunction;
 							settings.Local.ConnectTimeout = params->General.ConnectTimeout;
 							settings.Local.MaxHandshakeDelay = params->General.MaxHandshakeDelay;
 							settings.Local.MaxHandshakeDuration = params->General.MaxHandshakeDuration;
@@ -1387,7 +1387,7 @@ namespace QuantumGate::Implementation::Core
 
 		const auto& settings = m_Settings.GetCache();
 
-		params.General.UseConditionalAcceptFunction = settings.Local.UseConditionalAcceptFunction;
+		params.General.UseConditionalAcceptFunction = settings.Local.Listeners.TCP.UseConditionalAcceptFunction;
 		params.General.ConnectTimeout = settings.Local.ConnectTimeout;
 		params.General.MaxHandshakeDelay = settings.Local.MaxHandshakeDelay;
 		params.General.MaxHandshakeDuration = settings.Local.MaxHandshakeDuration;
@@ -1426,7 +1426,7 @@ namespace QuantumGate::Implementation::Core
 
 	void Local::SetDefaultSecuritySettings(Settings& settings) noexcept
 	{
-		settings.Local.UseConditionalAcceptFunction = true;
+		settings.Local.Listeners.TCP.UseConditionalAcceptFunction = true;
 		settings.Local.ConnectTimeout = 60s;
 		settings.Local.MaxHandshakeDelay = 0ms;
 		settings.Local.MaxHandshakeDuration = 30s;
