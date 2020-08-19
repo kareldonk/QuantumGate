@@ -241,7 +241,7 @@ namespace QuantumGate::Implementation::Network
 		auto err = getsockname(m_Socket, reinterpret_cast<sockaddr*>(&addr), &nlen);
 		if (err != SOCKET_ERROR)
 		{
-			if (!SockAddrGetIPEndpoint(&addr, m_LocalEndpoint))
+			if (!SockAddrGetIPEndpoint(GetProtocol(), &addr, m_LocalEndpoint))
 			{
 				LogErr(L"Could not get local endpoint for socket");
 			}
@@ -249,7 +249,7 @@ namespace QuantumGate::Implementation::Network
 			err = getpeername(m_Socket, reinterpret_cast<sockaddr*>(&addr), &nlen);
 			if (err != SOCKET_ERROR)
 			{
-				if (!SockAddrGetIPEndpoint(&addr, m_PeerEndpoint))
+				if (!SockAddrGetIPEndpoint(GetProtocol(), &addr, m_PeerEndpoint))
 				{
 					LogErr(L"Could not get peer endpoint for socket");
 				}
@@ -865,7 +865,7 @@ namespace QuantumGate::Implementation::Network
 
 		if (sock_addr.ss_family != 0)
 		{
-			if (!SockAddrGetIPEndpoint(&sock_addr, endpoint))
+			if (!SockAddrGetIPEndpoint(GetProtocol(), &sock_addr, endpoint))
 			{
 				LogDbg(L"Receive error on endpoint %s - SockAddrGetIPEndpoint() failed",
 					   GetLocalName().c_str());
@@ -888,14 +888,6 @@ namespace QuantumGate::Implementation::Network
 			{
 				LogErr(L"Receive exception on endpoint %s: %s", GetLocalName().c_str(), Util::ToStringW(e.what()).c_str());
 			}
-		}
-		else if (bytesrcv == 0)
-		{
-			if (GetType() == Socket::Type::Stream)
-			{
-				LogDbg(L"Connection closed for endpoint %s", GetLocalName().c_str());
-			}
-			else return true;
 		}
 		else if (bytesrcv == SOCKET_ERROR)
 		{
@@ -1033,7 +1025,7 @@ namespace QuantumGate::Implementation::Network
 		return (Util::GetCurrentSystemTime() - dif);
 	}
 
-	bool Socket::SockAddrGetIPEndpoint(const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept
+	bool Socket::SockAddrGetIPEndpoint(const IP::Protocol protocol, const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept
 	{
 		assert(addr != nullptr);
 
@@ -1043,10 +1035,10 @@ namespace QuantumGate::Implementation::Network
 			switch (ip.GetFamily())
 			{
 				case IPAddress::Family::IPv4:
-					endpoint = IPEndpoint(ip, ntohs(reinterpret_cast<const sockaddr_in*>(addr)->sin_port));
+					endpoint = IPEndpoint(protocol, ip, ntohs(reinterpret_cast<const sockaddr_in*>(addr)->sin_port));
 					return true;
 				case IPAddress::Family::IPv6:
-					endpoint = IPEndpoint(ip, ntohs(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port));
+					endpoint = IPEndpoint(protocol, ip, ntohs(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port));
 					return true;
 				default:
 					assert(false);

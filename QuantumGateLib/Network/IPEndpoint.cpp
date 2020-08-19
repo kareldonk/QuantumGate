@@ -15,10 +15,10 @@ namespace QuantumGate::Implementation::Network
 		{
 			// IPv6 address should be in brackets according to RFC 3986
 			// to separate it from the port
-			return Util::FormatString(L"[%s]:%u%s", m_Address.GetString().c_str(), m_Port, rph.c_str());
+			return Util::FormatString(L"%s:[%s]:%u%s", GetProtocolName(m_Protocol), m_Address.GetString().c_str(), m_Port, rph.c_str());
 		}
 
-		return Util::FormatString(L"%s:%u%s", m_Address.GetString().c_str(), m_Port, rph.c_str());
+		return Util::FormatString(L"%s:%s:%u%s", GetProtocolName(m_Protocol), m_Address.GetString().c_str(), m_Port, rph.c_str());
 	}
 
 	std::ostream& operator<<(std::ostream& stream, const IPEndpoint& endpoint)

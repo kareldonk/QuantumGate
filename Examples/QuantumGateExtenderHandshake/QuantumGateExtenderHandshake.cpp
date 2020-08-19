@@ -185,7 +185,8 @@ int main()
 			QuantumGate::ConnectParameters params;
 
 			// Connect to the first instance on the local host
-			params.PeerIPEndpoint = QuantumGate::IPEndpoint(QuantumGate::IPAddress(L"127.0.0.1"), 999);
+			params.PeerIPEndpoint = QuantumGate::IPEndpoint(QuantumGate::IPEndpoint::Protocol::TCP,
+															QuantumGate::IPAddress(L"127.0.0.1"), 999);
 
 			// This version of the ConnectTo function will block until connection succeeds or fails;
 			// use a second parameter to supply a callback function (may be nullptr) for async connect

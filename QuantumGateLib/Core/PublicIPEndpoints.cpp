@@ -69,7 +69,8 @@ namespace QuantumGate::Implementation::Core
 				// Choose port randomly from dynamic port range (RFC 6335)
 				const auto port = static_cast<UInt16>(Util::GetPseudoRandomNumber(49152, 65535));
 
-				const auto endpoint = IPEndpoint((m_IPAddress.AddressFamily == BinaryIPAddress::Family::IPv4) ?
+				const auto endpoint = IPEndpoint(IPEndpoint::Protocol::UDP,
+												 (m_IPAddress.AddressFamily == BinaryIPAddress::Family::IPv4) ?
 												 IPAddress::AnyIPv4() : IPAddress::AnyIPv6(), port);
 				m_Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
 										   Network::Socket::Type::Datagram,
@@ -104,7 +105,7 @@ namespace QuantumGate::Implementation::Core
 
 		try
 		{
-			const IPEndpoint endpoint(m_IPAddress, m_Socket.GetLocalEndpoint().GetPort());
+			const IPEndpoint endpoint(IPEndpoint::Protocol::UDP, m_IPAddress, m_Socket.GetLocalEndpoint().GetPort());
 
 			const auto num = Crypto::GetCryptoRandomNumber();
 			if (num.has_value())
@@ -348,7 +349,7 @@ namespace QuantumGate::Implementation::Core
 		{
 			const auto& settings = m_Settings.GetCache();
 
-			if (data_verification->Verify(settings.Local.NATTraversal) &&
+			if (data_verification->Verify(settings.Local.Listeners.NATTraversal) &&
 				data_verification->IsVerified())
 			{
 				m_IPEndpoints.WithUniqueLock([&](auto& ipendpoints)
@@ -512,6 +513,8 @@ namespace QuantumGate::Implementation::Core
 																   const PeerConnectionType rep_con_type,
 																   const bool trusted, const bool verified) noexcept
 	{
+		assert(pub_endpoint.GetProtocol() == rep_peer.GetProtocol());
+
 		if (rep_con_type != PeerConnectionType::Unknown &&
 			pub_endpoint.GetIPAddress().GetFamily() == rep_peer.GetIPAddress().GetFamily())
 		{
@@ -549,13 +552,20 @@ namespace QuantumGate::Implementation::Core
 
 							try
 							{
-								// Only interested in the port for inbound peers
-								// so we know what public port they actually used
+								// Only interested in the protocol and port for inbound peers
+								// so we know what protocol and public port they actually used
 								// to connect to us
-								if (rep_con_type == PeerConnectionType::Inbound &&
-									pub_ipd->Ports.size() < MaxPortsPerIPAddress)
+								if (rep_con_type == PeerConnectionType::Inbound)
 								{
-									pub_ipd->Ports.emplace(pub_endpoint.GetPort());
+									if (pub_ipd->PortsMap.size() < MaxProtocolsPerIPAddress)
+									{
+										// If protocol does't exist it will get inserted
+										auto& ports = pub_ipd->PortsMap[pub_endpoint.GetProtocol()];
+										if (ports.size() < MaxPortsPerProtocol)
+										{
+											ports.emplace(pub_endpoint.GetPort());
+										}
+									}
 								}
 
 								if (pub_ipd->ReportingPeerNetworkHashes.size() < MaxReportingPeerNetworks)

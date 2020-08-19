@@ -694,12 +694,13 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					if (params.Relay.Hops == 0)
 					{
-						return IPEndpoint(params.PeerIPEndpoint.GetIPAddress(), params.PeerIPEndpoint.GetPort());
+						return IPEndpoint(params.PeerIPEndpoint.GetProtocol(), params.PeerIPEndpoint.GetIPAddress(),
+										  params.PeerIPEndpoint.GetPort());
 					}
 					else
 					{
-						return IPEndpoint(params.PeerIPEndpoint.GetIPAddress(), params.PeerIPEndpoint.GetPort(),
-										  0, params.Relay.Hops);
+						return IPEndpoint(params.PeerIPEndpoint.GetProtocol(), params.PeerIPEndpoint.GetIPAddress(),
+										  params.PeerIPEndpoint.GetPort(), 0, params.Relay.Hops);
 					}
 				});
 
@@ -825,7 +826,8 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						if (function) in_peer.AddConnectCallback(std::move(function));
 
-						const auto out_endpoint = IPEndpoint(params.PeerIPEndpoint.GetIPAddress(),
+						const auto out_endpoint = IPEndpoint(params.PeerIPEndpoint.GetProtocol(),
+															 params.PeerIPEndpoint.GetIPAddress(),
 															 params.PeerIPEndpoint.GetPort(), *rport, params.Relay.Hops);
 						if (in_peer.BeginConnect(out_endpoint))
 						{

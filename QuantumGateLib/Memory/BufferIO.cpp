@@ -20,7 +20,7 @@ namespace QuantumGate::Implementation::Memory
 
 	template<> Size BufferIO::GetDataSize(const Network::SerializedIPEndpoint& data) noexcept
 	{
-		static_assert(sizeof(Network::SerializedIPEndpoint) == 19,
+		static_assert(sizeof(Network::SerializedIPEndpoint) == 20,
 					  "Unexpected size of SerializedIPEndpoint; check padding or alignment.");
 		return sizeof(Network::SerializedIPEndpoint);
 	}

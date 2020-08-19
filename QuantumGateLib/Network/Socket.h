@@ -125,7 +125,7 @@ namespace QuantumGate::Implementation::Network
 		}
 
 		[[nodiscard]] static bool SockAddrSetEndpoint(sockaddr_storage& addr, const IPEndpoint& endpoint) noexcept;
-		[[nodiscard]] static bool SockAddrGetIPEndpoint(const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept;
+		[[nodiscard]] static bool SockAddrGetIPEndpoint(const IP::Protocol protocol, const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept;
 
 		static constexpr std::chrono::seconds DefaultLingerTime{ 10 };
 		static constexpr Size ReadWriteBufferSize{ 65'535 }; //64KB

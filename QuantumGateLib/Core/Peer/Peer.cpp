@@ -1477,15 +1477,17 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		struct HashData final
 		{
+			IPEndpoint::Protocol Protocol{ IPEndpoint::Protocol::Unspecified };
 			BinaryIPAddress IP;
-			RelayPort RelayPort{ 0 };
-			UInt64 UniqueData{ 0 };
 			UInt16 Port{ 0 };
+			RelayPort RelayPort{ 0 };
 			RelayHop RelayHop{ 0 };
+			UInt64 UniqueData{ 0 };
 		};
 
 		HashData data;
 		MemInit(&data, sizeof(data)); // Needed to zero out padding bytes for consistent hash
+		data.Protocol = endpoint.GetProtocol();
 		data.IP = endpoint.GetIPAddress().GetBinary();
 		data.Port = endpoint.GetPort();
 		data.RelayPort = endpoint.GetRelayPort();
@@ -1617,17 +1619,22 @@ namespace QuantumGate::Implementation::Core::Peer
 		// are other peers in between
 		if (!IsRelayed())
 		{
-			IPAddress ip;
-			if (IPAddress::TryParse(pub_endpoint.IPAddress, ip))
+			// Protocol reported by peer should be the same protocol
+			// as used for this connection
+			if (pub_endpoint.Protocol == GetLocalEndpoint().GetProtocol())
 			{
 				// Public IP reported by peer should be the same
 				// family type as the address used for this connection
-				if (ip.GetFamily() == GetLocalIPAddress().GetFamily())
+				if (pub_endpoint.IPAddress.AddressFamily == GetLocalIPAddress().GetFamily())
 				{
-					const auto trusted = IsUsingGlobalSharedSecret() || IsAuthenticated();
-					GetPeerManager().AddReportedPublicIPEndpoint(IPEndpoint(ip, pub_endpoint.Port), GetPeerEndpoint(),
-																 GetConnectionType(), trusted);
-					return true;
+					IPAddress ip;
+					if (IPAddress::TryParse(pub_endpoint.IPAddress, ip))
+					{
+						const auto trusted = IsUsingGlobalSharedSecret() || IsAuthenticated();
+						GetPeerManager().AddReportedPublicIPEndpoint(IPEndpoint(pub_endpoint.Protocol, ip, pub_endpoint.Port),
+																	 GetPeerEndpoint(), GetConnectionType(), trusted);
+						return true;
+					}
 				}
 			}
 		}

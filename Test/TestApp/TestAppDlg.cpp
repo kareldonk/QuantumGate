@@ -1346,7 +1346,7 @@ void CTestAppDlg::OnLocalConnect()
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerIPEndpoint = IPEndpoint(IPAddress(m_DefaultIP), m_DefaultPort);
+		params.PeerIPEndpoint = IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(m_DefaultIP), m_DefaultPort);
 		params.ReuseExistingConnection = dlg.GetReuseConnection();
 
 		params.GlobalSharedSecret.emplace();
@@ -1415,7 +1415,7 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerIPEndpoint = IPEndpoint(IPAddress(m_DefaultIP), m_DefaultPort);
+		params.PeerIPEndpoint = IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(m_DefaultIP), m_DefaultPort);
 		params.ReuseExistingConnection = dlg.GetReuseConnection();
 		params.Relay.Hops = dlg.GetRelayHops();
 		params.Relay.GatewayPeer = dlg.GetRelayGatewayPeer();
