@@ -101,19 +101,19 @@ namespace QuantumGate::API
 		return m_Local->IsRunning();
 	}
 
-	Result<> Local::EnableListeners() noexcept
+	Result<> Local::EnableListeners(const ListenerType type) noexcept
 	{
-		return m_Local->EnableListeners();
+		return m_Local->EnableListeners(type);
 	}
 
-	Result<> Local::DisableListeners() noexcept
+	Result<> Local::DisableListeners(const ListenerType type) noexcept
 	{
-		return m_Local->DisableListeners();
+		return m_Local->DisableListeners(type);
 	}
 
-	bool Local::AreListenersEnabled() const noexcept
+	bool Local::AreListenersEnabled(const ListenerType type) const noexcept
 	{
-		return m_Local->AreListenersEnabled();
+		return m_Local->AreListenersEnabled(type);
 	}
 
 	Result<> Local::EnableExtenders() noexcept

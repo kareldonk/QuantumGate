@@ -10,14 +10,22 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		switch (type)
 		{
-			case GateType::Socket:
+			case GateType::TCPSocket:
 			{
 				static_assert(sizeof(Socket) <= sizeof(m_SocketStorage),
 							  "Type is too large for SocketStorage variable; increase size.");
 
 				m_Socket = new (&m_SocketStorage) Socket();
-				m_Type = GateType::Socket;
-				SetCallbacks();
+				m_Type = GateType::TCPSocket;
+				break;
+			}
+			case GateType::UDPSocket:
+			{
+				static_assert(sizeof(UDP::Socket) <= sizeof(m_SocketStorage),
+							  "Type is too large for SocketStorage variable; increase size.");
+
+				m_Socket = new (&m_SocketStorage) UDP::Socket();
+				m_Type = GateType::UDPSocket;
 				break;
 			}
 			case GateType::RelaySocket:
@@ -27,24 +35,43 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				m_Socket = new (&m_SocketStorage) Relay::Socket();
 				m_Type = GateType::RelaySocket;
-				SetCallbacks();
 				break;
 			}
 			default:
 			{
+				// Shouldn't get here
 				assert(false);
 				break;
 			}
 		}
+
+		SetCallbacks();
 	}
 
-	Gate::Gate(const IP::AddressFamily af, const Socket::Type type, const IP::Protocol protocol)
+	Gate::Gate(const IP::AddressFamily af, const IP::Protocol protocol)
 	{
 		static_assert(sizeof(Socket) <= sizeof(m_SocketStorage),
 					  "Type is too large for SocketStorage variable; increase size.");
 
-		m_Socket = new (&m_SocketStorage) Socket(af, type, protocol);
-		m_Type = GateType::Socket;
+		static_assert(sizeof(UDP::Socket) <= sizeof(m_SocketStorage),
+					  "Type is too large for SocketStorage variable; increase size.");
+
+		switch (protocol)
+		{
+			case IP::Protocol::TCP:
+				m_Socket = new (&m_SocketStorage) Socket(af, Socket::Type::Stream, IP::Protocol::TCP);
+				m_Type = GateType::TCPSocket;
+				break;
+			case IP::Protocol::UDP:
+				m_Socket = new (&m_SocketStorage) UDP::Socket();
+				m_Type = GateType::TCPSocket;
+				break;
+			default:
+				// Shouldn't get here
+				assert(false);
+				break;
+		}
+
 		SetCallbacks();
 	}
 

@@ -59,8 +59,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Peer() = delete;
 		Peer(Manager& peers, const GateType pgtype, const PeerConnectionType pctype,
 			 std::optional<ProtectedBuffer>&& shared_secret);
-		Peer(Manager& peers, const IP::AddressFamily af, const Socket::Type type,
-			 const IP::Protocol protocol, const PeerConnectionType pctype,
+		Peer(Manager& peers, const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
 			 std::optional<ProtectedBuffer>&& shared_secret);
 		Peer(const Peer&) = delete;
 		Peer(Peer&&) noexcept = default;

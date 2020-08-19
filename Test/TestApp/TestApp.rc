@@ -804,7 +804,8 @@ BEGIN
         MENUITEM "&Connect...",                 ID_LOCAL_CONNECT
         MENUITEM "C&onnect (Relayed)...",       ID_LOCAL_CONNECT_RELAYED
         MENUITEM SEPARATOR
-        MENUITEM "&Listeners Enabled",          ID_LOCAL_LISTENERSENABLED
+        MENUITEM "TCP &Listeners Enabled",      ID_LOCAL_LISTENERSENABLED
+        MENUITEM "UDP Listene&rs Enabled",      ID_LOCAL_UDPLISTENERSENABLED
         MENUITEM "&Extenders Enabled",          ID_LOCAL_EXTENDERSENABLED
         MENUITEM "&Relays Enabled",             ID_LOCAL_RELAYS_ENABLED
         MENUITEM SEPARATOR

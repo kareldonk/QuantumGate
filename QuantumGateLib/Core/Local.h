@@ -3,7 +3,8 @@
 
 #pragma once
 
-#include "ListenerManager.h"
+#include "TCP\TCPListenerManager.h"
+#include "UDP\UDPListenerManager.h"
 #include "KeyGeneration\KeyGenerationManager.h"
 
 namespace QuantumGate::Implementation::Core
@@ -49,10 +50,11 @@ namespace QuantumGate::Implementation::Core
 		Result<> Shutdown() noexcept;
 		inline bool IsRunning() const noexcept { return (m_Running && !m_ShutdownEvent.IsSet()); }
 
-		Result<> EnableListeners() noexcept;
+		Result<> EnableListeners(const API::Local::ListenerType type) noexcept;
+		Result<> DisableListeners(const API::Local::ListenerType type) noexcept;
+		bool AreListenersEnabled(const API::Local::ListenerType type) const noexcept;
+		
 		Result<> UpdateListeners() noexcept;
-		Result<> DisableListeners() noexcept;
-		bool AreListenersEnabled() const noexcept;
 
 		Result<> EnableExtenders() noexcept;
 		Result<> DisableExtenders() noexcept;
@@ -68,14 +70,14 @@ namespace QuantumGate::Implementation::Core
 		inline KeyGeneration::Manager& GetKeyGenerationManager() noexcept { return m_KeyGenerationManager; }
 		inline Extender::Manager& GetExtenderManager() noexcept { return m_ExtenderManager; }
 
-		Result<bool> AddExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender) noexcept;
-		Result<> RemoveExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender) noexcept;
+		Result<bool> AddExtender(const std::shared_ptr<API::Extender>& extender) noexcept;
+		Result<> RemoveExtender(const std::shared_ptr<API::Extender>& extender) noexcept;
 
 		Result<> AddExtenderModule(const Path& module_path) noexcept;
 		Result<> RemoveExtenderModule(const Path& module_path) noexcept;
 
 		bool HasExtender(const ExtenderUUID& extuuid) const noexcept;
-		std::weak_ptr<QuantumGate::API::Extender> GetExtender(const ExtenderUUID& extuuid) const noexcept;
+		std::weak_ptr<API::Extender> GetExtender(const ExtenderUUID& extuuid) const noexcept;
 
 		Result<API::Peer> ConnectTo(ConnectParameters&& params) noexcept;
 		Result<std::pair<PeerLUID, bool>> ConnectTo(ConnectParameters&& params,
@@ -114,9 +116,9 @@ namespace QuantumGate::Implementation::Core
 		void OnLocalEnvironmentChanged() noexcept;
 		void OnUnhandledExtenderException(const ExtenderUUID extuuid) noexcept;
 
-		Result<bool> AddExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
+		Result<bool> AddExtenderImpl(const std::shared_ptr<API::Extender>& extender,
 									 const Extender::ExtenderModuleID moduleid = 0) noexcept;
-		Result<> RemoveExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
+		Result<> RemoveExtenderImpl(const std::shared_ptr<API::Extender>& extender,
 									const Extender::ExtenderModuleID moduleid = 0) noexcept;
 
 		bool ValidateInitParameters(const StartupParameters& params) const noexcept;
@@ -159,7 +161,8 @@ namespace QuantumGate::Implementation::Core
 		KeyGeneration::Manager m_KeyGenerationManager{ m_Settings };
 		Peer::Manager m_PeerManager{ m_Settings, m_LocalEnvironment, m_KeyGenerationManager,
 			m_AccessManager, m_ExtenderManager };
-		Listener::Manager m_ListenerManager{ m_Settings, m_AccessManager, m_PeerManager };
+		TCP::Listener::Manager m_TCPListenerManager{ m_Settings, m_AccessManager, m_PeerManager };
+		UDP::Listener::Manager m_UDPListenerManager{ m_Settings, m_AccessManager, m_PeerManager };
 
 		std::shared_mutex m_Mutex;
 

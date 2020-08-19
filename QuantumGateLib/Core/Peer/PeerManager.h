@@ -83,8 +83,10 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
 
-		PeerSharedPointer Create(const PeerConnectionType pctype,
-								 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
+		PeerSharedPointer CreateTCP(const PeerConnectionType pctype,
+									std::optional<ProtectedBuffer>&& shared_secret) noexcept;
+		PeerSharedPointer CreateUDP(const PeerConnectionType pctype,
+									std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 		PeerSharedPointer CreateRelay(const PeerConnectionType pctype,
 									  std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
@@ -127,8 +129,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			return *static_cast<PeerSharedPointer*>(peer.GetPeerSharedPtrStorage());
 		}
 
-		PeerSharedPointer Create(const IP::AddressFamily af, const Socket::Type type,
-								 const IP::Protocol protocol, const PeerConnectionType pctype,
+		PeerSharedPointer Create(const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
 								 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
 		inline Relay::Manager& GetRelayManager() noexcept { return m_RelayManager; }

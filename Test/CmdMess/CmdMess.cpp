@@ -59,8 +59,8 @@ int main()
 		Algorithm::Compression::ZSTANDARD };
 
 	params.RequireAuthentication = false;
-	params.Listeners.Enable = true;
-	params.Listeners.TCPPorts = { 9999 };
+	params.Listeners.TCP.Enable = true;
+	params.Listeners.TCP.Ports = { 9999 };
 	params.EnableExtenders = true;
 	params.Relays.Enable = true;
 

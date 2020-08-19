@@ -29,10 +29,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	Peer::Peer(Manager& peers, const IP::AddressFamily af, const Socket::Type type,
-			   const IP::Protocol protocol, const PeerConnectionType pctype,
+	Peer::Peer(Manager& peers, const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
 			   std::optional<ProtectedBuffer>&& shared_secret) :
-		Gate(af, type, protocol), m_PeerManager(peers)
+		Gate(af, protocol), m_PeerManager(peers)
 	{
 		if (shared_secret) m_GlobalSharedSecret = std::move(shared_secret);
 
@@ -791,7 +790,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			switch (GetGateType())
 			{
-				case GateType::Socket:
+				case GateType::TCPSocket:
 					if (!GetSocket<Socket>().GetEvent().Set())
 					{
 						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());

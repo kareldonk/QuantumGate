@@ -127,14 +127,14 @@ int main()
 	};
 
 	// Listen for incoming connections on startup
-	params.Listeners.Enable = true;
+	params.Listeners.TCP.Enable = true;
 
 	// Listen for incoming connections on these ports
 	if (first_instance)
 	{
-		params.Listeners.TCPPorts = { 999 };
+		params.Listeners.TCP.Ports = { 999 };
 	}
-	else params.Listeners.TCPPorts = { 9999 };
+	else params.Listeners.TCP.Ports = { 9999 };
 
 	// Start extenders on startup
 	params.EnableExtenders = true;

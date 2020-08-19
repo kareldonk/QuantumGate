@@ -91,6 +91,18 @@
     <Filter Include="Source Files\Core\KeyGeneration">
       <UniqueIdentifier>{310611a8-f42e-401d-9ba4-bf06ecca1573}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Core\UDP">
+      <UniqueIdentifier>{9ec348b6-9e1f-4d7b-96d2-2b9f8cbfabff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core\UDP">
+      <UniqueIdentifier>{4048e51d-fe85-44b1-bf97-a24087d8c7fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Core\TCP">
+      <UniqueIdentifier>{e8cdb4a6-48b9-4e54-ad18-82f13e1bc8ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core\TCP">
+      <UniqueIdentifier>{066ccc52-1445-451d-aaa4-1b123783b5af}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -260,9 +272,6 @@
     </ClInclude>
     <ClInclude Include="Core\Access\AccessManager.h">
       <Filter>Header Files\Core\Access</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\ListenerManager.h">
-      <Filter>Header Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\Peer\PeerExtenderUUIDs.h">
       <Filter>Header Files\Core\Peer</Filter>
@@ -441,6 +450,15 @@
     <ClInclude Include="Concurrency\ConditionEvent.h">
       <Filter>Header Files\Concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="Core\UDP\UDPSocket.h">
+      <Filter>Header Files\Core\UDP</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\UDP\UDPListenerManager.h">
+      <Filter>Header Files\Core\UDP</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\TCP\TCPListenerManager.h">
+      <Filter>Header Files\Core\TCP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -526,9 +544,6 @@
     </ClCompile>
     <ClCompile Include="Core\Access\AccessManager.cpp">
       <Filter>Source Files\Core\Access</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\ListenerManager.cpp">
-      <Filter>Source Files\Core</Filter>
     </ClCompile>
     <ClCompile Include="Core\Peer\PeerExtenderUUIDs.cpp">
       <Filter>Source Files\Core\Peer</Filter>
@@ -622,6 +637,15 @@
     </ClCompile>
     <ClCompile Include="Core\Peer\PeerReceiveQueues.cpp">
       <Filter>Source Files\Core\Peer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\UDP\UDPSocket.cpp">
+      <Filter>Source Files\Core\UDP</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\UDP\UDPListenerManager.cpp">
+      <Filter>Source Files\Core\UDP</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\TCP\TCPListenerManager.cpp">
+      <Filter>Source Files\Core\TCP</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

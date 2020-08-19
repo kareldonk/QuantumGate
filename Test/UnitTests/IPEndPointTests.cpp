@@ -99,14 +99,20 @@ namespace UnitTests
 			Assert::ExpectException<std::invalid_argument>([] { IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"abcd"), 80); });
 			Assert::ExpectException<std::invalid_argument>([] { IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"fd12:3456.789a:1::1"), 80); });
 
+			// Test invalid protocol
+			Assert::ExpectException<std::invalid_argument>([] { IPEndpoint(IPEndpoint::Protocol::Unspecified, IPAddress(L"200.1.20.1"), 80); });
+			Assert::ExpectException<std::invalid_argument>([] { IPEndpoint(static_cast<IPEndpoint::Protocol>(200), IPAddress(L"192.168.0.1"), 80); });
+
 			// Test valid addresses
 			try
 			{
 				IPEndpoint ep1(IPEndpoint::Protocol::TCP, IPAddress(L"0.0.0.0"), 80);
 				IPEndpoint ep2(IPEndpoint::Protocol::UDP, IPAddress(L"192.168.1.1"), 0);
-				IPEndpoint ep3(IPEndpoint::Protocol::TCP, IPAddress(L"::"), 9000);
-				IPEndpoint ep4(IPEndpoint::Protocol::TCP, IPAddress(L"fd12:3456:789a:1::1"), 443);
-				IPEndpoint ep5(IPEndpoint::Protocol::UDP, IPAddress(L"fd00::"), 8080);
+				IPEndpoint ep3(IPEndpoint::Protocol::ICMP, IPAddress(L"192.168.1.1"), 0);
+				IPEndpoint ep4(IPEndpoint::Protocol::TCP, IPAddress(L"::"), 9000);
+				IPEndpoint ep5(IPEndpoint::Protocol::TCP, IPAddress(L"fd12:3456:789a:1::1"), 443);
+				IPEndpoint ep6(IPEndpoint::Protocol::UDP, IPAddress(L"fd00::"), 8080);
+				IPEndpoint ep7(IPEndpoint::Protocol::ICMP, IPAddress(L"fd12:3456:789a:1::1"), 0);
 			}
 			catch (...)
 			{

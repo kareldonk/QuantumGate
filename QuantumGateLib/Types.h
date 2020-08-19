@@ -159,8 +159,18 @@ namespace QuantumGate
 
 		struct
 		{
-			bool Enable{ false };								// Enable listening for incoming connections on startup?
-			Set<UInt16> TCPPorts{ 999 };						// Which TCP ports to listen on
+			struct
+			{
+				bool Enable{ false };							// Enable listening for incoming connections on startup?
+				Set<UInt16> Ports{ 999 };						// Which TCP ports to listen on
+			} TCP;
+
+			struct
+			{
+				bool Enable{ false };							// Enable listening for incoming connections on startup?
+				Set<UInt16> Ports{ 999 };						// Which UDP ports to listen on
+			} UDP;
+
 			bool EnableNATTraversal{ false };					// Whether NAT traversal is enabled
 		} Listeners;
 

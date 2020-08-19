@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		switch (peer.GetGateType())
 		{
-			case GateType::Socket:
+			case GateType::TCPSocket:
 				return WorkEvents.AddEvent(peer.GetSocket<Socket>().GetEvent().GetHandle());
 			case GateType::RelaySocket:
 				return WorkEvents.AddEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
@@ -34,7 +34,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		switch (peer.GetGateType())
 		{
-			case GateType::Socket:
+			case GateType::TCPSocket:
 				WorkEvents.RemoveEvent(peer.GetSocket<Socket>().GetEvent().GetHandle());
 				break;
 			case GateType::RelaySocket:
@@ -433,12 +433,12 @@ namespace QuantumGate::Implementation::Core::Peer
 											   settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits);
 	}
 
-	PeerSharedPointer Manager::Create(const PeerConnectionType pctype,
-									  std::optional<ProtectedBuffer>&& shared_secret) noexcept
+	PeerSharedPointer Manager::CreateTCP(const PeerConnectionType pctype,
+										 std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		try
 		{
-			auto peer = std::make_shared<Peer_ThS>(*this, GateType::Socket, pctype, std::move(shared_secret));
+			auto peer = std::make_shared<Peer_ThS>(*this, GateType::TCPSocket, pctype, std::move(shared_secret));
 			if (peer->WithUniqueLock()->Initialize(peer)) return peer;
 		}
 		catch (...) {}
@@ -446,13 +446,25 @@ namespace QuantumGate::Implementation::Core::Peer
 		return nullptr;
 	}
 
-	PeerSharedPointer Manager::Create(const IP::AddressFamily af, const Socket::Type type,
-									  const IP::Protocol protocol, const PeerConnectionType pctype,
-									  std::optional<ProtectedBuffer>&& shared_secret) noexcept
+	PeerSharedPointer Manager::CreateUDP(const PeerConnectionType pctype,
+										 std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		try
 		{
-			auto peer = std::make_shared<Peer_ThS>(*this, af, type, protocol, pctype, std::move(shared_secret));
+			auto peer = std::make_shared<Peer_ThS>(*this, GateType::UDPSocket, pctype, std::move(shared_secret));
+			if (peer->WithUniqueLock()->Initialize(peer)) return peer;
+		}
+		catch (...) {}
+
+		return nullptr;
+	}
+
+	PeerSharedPointer Manager::Create(const IP::AddressFamily af, const IP::Protocol protocol,
+									  const PeerConnectionType pctype, std::optional<ProtectedBuffer>&& shared_secret) noexcept
+	{
+		try
+		{
+			auto peer = std::make_shared<Peer_ThS>(*this, af, protocol, pctype, std::move(shared_secret));
 			if (peer->WithUniqueLock()->Initialize(peer)) return peer;
 		}
 		catch (...) {}
@@ -681,87 +693,96 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		auto result_code = ResultCode::Failed;
 
-		if (const auto allowed = m_AccessManager.GetIPConnectionAllowed(params.PeerIPEndpoint.GetIPAddress(),
-																		Access::CheckType::All); allowed && *allowed)
+		if (params.PeerIPEndpoint.GetProtocol() == IPEndpoint::Protocol::UDP ||
+			params.PeerIPEndpoint.GetProtocol() == IPEndpoint::Protocol::TCP)
 		{
-			auto reused = false;
-			PeerLUID pluid{ 0 };
-			PeerSharedPointer peerths{ nullptr };
-
-			if (params.ReuseExistingConnection)
+			if (const auto allowed = m_AccessManager.GetIPConnectionAllowed(params.PeerIPEndpoint.GetIPAddress(),
+																			Access::CheckType::All); allowed && *allowed)
 			{
-				const auto cendpoint = std::invoke([&]()
+				auto reused = false;
+				PeerLUID pluid{ 0 };
+				PeerSharedPointer peerths{ nullptr };
+
+				if (params.ReuseExistingConnection)
+				{
+					const auto cendpoint = std::invoke([&]()
+					{
+						if (params.Relay.Hops == 0)
+						{
+							return IPEndpoint(params.PeerIPEndpoint.GetProtocol(), params.PeerIPEndpoint.GetIPAddress(),
+											  params.PeerIPEndpoint.GetPort());
+						}
+						else
+						{
+							return IPEndpoint(params.PeerIPEndpoint.GetProtocol(), params.PeerIPEndpoint.GetIPAddress(),
+											  params.PeerIPEndpoint.GetPort(), 0, params.Relay.Hops);
+						}
+					});
+
+					// Do we have an existing connection to the endpoint?
+					if (const auto result = m_LookupMaps.WithSharedLock()->GetPeer(cendpoint); result.Succeeded())
+					{
+						peerths = Get(*result);
+					}
+				}
+
+				// If there's no existing connection make new one,
+				// otherwise try to reuse existing connection
+				if (peerths == nullptr)
 				{
 					if (params.Relay.Hops == 0)
 					{
-						return IPEndpoint(params.PeerIPEndpoint.GetProtocol(), params.PeerIPEndpoint.GetIPAddress(),
-										  params.PeerIPEndpoint.GetPort());
+						LogInfo(L"Connecting to peer %s", params.PeerIPEndpoint.GetString().c_str());
+
+						if (const auto result = DirectConnectTo(std::move(params), std::move(function)); result.Succeeded())
+						{
+							result_code = ResultCode::Succeeded;
+							pluid = *result;
+						}
 					}
 					else
 					{
-						return IPEndpoint(params.PeerIPEndpoint.GetProtocol(), params.PeerIPEndpoint.GetIPAddress(),
-										  params.PeerIPEndpoint.GetPort(), 0, params.Relay.Hops);
-					}
-				});
+						LogInfo(L"Connecting to peer %s (Relayed)", params.PeerIPEndpoint.GetString().c_str());
 
-				// Do we have an existing connection to the endpoint?
-				if (const auto result = m_LookupMaps.WithSharedLock()->GetPeer(cendpoint); result.Succeeded())
-				{
-					peerths = Get(*result);
-				}
-			}
-
-			// If there's no existing connection make new one,
-			// otherwise try to reuse existing connection
-			if (peerths == nullptr)
-			{
-				if (params.Relay.Hops == 0)
-				{
-					LogInfo(L"Connecting to peer %s", params.PeerIPEndpoint.GetString().c_str());
-
-					if (const auto result = DirectConnectTo(std::move(params), std::move(function)); result.Succeeded())
-					{
-						result_code = ResultCode::Succeeded;
-						pluid = *result;
+						return RelayConnectTo(std::move(params), std::move(function));
 					}
 				}
 				else
 				{
-					LogInfo(L"Connecting to peer %s (Relayed)", params.PeerIPEndpoint.GetString().c_str());
+					peerths->WithUniqueLock([&](Peer& peer) noexcept
+					{
+						if ((peer.GetIOStatus().IsConnecting() || peer.GetIOStatus().IsConnected()) &&
+							!peer.GetIOStatus().HasException())
+						{
+							LogDbg(L"Reusing existing connection to peer %s", peer.GetPeerName().c_str());
 
-					return RelayConnectTo(std::move(params), std::move(function));
+							result_code = ResultCode::Succeeded;
+							pluid = peer.GetLUID();
+							reused = true;
+						}
+						else
+						{
+							LogErr(L"Error on existing connection to peer %s; retry connecting", peer.GetPeerName().c_str());
+
+							// Set the disconnect condition so that the peer gets disconnected as soon as possible
+							peer.SetDisconnectCondition(DisconnectCondition::ConnectError);
+							result_code = ResultCode::FailedRetry;
+						}
+					});
 				}
+
+				if (result_code == ResultCode::Succeeded) return { std::make_pair(pluid, reused) };
 			}
 			else
 			{
-				peerths->WithUniqueLock([&](Peer& peer) noexcept
-				{
-					if ((peer.GetIOStatus().IsConnecting() || peer.GetIOStatus().IsConnected()) &&
-						!peer.GetIOStatus().HasException())
-					{
-						LogDbg(L"Reusing existing connection to peer %s", peer.GetPeerName().c_str());
-
-						result_code = ResultCode::Succeeded;
-						pluid = peer.GetLUID();
-						reused = true;
-					}
-					else
-					{
-						LogErr(L"Error on existing connection to peer %s; retry connecting", peer.GetPeerName().c_str());
-
-						// Set the disconnect condition so that the peer gets disconnected as soon as possible
-						peer.SetDisconnectCondition(DisconnectCondition::ConnectError);
-						result_code = ResultCode::FailedRetry;
-					}
-				});
+				LogErr(L"Could not connect to peer %s; IP address is not allowed", params.PeerIPEndpoint.GetString().c_str());
+				result_code = ResultCode::NotAllowed;
 			}
-
-			if (result_code == ResultCode::Succeeded) return { std::make_pair(pluid, reused) };
 		}
 		else
 		{
-			LogErr(L"Could not connect to peer %s; IP address is not allowed", params.PeerIPEndpoint.GetString().c_str());
-			result_code = ResultCode::NotAllowed;
+			LogErr(L"Could not connect to peer %s; unsupported internetwork protocol", params.PeerIPEndpoint.GetString().c_str());
+			result_code = ResultCode::InvalidArgument;
 		}
 
 		return result_code;
@@ -771,8 +792,8 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		std::optional<PeerLUID> pluid;
 
-		auto peerths = Create(params.PeerIPEndpoint.GetIPAddress().GetFamily(), Socket::Type::Stream,
-							  IP::Protocol::TCP, PeerConnectionType::Outbound,
+		auto peerths = Create(params.PeerIPEndpoint.GetIPAddress().GetFamily(),
+							  params.PeerIPEndpoint.GetProtocol(), PeerConnectionType::Outbound,
 							  std::move(params.GlobalSharedSecret));
 		if (peerths != nullptr)
 		{

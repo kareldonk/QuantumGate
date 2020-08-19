@@ -2,10 +2,9 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "pch.h"
-#include "RelaySocket.h"
-#include "RelayManager.h"
+#include "UDPSocket.h"
 
-namespace QuantumGate::Implementation::Core::Relay
+namespace QuantumGate::Implementation::Core::UDP
 {
 	Socket::Socket() noexcept
 	{
@@ -18,16 +17,13 @@ namespace QuantumGate::Implementation::Core::Relay
 		if (m_IOStatus.IsOpen()) Close();
 	}
 
-	bool Socket::BeginAccept(const RelayPort rport, const RelayHop hop,
-							 const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
+	bool Socket::BeginAccept(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
 		assert(lendpoint.GetProtocol() == pendpoint.GetProtocol());
 
-		m_LocalEndpoint = IPEndpoint(lendpoint.GetProtocol(), lendpoint.GetIPAddress(),
-									 lendpoint.GetPort(), rport, hop);
-		m_PeerEndpoint = IPEndpoint(pendpoint.GetProtocol(), pendpoint.GetIPAddress(),
-									pendpoint.GetPort(), rport, hop);
+		m_LocalEndpoint = lendpoint;
+		m_PeerEndpoint = pendpoint;
 
 		m_AcceptCallback();
 
@@ -73,14 +69,14 @@ namespace QuantumGate::Implementation::Core::Relay
 		return m_ConnectCallback();
 	}
 
-	void Socket::SetLocalEndpoint(const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept
+	void Socket::SetLocalEndpoint(const IPEndpoint& endpoint) noexcept
 	{
 		assert(endpoint.GetProtocol() == m_PeerEndpoint.GetProtocol());
 
 		m_LocalEndpoint = IPEndpoint(endpoint.GetProtocol(), endpoint.GetIPAddress(),
-									 endpoint.GetPort(), rport, hop);
+									 endpoint.GetPort());
 		m_PeerEndpoint = IPEndpoint(m_PeerEndpoint.GetProtocol(), m_PeerEndpoint.GetIPAddress(),
-									m_PeerEndpoint.GetPort(), rport, hop);
+									m_PeerEndpoint.GetPort());
 	}
 
 	bool Socket::Send(Buffer& buffer, const Size /*max_snd_size*/) noexcept
@@ -117,13 +113,13 @@ namespace QuantumGate::Implementation::Core::Relay
 			else
 			{
 				// Send buffer is full, we'll try again later
-				LogDbg(L"Relay socket send buffer full/unavailable for endpoint %s", GetPeerName().c_str());
+				LogDbg(L"UDP socket send buffer full/unavailable for endpoint %s", GetPeerName().c_str());
 			}
 
 			if (sent_size > 0)
 			{
 				buffer.RemoveFirst(sent_size);
-				
+
 				m_SendEvent.Set();
 
 				m_BytesSent += sent_size;
@@ -133,7 +129,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		}
 		catch (const std::exception& e)
 		{
-			LogErr(L"Relay socket send exception for endpoint %s - %s",
+			LogErr(L"UDP socket send exception for endpoint %s - %s",
 				   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
 
 			SetException(WSAENOBUFS);
@@ -156,14 +152,14 @@ namespace QuantumGate::Implementation::Core::Relay
 
 			if (bytesrcv == 0 && m_ClosingRead)
 			{
-				LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
+				LogDbg(L"UDP socket connection closed for endpoint %s", GetPeerName().c_str());
 
 				m_ReceiveEvent.Reset();
 			}
 			else
 			{
 				buffer += m_ReceiveBuffer;
-				
+
 				m_ReceiveBuffer.Clear();
 				m_ReceiveEvent.Reset();
 
@@ -174,7 +170,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		}
 		catch (const std::exception& e)
 		{
-			LogErr(L"Relay socket receive exception for endpoint %s - %s",
+			LogErr(L"UDP socket receive exception for endpoint %s - %s",
 				   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
 
 			SetException(WSAENOBUFS);
@@ -219,4 +215,3 @@ namespace QuantumGate::Implementation::Core::Relay
 		return (Util::GetCurrentSystemTime() - dif);
 	}
 }
-

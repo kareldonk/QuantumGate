@@ -3,53 +3,30 @@
 
 #pragma once
 
-#include "..\Concurrency\ThreadPool.h"
-#include "Peer\PeerManager.h"
-#include "Access\AccessManager.h"
+#include "..\..\Concurrency\ThreadPool.h"
+#include "..\Peer\PeerManager.h"
+#include "..\Access\AccessManager.h"
 
-#include <variant>
-
-namespace QuantumGate::Implementation::Core::Listener
+namespace QuantumGate::Implementation::Core::TCP::Listener
 {
 	class Manager final
 	{
-		struct TCPListenerData
-		{
-			Network::Socket Socket;
-			bool UseConditionalAcceptFunction{ true };
-		};
-
-		struct UDPListenerData
-		{
-			Network::Socket Socket;
-		};
-
-		using ListenerDataType = std::variant<TCPListenerData, UDPListenerData>;
-
 		struct ThreadData final
 		{
-			ThreadData(ListenerDataType&& data) noexcept : ListenerData(std::move(data)) {}
+			ThreadData() noexcept = default;
 			ThreadData(const ThreadData&) = delete;
 			ThreadData(ThreadData&&) noexcept = default;
 
 			~ThreadData()
 			{
-				std::visit(Util::Overloaded{
-					[](TCPListenerData& data)
-					{
-						if (data.Socket.GetIOStatus().IsOpen()) data.Socket.Close();
-					},
-				    [](UDPListenerData& data)
-					{
-						if (data.Socket.GetIOStatus().IsOpen()) data.Socket.Close();
-					}
-				}, ListenerData);
+				if (Socket.GetIOStatus().IsOpen()) Socket.Close();
 			}
 
 			ThreadData& operator=(const ThreadData&) = delete;
 			ThreadData& operator=(ThreadData&&) noexcept = default;
 
-			ListenerDataType ListenerData;
+			Network::Socket Socket;
+			bool UseConditionalAcceptFunction{ true };
 		};
 
 		struct ThreadPoolData final
@@ -71,10 +48,8 @@ namespace QuantumGate::Implementation::Core::Listener
 		void Shutdown() noexcept;
 		[[nodiscard]] inline bool IsRunning() const noexcept { return m_Running; }
 
-		[[nodiscard]] bool AddTCPListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
+		[[nodiscard]] bool AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
 											  const bool cond_accept, const bool nat_traversal) noexcept;
-		[[nodiscard]] bool AddUDPListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
-												 const bool nat_traversal) noexcept;
 		std::optional<ThreadPool::Thread> RemoveListenerThread(ThreadPool::Thread&& thread) noexcept;
 		[[nodiscard]] bool Update(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept;
 
@@ -84,14 +59,13 @@ namespace QuantumGate::Implementation::Core::Listener
 
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
-		void AcceptTCPConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept;
-		void AcceptUDPConnection(Network::Socket& listener_socket) noexcept;
+		void AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept;
 
 		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
 
-		static int CALLBACK TCPAcceptConditionFunction(LPWSABUF lpCallerId, LPWSABUF lpCallerData, LPQOS lpSQOS,
-													   LPQOS lpGQOS, LPWSABUF lpCalleeId, LPWSABUF lpCalleeData,
-													   GROUP FAR* g, DWORD_PTR dwCallbackData) noexcept;
+		static int CALLBACK AcceptConditionFunction(LPWSABUF lpCallerId, LPWSABUF lpCallerData, LPQOS lpSQOS,
+													LPQOS lpGQOS, LPWSABUF lpCalleeId, LPWSABUF lpCalleeData,
+													GROUP FAR* g, DWORD_PTR dwCallbackData) noexcept;
 
 	private:
 		std::atomic_bool m_Running{ false };

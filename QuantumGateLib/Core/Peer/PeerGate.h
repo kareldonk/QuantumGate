@@ -4,6 +4,7 @@
 #pragma once
 
 #include "..\..\Network\Socket.h"
+#include "..\UDP\UDPSocket.h"
 #include "..\Relay\RelaySocket.h"
 
 #include <variant>
@@ -14,14 +15,14 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	enum class GateType
 	{
-		Unknown, Socket, RelaySocket
+		Unknown, TCPSocket, UDPSocket, RelaySocket
 	};
 
 	class Gate
 	{
 	public:
 		Gate(const GateType type) noexcept;
-		Gate(const IP::AddressFamily af, const Socket::Type type, const IP::Protocol protocol);
+		Gate(const IP::AddressFamily af, const IP::Protocol protocol);
 		Gate(const Gate&) = delete;
 		Gate(Gate&&) noexcept = default;
 		virtual ~Gate();
@@ -85,8 +86,11 @@ namespace QuantumGate::Implementation::Core::Peer
 		void SetCallbacks() noexcept;
 
 	private:
+		static constexpr Size SocketStorageSize = std::max(std::max(sizeof(Socket), sizeof(UDP::Socket)), sizeof(Relay::Socket));
+
+	private:
 		SocketBase* m_Socket{ nullptr };
-		typename std::aligned_storage<std::max(sizeof(Socket), sizeof(Relay::Socket))>::type m_SocketStorage{ 0 };
+		typename std::aligned_storage<SocketStorageSize>::type m_SocketStorage{ 0 };
 		GateType m_Type{ GateType::Unknown };
 	};
 }
