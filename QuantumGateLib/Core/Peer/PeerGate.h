@@ -3,11 +3,9 @@
 
 #pragma once
 
-#include "..\..\Network\Socket.h"
+#include "..\TCP\TCPSocket.h"
 #include "..\UDP\UDPSocket.h"
 #include "..\Relay\RelaySocket.h"
-
-#include <variant>
 
 namespace QuantumGate::Implementation::Core::Peer
 {

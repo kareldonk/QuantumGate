@@ -459,6 +459,9 @@
     <ClInclude Include="Core\TCP\TCPListenerManager.h">
       <Filter>Header Files\Core\TCP</Filter>
     </ClInclude>
+    <ClInclude Include="Core\TCP\TCPSocket.h">
+      <Filter>Header Files\Core\TCP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
