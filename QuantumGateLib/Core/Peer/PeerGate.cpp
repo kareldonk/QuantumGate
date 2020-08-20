@@ -12,10 +12,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			case GateType::TCPSocket:
 			{
-				static_assert(sizeof(Socket) <= sizeof(m_SocketStorage),
+				static_assert(sizeof(TCP::Socket) <= sizeof(m_SocketStorage),
 							  "Type is too large for SocketStorage variable; increase size.");
 
-				m_Socket = new (&m_SocketStorage) Socket();
+				m_Socket = new (&m_SocketStorage) TCP::Socket();
 				m_Type = GateType::TCPSocket;
 				break;
 			}
@@ -50,7 +50,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	Gate::Gate(const IP::AddressFamily af, const IP::Protocol protocol)
 	{
-		static_assert(sizeof(Socket) <= sizeof(m_SocketStorage),
+		static_assert(sizeof(TCP::Socket) <= sizeof(m_SocketStorage),
 					  "Type is too large for SocketStorage variable; increase size.");
 
 		static_assert(sizeof(UDP::Socket) <= sizeof(m_SocketStorage),
@@ -59,7 +59,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		switch (protocol)
 		{
 			case IP::Protocol::TCP:
-				m_Socket = new (&m_SocketStorage) Socket(af, Socket::Type::Stream, IP::Protocol::TCP);
+				m_Socket = new (&m_SocketStorage) TCP::Socket(af);
 				m_Type = GateType::TCPSocket;
 				break;
 			case IP::Protocol::UDP:

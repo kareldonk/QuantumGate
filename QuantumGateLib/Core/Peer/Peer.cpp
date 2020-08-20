@@ -791,7 +791,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			switch (GetGateType())
 			{
 				case GateType::TCPSocket:
-					if (!GetSocket<Socket>().GetEvent().Set())
+					if (!GetSocket<TCP::Socket>().GetEvent().Set())
 					{
 						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
 					}

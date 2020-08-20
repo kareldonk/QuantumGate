@@ -330,7 +330,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 			{
 				if (cond_accept)
 				{
-					if (!listener_socket.Accept(peer.GetSocket<Network::Socket>(), true,
+					if (!listener_socket.Accept(peer.GetSocket<TCP::Socket>(), true,
 												&Manager::AcceptConditionFunction, this))
 					{
 						// Couldn't accept for some reason
@@ -339,7 +339,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 				}
 				else
 				{
-					if (listener_socket.Accept(peer.GetSocket<Network::Socket>(), false, nullptr, nullptr))
+					if (listener_socket.Accept(peer.GetSocket<TCP::Socket>(), false, nullptr, nullptr))
 					{
 						// Check if the IP address is allowed
 						if (!CanAcceptConnection(peer.GetPeerIPAddress()))

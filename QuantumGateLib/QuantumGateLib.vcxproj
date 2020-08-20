@@ -608,6 +608,7 @@
     <ClInclude Include="Core\Relay\RelayManager.h" />
     <ClInclude Include="Core\Relay\RelaySocket.h" />
     <ClInclude Include="Core\TCP\TCPListenerManager.h" />
+    <ClInclude Include="Core\TCP\TCPSocket.h" />
     <ClInclude Include="Core\UDP\UDPListenerManager.h" />
     <ClInclude Include="Core\UDP\UDPSocket.h" />
     <ClInclude Include="Crypto\Crypto.h" />

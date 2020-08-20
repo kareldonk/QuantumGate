@@ -18,7 +18,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		switch (peer.GetGateType())
 		{
 			case GateType::TCPSocket:
-				return WorkEvents.AddEvent(peer.GetSocket<Socket>().GetEvent().GetHandle());
+				return WorkEvents.AddEvent(peer.GetSocket<TCP::Socket>().GetEvent().GetHandle());
 			case GateType::RelaySocket:
 				return WorkEvents.AddEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
 			default:
@@ -35,7 +35,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		switch (peer.GetGateType())
 		{
 			case GateType::TCPSocket:
-				WorkEvents.RemoveEvent(peer.GetSocket<Socket>().GetEvent().GetHandle());
+				WorkEvents.RemoveEvent(peer.GetSocket<TCP::Socket>().GetEvent().GetHandle());
 				break;
 			case GateType::RelaySocket:
 				WorkEvents.RemoveEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
