@@ -65,6 +65,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		// Disconnect and remove all relays
 		DisconnectAndRemoveAll();
 
+		EndShutdownThreadPool();
+
 		// If all relays were disconnected and our bookkeeping
 		// was done right then the below should be true
 		assert(m_RelayLinks.WithUniqueLock()->empty());
