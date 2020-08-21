@@ -28,9 +28,12 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		struct ThreadData final
 		{
-			ThreadData(const ThreadKey thread_key) noexcept : ThreadKey(thread_key) {}
+			ThreadData(const ThreadKey thread_key, EventQueue_ThS* event_queue) noexcept :
+				ThreadKey(thread_key), EventQueue(event_queue)
+			{}
 
 			ThreadKey ThreadKey{ 0 };
+			EventQueue_ThS* EventQueue{ nullptr };
 		};
 
 		struct ThreadPoolData final
