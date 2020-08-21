@@ -34,8 +34,8 @@ namespace QuantumGate::Implementation
 					return "Operation was aborted.";
 				case ResultCode::OutOfMemory:
 					return "Operation failed. There was not enough memory available.";
-				case ResultCode::FailedListenerManagerStartup:
-					return "Operation failed. Listenermanager startup failed.";
+				case ResultCode::FailedTCPListenerManagerStartup:
+					return "Operation failed. TCP listenermanager startup failed.";
 				case ResultCode::FailedPeerManagerStartup:
 					return "Operation failed. Peermanager startup failed.";
 				case ResultCode::FailedRelayManagerStartup:
@@ -44,6 +44,10 @@ namespace QuantumGate::Implementation
 					return "Operation failed. Extendermanager startup failed.";
 				case ResultCode::FailedKeyGenerationManagerStartup:
 					return "Operation failed. Keygenerationmanager startup failed.";
+				case ResultCode::FailedUDPConnectionManagerStartup:
+					return "Operation failed. UDP connectionmanager startup failed.";
+				case ResultCode::FailedUDPListenerManagerStartup:
+					return "Operation failed. UDP listenermanager startup failed.";
 				case ResultCode::NoPeersForRelay:
 					return "Operation failed. There were no connected peers to relay with.";
 				case ResultCode::PeerNotFound:

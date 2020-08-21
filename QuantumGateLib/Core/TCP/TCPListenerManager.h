@@ -74,6 +74,6 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 		Access::Manager& m_AccessManager;
 		Peer::Manager& m_PeerManager;
 
-		ThreadPool m_ListenerThreadPool;
+		ThreadPool m_ThreadPool;
 	};
 }

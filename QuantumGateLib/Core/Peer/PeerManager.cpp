@@ -52,10 +52,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	Manager::Manager(const Settings_CThS& settings, LocalEnvironment_ThS& environment,
+	Manager::Manager(const Settings_CThS& settings, LocalEnvironment_ThS& environment, UDP::Connection::Manager& udpmgr,
 					 KeyGeneration::Manager& keymgr, Access::Manager& accessmgr,
 					 Extender::Manager& extenders) noexcept :
-		m_Settings(settings), m_LocalEnvironment(environment), m_KeyGenerationManager(keymgr),
+		m_Settings(settings), m_LocalEnvironment(environment), m_UDPConnectionManager(udpmgr), m_KeyGenerationManager(keymgr),
 		m_AccessManager(accessmgr), m_ExtenderManager(extenders)
 	{}
 
@@ -438,39 +438,24 @@ namespace QuantumGate::Implementation::Core::Peer
 											   settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits);
 	}
 
-	PeerSharedPointer Manager::CreateTCP(const PeerConnectionType pctype,
-										 std::optional<ProtectedBuffer>&& shared_secret) noexcept
-	{
-		try
-		{
-			auto peer = std::make_shared<Peer_ThS>(*this, GateType::TCPSocket, pctype, std::move(shared_secret));
-			if (peer->WithUniqueLock()->Initialize(peer)) return peer;
-		}
-		catch (...) {}
-
-		return nullptr;
-	}
-
-	PeerSharedPointer Manager::CreateUDP(const PeerConnectionType pctype,
-										 std::optional<ProtectedBuffer>&& shared_secret) noexcept
-	{
-		try
-		{
-			auto peer = std::make_shared<Peer_ThS>(*this, GateType::UDPSocket, pctype, std::move(shared_secret));
-			if (peer->WithUniqueLock()->Initialize(peer)) return peer;
-		}
-		catch (...) {}
-
-		return nullptr;
-	}
-
 	PeerSharedPointer Manager::Create(const IP::AddressFamily af, const IP::Protocol protocol,
 									  const PeerConnectionType pctype, std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		try
 		{
-			auto peer = std::make_shared<Peer_ThS>(*this, af, protocol, pctype, std::move(shared_secret));
-			if (peer->WithUniqueLock()->Initialize(peer)) return peer;
+			auto peer_ths = std::make_shared<Peer_ThS>(*this, af, protocol, pctype, std::move(shared_secret));
+			auto peer = peer_ths->WithUniqueLock();
+
+			if (peer->Initialize(peer_ths))
+			{
+				if (protocol == IP::Protocol::UDP &&
+					!m_UDPConnectionManager.AddConnection(af, pctype, peer->GetSocket<UDP::Socket>()))
+				{
+					return nullptr;
+				}
+
+				return peer_ths;
+			}
 		}
 		catch (...) {}
 
@@ -482,8 +467,8 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		try
 		{
-			auto peer = std::make_shared<Peer_ThS>(*this, GateType::RelaySocket, pctype, std::move(shared_secret));
-			if (peer->WithUniqueLock()->Initialize(peer)) return peer;
+			auto peer_ths = std::make_shared<Peer_ThS>(*this, GateType::RelaySocket, pctype, std::move(shared_secret));
+			if (peer_ths->WithUniqueLock()->Initialize(peer_ths)) return peer_ths;
 		}
 		catch (...) {}
 

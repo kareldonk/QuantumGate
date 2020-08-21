@@ -610,6 +610,7 @@
     <ClInclude Include="Core\TCP\TCPListenerManager.h" />
     <ClInclude Include="Core\TCP\TCPSocket.h" />
     <ClInclude Include="Core\UDP\UDPListenerManager.h" />
+    <ClInclude Include="Core\UDP\UDPConnectionManager.h" />
     <ClInclude Include="Core\UDP\UDPSocket.h" />
     <ClInclude Include="Crypto\Crypto.h" />
     <ClInclude Include="Crypto\KeyData.h" />
@@ -696,6 +697,7 @@
     <ClCompile Include="Core\Relay\RelaySocket.cpp" />
     <ClCompile Include="Core\TCP\TCPListenerManager.cpp" />
     <ClCompile Include="Core\UDP\UDPListenerManager.cpp" />
+    <ClCompile Include="Core\UDP\UDPConnectionManager.cpp" />
     <ClCompile Include="Core\UDP\UDPSocket.cpp" />
     <ClCompile Include="Crypto\Crypto.cpp" />
     <ClCompile Include="Crypto\KeyData.cpp" />

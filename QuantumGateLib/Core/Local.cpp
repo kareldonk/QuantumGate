@@ -322,13 +322,21 @@ namespace QuantumGate::Implementation::Core
 		// Upon failure shut down key manager when we return
 		auto sg1 = MakeScopeGuard([&]() noexcept { m_KeyGenerationManager.Shutdown(); });
 
+		if (!m_UDPConnectionManager.Startup())
+		{
+			return ResultCode::FailedUDPConnectionManagerStartup;
+		}
+
+		// Upon failure shut down UDP connection manager when we return
+		auto sg2 = MakeScopeGuard([&]() noexcept { m_UDPConnectionManager.Shutdown(); });
+
 		if (!m_PeerManager.Startup())
 		{
 			return ResultCode::FailedPeerManagerStartup;
 		}
 
 		// Upon failure shut down peer manager when we return
-		auto sg2 = MakeScopeGuard([&]() noexcept { m_PeerManager.Shutdown(); });
+		auto sg3 = MakeScopeGuard([&]() noexcept { m_PeerManager.Shutdown(); });
 
 		if (params.Relays.Enable && !m_PeerManager.StartupRelays())
 		{
@@ -336,31 +344,31 @@ namespace QuantumGate::Implementation::Core
 		}
 
 		// Upon failure shut down relay manager when we return
-		auto sg3 = MakeScopeGuard([&]() noexcept { m_PeerManager.ShutdownRelays(); });
+		auto sg4 = MakeScopeGuard([&]() noexcept { m_PeerManager.ShutdownRelays(); });
 
 		if (params.Listeners.TCP.Enable &&
 			!m_TCPListenerManager.Startup(m_LocalEnvironment.WithSharedLock()->GetEthernetInterfaces()))
 		{
-			return ResultCode::FailedListenerManagerStartup;
+			return ResultCode::FailedTCPListenerManagerStartup;
 		}
 
 		// Upon failure shut down TCP listener manager when we return
-		auto sg4 = MakeScopeGuard([&]() noexcept { m_TCPListenerManager.Shutdown(); });
+		auto sg5 = MakeScopeGuard([&]() noexcept { m_TCPListenerManager.Shutdown(); });
 
 		if (params.Listeners.UDP.Enable &&
 			!m_UDPListenerManager.Startup(m_LocalEnvironment.WithSharedLock()->GetEthernetInterfaces()))
 		{
-			return ResultCode::FailedListenerManagerStartup;
+			return ResultCode::FailedUDPListenerManagerStartup;
 		}
 
 		// Upon failure shut down UDP listener manager when we return
-		auto sg5 = MakeScopeGuard([&]() noexcept { m_UDPListenerManager.Shutdown(); });
+		auto sg6 = MakeScopeGuard([&]() noexcept { m_UDPListenerManager.Shutdown(); });
 
 		// Enter running state; important for extenders
 		m_Running = true;
 
 		// Upon failure exit running state when we return
-		auto sg6 = MakeScopeGuard([&]() noexcept { m_Running = false; });
+		auto sg7 = MakeScopeGuard([&]() noexcept { m_Running = false; });
 
 		if (params.EnableExtenders && !m_ExtenderManager.Startup())
 		{
@@ -374,6 +382,7 @@ namespace QuantumGate::Implementation::Core
 		sg4.Deactivate();
 		sg5.Deactivate();
 		sg6.Deactivate();
+		sg7.Deactivate();
 
 		LogSys(L"QuantumGate startup successful");
 
@@ -404,6 +413,8 @@ namespace QuantumGate::Implementation::Core
 		// Close all connections
 		m_PeerManager.ShutdownRelays();
 		m_PeerManager.Shutdown();
+
+		m_UDPConnectionManager.Shutdown();
 
 		m_KeyGenerationManager.Shutdown();
 

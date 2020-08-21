@@ -6,10 +6,17 @@
 #include "..\..\Network\SocketBase.h"
 #include "..\..\Concurrency\Event.h"
 
+namespace QuantumGate::Implementation::Core::UDP::Connection
+{
+	class Manager;
+}
+
 namespace QuantumGate::Implementation::Core::UDP
 {
 	class Socket final : public Network::SocketBase
 	{
+		friend class Connection::Manager;
+
 	public:
 		class IOBuffer final
 		{
@@ -41,6 +48,18 @@ namespace QuantumGate::Implementation::Core::UDP
 			Concurrency::Event& m_Event;
 		};
 
+		struct Buffers final
+		{
+			Buffer m_SendBuffer;
+			Concurrency::Event& m_SendEvent;
+			Buffer m_ReceiveBuffer;
+			Concurrency::Event m_ReceiveEvent;
+
+			Buffers(Concurrency::Event& send_event) noexcept : m_SendEvent(send_event) {}
+		};
+
+		using Buffers_ThS = Concurrency::ThreadSafe<Buffers, std::shared_mutex>;
+
 		Socket() noexcept;
 		Socket(const Socket&) = delete;
 		Socket(Socket&&) noexcept = default;
@@ -48,10 +67,8 @@ namespace QuantumGate::Implementation::Core::UDP
 		Socket& operator=(const Socket&) = delete;
 		Socket& operator=(Socket&&) noexcept = default;
 
-		[[nodiscard]] inline Concurrency::Event& GetReceiveEvent() noexcept { return m_ReceiveEvent; }
-		[[nodiscard]] inline const Concurrency::Event& GetReceiveEvent() const noexcept { return m_ReceiveEvent; }
-		[[nodiscard]] inline Concurrency::Event& GetSendEvent() noexcept { return m_SendEvent; }
-		[[nodiscard]] inline const Concurrency::Event& GetSendEvent() const noexcept { return m_SendEvent; }
+		[[nodiscard]] inline Concurrency::Event& GetReceiveEvent() noexcept { return m_Buffers->WithUniqueLock()->m_ReceiveEvent; }
+		[[nodiscard]] inline const Concurrency::Event& GetReceiveEvent() const noexcept { return m_Buffers->WithSharedLock()->m_ReceiveEvent; }
 
 		[[nodiscard]] bool BeginAccept(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept;
 		[[nodiscard]] bool CompleteAccept() noexcept;
@@ -105,10 +122,11 @@ namespace QuantumGate::Implementation::Core::UDP
 		}
 
 	private:
+		inline void SetBuffers(const std::shared_ptr<Buffers_ThS>& buffers) noexcept { m_Buffers = buffers; }
 		void SetLocalEndpoint(const IPEndpoint& endpoint) noexcept;
 
-		[[nodiscard]] inline IOBuffer GetSendBuffer() noexcept { return { m_SendBuffer, m_SendEvent }; }
-		[[nodiscard]] inline IOBuffer GetReceiveBuffer() noexcept { return { m_ReceiveBuffer, m_ReceiveEvent }; }
+		//[[nodiscard]] inline IOBuffer GetSendBuffer() noexcept { return { m_SendBuffer, m_SendEvent }; }
+		//[[nodiscard]] inline IOBuffer GetReceiveBuffer() noexcept { return { m_ReceiveBuffer, m_ReceiveEvent }; }
 
 		inline void SetException(const Int errorcode) noexcept
 		{
@@ -117,7 +135,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		}
 
 		inline void SetWrite() noexcept { m_IOStatus.SetWrite(true); }
-		inline void SetRead() noexcept { m_ClosingRead = true; m_ReceiveEvent.Set(); }
+		//inline void SetRead() noexcept { m_ClosingRead = true; m_ReceiveEvent.Set(); }
 
 	private:
 		static constexpr Size MinSendBufferSize{ 1u << 16 }; // 65KB
@@ -136,10 +154,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		SteadyTime m_ConnectedSteadyTime;
 
 		Size m_MaxSendBufferSize{ MinSendBufferSize };
-		Buffer m_SendBuffer;
-		Concurrency::Event m_SendEvent;
-		Buffer m_ReceiveBuffer;
-		Concurrency::Event m_ReceiveEvent;
+		std::shared_ptr<Buffers_ThS> m_Buffers;
 
 		ConnectingCallback m_ConnectingCallback{ []() mutable noexcept {} };
 		AcceptCallback m_AcceptCallback{ []() mutable noexcept {} };

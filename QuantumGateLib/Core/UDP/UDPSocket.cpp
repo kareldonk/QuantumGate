@@ -80,7 +80,7 @@ namespace QuantumGate::Implementation::Core::UDP
 	}
 
 	bool Socket::Send(Buffer& buffer, const Size /*max_snd_size*/) noexcept
-	{
+	{/*
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanWrite());
 
 		if (m_IOStatus.HasException()) return false;
@@ -133,7 +133,7 @@ namespace QuantumGate::Implementation::Core::UDP
 				   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
 
 			SetException(WSAENOBUFS);
-		}
+		}*/
 
 		return false;
 	}
@@ -145,7 +145,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		if (m_IOStatus.HasException()) return false;
 
 		auto success = false;
-
+		/*
 		try
 		{
 			const auto bytesrcv = m_ReceiveBuffer.GetSize();
@@ -174,7 +174,7 @@ namespace QuantumGate::Implementation::Core::UDP
 				   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
 
 			SetException(WSAENOBUFS);
-		}
+		}*/
 
 		return success;
 	}
@@ -191,7 +191,7 @@ namespace QuantumGate::Implementation::Core::UDP
 	bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
-
+		/*
 		m_ReceiveEvent.Reset();
 
 		if (!m_IOStatus.IsOpen()) return false;
@@ -203,7 +203,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			m_IOStatus.SetRead(read);
 
 			if (read) m_ReceiveEvent.Set();
-		}
+		}*/
 
 		return true;
 	}
