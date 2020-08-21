@@ -64,7 +64,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				break;
 			case IP::Protocol::UDP:
 				m_Socket = new (&m_SocketStorage) UDP::Socket();
-				m_Type = GateType::TCPSocket;
+				m_Type = GateType::UDPSocket;
 				break;
 			default:
 				// Shouldn't get here

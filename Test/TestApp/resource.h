@@ -201,6 +201,7 @@
 #define IDC_VERSION_INFO                1083
 #define IDC_CHECK21                     1084
 #define IDC_AUDIO_COMPRESSION_CHECK     1084
+#define IDC_PROTOCOL_COMBO              1084
 #define IDC_CHECK22                     1085
 #define IDC_VIDEO_FILL_CHECK            1085
 #define IDC_VIDEO_SIZE_FORCE            1086
@@ -297,7 +298,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        166
 #define _APS_NEXT_COMMAND_VALUE         32857
-#define _APS_NEXT_CONTROL_VALUE         1084
+#define _APS_NEXT_CONTROL_VALUE         1085
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

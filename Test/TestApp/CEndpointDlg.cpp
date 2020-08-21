@@ -30,6 +30,16 @@ BOOL CEndpointDlg::OnInitDialog()
 
 	SetValue(IDC_IP, m_IPAddress.GetString());
 	SetValue(IDC_PORT, m_Port);
+
+	// Init protocol combo
+	const auto pcombo = (CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO);
+	auto pos = pcombo->AddString(L"TCP");
+	pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::IPEndpoint::Protocol::TCP));
+	if (m_Protocol == QuantumGate::IPEndpoint::Protocol::TCP) pcombo->SetCurSel(pos);
+	pos = pcombo->AddString(L"UDP");
+	pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::IPEndpoint::Protocol::UDP));
+	if (m_Protocol == QuantumGate::IPEndpoint::Protocol::UDP) pcombo->SetCurSel(pos);
+
 	SetValue(IDC_HOPS, m_Hops);
 
 	if (m_ReuseConnection) ((CButton*)GetDlgItem(IDC_REUSE_CONNECTION))->SetCheck(BST_CHECKED);
@@ -51,6 +61,15 @@ void CEndpointDlg::OnBnClickedOk()
 	if (IPAddress::TryParse(GetTextValue(IDC_IP).GetString(), m_IPAddress))
 	{
 		m_Port = static_cast<UInt16>(GetInt64Value(IDC_PORT));
+
+		const auto sel = ((CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO))->GetCurSel();
+		if (sel == CB_ERR)
+		{
+			AfxMessageBox(L"Please select a protocol first.", MB_ICONINFORMATION);
+			return;
+		}
+
+		m_Protocol = static_cast<QuantumGate::IPEndpoint::Protocol>(((CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO))->GetItemData(sel));
 		m_PassPhrase = GetTextValue(IDC_PASSPHRASE);
 		m_Hops = static_cast<UInt8>(GetInt64Value(IDC_HOPS));
 

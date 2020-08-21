@@ -19,6 +19,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			case GateType::TCPSocket:
 				return WorkEvents.AddEvent(peer.GetSocket<TCP::Socket>().GetEvent().GetHandle());
+			case GateType::UDPSocket:
+				return WorkEvents.AddEvent(peer.GetSocket<UDP::Socket>().GetReceiveEvent().GetHandle());
 			case GateType::RelaySocket:
 				return WorkEvents.AddEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
 			default:
@@ -36,6 +38,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			case GateType::TCPSocket:
 				WorkEvents.RemoveEvent(peer.GetSocket<TCP::Socket>().GetEvent().GetHandle());
+				break;
+			case GateType::UDPSocket:
+				WorkEvents.RemoveEvent(peer.GetSocket<UDP::Socket>().GetReceiveEvent().GetHandle());
 				break;
 			case GateType::RelaySocket:
 				WorkEvents.RemoveEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
