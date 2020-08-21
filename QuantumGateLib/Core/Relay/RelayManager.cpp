@@ -4,9 +4,6 @@
 #include "pch.h"
 #include "RelayManager.h"
 #include "..\Peer\PeerManager.h"
-#include "..\Peer\PeerLookupMaps.h"
-
-#include <array>
 
 using namespace std::literals;
 
@@ -112,7 +109,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			// First thread is primary worker thread
 			if (x == 0)
 			{
-				if (!m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Main)", ThreadData(x),
+				if (!m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Main)", ThreadData(x, nullptr),
 											MakeCallback(this, &Manager::PrimaryThreadProcessor),
 											MakeCallback(this, &Manager::PrimaryThreadWait)))
 				{
@@ -125,7 +122,8 @@ namespace QuantumGate::Implementation::Core::Relay
 				{
 					m_ThreadPool.GetData().RelayEventQueues[x] = std::make_unique<EventQueue_ThS>();
 
-					if (m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Event Processor)", ThreadData(x),
+					if (m_ThreadPool.AddThread(L"QuantumGate Relay Thread (Event Processor)",
+											   ThreadData(x, m_ThreadPool.GetData().RelayEventQueues[x].get()),
 											   MakeCallback(this, &Manager::WorkerThreadProcessor),
 											   MakeCallback(this, &Manager::WorkerThreadWait),
 											   MakeCallback(this, &Manager::WorkerThreadWaitInterrupt)))
@@ -677,19 +675,19 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	void Manager::WorkerThreadWait(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
-		thpdata.RelayEventQueues[thdata.ThreadKey]->Wait(shutdown_event);
+		thdata.EventQueue->Wait(shutdown_event);
 	}
 
 	void Manager::WorkerThreadWaitInterrupt(ThreadPoolData& thpdata, ThreadData& thdata)
 	{
-		thpdata.RelayEventQueues[thdata.ThreadKey]->InterruptWait();
+		thdata.EventQueue->InterruptWait();
 	}
 
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
 		std::optional<Event> event;
 
-		thpdata.RelayEventQueues[thdata.ThreadKey]->PopFrontIf([&](auto& fevent) noexcept -> bool
+		thdata.EventQueue->PopFrontIf([&](auto& fevent) noexcept -> bool
 		{
 			event = std::move(fevent);
 			return true;
