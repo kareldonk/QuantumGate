@@ -462,6 +462,9 @@
     <ClInclude Include="Core\TCP\TCPSocket.h">
       <Filter>Header Files\Core\TCP</Filter>
     </ClInclude>
+    <ClInclude Include="Core\UDP\UDPConnectionManager.h">
+      <Filter>Header Files\Core\UDP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -649,6 +652,9 @@
     </ClCompile>
     <ClCompile Include="Core\TCP\TCPListenerManager.cpp">
       <Filter>Source Files\Core\TCP</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\UDP\UDPConnectionManager.cpp">
+      <Filter>Source Files\Core\UDP</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

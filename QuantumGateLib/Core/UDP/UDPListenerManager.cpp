@@ -9,8 +9,9 @@ using namespace QuantumGate::Implementation::Network;
 
 namespace QuantumGate::Implementation::Core::UDP::Listener
 {
-	Manager::Manager(const Settings_CThS& settings, Access::Manager& accessmgr, Peer::Manager& peers) noexcept :
-		m_Settings(settings), m_AccessManager(accessmgr), m_PeerManager(peers)
+	Manager::Manager(const Settings_CThS& settings, UDP::Connection::Manager& udpmgr, Access::Manager& accessmgr,
+					 Peer::Manager& peermgr) noexcept :
+		m_Settings(settings), m_UDPConnectionManager(udpmgr), m_AccessManager(accessmgr), m_PeerManager(peermgr)
 	{}
 
 	// Starts listening on the default interfaces
@@ -61,7 +62,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			}
 		}
 
-		if (m_ListenerThreadPool.Startup())
+		if (m_ThreadPool.Startup())
 		{
 			m_Running = true;
 			m_ListeningOnAnyAddresses = true;
@@ -111,7 +112,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			}
 		}
 
-		if (m_ListenerThreadPool.Startup())
+		if (m_ThreadPool.Startup())
 		{
 			m_Running = true;
 			m_ListeningOnAnyAddresses = false;
@@ -139,7 +140,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 				if (ltd.Socket.Bind(endpoint, nat_traversal))
 				{
-					if (m_ListenerThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
+					if (m_ThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
 													   std::move(ltd), MakeCallback(this, &Manager::WorkerThreadProcessor)))
 					{
 						LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
@@ -165,7 +166,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 	{
 		const IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
 
-		const auto [success, next_thread] = m_ListenerThreadPool.RemoveThread(std::move(thread));
+		const auto [success, next_thread] = m_ThreadPool.RemoveThread(std::move(thread));
 		if (success)
 		{
 			LogSys(L"Stopped listening on endpoint %s", endpoint.GetString().c_str());
@@ -205,7 +206,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 					{
 						auto found = false;
 
-						auto thread = m_ListenerThreadPool.GetFirstThread();
+						auto thread = m_ThreadPool.GetFirstThread();
 
 						while (thread.has_value())
 						{
@@ -214,7 +215,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 								found = true;
 								break;
 							}
-							else thread = m_ListenerThreadPool.GetNextThread(*thread);
+							else thread = m_ThreadPool.GetNextThread(*thread);
 						}
 
 						if (!found)
@@ -228,7 +229,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 		// Check for interfaces/IP addresses that were removed for which
 		// there are still listeners; we remove listeners for those
-		auto thread = m_ListenerThreadPool.GetFirstThread();
+		auto thread = m_ThreadPool.GetFirstThread();
 
 		while (thread.has_value())
 		{
@@ -255,7 +256,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			{
 				thread = RemoveListenerThread(std::move(*thread));
 			}
-			else thread = m_ListenerThreadPool.GetNextThread(*thread);
+			else thread = m_ThreadPool.GetNextThread(*thread);
 		}
 
 		return true;
@@ -269,7 +270,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 		LogSys(L"UDP listenermanager shutting down...");
 
-		m_ListenerThreadPool.Shutdown();
+		m_ThreadPool.Shutdown();
 
 		ResetState();
 
@@ -284,7 +285,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 	void Manager::ResetState() noexcept
 	{
 		m_ListeningOnAnyAddresses = false;
-		m_ListenerThreadPool.Clear();
+		m_ThreadPool.Clear();
 	}
 
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
@@ -298,11 +299,20 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			{
 				if (socket.GetIOStatus().CanRead())
 				{
-					// Probably have a connection waiting to accept
-					LogInfo(L"Accepting new connection on endpoint %s",
-							socket.GetLocalEndpoint().GetString().c_str());
-					
-					AcceptConnection(socket);
+					IPEndpoint endpoint;
+					Buffer buffer;
+					if (socket.ReceiveFrom(endpoint, buffer))
+					{
+						if (CanAcceptConnection(endpoint.GetIPAddress()))
+						{
+							m_UDPConnectionManager.ProcessIncomingListenerData(endpoint, std::move(buffer));
+						}
+						else
+						{
+							LogWarn(L"Discarding incoming data from peer %s; IP address is not allowed by access configuration",
+									endpoint.GetString().c_str());
+						}
+					}
 				}
 				else if (socket.GetIOStatus().HasException())
 				{
@@ -316,39 +326,6 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 				LogErr(L"Could not get status of listener socket for endpoint %s",
 					   socket.GetLocalEndpoint().GetString().c_str());
 			}
-		}
-	}
-
-	void Manager::AcceptConnection(Network::Socket& listener_socket) noexcept
-	{
-		auto peerths = m_PeerManager.CreateUDP(PeerConnectionType::Inbound, std::nullopt);
-		if (peerths != nullptr)
-		{
-			peerths->WithUniqueLock([&](Peer::Peer& peer)
-			{
-				if (listener_socket.Accept(peer.GetSocket<Network::Socket>(), false, nullptr, nullptr))
-				{
-					// Check if the IP address is allowed
-					if (!CanAcceptConnection(peer.GetPeerIPAddress()))
-					{
-						peer.Close();
-						LogWarn(L"Incoming connection from peer %s was rejected; IP address is not allowed by access configuration",
-								peer.GetPeerName().c_str());
-
-						return;
-					}
-				}
-
-				if (m_PeerManager.Accept(peerths))
-				{
-					LogInfo(L"Connection accepted from peer %s", peer.GetPeerName().c_str());
-				}
-				else
-				{
-					peer.Close();
-					LogErr(L"Could not accept connection from peer %s", peer.GetPeerName().c_str());
-				}
-			});
 		}
 	}
 

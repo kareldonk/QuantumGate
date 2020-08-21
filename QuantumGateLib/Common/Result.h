@@ -26,11 +26,13 @@ namespace QuantumGate::Implementation
 		Aborted = 7,
 		OutOfMemory = 8,
 
-		FailedListenerManagerStartup = 10,
+		FailedTCPListenerManagerStartup = 10,
 		FailedPeerManagerStartup = 11,
 		FailedRelayManagerStartup = 12,
 		FailedExtenderManagerStartup = 13,
 		FailedKeyGenerationManagerStartup = 14,
+		FailedUDPConnectionManagerStartup = 15,
+		FailedUDPListenerManagerStartup = 16,
 
 		NoPeersForRelay = 50,
 

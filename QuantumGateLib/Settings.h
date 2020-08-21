@@ -107,6 +107,12 @@ namespace QuantumGate::Implementation
 
 			struct
 			{
+				Size MinThreads{ 1 };										// Minumum number of worker threads
+				Size MaxThreads{ 8 };										// Maximum number of worker threads
+			} UDPConnectionManager;
+
+			struct
+			{
 				Size MinThreads{ 2 };										// Minumum number of worker threads
 				Size MaxThreads{ 8 };										// Maximum number of worker threads
 			} RelayManager;

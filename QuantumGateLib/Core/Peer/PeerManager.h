@@ -11,6 +11,7 @@
 #include "..\..\Concurrency\EventGroup.h"
 #include "..\KeyGeneration\KeyGenerationManager.h"
 #include "..\Relay\RelayManager.h"
+#include "..\UDP\UDPConnectionManager.h"
 #include "PeerLookupMaps.h"
 
 namespace QuantumGate::Implementation::Core::Peer
@@ -59,7 +60,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	public:
 		Manager() = delete;
-		Manager(const Settings_CThS& settings, LocalEnvironment_ThS& environment,
+		Manager(const Settings_CThS& settings, LocalEnvironment_ThS& environment, UDP::Connection::Manager& udpmgr,
 				KeyGeneration::Manager& keymgr, Access::Manager& accessmgr,
 				Extender::Manager& extenders) noexcept;
 		Manager(const Manager&) = delete;
@@ -83,10 +84,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
 
-		PeerSharedPointer CreateTCP(const PeerConnectionType pctype,
-									std::optional<ProtectedBuffer>&& shared_secret) noexcept;
-		PeerSharedPointer CreateUDP(const PeerConnectionType pctype,
-									std::optional<ProtectedBuffer>&& shared_secret) noexcept;
+		PeerSharedPointer Create(const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
+								 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 		PeerSharedPointer CreateRelay(const PeerConnectionType pctype,
 									  std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
@@ -128,9 +127,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			return *static_cast<PeerSharedPointer*>(peer.GetPeerSharedPtrStorage());
 		}
-
-		PeerSharedPointer Create(const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
-								 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
 		inline Relay::Manager& GetRelayManager() noexcept { return m_RelayManager; }
 
@@ -187,6 +183,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		std::atomic_bool m_Running{ false };
 		const Settings_CThS& m_Settings;
 		LocalEnvironment_ThS& m_LocalEnvironment;
+		UDP::Connection::Manager& m_UDPConnectionManager;
 		KeyGeneration::Manager& m_KeyGenerationManager;
 		Access::Manager& m_AccessManager;
 		Extender::Manager& m_ExtenderManager;

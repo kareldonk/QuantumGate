@@ -62,7 +62,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 			}
 		}
 
-		if (m_ListenerThreadPool.Startup())
+		if (m_ThreadPool.Startup())
 		{
 			m_Running = true;
 			m_ListeningOnAnyAddresses = true;
@@ -113,7 +113,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 			}
 		}
 
-		if (m_ListenerThreadPool.Startup())
+		if (m_ThreadPool.Startup())
 		{
 			m_Running = true;
 			m_ListeningOnAnyAddresses = false;
@@ -143,7 +143,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 				
 				if (ltd.Socket.Listen(endpoint, true, nat_traversal))
 				{
-					if (m_ListenerThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
+					if (m_ThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
 													   std::move(ltd), MakeCallback(this, &Manager::WorkerThreadProcessor)))
 					{
 						LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
@@ -169,7 +169,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 	{
 		const IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
 
-		const auto [success, next_thread] = m_ListenerThreadPool.RemoveThread(std::move(thread));
+		const auto [success, next_thread] = m_ThreadPool.RemoveThread(std::move(thread));
 		if (success)
 		{
 			LogSys(L"Stopped listening on endpoint %s", endpoint.GetString().c_str());
@@ -209,7 +209,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 					{
 						auto found = false;
 
-						auto thread = m_ListenerThreadPool.GetFirstThread();
+						auto thread = m_ThreadPool.GetFirstThread();
 
 						while (thread.has_value())
 						{
@@ -218,7 +218,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 								found = true;
 								break;
 							}
-							else thread = m_ListenerThreadPool.GetNextThread(*thread);
+							else thread = m_ThreadPool.GetNextThread(*thread);
 						}
 
 						if (!found)
@@ -232,7 +232,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 		// Check for interfaces/IP addresses that were removed for which
 		// there are still listeners; we remove listeners for those
-		auto thread = m_ListenerThreadPool.GetFirstThread();
+		auto thread = m_ThreadPool.GetFirstThread();
 
 		while (thread.has_value())
 		{
@@ -259,7 +259,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 			{
 				thread = RemoveListenerThread(std::move(*thread));
 			}
-			else thread = m_ListenerThreadPool.GetNextThread(*thread);
+			else thread = m_ThreadPool.GetNextThread(*thread);
 		}
 
 		return true;
@@ -273,7 +273,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 		LogSys(L"TCP listenermanager shutting down...");
 
-		m_ListenerThreadPool.Shutdown();
+		m_ThreadPool.Shutdown();
 
 		ResetState();
 
@@ -288,7 +288,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 	void Manager::ResetState() noexcept
 	{
 		m_ListeningOnAnyAddresses = false;
-		m_ListenerThreadPool.Clear();
+		m_ThreadPool.Clear();
 	}
 
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
@@ -323,7 +323,8 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 	void Manager::AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept
 	{
-		auto peerths = m_PeerManager.CreateTCP(PeerConnectionType::Inbound, std::nullopt);
+		auto peerths = m_PeerManager.Create(listener_socket.GetAddressFamily(), Network::IP::Protocol::TCP,
+											PeerConnectionType::Inbound, std::nullopt);
 		if (peerths != nullptr)
 		{
 			peerths->WithUniqueLock([&](Peer::Peer& peer)

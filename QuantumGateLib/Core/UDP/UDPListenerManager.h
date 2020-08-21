@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "UDPConnectionManager.h"
 #include "..\..\Concurrency\ThreadPool.h"
 #include "..\Peer\PeerManager.h"
 #include "..\Access\AccessManager.h"
@@ -35,7 +36,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 	public:
 		Manager() = delete;
-		Manager(const Settings_CThS& settings, Access::Manager& accessmgr, Peer::Manager& peers) noexcept;
+		Manager(const Settings_CThS& settings, UDP::Connection::Manager& udpmgr, Access::Manager& accessmgr,
+				Peer::Manager& peermgr) noexcept;
 		Manager(const Manager&) = delete;
 		Manager(Manager&&) noexcept = default;
 		~Manager() { if (IsRunning()) Shutdown(); }
@@ -58,17 +60,16 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
-		void AcceptConnection(Network::Socket& listener_socket) noexcept;
-
 		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
 
 	private:
 		std::atomic_bool m_Running{ false };
 		std::atomic_bool m_ListeningOnAnyAddresses{ false };
 		const Settings_CThS& m_Settings;
+		UDP::Connection::Manager& m_UDPConnectionManager;
 		Access::Manager& m_AccessManager;
 		Peer::Manager& m_PeerManager;
 
-		ThreadPool m_ListenerThreadPool;
+		ThreadPool m_ThreadPool;
 	};
 }
