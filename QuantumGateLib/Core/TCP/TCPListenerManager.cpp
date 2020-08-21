@@ -185,11 +185,11 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 	bool Manager::Update(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept
 	{
 		if (!m_Running) return false;
-
+		
 		// No need to update in this case
 		if (m_ListeningOnAnyAddresses) return true;
 
-		LogSys(L"Updating Listenermanager...");
+		LogSys(L"Updating TCP listenermanager...");
 
 		const auto& settings = m_Settings.GetCache();
 		const auto& listener_ports = settings.Local.Listeners.TCP.Ports;
