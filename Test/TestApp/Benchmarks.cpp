@@ -313,6 +313,13 @@ void Benchmarks::BenchmarkMutexes()
 		sqgmtx.lock_shared();
 		sqgmtx.unlock_shared();
 	});
+
+	CriticalSection cmtx;
+	DoBenchmark(std::wstring(L"CriticalSection unique"), maxtr, [&]()
+	{
+		cmtx.lock();
+		cmtx.unlock();
+	});
 }
 
 void Benchmarks::BenchmarkCompression()
