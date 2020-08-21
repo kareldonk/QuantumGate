@@ -410,6 +410,24 @@ void CTestAppDlg::LoadSettings()
 				}
 				else m_DefaultPort = 999;
 
+				if (set.find("ConnectProtocol") != set.end())
+				{
+					const auto protocol = set["ConnectProtocol"].get<IPEndpoint::Protocol>();
+					switch (protocol)
+					{
+						case IPEndpoint::Protocol::TCP:
+							m_DefaultProtocol = IPEndpoint::Protocol::TCP;
+							break;
+						case IPEndpoint::Protocol::UDP:
+							m_DefaultProtocol = IPEndpoint::Protocol::UDP;
+							break;
+						default:
+							m_DefaultProtocol = IPEndpoint::Protocol::TCP;
+							break;
+					}
+				}
+				else m_DefaultProtocol = IPEndpoint::Protocol::TCP;
+
 				if (set.find("AutoFileTransferFile") != set.end())
 				{
 					m_TestExtenderTab.SetValue(IDC_FILE_PATH, set["AutoFileTransferFile"].get<std::string>());
@@ -580,6 +598,7 @@ void CTestAppDlg::SaveSettings()
 
 			j["Settings"]["ConnectIP"] = Util::ToStringA(m_DefaultIP);
 			j["Settings"]["ConnectPort"] = m_DefaultPort;
+			j["Settings"]["ConnectProtocol"] = m_DefaultProtocol;
 
 			j["Settings"]["AutoFileTransferFile"] = Util::ToStringA((LPCWSTR)autotrf_file);
 		}
@@ -1366,15 +1385,17 @@ void CTestAppDlg::OnLocalConnect()
 	CEndpointDlg dlg;
 	dlg.SetIPAddress(m_DefaultIP);
 	dlg.SetPort(m_DefaultPort);
+	dlg.SetProtocol(m_DefaultProtocol);
 
 	if (dlg.DoModal() == IDOK)
 	{
 		m_DefaultIP = dlg.GetIPAddress().GetString();
 		m_DefaultPort = dlg.GetPort();
+		m_DefaultProtocol = dlg.GetProtocol();
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerIPEndpoint = IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(m_DefaultIP), m_DefaultPort);
+		params.PeerIPEndpoint = IPEndpoint(m_DefaultProtocol, IPAddress(m_DefaultIP), m_DefaultPort);
 		params.ReuseExistingConnection = dlg.GetReuseConnection();
 
 		params.GlobalSharedSecret.emplace();
@@ -1431,6 +1452,7 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 	CEndpointDlg dlg;
 	dlg.SetIPAddress(m_DefaultIP);
 	dlg.SetPort(m_DefaultPort);
+	dlg.SetProtocol(m_DefaultProtocol);
 
 	if (gateway_pluid) dlg.SetRelayGatewayPeer(*gateway_pluid);
 
@@ -1440,10 +1462,11 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 	{
 		m_DefaultIP = dlg.GetIPAddress().GetString();
 		m_DefaultPort = dlg.GetPort();
+		m_DefaultProtocol = dlg.GetProtocol();
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerIPEndpoint = IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(m_DefaultIP), m_DefaultPort);
+		params.PeerIPEndpoint = IPEndpoint(m_DefaultProtocol, IPAddress(m_DefaultIP), m_DefaultPort);
 		params.ReuseExistingConnection = dlg.GetReuseConnection();
 		params.Relay.Hops = dlg.GetRelayHops();
 		params.Relay.GatewayPeer = dlg.GetRelayGatewayPeer();

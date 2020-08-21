@@ -160,4 +160,5 @@ private:
 
 	String m_DefaultIP;
 	UInt16 m_DefaultPort{ 999 };
+	IPEndpoint::Protocol m_DefaultProtocol{ IPEndpoint::Protocol::TCP };
 };

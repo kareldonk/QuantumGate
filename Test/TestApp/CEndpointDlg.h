@@ -16,6 +16,7 @@ public:
 	void SetIPAddress(const String& ip) noexcept;
 
 	inline void SetPort(const UInt16 port) noexcept { m_Port = port; }
+	inline void SetProtocol(const IPEndpoint::Protocol protocol) noexcept { m_Protocol = protocol; }
 	inline void SetRelayHops(const RelayHop hops) noexcept { m_Hops = hops; }
 	inline void SetRelayGatewayPeer(const PeerLUID pluid) noexcept { m_RelayGatewayPeer = pluid; }
 	inline void SetReuseConnection(const bool reuse) noexcept { m_ReuseConnection = reuse; }
@@ -24,6 +25,7 @@ public:
 
 	inline const IPAddress& GetIPAddress() const noexcept { return m_IPAddress; }
 	inline UInt16 GetPort() const noexcept { return m_Port; }
+	inline IPEndpoint::Protocol GetProtocol() const noexcept { return m_Protocol; }
 	inline const CString& GetPassPhrase() const noexcept { return m_PassPhrase; }
 	inline RelayHop GetRelayHops() const noexcept { return m_Hops; }
 	inline const std::optional<PeerLUID>& GetRelayGatewayPeer() const noexcept { return m_RelayGatewayPeer; }
@@ -40,6 +42,7 @@ protected:
 private:
 	IPAddress m_IPAddress;
 	UInt16 m_Port{ 9000 };
+	IPEndpoint::Protocol m_Protocol{ IPEndpoint::Protocol::Unspecified };
 	CString m_PassPhrase;
 	RelayHop m_Hops{ 0 };
 	std::optional<PeerLUID> m_RelayGatewayPeer;

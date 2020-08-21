@@ -796,6 +796,12 @@ namespace QuantumGate::Implementation::Core::Peer
 						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
 					}
 					break;
+				case GateType::UDPSocket:
+					if (!GetSocket<UDP::Socket>().GetReceiveEvent().Set())
+					{
+						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
+					}
+					break;
 				case GateType::RelaySocket:
 					if (!GetSocket<Relay::Socket>().GetReceiveEvent().Set())
 					{
