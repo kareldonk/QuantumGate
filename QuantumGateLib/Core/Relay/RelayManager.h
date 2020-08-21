@@ -49,14 +49,14 @@ namespace QuantumGate::Implementation::Core::Relay
 		};
 
 	public:
-		Manager(Peer::Manager& peers) noexcept : m_Peers(peers) {}
+		Manager(Peer::Manager& peers) noexcept : m_PeerManager(peers) {}
 		Manager(const Manager&) = delete;
 		Manager(Manager&&) noexcept = default;
 		~Manager() { if (IsRunning()) Shutdown(); }
 		Manager& operator=(const Manager&) = delete;
 		Manager& operator=(Manager&&) noexcept = default;
 
-		Peer::Manager& GetPeers() const noexcept;
+		Peer::Manager& GetPeerManager() const noexcept;
 		Access::Manager& GetAccessManager() const noexcept;
 		const Settings& GetSettings() const noexcept;
 
@@ -132,7 +132,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	private:
 		std::atomic_bool m_Running{ false };
-		Peer::Manager& m_Peers;
+		Peer::Manager& m_PeerManager;
 
 		LinkMap_ThS m_RelayLinks;
 

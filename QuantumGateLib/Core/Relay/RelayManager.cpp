@@ -12,19 +12,19 @@ using namespace std::literals;
 
 namespace QuantumGate::Implementation::Core::Relay
 {
-	Peer::Manager& Manager::GetPeers() const noexcept
+	Peer::Manager& Manager::GetPeerManager() const noexcept
 	{
-		return m_Peers;
+		return m_PeerManager;
 	}
 
 	Access::Manager& Manager::GetAccessManager() const noexcept
 	{
-		return GetPeers().GetAccessManager();
+		return GetPeerManager().GetAccessManager();
 	}
 
 	const Settings& Manager::GetSettings() const noexcept
 	{
-		return GetPeers().GetSettings();
+		return GetPeerManager().GetSettings();
 	}
 
 	bool Manager::Startup() noexcept
@@ -470,8 +470,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		// away in the mean time and are removed in the Peers
 		// class, otherwise we're going to get memory faults
 
-		if (ipeer.Peer == nullptr) ipeer.Peer = GetPeers().Get(ipeer.PeerLUID);
-		if (opeer.Peer == nullptr) opeer.Peer = GetPeers().Get(opeer.PeerLUID);
+		if (ipeer.Peer == nullptr) ipeer.Peer = GetPeerManager().Get(ipeer.PeerLUID);
+		if (opeer.Peer == nullptr) opeer.Peer = GetPeerManager().Get(opeer.PeerLUID);
 
 		// Ensure deterministic lock order/direction to prevent possible deadlock
 		// situations; smaller PeerLUID always gets locked first
@@ -502,7 +502,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	void Manager::GetUniqueLock(PeerDetails& rpeer, Peer::Peer_ThS::UniqueLockedType& peer) const noexcept
 	{
-		if (rpeer.Peer == nullptr) rpeer.Peer = GetPeers().Get(rpeer.PeerLUID);
+		if (rpeer.Peer == nullptr) rpeer.Peer = GetPeerManager().Get(rpeer.PeerLUID);
 
 		if (rpeer.Peer != nullptr) peer = rpeer.Peer->WithUniqueLock();
 
@@ -518,7 +518,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	void Manager::DeterioratePeerReputation(const PeerLUID pluid,
 											const Access::IPReputationUpdate rep_update) const noexcept
 	{
-		if (auto orig_peer = GetPeers().Get(pluid); orig_peer != nullptr)
+		if (auto orig_peer = GetPeerManager().Get(pluid); orig_peer != nullptr)
 		{
 			orig_peer->WithUniqueLock([&](Peer::Peer& peer) noexcept
 			{
@@ -985,7 +985,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		if (connect_event.Hop == 0) // Final hop
 		{
-			auto peerths = m_Peers.CreateRelay(PeerConnectionType::Inbound, std::nullopt);
+			auto peerths = m_PeerManager.CreateRelay(PeerConnectionType::Inbound, std::nullopt);
 			if (peerths != nullptr)
 			{
 				peerths->WithUniqueLock([&](Peer::Peer& peer) noexcept
@@ -994,7 +994,7 @@ namespace QuantumGate::Implementation::Core::Relay
 															 connect_event.Origin.LocalEndpoint,
 															 connect_event.Origin.PeerEndpoint))
 					{
-						if (m_Peers.Add(peerths))
+						if (m_PeerManager.Add(peerths))
 						{
 							out_peer = peer.GetLUID();
 						}
@@ -1007,16 +1007,16 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			try
 			{
-				const auto excl_addr1 = m_Peers.GetLocalIPAddresses();
+				const auto excl_addr1 = m_PeerManager.GetLocalIPAddresses();
 				if (excl_addr1 != nullptr)
 				{
 					Vector<BinaryIPAddress> excl_addr2{ connect_event.Origin.PeerEndpoint.GetIPAddress().GetBinary() };
 
 					// Don't include addresses/network of local instance
-					const auto result1 = m_Peers.AreRelayIPsInSameNetwork(connect_event.Endpoint.GetIPAddress().GetBinary(),
+					const auto result1 = m_PeerManager.AreRelayIPsInSameNetwork(connect_event.Endpoint.GetIPAddress().GetBinary(),
 																		  *excl_addr1);
 					// Don't include origin address/network
-					const auto result2 = m_Peers.AreRelayIPsInSameNetwork(connect_event.Endpoint.GetIPAddress().GetBinary(),
+					const auto result2 = m_PeerManager.AreRelayIPsInSameNetwork(connect_event.Endpoint.GetIPAddress().GetBinary(),
 																		  excl_addr2);
 
 					if (result1.Succeeded() && result2.Succeeded())
@@ -1024,7 +1024,7 @@ namespace QuantumGate::Implementation::Core::Relay
 						if (!result1.GetValue() && !result2.GetValue())
 						{
 							// Connect to a specific endpoint for final hop 0
-							const auto result2 = m_Peers.ConnectTo({ connect_event.Endpoint }, nullptr);
+							const auto result2 = m_PeerManager.ConnectTo({ connect_event.Endpoint }, nullptr);
 							if (result2.Succeeded())
 							{
 								out_peer = result2->first;
@@ -1062,7 +1062,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			try
 			{
 				// Don't include addresses/network of local instance
-				const auto excl_addr1 = m_Peers.GetLocalIPAddresses();
+				const auto excl_addr1 = m_PeerManager.GetLocalIPAddresses();
 				if (excl_addr1 != nullptr)
 				{
 					Vector<BinaryIPAddress> excl_addr2
@@ -1073,7 +1073,7 @@ namespace QuantumGate::Implementation::Core::Relay
 						connect_event.Endpoint.GetIPAddress().GetBinary()
 					};
 
-					const auto result = m_Peers.GetRelayPeer(*excl_addr1, excl_addr2);
+					const auto result = m_PeerManager.GetRelayPeer(*excl_addr1, excl_addr2);
 					if (result.Succeeded())
 					{
 						out_peer = result.GetValue();
@@ -1108,7 +1108,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				if (connect_event.Hop == 0 ||
 					(connect_event.Hop == 1 && !reused))
 				{
-					DiscardReturnValue(m_Peers.DisconnectFrom(*out_peer, nullptr));
+					DiscardReturnValue(m_PeerManager.DisconnectFrom(*out_peer, nullptr));
 				}
 
 				out_peer.reset();
@@ -1124,7 +1124,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				   connect_event.Port, connect_event.Hop, error_details.c_str());
 
 			// Couldn't accept; let the incoming peer know
-			auto peerths = m_Peers.Get(connect_event.Origin.PeerLUID);
+			auto peerths = m_PeerManager.Get(connect_event.Origin.PeerLUID);
 			if (peerths != nullptr)
 			{
 				peerths->WithUniqueLock()->GetMessageProcessor().SendRelayStatus(connect_event.Port, rstatus);
