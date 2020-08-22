@@ -511,6 +511,7 @@ namespace QuantumGate::Implementation::Network
 			const auto ret = bind(m_Socket, reinterpret_cast<sockaddr*>(&saddr), sizeof(sockaddr_storage));
 			if (ret != SOCKET_ERROR)
 			{
+				m_IOStatus.SetBound(true);
 				UpdateSocketInfo();
 				return true;
 			}
@@ -760,6 +761,12 @@ namespace QuantumGate::Implementation::Network
 
 				// Update the total amount of bytes sent
 				m_BytesSent += bytessent;
+
+				if (!m_IOStatus.IsBound() && GetType() == Type::Datagram)
+				{
+					m_IOStatus.SetBound(true);
+					UpdateSocketInfo();
+				}
 
 				return true;
 			}

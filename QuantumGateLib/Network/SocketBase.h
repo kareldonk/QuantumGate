@@ -25,6 +25,7 @@ namespace QuantumGate::Implementation::Network
 			enum class StatusType : UInt8
 			{
 				Open = 0,
+				Bound,
 				Connecting,
 				Connected,
 				Listening,
@@ -36,6 +37,7 @@ namespace QuantumGate::Implementation::Network
 
 		public:
 			inline void SetOpen(const bool state) noexcept { Set(StatusType::Open, state); }
+			inline void SetBound(const bool state) noexcept { Set(StatusType::Bound, state); }
 			inline void SetConnecting(const bool state) noexcept { Set(StatusType::Connecting, state); }
 			inline void SetConnected(const bool state) noexcept { Set(StatusType::Connected, state); }
 			inline void SetListening(const bool state) noexcept { Set(StatusType::Listening, state); }
@@ -46,6 +48,7 @@ namespace QuantumGate::Implementation::Network
 			inline void SetErrorCode(const Int errorcode) noexcept { ErrorCode = errorcode; }
 
 			inline bool IsOpen() const noexcept { return IsSet(StatusType::Open); }
+			inline bool IsBound() const noexcept { return IsSet(StatusType::Bound); }
 			inline bool IsConnecting() const noexcept { return IsSet(StatusType::Connecting); }
 			inline bool IsConnected() const noexcept { return IsSet(StatusType::Connected); }
 			inline bool IsListening() const noexcept { return IsSet(StatusType::Listening); }
@@ -73,7 +76,7 @@ namespace QuantumGate::Implementation::Network
 			}
 
 		private:
-			std::bitset<8> Status{ 0 };
+			std::bitset<9> Status{ 0 };
 			Int ErrorCode{ -1 };
 		};
 
