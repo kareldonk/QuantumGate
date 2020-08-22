@@ -672,7 +672,7 @@ namespace QuantumGate::Implementation::Network
 		return m_ConnectCallback();
 	}
 
-	bool Socket::Send(Buffer& buffer, const Size max_snd_size) noexcept
+	Result<Size> Socket::Send(const BufferView& buffer, const Size max_snd_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 		assert(GetProtocol() == IP::Protocol::TCP);
@@ -683,26 +683,17 @@ namespace QuantumGate::Implementation::Network
 			else return buffer.GetSize();
 		});
 
-		const auto bytessent = send(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()),
+		const auto bytessent = send(m_Socket, reinterpret_cast<const char*>(buffer.GetBytes()),
 									static_cast<int>(send_size), 0);
 
 		Dbg(L"%d bytes sent", bytessent);
 
-		if (bytessent > 0)
+		if (bytessent >= 0)
 		{
-			try
-			{
-				buffer.RemoveFirst(bytessent);
+			// Update the total amount of bytes sent
+			m_BytesSent += bytessent;
 
-				// Update the total amount of bytes sent
-				m_BytesSent += bytessent;
-
-				return true;
-			}
-			catch (const std::exception& e)
-			{
-				LogErr(L"Send exception for endpoint %s: %s", GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
-			}
+			return bytessent;
 		}
 		else if (bytessent == SOCKET_ERROR)
 		{
@@ -713,19 +704,21 @@ namespace QuantumGate::Implementation::Network
 				LogDbg(L"Send buffer full/unavailable for endpoint %s (%s)",
 					   GetPeerName().c_str(), GetLastSocketErrorString().c_str());
 
-				return true;
+				return 0;
 			}
 			else
 			{
 				LogDbg(L"Send error for endpoint %s (%s)",
 					   GetPeerName().c_str(), GetLastSocketErrorString().c_str());
+
+				return std::error_code(error, std::system_category());
 			}
 		}
 
-		return false;
+		return ResultCode::Failed;
 	}
 
-	bool Socket::SendTo(const IPEndpoint& endpoint, Buffer& buffer, const Size max_snd_size) noexcept
+	Result<Size> Socket::SendTo(const IPEndpoint& endpoint, const BufferView& buffer, const Size max_snd_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 		assert(GetProtocol() == IP::Protocol::ICMP || GetProtocol() == IP::Protocol::UDP);
@@ -747,33 +740,24 @@ namespace QuantumGate::Implementation::Network
 
 		if (GetType() == Type::Datagram) assert(send_size < static_cast<Size>(GetMaxDatagramMessageSize()));
 
-		const auto bytessent = sendto(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()),
+		const auto bytessent = sendto(m_Socket, reinterpret_cast<const char*>(buffer.GetBytes()),
 									  static_cast<int>(send_size), 0,
 									  reinterpret_cast<sockaddr*>(&sock_addr), sizeof(sock_addr));
 
 		Dbg(L"%d bytes sent", bytessent);
 
-		if (bytessent > 0)
+		if (bytessent >= 0)
 		{
-			try
+			// Update the total amount of bytes sent
+			m_BytesSent += bytessent;
+
+			if (!m_IOStatus.IsBound() && GetType() == Type::Datagram)
 			{
-				buffer.RemoveFirst(bytessent);
-
-				// Update the total amount of bytes sent
-				m_BytesSent += bytessent;
-
-				if (!m_IOStatus.IsBound() && GetType() == Type::Datagram)
-				{
-					m_IOStatus.SetBound(true);
-					UpdateSocketInfo();
-				}
-
-				return true;
+				m_IOStatus.SetBound(true);
+				UpdateSocketInfo();
 			}
-			catch (const std::exception& e)
-			{
-				LogErr(L"Send exception on endpoint %s: %s", GetLocalName().c_str(), Util::ToStringW(e.what()).c_str());
-			}
+
+			return bytessent;
 		}
 		else if (bytessent == SOCKET_ERROR)
 		{
@@ -784,19 +768,21 @@ namespace QuantumGate::Implementation::Network
 				LogDbg(L"Send buffer full/unavailable on endpoint %s (%s)",
 					   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 
-				return true;
+				return 0;
 			}
 			else
 			{
 				LogDbg(L"Send error on endpoint %s (%s)",
 					   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
+
+				return std::error_code(error, std::system_category());
 			}
 		}
 
-		return false;
+		return ResultCode::Failed;
 	}
 
-	bool Socket::Receive(Buffer& buffer, const Size max_rcv_size) noexcept
+	Result<Size> Socket::Receive(Buffer& buffer, const Size max_rcv_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 		assert(GetProtocol() == IP::Protocol::TCP);
@@ -824,7 +810,7 @@ namespace QuantumGate::Implementation::Network
 				// Update the total amount of bytes received
 				m_BytesReceived += bytesrcv;
 
-				return true;
+				return bytesrcv;
 			}
 			catch (const std::exception& e)
 			{
@@ -837,7 +823,7 @@ namespace QuantumGate::Implementation::Network
 			{
 				LogDbg(L"Connection closed for endpoint %s", GetPeerName().c_str());
 			}
-			else return true;
+			else return 0;
 		}
 		else if (bytesrcv == SOCKET_ERROR)
 		{
@@ -848,19 +834,21 @@ namespace QuantumGate::Implementation::Network
 				LogDbg(L"Receive buffer unavailable for endpoint %s (%s)",
 					   GetPeerName().c_str(), GetLastSocketErrorString().c_str());
 
-				return true;
+				return 0;
 			}
 			else
 			{
 				LogDbg(L"Receive error for endpoint %s (%s)",
 					   GetPeerName().c_str(), GetLastSocketErrorString().c_str());
+
+				return std::error_code(error, std::system_category());
 			}
 		}
 
-		return false;
+		return ResultCode::Failed;
 	}
 
-	bool Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size) noexcept
+	Result<Size> Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 		assert(GetProtocol() == IP::Protocol::ICMP || GetProtocol() == IP::Protocol::UDP);
@@ -889,7 +877,8 @@ namespace QuantumGate::Implementation::Network
 			{
 				LogDbg(L"Receive error on endpoint %s - SockAddrGetIPEndpoint() failed",
 					   GetLocalName().c_str());
-				return false;
+
+				return ResultCode::Failed;
 			}
 		}
 
@@ -902,7 +891,7 @@ namespace QuantumGate::Implementation::Network
 				// Update the total amount of bytes received
 				m_BytesReceived += bytesrcv;
 
-				return true;
+				return bytesrcv;
 			}
 			catch (const std::exception& e)
 			{
@@ -918,7 +907,7 @@ namespace QuantumGate::Implementation::Network
 				LogDbg(L"Receive buffer unavailable on endpoint %s (%s)",
 					   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 
-				return true;
+				return 0;
 			}
 			else if (error == WSAECONNRESET)
 			{
@@ -928,10 +917,12 @@ namespace QuantumGate::Implementation::Network
 			{
 				LogDbg(L"Receive error on endpoint %s (%s)",
 					   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
+
+				return std::error_code(error, std::system_category());
 			}
 		}
 
-		return false;
+		return ResultCode::Failed;
 	}
 
 #ifdef USE_SOCKET_EVENT

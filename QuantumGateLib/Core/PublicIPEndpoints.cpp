@@ -118,13 +118,11 @@ namespace QuantumGate::Implementation::Core
 				const UInt64 num_nbo = Endian::ToNetworkByteOrder(*num);
 				Buffer snd_buf(reinterpret_cast<const Byte*>(&num_nbo), sizeof(num_nbo));
 
-				if (m_Socket.SendTo(endpoint, snd_buf))
+				const auto result = m_Socket.SendTo(endpoint, snd_buf);
+				if (result.Succeeded() && *result == snd_buf.GetSize())
 				{
-					if (snd_buf.IsEmpty())
-					{
-						m_StartSteadyTime = Util::GetCurrentSteadyTime();
-						return true;
-					}
+					m_StartSteadyTime = Util::GetCurrentSteadyTime();
+					return true;
 				}
 			}
 
@@ -154,7 +152,7 @@ namespace QuantumGate::Implementation::Core
 				std::optional<UInt64> num;
 				Buffer rcv_buffer;
 
-				if (m_Socket.ReceiveFrom(sender_endpoint, rcv_buffer))
+				if (m_Socket.ReceiveFrom(sender_endpoint, rcv_buffer).Succeeded())
 				{
 					// Message should only contain a 64-bit number (8 bytes)
 					if (rcv_buffer.GetSize() == sizeof(UInt64))

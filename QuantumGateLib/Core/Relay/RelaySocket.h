@@ -65,10 +65,10 @@ namespace QuantumGate::Implementation::Core::Relay
 		[[nodiscard]] bool BeginConnect(const IPEndpoint& endpoint) noexcept override;
 		[[nodiscard]] bool CompleteConnect() noexcept override;
 
-		[[nodiscard]] bool Send(Buffer& buffer, const Size max_snd_size = 0) noexcept override;
-		[[nodiscard]] bool SendTo(const IPEndpoint& endpoint, Buffer& buffer, const Size max_snd_size = 0) noexcept override { return false; }
-		[[nodiscard]] bool Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
-		[[nodiscard]] bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override { return false; }
+		[[nodiscard]] Result<Size> Send(const BufferView& buffer, const Size max_snd_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> SendTo(const IPEndpoint& endpoint, const BufferView& buffer, const Size max_snd_size = 0) noexcept override { return ResultCode::Failed; }
+		[[nodiscard]] Result<Size> Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override { return ResultCode::Failed; }
 
 		void Close(const bool linger = false) noexcept override;
 
