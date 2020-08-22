@@ -186,8 +186,9 @@ namespace UnitTests
 				const auto snd_buf_len = 32u;
 				const auto snd_buf1a = Util::GetPseudoRandomBytes(snd_buf_len);
 				Buffer snd_buf1b = snd_buf1a;
-				Assert::AreEqual(true, socket1.SendTo(endp2, snd_buf1b));
-				Assert::AreEqual(true, snd_buf1b.IsEmpty());
+				const auto snd_result1 = socket1.SendTo(endp2, snd_buf1b);
+				Assert::AreEqual(true, snd_result1.Succeeded());
+				Assert::AreEqual(true, *snd_result1 == snd_buf1b.GetSize());
 				Assert::AreEqual(true, socket1.GetBytesSent() == snd_buf_len);
 
 				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms));
@@ -196,7 +197,9 @@ namespace UnitTests
 				// Receive data sent by first socket
 				IPEndpoint endp_rcv;
 				Buffer rcv_buf;
-				Assert::AreEqual(true, socket2.ReceiveFrom(endp_rcv, rcv_buf));
+				const auto rcv_result2 = socket2.ReceiveFrom(endp_rcv, rcv_buf);
+				Assert::AreEqual(true, rcv_result2.Succeeded());
+				Assert::AreEqual(true, rcv_buf.GetSize() == *rcv_result2);
 				Assert::AreEqual(true, rcv_buf.GetSize() == snd_buf_len);
 				Assert::AreEqual(true, socket2.GetBytesReceived() == snd_buf_len);
 				Assert::AreEqual(true, endp_rcv == endp1);
@@ -216,8 +219,9 @@ namespace UnitTests
 				// Send data from second socket to first socket
 				const auto snd_buf2a = Util::GetPseudoRandomBytes(snd_buf_len);
 				Buffer snd_buf2b = snd_buf2a;
-				Assert::AreEqual(true, socket3.SendTo(endp1, snd_buf2b));
-				Assert::AreEqual(true, snd_buf2b.IsEmpty());
+				const auto snd_result3 = socket3.SendTo(endp1, snd_buf2b);
+				Assert::AreEqual(true, snd_result3.Succeeded());
+				Assert::AreEqual(true, *snd_result3 == snd_buf2b.GetSize());
 				Assert::AreEqual(true, socket3.GetBytesSent() == snd_buf_len);
 
 				Assert::AreEqual(true, socket1.UpdateIOStatus(5000ms));
@@ -226,7 +230,9 @@ namespace UnitTests
 				// Receive data on first socket
 				IPEndpoint endp_rcv2;
 				Buffer rcv_buf2;
-				Assert::AreEqual(true, socket1.ReceiveFrom(endp_rcv2, rcv_buf2));
+				const auto rcv_result1 = socket1.ReceiveFrom(endp_rcv2, rcv_buf2);
+				Assert::AreEqual(true, rcv_result1.Succeeded());
+				Assert::AreEqual(true, rcv_buf2.GetSize() == *rcv_result1);
 				Assert::AreEqual(true, rcv_buf2.GetSize() == snd_buf_len);
 				Assert::AreEqual(true, socket1.GetBytesReceived() == snd_buf_len);
 				Assert::AreEqual(true, endp_rcv2 == endp2);
@@ -338,8 +344,9 @@ namespace UnitTests
 				const auto snd_buf_len = 32u;
 				const auto snd_buf1a = Util::GetPseudoRandomBytes(snd_buf_len);
 				Buffer snd_buf1b = snd_buf1a;
-				Assert::AreEqual(true, socket1.Send(snd_buf1b));
-				Assert::AreEqual(true, snd_buf1b.IsEmpty());
+				const auto snd_result = socket1.Send(snd_buf1b);
+				Assert::AreEqual(true, snd_result.Succeeded());
+				Assert::AreEqual(true, *snd_result == snd_buf1b.GetSize());
 				Assert::AreEqual(true, socket1.GetBytesSent() == snd_buf_len);
 
 				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms));
@@ -347,7 +354,9 @@ namespace UnitTests
 
 				// Receive data on second socket
 				Buffer rcv_buf;
-				Assert::AreEqual(true, socket2.Receive(rcv_buf));
+				const auto rcv_result2 = socket2.Receive(rcv_buf);
+				Assert::AreEqual(true, rcv_result2.Succeeded());
+				Assert::AreEqual(true, rcv_buf.GetSize() == *rcv_result2);
 				Assert::AreEqual(true, rcv_buf.GetSize() == snd_buf_len);
 				Assert::AreEqual(true, socket2.GetBytesReceived() == snd_buf_len);
 				Assert::AreEqual(true, rcv_buf == snd_buf1a);
@@ -361,7 +370,8 @@ namespace UnitTests
 
 				// Connection closed on second socket; read returns false
 				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms));
-				Assert::AreEqual(false, socket2.Receive(rcv_buf));
+				const auto rcv_result3 = socket2.Receive(rcv_buf);
+				Assert::AreEqual(false, rcv_result3.Succeeded());
 				socket2.Close();
 				Assert::AreEqual(false, socket2.GetIOStatus().IsOpen());
 			}

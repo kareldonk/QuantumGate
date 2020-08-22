@@ -228,7 +228,8 @@ namespace QuantumGate::Implementation::Network
 
 			if (!socket.SetIPTimeToLive(m_TTL)) return false;
 
-			if (socket.SendTo(IPEndpoint(IP::Protocol::ICMP, m_DestinationIPAddress, 0), icmp_msg) && icmp_msg.IsEmpty())
+			const auto result = socket.SendTo(IPEndpoint(IP::Protocol::ICMP, m_DestinationIPAddress, 0), icmp_msg);
+			if (result.Succeeded() && *result == icmp_msg.GetSize())
 			{
 				const auto snd_steady_time = Util::GetCurrentSteadyTime();
 
@@ -241,7 +242,7 @@ namespace QuantumGate::Implementation::Network
 						IPEndpoint endpoint;
 						Buffer data;
 
-						if (socket.ReceiveFrom(endpoint, data))
+						if (socket.ReceiveFrom(endpoint, data).Succeeded())
 						{
 							if (data.GetSize() >= sizeof(IP::Header))
 							{

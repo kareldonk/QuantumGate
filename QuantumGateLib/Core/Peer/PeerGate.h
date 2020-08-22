@@ -42,8 +42,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		bool CompleteConnect() noexcept { assert(m_Socket); return m_Socket->CompleteConnect(); }
 
-		bool Send(Buffer& buffer) noexcept { assert(m_Socket); return m_Socket->Send(buffer); }
-		bool Receive(Buffer& buffer) noexcept { assert(m_Socket); return m_Socket->Receive(buffer); }
+		Result<Size> Send(const BufferView& buffer) noexcept { assert(m_Socket); return m_Socket->Send(buffer); }
+		Result<Size> Receive(Buffer& buffer) noexcept { assert(m_Socket); return m_Socket->Receive(buffer); }
 
 		void Close(const bool linger = false) noexcept { assert(m_Socket); return m_Socket->Close(linger); }
 

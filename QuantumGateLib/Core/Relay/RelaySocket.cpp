@@ -83,7 +83,7 @@ namespace QuantumGate::Implementation::Core::Relay
 									m_PeerEndpoint.GetPort(), rport, hop);
 	}
 
-	bool Socket::Send(Buffer& buffer, const Size /*max_snd_size*/) noexcept
+	Result<Size> Socket::Send(const BufferView& buffer, const Size /*max_snd_size*/) noexcept
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanWrite());
 
@@ -110,7 +110,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			}
 			else if (available_size > 0)
 			{
-				const auto pbuffer = BufferView(buffer).GetFirst(available_size);
+				const auto pbuffer = buffer.GetFirst(available_size);
 				m_SendBuffer += pbuffer;
 				sent_size = pbuffer.GetSize();
 			}
@@ -122,14 +122,12 @@ namespace QuantumGate::Implementation::Core::Relay
 
 			if (sent_size > 0)
 			{
-				buffer.RemoveFirst(sent_size);
-				
 				m_SendEvent.Set();
 
 				m_BytesSent += sent_size;
 			}
 
-			return true;
+			return sent_size;
 		}
 		catch (const std::exception& e)
 		{
@@ -139,48 +137,47 @@ namespace QuantumGate::Implementation::Core::Relay
 			SetException(WSAENOBUFS);
 		}
 
-		return false;
+		return ResultCode::Failed;
 	}
 
-	bool Socket::Receive(Buffer& buffer, const Size /* max_rcv_size */) noexcept
+	Result<Size> Socket::Receive(Buffer& buffer, const Size /* max_rcv_size */) noexcept
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanRead());
 
-		if (m_IOStatus.HasException()) return false;
-
-		auto success = false;
-
-		try
+		if (!m_IOStatus.HasException())
 		{
-			const auto bytesrcv = m_ReceiveBuffer.GetSize();
-
-			if (bytesrcv == 0 && m_ClosingRead)
+			try
 			{
-				LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
+				const auto bytesrcv = m_ReceiveBuffer.GetSize();
 
-				m_ReceiveEvent.Reset();
+				if (bytesrcv == 0 && m_ClosingRead)
+				{
+					LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
+
+					m_ReceiveEvent.Reset();
+				}
+				else
+				{
+					buffer += m_ReceiveBuffer;
+
+					m_ReceiveBuffer.Clear();
+					m_ReceiveEvent.Reset();
+
+					m_BytesReceived += bytesrcv;
+
+					return bytesrcv;
+				}
 			}
-			else
+			catch (const std::exception& e)
 			{
-				buffer += m_ReceiveBuffer;
-				
-				m_ReceiveBuffer.Clear();
-				m_ReceiveEvent.Reset();
+				LogErr(L"Relay socket receive exception for endpoint %s - %s",
+					   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
 
-				m_BytesReceived += bytesrcv;
-
-				success = true;
+				SetException(WSAENOBUFS);
 			}
 		}
-		catch (const std::exception& e)
-		{
-			LogErr(L"Relay socket receive exception for endpoint %s - %s",
-				   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
 
-			SetException(WSAENOBUFS);
-		}
-
-		return success;
+		return ResultCode::Failed;
 	}
 
 	void Socket::Close(const bool linger) noexcept

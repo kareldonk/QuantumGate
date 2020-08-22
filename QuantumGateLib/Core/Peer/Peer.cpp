@@ -895,16 +895,22 @@ namespace QuantumGate::Implementation::Core::Peer
 		// If the send buffer isn't empty yet
 		if (!m_SendBuffer.IsEmpty())
 		{
-			if (!Gate::Send(m_SendBuffer))
+			const auto result = Gate::Send(m_SendBuffer);
+			if (result.Succeeded())
+			{
+				m_SendBuffer.RemoveFirst(*result);
+
+				if (!m_SendBuffer.IsEmpty())
+				{
+					// If we weren't able to send (all) data we'll try again later
+					return true;
+				}
+				else m_SendBuffer.ResetEvent();
+			}
+			else
 			{
 				return false;
 			}
-			else if (!m_SendBuffer.IsEmpty())
-			{
-				// If we weren't able to send (all) data we'll try again later
-				return true;
-			}
-			else m_SendBuffer.ResetEvent();
 		}
 
 		// If the send buffer is empty get more messages from the send queues
@@ -972,17 +978,23 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				if (msg.IsValid() && msg.Write(sndbuf, *symkey, nonce))
 				{
-					if (!Gate::Send(sndbuf))
+					const auto result = Gate::Send(sndbuf);
+					if (result.Succeeded())
+					{
+						sndbuf.RemoveFirst(*result);
+
+						if (!sndbuf.IsEmpty())
+						{
+							// If we weren't able to send all
+							// data we'll try again later
+							m_SendBuffer = std::move(sndbuf);
+							m_SendBuffer.SetEvent();
+							break;
+						}
+					}
+					else
 					{
 						return false;
-					}
-					else if (sndbuf.GetSize() != 0)
-					{
-						// If we weren't able to send all
-						// data we'll try again later
-						m_SendBuffer = std::move(sndbuf);
-						m_SendBuffer.SetEvent();
-						break;
 					}
 				}
 				else
