@@ -3,62 +3,49 @@
 
 #pragma once
 
-#include "..\..\Network\SocketBase.h"
+#include "..\..\Network\Socket.h"
 #include "..\..\Concurrency\Event.h"
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
-	class Manager;
+	class Connection;
 }
 
 namespace QuantumGate::Implementation::Core::UDP
 {
 	class Socket final : public Network::SocketBase
 	{
-		friend class Connection::Manager;
+		friend class Connection::Connection;
 
 	public:
-		class IOBuffer final
+		struct ConnectionData final
 		{
-		public:
-			IOBuffer() noexcept = delete;
+			bool CanRead{ false };
+			bool CanWrite{ false };
+			bool HasException{ false };
+			int ErrorCode{ 0 };
 
-			IOBuffer(Buffer& buffer, Concurrency::Event& event) noexcept :
-				m_Buffer(buffer), m_Event(event)
-			{}
+			bool Connect{ false };
+			bool Close{ false };
 
-			IOBuffer(const IOBuffer&) = delete;
-			IOBuffer(IOBuffer&&) noexcept = default;
+			IPEndpoint LocalEndpoint;
+			IPEndpoint PeerEndpoint;
 
-			~IOBuffer()
-			{
-				if (!m_Buffer.IsEmpty()) m_Event.Set();
-				else m_Event.Reset();
-			}
+			RingBuffer SendBuffer{ 1u << 20 }; // 65KB
+			RingBuffer ReceiveBuffer{ 1u << 20 }; // 65KB
+			Concurrency::Event ReceiveEvent;
 
-			IOBuffer& operator=(const IOBuffer&) = delete;
-			IOBuffer& operator=(IOBuffer&&) noexcept = default;
+			ConnectionData(Concurrency::Event* send_event) noexcept : SendEvent(send_event) {}
 
-			inline Buffer* operator->() noexcept { return &m_Buffer; }
-
-			inline Buffer& operator*() noexcept { return m_Buffer; }
+			void SetSendEvent() noexcept { if (SendEvent) SendEvent->Set(); }
+			void ChangeSendEvent(Concurrency::Event* send_event) noexcept { SendEvent = send_event; }
+			void RemoveSendEvent() noexcept { SendEvent = nullptr; }
 
 		private:
-			Buffer& m_Buffer;
-			Concurrency::Event& m_Event;
+			Concurrency::Event* SendEvent{ nullptr };
 		};
 
-		struct Buffers final
-		{
-			Buffer m_SendBuffer;
-			Concurrency::Event& m_SendEvent;
-			Buffer m_ReceiveBuffer;
-			Concurrency::Event m_ReceiveEvent;
-
-			Buffers(Concurrency::Event& send_event) noexcept : m_SendEvent(send_event) {}
-		};
-
-		using Buffers_ThS = Concurrency::ThreadSafe<Buffers, std::shared_mutex>;
+		using ConnectionData_ThS = Concurrency::ThreadSafe<ConnectionData, std::shared_mutex>;
 
 		Socket() noexcept;
 		Socket(const Socket&) = delete;
@@ -67,19 +54,18 @@ namespace QuantumGate::Implementation::Core::UDP
 		Socket& operator=(const Socket&) = delete;
 		Socket& operator=(Socket&&) noexcept = default;
 
-		[[nodiscard]] inline Concurrency::Event& GetReceiveEvent() noexcept { return m_Buffers->WithUniqueLock()->m_ReceiveEvent; }
-		[[nodiscard]] inline const Concurrency::Event& GetReceiveEvent() const noexcept { return m_Buffers->WithSharedLock()->m_ReceiveEvent; }
+		[[nodiscard]] inline Concurrency::Event& GetReceiveEvent() noexcept { return m_ConnectionData->WithUniqueLock()->ReceiveEvent; }
+		[[nodiscard]] inline const Concurrency::Event& GetReceiveEvent() const noexcept { return m_ConnectionData->WithSharedLock()->ReceiveEvent; }
 
-		[[nodiscard]] bool BeginAccept(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept;
-		[[nodiscard]] bool CompleteAccept() noexcept;
+		[[nodiscard]] bool Accept(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept;
 
 		[[nodiscard]] bool BeginConnect(const IPEndpoint& endpoint) noexcept override;
 		[[nodiscard]] bool CompleteConnect() noexcept override;
 
-		[[nodiscard]] bool Send(Buffer& buffer, const Size max_snd_size = 0) noexcept override;
-		[[nodiscard]] bool SendTo(const IPEndpoint& endpoint, Buffer& buffer, const Size max_snd_size = 0) noexcept override { return false; }
-		[[nodiscard]] bool Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
-		[[nodiscard]] bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override { return false; }
+		[[nodiscard]] Result<Size> Send(const BufferView& buffer, const Size max_snd_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> SendTo(const IPEndpoint& endpoint, const BufferView& buffer, const Size max_snd_size = 0) noexcept override { return ResultCode::Failed; }
+		[[nodiscard]] Result<Size> Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override { return ResultCode::Failed; }
 
 		void Close(const bool linger = false) noexcept override;
 
@@ -122,28 +108,15 @@ namespace QuantumGate::Implementation::Core::UDP
 		}
 
 	private:
-		inline void SetBuffers(const std::shared_ptr<Buffers_ThS>& buffers) noexcept { m_Buffers = buffers; }
-		void SetLocalEndpoint(const IPEndpoint& endpoint) noexcept;
-
-		//[[nodiscard]] inline IOBuffer GetSendBuffer() noexcept { return { m_SendBuffer, m_SendEvent }; }
-		//[[nodiscard]] inline IOBuffer GetReceiveBuffer() noexcept { return { m_ReceiveBuffer, m_ReceiveEvent }; }
-
-		inline void SetException(const Int errorcode) noexcept
-		{
-			m_IOStatus.SetException(true);
-			m_IOStatus.SetErrorCode(errorcode);
-		}
-
-		inline void SetWrite() noexcept { m_IOStatus.SetWrite(true); }
-		//inline void SetRead() noexcept { m_ClosingRead = true; m_ReceiveEvent.Set(); }
+		inline void SetConnectionData(const std::shared_ptr<ConnectionData_ThS>& buffers) noexcept { m_ConnectionData = buffers; }
+		void UpdateSocketInfo() noexcept;
+		void SetException(const Int errorcode) noexcept;
 
 	private:
 		static constexpr Size MinSendBufferSize{ 1u << 16 }; // 65KB
 
 	private:
-		IOStatus m_IOStatus;
-
-		bool m_ClosingRead{ false };
+		mutable Network::Socket::IOStatus m_IOStatus;
 
 		Size m_BytesReceived{ 0 };
 		Size m_BytesSent{ 0 };
@@ -154,7 +127,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		SteadyTime m_ConnectedSteadyTime;
 
 		Size m_MaxSendBufferSize{ MinSendBufferSize };
-		std::shared_ptr<Buffers_ThS> m_Buffers;
+		std::shared_ptr<ConnectionData_ThS> m_ConnectionData;
 
 		ConnectingCallback m_ConnectingCallback{ []() mutable noexcept {} };
 		AcceptCallback m_AcceptCallback{ []() mutable noexcept {} };

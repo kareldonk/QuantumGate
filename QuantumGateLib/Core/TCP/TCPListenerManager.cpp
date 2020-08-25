@@ -165,7 +165,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 		return true;
 	}
 
-	std::optional<Manager::ThreadPool::Thread> Manager::RemoveListenerThread(Manager::ThreadPool::Thread&& thread) noexcept
+	std::optional<Manager::ThreadPool::ThreadType> Manager::RemoveListenerThread(Manager::ThreadPool::ThreadType&& thread) noexcept
 	{
 		const IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
 
@@ -323,8 +323,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 	void Manager::AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept
 	{
-		auto peerths = m_PeerManager.Create(listener_socket.GetAddressFamily(), Network::IP::Protocol::TCP,
-											PeerConnectionType::Inbound, std::nullopt);
+		auto peerths = m_PeerManager.CreateTCP(listener_socket.GetAddressFamily(), PeerConnectionType::Inbound, std::nullopt);
 		if (peerths != nullptr)
 		{
 			peerths->WithUniqueLock([&](Peer::Peer& peer)

@@ -163,7 +163,7 @@ namespace QuantumGate::Implementation::Core
 		Peer::Manager m_PeerManager{ m_Settings, m_LocalEnvironment, m_UDPConnectionManager,
 			m_KeyGenerationManager, m_AccessManager, m_ExtenderManager };
 		TCP::Listener::Manager m_TCPListenerManager{ m_Settings, m_AccessManager, m_PeerManager };
-		UDP::Listener::Manager m_UDPListenerManager{ m_Settings, m_UDPConnectionManager, m_AccessManager, m_PeerManager };
+		UDP::Listener::Manager m_UDPListenerManager{ m_Settings, m_AccessManager, m_UDPConnectionManager, m_PeerManager };
 
 		std::shared_mutex m_Mutex;
 
