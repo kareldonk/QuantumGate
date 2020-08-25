@@ -819,11 +819,7 @@ namespace QuantumGate::Implementation::Network
 		}
 		else if (bytesrcv == 0)
 		{
-			if (GetType() == Socket::Type::Stream)
-			{
-				LogDbg(L"Connection closed for endpoint %s", GetPeerName().c_str());
-			}
-			else return 0;
+			LogDbg(L"Connection closed for endpoint %s", GetPeerName().c_str());
 		}
 		else if (bytesrcv == SOCKET_ERROR)
 		{
@@ -898,6 +894,10 @@ namespace QuantumGate::Implementation::Network
 				LogErr(L"Receive exception on endpoint %s: %s", GetLocalName().c_str(), Util::ToStringW(e.what()).c_str());
 			}
 		}
+		else if (bytesrcv == 0)
+		{
+			LogDbg(L"Connection closed for endpoint %s", GetLocalName().c_str());
+		}
 		else if (bytesrcv == SOCKET_ERROR)
 		{
 			const auto error = WSAGetLastError();
@@ -909,14 +909,17 @@ namespace QuantumGate::Implementation::Network
 
 				return 0;
 			}
-			else if (error == WSAECONNRESET)
+			else 
 			{
-				LogDbg(L"Port unreachable for endpoint %s", endpoint.GetString().c_str());
-			}
-			else
-			{
-				LogDbg(L"Receive error on endpoint %s (%s)",
-					   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
+				if (error == WSAECONNRESET)
+				{
+					LogDbg(L"Port unreachable for endpoint %s", endpoint.GetString().c_str());
+				}
+				else
+				{
+					LogDbg(L"Receive error on endpoint %s (%s)",
+						   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
+				}
 
 				return std::error_code(error, std::system_category());
 			}
