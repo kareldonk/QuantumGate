@@ -92,6 +92,8 @@ namespace QuantumGate::Implementation
 		template<typename U>
 		using NoArgumentFunction = decltype(std::declval<U>()());
 
+		using ValueStorageType = std::conditional_t<HasValueType<T>, std::optional<T>, T>;
+
 	public:
 		using ValueType = std::conditional_t<HasValueType<T>, T, void>;
 
@@ -115,17 +117,25 @@ namespace QuantumGate::Implementation
 		}
 
 		template<typename U = T, typename = std::enable_if_t<HasValueType<U>>>
-		ResultImpl(const T& value) noexcept(std::is_nothrow_copy_constructible_v<std::optional<T>>) :
+		ResultImpl(const T& value) noexcept(std::is_nothrow_copy_constructible_v<ValueStorageType>) :
 			m_ErrorCode(static_cast<E>(0)), m_Value(value) {}
 
 		template<typename U = T, typename = std::enable_if_t<HasValueType<U>>>
-		ResultImpl(T&& value) noexcept(std::is_nothrow_move_constructible_v<std::optional<T>>) :
+		ResultImpl(T&& value) noexcept(std::is_nothrow_move_constructible_v<ValueStorageType>) :
 			m_ErrorCode(static_cast<E>(0)), m_Value(std::forward<T>(value)) {}
 
 		ResultImpl(const ResultImpl&) = delete;
 
-		ResultImpl(ResultImpl&& other) noexcept(std::is_nothrow_move_constructible_v<std::optional<T>>) :
+		template<typename U = T>
+		ResultImpl(std::enable_if_t<HasValueType<U>, ResultImpl&&> other) noexcept(std::is_nothrow_move_constructible_v<ValueStorageType>) :
 			m_ErrorCode(std::move(other.m_ErrorCode)), m_Value(std::move(other.m_Value))
+		{
+			other.m_ErrorCode = DefaultErrorCode;
+		}
+
+		template<typename U = T>
+		ResultImpl(std::enable_if_t<!HasValueType<U>, ResultImpl&&> other) noexcept :
+			m_ErrorCode(std::move(other.m_ErrorCode))
 		{
 			other.m_ErrorCode = DefaultErrorCode;
 		}
@@ -134,10 +144,15 @@ namespace QuantumGate::Implementation
 
 		ResultImpl& operator=(const ResultImpl&) = delete;
 
-		ResultImpl& operator=(ResultImpl&& other) noexcept(std::is_nothrow_move_assignable_v<std::optional<T>>)
+		ResultImpl& operator=(ResultImpl&& other) noexcept(!HasValueType<T> ||
+														   (HasValueType<T> && std::is_nothrow_move_assignable_v<ValueStorageType>))
 		{
 			m_ErrorCode = std::move(other.m_ErrorCode);
-			m_Value = std::move(other.m_Value);
+
+			if constexpr (HasValueType<T>)
+			{
+				m_Value = std::move(other.m_Value);
+			}
 			
 			other.m_ErrorCode = DefaultErrorCode;
 
@@ -232,7 +247,11 @@ namespace QuantumGate::Implementation
 		void Clear() noexcept
 		{
 			m_ErrorCode = DefaultErrorCode;
-			m_Value.reset();
+
+			if constexpr (HasValueType<T>)
+			{
+				m_Value.reset();
+			}
 		}
 
 		[[nodiscard]] inline bool Succeeded() const noexcept
@@ -305,7 +324,7 @@ namespace QuantumGate::Implementation
 
 	private:
 		std::error_code m_ErrorCode{ DefaultErrorCode };
-		std::optional<T> m_Value;
+		[[no_unique_address]] ValueStorageType m_Value;
 	};
 
 	template<typename T = void>

@@ -116,7 +116,7 @@ namespace QuantumGate::Implementation::Concurrency
 			{}
 
 			String ThreadName;
-			ThData ThreadData;
+			[[no_unique_address]] ThData ThreadData;
 			Event ShutdownEvent;
 			std::thread Thread;
 			ThreadCallbackType ThreadCallback{ nullptr };
@@ -125,27 +125,30 @@ namespace QuantumGate::Implementation::Concurrency
 		};
 
 		using ThreadList = Containers::List<ThreadCtrl>;
-		using ThreadIterator = typename ThreadList::iterator;
 
 	public:
+		template<typename Iterator>
 		class Thread final
 		{
 			friend class ThreadPool;
 
 		public:
 			Thread() = delete;
-			Thread(const ThreadIterator it) noexcept : m_ThreadIterator(it) {}
+			Thread(const Iterator it) noexcept : m_ThreadIterator(it) {}
 
-			const std::thread::id GetID() const noexcept { return m_ThreadIterator->Thread.get_id(); }
-			const String& GetName() const noexcept { return m_ThreadIterator->ThreadName; }
+			[[nodiscard]] std::thread::id GetID() const noexcept { return m_ThreadIterator->Thread.get_id(); }
+			[[nodiscard]] const String& GetName() const noexcept { return m_ThreadIterator->ThreadName; }
 			[[nodiscard]] bool IsRunning() const noexcept { return m_ThreadIterator->Thread.joinable(); }
 
 			template<typename U = ThData, typename = std::enable_if_t<has_thread_data<U>>>
-			ThData& GetData() noexcept { return m_ThreadIterator->ThreadData; }
+			[[nodiscard]] auto& GetData() noexcept { return m_ThreadIterator->ThreadData; }
 
 		private:
-			ThreadIterator m_ThreadIterator;
+			Iterator m_ThreadIterator;
 		};
+
+		using ThreadType = Thread<typename ThreadList::iterator>;
+		using ConstThreadType = Thread<typename ThreadList::const_iterator>;
 
 		template<typename... Args>
 		ThreadPool(Args&&... args) noexcept : m_Data(std::forward<Args>(args)...) {}
@@ -156,7 +159,7 @@ namespace QuantumGate::Implementation::Concurrency
 		ThreadPool& operator=(const ThreadPool&) = delete;
 		ThreadPool& operator=(ThreadPool&&) noexcept = default;
 
-		inline bool IsRunning() const noexcept
+		[[nodiscard]] inline bool IsRunning() const noexcept
 		{
 			// If at least one thread is active
 			// then threadpool is running
@@ -185,7 +188,7 @@ namespace QuantumGate::Implementation::Concurrency
 			return AddThreadImpl(thname, std::move(thdata), std::move(thcallback), std::move(thwaitcb), std::move(thwaitintcb));
 		}
 
-		[[nodiscard]] inline std::pair<bool, std::optional<Thread>> RemoveThread(Thread&& thread) noexcept
+		[[nodiscard]] inline std::pair<bool, std::optional<ThreadType>> RemoveThread(ThreadType&& thread) noexcept
 		{
 			if (thread.IsRunning())
 			{
@@ -193,27 +196,45 @@ namespace QuantumGate::Implementation::Concurrency
 			}
 
 			auto next_it = m_Threads.erase(thread.m_ThreadIterator);
-			if (next_it != m_Threads.end()) return std::make_pair(true, Thread(next_it));
+			if (next_it != m_Threads.end()) return std::make_pair(true, ThreadType(next_it));
 
 			return std::make_pair(true, std::nullopt);
 		}
 
 		inline Size GetSize() const noexcept { return m_Threads.size(); }
 
-		inline std::optional<Thread> GetFirstThread() noexcept
+		[[nodiscard]] inline std::optional<ThreadType> GetFirstThread() noexcept
 		{
 			if (m_Threads.size() > 0)
 			{
-				return Thread(m_Threads.begin());
+				return ThreadType(m_Threads.begin());
 			}
 
 			return std::nullopt;
 		}
 
-		inline std::optional<Thread> GetNextThread(const Thread& thread) noexcept
+		[[nodiscard]] inline std::optional<ConstThreadType> GetFirstThread() const noexcept
+		{
+			if (m_Threads.size() > 0)
+			{
+				return ConstThreadType(m_Threads.cbegin());
+			}
+
+			return std::nullopt;
+		}
+
+		[[nodiscard]] inline std::optional<ThreadType> GetNextThread(const ThreadType& thread) noexcept
 		{
 			auto it = std::next(thread.m_ThreadIterator, 1);
-			if (it != m_Threads.end()) return Thread(it);
+			if (it != m_Threads.end()) return ThreadType(it);
+
+			return std::nullopt;
+		}
+
+		[[nodiscard]] inline std::optional<ConstThreadType> GetNextThread(const ConstThreadType& thread) const noexcept
+		{
+			auto it = std::next(thread.m_ThreadIterator, 1);
+			if (it != m_Threads.cend()) return ConstThreadType(it);
 
 			return std::nullopt;
 		}
@@ -411,7 +432,7 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 	private:
-		ThPData m_Data;
+		[[no_unique_address]] ThPData m_Data;
 		ThreadList m_Threads;
 	};
 }
