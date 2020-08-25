@@ -15,6 +15,7 @@ namespace QuantumGate::Implementation::Memory
 	{
 		static constexpr Size _1B{ 0x00000001UL };
 		static constexpr Size _256B{ 0x00000100UL };
+		static constexpr Size _512B{ 0x00000200UL };
 		static constexpr Size _1KB{ 0x00000400UL };
 		static constexpr Size _65KB{ 0x00010000UL };
 		static constexpr Size _1MB{ 0x00100000UL };
@@ -36,6 +37,7 @@ namespace QuantumGate::Implementation::Memory
 		static constexpr Size _UINT32{ std::numeric_limits<UInt32>::max() };
 
 		static constexpr Size _256B{ _UINT8 };
+		static constexpr Size _512B{ 0x00000200UL };
 		static constexpr Size _1KB{ 0x00000400UL };
 		static constexpr Size _65KB{ _UINT16 };
 		static constexpr Size _1MB{ 0x00100000UL };
