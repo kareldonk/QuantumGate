@@ -152,26 +152,30 @@ namespace QuantumGate::Implementation::Core
 				std::optional<UInt64> num;
 				Buffer rcv_buffer;
 
-				if (m_Socket.ReceiveFrom(sender_endpoint, rcv_buffer).Succeeded())
+				const auto result = m_Socket.ReceiveFrom(sender_endpoint, rcv_buffer);
+				if (result.Succeeded())
 				{
-					// Message should only contain a 64-bit number (8 bytes)
-					if (rcv_buffer.GetSize() == sizeof(UInt64))
+					if (*result > 0)
 					{
-						num = Endian::FromNetworkByteOrder(*reinterpret_cast<UInt64*>(rcv_buffer.GetBytes()));
+						// Message should only contain a 64-bit number (8 bytes)
+						if (rcv_buffer.GetSize() == sizeof(UInt64))
+						{
+							num = Endian::FromNetworkByteOrder(*reinterpret_cast<UInt64*>(rcv_buffer.GetBytes()));
 
-						LogInfo(L"Received public IP address data verification (%llu) from endpoint %s",
-								num.value(), sender_endpoint.GetString().c_str());
-					}
-					else
-					{
-						LogWarn(L"Received invalid public IP address data verification from endpoint %s",
-								sender_endpoint.GetString().c_str());
+							LogInfo(L"Received public IP address data verification (%llu) from endpoint %s",
+									num.value(), sender_endpoint.GetString().c_str());
+						}
+						else
+						{
+							LogWarn(L"Received invalid public IP address data verification from endpoint %s",
+									sender_endpoint.GetString().c_str());
+						}
 					}
 				}
 				else
 				{
-					LogWarn(L"Failed to receive public IP address data verification from endpoint %s; the port may not be open",
-							sender_endpoint.GetString().c_str());
+					LogWarn(L"Failed to receive public IP address data verification from endpoint %s (%s)",
+							sender_endpoint.GetString().c_str(), result.GetErrorString().c_str());
 				}
 
 				// If we received verification data
