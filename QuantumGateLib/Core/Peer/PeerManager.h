@@ -84,8 +84,11 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
 
-		PeerSharedPointer Create(const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
-								 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
+		PeerSharedPointer CreateTCP(const IP::AddressFamily af, const PeerConnectionType pctype,
+									std::optional<ProtectedBuffer>&& shared_secret) noexcept;
+		PeerSharedPointer CreateUDP(const IP::AddressFamily af, const PeerConnectionType pctype,
+									const UDP::ConnectionID id, const UDP::MessageSequenceNumber seqnum,
+									std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 		PeerSharedPointer CreateRelay(const PeerConnectionType pctype,
 									  std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
@@ -143,6 +146,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		void Remove(const PeerSharedPointer& peer_ths) noexcept;
 		void Remove(const Containers::List<PeerSharedPointer>& peerlist) noexcept;
 		void RemoveAll() noexcept;
+
+		PeerSharedPointer Create(const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
+								 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
 		Result<PeerLUID> DirectConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept;
 

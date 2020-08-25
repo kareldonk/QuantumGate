@@ -50,7 +50,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 		[[nodiscard]] bool AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
 											  const bool cond_accept, const bool nat_traversal) noexcept;
-		std::optional<ThreadPool::Thread> RemoveListenerThread(ThreadPool::Thread&& thread) noexcept;
+		std::optional<ThreadPool::ThreadType> RemoveListenerThread(ThreadPool::ThreadType&& thread) noexcept;
 		[[nodiscard]] bool Update(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept;
 
 	private:

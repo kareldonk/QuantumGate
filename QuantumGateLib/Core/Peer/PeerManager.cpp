@@ -438,26 +438,73 @@ namespace QuantumGate::Implementation::Core::Peer
 											   settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits);
 	}
 
-	PeerSharedPointer Manager::Create(const IP::AddressFamily af, const IP::Protocol protocol,
-									  const PeerConnectionType pctype, std::optional<ProtectedBuffer>&& shared_secret) noexcept
+	PeerSharedPointer Manager::CreateUDP(const IP::AddressFamily af, const PeerConnectionType pctype,
+										 const UDP::ConnectionID id, const UDP::MessageSequenceNumber seqnum,
+										 std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		try
 		{
-			auto peer_ths = std::make_shared<Peer_ThS>(*this, af, protocol, pctype, std::move(shared_secret));
+			auto peer_ths = std::make_shared<Peer_ThS>(*this, af, IP::Protocol::UDP, pctype, std::move(shared_secret));
 			auto peer = peer_ths->WithUniqueLock();
 
 			if (peer->Initialize(peer_ths))
 			{
-				if (protocol == IP::Protocol::UDP &&
-					!m_UDPConnectionManager.AddConnection(af, pctype, peer->GetSocket<UDP::Socket>()))
+				if (m_UDPConnectionManager.AddConnection(af, pctype, id, seqnum, peer->GetSocket<UDP::Socket>()))
 				{
-					return nullptr;
+					return peer_ths;
 				}
+			}
+		}
+		catch (...) {}
 
+		return nullptr;
+	}
+
+	PeerSharedPointer Manager::CreateTCP(const IP::AddressFamily af, const PeerConnectionType pctype,
+										 std::optional<ProtectedBuffer>&& shared_secret) noexcept
+	{
+		try
+		{
+			auto peer_ths = std::make_shared<Peer_ThS>(*this, af, IP::Protocol::TCP, pctype, std::move(shared_secret));
+			if (peer_ths->WithUniqueLock()->Initialize(peer_ths))
+			{
 				return peer_ths;
 			}
 		}
 		catch (...) {}
+
+		return nullptr;
+	}
+
+	PeerSharedPointer Manager::Create(const IP::AddressFamily af, const IP::Protocol protocol,
+									  const PeerConnectionType pctype, std::optional<ProtectedBuffer>&& shared_secret) noexcept
+	{
+		switch (protocol)
+		{
+			case IP::Protocol::TCP:
+			{
+				return CreateTCP(af, pctype, std::move(shared_secret));
+			}
+			case IP::Protocol::UDP:
+			{
+				const auto id = UDP::Connection::Connection::MakeConnectionID();
+				if (id)
+				{
+					return CreateUDP(af, pctype, *id, 0, std::move(shared_secret));
+				}
+				else
+				{
+					LogErr(L"Failed to create UDP connection ID");
+				}
+				break;
+			}
+			default:
+			{
+				// Shouldn't get here
+				assert(false);
+				break;
+			}
+		}
 
 		return nullptr;
 	}

@@ -3,11 +3,9 @@
 
 #pragma once
 
-#include "UDPSocket.h"
+#include "UDPConnection.h"
 #include "..\..\Concurrency\ThreadPool.h"
 #include "..\..\Concurrency\EventGroup.h"
-#include "..\..\Concurrency\Queue.h"
-#include "..\..\Network\Socket.h"
 
 namespace QuantumGate::Implementation::Core::UDP::Listener
 {
@@ -20,21 +18,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		friend class Listener::Manager;
 
-		using ConnectionID = UInt64;
-
-		struct Connection final
-		{
-			using ListenerDataQueue = Concurrency::Queue<Buffer>;
-
-			PeerConnectionType Type{ PeerConnectionType::Unknown };
-			ConnectionID ID{ 0 };
-			Network::Socket Socket;
-			IPEndpoint LocalEndpoint;
-			IPEndpoint PeerEndpoint;
-			std::shared_ptr<Socket::Buffers_ThS> Buffers;
-			std::unique_ptr<ListenerDataQueue> ListenerData;
-		};
-
 		using ConnectionMap = Containers::UnorderedMap<ConnectionID, Connection>;
 		using ConnectionMap_ThS = Concurrency::ThreadSafe<ConnectionMap, std::shared_mutex>;
 
@@ -45,7 +28,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		struct ThreadData final
 		{
-			ThreadData(const ThreadKey thread_key) noexcept :
+			explicit ThreadData(const ThreadKey thread_key) noexcept :
 				ThreadKey(thread_key),
 				WorkEvents(std::make_unique<Concurrency::EventGroup>()),
 				Connections(std::make_unique<ConnectionMap_ThS>())
@@ -77,6 +60,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] inline bool IsRunning() const noexcept { return m_Running; }
 
 		[[nodiscard]] bool AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
+										 const ConnectionID id, const MessageSequenceNumber seqnum,
 										 Socket& socket) noexcept;
 
 	private:
@@ -88,13 +72,19 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool StartupThreadPool() noexcept;
 		void ShutdownThreadPool() noexcept;
 
-		std::optional<ConnectionID> MakeConnectionID() const noexcept;
 		std::optional<ThreadKey> GetThreadKeyWithLeastConnections() const noexcept;
+		[[nodiscard]] std::optional<ThreadPool::ThreadType> GetThreadWithLeastConnections() noexcept;
 
-		void ProcessIncomingListenerData(const IPEndpoint endpoint, Buffer&& buffer) noexcept;
+		void RemoveConnection(const ConnectionID id, ConnectionMap& connections, const ThreadData& thdata) noexcept;
+		void RemoveConnections(const Containers::List<ConnectionID>& list, ConnectionMap& connections,
+							   const ThreadData& thdata) noexcept;
+
+		[[nodiscard]] bool IncrementThreadConnectionTotal(const ThreadKey key) noexcept;
+		[[nodiscard]] bool DecrementThreadConnectionTotal(const ThreadKey key) noexcept;
+
+		[[nodiscard]] bool HasConnection(const ConnectionID id) const noexcept;
 
 		void WorkerThreadWait(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
-		void WorkerThreadWaitInterrupt(ThreadPoolData& thpdata, ThreadData& thdata);
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
 	private:

@@ -9,9 +9,9 @@ using namespace QuantumGate::Implementation::Network;
 
 namespace QuantumGate::Implementation::Core::UDP::Listener
 {
-	Manager::Manager(const Settings_CThS& settings, UDP::Connection::Manager& udpmgr, Access::Manager& accessmgr,
+	Manager::Manager(const Settings_CThS& settings, Access::Manager& accessmgr, UDP::Connection::Manager& udpmgr,
 					 Peer::Manager& peermgr) noexcept :
-		m_Settings(settings), m_UDPConnectionManager(udpmgr), m_AccessManager(accessmgr), m_PeerManager(peermgr)
+		m_Settings(settings), m_AccessManager(accessmgr), m_UDPConnectionManager(udpmgr), m_PeerManager(peermgr)
 	{}
 
 	// Starts listening on the default interfaces
@@ -162,7 +162,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		return true;
 	}
 
-	std::optional<Manager::ThreadPool::Thread> Manager::RemoveListenerThread(Manager::ThreadPool::Thread&& thread) noexcept
+	std::optional<Manager::ThreadPool::ThreadType> Manager::RemoveListenerThread(Manager::ThreadPool::ThreadType&& thread) noexcept
 	{
 		const IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
 
@@ -291,6 +291,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
 		Network::Socket& socket = thdata.Socket;
+		IPEndpoint endpoint;
+		Buffer buffer;
 
 		while (!shutdown_event.IsSet())
 		{
@@ -299,20 +301,13 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			{
 				if (socket.GetIOStatus().CanRead())
 				{
-					IPEndpoint endpoint;
-					Buffer buffer;
-					if (socket.ReceiveFrom(endpoint, buffer))
+					const auto result = socket.ReceiveFrom(endpoint, buffer);
+					if (result.Succeeded() && *result > 0)
 					{
-						if (CanAcceptConnection(endpoint.GetIPAddress()))
-						{
-							m_UDPConnectionManager.ProcessIncomingListenerData(endpoint, std::move(buffer));
-						}
-						else
-						{
-							LogWarn(L"Discarding incoming data from peer %s; IP address is not allowed by access configuration",
-									endpoint.GetString().c_str());
-						}
+						AcceptConnection(socket.GetLocalEndpoint(), endpoint, buffer);
 					}
+
+					buffer.Clear();
 				}
 				else if (socket.GetIOStatus().HasException())
 				{
@@ -326,6 +321,72 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 				LogErr(L"Could not get status of listener socket for endpoint %s",
 					   socket.GetLocalEndpoint().GetString().c_str());
 			}
+		}
+	}
+
+	void Manager::AcceptConnection(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint, const Buffer& buffer) noexcept
+	{
+		if (CanAcceptConnection(pendpoint.GetIPAddress()))
+		{
+			auto reputation_update = false;
+
+			Message msg(Message::Type::Syn);
+			if (msg.Read(buffer) && msg.IsValid())
+			{
+				const auto version = msg.GetProtocolVersion();
+
+				if (version.first == UDP::ProtocolVersion::Major && version.second == UDP::ProtocolVersion::Minor)
+				{
+					auto peerths = m_PeerManager.CreateUDP(pendpoint.GetIPAddress().GetFamily(), PeerConnectionType::Inbound,
+														   msg.GetConnectionID(), msg.GetMessageSequenceNumber(), std::nullopt);
+					if (peerths != nullptr)
+					{
+						peerths->WithUniqueLock([&](Peer::Peer& peer)
+						{
+							if (peer.GetSocket<Socket>().Accept(lendpoint, pendpoint))
+							{
+								if (m_PeerManager.Accept(peerths))
+								{
+									LogInfo(L"Connection accepted from peer %s", peer.GetPeerName().c_str());
+								}
+								else
+								{
+									peer.Close();
+									LogErr(L"Could not accept connection from peer %s", peer.GetPeerName().c_str());
+								}
+							}
+						});
+					}
+				}
+				else
+				{
+					LogErr(L"Could not accept connection from peer %s; unsupported UDP protocol version",
+						   pendpoint.GetString().c_str());
+					reputation_update = true;
+				}
+			}
+			else
+			{
+				LogErr(L"Peer %s sent invalid message for establishing UDP connection",
+					   pendpoint.GetString().c_str());
+				reputation_update = true;
+			}
+
+			if (reputation_update)
+			{
+				const auto result = m_AccessManager.UpdateIPReputation(pendpoint.GetIPAddress(),
+																	   Access::IPReputationUpdate::DeteriorateMinimal);
+				if (!result.Succeeded())
+				{
+					LogWarn(L"UDP listener manager couldn't update IP reputation for peer %s (%s)",
+							pendpoint.GetString().c_str(), result.GetErrorString().c_str());
+				}
+			}
+		}
+		else
+		{
+			LogWarn(L"Discarding incoming data from peer %s; IP address is not allowed by access configuration",
+					pendpoint.GetString().c_str());
 		}
 	}
 

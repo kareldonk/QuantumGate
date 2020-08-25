@@ -17,40 +17,42 @@ namespace QuantumGate::Implementation::Core::UDP
 		if (m_IOStatus.IsOpen()) Close();
 	}
 
-	bool Socket::BeginAccept(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
+	bool Socket::Accept(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
 		assert(lendpoint.GetProtocol() == pendpoint.GetProtocol());
 
-		m_LocalEndpoint = lendpoint;
-		m_PeerEndpoint = pendpoint;
+		m_ConnectionData->WithUniqueLock([&](auto& data)
+		{
+			data.Connect = true;
+			data.LocalEndpoint = lendpoint;
+			data.PeerEndpoint = pendpoint;
+			data.SetSendEvent();
+		});
+
+		UpdateSocketInfo();
 
 		m_AcceptCallback();
 
-		return true;
-	}
-
-	bool Socket::CompleteAccept() noexcept
-	{
-		assert(m_IOStatus.IsOpen());
-
 		m_IOStatus.SetConnected(true);
-		m_IOStatus.SetWrite(true);
-
-		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
 
 		return m_ConnectCallback();
 	}
 
 	bool Socket::BeginConnect(const IPEndpoint& endpoint) noexcept
 	{
-		assert(m_IOStatus.IsOpen());
+		assert(GetIOStatus().IsOpen());
 
 		m_IOStatus.SetConnecting(true);
 
-		// Local endpoint is set by the Relay manager once
-		// a connection has been established
-		m_PeerEndpoint = endpoint;
+		m_ConnectionData->WithUniqueLock([&](auto& data)
+		{
+			data.Connect = true;
+			data.PeerEndpoint = endpoint;
+			data.SetSendEvent();
+		});
+
+		UpdateSocketInfo();
 
 		m_ConnectingCallback();
 
@@ -64,68 +66,49 @@ namespace QuantumGate::Implementation::Core::UDP
 		m_IOStatus.SetConnecting(false);
 		m_IOStatus.SetConnected(true);
 
-		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
+		UpdateSocketInfo();
 
 		return m_ConnectCallback();
 	}
 
-	void Socket::SetLocalEndpoint(const IPEndpoint& endpoint) noexcept
+	void Socket::SetException(const Int errorcode) noexcept
 	{
-		assert(endpoint.GetProtocol() == m_PeerEndpoint.GetProtocol());
+		m_ConnectionData->WithUniqueLock([&](auto& connection_data)
+		{
+			connection_data.HasException = true;
+			connection_data.ErrorCode = errorcode;
+		});
 
-		m_LocalEndpoint = IPEndpoint(endpoint.GetProtocol(), endpoint.GetIPAddress(),
-									 endpoint.GetPort());
-		m_PeerEndpoint = IPEndpoint(m_PeerEndpoint.GetProtocol(), m_PeerEndpoint.GetIPAddress(),
-									m_PeerEndpoint.GetPort());
+		m_IOStatus.SetException(true);
+		m_IOStatus.SetErrorCode(errorcode);
 	}
 
-	bool Socket::Send(Buffer& buffer, const Size /*max_snd_size*/) noexcept
-	{/*
+	Result<Size> Socket::Send(const BufferView& buffer, const Size /*max_snd_size*/) noexcept
+	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanWrite());
-
-		if (m_IOStatus.HasException()) return false;
 
 		try
 		{
 			Size sent_size{ 0 };
 
-			const auto available_size = std::invoke([&]()
+			m_ConnectionData->WithUniqueLock([&](auto& connection_data)
 			{
-				Size size{ 0 };
-				if (m_MaxSendBufferSize > m_SendBuffer.GetSize())
+				if (connection_data.SendBuffer.GetWriteSize() > 0)
 				{
-					size = m_MaxSendBufferSize - m_SendBuffer.GetSize();
+					sent_size = connection_data.SendBuffer.Write(buffer);
+					
+					connection_data.SetSendEvent();
+
+					m_BytesSent += sent_size;
 				}
-				return size;
+				else
+				{
+					// Send buffer is full, we'll try again later
+					LogDbg(L"UDP socket send buffer full/unavailable for endpoint %s", GetPeerName().c_str());
+				}
 			});
 
-			if (available_size >= buffer.GetSize())
-			{
-				m_SendBuffer += buffer;
-				sent_size = buffer.GetSize();
-			}
-			else if (available_size > 0)
-			{
-				const auto pbuffer = BufferView(buffer).GetFirst(available_size);
-				m_SendBuffer += pbuffer;
-				sent_size = pbuffer.GetSize();
-			}
-			else
-			{
-				// Send buffer is full, we'll try again later
-				LogDbg(L"UDP socket send buffer full/unavailable for endpoint %s", GetPeerName().c_str());
-			}
-
-			if (sent_size > 0)
-			{
-				buffer.RemoveFirst(sent_size);
-
-				m_SendEvent.Set();
-
-				m_BytesSent += sent_size;
-			}
-
-			return true;
+			return sent_size;
 		}
 		catch (const std::exception& e)
 		{
@@ -133,39 +116,41 @@ namespace QuantumGate::Implementation::Core::UDP
 				   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
 
 			SetException(WSAENOBUFS);
-		}*/
+		}
 
-		return false;
+		return ResultCode::Failed;
 	}
 
-	bool Socket::Receive(Buffer& buffer, const Size /* max_rcv_size */) noexcept
+	Result<Size> Socket::Receive(Buffer& buffer, const Size /* max_rcv_size */) noexcept
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanRead());
 
-		if (m_IOStatus.HasException()) return false;
-
-		auto success = false;
-		/*
 		try
 		{
-			const auto bytesrcv = m_ReceiveBuffer.GetSize();
+			auto connection_data = m_ConnectionData->WithUniqueLock();
 
-			if (bytesrcv == 0 && m_ClosingRead)
+			const auto max_rcv_size = connection_data->ReceiveBuffer.GetReadSize();
+			if (max_rcv_size > 0)
 			{
-				LogDbg(L"UDP socket connection closed for endpoint %s", GetPeerName().c_str());
+				buffer.Resize(buffer.GetSize() + max_rcv_size);
 
-				m_ReceiveEvent.Reset();
+				const auto rcv_size = connection_data->ReceiveBuffer.
+					Read(buffer.GetBytes() + (buffer.GetSize() - max_rcv_size), max_rcv_size);
+
+				assert(max_rcv_size == rcv_size);
+
+				connection_data->ReceiveEvent.Reset();
+				connection_data->CanRead = false;
+
+				m_BytesReceived += rcv_size;
+
+				return rcv_size;
 			}
 			else
 			{
-				buffer += m_ReceiveBuffer;
+				LogDbg(L"UDP socket connection closed for endpoint %s", GetPeerName().c_str());
 
-				m_ReceiveBuffer.Clear();
-				m_ReceiveEvent.Reset();
-
-				m_BytesReceived += bytesrcv;
-
-				success = true;
+				connection_data->ReceiveEvent.Reset();
 			}
 		}
 		catch (const std::exception& e)
@@ -174,9 +159,9 @@ namespace QuantumGate::Implementation::Core::UDP
 				   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
 
 			SetException(WSAENOBUFS);
-		}*/
+		}
 
-		return success;
+		return ResultCode::Failed;
 	}
 
 	void Socket::Close(const bool linger) noexcept
@@ -185,25 +170,33 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		m_CloseCallback();
 
+		m_ConnectionData->WithUniqueLock([&](auto& data)
+		{
+			data.Close = true;
+			data.SetSendEvent();
+		});
+
 		m_IOStatus.Reset();
 	}
 
 	bool Socket::UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
-		/*
-		m_ReceiveEvent.Reset();
-
+		
 		if (!m_IOStatus.IsOpen()) return false;
 
-		if (m_IOStatus.IsConnected())
+		auto connection_data = m_ConnectionData->WithUniqueLock();
+
+		connection_data->ReceiveEvent.Reset();
+
+		m_IOStatus.SetRead(connection_data->CanRead);
+		m_IOStatus.SetWrite(connection_data->CanWrite);
+
+		if (connection_data->HasException)
 		{
-			const bool read = (!m_ReceiveBuffer.IsEmpty() || m_ClosingRead);
-
-			m_IOStatus.SetRead(read);
-
-			if (read) m_ReceiveEvent.Set();
-		}*/
+			m_IOStatus.SetException(connection_data->HasException);
+			m_IOStatus.SetErrorCode(connection_data->ErrorCode);
+		}
 
 		return true;
 	}
@@ -214,4 +207,14 @@ namespace QuantumGate::Implementation::Core::UDP
 																		  GetConnectedSteadyTime());
 		return (Util::GetCurrentSystemTime() - dif);
 	}
+
+	void Socket::UpdateSocketInfo() noexcept
+	{
+		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
+
+		auto connection_data = m_ConnectionData->WithSharedLock();
+		m_LocalEndpoint = connection_data->LocalEndpoint;
+		m_PeerEndpoint = connection_data->PeerEndpoint;
+	}
+
 }

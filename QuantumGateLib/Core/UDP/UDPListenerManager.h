@@ -36,7 +36,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 	public:
 		Manager() = delete;
-		Manager(const Settings_CThS& settings, UDP::Connection::Manager& udpmgr, Access::Manager& accessmgr,
+		Manager(const Settings_CThS& settings, Access::Manager& accessmgr, UDP::Connection::Manager& udpmgr,
 				Peer::Manager& peermgr) noexcept;
 		Manager(const Manager&) = delete;
 		Manager(Manager&&) noexcept = default;
@@ -51,7 +51,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 		[[nodiscard]] bool AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
 											  const bool nat_traversal) noexcept;
-		std::optional<ThreadPool::Thread> RemoveListenerThread(ThreadPool::Thread&& thread) noexcept;
+		std::optional<ThreadPool::ThreadType> RemoveListenerThread(ThreadPool::ThreadType&& thread) noexcept;
 		[[nodiscard]] bool Update(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept;
 
 	private:
@@ -61,13 +61,14 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
 		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
+		void AcceptConnection(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint, const Buffer& buffer) noexcept;
 
 	private:
 		std::atomic_bool m_Running{ false };
 		std::atomic_bool m_ListeningOnAnyAddresses{ false };
 		const Settings_CThS& m_Settings;
-		UDP::Connection::Manager& m_UDPConnectionManager;
 		Access::Manager& m_AccessManager;
+		UDP::Connection::Manager& m_UDPConnectionManager;
 		Peer::Manager& m_PeerManager;
 
 		ThreadPool m_ThreadPool;

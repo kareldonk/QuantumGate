@@ -465,6 +465,12 @@
     <ClInclude Include="Core\UDP\UDPConnectionManager.h">
       <Filter>Header Files\Core\UDP</Filter>
     </ClInclude>
+    <ClInclude Include="Core\UDP\UDPMessage.h">
+      <Filter>Header Files\Core\UDP</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\UDP\UDPConnection.h">
+      <Filter>Header Files\Core\UDP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -654,6 +660,12 @@
       <Filter>Source Files\Core\TCP</Filter>
     </ClCompile>
     <ClCompile Include="Core\UDP\UDPConnectionManager.cpp">
+      <Filter>Source Files\Core\UDP</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\UDP\UDPConnection.cpp">
+      <Filter>Source Files\Core\UDP</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\UDP\UDPMessage.cpp">
       <Filter>Source Files\Core\UDP</Filter>
     </ClCompile>
   </ItemGroup>

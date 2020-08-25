@@ -3,7 +3,6 @@
 
 #include "pch.h"
 #include "UDPConnectionManager.h"
-#include "..\..\Crypto\Crypto.h"
 
 using namespace std::literals;
 
@@ -48,74 +47,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		LogSys(L"UDP connectionmanager shut down");
 	}
 
-	std::optional<Manager::ConnectionID> Manager::MakeConnectionID() const noexcept
-	{
-		if (IsRunning())
-		{
-			if (const auto cid = Crypto::GetCryptoRandomNumber(); cid.has_value())
-			{
-				return { *cid };
-			}
-		}
-
-		return std::nullopt;
-	}
-
-	bool Manager::AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type, Socket& socket) noexcept
-	{
-		try
-		{
-			const auto cid = MakeConnectionID();
-			if (cid)
-			{
-				Connection connection;
-				connection.Type = type;
-				connection.ID = *cid;
-				connection.Socket = Network::Socket(af, Network::Socket::Type::Datagram, Network::IP::Protocol::UDP);
-				connection.Buffers = std::make_shared<Socket::Buffers_ThS>(connection.Socket.GetEvent());
-				connection.LocalEndpoint = IPEndpoint(IPEndpoint::Protocol::UDP,
-													  (af == BinaryIPAddress::Family::IPv4) ?
-													  IPAddress::AnyIPv4() : IPAddress::AnyIPv6(), 0);
-
-				const auto& settings = m_Settings.GetCache();
-				const auto nat_traversal = settings.Local.Listeners.NATTraversal;
-
-				if (connection.Socket.Bind(connection.LocalEndpoint, nat_traversal))
-				{
-					socket.SetBuffers(connection.Buffers);
-
-					const auto thkey = GetThreadKeyWithLeastConnections();
-					if (thkey)
-					{
-						auto thread = m_ThreadPool.GetFirstThread();
-						while (thread)
-						{
-							if (thread->GetData().ThreadKey == thkey)
-							{
-								thread->GetData().Connections->WithUniqueLock()->emplace(*cid, std::move(connection));
-								return true;
-							}
-
-							thread = m_ThreadPool.GetNextThread(*thread);
-						}
-
-						LogErr(L"Couldn't find UDP connectionmanager thread with key %llu", thkey);
-					}
-				}
-			}
-			else
-			{
-				LogErr(L"Couldn't create UDP connection ID; UDP connectionmanager may not be running");
-			}
-		}
-		catch (const std::exception& e)
-		{
-			LogErr(L"Exception while adding connection to UDP connectionmanager - %s", Util::ToStringW(e.what()).c_str());
-		}
-
-		return false;
-	}
-
 	void Manager::PreStartup() noexcept
 	{
 		ResetState();
@@ -147,20 +78,24 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			try
 			{
-				if (m_ThreadPool.AddThread(L"QuantumGate UDP connectionmanager Thread", ThreadData(x),
-										   MakeCallback(this, &Manager::WorkerThreadProcessor),
-										   MakeCallback(this, &Manager::WorkerThreadWait),
-										   MakeCallback(this, &Manager::WorkerThreadWaitInterrupt)))
+				auto thdata = ThreadData(x);
+				if (thdata.WorkEvents->Initialize())
 				{
-					// Add entry for the total number of relay links this thread is handling
-					m_ThreadPool.GetData().ThreadKeyToConnectionTotals.WithUniqueLock([&](auto& con_totals)
+					if (m_ThreadPool.AddThread(L"QuantumGate UDP connectionmanager Thread", std::move(thdata),
+											   MakeCallback(this, &Manager::WorkerThreadProcessor),
+											   MakeCallback(this, &Manager::WorkerThreadWait)))
 					{
-						[[maybe_unused]] const auto [it, inserted] = con_totals.insert({ x, 0 });
-						if (!inserted)
+						// Add entry for the total number of relay links this thread is handling
+						m_ThreadPool.GetData().ThreadKeyToConnectionTotals.WithUniqueLock([&](auto& con_totals)
 						{
-							error = true;
-						}
-					});
+							[[maybe_unused]] const auto [it, inserted] = con_totals.insert({ x, 0 });
+							if (!inserted)
+							{
+								error = true;
+							}
+						});
+					}
+					else error = true;
 				}
 				else error = true;
 			}
@@ -178,6 +113,15 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	void Manager::ShutdownThreadPool() noexcept
 	{
 		m_ThreadPool.Shutdown();
+
+		auto thread = m_ThreadPool.GetFirstThread();
+		while (thread)
+		{
+			thread->GetData().WorkEvents->Deinitialize();
+
+			thread = m_ThreadPool.GetNextThread(*thread);
+		}
+
 		m_ThreadPool.Clear();
 	}
 
@@ -185,11 +129,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		std::optional<ThreadKey> thkey;
 
-		// Get the threadpool with the least amount of relay links
+		// Get the thread with the least amount of connections
 		m_ThreadPool.GetData().ThreadKeyToConnectionTotals.WithSharedLock([&](const auto& con_totals)
 		{
-			// Should have at least one item (at least
-			// one event worker thread running)
+			// Should have at least one item (at least one worker thread running)
 			assert(con_totals.size() > 0);
 
 			const auto it = std::min_element(con_totals.begin(), con_totals.end(),
@@ -206,8 +149,41 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return thkey;
 	}
 
-	void Manager::ProcessIncomingListenerData(const IPEndpoint endpoint, Buffer&& buffer) noexcept
+	std::optional<Manager::ThreadPool::ThreadType> Manager::GetThreadWithLeastConnections() noexcept
 	{
+		const auto thkey = GetThreadKeyWithLeastConnections();
+		if (thkey)
+		{
+			auto thread = m_ThreadPool.GetFirstThread();
+			while (thread)
+			{
+				if (thread->GetData().ThreadKey == *thkey)
+				{
+					return thread;
+				}
+				else thread = m_ThreadPool.GetNextThread(*thread);
+			}
+
+			LogErr(L"Couldn't find UDP connectionmanager thread with key %llu", *thkey);
+		}
+
+		return std::nullopt;
+	}
+
+	bool Manager::HasConnection(const ConnectionID id) const noexcept
+	{
+		auto thread = m_ThreadPool.GetFirstThread();
+		while (thread)
+		{
+			if (thread->GetData().Connections->WithSharedLock()->contains(id))
+			{
+				return true;
+			}
+
+			thread = m_ThreadPool.GetNextThread(*thread);
+		}
+
+		return false;
 	}
 
 	void Manager::WorkerThreadWait(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
@@ -219,9 +195,172 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	void Manager::WorkerThreadWaitInterrupt(ThreadPoolData& thpdata, ThreadData& thdata)
-	{}
-
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
-	{}
+	{
+		Containers::List<ConnectionID> remove_list;
+
+		auto connections = thdata.Connections->WithUniqueLock();
+		for (auto it = connections->begin(); it != connections->end() && !shutdown_event.IsSet(); ++it)
+		{
+			auto& connection = it->second;
+
+			connection.ProcessEvents();
+
+			if (connection.ShouldClose())
+			{
+				// Collect the connection for removal
+				remove_list.emplace_back(connection.GetID());
+			}
+		}
+
+		// Remove all connections that were collected for removal
+		if (!remove_list.empty())
+		{
+			LogDbg(L"Removing UDP connections");
+			RemoveConnections(remove_list, *connections, thdata);
+
+			remove_list.clear();
+		}
+	}
+
+	bool Manager::AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
+								const ConnectionID id, const MessageSequenceNumber seqnum, Socket& socket) noexcept
+	{
+		assert(m_Running);
+
+		try
+		{
+			const auto& settings = m_Settings.GetCache();
+			const auto nat_traversal = settings.Local.Listeners.NATTraversal;
+
+			auto thread = GetThreadWithLeastConnections();
+			if (thread)
+			{
+				ConnectionMap::iterator cit;
+
+				{
+					auto connections = thread->GetData().Connections->WithUniqueLock();
+					
+					[[maybe_unused]] const auto [it, inserted] = connections->try_emplace(id, type, id, seqnum);
+
+					assert(inserted);
+					if (!inserted)
+					{
+						LogErr(L"Couldn't add new UDP connection; a connection with ID %llu already exists", id);
+						return false;
+					}
+
+					if (!it->second.Open(af, nat_traversal, socket))
+					{
+						LogErr(L"Couldn't open new UDP connection");
+						connections->erase(it);
+						return false;
+					}
+
+					cit = it;
+				}
+
+				auto sg1 = MakeScopeGuard([&]
+				{
+					cit->second.Close();
+					thread->GetData().Connections->WithUniqueLock()->erase(cit);
+				});
+
+				if (!IncrementThreadConnectionTotal(thread->GetData().ThreadKey))
+				{
+					LogErr(L"Couldn't add new UDP connection; failed to increment thread connection total");
+					return false;
+				}
+
+				auto sg2 = MakeScopeGuard([&]
+				{
+					if (!DecrementThreadConnectionTotal(thread->GetData().ThreadKey))
+					{
+						LogErr(L"UDP connectionmanager failed to decrement thread connection total");
+					}
+				});
+
+				if (!thread->GetData().WorkEvents->AddEvent(cit->second.GetReadEvent()))
+				{
+					LogErr(L"Couldn't add new UDP connection; failed to add read event");
+					return false;
+				}
+
+				sg1.Deactivate();
+				sg2.Deactivate();
+
+				return true;
+			}
+		}
+		catch (const std::exception& e)
+		{
+			LogErr(L"Exception while adding connection to UDP connectionmanager - %s", Util::ToStringW(e.what()).c_str());
+		}
+
+		return false;
+	}
+
+	void Manager::RemoveConnection(const ConnectionID id, ConnectionMap& connections, const ThreadData& thdata) noexcept
+	{
+		const auto it = connections.find(id);
+		if (it != connections.end())
+		{
+			thdata.WorkEvents->RemoveEvent(it->second.GetReadEvent());
+
+			it->second.Close();
+
+			connections.erase(it);
+
+			if (!DecrementThreadConnectionTotal(thdata.ThreadKey))
+			{
+				LogErr(L"UDP connectionmanager failed to decrement thread connection total");
+			}
+		}
+		else
+		{
+			LogErr(L"UDP connectionmanager failed to remove connection %llu; the connection wasn't found", id);
+		}
+	}
+
+	void Manager::RemoveConnections(const Containers::List<ConnectionID>& list, ConnectionMap& connections,
+									const ThreadData& thdata) noexcept
+	{
+		for (const auto id : list)
+		{
+			RemoveConnection(id, connections, thdata);
+		}
+	}
+
+	bool Manager::IncrementThreadConnectionTotal(const ThreadKey key) noexcept
+	{
+		auto success = false;
+
+		m_ThreadPool.GetData().ThreadKeyToConnectionTotals.WithUniqueLock([&](auto& con_totals)
+		{
+			if (const auto it = con_totals.find(key); it != con_totals.end())
+			{
+				++it->second;
+				success = true;
+			}
+		});
+
+		return success;
+	}
+	
+	bool Manager::DecrementThreadConnectionTotal(const ThreadKey key) noexcept
+	{
+		auto success = false;
+
+		m_ThreadPool.GetData().ThreadKeyToConnectionTotals.WithUniqueLock([&](auto& con_totals)
+		{
+			if (const auto it = con_totals.find(key); it != con_totals.end())
+			{
+				assert(it->second > 0);
+				--it->second;
+				success = true;
+			}
+		});
+
+		return success;
+	}
 }
