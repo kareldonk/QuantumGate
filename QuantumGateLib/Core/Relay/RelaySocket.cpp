@@ -87,8 +87,6 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanWrite());
 
-		if (m_IOStatus.HasException()) return false;
-
 		try
 		{
 			Size sent_size{ 0 };
@@ -144,37 +142,34 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanRead());
 
-		if (!m_IOStatus.HasException())
+		try
 		{
-			try
+			const auto bytesrcv = m_ReceiveBuffer.GetSize();
+
+			if (bytesrcv == 0 && m_ClosingRead)
 			{
-				const auto bytesrcv = m_ReceiveBuffer.GetSize();
+				LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
 
-				if (bytesrcv == 0 && m_ClosingRead)
-				{
-					LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
-
-					m_ReceiveEvent.Reset();
-				}
-				else
-				{
-					buffer += m_ReceiveBuffer;
-
-					m_ReceiveBuffer.Clear();
-					m_ReceiveEvent.Reset();
-
-					m_BytesReceived += bytesrcv;
-
-					return bytesrcv;
-				}
+				m_ReceiveEvent.Reset();
 			}
-			catch (const std::exception& e)
+			else
 			{
-				LogErr(L"Relay socket receive exception for endpoint %s - %s",
-					   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
+				buffer += m_ReceiveBuffer;
 
-				SetException(WSAENOBUFS);
+				m_ReceiveBuffer.Clear();
+				m_ReceiveEvent.Reset();
+
+				m_BytesReceived += bytesrcv;
+
+				return bytesrcv;
 			}
+		}
+		catch (const std::exception& e)
+		{
+			LogErr(L"Relay socket receive exception for endpoint %s - %s",
+					GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
+
+			SetException(WSAENOBUFS);
 		}
 
 		return ResultCode::Failed;
