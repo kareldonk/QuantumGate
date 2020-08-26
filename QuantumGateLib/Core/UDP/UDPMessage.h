@@ -102,6 +102,9 @@ namespace QuantumGate::Implementation::Core::UDP
 			[[nodiscard]] bool IsData() const noexcept { return (m_MessageFlags & static_cast<UInt8>(MessageFlags::Data)); }
 			void SetData() noexcept { m_MessageFlags |= static_cast<UInt8>(MessageFlags::Data); }
 
+			[[nodiscard]] bool IsReset() const noexcept { return (m_MessageFlags & static_cast<UInt8>(MessageFlags::Reset)); }
+			void SetReset() noexcept { m_MessageFlags |= static_cast<UInt8>(MessageFlags::Reset); }
+
 			[[nodiscard]] bool Read(const BufferView& buffer) noexcept;
 			[[nodiscard]] bool Write(Buffer& buffer) const noexcept;
 
@@ -144,6 +147,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		[[nodiscard]] bool IsNormal() const noexcept;
 		[[nodiscard]] bool IsAck() const noexcept;
 		[[nodiscard]] bool IsData() const noexcept;
+		[[nodiscard]] bool IsReset() const noexcept;
 
 		void SetMessageSequenceNumber(const MessageSequenceNumber seqnum) noexcept;
 		[[nodiscard]] MessageSequenceNumber GetMessageSequenceNumber() const noexcept;
@@ -157,18 +161,17 @@ namespace QuantumGate::Implementation::Core::UDP
 		void SetConnectionID(const ConnectionID id) noexcept;
 		[[nodiscard]] ConnectionID GetConnectionID() const noexcept;
 
+		void SetReset() noexcept;
+
 		void SetAckSequenceNumbers(Vector<MessageSequenceNumber>&& acks) noexcept;
 		const Vector<MessageSequenceNumber>& GetAckSequenceNumbers() noexcept;
 
 		void SetMessageData(Buffer&& buffer) noexcept;
 		const Buffer& GetMessageData() const noexcept;
 		Buffer&& MoveMessageData() noexcept;
-		inline Size GetMaxMessageDataSize() const noexcept { return (MaxMessageSize - GetHeaderSize()); }
 
-		inline Size GetMaxAckSequenceNumbersPerMessage() const noexcept
-		{
-			return (MaxMessageSize - (GetHeaderSize() + Memory::BufferIO::GetSizeOfEncodedSize(MaxAckDataSize))) / sizeof(MessageSequenceNumber);
-		}
+		static Size GetMaxMessageDataSize() noexcept;
+		static Size GetMaxAckSequenceNumbersPerMessage() noexcept;
 
 		[[nodiscard]] bool Read(BufferView buffer);
 		[[nodiscard]] bool Write(Buffer& buffer);
