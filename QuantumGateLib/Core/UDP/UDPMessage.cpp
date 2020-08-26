@@ -172,6 +172,32 @@ namespace QuantumGate::Implementation::Core::UDP
 		return std::get<MsgHeader>(m_Header).IsData();
 	}
 
+	bool Message::IsReset() const noexcept
+	{
+		assert(std::holds_alternative<MsgHeader>(m_Header));
+		assert(IsValid());
+
+		return std::get<MsgHeader>(m_Header).IsReset();
+	}
+
+	void Message::SetReset() noexcept
+	{
+		assert(std::holds_alternative<MsgHeader>(m_Header));
+		assert(IsValid());
+
+		return std::get<MsgHeader>(m_Header).SetReset();
+	}
+
+	Size Message::GetMaxMessageDataSize() noexcept
+	{
+		return (MaxMessageSize - MsgHeader::GetSize());
+	}
+
+	Size Message::GetMaxAckSequenceNumbersPerMessage() noexcept
+	{
+		return (MaxMessageSize - (MsgHeader::GetSize() + Memory::BufferIO::GetSizeOfEncodedSize(MaxAckDataSize))) / sizeof(MessageSequenceNumber);
+	}
+
 	const Buffer& Message::GetMessageData() const noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
