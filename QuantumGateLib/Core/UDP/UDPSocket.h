@@ -4,7 +4,7 @@
 #pragma once
 
 #include "..\..\Network\Socket.h"
-#include "..\..\Concurrency\Event.h"
+#include "UDPConnectionData.h"
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
@@ -18,35 +18,6 @@ namespace QuantumGate::Implementation::Core::UDP
 		friend class Connection::Connection;
 
 	public:
-		struct ConnectionData final
-		{
-			bool CanRead{ false };
-			bool CanWrite{ false };
-			bool HasException{ false };
-			int ErrorCode{ 0 };
-
-			bool Connect{ false };
-			bool Close{ false };
-
-			IPEndpoint LocalEndpoint;
-			IPEndpoint PeerEndpoint;
-
-			RingBuffer SendBuffer{ 1u << 20 }; // 65KB
-			RingBuffer ReceiveBuffer{ 1u << 20 }; // 65KB
-			Concurrency::Event ReceiveEvent;
-
-			ConnectionData(Concurrency::Event* send_event) noexcept : SendEvent(send_event) {}
-
-			void SetSendEvent() noexcept { if (SendEvent) SendEvent->Set(); }
-			void ChangeSendEvent(Concurrency::Event* send_event) noexcept { SendEvent = send_event; }
-			void RemoveSendEvent() noexcept { SendEvent = nullptr; }
-
-		private:
-			Concurrency::Event* SendEvent{ nullptr };
-		};
-
-		using ConnectionData_ThS = Concurrency::ThreadSafe<ConnectionData, std::shared_mutex>;
-
 		Socket() noexcept;
 		Socket(const Socket&) = delete;
 		Socket(Socket&&) noexcept = default;
@@ -54,8 +25,8 @@ namespace QuantumGate::Implementation::Core::UDP
 		Socket& operator=(const Socket&) = delete;
 		Socket& operator=(Socket&&) noexcept = default;
 
-		[[nodiscard]] inline Concurrency::Event& GetReceiveEvent() noexcept { return m_ConnectionData->WithUniqueLock()->ReceiveEvent; }
-		[[nodiscard]] inline const Concurrency::Event& GetReceiveEvent() const noexcept { return m_ConnectionData->WithSharedLock()->ReceiveEvent; }
+		[[nodiscard]] inline Concurrency::Event& GetReceiveEvent() noexcept { return m_ConnectionData->WithUniqueLock()->GetReceiveEvent(); }
+		[[nodiscard]] inline const Concurrency::Event& GetReceiveEvent() const noexcept { return m_ConnectionData->WithSharedLock()->GetReceiveEvent(); }
 
 		[[nodiscard]] bool Accept(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept;
 

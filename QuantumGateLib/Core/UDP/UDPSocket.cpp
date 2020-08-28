@@ -24,10 +24,9 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		m_ConnectionData->WithUniqueLock([&](auto& data)
 		{
-			data.Connect = true;
-			data.LocalEndpoint = lendpoint;
-			data.PeerEndpoint = pendpoint;
-			data.SetSendEvent();
+			data.SetConnectEvent();
+			data.SetLocalEndpoint(lendpoint);
+			data.SetPeerEndpoint(pendpoint);
 		});
 
 		UpdateSocketInfo();
@@ -47,9 +46,8 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		m_ConnectionData->WithUniqueLock([&](auto& data)
 		{
-			data.Connect = true;
-			data.PeerEndpoint = endpoint;
-			data.SetSendEvent();
+			data.SetConnectEvent();
+			data.SetPeerEndpoint(endpoint);
 		});
 
 		UpdateSocketInfo();
@@ -73,11 +71,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 	void Socket::SetException(const Int errorcode) noexcept
 	{
-		m_ConnectionData->WithUniqueLock([&](auto& connection_data)
-		{
-			connection_data.HasException = true;
-			connection_data.ErrorCode = errorcode;
-		});
+		m_ConnectionData->WithUniqueLock()->SetException(errorcode);
 
 		m_IOStatus.SetException(true);
 		m_IOStatus.SetErrorCode(errorcode);
@@ -93,11 +87,11 @@ namespace QuantumGate::Implementation::Core::UDP
 
 			m_ConnectionData->WithUniqueLock([&](auto& connection_data)
 			{
-				if (connection_data.SendBuffer.GetWriteSize() > 0)
+				if (connection_data.GetSendBuffer().GetWriteSize() > 0)
 				{
-					sent_size = connection_data.SendBuffer.Write(buffer);
+					sent_size = connection_data.GetSendBuffer().Write(buffer);
 					
-					connection_data.SetSendEvent();
+					connection_data.SignalSendEvent();
 
 					m_BytesSent += sent_size;
 				}
@@ -129,18 +123,18 @@ namespace QuantumGate::Implementation::Core::UDP
 		{
 			auto connection_data = m_ConnectionData->WithUniqueLock();
 
-			const auto max_rcv_size = connection_data->ReceiveBuffer.GetReadSize();
+			const auto max_rcv_size = connection_data->GetReceiveBuffer().GetReadSize();
 			if (max_rcv_size > 0)
 			{
 				buffer.Resize(buffer.GetSize() + max_rcv_size);
 
-				const auto rcv_size = connection_data->ReceiveBuffer.
+				const auto rcv_size = connection_data->GetReceiveBuffer().
 					Read(buffer.GetBytes() + (buffer.GetSize() - max_rcv_size), max_rcv_size);
 
 				assert(max_rcv_size == rcv_size);
 
-				connection_data->ReceiveEvent.Reset();
-				connection_data->CanRead = false;
+				connection_data->ResetReceiveEvent();
+				connection_data->SetRead(false);
 
 				m_BytesReceived += rcv_size;
 
@@ -150,7 +144,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			{
 				LogDbg(L"UDP socket connection closed for endpoint %s", GetPeerName().c_str());
 
-				connection_data->ReceiveEvent.Reset();
+				connection_data->ResetReceiveEvent();
 			}
 		}
 		catch (const std::exception& e)
@@ -170,11 +164,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		m_CloseCallback();
 
-		m_ConnectionData->WithUniqueLock([&](auto& data)
-		{
-			data.Close = true;
-			data.SetSendEvent();
-		});
+		m_ConnectionData->WithUniqueLock()->SetCloseEvent();
 
 		m_IOStatus.Reset();
 	}
@@ -187,15 +177,15 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		auto connection_data = m_ConnectionData->WithUniqueLock();
 
-		connection_data->ReceiveEvent.Reset();
+		connection_data->ResetReceiveEvent();
 
-		m_IOStatus.SetRead(connection_data->CanRead);
-		m_IOStatus.SetWrite(connection_data->CanWrite);
+		m_IOStatus.SetRead(connection_data->CanRead());
+		m_IOStatus.SetWrite(connection_data->CanWrite());
 
-		if (connection_data->HasException)
+		if (connection_data->HasException())
 		{
-			m_IOStatus.SetException(connection_data->HasException);
-			m_IOStatus.SetErrorCode(connection_data->ErrorCode);
+			m_IOStatus.SetException(true);
+			m_IOStatus.SetErrorCode(connection_data->GetErrorCode());
 		}
 
 		return true;
@@ -213,8 +203,8 @@ namespace QuantumGate::Implementation::Core::UDP
 		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
 
 		auto connection_data = m_ConnectionData->WithSharedLock();
-		m_LocalEndpoint = connection_data->LocalEndpoint;
-		m_PeerEndpoint = connection_data->PeerEndpoint;
+		m_LocalEndpoint = connection_data->GetLocalEndpoint();
+		m_PeerEndpoint = connection_data->GetPeerEndpoint();
 	}
 
 }
