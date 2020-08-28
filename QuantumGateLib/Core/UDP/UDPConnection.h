@@ -42,12 +42,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			None, GeneralFailure, TimedOutError, ReceiveError, SendError, UnknownMessageError, CloseRequest
 		};
 
-		Connection(const PeerConnectionType type, const ConnectionID id, const MessageSequenceNumber seqnum) noexcept :
-			m_Type(type), m_ID(id), m_LastInSequenceReceivedSequenceNumber(seqnum) {}
-
+		Connection(const PeerConnectionType type, const ConnectionID id, const MessageSequenceNumber seqnum) noexcept;
 		Connection(const Connection&) = delete;
 		Connection(Connection&& other) noexcept = delete;
-		~Connection() = default;
+		~Connection();
 		Connection& operator=(const Connection&) = delete;
 		Connection& operator=(Connection&&) noexcept = delete;
 
@@ -113,7 +111,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		ConnectionID m_ID{ 0 };
 		Network::Socket m_Socket;
 		SteadyTime m_LastStatusChangeSteadyTime;
-		std::shared_ptr<UDP::Socket::ConnectionData_ThS> m_ConnectionData;
+		std::shared_ptr<ConnectionData_ThS> m_ConnectionData;
 
 		MessageSequenceNumber m_NextSendSequenceNumber{ 0 };
 		std::chrono::milliseconds m_RetransmissionTimeout{ MinRetransmissionTimeout };

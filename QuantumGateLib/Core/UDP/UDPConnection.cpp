@@ -9,14 +9,24 @@ using namespace std::literals;
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
+	Connection::Connection(const PeerConnectionType type, const ConnectionID id,
+						   const MessageSequenceNumber seqnum) noexcept :
+		m_Type(type), m_ID(id), m_LastInSequenceReceivedSequenceNumber(seqnum)
+	{}
+
+	Connection::~Connection()
+	{
+		if (m_Socket.GetIOStatus().IsOpen()) m_Socket.Close();
+	}
+
 	bool Connection::Open(const Network::IP::AddressFamily af,
 						  const bool nat_traversal, UDP::Socket& socket) noexcept
 	{
 		try
 		{
-			m_NextSendSequenceNumber = static_cast<UInt16>(Util::GetPseudoRandomNumber());
+			m_NextSendSequenceNumber = static_cast<MessageSequenceNumber>(Util::GetPseudoRandomNumber());
 			m_Socket = Network::Socket(af, Network::Socket::Type::Datagram, Network::IP::Protocol::UDP);
-			m_ConnectionData = std::make_shared<Socket::ConnectionData_ThS>(&m_Socket.GetEvent());
+			m_ConnectionData = std::make_shared<ConnectionData_ThS>(&m_Socket.GetEvent());
 
 			if (m_Socket.SetNATTraversal(nat_traversal))
 			{
@@ -39,11 +49,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		assert(GetStatus() != Status::Closed);
 
+		SendImmediateReset();
+
 		SetCloseCondition(CloseCondition::CloseRequest);
 
 		DiscardReturnValue(SetStatus(Status::Closed));
-
-		if (m_Socket.GetIOStatus().IsOpen()) m_Socket.Close();
 	}
 
 	std::optional<ConnectionID> Connection::MakeConnectionID() noexcept
@@ -140,8 +150,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		m_ConnectionData->WithUniqueLock([&](auto& connection_data)
 		{
 			connection_data.RemoveSendEvent();
-			connection_data.HasException = true;
-			connection_data.ErrorCode = error_code;
+			connection_data.SetException(error_code);
 		});
 	}
 
@@ -229,7 +238,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			m_ReceivePendingAckList.erase(m_ReceivePendingAckList.begin(), last);
 		}
 
-		if (Send(m_ConnectionData->WithSharedLock()->PeerEndpoint, std::move(msg), false))
+		if (Send(m_ConnectionData->WithSharedLock()->GetPeerEndpoint(), std::move(msg), false))
 		{
 			return true;
 		}
@@ -247,10 +256,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
 		msg.SetReset();
 
-		if (!Send(m_ConnectionData->WithSharedLock()->PeerEndpoint, std::move(msg), false))
+		if (!Send(m_ConnectionData->WithSharedLock()->GetPeerEndpoint(), std::move(msg), false))
 		{
 			LogErr(L"Failed to send reset message to peer %s for connection %llu",
-				   m_ConnectionData->WithSharedLock()->PeerEndpoint.GetString().c_str(), GetID());
+				   m_ConnectionData->WithSharedLock()->GetPeerEndpoint().GetString().c_str(), GetID());
 		}
 	}
 
@@ -324,7 +333,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::SendFromQueue() noexcept
 	{
-		const auto endpoint = m_ConnectionData->WithSharedLock()->PeerEndpoint;
+		const auto endpoint = m_ConnectionData->WithSharedLock()->GetPeerEndpoint();
 
 		for (auto it = m_SendQueue.begin(); it != m_SendQueue.end(); ++it)
 		{
@@ -464,12 +473,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 							m_ConnectionData->WithUniqueLock([&](auto& connection_data) noexcept
 							{
 								// Endpoint update
-								connection_data.LocalEndpoint = m_Socket.GetLocalEndpoint();
-								connection_data.PeerEndpoint = endpoint;
+								connection_data.SetLocalEndpoint(m_Socket.GetLocalEndpoint());
+								connection_data.SetPeerEndpoint(endpoint);
 								// Socket can now send data
-								connection_data.CanWrite = true;
+								connection_data.SetWrite(true);
 								// Notify of state change
-								connection_data.ReceiveEvent.Set();
+								connection_data.SignalReceiveEvent();
 							});
 
 							return true;
@@ -495,9 +504,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 						m_ConnectionData->WithUniqueLock([&](auto& connection_data) noexcept
 						{
 							// Socket can now send data
-							connection_data.CanWrite = true;
+							connection_data.SetWrite(true);
 							// Notify of state change
-							connection_data.ReceiveEvent.Set();
+							connection_data.SignalReceiveEvent();
 						});
 
 						return true;
@@ -716,15 +725,15 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			auto connection_data = m_ConnectionData->WithUniqueLock();
 
-			while (HasAvailableSendWindowSpace() && connection_data->SendBuffer.GetReadSize() > 0)
+			while (HasAvailableSendWindowSpace() && connection_data->GetSendBuffer().GetReadSize() > 0)
 			{
-				auto read_size = connection_data->SendBuffer.GetReadSize();
+				auto read_size = connection_data->GetSendBuffer().GetReadSize();
 				if (read_size > Message::GetMaxMessageDataSize()) read_size = Message::GetMaxMessageDataSize();
 
 				Buffer buffer(read_size);
-				connection_data->SendBuffer.Read(buffer);
+				connection_data->GetSendBuffer().Read(buffer);
 
-				if (!SendData(connection_data->PeerEndpoint, std::move(buffer)))
+				if (!SendData(connection_data->GetPeerEndpoint(), std::move(buffer)))
 				{
 					return false;
 				}
@@ -761,9 +770,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					remove = true;
 				}
-				else if (connection_data->ReceiveBuffer.GetWriteSize() >= rcv_itm.Data.GetSize())
+				else if (connection_data->GetReceiveBuffer().GetWriteSize() >= rcv_itm.Data.GetSize())
 				{
-					connection_data->ReceiveBuffer.Write(rcv_itm.Data);
+					connection_data->GetReceiveBuffer().Write(rcv_itm.Data);
 					rcv_event = true;
 					remove = true;
 				}
@@ -780,8 +789,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 			if (rcv_event)
 			{
-				connection_data->ReceiveEvent.Set();
-				connection_data->CanRead = true;
+				connection_data->SignalReceiveEvent();
+				connection_data->SetRead(true);
 			}
 		}
 		catch (...) { return false; }
@@ -796,17 +805,17 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		m_ConnectionData->WithSharedLock([&](const auto& connection_data)
 		{
 			// Connect requested by socket
-			if (connection_data.Connect && GetStatus() == Status::Open)
+			if (connection_data.HasConnectEvent() && GetStatus() == Status::Open)
 			{
 				auto success = true;
 
 				switch (GetType())
 				{
 					case PeerConnectionType::Inbound:
-						success = SendInboundSyn(connection_data.PeerEndpoint);
+						success = SendInboundSyn(connection_data.GetPeerEndpoint());
 						break;
 					case PeerConnectionType::Outbound:
-						success = SendOutboundSyn(connection_data.PeerEndpoint);
+						success = SendOutboundSyn(connection_data.GetPeerEndpoint());
 						break;
 					default:
 						assert(false);
@@ -820,7 +829,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 
 			// Close requested by socket
-			if (connection_data.Close)
+			if (connection_data.HasCloseEvent())
 			{
 				close_condition = CloseCondition::CloseRequest;
 			}
