@@ -133,7 +133,6 @@ namespace QuantumGate::Implementation::Core::UDP
 
 				assert(max_rcv_size == rcv_size);
 
-				connection_data->ResetReceiveEvent();
 				connection_data->SetRead(false);
 
 				m_BytesReceived += rcv_size;
