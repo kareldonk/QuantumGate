@@ -87,7 +87,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		PeerSharedPointer CreateTCP(const IP::AddressFamily af, const PeerConnectionType pctype,
 									std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 		PeerSharedPointer CreateUDP(const IP::AddressFamily af, const PeerConnectionType pctype,
-									const UDP::ConnectionID id, const UDP::MessageSequenceNumber seqnum,
+									const UDP::ConnectionID id, const UDP::Message::SequenceNumber seqnum,
 									std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 		PeerSharedPointer CreateRelay(const PeerConnectionType pctype,
 									  std::optional<ProtectedBuffer>&& shared_secret) noexcept;

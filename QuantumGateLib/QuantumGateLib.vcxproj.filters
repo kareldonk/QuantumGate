@@ -474,6 +474,9 @@
     <ClInclude Include="Core\UDP\UDPConnectionData.h">
       <Filter>Header Files\Core\UDP</Filter>
     </ClInclude>
+    <ClInclude Include="Core\UDP\UDPConnectionMTUD.h">
+      <Filter>Header Files\Core\UDP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

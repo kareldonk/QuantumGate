@@ -330,32 +330,40 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		{
 			auto reputation_update = false;
 
-			Message msg(Message::Type::Syn);
+			Message msg(Message::Type::Syn, Message::Direction::Incoming);
 			if (msg.Read(buffer) && msg.IsValid())
 			{
 				const auto version = msg.GetProtocolVersion();
 
 				if (version.first == UDP::ProtocolVersion::Major && version.second == UDP::ProtocolVersion::Minor)
 				{
-					auto peerths = m_PeerManager.CreateUDP(pendpoint.GetIPAddress().GetFamily(), PeerConnectionType::Inbound,
-														   msg.GetConnectionID(), msg.GetMessageSequenceNumber(), std::nullopt);
-					if (peerths != nullptr)
+					if (!m_UDPConnectionManager.HasConnection(msg.GetConnectionID(), PeerConnectionType::Inbound))
 					{
-						peerths->WithUniqueLock([&](Peer::Peer& peer)
+						auto peerths = m_PeerManager.CreateUDP(pendpoint.GetIPAddress().GetFamily(), PeerConnectionType::Inbound,
+															   msg.GetConnectionID(), msg.GetMessageSequenceNumber(), std::nullopt);
+						if (peerths != nullptr)
 						{
-							if (peer.GetSocket<Socket>().Accept(lendpoint, pendpoint))
+							peerths->WithUniqueLock([&](Peer::Peer& peer)
 							{
-								if (m_PeerManager.Accept(peerths))
+								if (peer.GetSocket<Socket>().Accept(lendpoint, pendpoint))
 								{
-									LogInfo(L"Connection accepted from peer %s", peer.GetPeerName().c_str());
+									if (m_PeerManager.Accept(peerths))
+									{
+										LogInfo(L"Connection accepted from peer %s", peer.GetPeerName().c_str());
+									}
+									else
+									{
+										peer.Close();
+										LogErr(L"Could not accept connection from peer %s", peer.GetPeerName().c_str());
+									}
 								}
-								else
-								{
-									peer.Close();
-									LogErr(L"Could not accept connection from peer %s", peer.GetPeerName().c_str());
-								}
-							}
-						});
+							});
+						}
+					}
+					else
+					{
+						LogWarn(L"UDP listenermanager cannot accept incoming connection with ID %llu from peer %s; connection already exists",
+								msg.GetConnectionID(), pendpoint.GetString().c_str());
 					}
 				}
 				else

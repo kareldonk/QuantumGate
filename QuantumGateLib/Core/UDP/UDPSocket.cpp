@@ -24,7 +24,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		m_ConnectionData->WithUniqueLock([&](auto& data)
 		{
-			data.SetConnectEvent();
+			data.SetConnectRequest();
 			data.SetLocalEndpoint(lendpoint);
 			data.SetPeerEndpoint(pendpoint);
 		});
@@ -46,7 +46,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		m_ConnectionData->WithUniqueLock([&](auto& data)
 		{
-			data.SetConnectEvent();
+			data.SetConnectRequest();
 			data.SetPeerEndpoint(endpoint);
 		});
 
@@ -163,7 +163,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		m_CloseCallback();
 
-		m_ConnectionData->WithUniqueLock()->SetCloseEvent();
+		m_ConnectionData->WithUniqueLock()->SetCloseRequest();
 
 		m_IOStatus.Reset();
 	}
@@ -178,7 +178,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		connection_data->ResetReceiveEvent();
 
-		m_IOStatus.SetRead(connection_data->CanRead());
+		m_IOStatus.SetRead(connection_data->CanRead() || connection_data->HasCloseRequest());
 		m_IOStatus.SetWrite(connection_data->CanWrite());
 
 		if (connection_data->HasException())

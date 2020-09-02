@@ -10,7 +10,7 @@ using namespace std::literals;
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
 	Connection::Connection(const PeerConnectionType type, const ConnectionID id,
-						   const MessageSequenceNumber seqnum) noexcept :
+						   const Message::SequenceNumber seqnum) noexcept :
 		m_Type(type), m_ID(id), m_LastInSequenceReceivedSequenceNumber(seqnum)
 	{}
 
@@ -24,7 +24,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		try
 		{
-			m_NextSendSequenceNumber = static_cast<MessageSequenceNumber>(Util::GetPseudoRandomNumber());
+			m_NextSendSequenceNumber = static_cast<Message::SequenceNumber>(Util::GetPseudoRandomNumber());
 			m_Socket = Network::Socket(af, Network::Socket::Type::Datagram, Network::IP::Protocol::UDP);
 			m_ConnectionData = std::make_shared<ConnectionData_ThS>(&m_Socket.GetEvent());
 
@@ -49,9 +49,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		assert(GetStatus() != Status::Closed);
 
-		SendImmediateReset();
-
-		SetCloseCondition(CloseCondition::CloseRequest);
+		if (!m_ConnectionData->WithSharedLock()->HasCloseRequest())
+		{
+			SendImmediateReset();
+		}
 
 		DiscardReturnValue(SetStatus(Status::Closed));
 	}
@@ -132,8 +133,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				case CloseCondition::TimedOutError:
 					socket_error_code = WSAETIMEDOUT;
 					break;
-				case CloseCondition::CloseRequest:
-					socket_error_code = WSAECONNRESET;
+				case CloseCondition::LocalCloseRequest:
+				case CloseCondition::PeerCloseRequest:
 					break;
 				default:
 					// Shouldn't get here
@@ -147,6 +148,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void Connection::SetSocketException(const int error_code) noexcept
 	{
+		if (error_code == -1) return;
+
 		m_ConnectionData->WithUniqueLock([&](auto& connection_data)
 		{
 			connection_data.RemoveSendEvent();
@@ -170,6 +173,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			SetCloseCondition(CloseCondition::SendError);
 		}
 
+		RecalcRetransmissionTimeout();
+
 		if (!SendFromQueue())
 		{
 			SetCloseCondition(CloseCondition::SendError);
@@ -189,6 +194,23 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 			case Status::Connected:
 			{
+				if (m_NeedMTUDiscovery)
+				{
+					m_MTUDiscovery = std::make_unique<MTUDiscovery>(m_Socket, m_ConnectionData->WithSharedLock()->GetPeerEndpoint());
+					m_NeedMTUDiscovery = false;
+				}
+
+				if (m_MTUDiscovery)
+				{
+					m_MTUDiscovery->Process();
+
+					if (m_MTUDiscovery->GetStatus() == MTUDiscovery::Status::Finished)
+					{
+						m_MaxMessageSize = m_MTUDiscovery->GetMaxMessageSize();
+						m_MTUDiscovery.reset();
+					}
+				}
+
 				if (!ReceivePendingSocketData())
 				{
 					SetCloseCondition(CloseCondition::ReceiveError);
@@ -212,7 +234,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		LogDbg(L"UDP connection: sending outbound SYN to peer %s for connection %llu",
 			   endpoint.GetString().c_str(), GetID());
 
-		Message msg(Message::Type::Syn);
+		Message msg(Message::Type::Syn, Message::Direction::Outgoing, m_MaxMessageSize);
 		msg.SetProtocolVersion(ProtocolVersion::Major, ProtocolVersion::Minor);
 		msg.SetConnectionID(GetID());
 		msg.SetMessageSequenceNumber(m_NextSendSequenceNumber);
@@ -232,7 +254,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		LogDbg(L"UDP connection: sending inbound SYN to peer %s for connection %llu",
 			   endpoint.GetString().c_str(), GetID());
 
-		Message msg(Message::Type::Syn);
+		Message msg(Message::Type::Syn, Message::Direction::Outgoing, m_MaxMessageSize);
 		msg.SetProtocolVersion(ProtocolVersion::Major, ProtocolVersion::Minor);
 		msg.SetConnectionID(GetID());
 		msg.SetMessageSequenceNumber(m_NextSendSequenceNumber);
@@ -252,7 +274,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		LogDbg(L"UDP connection: sending data to peer %s for connection %llu",
 			   endpoint.GetString().c_str(), GetID());
 
-		Message msg(Message::Type::Normal);
+		Message msg(Message::Type::Data, Message::Direction::Outgoing, m_MaxMessageSize);
 		msg.SetMessageSequenceNumber(m_NextSendSequenceNumber);
 		msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
 		msg.SetMessageData(std::move(data));
@@ -270,28 +292,30 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		if (m_ReceivePendingAckList.empty()) return true;
 
-		LogDbg(L"UDP connection: sending acks to peer %s for connection %llu",
-			   m_ConnectionData->WithSharedLock()->PeerEndpoint.GetString().c_str(), GetID());
+		const auto endpoint = m_ConnectionData->WithSharedLock()->GetPeerEndpoint();
 
-		Message msg(Message::Type::Normal);
+		LogDbg(L"UDP connection: sending acks to peer %s for connection %llu",
+			   endpoint.GetString().c_str(), GetID());
+
+		Message msg(Message::Type::DataAck, Message::Direction::Outgoing, m_MaxMessageSize);
 		msg.SetMessageSequenceNumber(0);
 		msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
 
-		const auto max_num_acks = Message::GetMaxAckSequenceNumbersPerMessage();
+		const auto max_num_acks = msg.GetMaxAckSequenceNumbersPerMessage();
 		if (m_ReceivePendingAckList.size() <= max_num_acks)
 		{
 			msg.SetAckSequenceNumbers(std::move(m_ReceivePendingAckList));
 		}
 		else
 		{
-			Vector<MessageSequenceNumber> temp_acks;
+			Vector<Message::SequenceNumber> temp_acks;
 			const auto last = m_ReceivePendingAckList.begin() + max_num_acks;
 			std::copy(m_ReceivePendingAckList.begin(), last, std::back_inserter(temp_acks));
 			msg.SetAckSequenceNumbers(std::move(temp_acks));
 			m_ReceivePendingAckList.erase(m_ReceivePendingAckList.begin(), last);
 		}
 
-		if (Send(m_ConnectionData->WithSharedLock()->GetPeerEndpoint(), std::move(msg), false))
+		if (Send(endpoint, std::move(msg), false))
 		{
 			return true;
 		}
@@ -301,19 +325,65 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void Connection::SendImmediateReset() noexcept
 	{
-		LogDbg(L"UDP connection: sending reset to peer %s for connection %llu",
-			   m_ConnectionData->WithSharedLock()->PeerEndpoint.GetString().c_str(), GetID());
+		if (GetStatus() != Status::Handshake && GetStatus() != Status::Connected) return;
 
-		Message msg(Message::Type::Normal);
+		LogDbg(L"UDP connection: sending reset to peer %s for connection %llu",
+			   m_ConnectionData->WithSharedLock()->GetPeerEndpoint().GetString().c_str(), GetID());
+
+		const auto endpoint = m_ConnectionData->WithSharedLock()->GetPeerEndpoint();
+
+		Message msg(Message::Type::Reset, Message::Direction::Outgoing, m_MaxMessageSize);
 		msg.SetMessageSequenceNumber(0);
 		msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
-		msg.SetReset();
 
-		if (!Send(m_ConnectionData->WithSharedLock()->GetPeerEndpoint(), std::move(msg), false))
+		if (!Send(endpoint, std::move(msg), false))
 		{
 			LogErr(L"Failed to send reset message to peer %s for connection %llu",
-				   m_ConnectionData->WithSharedLock()->GetPeerEndpoint().GetString().c_str(), GetID());
+				   endpoint.GetString().c_str(), GetID());
 		}
+	}
+
+	void Connection::RecordTransmissionStats(const SendQueueItem& sqitm) noexcept
+	{
+		m_TransmissionStats.emplace_front(
+			TransmissionStats{
+			sqitm.Data.GetSize(),
+			sqitm.NumTries,
+			sqitm.TimeSent,
+			sqitm.TimeAcked
+			}
+		);
+
+		if (m_TransmissionStats.size() > MaxTransmissionStatsHistory)
+		{
+			m_TransmissionStats.pop_back();
+		}
+
+		m_TransmissionStatsDirty = true;
+	}
+
+	void Connection::RecalcRetransmissionTimeout() noexcept
+	{
+		if (!m_TransmissionStatsDirty) return;
+
+		std::chrono::nanoseconds total_time{ 0 };
+
+		for (const auto& ts : m_TransmissionStats)
+		{
+			total_time += (ts.TimeAckReceived - ts.TimeSent);
+		}
+
+		const auto avg_time = std::max(MinRetransmissionTimeout,
+									   std::chrono::duration_cast<std::chrono::milliseconds>(total_time / m_TransmissionStats.size()));
+
+		if (m_RetransmissionTimeout != avg_time)
+		{
+			LogInfo(L"Retransmission timeout updated from %jdms to %jdms", m_RetransmissionTimeout.count(), avg_time.count());
+
+			m_RetransmissionTimeout = avg_time;
+		}
+
+		m_TransmissionStatsDirty = false;
 	}
 
 	void Connection::IncrementSendSequenceNumber() noexcept
@@ -321,20 +391,20 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		m_NextSendSequenceNumber = GetNextSequenceNumber(m_NextSendSequenceNumber);
 	}
 
-	MessageSequenceNumber Connection::GetNextSequenceNumber(const MessageSequenceNumber current) const noexcept
+	Message::SequenceNumber Connection::GetNextSequenceNumber(const Message::SequenceNumber current) const noexcept
 	{
-		if (current == std::numeric_limits<MessageSequenceNumber>::max())
+		if (current == std::numeric_limits<Message::SequenceNumber>::max())
 		{
 			return 0;
 		}
 		else return current + 1;
 	}
 
-	MessageSequenceNumber Connection::GetPreviousSequenceNumber(const MessageSequenceNumber current) const noexcept
+	Message::SequenceNumber Connection::GetPreviousSequenceNumber(const Message::SequenceNumber current) const noexcept
 	{
 		if (current == 0)
 		{
-			return std::numeric_limits<MessageSequenceNumber>::max();
+			return std::numeric_limits<Message::SequenceNumber>::max();
 		}
 		else return current - 1;
 	}
@@ -350,9 +420,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				if (queue)
 				{
+					const auto now = Util::GetCurrentSteadyTime();
+
 					SendQueueItem itm{
 						.SequenceNumber = msg.GetMessageSequenceNumber(),
-						.TimeSent = Util::GetCurrentSteadyTime(),
+						.TimeSent = now,
+						.TimeResent = now,
 						.Data = std::move(data)
 					};
 
@@ -365,7 +438,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				}
 				else
 				{
-
 					const auto result = m_Socket.SendTo(endpoint, data);
 					if (result.Succeeded())
 					{
@@ -379,7 +451,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				}
 			}
 		}
-		catch (...) {}
+		catch (...)
+		{
+			LogErr(L"UDP connection: exception while sending data for peer %s connection %llu",
+				   endpoint.GetString().c_str(), GetID());
+		}
 
 		return false;
 	}
@@ -391,7 +467,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		for (auto it = m_SendQueue.begin(); it != m_SendQueue.end(); ++it)
 		{
 			if (it->NumTries == 0 ||
-				(Util::GetCurrentSteadyTime() - it->TimeSent >= m_RetransmissionTimeout))
+				(Util::GetCurrentSteadyTime() - it->TimeResent >= m_RetransmissionTimeout))
 			{
 				LogDbg(L"Sending message with seq# %u", it->SequenceNumber);
 				
@@ -408,7 +484,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					if (*result == it->Data.GetSize())
 					{
 						// We'll wait for ack or else continue sending
-						it->TimeSent = Util::GetCurrentSteadyTime();
+						it->TimeResent = Util::GetCurrentSteadyTime();
 						++it->NumTries;
 					}
 					else return true;
@@ -467,8 +543,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					LogErr(L"UDP connection: exception on socket for connection %llu", GetID());
 
-					SetCloseCondition(CloseCondition::ReceiveError,
-										   m_Socket.GetIOStatus().GetErrorCode());
+					SetCloseCondition(CloseCondition::ReceiveError, m_Socket.GetIOStatus().GetErrorCode());
 
 					return false;
 				}
@@ -506,7 +581,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		if (GetType() == PeerConnectionType::Outbound)
 		{
-			Message msg(Message::Type::Syn);
+			Message msg(Message::Type::Syn, Message::Direction::Incoming);
 			if (msg.Read(buffer) && msg.IsValid())
 			{
 				// Handshake response should come from same IP address that
@@ -555,7 +630,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 		else if (GetType() == PeerConnectionType::Inbound)
 		{
-			Message msg(Message::Type::Normal);
+			Message msg(Message::Type::Unknown, Message::Direction::Incoming);
 			if (msg.Read(buffer) && msg.IsValid())
 			{
 				if (ProcessReceivedMessageConnected(std::move(msg)))
@@ -582,7 +657,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::ProcessReceivedDataConnected(const IPEndpoint& endpoint, const Buffer& buffer) noexcept
 	{
-		Message msg(Message::Type::Normal);
+		Message msg(Message::Type::Unknown, Message::Direction::Incoming);
 		if (msg.Read(buffer) && msg.IsValid())
 		{
 			return ProcessReceivedMessageConnected(std::move(msg));
@@ -597,49 +672,70 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::ProcessReceivedMessageConnected(Message&& msg) noexcept
 	{
-		if (msg.IsAck())
+		switch (msg.GetType())
 		{
-			ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
-			ProcessReceivedAcks(msg.GetAckSequenceNumbers());
-			return true;
-		}
-		else if (msg.IsData())
-		{
-			if (IsExpectedMessageSequenceNumber(msg.GetMessageSequenceNumber()))
+			case Message::Type::Data:
+			{
+				if (IsExpectedMessageSequenceNumber(msg.GetMessageSequenceNumber()))
+				{
+					ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
+
+					if (AckReceivedMessage(msg.GetMessageSequenceNumber()))
+					{
+						ReceiveQueueItem itm{
+							.SequenceNumber = msg.GetMessageSequenceNumber(),
+							.Data = msg.MoveMessageData()
+						};
+
+						try
+						{
+							m_ReceiveQueue.emplace(msg.GetMessageSequenceNumber(), std::move(itm));
+							return true;
+						}
+						catch (...) {}
+					}
+				}
+				else return true;
+			}
+			case Message::Type::DataAck:
 			{
 				ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
-
-				if (AckReceivedMessage(msg.GetMessageSequenceNumber()))
-				{
-					ReceiveQueueItem itm{
-						.SequenceNumber = msg.GetMessageSequenceNumber(),
-						.Data = msg.MoveMessageData()
-					};
-
-					try
-					{
-						m_ReceiveQueue.emplace(msg.GetMessageSequenceNumber(), std::move(itm));
-						return true;
-					}
-					catch (...) {}
-				}
+				ProcessReceivedAcks(msg.GetAckSequenceNumbers());
+				return true;
 			}
-			else return true;
-		}
-		else if (msg.IsReset())
-		{
-			SetCloseCondition(CloseCondition::CloseRequest);
-			return true;
-		}
-		else
-		{
-			LogErr(L"UDP connection: received unknown message on connection %llu", GetID());
+			case Message::Type::MTUD:
+			{
+				if (m_MTUDiscovery)
+				{
+					m_MTUDiscovery->AckSentMessage(msg.GetMessageSequenceNumber());
+				}
+				return true;
+			}
+			case Message::Type::MTUDAck:
+			{
+				if (m_MTUDiscovery)
+				{
+					m_MTUDiscovery->ProcessReceivedAck(msg.GetMessageAckNumber());
+				}
+				return true;
+			}
+			case Message::Type::Reset:
+			{
+				m_ConnectionData->WithUniqueLock()->SetCloseRequest();
+				SetCloseCondition(CloseCondition::PeerCloseRequest);
+				return true;
+			}
+			default:
+			{
+				LogErr(L"UDP connection: received unknown message on connection %llu", GetID());
+				break;
+			}
 		}
 
 		return false;
 	}
 
-	bool Connection::IsExpectedMessageSequenceNumber(const MessageSequenceNumber seqnum) noexcept
+	bool Connection::IsExpectedMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept
 	{
 		auto next_seqnum = GetNextSequenceNumber(m_LastInSequenceReceivedSequenceNumber);
 
@@ -669,7 +765,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
-	void Connection::AckSentMessage(const MessageSequenceNumber seqnum) noexcept
+	void Connection::AckSentMessage(const Message::SequenceNumber seqnum) noexcept
 	{
 		auto it = std::find_if(m_SendQueue.begin(), m_SendQueue.end(), [&](const auto& itm)
 		{
@@ -684,6 +780,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				it->Acked = true;
 				it->TimeAcked = Util::GetCurrentSteadyTime();
+
+				RecordTransmissionStats(*it);
 			}
 		}
 
@@ -704,7 +802,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	bool Connection::AckReceivedMessage(const MessageSequenceNumber seqnum) noexcept
+	bool Connection::AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept
 	{
 		try
 		{
@@ -716,7 +814,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
-	void Connection::ProcessReceivedInSequenceAck(const MessageSequenceNumber seqnum) noexcept
+	void Connection::ProcessReceivedInSequenceAck(const Message::SequenceNumber seqnum) noexcept
 	{
 		auto it = std::find_if(m_SendQueue.begin(), m_SendQueue.end(), [&](const auto& itm)
 		{
@@ -733,6 +831,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					{
 						it2->Acked = true;
 						it2->TimeAcked = Util::GetCurrentSteadyTime();
+
+						RecordTransmissionStats(*it2);
 					}
 				}
 
@@ -744,7 +844,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		PurgeAckedMessages();
 	}
 
-	void Connection::ProcessReceivedAcks(const Vector<MessageSequenceNumber>& acks) noexcept
+	void Connection::ProcessReceivedAcks(const Vector<Message::SequenceNumber>& acks) noexcept
 	{
 		for (const auto ack_num : acks)
 		{
@@ -758,10 +858,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			auto connection_data = m_ConnectionData->WithUniqueLock();
 
+			Message msg(Message::Type::Data, Message::Direction::Outgoing, m_MaxMessageSize);
+
 			while (HasAvailableSendWindowSpace() && connection_data->GetSendBuffer().GetReadSize() > 0)
 			{
 				auto read_size = connection_data->GetSendBuffer().GetReadSize();
-				if (read_size > Message::GetMaxMessageDataSize()) read_size = Message::GetMaxMessageDataSize();
+				if (read_size > msg.GetMaxMessageDataSize()) read_size = msg.GetMaxMessageDataSize();
 
 				Buffer buffer(read_size);
 				if (connection_data->GetSendBuffer().Read(buffer) == read_size)
@@ -843,7 +945,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		m_ConnectionData->WithSharedLock([&](const auto& connection_data)
 		{
 			// Connect requested by socket
-			if (connection_data.HasConnectEvent() && GetStatus() == Status::Open)
+			if (GetStatus() == Status::Open && connection_data.HasConnectRequest())
 			{
 				auto success = true;
 
@@ -867,15 +969,15 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 
 			// Close requested by socket
-			if (connection_data.HasCloseEvent())
+			if (connection_data.HasCloseRequest())
 			{
-				close_condition = CloseCondition::CloseRequest;
+				close_condition = CloseCondition::LocalCloseRequest;
 			}
 		});
 
 		if (close_condition != CloseCondition::None)
 		{
-			if (close_condition == CloseCondition::CloseRequest)
+			if (close_condition == CloseCondition::LocalCloseRequest)
 			{
 				SendImmediateReset();
 			}
