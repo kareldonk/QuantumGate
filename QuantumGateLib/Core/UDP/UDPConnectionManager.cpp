@@ -170,14 +170,17 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return std::nullopt;
 	}
 
-	bool Manager::HasConnection(const ConnectionID id) const noexcept
+	bool Manager::HasConnection(const ConnectionID id, const PeerConnectionType type) const noexcept
 	{
 		auto thread = m_ThreadPool.GetFirstThread();
 		while (thread)
 		{
-			if (thread->GetData().Connections->WithSharedLock()->contains(id))
+			auto connections = thread->GetData().Connections->WithSharedLock();
+			
+			const auto it = connections->find(id);
+			if (it != connections->end())
 			{
-				return true;
+				if (it->second.GetType() == type) return true;
 			}
 
 			thread = m_ThreadPool.GetNextThread(*thread);
@@ -224,7 +227,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	}
 
 	bool Manager::AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
-								const ConnectionID id, const MessageSequenceNumber seqnum, Socket& socket) noexcept
+								const ConnectionID id, const Message::SequenceNumber seqnum, Socket& socket) noexcept
 	{
 		assert(m_Running);
 

@@ -40,21 +40,21 @@ namespace QuantumGate::Implementation::Core::UDP
 		inline RingBuffer& GetSendBuffer() noexcept { return m_SendBuffer; }
 		inline RingBuffer& GetReceiveBuffer() noexcept { return m_ReceiveBuffer; }
 
-		inline void SetConnectEvent() noexcept
+		inline void SetConnectRequest() noexcept
 		{
 			m_Connect = true;
 			SignalSendEvent();
 		}
 
-		[[nodiscard]] inline bool HasConnectEvent() const noexcept { return m_Connect; }
+		[[nodiscard]] inline bool HasConnectRequest() const noexcept { return m_Connect; }
 
-		inline void SetCloseEvent() noexcept
+		inline void SetCloseRequest() noexcept
 		{
 			m_Close = true;
 			SignalSendEvent();
 		}
 
-		[[nodiscard]] inline bool HasCloseEvent() const noexcept { return m_Close; }
+		[[nodiscard]] inline bool HasCloseRequest() const noexcept { return m_Close; }
 
 		inline void SetException(const int error_code) noexcept
 		{

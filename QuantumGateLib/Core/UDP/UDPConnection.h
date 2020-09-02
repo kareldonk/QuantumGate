@@ -5,7 +5,8 @@
 
 #include "UDPSocket.h"
 #include "UDPMessage.h"
-#include "..\..\Concurrency\Queue.h"
+#include "UDPConnectionMTUD.h"
+#include "..\..\Common\Containers.h"
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
@@ -13,9 +14,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		struct SendQueueItem final
 		{
-			MessageSequenceNumber SequenceNumber{ 0 };
+			Message::SequenceNumber SequenceNumber{ 0 };
 			UInt NumTries{ 0 };
 			SteadyTime TimeSent;
+			SteadyTime TimeResent;
 			Buffer Data;
 			bool Acked{ false };
 			SteadyTime TimeAcked;
@@ -25,23 +27,34 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		struct ReceiveQueueItem final
 		{
-			MessageSequenceNumber SequenceNumber{ 0 };
+			Message::SequenceNumber SequenceNumber{ 0 };
 			Buffer Data;
 		};
 
-		using ReceiveQueue = Containers::UnorderedMap<MessageSequenceNumber, ReceiveQueueItem>;
+		using ReceiveQueue = Containers::UnorderedMap<Message::SequenceNumber, ReceiveQueueItem>;
 
-		using ReceiveAckList = Vector<MessageSequenceNumber>;
+		using ReceiveAckList = Vector<Message::SequenceNumber>;
+
+		struct TransmissionStats
+		{
+			Size NumBytes{ 0 };
+			UInt NumTries{ 0 };
+			SteadyTime TimeSent;
+			SteadyTime TimeAckReceived;
+		};
+
+		using TransmissionStatsList = Containers::List<TransmissionStats>;
 		
 	public:
 		enum class Status { Open, Handshake, Connected, Closed };
 
 		enum class CloseCondition
 		{
-			None, GeneralFailure, TimedOutError, ReceiveError, SendError, UnknownMessageError, CloseRequest
+			None, GeneralFailure, TimedOutError, ReceiveError, SendError, UnknownMessageError,
+			LocalCloseRequest, PeerCloseRequest
 		};
 
-		Connection(const PeerConnectionType type, const ConnectionID id, const MessageSequenceNumber seqnum) noexcept;
+		Connection(const PeerConnectionType type, const ConnectionID id, const Message::SequenceNumber seqnum) noexcept;
 		Connection(const Connection&) = delete;
 		Connection(Connection&& other) noexcept = delete;
 		~Connection();
@@ -71,20 +84,23 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void SetSocketException(const int error_code) noexcept;
 
 		void IncrementSendSequenceNumber() noexcept;
-		MessageSequenceNumber GetNextSequenceNumber(const MessageSequenceNumber current) const noexcept;
-		MessageSequenceNumber GetPreviousSequenceNumber(const MessageSequenceNumber current) const noexcept;
+		Message::SequenceNumber GetNextSequenceNumber(const Message::SequenceNumber current) const noexcept;
+		Message::SequenceNumber GetPreviousSequenceNumber(const Message::SequenceNumber current) const noexcept;
 
-		void AckSentMessage(const MessageSequenceNumber seqnum) noexcept;
-		void ProcessReceivedInSequenceAck(const MessageSequenceNumber seqnum) noexcept;
-		void ProcessReceivedAcks(const Vector<MessageSequenceNumber>& acks) noexcept;
+		void AckSentMessage(const Message::SequenceNumber seqnum) noexcept;
+		void ProcessReceivedInSequenceAck(const Message::SequenceNumber seqnum) noexcept;
+		void ProcessReceivedAcks(const Vector<Message::SequenceNumber>& acks) noexcept;
 		void PurgeAckedMessages() noexcept;
-		[[nodiscard]] bool AckReceivedMessage(const MessageSequenceNumber seqnum) noexcept;
+		[[nodiscard]] bool AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept;
 
 		[[nodiscard]] bool SendOutboundSyn(const IPEndpoint& endpoint) noexcept;
 		[[nodiscard]] bool SendInboundSyn(const IPEndpoint& endpoint) noexcept;
 		[[nodiscard]] bool SendData(const IPEndpoint& endpoint, Buffer&& data) noexcept;
 		[[nodiscard]] bool SendPendingAcks() noexcept;
 		void SendImmediateReset() noexcept;
+
+		void RecordTransmissionStats(const SendQueueItem& sqitm) noexcept;
+		void RecalcRetransmissionTimeout() noexcept;
 
 		[[nodiscard]] bool Send(const IPEndpoint& endpoint, Message&& msg, const bool queue) noexcept;
 		[[nodiscard]] bool SendFromQueue() noexcept;
@@ -95,7 +111,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool ProcessReceivedDataHandshake(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedDataConnected(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageConnected(Message&& msg) noexcept;
-		[[nodiscard]] bool IsExpectedMessageSequenceNumber(const MessageSequenceNumber seqnum) noexcept;
+		[[nodiscard]] bool IsExpectedMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept;
 		[[nodiscard]] bool ReceivePendingSocketData() noexcept;
 
 		void ProcessSocketEvents() noexcept;
@@ -105,6 +121,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	private:
 		static constexpr std::chrono::seconds ConnectTimeout{ 30 };
 		static constexpr std::chrono::milliseconds MinRetransmissionTimeout{ 100 };
+		static constexpr Size MaxTransmissionStatsHistory{ 128 };
 		static constexpr Size MinSendWindowSize{ 2 };
 		static constexpr Size MinReceiveWindowSize{ 32 };
 
@@ -113,15 +130,22 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Status m_Status{ Status::Closed };
 		ConnectionID m_ID{ 0 };
 		Network::Socket m_Socket;
+		Size m_MaxMessageSize{ 512 };
 		SteadyTime m_LastStatusChangeSteadyTime;
 		std::shared_ptr<ConnectionData_ThS> m_ConnectionData;
 
-		MessageSequenceNumber m_NextSendSequenceNumber{ 0 };
+		bool m_NeedMTUDiscovery{ true };
+		std::unique_ptr<MTUDiscovery> m_MTUDiscovery;
+
+		Message::SequenceNumber m_NextSendSequenceNumber{ 0 };
 		std::chrono::milliseconds m_RetransmissionTimeout{ MinRetransmissionTimeout };
 		SendQueue m_SendQueue;
 		Size m_SendWindowSize{ MinSendWindowSize };
 
-		MessageSequenceNumber m_LastInSequenceReceivedSequenceNumber{ 0 };
+		TransmissionStatsList m_TransmissionStats;
+		bool m_TransmissionStatsDirty{ false };
+
+		Message::SequenceNumber m_LastInSequenceReceivedSequenceNumber{ 0 };
 		Size m_ReceiveWindowSize{ MinReceiveWindowSize };
 		ReceiveQueue m_ReceiveQueue;
 		ReceiveAckList m_ReceivePendingAckList;

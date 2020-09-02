@@ -38,7 +38,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		return rdr.Read(m_MessageHMAC,
 						m_MessageSequenceNumber,
 						m_MessageAckNumber,
-						m_MessageFlags);
+						m_MessageType);
 	}
 
 	bool Message::MsgHeader::Write(Buffer& buffer) const noexcept
@@ -47,10 +47,10 @@ namespace QuantumGate::Implementation::Core::UDP
 		return wrt.WriteWithPreallocation(m_MessageHMAC,
 										  m_MessageSequenceNumber,
 										  m_MessageAckNumber,
-										  m_MessageFlags);
+										  m_MessageType);
 	}
 
-	void Message::SetMessageSequenceNumber(const MessageSequenceNumber seqnum) noexcept
+	void Message::SetMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept
 	{
 		std::visit(Util::Overloaded{
 			[&](SynHeader& hdr) noexcept
@@ -64,7 +64,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		}, m_Header);
 	}
 
-	MessageSequenceNumber Message::GetMessageSequenceNumber() const noexcept
+	Message::SequenceNumber Message::GetMessageSequenceNumber() const noexcept
 	{
 		return std::visit(Util::Overloaded{
 			[&](const SynHeader& hdr) noexcept
@@ -78,7 +78,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		}, m_Header);
 	}
 
-	void Message::SetMessageAckNumber(const MessageSequenceNumber acknum) noexcept
+	void Message::SetMessageAckNumber(const Message::SequenceNumber acknum) noexcept
 	{
 		std::visit(Util::Overloaded{
 			[&](SynHeader& hdr) noexcept
@@ -92,7 +92,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		}, m_Header);
 	}
 	
-	MessageSequenceNumber Message::GetMessageAckNumber() const noexcept
+	Message::SequenceNumber Message::GetMessageAckNumber() const noexcept
 	{
 		return std::visit(Util::Overloaded{
 			[](const SynHeader& hdr) noexcept
@@ -133,75 +133,32 @@ namespace QuantumGate::Implementation::Core::UDP
 	void Message::SetMessageData(Buffer&& buffer) noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Data ||
+			   std::get<MsgHeader>(m_Header).GetMessageType() == Type::MTUD);
 
 		if (!buffer.IsEmpty())
 		{
 			m_MessageData = std::move(buffer);
 
-			std::get<MsgHeader>(m_Header).SetData();
-
 			Validate();
 		}
 	}
 
-	bool Message::IsSyn() const noexcept
+	Size Message::GetMaxMessageDataSize() const noexcept
 	{
-		assert(IsValid());
-		return std::holds_alternative<SynHeader>(m_Header);
+		return (m_MaxMessageSize - MsgHeader::GetSize());
 	}
 
-	bool Message::IsNormal() const noexcept
+	Size Message::GetMaxAckSequenceNumbersPerMessage() const noexcept
 	{
-		assert(IsValid());
-		return std::holds_alternative<MsgHeader>(m_Header);
-	}
-
-	bool Message::IsAck() const noexcept
-	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(IsValid());
-
-		return std::get<MsgHeader>(m_Header).IsAck();
-	}
-
-	bool Message::IsData() const noexcept
-	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(IsValid());
-
-		return std::get<MsgHeader>(m_Header).IsData();
-	}
-
-	bool Message::IsReset() const noexcept
-	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(IsValid());
-
-		return std::get<MsgHeader>(m_Header).IsReset();
-	}
-
-	void Message::SetReset() noexcept
-	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(IsValid());
-
-		return std::get<MsgHeader>(m_Header).SetReset();
-	}
-
-	Size Message::GetMaxMessageDataSize() noexcept
-	{
-		return (MaxMessageSize - MsgHeader::GetSize());
-	}
-
-	Size Message::GetMaxAckSequenceNumbersPerMessage() noexcept
-	{
-		return (MaxMessageSize - (MsgHeader::GetSize() + Memory::BufferIO::GetSizeOfEncodedSize(MaxAckDataSize))) / sizeof(MessageSequenceNumber);
+		const auto asize = m_MaxMessageSize - (MsgHeader::GetSize() + Memory::BufferIO::GetSizeOfEncodedSize(m_MaxMessageSize));
+		return (std::min(asize, static_cast<Size>(512u)) / sizeof(Message::SequenceNumber));
 	}
 
 	const Buffer& Message::GetMessageData() const noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).IsData());
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Data);
 		assert(IsValid());
 
 		return m_MessageData;
@@ -210,30 +167,30 @@ namespace QuantumGate::Implementation::Core::UDP
 	Buffer&& Message::MoveMessageData() noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).IsData());
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Data);
 		assert(IsValid());
 
 		return std::move(m_MessageData);
 	}
 
-	void Message::SetAckSequenceNumbers(Vector<MessageSequenceNumber>&& acks) noexcept
+	void Message::SetAckSequenceNumbers(Vector<Message::SequenceNumber>&& acks) noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::DataAck);
 
 		if (!acks.empty())
 		{
 			m_MessageAcks = std::move(acks);
-
-			std::get<MsgHeader>(m_Header).SetAck();
-			
+		
 			Validate();
 		}
 	}
 
-	const Vector<MessageSequenceNumber>& Message::GetAckSequenceNumbers() noexcept
+	const Vector<Message::SequenceNumber>& Message::GetAckSequenceNumbers() noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).IsAck());
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::DataAck);
+		assert(IsValid());
 
 		return m_MessageAcks;
 	}
@@ -254,6 +211,8 @@ namespace QuantumGate::Implementation::Core::UDP
 
 	bool Message::Read(BufferView buffer)
 	{
+		assert(m_Direction == Direction::Incoming);
+
 		// Should have enough data for outer message header
 		if (buffer.GetSize() < GetHeaderSize()) return false;
 
@@ -276,14 +235,15 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		if (std::holds_alternative<MsgHeader>(m_Header))
 		{
-			if (std::get<MsgHeader>(m_Header).IsData())
+			const auto type = std::get<MsgHeader>(m_Header).GetMessageType();
+			if (type == Type::Data)
 			{
 				m_MessageData = buffer;
 			}
-			else if (std::get<MsgHeader>(m_Header).IsAck())
+			else if (type == Type::DataAck)
 			{
 				Memory::BufferReader rdr(buffer, true);
-				if (!rdr.Read(WithSize(m_MessageAcks, MaxAckDataSize))) return false;
+				if (!rdr.Read(WithSize(m_MessageAcks, MaxSize::_512B))) return false;
 			}
 		}
 
@@ -294,6 +254,8 @@ namespace QuantumGate::Implementation::Core::UDP
 	
 	bool Message::Write(Buffer& buffer)
 	{
+		assert(m_Direction == Direction::Outgoing);
+
 		Buffer msgbuf;
 
 		// Add message header
@@ -312,7 +274,8 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		if (std::holds_alternative<MsgHeader>(m_Header))
 		{
-			if (std::get<MsgHeader>(m_Header).IsData())
+			const auto type = std::get<MsgHeader>(m_Header).GetMessageType();
+			if (type == Type::Data || type == Type::MTUD)
 			{
 				// Add message data if any
 				if (!m_MessageData.IsEmpty())
@@ -320,20 +283,20 @@ namespace QuantumGate::Implementation::Core::UDP
 					msgbuf += m_MessageData;
 				}
 			}
-			else if (std::get<MsgHeader>(m_Header).IsAck())
+			else if (type == Type::DataAck)
 			{
 				Buffer ackbuf;
 				Memory::BufferWriter wrt(ackbuf, true);
-				if (!wrt.WriteWithPreallocation(WithSize(m_MessageAcks, MaxAckDataSize))) return false;
+				if (!wrt.WriteWithPreallocation(WithSize(m_MessageAcks, MaxSize::_512B))) return false;
 
 				msgbuf += ackbuf;
 			}
 		}
 
-		if (msgbuf.GetSize() > MaxMessageSize)
+		if (msgbuf.GetSize() > m_MaxMessageSize)
 		{
 			LogErr(L"Size of UDP message data combined with header is too large: %zu bytes (Max. is %zu bytes)",
-				   msgbuf.GetSize(), Message::MaxMessageSize);
+				   msgbuf.GetSize(), m_MaxMessageSize);
 
 			return false;
 		}

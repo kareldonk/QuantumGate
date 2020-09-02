@@ -60,7 +60,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] inline bool IsRunning() const noexcept { return m_Running; }
 
 		[[nodiscard]] bool AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
-										 const ConnectionID id, const MessageSequenceNumber seqnum,
+										 const ConnectionID id, const Message::SequenceNumber seqnum,
 										 Socket& socket) noexcept;
 
 	private:
@@ -82,7 +82,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool IncrementThreadConnectionTotal(const ThreadKey key) noexcept;
 		[[nodiscard]] bool DecrementThreadConnectionTotal(const ThreadKey key) noexcept;
 
-		[[nodiscard]] bool HasConnection(const ConnectionID id) const noexcept;
+		[[nodiscard]] bool HasConnection(const ConnectionID id, const PeerConnectionType type) const noexcept;
 
 		void WorkerThreadWait(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
