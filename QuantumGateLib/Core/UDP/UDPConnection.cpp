@@ -27,6 +27,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			m_NextSendSequenceNumber = static_cast<Message::SequenceNumber>(Util::GetPseudoRandomNumber());
 			m_Socket = Network::Socket(af, Network::Socket::Type::Datagram, Network::IP::Protocol::UDP);
 			m_ConnectionData = std::make_shared<ConnectionData_ThS>(&m_Socket.GetEvent());
+			m_MTUDiscovery = std::make_unique<MTUDiscovery>();
 
 			if (m_Socket.SetNATTraversal(nat_traversal))
 			{
@@ -194,22 +195,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 			case Status::Connected:
 			{
-				if (m_NeedMTUDiscovery)
-				{
-					m_MTUDiscovery = std::make_unique<MTUDiscovery>(m_Socket, m_ConnectionData->WithSharedLock()->GetPeerEndpoint());
-					m_NeedMTUDiscovery = false;
-				}
-
-				if (m_MTUDiscovery)
-				{
-					m_MTUDiscovery->Process();
-
-					if (m_MTUDiscovery->GetStatus() == MTUDiscovery::Status::Finished)
-					{
-						m_MaxMessageSize = m_MTUDiscovery->GetMaxMessageSize();
-						m_MTUDiscovery.reset();
-					}
-				}
+				ProcessMTUDiscovery();
 
 				if (!ReceivePendingSocketData())
 				{
@@ -220,6 +206,29 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					SetCloseCondition(CloseCondition::SendError);
 				}
+				break;
+			}
+			default:
+			{
+				break;
+			}
+		}
+	}
+
+	void Connection::ProcessMTUDiscovery() noexcept
+	{
+		if (!m_MTUDiscovery) return;
+
+		const auto status = m_MTUDiscovery->Process(m_Socket, m_ConnectionData->WithSharedLock()->GetPeerEndpoint());
+		switch (status)
+		{
+			case MTUDiscovery::Status::Finished:
+			case MTUDiscovery::Status::Failed:
+			{
+				m_MaxMessageSize = m_MTUDiscovery->GetMaxMessageSize();
+				m_MTUDiscovery.reset();
+				LogInfo(L"UDP connection: MTU for peer %s is now %zu bytes",
+						m_ConnectionData->WithSharedLock()->GetPeerEndpoint().GetString().c_str(), m_MaxMessageSize);
 				break;
 			}
 			default:
@@ -464,10 +473,15 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		const auto endpoint = m_ConnectionData->WithSharedLock()->GetPeerEndpoint();
 
+		const auto rttimeout = std::invoke([&]()
+		{
+			if (GetStatus() < Status::Connected) return ConnectRetransmissionTimeout;
+			else return m_RetransmissionTimeout;
+		});
+
 		for (auto it = m_SendQueue.begin(); it != m_SendQueue.end(); ++it)
 		{
-			if (it->NumTries == 0 ||
-				(Util::GetCurrentSteadyTime() - it->TimeResent >= m_RetransmissionTimeout))
+			if (it->NumTries == 0 || (Util::GetCurrentSteadyTime() - it->TimeResent >= rttimeout))
 			{
 				LogDbg(L"Sending message with seq# %u", it->SequenceNumber);
 				
@@ -633,7 +647,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			Message msg(Message::Type::Unknown, Message::Direction::Incoming);
 			if (msg.Read(buffer) && msg.IsValid())
 			{
-				if (ProcessReceivedMessageConnected(std::move(msg)))
+				if (ProcessReceivedMessageConnected(endpoint, std::move(msg)))
 				{
 					if (SetStatus(Status::Connected))
 					{
@@ -660,7 +674,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Message msg(Message::Type::Unknown, Message::Direction::Incoming);
 		if (msg.Read(buffer) && msg.IsValid())
 		{
-			return ProcessReceivedMessageConnected(std::move(msg));
+			return ProcessReceivedMessageConnected(endpoint, std::move(msg));
 		}
 		else
 		{
@@ -670,7 +684,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
-	bool Connection::ProcessReceivedMessageConnected(Message&& msg) noexcept
+	bool Connection::ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept
 	{
 		switch (msg.GetType())
 		{
@@ -705,18 +719,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 			case Message::Type::MTUD:
 			{
-				if (m_MTUDiscovery)
-				{
-					m_MTUDiscovery->AckSentMessage(msg.GetMessageSequenceNumber());
-				}
+				MTUDiscovery::AckSentMessage(m_Socket, endpoint, msg.GetMessageSequenceNumber());
 				return true;
 			}
 			case Message::Type::MTUDAck:
 			{
-				if (m_MTUDiscovery)
-				{
-					m_MTUDiscovery->ProcessReceivedAck(msg.GetMessageAckNumber());
-				}
+				if (m_MTUDiscovery) m_MTUDiscovery->ProcessReceivedAck(msg.GetMessageAckNumber());
 				return true;
 			}
 			case Message::Type::Reset:

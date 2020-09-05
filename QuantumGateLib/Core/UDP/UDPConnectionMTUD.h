@@ -19,28 +19,24 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		};
 
 	public:
-		enum class Status { Initialized, Discovery, Finished };
+		enum class Status { Start, Discovery, Finished, Failed };
 
-		MTUDiscovery(Network::Socket& socket, IPEndpoint endpoint) noexcept :
-			m_Socket(socket), m_Endpoint(endpoint)
-		{}
-
+		MTUDiscovery() noexcept = default;
 		MTUDiscovery(const Connection&) = delete;
 		MTUDiscovery(Connection&& other) noexcept = delete;
 		~MTUDiscovery() = default;
 		MTUDiscovery& operator=(const MTUDiscovery&) = delete;
 		MTUDiscovery& operator=(MTUDiscovery&&) noexcept = delete;
 
-		[[nodiscard]] inline Status GetStatus() const noexcept { return m_Status; }
 		[[nodiscard]] inline Size GetMaxMessageSize() const noexcept { return m_MaxAckedMessageSize; }
 
-		void SendNewMessage() noexcept
+		[[nodiscard]] bool CreateNewMessage(const IPEndpoint& endpoint) noexcept
 		{
 			try
 			{
 				Message msg(Message::Type::MTUD, Message::Direction::Outgoing, m_CurrentMessageSize);
 				msg.SetMessageSequenceNumber(static_cast<Message::SequenceNumber>(Util::GetPseudoRandomNumber()));
-				msg.SetMessageAckNumber(0);
+				msg.SetMessageAckNumber(static_cast<Message::SequenceNumber>(Util::GetPseudoRandomNumber()));
 				msg.SetMessageData(Util::GetPseudoRandomBytes(msg.GetMaxMessageDataSize()));
 
 				Buffer data;
@@ -49,27 +45,83 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					m_MTUDMessageData.emplace();
 					m_MTUDMessageData->SequenceNumber = msg.GetMessageSequenceNumber();
 					m_MTUDMessageData->NumTries = 0;
-					m_MTUDMessageData->TimeSent = Util::GetCurrentSteadyTime();
 					m_MTUDMessageData->Data = std::move(data);
 					m_MTUDMessageData->Acked = false;
 
-					LogWarn(L"Sending MTUD message of size %zu bytes", m_CurrentMessageSize);
-
-					const auto result = m_Socket.SendTo(m_Endpoint, m_MTUDMessageData->Data);
-					if (result.Succeeded()) m_MTUDMessageData->NumTries = 1;
+					return true;
 				}
 			}
-			catch (...) {}
+			catch (const std::exception& e)
+			{
+				LogErr(L"UDP connection MTUD: failed to create MTUD message of size %zu bytes for peer %s due to exception: %s",
+					   m_CurrentMessageSize, endpoint.GetString().c_str(), Util::ToStringW(e.what()).c_str());
+			}
+			catch (...)
+			{
+				LogErr(L"UDP connection MTUD: failed to create MTUD message of size %zu bytes for peer %s due to unknown exception",
+					   m_CurrentMessageSize, endpoint.GetString().c_str());
+			}
+
+			return false;
 		}
 
-		void Process() noexcept
+		[[nodiscard]] bool TransmitMessage(Network::Socket& socket, const IPEndpoint& endpoint) noexcept
+		{
+			// Message must have already been created
+			assert(m_MTUDMessageData.has_value());
+
+			LogWarn(L"UDP connection MTUD: sending MTUD message of size %zu bytes to peer %s (%u previous tries)",
+					m_MTUDMessageData->Data.GetSize(), endpoint.GetString().c_str(), m_MTUDMessageData->NumTries);
+
+			const auto result = socket.SendTo(endpoint, m_MTUDMessageData->Data);
+			if (result.Succeeded())
+			{
+				// If data was actually sent, otherwise buffer may
+				// temporarily be full/unavailable
+				if (*result == m_MTUDMessageData->Data.GetSize())
+				{
+					// We'll wait for ack or else continue trying
+					m_MTUDMessageData->TimeSent = Util::GetCurrentSteadyTime();
+					++m_MTUDMessageData->NumTries;
+				}
+
+				return true;
+			}
+			else
+			{
+				LogErr(L"UDP connection MTUD: failed to send MTUD message of size %zu bytes to peer %s (%s)",
+					   m_CurrentMessageSize, endpoint.GetString().c_str(), result.GetErrorString().c_str());
+			}
+
+			return false;
+		}
+
+		[[nodiscard]] Status Process(Network::Socket& socket, const IPEndpoint& endpoint) noexcept
 		{
 			switch (m_Status)
 			{
-				case Status::Initialized:
+				case Status::Start:
 				{
-					SendNewMessage();
-					m_Status = Status::Discovery;
+					if (socket.SetMTUDiscovery(true))
+					{
+						const auto result = socket.GetMaxDatagramMessageSize();
+						if (result.Succeeded())
+						{
+							LogWarn(L"UDP connection MTUD: starting MTU Discovery; maximum datagram message size is %d",
+									*result);
+						}
+
+						if (CreateNewMessage(endpoint) && TransmitMessage(socket, endpoint))
+						{
+							m_Status = Status::Discovery;
+						}
+						else m_Status = Status::Failed;
+					}
+					else
+					{
+						LogErr(L"UDP connection MTUD: failed to enable MTU discovery option on socket");
+						m_Status = Status::Failed;
+					}
 					break;
 				}
 				case Status::Discovery:
@@ -79,49 +131,92 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					{
 						if (m_MTUDMessageData->NumTries >= MaxNumRetries)
 						{
+							// Stop retrying
 							m_Status = Status::Finished;
 						}
 						else
 						{
-							const auto result = m_Socket.SendTo(m_Endpoint, m_MTUDMessageData->Data);
-							if (result.Succeeded())
+							// Retry transmission and see if we get an ack
+							if (!TransmitMessage(socket, endpoint))
 							{
-								// If data was actually sent, otherwise buffer may
-								// temporarily be full/unavailable
-								if (*result == m_MTUDMessageData->Data.GetSize())
-								{
-									// We'll wait for ack or else continue sending
-									m_MTUDMessageData->TimeSent = Util::GetCurrentSteadyTime();
-									++m_MTUDMessageData->NumTries;
-								}
-								else return;
-							}
-							else
-							{
-								LogErr(L"UDP connection MTUD: send failed for peer %s (%s)",
-									   m_Endpoint.GetString().c_str(), result.GetErrorString().c_str());
+								m_Status = Status::Failed;
 							}
 						}
 					}
 					else if (m_MTUDMessageData->Acked)
 					{
-						SendNewMessage();
+						const auto result = socket.GetMaxDatagramMessageSize();
+						if (result.Succeeded())
+						{
+							if (m_MaxAckedMessageSize == *result)
+							{
+								// Reached maximum possible message size
+								m_Status = Status::Finished;
+							}
+							else
+							{
+								// Create and send bigger message
+								m_CurrentMessageSize = std::min(static_cast<Size>(*result), m_CurrentMessageSize * 2);
+								if (!CreateNewMessage(endpoint) || !TransmitMessage(socket, endpoint))
+								{
+									m_Status = Status::Failed;
+								}
+							}
+						}
+						else m_Status = Status::Failed;
 					}
 					break;
 				}
 				case Status::Finished:
+				case Status::Failed:
 				{
 					break;
 				}
 				default:
 				{
+					// Shouldn't get here
 					assert(false);
+					m_Status = Status::Failed;
 					break;
 				}
 			}
+
+			switch (m_Status)
+			{
+				case Status::Finished:
+				case Status::Failed:
+				{
+					LogWarn(L"UDP connection MTUD: finished MTU discovery");
+
+					if (!socket.SetMTUDiscovery(false))
+					{
+						LogErr(L"UDP connection MTUD: failed to disable MTU discovery option on socket");
+					}
+					
+					break;
+				}
+				default:
+				{
+					break;
+				}
+			}
+
+			return m_Status;
 		}
 
-		void AckSentMessage(const Message::SequenceNumber seqnum) noexcept
+		void ProcessReceivedAck(const Message::SequenceNumber seqnum) noexcept
+		{
+			if (m_Status == Status::Discovery && m_MTUDMessageData->SequenceNumber == seqnum)
+			{
+				m_RetransmissionTimeout = std::max(MinRetransmissionTimeout,
+												   std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() - m_MTUDMessageData->TimeSent));
+				m_MaxAckedMessageSize = m_MTUDMessageData->Data.GetSize();
+				m_MTUDMessageData->Acked = true;
+			}
+		}
+
+		static void AckSentMessage(Network::Socket& socket, const IPEndpoint& endpoint,
+								   const Message::SequenceNumber seqnum) noexcept
 		{
 			try
 			{
@@ -132,51 +227,46 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				Buffer data;
 				if (msg.Write(data))
 				{
-					LogWarn(L"Sending MTUDAck message");
+					LogWarn(L"UDP connection MTUD: sending MTUDAck message to peer %s",
+							endpoint.GetString().c_str());
 
-					const auto result = m_Socket.SendTo(m_Endpoint, data);
+					const auto result = socket.SendTo(endpoint, data);
 					if (result.Failed())
 					{
-						LogErr(L"Failed to send MTUDAck message to %s", m_Endpoint.GetString().c_str());
+						LogErr(L"UDP connection MTUD: failed to send MTUDAck message to peer %s",
+							   endpoint.GetString().c_str());
 					}
 				}
 			}
-			catch (...) {}
-		}
-
-		void ProcessReceivedAck(const Message::SequenceNumber seqnum) noexcept
-		{
-			if (m_MTUDMessageData->SequenceNumber == seqnum)
+			catch (const std::exception& e)
 			{
-				m_RetransmissionTimeout = std::max(MinRetransmissionTimeout,
-												   std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() - m_MTUDMessageData->TimeSent));
-
-				m_MaxAckedMessageSize = m_MTUDMessageData->Data.GetSize();
-
-				if (m_MaxAckedMessageSize == m_Socket.GetMaxDatagramMessageSize())
-				{
-					m_Status = Status::Finished;
-				}
-				else
-				{
-					m_CurrentMessageSize = std::min(static_cast<Size>(m_Socket.GetMaxDatagramMessageSize()), m_CurrentMessageSize * 2);
-				}
-
-				m_MTUDMessageData->Acked = true;
+				LogErr(L"UDP connection MTUD: failed to send MTUDAck message to peer %s due to exception: %s",
+					   endpoint.GetString().c_str(), Util::ToStringW(e.what()).c_str());
+			}
+			catch (...)
+			{
+				LogErr(L"UDP connection MTUD: failed to send MTUDAck message to peer %s due to unknown exception",
+					   endpoint.GetString().c_str());
 			}
 		}
 
+	public:
+		// According to RFC 791 IPv4 requires an MTU of 576 octets or greater, while
+		// the maximum size of the IP header is 60.
+		// According to RFC 8200 IPv6 requires an MTU of 1280 octets or greater.
+		// The minimum IPv6 header size (fixed header) is 40 octets.
+		static constexpr Size MinMessageSize{ 512 };
+
 	private:
+
 		static constexpr std::chrono::milliseconds MinRetransmissionTimeout{ 600 };
 		static constexpr Size MaxNumRetries{ 8 };
 
 	private:
-		Status m_Status{ Status::Initialized };
-		Network::Socket& m_Socket;
-		IPEndpoint m_Endpoint;
+		Status m_Status{ Status::Start };
 		std::optional<MTUDMessageData> m_MTUDMessageData;
-		Size m_MaxAckedMessageSize{ 512 };
-		Size m_CurrentMessageSize{ 512 };
+		Size m_MaxAckedMessageSize{ MinMessageSize };
+		Size m_CurrentMessageSize{ MinMessageSize };
 		std::chrono::milliseconds m_RetransmissionTimeout{ MinRetransmissionTimeout };
 	};
 }
