@@ -298,9 +298,15 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
-	bool Socket::GetExclusiveAddressUse() const noexcept
+	Result<bool> Socket::GetExclusiveAddressUse() const noexcept
 	{
-		return (GetSockOptInt(SO_EXCLUSIVEADDRUSE) == 1) ? true : false;
+		const auto val = GetSockOptInt(SO_EXCLUSIVEADDRUSE);
+		if (val != SOCKET_ERROR)
+		{
+			return (val == 1) ? true : false;
+		}
+
+		return std::error_code(WSAGetLastError(), std::system_category());
 	}
 
 	bool Socket::SetSendTimeout(const std::chrono::milliseconds& milliseconds) noexcept
@@ -486,13 +492,69 @@ namespace QuantumGate::Implementation::Network
 									reinterpret_cast<const char*>(&nd), sizeof(nd));
 		if (ret == SOCKET_ERROR)
 		{
-			LogErr(L"Could not disable nagle algorithm for endpoint %s (%s)",
+			LogErr(L"Could not set nagle algorithm for endpoint %s (%s)",
 					GetLocalName().c_str(), GetLastSocketErrorString().c_str());
 
 			return false;
 		}
 
 		return true;
+	}
+
+	bool Socket::SetMTUDiscovery(const bool enabled) noexcept
+	{
+		assert(m_Socket != INVALID_SOCKET);
+
+		// Sets MTU discovery
+		// Docs: https://docs.microsoft.com/en-us/windows/win32/winsock/ipproto-ip-socket-options
+		const DWORD popt = enabled ? IP_PMTUDISC_PROBE : IP_PMTUDISC_NOT_SET;
+		int ret{ SOCKET_ERROR };
+
+		const auto af = GetAddressFamily();
+		if (af == IP::AddressFamily::IPv4)
+		{
+			ret = setsockopt(m_Socket, IPPROTO_IP, IP_MTU_DISCOVER, reinterpret_cast<const char*>(&popt), sizeof(popt));
+		}
+		else if (af == IP::AddressFamily::IPv6)
+		{
+			ret = setsockopt(m_Socket, IPPROTO_IPV6, IPV6_MTU_DISCOVER, reinterpret_cast<const char*>(&popt), sizeof(popt));
+		}
+
+		if (ret == SOCKET_ERROR)
+		{
+			LogErr(L"Could not set MTU discovery option for endpoint %s (%s)",
+				   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
+
+			return false;
+		}
+
+		return true;
+	}
+
+	Result<bool> Socket::IsMTUDiscoveryEnabled() noexcept
+	{
+		DWORD popt{ 0 };
+		int popt_len = sizeof(DWORD);
+
+		const auto af = GetAddressFamily();
+		if (af == IP::AddressFamily::IPv4)
+		{
+			if (getsockopt(m_Socket, IPPROTO_IP, IP_MTU_DISCOVER, reinterpret_cast<char*>(&popt), &popt_len) != SOCKET_ERROR)
+			{
+				if (popt == IP_PMTUDISC_PROBE || popt == IP_PMTUDISC_DO) return true;
+				else return false;
+			}
+		}
+		else if (af == IP::AddressFamily::IPv6)
+		{
+			if (getsockopt(m_Socket, IPPROTO_IPV6, IPV6_MTU_DISCOVER, reinterpret_cast<char*>(&popt), &popt_len) != SOCKET_ERROR)
+			{
+				if (popt == IP_PMTUDISC_PROBE || popt == IP_PMTUDISC_DO) return true;
+				else return false;
+			}
+		}
+
+		return std::error_code(WSAGetLastError(), std::system_category());
 	}
 
 	bool Socket::Bind(const IPEndpoint& endpoint, const bool nat_traversal) noexcept
@@ -738,7 +800,14 @@ namespace QuantumGate::Implementation::Network
 			else return buffer.GetSize();
 		});
 
-		if (GetType() == Type::Datagram) assert(send_size <= static_cast<Size>(GetMaxDatagramMessageSize()));
+		DbgInvoke([&]()
+		{
+			if (GetType() == Type::Datagram)
+			{
+				const auto result = GetMaxDatagramMessageSize();
+				assert(result && send_size <= static_cast<Size>(*result));
+			}
+		});
 
 		const auto bytessent = sendto(m_Socket, reinterpret_cast<const char*>(buffer.GetBytes()),
 									  static_cast<int>(send_size), 0,
@@ -1174,31 +1243,34 @@ namespace QuantumGate::Implementation::Network
 		return Type::Unspecified;
 	}
 
-	int Socket::GetMaxDatagramMessageSize() const noexcept
+	Result<int> Socket::GetMaxDatagramMessageSize() const noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
 		const auto size = GetSockOptInt(SO_MAX_MSG_SIZE);
 		if (size != SOCKET_ERROR) return size;
-		return 0;
+		
+		return std::error_code(WSAGetLastError(), std::system_category());
 	}
 
-	int Socket::GetSendBufferSize() const noexcept
+	Result<int> Socket::GetSendBufferSize() const noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
 		const auto size = GetSockOptInt(SO_SNDBUF);
 		if (size != SOCKET_ERROR) return size;
-		return 0;
+
+		return std::error_code(WSAGetLastError(), std::system_category());
 	}
 
-	int Socket::GetReceiveBufferSize() const noexcept
+	Result<int> Socket::GetReceiveBufferSize() const noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
 		const auto size = GetSockOptInt(SO_RCVBUF);
 		if (size != SOCKET_ERROR) return size;
-		return 0;
+		
+		return std::error_code(WSAGetLastError(), std::system_category());
 	}
 
 	int Socket::GetError() const noexcept
@@ -1209,12 +1281,17 @@ namespace QuantumGate::Implementation::Network
 
 	int Socket::GetSockOptInt(const int optname) const noexcept
 	{
+		return GetOptInt(SOL_SOCKET, optname);
+	}
+
+	int Socket::GetOptInt(const int level, const int optname) const noexcept
+	{
 		assert(m_Socket != INVALID_SOCKET);
 
 		int value = 0;
 		int value_len = sizeof(int);
 
-		if (getsockopt(m_Socket, SOL_SOCKET, optname, reinterpret_cast<char*>(&value), &value_len) != SOCKET_ERROR)
+		if (getsockopt(m_Socket, level, optname, reinterpret_cast<char*>(&value), &value_len) != SOCKET_ERROR)
 		{
 			return value;
 		}

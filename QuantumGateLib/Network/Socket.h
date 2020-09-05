@@ -85,7 +85,7 @@ namespace QuantumGate::Implementation::Network
 
 		[[nodiscard]] bool SetReuseAddress(const bool reuse) noexcept;
 		[[nodiscard]] bool SetExclusiveAddressUse(const bool exclusive) noexcept;
-		[[nodiscard]] bool GetExclusiveAddressUse() const noexcept;
+		[[nodiscard]] Result<bool> GetExclusiveAddressUse() const noexcept;
 
 		[[nodiscard]] bool SetSendTimeout(const std::chrono::milliseconds& milliseconds) noexcept;
 		[[nodiscard]] bool SetReceiveTimeout(const std::chrono::milliseconds& milliseconds) noexcept;
@@ -97,12 +97,15 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] bool SetConditionalAccept(const bool cond_accept) noexcept;
 		[[nodiscard]] bool SetNoDelay(const bool no_delay) noexcept;
 
+		[[nodiscard]] bool SetMTUDiscovery(const bool enabled) noexcept;
+		[[nodiscard]] Result<bool> IsMTUDiscoveryEnabled() noexcept;
+
 		[[nodiscard]] bool SetSendBufferSize(const int len) noexcept;
 		[[nodiscard]] bool SetReceiveBufferSize(const int len) noexcept;
 
-		[[nodiscard]] int GetMaxDatagramMessageSize() const noexcept;
-		[[nodiscard]] int GetSendBufferSize() const noexcept;
-		[[nodiscard]] int GetReceiveBufferSize() const noexcept;
+		[[nodiscard]] Result<int> GetMaxDatagramMessageSize() const noexcept;
+		[[nodiscard]] Result<int> GetSendBufferSize() const noexcept;
+		[[nodiscard]] Result<int> GetReceiveBufferSize() const noexcept;
 
 		inline void SetConnectingCallback(ConnectingCallback&& callback) noexcept override
 		{
@@ -146,6 +149,7 @@ namespace QuantumGate::Implementation::Network
 
 		[[nodiscard]] int GetError() const noexcept;
 		[[nodiscard]] int GetSockOptInt(const int optname) const noexcept;
+		[[nodiscard]] int GetOptInt(const int level, const int optname) const noexcept;
 
 		[[nodiscard]] bool UpdateIOStatusFDSet(const std::chrono::milliseconds& mseconds) noexcept;
 
