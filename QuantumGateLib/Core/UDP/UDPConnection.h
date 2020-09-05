@@ -110,9 +110,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool ProcessReceivedData(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedDataHandshake(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedDataConnected(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
-		[[nodiscard]] bool ProcessReceivedMessageConnected(Message&& msg) noexcept;
+		[[nodiscard]] bool ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool IsExpectedMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept;
 		[[nodiscard]] bool ReceivePendingSocketData() noexcept;
+		void ProcessMTUDiscovery() noexcept;
 
 		void ProcessSocketEvents() noexcept;
 		[[nodiscard]] bool HasAvailableReceiveWindowSpace() const noexcept;
@@ -120,6 +121,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	private:
 		static constexpr std::chrono::seconds ConnectTimeout{ 30 };
+		static constexpr std::chrono::milliseconds ConnectRetransmissionTimeout{ 1000 };
 		static constexpr std::chrono::milliseconds MinRetransmissionTimeout{ 100 };
 		static constexpr Size MaxTransmissionStatsHistory{ 128 };
 		static constexpr Size MinSendWindowSize{ 2 };
@@ -130,11 +132,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Status m_Status{ Status::Closed };
 		ConnectionID m_ID{ 0 };
 		Network::Socket m_Socket;
-		Size m_MaxMessageSize{ 512 };
+		Size m_MaxMessageSize{ MTUDiscovery::MinMessageSize };
 		SteadyTime m_LastStatusChangeSteadyTime;
 		std::shared_ptr<ConnectionData_ThS> m_ConnectionData;
 
-		bool m_NeedMTUDiscovery{ true };
 		std::unique_ptr<MTUDiscovery> m_MTUDiscovery;
 
 		Message::SequenceNumber m_NextSendSequenceNumber{ 0 };
