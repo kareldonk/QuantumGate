@@ -61,6 +61,9 @@ namespace QuantumGate::Implementation::Core::UDP
 			void SetConnectionID(const ConnectionID id) noexcept { m_ConnectionID = id; }
 			[[nodiscard]] ConnectionID GetConnectionID() const noexcept { return m_ConnectionID; }
 
+			void SetPort(const UInt16 port) noexcept { m_Port = port; }
+			[[nodiscard]] UInt16 GetPort() const noexcept { return m_Port; }
+
 			[[nodiscard]] bool Read(const BufferView& buffer) noexcept;
 			[[nodiscard]] bool Write(Buffer& buffer) const noexcept;
 
@@ -71,7 +74,8 @@ namespace QuantumGate::Implementation::Core::UDP
 					sizeof(m_MessageAckNumber) +
 					sizeof(m_ProtocolVersionMajor) +
 					sizeof(m_ProtocolVersionMinor) +
-					sizeof(m_ConnectionID);
+					sizeof(m_ConnectionID) +
+					sizeof(m_Port);
 			}
 
 			inline UInt64 GetHMAC() noexcept { return m_MessageHMAC; }
@@ -83,6 +87,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			UInt8 m_ProtocolVersionMajor{ 0 };
 			UInt8 m_ProtocolVersionMinor{ 0 };
 			ConnectionID m_ConnectionID{ 0 };
+			UInt16 m_Port{ 0 };
 		};
 
 		class MsgHeader final
@@ -162,6 +167,9 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		void SetConnectionID(const ConnectionID id) noexcept;
 		[[nodiscard]] ConnectionID GetConnectionID() const noexcept;
+
+		void SetPort(const UInt16 port) noexcept;
+		[[nodiscard]] UInt16 GetPort() const noexcept;
 
 		void SetAckSequenceNumbers(Vector<SequenceNumber>&& acks) noexcept;
 		const Vector<SequenceNumber>& GetAckSequenceNumbers() noexcept;

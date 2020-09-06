@@ -304,7 +304,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 					const auto result = socket.ReceiveFrom(endpoint, buffer);
 					if (result.Succeeded() && *result > 0)
 					{
-						AcceptConnection(socket.GetLocalEndpoint(), endpoint, buffer);
+						AcceptConnection(socket, socket.GetLocalEndpoint(), endpoint, buffer);
 					}
 
 					buffer.Clear();
@@ -324,7 +324,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		}
 	}
 
-	void Manager::AcceptConnection(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint, const Buffer& buffer) noexcept
+	void Manager::AcceptConnection(Network::Socket& socket, const IPEndpoint& lendpoint,
+								   const IPEndpoint& pendpoint, const Buffer& buffer) noexcept
 	{
 		if (CanAcceptConnection(pendpoint.GetIPAddress()))
 		{
@@ -345,7 +346,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 						{
 							peerths->WithUniqueLock([&](Peer::Peer& peer)
 							{
-								if (peer.GetSocket<Socket>().Accept(lendpoint, pendpoint))
+								if (peer.GetSocket<Socket>().Accept(&socket, lendpoint, pendpoint))
 								{
 									if (m_PeerManager.Accept(peerths))
 									{

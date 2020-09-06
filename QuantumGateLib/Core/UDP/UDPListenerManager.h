@@ -61,7 +61,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
 		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
-		void AcceptConnection(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint, const Buffer& buffer) noexcept;
+		void AcceptConnection(Network::Socket& socket, const IPEndpoint& lendpoint,
+							  const IPEndpoint& pendpoint, const Buffer& buffer) noexcept;
 
 	private:
 		std::atomic_bool m_Running{ false };

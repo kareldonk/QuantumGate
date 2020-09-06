@@ -28,13 +28,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		MTUDiscovery& operator=(const MTUDiscovery&) = delete;
 		MTUDiscovery& operator=(MTUDiscovery&&) noexcept = delete;
 
-		[[nodiscard]] inline Size GetMaxMessageSize() const noexcept { return m_MaxAckedMessageSize; }
+		[[nodiscard]] inline Size GetMaxMessageSize() const noexcept { return m_LastAckedMessageSize; }
 
-		[[nodiscard]] bool CreateNewMessage(const IPEndpoint& endpoint) noexcept
+		[[nodiscard]] bool CreateNewMessage(const Size msg_size, const IPEndpoint& endpoint) noexcept
 		{
 			try
 			{
-				Message msg(Message::Type::MTUD, Message::Direction::Outgoing, m_CurrentMessageSize);
+				Message msg(Message::Type::MTUD, Message::Direction::Outgoing, msg_size);
 				msg.SetMessageSequenceNumber(static_cast<Message::SequenceNumber>(Util::GetPseudoRandomNumber()));
 				msg.SetMessageAckNumber(static_cast<Message::SequenceNumber>(Util::GetPseudoRandomNumber()));
 				msg.SetMessageData(Util::GetPseudoRandomBytes(msg.GetMaxMessageDataSize()));
@@ -54,12 +54,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			catch (const std::exception& e)
 			{
 				LogErr(L"UDP connection MTUD: failed to create MTUD message of size %zu bytes for peer %s due to exception: %s",
-					   m_CurrentMessageSize, endpoint.GetString().c_str(), Util::ToStringW(e.what()).c_str());
+					   msg_size, endpoint.GetString().c_str(), Util::ToStringW(e.what()).c_str());
 			}
 			catch (...)
 			{
 				LogErr(L"UDP connection MTUD: failed to create MTUD message of size %zu bytes for peer %s due to unknown exception",
-					   m_CurrentMessageSize, endpoint.GetString().c_str());
+					   msg_size, endpoint.GetString().c_str());
 			}
 
 			return false;
@@ -89,8 +89,17 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 			else
 			{
-				LogErr(L"UDP connection MTUD: failed to send MTUD message of size %zu bytes to peer %s (%s)",
-					   m_CurrentMessageSize, endpoint.GetString().c_str(), result.GetErrorString().c_str());
+				if (result.GetErrorCode().category() == std::system_category() &&
+					result.GetErrorCode().value() == 10040)
+				{
+					// 10040 is 'message too large' error;
+					// we are expecting that at some point
+				}
+				else
+				{
+					LogErr(L"UDP connection MTUD: failed to send MTUD message of size %zu bytes to peer %s (%s)",
+						   m_MTUDMessageData->Data.GetSize(), endpoint.GetString().c_str(), result.GetErrorString().c_str());
+				}
 			}
 
 			return false;
@@ -102,6 +111,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				case Status::Start:
 				{
+					// Begin with first/smallest message size
+					m_LastAckedMessageSize = MessageSizes[0];
+					m_CurrentMessageSizeIndex = 0;
+
 					if (socket.SetMTUDiscovery(true))
 					{
 						const auto result = socket.GetMaxDatagramMessageSize();
@@ -111,7 +124,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 									*result);
 						}
 
-						if (CreateNewMessage(endpoint) && TransmitMessage(socket, endpoint))
+						if (CreateNewMessage(MessageSizes[m_CurrentMessageSizeIndex], endpoint) &&
+							TransmitMessage(socket, endpoint))
 						{
 							m_Status = Status::Discovery;
 						}
@@ -145,25 +159,21 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					}
 					else if (m_MTUDMessageData->Acked)
 					{
-						const auto result = socket.GetMaxDatagramMessageSize();
-						if (result.Succeeded())
+						if (m_CurrentMessageSizeIndex == (MessageSizes.size() - 1))
 						{
-							if (m_MaxAckedMessageSize == *result)
+							// Reached maximum possible message size
+							m_Status = Status::Finished;
+						}
+						else
+						{
+							// Create and send bigger message
+							++m_CurrentMessageSizeIndex;
+							if (!CreateNewMessage(MessageSizes[m_CurrentMessageSizeIndex], endpoint) ||
+								!TransmitMessage(socket, endpoint))
 							{
-								// Reached maximum possible message size
-								m_Status = Status::Finished;
-							}
-							else
-							{
-								// Create and send bigger message
-								m_CurrentMessageSize = std::min(static_cast<Size>(*result), m_CurrentMessageSize * 2);
-								if (!CreateNewMessage(endpoint) || !TransmitMessage(socket, endpoint))
-								{
-									m_Status = Status::Failed;
-								}
+								m_Status = Status::Failed;
 							}
 						}
-						else m_Status = Status::Failed;
 					}
 					break;
 				}
@@ -210,8 +220,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				m_RetransmissionTimeout = std::max(MinRetransmissionTimeout,
 												   std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() - m_MTUDMessageData->TimeSent));
-				m_MaxAckedMessageSize = m_MTUDMessageData->Data.GetSize();
 				m_MTUDMessageData->Acked = true;
+				m_LastAckedMessageSize = m_MTUDMessageData->Data.GetSize();
 			}
 		}
 
@@ -220,7 +230,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			try
 			{
-				Message msg(Message::Type::MTUDAck, Message::Direction::Outgoing, 512);
+				Message msg(Message::Type::MTUDAck, Message::Direction::Outgoing, MessageSizes[0]);
 				msg.SetMessageSequenceNumber(static_cast<Message::SequenceNumber>(Util::GetPseudoRandomNumber()));
 				msg.SetMessageAckNumber(seqnum);
 
@@ -253,20 +263,22 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	public:
 		// According to RFC 791 IPv4 requires an MTU of 576 octets or greater, while
 		// the maximum size of the IP header is 60.
-		// According to RFC 8200 IPv6 requires an MTU of 1280 octets or greater.
-		// The minimum IPv6 header size (fixed header) is 40 octets.
-		static constexpr Size MinMessageSize{ 512 };
+		// According to RFC 8200 IPv6 requires an MTU of 1280 octets or greater, while
+		// the minimum IPv6 header size (fixed header) is 40 octets. Recommended configuration
+		// is for 1500 octets or greater.
+		// Maximum message size is 65467 octets (65535 - 8 octet UDP header - 60 octet IP header).
+		static constexpr std::array<Size, 9> MessageSizes{ 508, 1232, 1452, 2048, 4096, 8192, 16384, 32768, 65467 };
 
 	private:
 
 		static constexpr std::chrono::milliseconds MinRetransmissionTimeout{ 600 };
-		static constexpr Size MaxNumRetries{ 8 };
+		static constexpr Size MaxNumRetries{ 6 };
 
 	private:
 		Status m_Status{ Status::Start };
 		std::optional<MTUDMessageData> m_MTUDMessageData;
-		Size m_MaxAckedMessageSize{ MinMessageSize };
-		Size m_CurrentMessageSize{ MinMessageSize };
+		Size m_LastAckedMessageSize{ MessageSizes[0] };
+		Size m_CurrentMessageSizeIndex{ 0 };
 		std::chrono::milliseconds m_RetransmissionTimeout{ MinRetransmissionTimeout };
 	};
 }

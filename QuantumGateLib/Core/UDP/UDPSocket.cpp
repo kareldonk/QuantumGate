@@ -17,7 +17,8 @@ namespace QuantumGate::Implementation::Core::UDP
 		if (m_IOStatus.IsOpen()) Close();
 	}
 
-	bool Socket::Accept(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
+	bool Socket::Accept(Network::Socket* listener_socket,
+						const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
 		assert(lendpoint.GetProtocol() == pendpoint.GetProtocol());
@@ -27,6 +28,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			data.SetConnectRequest();
 			data.SetLocalEndpoint(lendpoint);
 			data.SetPeerEndpoint(pendpoint);
+			data.SetListenerSocket(listener_socket);
 		});
 
 		UpdateSocketInfo();
