@@ -18,7 +18,8 @@ namespace QuantumGate::Implementation::Core::UDP
 						m_MessageAckNumber,
 						m_ProtocolVersionMajor,
 						m_ProtocolVersionMinor,
-						m_ConnectionID);
+						m_ConnectionID,
+						m_Port);
 	}
 	
 	bool Message::SynHeader::Write(Buffer& buffer) const noexcept
@@ -29,7 +30,8 @@ namespace QuantumGate::Implementation::Core::UDP
 										  m_MessageAckNumber,
 										  m_ProtocolVersionMajor,
 										  m_ProtocolVersionMinor,
-										  m_ConnectionID);
+										  m_ConnectionID,
+										  m_Port);
 	}
 
 	bool Message::MsgHeader::Read(const BufferView& buffer) noexcept
@@ -128,6 +130,18 @@ namespace QuantumGate::Implementation::Core::UDP
 	{
 		assert(std::holds_alternative<SynHeader>(m_Header));
 		return std::get<SynHeader>(m_Header).GetConnectionID();
+	}
+
+	void Message::SetPort(const UInt16 port) noexcept
+	{
+		assert(std::holds_alternative<SynHeader>(m_Header));
+		std::get<SynHeader>(m_Header).SetPort(port);
+	}
+
+	UInt16 Message::GetPort() const noexcept
+	{
+		assert(std::holds_alternative<SynHeader>(m_Header));
+		return std::get<SynHeader>(m_Header).GetPort();
 	}
 	
 	void Message::SetMessageData(Buffer&& buffer) noexcept

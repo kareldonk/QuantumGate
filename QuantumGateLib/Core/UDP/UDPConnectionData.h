@@ -65,6 +65,9 @@ namespace QuantumGate::Implementation::Core::UDP
 		[[nodiscard]] inline bool HasException() const noexcept { return m_HasException; }
 		[[nodiscard]] inline int GetErrorCode() const noexcept { return m_ErrorCode; }
 
+		void SetListenerSocket(Network::Socket* socket) noexcept { m_ListenerSocket = socket; }
+		Network::Socket* GetListenerSocket() const noexcept { return m_ListenerSocket; }
+
 	private:
 		bool m_CanRead{ false };
 		bool m_CanWrite{ false };
@@ -81,6 +84,8 @@ namespace QuantumGate::Implementation::Core::UDP
 		RingBuffer m_ReceiveBuffer{ 1u << 20 }; // 1MB
 		Concurrency::Event m_ReceiveEvent;
 		Concurrency::Event* m_SendEvent{ nullptr };
+
+		Network::Socket* m_ListenerSocket{ nullptr };
 	};
 
 	using ConnectionData_ThS = Concurrency::ThreadSafe<UDPConnectionData, std::shared_mutex>;

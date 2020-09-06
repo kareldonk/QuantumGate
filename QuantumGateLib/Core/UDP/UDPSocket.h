@@ -28,7 +28,8 @@ namespace QuantumGate::Implementation::Core::UDP
 		[[nodiscard]] inline Concurrency::Event& GetReceiveEvent() noexcept { return m_ConnectionData->WithUniqueLock()->GetReceiveEvent(); }
 		[[nodiscard]] inline const Concurrency::Event& GetReceiveEvent() const noexcept { return m_ConnectionData->WithSharedLock()->GetReceiveEvent(); }
 
-		[[nodiscard]] bool Accept(const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept;
+		[[nodiscard]] bool Accept(Network::Socket* listener_socket,
+								  const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept;
 
 		[[nodiscard]] bool BeginConnect(const IPEndpoint& endpoint) noexcept override;
 		[[nodiscard]] bool CompleteConnect() noexcept override;
