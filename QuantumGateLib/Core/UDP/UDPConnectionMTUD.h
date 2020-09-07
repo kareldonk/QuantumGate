@@ -4,6 +4,7 @@
 #pragma once
 
 #include "UDPMessage.h"
+#include "..\..\Common\Random.h"
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
@@ -21,32 +22,34 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	public:
 		enum class Status { Start, Discovery, Finished, Failed };
 
-		MTUDiscovery() noexcept = default;
-		MTUDiscovery(const Connection&) = delete;
-		MTUDiscovery(Connection&& other) noexcept = delete;
+		MTUDiscovery() noexcept {}
+		MTUDiscovery(const MTUDiscovery&) = delete;
+		MTUDiscovery(MTUDiscovery&&) noexcept = delete;
 		~MTUDiscovery() = default;
 		MTUDiscovery& operator=(const MTUDiscovery&) = delete;
 		MTUDiscovery& operator=(MTUDiscovery&&) noexcept = delete;
 
-		[[nodiscard]] inline Size GetMaxMessageSize() const noexcept { return m_LastAckedMessageSize; }
+		[[nodiscard]] inline Size GetMaxMessageSize() const noexcept { return m_MaximumMessageSize; }
 
 		[[nodiscard]] bool CreateNewMessage(const Size msg_size, const IPEndpoint& endpoint) noexcept
 		{
 			try
 			{
 				Message msg(Message::Type::MTUD, Message::Direction::Outgoing, msg_size);
-				msg.SetMessageSequenceNumber(static_cast<Message::SequenceNumber>(Util::GetPseudoRandomNumber()));
-				msg.SetMessageAckNumber(static_cast<Message::SequenceNumber>(Util::GetPseudoRandomNumber()));
-				msg.SetMessageData(Util::GetPseudoRandomBytes(msg.GetMaxMessageDataSize()));
+				msg.SetMessageSequenceNumber(static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber()));
+				msg.SetMessageAckNumber(static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber()));
+				msg.SetMessageData(Random::GetPseudoRandomBytes(msg.GetMaxMessageDataSize()));
 
 				Buffer data;
 				if (msg.Write(data))
 				{
-					m_MTUDMessageData.emplace();
-					m_MTUDMessageData->SequenceNumber = msg.GetMessageSequenceNumber();
-					m_MTUDMessageData->NumTries = 0;
-					m_MTUDMessageData->Data = std::move(data);
-					m_MTUDMessageData->Acked = false;
+					m_MTUDMessageData.emplace(
+						MTUDMessageData{
+							.SequenceNumber = msg.GetMessageSequenceNumber(),
+							.NumTries = 0,
+							.Data = std::move(data),
+							.Acked = false
+						});
 
 					return true;
 				}
@@ -70,8 +73,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			// Message must have already been created
 			assert(m_MTUDMessageData.has_value());
 
-			LogWarn(L"UDP connection MTUD: sending MTUD message of size %zu bytes to peer %s (%u previous tries)",
-					m_MTUDMessageData->Data.GetSize(), endpoint.GetString().c_str(), m_MTUDMessageData->NumTries);
+			SLogDbg(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: sending MTUD message of size " <<
+					m_MTUDMessageData->Data.GetSize() << L" bytes to peer " << endpoint.GetString() <<
+					L" (" << m_MTUDMessageData->NumTries << L" previous tries)" << SLogFmt(Default));
 
 			const auto result = socket.SendTo(endpoint, m_MTUDMessageData->Data);
 			if (result.Succeeded())
@@ -94,6 +98,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					// 10040 is 'message too large' error;
 					// we are expecting that at some point
+					SLogDbg(SLogFmt(FGBrightBlue) << L"UDP connection MTUD : failed to send MTUD message of size " <<
+							m_MTUDMessageData->Data.GetSize() << L" bytes to peer " << endpoint.GetString() <<
+							L" (" << result.GetErrorString() << L")" << SLogFmt(Default));
 				}
 				else
 				{
@@ -112,17 +119,26 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				case Status::Start:
 				{
 					// Begin with first/smallest message size
-					m_LastAckedMessageSize = MessageSizes[0];
+					m_MaximumMessageSize = MessageSizes[0];
 					m_CurrentMessageSizeIndex = 0;
 
+					// Set MTU discovery option on socket which disables fragmentation
+					// so that packets that are larger than the path MTU will get dropped
 					if (socket.SetMTUDiscovery(true))
 					{
+						int maxdg_size{ 0 };
+
 						const auto result = socket.GetMaxDatagramMessageSize();
-						if (result.Succeeded())
+						if (result.Succeeded()) maxdg_size = *result;
+						else
 						{
-							LogWarn(L"UDP connection MTUD: starting MTU Discovery; maximum datagram message size is %d",
-									*result);
+							LogErr(L"UDP connection MTUD: failed to get maximum datagram mesage size of socket for peer %s (%s)",
+								   endpoint.GetString().c_str(), result.GetErrorString().c_str());
 						}
+
+						SLogDbg(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: starting MTU discovery for peer " <<
+								endpoint.GetString() << L"; maximum datagram message size is " << maxdg_size <<
+								L" bytes" << SLogFmt(Default));
 
 						if (CreateNewMessage(MessageSizes[m_CurrentMessageSizeIndex], endpoint) &&
 							TransmitMessage(socket, endpoint))
@@ -196,13 +212,15 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				case Status::Finished:
 				case Status::Failed:
 				{
-					LogWarn(L"UDP connection MTUD: finished MTU discovery");
+					SLogDbg(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: finished MTU discovery; maximum message size is " <<
+							GetMaxMessageSize() << L" bytes for peer " << endpoint.GetString() << SLogFmt(Default));
 
+					// Disable MTU discovery on socket now that we're done
 					if (!socket.SetMTUDiscovery(false))
 					{
 						LogErr(L"UDP connection MTUD: failed to disable MTU discovery option on socket");
 					}
-					
+
 					break;
 				}
 				default:
@@ -221,7 +239,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				m_RetransmissionTimeout = std::max(MinRetransmissionTimeout,
 												   std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime() - m_MTUDMessageData->TimeSent));
 				m_MTUDMessageData->Acked = true;
-				m_LastAckedMessageSize = m_MTUDMessageData->Data.GetSize();
+				m_MaximumMessageSize = m_MTUDMessageData->Data.GetSize();
 			}
 		}
 
@@ -231,14 +249,14 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			try
 			{
 				Message msg(Message::Type::MTUDAck, Message::Direction::Outgoing, MessageSizes[0]);
-				msg.SetMessageSequenceNumber(static_cast<Message::SequenceNumber>(Util::GetPseudoRandomNumber()));
+				msg.SetMessageSequenceNumber(static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber()));
 				msg.SetMessageAckNumber(seqnum);
 
 				Buffer data;
 				if (msg.Write(data))
 				{
-					LogWarn(L"UDP connection MTUD: sending MTUDAck message to peer %s",
-							endpoint.GetString().c_str());
+					SLogDbg(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: sending MTUDAck message to peer " <<
+							endpoint.GetString() << SLogFmt(Default));
 
 					const auto result = socket.SendTo(endpoint, data);
 					if (result.Failed())
@@ -277,7 +295,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	private:
 		Status m_Status{ Status::Start };
 		std::optional<MTUDMessageData> m_MTUDMessageData;
-		Size m_LastAckedMessageSize{ MessageSizes[0] };
+		Size m_MaximumMessageSize{ MessageSizes[0] };
 		Size m_CurrentMessageSizeIndex{ 0 };
 		std::chrono::milliseconds m_RetransmissionTimeout{ MinRetransmissionTimeout };
 	};
