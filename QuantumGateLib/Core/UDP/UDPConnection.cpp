@@ -30,7 +30,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 										 af == Network::IP::AddressFamily::IPv4 ? IPAddress::AnyIPv4() : IPAddress::AnyIPv6(),
 										 0), nat_traversal))
 			{
-				m_NextSendSequenceNumber = static_cast<Message::SequenceNumber>(Util::GetPseudoRandomNumber());
+				m_NextSendSequenceNumber = static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber());
 				m_ConnectionData = std::make_shared<ConnectionData_ThS>(&m_Socket.GetEvent());
 				m_MTUDiscovery = std::make_unique<MTUDiscovery>();
 
@@ -177,14 +177,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			SetCloseCondition(CloseCondition::SendError);
 		}
 
-		RecalcRetransmissionTimeout();
-
 		if (!SendFromQueue())
 		{
 			SetCloseCondition(CloseCondition::SendError);
 		}
 
-		RecalcSendWindowSize();
+		m_Statistics.RecordSendWindowSizeStats();
 
 		switch (GetStatus())
 		{
@@ -231,10 +229,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			case MTUDiscovery::Status::Failed:
 			{
 				m_MaxMessageSize = m_MTUDiscovery->GetMaxMessageSize();
+				m_ReceiveWindowSize = std::min(MaxReceiveWindowSize, MaxReceiveWindowBytes / m_MaxMessageSize);
+				LogWarn(L"UDP connection: receive window size is %zu", m_ReceiveWindowSize);
 				m_MTUDiscovery.reset();
-				LogInfo(L"UDP connection: MTU for peer %s is now %zu bytes, send window size is %zu",
-						m_ConnectionData->WithSharedLock()->GetPeerEndpoint().GetString().c_str(),
-						m_MaxMessageSize, m_SendWindowSize);
 				break;
 			}
 			default:
@@ -253,8 +250,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		msg.SetProtocolVersion(ProtocolVersion::Major, ProtocolVersion::Minor);
 		msg.SetConnectionID(GetID());
 		msg.SetMessageSequenceNumber(m_NextSendSequenceNumber);
-		msg.SetMessageAckNumber(static_cast<UInt16>(Util::GetPseudoRandomNumber()));
-		msg.SetPort(static_cast<UInt16>(Util::GetPseudoRandomNumber()));
+		msg.SetMessageAckNumber(static_cast<UInt16>(Random::GetPseudoRandomNumber()));
+		msg.SetPort(static_cast<UInt16>(Random::GetPseudoRandomNumber()));
 
 		if (Send(endpoint, std::move(msg), true))
 		{
@@ -360,154 +357,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	void Connection::RecordRTTStats(const SendQueueItem& sqitm) noexcept
-	{
-		m_RTTStats.emplace_front(
-			RTTStats{
-				std::chrono::duration_cast<std::chrono::milliseconds>(sqitm.TimeAcked - sqitm.TimeResent)
-			}
-		);
-
-		if (m_RTTStats.size() > MaxRTTStatsHistory)
-		{
-			m_RTTStats.pop_back();
-		}
-
-		m_RTTStatsDirty = true;
-	}
-
-	void Connection::RecalcRetransmissionTimeout() noexcept
-	{
-		if (!m_RTTStatsDirty || m_RTTStats.empty()) return;
-
-		std::chrono::milliseconds total_time{ 0 };
-		std::chrono::milliseconds min_time{ std::numeric_limits<std::chrono::milliseconds::rep>::max() };
-		std::chrono::milliseconds max_time{ MinRetransmissionTimeout };
-
-		for (const auto& ts : m_RTTStats)
-		{
-			total_time += ts.RTT;
-
-			min_time = std::min(min_time, ts.RTT);
-			max_time = std::max(max_time, ts.RTT);
-		}
-
-		const std::chrono::milliseconds rtt_mean = total_time / m_RTTStats.size();
-		std::chrono::milliseconds total_rtt_diffmsq{ 0 };
-
-		for (const auto& ts : m_RTTStats)
-		{
-			const auto diffm = ts.RTT - rtt_mean;
-			const auto diffmsq = std::chrono::milliseconds(diffm.count() * diffm.count());
-			total_rtt_diffmsq += diffmsq;
-		}
-
-		const auto rtt_stddev = std::chrono::milliseconds(
-			static_cast<std::chrono::milliseconds::rep>(std::sqrt(total_rtt_diffmsq.count() / m_RTTStats.size())));
-		const auto rtt_minm = rtt_mean - rtt_stddev;
-		const auto rtt_maxm = rtt_mean + rtt_stddev;
-
-		std::chrono::milliseconds total_rtt{ 0 };
-		Size total_rtt_count{ 0 };
-
-		for (const auto& ts : m_RTTStats)
-		{
-			if (rtt_minm <= ts.RTT && ts.RTT <= rtt_maxm)
-			{
-				total_rtt += ts.RTT;
-				++total_rtt_count;
-			}
-		}
-
-		if (total_rtt_count > 0)
-		{
-			// Choosing a value for X close to 1 makes the weighted average immune to changes
-			// that last a short time (e.g., a single message that encounters long delay).
-			// Choosing a value for X close to 0 makes the weighted average respond to changes
-			// in delay very quickly.
-			constexpr auto X = 0.25;
-			const auto new_rtt_sample = (total_rtt.count() / total_rtt_count);
-			const auto new_rtt = X * m_RetransmissionTimeout.count() + ((1.0 - X) * new_rtt_sample);
-			m_RetransmissionTimeout = std::chrono::milliseconds(static_cast<std::chrono::milliseconds::rep>(new_rtt));
-		}
-
-		SLogDbg(SLogFmt(FGBrightGreen) << L"UDP connection: RTTTimeout: " << m_RetransmissionTimeout.count() <<
-				L"ms - MinRTT: " << min_time.count() << L"ms - MaxRTT: " << max_time.count() << L"ms" << SLogFmt(Default));
-
-		m_RTTStatsDirty = false;
-	}
-
-	void Connection::RecordWindowSizeStats(const double size) noexcept
-	{
-		m_SendWindowSizeStats.emplace_front(WindowSizeStats{ size });
-
-		if (m_SendWindowSizeStats.size() > MaxSendWindowSizeStatsHistory)
-		{
-			m_SendWindowSizeStats.pop_back();
-		}
-
-		m_SendWindowSizeStatsDirty = true;
-	}
-
-	void Connection::RecalcSendWindowSize() noexcept
-	{
-		if (!m_SendWindowSizeStatsDirty || m_SendWindowSizeStats.empty()) return;
-
-		double total_wnd_size{ 0 };
-		double min_size{ std::numeric_limits<double>::max() };
-		double max_size{ MinSendWindowSize };
-
-		for (const auto& ts : m_SendWindowSizeStats)
-		{
-			total_wnd_size += ts.WindowSize;
-
-			min_size = std::min(min_size, ts.WindowSize);
-			max_size = std::max(max_size, ts.WindowSize);
-		}
-
-		const auto wnd_size_mean = total_wnd_size / m_RTTStats.size();
-		double total_wnd_size_diffmsq{ 0 };
-
-		for (const auto& ts : m_SendWindowSizeStats)
-		{
-			const auto diffw = ts.WindowSize - wnd_size_mean;
-			const auto diffwsq = diffw * diffw;
-			total_wnd_size_diffmsq += diffwsq;
-		}
-
-		const auto wins_stddev = std::sqrt(total_wnd_size_diffmsq / m_RTTStats.size());
-		const auto wins_minm = wnd_size_mean - wins_stddev;
-		const auto wins_maxm = wnd_size_mean + wins_stddev;
-
-		double total_wins{ 0 };
-		double total_wins_count{ 0 };
-
-		for (const auto& ts : m_SendWindowSizeStats)
-		{
-			if (wins_minm <= ts.WindowSize && ts.WindowSize <= wins_maxm)
-			{
-				total_wins += ts.WindowSize;
-				++total_wins_count;
-			}
-		}
-
-		if (total_wins_count > 0)
-		{
-			// Choosing a value for X close to 1 makes the weighted average immune to changes
-			// that last a short time. Choosing a value for X close to 0 makes the weighted
-			// average respond to changes very quickly.
-			constexpr auto X = 0.95;
-			const auto new_wins_sample = (total_wins / total_wins_count);
-			m_SendWindowSize = static_cast<Size>(std::ceil(X * m_SendWindowSize + ((1.0 - X) * new_wins_sample)));
-		}
-
-		SLogDbg(SLogFmt(FGBrightMagenta) << L"UDP connection: SendWindowSize: " << m_SendWindowSize <<
-				L" - Min: " << static_cast<Size>(std::ceil(min_size)) << L" - Max: " <<
-				static_cast<Size>(std::ceil(max_size)) << SLogFmt(Default));
-
-		m_SendWindowSizeStatsDirty = false;
-	}
-
 	void Connection::IncrementSendSequenceNumber() noexcept
 	{
 		m_NextSendSequenceNumber = GetNextSequenceNumber(m_NextSendSequenceNumber);
@@ -592,14 +441,18 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::SendFromQueue() noexcept
 	{
-		auto success = true;
+		if (m_SendQueue.empty()) return true;
+
+		m_Statistics.RecalcRetransmissionTimeout();
 
 		const auto endpoint = m_ConnectionData->WithSharedLock()->GetPeerEndpoint();
 
 		const auto rtt_timeout = std::invoke([&]()
 		{
-			return (GetStatus() < Status::Connected) ? ConnectRetransmissionTimeout : (m_RetransmissionTimeout * 2);
+			return (GetStatus() < Status::Connected) ? ConnectRetransmissionTimeout : m_Statistics.GetRetransmissionTimeout();
 		});
+
+		Size loss{ 0 };
 
 		for (auto it = m_SendQueue.begin(); it != m_SendQueue.end(); ++it)
 		{
@@ -611,7 +464,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 							") message with sequence number " <<  it->SequenceNumber << L" (timeout " <<
 							rtt_timeout.count() * it->NumTries << L"ms)" << SLogFmt(Default));
 
-					m_SendWindowSizeSample = m_SendWindowSizeSample / 2.0;
+					// Did not receive ack in time; packet may be lost
+					m_Statistics.RecordPacketLoss();
+					++loss;
 				}
 				else
 				{
@@ -638,6 +493,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					}
 					else
 					{
+						// We'll try again later
 						break;
 					}
 				}
@@ -645,19 +501,17 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					LogErr(L"UDP connection: send failed for peer %s connection %llu (%s)",
 						   endpoint.GetString().c_str(), GetID(), result.GetErrorString().c_str());
-					success = false;
-					break;
+					return false;
 				}
 			}
 		}
 
-		if (m_SendWindowSizeStatsSample != m_SendWindowSizeSample)
+		if (loss)
 		{
-			RecordWindowSizeStats(std::max(static_cast<double>(MinSendWindowSize), m_SendWindowSizeSample));
-			m_SendWindowSizeStatsSample = m_SendWindowSizeSample;
+			LogDbg(L"UDP connection: retransmitted %zu packets (queue size %zu)", loss, m_SendQueue.size());
 		}
 
-		return success;
+		return true;
 	}
 
 	bool Connection::ReceiveToQueue() noexcept
@@ -711,14 +565,14 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			else
 			{
 				LogDbg(L"UDP connection: failed to update socket IOStatus for connection %llu", GetID());
-				
+
 				return false;
 			}
 		}
 
 		return true;
 	}
-	
+
 	bool Connection::ProcessReceivedData(const IPEndpoint& endpoint, const Buffer& buffer) noexcept
 	{
 		switch (GetStatus())
@@ -936,7 +790,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				it->Acked = true;
 				it->TimeAcked = Util::GetCurrentSteadyTime();
 
-				RecordRTTStats(*it);
+				m_Statistics.RecordPacketAck(std::chrono::duration_cast<std::chrono::milliseconds>(it->TimeAcked - it->TimeResent));
 			}
 
 			PurgeAckedMessages();
@@ -951,8 +805,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			if (it->Acked)
 			{
-				++m_SendWindowSizeSample;
-
 				it = m_SendQueue.erase(it);
 			}
 			else break;
@@ -993,7 +845,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 						it2->Acked = true;
 						it2->TimeAcked = Util::GetCurrentSteadyTime();
 
-						RecordRTTStats(*it2);
+						m_Statistics.RecordPacketAck(std::chrono::duration_cast<std::chrono::milliseconds>(it2->TimeAcked - it2->TimeResent));
 					}
 				}
 
@@ -1017,6 +869,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		try
 		{
+			m_Statistics.RecalcSendWindowSize();
+
 			auto connection_data = m_ConnectionData->WithUniqueLock();
 
 			Message msg(Message::Type::Data, Message::Direction::Outgoing, m_MaxMessageSize);
@@ -1055,7 +909,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		try
 		{
 			auto connection_data = m_ConnectionData->WithUniqueLock();
-			
+
 			auto rcv_event = false;
 
 			while (next_itm != m_ReceiveQueue.end())
@@ -1161,6 +1015,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::HasAvailableSendWindowSpace() const noexcept
 	{
-		return (m_SendQueue.size() < m_SendWindowSize);
+		return (m_SendQueue.size() < m_Statistics.GetSendWindowSize());
 	}
 }

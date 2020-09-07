@@ -6,6 +6,7 @@
 #include "UDPSocket.h"
 #include "UDPMessage.h"
 #include "UDPConnectionMTUD.h"
+#include "UDPConnectionStats.h"
 #include "..\..\Common\Containers.h"
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
@@ -36,20 +37,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		using ReceiveAckList = Vector<Message::SequenceNumber>;
 
-		struct RTTStats
-		{
-			std::chrono::milliseconds RTT{ 0 };
-		};
-
-		using RTTStatsList = Containers::List<RTTStats>;
-
-		struct WindowSizeStats
-		{
-			double WindowSize{ 0 };
-		};
-
-		using WindowSizeStatsList = Containers::List<WindowSizeStats>;
-		
 	public:
 		enum class Status { Open, Handshake, Connected, Closed };
 
@@ -61,7 +48,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		Connection(const PeerConnectionType type, const ConnectionID id, const Message::SequenceNumber seqnum) noexcept;
 		Connection(const Connection&) = delete;
-		Connection(Connection&& other) noexcept = delete;
+		Connection(Connection&&) noexcept = delete;
 		~Connection();
 		Connection& operator=(const Connection&) = delete;
 		Connection& operator=(Connection&&) noexcept = delete;
@@ -104,12 +91,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SendPendingAcks() noexcept;
 		void SendImmediateReset() noexcept;
 
-		void RecordRTTStats(const SendQueueItem& sqitm) noexcept;
-		void RecalcRetransmissionTimeout() noexcept;
-
-		void RecordWindowSizeStats(const double size) noexcept;
-		void RecalcSendWindowSize() noexcept;
-
 		[[nodiscard]] bool Send(const IPEndpoint& endpoint, Message&& msg, const bool queue) noexcept;
 		[[nodiscard]] bool SendFromQueue() noexcept;
 		[[nodiscard]] bool SendPendingSocketData() noexcept;
@@ -130,11 +111,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	private:
 		static constexpr std::chrono::seconds ConnectTimeout{ 30 };
 		static constexpr std::chrono::milliseconds ConnectRetransmissionTimeout{ 1000 };
-		static constexpr std::chrono::milliseconds MinRetransmissionTimeout{ 600 };
-		static constexpr Size MaxRTTStatsHistory{ 128 };
-		static constexpr Size MaxSendWindowSizeStatsHistory{ 128 };
-		static constexpr Size MinSendWindowSize{ 2 };
 		static constexpr Size MinReceiveWindowSize{ 128 };
+		static constexpr Size MaxReceiveWindowSize{ 65535 };
+		static constexpr Size MaxReceiveWindowBytes{ 1 << 23 };
 
 	private:
 		PeerConnectionType m_Type{ PeerConnectionType::Unknown };
@@ -146,26 +125,17 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		std::shared_ptr<ConnectionData_ThS> m_ConnectionData;
 
 		std::unique_ptr<MTUDiscovery> m_MTUDiscovery;
+		Statistics m_Statistics;
 
 		Message::SequenceNumber m_NextSendSequenceNumber{ 0 };
 		Message::SequenceNumber m_LastInSequenceAckedSequenceNumber{ 0 };
-		std::chrono::milliseconds m_RetransmissionTimeout{ MinRetransmissionTimeout };
 		SendQueue m_SendQueue;
-		Size m_SendWindowSize{ MinSendWindowSize };
-		double m_SendWindowSizeSample{ MinSendWindowSize };
-
-		RTTStatsList m_RTTStats;
-		bool m_RTTStatsDirty{ false };
-
-		WindowSizeStatsList m_SendWindowSizeStats;
-		bool m_SendWindowSizeStatsDirty{ false };
-		double m_SendWindowSizeStatsSample{ MinSendWindowSize };
 
 		Message::SequenceNumber m_LastInSequenceReceivedSequenceNumber{ 0 };
 		Size m_ReceiveWindowSize{ MinReceiveWindowSize };
 		ReceiveQueue m_ReceiveQueue;
 		ReceiveAckList m_ReceivePendingAckList;
-		
+
 		CloseCondition m_CloseCondition{ CloseCondition::None };
 	};
 }
