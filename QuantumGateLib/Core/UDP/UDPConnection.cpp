@@ -182,8 +182,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			SetCloseCondition(CloseCondition::SendError);
 		}
 
-		m_Statistics.RecordSendWindowSizeStats();
-
 		switch (GetStatus())
 		{
 			case Status::Handshake:
@@ -230,6 +228,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				m_MaxMessageSize = m_MTUDiscovery->GetMaxMessageSize();
 				m_ReceiveWindowSize = std::min(MaxReceiveWindowSize, MaxReceiveWindowBytes / m_MaxMessageSize);
+				m_Statistics.SetPeerReceiveWindowSize(m_ReceiveWindowSize);
 				LogWarn(L"UDP connection: receive window size is %zu", m_ReceiveWindowSize);
 				m_MTUDiscovery.reset();
 				break;
@@ -311,7 +310,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		LogDbg(L"UDP connection: sending acks to peer %s for connection %llu",
 			   endpoint.GetString().c_str(), GetID());
 
-		Message msg(Message::Type::DataAck, Message::Direction::Outgoing, m_MaxMessageSize);
+		Message msg(Message::Type::Ack, Message::Direction::Outgoing, m_MaxMessageSize);
 		msg.SetMessageSequenceNumber(0);
 		msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
 
@@ -463,9 +462,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					SLogDbg(SLogFmt(FGBrightCyan) << L"UDP connection: retransmitting (" << it->NumTries <<
 							") message with sequence number " <<  it->SequenceNumber << L" (timeout " <<
 							rtt_timeout.count() * it->NumTries << L"ms)" << SLogFmt(Default));
-
-					// Did not receive ack in time; packet may be lost
-					m_Statistics.RecordPacketLoss();
 					++loss;
 				}
 				else
@@ -506,10 +502,17 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 		}
 
-		if (loss)
+		m_Statistics.RecordPacketLoss(loss);
+		m_Statistics.RecordSendWindowSizeStats();
+
+		DbgInvoke([&]()
 		{
-			//LogWarn(L"UDP connection: retransmitted %zu packets (queue size %zu)", loss, m_SendQueue.size());
-		}
+			if (loss > 0)
+			{
+				LogWarn(L"UDP connection: retransmitted %zu packets (queue size %zu, send window size %zu)",
+						loss, m_SendQueue.size(), m_Statistics.GetSendWindowSize());
+			}
+		});
 
 		return true;
 	}
@@ -712,7 +715,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				}
 				else return true;
 			}
-			case Message::Type::DataAck:
+			case Message::Type::Ack:
 			{
 				ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
 				ProcessReceivedAcks(msg.GetAckSequenceNumbers());
@@ -803,36 +806,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 		}
 
-		/*
-		auto next_seqnum = GetNextSequenceNumber(m_LastInSequenceReceivedSequenceNumber);
-
-		for (auto x = 0; x < m_ReceiveWindowSize; ++x)
-		{
-			if (seqnum == next_seqnum)
-			{
-				return true;
-			}
-
-			next_seqnum = GetNextSequenceNumber(next_seqnum);
-		}
-
-		auto prev_seqnum = m_LastInSequenceReceivedSequenceNumber;
-
-		for (auto x = 0; x < m_ReceiveWindowSize; ++x)
-		{
-			if (seqnum == prev_seqnum)
-			{
-				DiscardReturnValue(AckReceivedMessage(seqnum));
-				break;
-			}
-
-			prev_seqnum = GetPreviousSequenceNumber(prev_seqnum);
-		}*/
-
 		return false;
 	}
 
-	void Connection::AckSentMessage(const Message::SequenceNumber seqnum) noexcept
+	bool Connection::AckSentMessage(const Message::SequenceNumber seqnum) noexcept
 	{
 		auto it = std::find_if(m_SendQueue.begin(), m_SendQueue.end(), [&](const auto& itm)
 		{
@@ -848,11 +825,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				it->Acked = true;
 				it->TimeAcked = Util::GetCurrentSteadyTime();
 
-				m_Statistics.RecordPacketAck(std::chrono::duration_cast<std::chrono::milliseconds>(it->TimeAcked - it->TimeResent));
-			}
+				m_Statistics.RecordPacketRTT(std::chrono::duration_cast<std::chrono::milliseconds>(it->TimeAcked - it->TimeResent));
 
-			PurgeAckedMessages();
+				return true;
+			}
 		}
+
+		return false;
 	}
 
 	void Connection::PurgeAckedMessages() noexcept
@@ -894,6 +873,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		if (it != m_SendQueue.end())
 		{
+			Size num_acks{ 0 };
+
 			for (auto it2 = m_SendQueue.begin();;)
 			{
 				if (it2->NumTries > 0)
@@ -903,7 +884,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 						it2->Acked = true;
 						it2->TimeAcked = Util::GetCurrentSteadyTime();
 
-						m_Statistics.RecordPacketAck(std::chrono::duration_cast<std::chrono::milliseconds>(it2->TimeAcked - it2->TimeResent));
+						m_Statistics.RecordPacketRTT(std::chrono::duration_cast<std::chrono::milliseconds>(it2->TimeAcked - it2->TimeResent));
+						++num_acks;
 					}
 				}
 
@@ -911,15 +893,30 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				else ++it2;
 			}
 
-			PurgeAckedMessages();
+			if (num_acks > 0)
+			{
+				m_Statistics.RecordPacketAck(num_acks);
+				PurgeAckedMessages();
+			}
 		}
 	}
 
 	void Connection::ProcessReceivedAcks(const Vector<Message::SequenceNumber>& acks) noexcept
 	{
+		Size num_acks{ 0 };
+
 		for (const auto ack_num : acks)
 		{
-			AckSentMessage(ack_num);
+			if (AckSentMessage(ack_num))
+			{
+				++num_acks;
+			}
+		}
+
+		if (num_acks > 0)
+		{
+			m_Statistics.RecordPacketAck(num_acks);
+			PurgeAckedMessages();
 		}
 	}
 

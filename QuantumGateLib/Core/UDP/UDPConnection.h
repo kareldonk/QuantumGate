@@ -79,7 +79,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Message::SequenceNumber GetNextSequenceNumber(const Message::SequenceNumber current) const noexcept;
 		Message::SequenceNumber GetPreviousSequenceNumber(const Message::SequenceNumber current) const noexcept;
 
-		void AckSentMessage(const Message::SequenceNumber seqnum) noexcept;
+		[[nodiscard]] bool AckSentMessage(const Message::SequenceNumber seqnum) noexcept;
 		void ProcessReceivedInSequenceAck(const Message::SequenceNumber seqnum) noexcept;
 		void ProcessReceivedAcks(const Vector<Message::SequenceNumber>& acks) noexcept;
 		void PurgeAckedMessages() noexcept;
@@ -112,7 +112,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		static constexpr std::chrono::milliseconds ConnectRetransmissionTimeout{ 1000 };
 		static constexpr Size MinReceiveWindowSize{ 128 };
 		static constexpr Size MaxReceiveWindowSize{ 65535 };
-		static constexpr Size MaxReceiveWindowBytes{ 1 << 20 };
+		static constexpr Size MaxReceiveWindowBytes{ 1 << 22 };
 
 	private:
 		PeerConnectionType m_Type{ PeerConnectionType::Unknown };
