@@ -110,13 +110,27 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			RecordRTTStats(rtt);
 
 			// Part of additive increase/multiplicative decrease (AIMD) algorithm
-			++m_NewSendWindowSizeSample;
+			if (m_NoLoss)
+			{
+				++m_NewSendWindowSizeSample;
+				m_NoLossSendWindowSize = m_SendWindowSize;
+			}
+			else
+			{
+				m_NewSendWindowSizeSample += (1.0 / static_cast<double>(m_NoLossSendWindowSize));
+			}
 		}
 
 		inline void RecordPacketLoss() noexcept
 		{
 			// Part of additive increase/multiplicative decrease (AIMD) algorithm
-			m_NewSendWindowSizeSample = m_NewSendWindowSizeSample / 2.0;
+			m_NewSendWindowSizeSample = std::max(static_cast<double>(m_NoLossSendWindowSize), m_NewSendWindowSizeSample / 2.0);
+
+			if (m_NoLoss)
+			{
+				m_SendWindowSize = std::max(MinSendWindowSize, m_SendWindowSize / 2);
+				m_NoLoss = false;
+			}
 		}
 
 		void RecordSendWindowSizeStats() noexcept
@@ -238,6 +252,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		RTTSampleList m_RTTSamples;
 		bool m_RTTSamplesDirty{ false };
 
+		bool m_NoLoss{ true };
+		Size m_NoLossSendWindowSize{ MinSendWindowSize };
 		Size m_SendWindowSize{ MinSendWindowSize };
 		SendWindowSampleList m_SendWindowSizeSamples;
 		bool m_SendWindowSizeSamplesDirty{ false };

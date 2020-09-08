@@ -105,7 +105,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void ProcessMTUDiscovery() noexcept;
 
 		void ProcessSocketEvents() noexcept;
-		[[nodiscard]] bool HasAvailableReceiveWindowSpace() const noexcept;
 		[[nodiscard]] bool HasAvailableSendWindowSpace() const noexcept;
 
 	private:
@@ -113,7 +112,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		static constexpr std::chrono::milliseconds ConnectRetransmissionTimeout{ 1000 };
 		static constexpr Size MinReceiveWindowSize{ 128 };
 		static constexpr Size MaxReceiveWindowSize{ 65535 };
-		static constexpr Size MaxReceiveWindowBytes{ 1 << 23 };
+		static constexpr Size MaxReceiveWindowBytes{ 1 << 20 };
 
 	private:
 		PeerConnectionType m_Type{ PeerConnectionType::Unknown };
