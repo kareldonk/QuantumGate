@@ -26,7 +26,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			Unknown = 0,
 			Syn = 5,
 			Data = 10,
-			DataAck = 15,
+			Ack = 15,
 			MTUD = 25,
 			MTUDAck = 30,
 			Reset = 35,

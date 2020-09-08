@@ -190,7 +190,7 @@ namespace QuantumGate::Implementation::Core::UDP
 	void Message::SetAckSequenceNumbers(Vector<Message::SequenceNumber>&& acks) noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::DataAck);
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Ack);
 
 		if (!acks.empty())
 		{
@@ -203,7 +203,7 @@ namespace QuantumGate::Implementation::Core::UDP
 	const Vector<Message::SequenceNumber>& Message::GetAckSequenceNumbers() noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::DataAck);
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Ack);
 		assert(IsValid());
 
 		return m_MessageAcks;
@@ -254,7 +254,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			{
 				m_MessageData = buffer;
 			}
-			else if (type == Type::DataAck)
+			else if (type == Type::Ack)
 			{
 				Memory::BufferReader rdr(buffer, true);
 				if (!rdr.Read(WithSize(m_MessageAcks, MaxSize::_512B))) return false;
@@ -297,7 +297,7 @@ namespace QuantumGate::Implementation::Core::UDP
 					msgbuf += m_MessageData;
 				}
 			}
-			else if (type == Type::DataAck)
+			else if (type == Type::Ack)
 			{
 				Buffer ackbuf;
 				Memory::BufferWriter wrt(ackbuf, true);

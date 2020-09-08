@@ -100,36 +100,62 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			m_RTTSamplesDirty = false;
 		}
 
+		inline void SetPeerReceiveWindowSize(const Size size) noexcept { m_PeerReceiveWindowSize = size; }
+
 		[[nodiscard]] inline Size GetSendWindowSize() const noexcept
 		{
-			return m_SendWindowSize;
+			return std::min(m_PeerReceiveWindowSize, m_SendWindowSize);
 		}
 
-		inline void RecordPacketAck(const std::chrono::milliseconds rtt) noexcept
+		inline void RecordPacketRTT(const std::chrono::milliseconds rtt) noexcept
 		{
 			RecordRTTStats(rtt);
+		}
 
+		inline void RecordPacketAck(const Size num_packets) noexcept
+		{
 			// Part of additive increase/multiplicative decrease (AIMD) algorithm
-			if (m_NoLoss)
+			if (m_NoLossYetRecorded)
 			{
-				++m_NewSendWindowSizeSample;
-				m_NoLossSendWindowSize = m_SendWindowSize;
+				// Fast start
+				m_NewSendWindowSizeSample += num_packets;
 			}
 			else
 			{
-				m_NewSendWindowSizeSample += (1.0 / static_cast<double>(m_NoLossSendWindowSize));
+				if (m_NewSendWindowSizeSample < m_NoLossSendWindowSize)
+				{
+					// Fast recovery
+					m_NewSendWindowSizeSample += num_packets;
+				}
+				else
+				{
+					m_NewSendWindowSizeSample += ((1.0 / static_cast<double>(m_SendWindowSize)) * num_packets);
+				}
 			}
 		}
 
-		inline void RecordPacketLoss() noexcept
+		inline void RecordPacketLoss(const Size num_packets) noexcept
 		{
-			// Part of additive increase/multiplicative decrease (AIMD) algorithm
-			m_NewSendWindowSizeSample = std::max(static_cast<double>(m_NoLossSendWindowSize), m_NewSendWindowSizeSample / 2.0);
-
-			if (m_NoLoss)
+			if (num_packets == 0)
 			{
-				m_SendWindowSize = std::max(MinSendWindowSize, m_SendWindowSize / 2);
-				m_NoLoss = false;
+				if (m_NoLossYetRecorded)
+				{
+					m_NoLossSendWindowSize = std::max(MinSendWindowSize, m_SendWindowSize / 2);
+				}
+			}
+			else
+			{
+				// Part of additive increase/multiplicative decrease (AIMD) algorithm
+				m_NewSendWindowSizeSample = m_NewSendWindowSizeSample / std::pow(2.0, num_packets);
+
+				if (m_NoLossYetRecorded)
+				{
+					m_SendWindowSize = std::max(MinSendWindowSize, m_SendWindowSize / 2);
+					m_NoLossYetRecorded = false;
+
+					SLogDbg(SLogFmt(FGBrightMagenta) << L"UDP connection: NoLossSendWindowSize: " <<
+							m_NoLossSendWindowSize << L" - SendWindowSize: " << m_SendWindowSize << SLogFmt(Default));
+				}
 			}
 		}
 
@@ -252,9 +278,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		RTTSampleList m_RTTSamples;
 		bool m_RTTSamplesDirty{ false };
 
-		bool m_NoLoss{ true };
+		bool m_NoLossYetRecorded{ true };
 		Size m_NoLossSendWindowSize{ MinSendWindowSize };
 		Size m_SendWindowSize{ MinSendWindowSize };
+		Size m_PeerReceiveWindowSize{ MinSendWindowSize };
 		SendWindowSampleList m_SendWindowSizeSamples;
 		bool m_SendWindowSizeSamplesDirty{ false };
 		double m_NewSendWindowSizeSample{ MinSendWindowSize };
