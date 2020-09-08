@@ -508,7 +508,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		if (loss)
 		{
-			LogDbg(L"UDP connection: retransmitted %zu packets (queue size %zu)", loss, m_SendQueue.size());
+			//LogWarn(L"UDP connection: retransmitted %zu packets (queue size %zu)", loss, m_SendQueue.size());
 		}
 
 		return true;
@@ -746,6 +746,64 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::IsExpectedMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept
 	{
+		constexpr const auto max_seqnum = std::numeric_limits<Message::SequenceNumber>::max();
+
+		// Check if seqnum is in the current receive window range
+		{
+			if (max_seqnum - m_ReceiveWindowSize >= m_LastInSequenceReceivedSequenceNumber)
+			{
+				if (m_LastInSequenceReceivedSequenceNumber < seqnum &&
+					seqnum <= m_LastInSequenceReceivedSequenceNumber + m_ReceiveWindowSize)
+				{
+					return true;
+				}
+			}
+			else
+			{
+				const auto r1 = max_seqnum - m_LastInSequenceReceivedSequenceNumber;
+				const auto r2 = m_ReceiveWindowSize - r1;
+				if (m_LastInSequenceReceivedSequenceNumber < seqnum &&
+					seqnum <= m_LastInSequenceReceivedSequenceNumber + r1)
+				{
+					return true;
+				}
+				else if (seqnum < r2) return true;
+			}
+		}
+
+		// Check if seqnum is in the previous receive window range
+		{
+			auto inprev_wnd = false;
+
+			if (m_LastInSequenceReceivedSequenceNumber >= m_ReceiveWindowSize)
+			{
+				if (m_LastInSequenceReceivedSequenceNumber - m_ReceiveWindowSize <= seqnum &&
+					seqnum <= m_LastInSequenceReceivedSequenceNumber)
+				{
+					inprev_wnd = true;
+				}
+			}
+			else
+			{
+				const auto r1 = m_LastInSequenceReceivedSequenceNumber;
+				const auto r2 = max_seqnum - (m_ReceiveWindowSize - r1);
+				if (0 <= seqnum && seqnum <= r1)
+				{
+					inprev_wnd = true;
+				}
+				else if (r2 < seqnum && seqnum <= max_seqnum)
+				{
+					inprev_wnd = true;
+				}
+			}
+
+			if (inprev_wnd)
+			{
+				DiscardReturnValue(AckReceivedMessage(seqnum));
+			}
+		}
+
+		/*
 		auto next_seqnum = GetNextSequenceNumber(m_LastInSequenceReceivedSequenceNumber);
 
 		for (auto x = 0; x < m_ReceiveWindowSize; ++x)
@@ -769,7 +827,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 
 			prev_seqnum = GetPreviousSequenceNumber(prev_seqnum);
-		}
+		}*/
 
 		return false;
 	}
@@ -1006,11 +1064,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 			SetCloseCondition(close_condition);
 		}
-	}
-
-	bool Connection::HasAvailableReceiveWindowSpace() const noexcept
-	{
-		return (m_ReceiveQueue.size() < m_ReceiveWindowSize);
 	}
 
 	bool Connection::HasAvailableSendWindowSpace() const noexcept
