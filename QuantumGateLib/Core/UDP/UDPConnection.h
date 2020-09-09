@@ -88,6 +88,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SendOutboundSyn(const IPEndpoint& endpoint) noexcept;
 		[[nodiscard]] bool SendInboundSyn(const IPEndpoint& endpoint) noexcept;
 		[[nodiscard]] bool SendData(const IPEndpoint& endpoint, Buffer&& data) noexcept;
+		[[nodiscard]] bool SendStateUpdate(const IPEndpoint& endpoint) noexcept;
 		[[nodiscard]] bool SendPendingAcks() noexcept;
 		void SendImmediateReset() noexcept;
 
@@ -95,14 +96,24 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SendFromQueue() noexcept;
 		[[nodiscard]] bool SendPendingSocketData() noexcept;
 
+		void RecalcPeerReceiveWindowSize() noexcept;
+		[[nodiscard]] Size GetSendWindowSize() const noexcept;
+
 		[[nodiscard]] bool ReceiveToQueue() noexcept;
 		[[nodiscard]] bool ProcessReceivedData(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedDataHandshake(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedDataConnected(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept;
+		[[nodiscard]] bool AddToReceiveQueue(ReceiveQueueItem&& itm) noexcept;
 		[[nodiscard]] bool IsExpectedMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept;
+		[[nodiscard]] bool IsMessageSequenceNumberInCurrentWindow(const Message::SequenceNumber seqnum,
+																  const Message::SequenceNumber last_seqnum,
+																  const Size wnd_size) noexcept;
+		[[nodiscard]] bool IsMessageSequenceNumberInPreviousWindow(const Message::SequenceNumber seqnum,
+																   const Message::SequenceNumber last_seqnum,
+																   const Size wnd_size) noexcept;
 		[[nodiscard]] bool ReceivePendingSocketData() noexcept;
-		void ProcessMTUDiscovery() noexcept;
+		[[nodiscard]] bool ProcessMTUDiscovery() noexcept;
 
 		void ProcessSocketEvents() noexcept;
 		[[nodiscard]] bool HasAvailableSendWindowSpace() const noexcept;
@@ -110,16 +121,16 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	private:
 		static constexpr std::chrono::seconds ConnectTimeout{ 30 };
 		static constexpr std::chrono::milliseconds ConnectRetransmissionTimeout{ 1000 };
-		static constexpr Size MinReceiveWindowSize{ 128 };
-		static constexpr Size MaxReceiveWindowSize{ 65535 };
-		static constexpr Size MaxReceiveWindowBytes{ 1 << 22 };
+		static constexpr Size MinReceiveWindowSize{ Statistics::MinSendWindowSize };
+		static constexpr Size MaxReceiveWindowSize{ std::numeric_limits<Message::SequenceNumber>::max() / 2 };
+		static constexpr Size MaxReceiveWindowBytes{ 1 << 20 };
 
 	private:
 		PeerConnectionType m_Type{ PeerConnectionType::Unknown };
 		Status m_Status{ Status::Closed };
 		ConnectionID m_ID{ 0 };
 		Network::Socket m_Socket;
-		Size m_MaxMessageSize{ MTUDiscovery::MessageSizes[0] };
+		Size m_MaxMessageSize{ MTUDiscovery::MinMessageSize };
 		SteadyTime m_LastStatusChangeSteadyTime;
 		std::shared_ptr<ConnectionData_ThS> m_ConnectionData;
 
@@ -134,6 +145,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Size m_ReceiveWindowSize{ MinReceiveWindowSize };
 		ReceiveQueue m_ReceiveQueue;
 		ReceiveAckList m_ReceivePendingAckList;
+
+		Size m_PeerAdvReceiveWindowSize{ MinReceiveWindowSize };
+		Size m_PeerAdvReceiveWindowSizeBytes{ MinReceiveWindowSize * MTUDiscovery::MinMessageSize };
+		Size m_PeerReceiveWindowSize{ MinReceiveWindowSize };
 
 		CloseCondition m_CloseCondition{ CloseCondition::None };
 	};

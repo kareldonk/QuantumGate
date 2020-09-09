@@ -5,6 +5,24 @@
 
 #include "..\..\Common\Containers.h"
 
+// Use to enable/disable RTT debug console output
+// #define UDPCS_RTT_DEBUG
+
+#ifdef UDPCS_RTT_DEBUG
+#define UDPCS_RTTDbg(x) x
+#else
+#define UDPCS_RTTDbg(x) ((void)0)
+#endif
+
+// Use to enable/disable Send Window Size debug console output
+// #define UDPCS_WND_DEBUG
+
+#ifdef UDPCS_WND_DEBUG
+#define UDPCS_WNDDbg(x) x
+#else
+#define UDPCS_WNDDbg(x) ((void)0)
+#endif
+
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
 	class Statistics final
@@ -41,18 +59,20 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			if (!m_RTTSamplesDirty || m_RTTSamples.empty()) return;
 
 			std::chrono::milliseconds total_time{ 0 };
-			std::chrono::milliseconds min_time{ std::numeric_limits<std::chrono::milliseconds::rep>::max() };
-			std::chrono::milliseconds max_time{ 0 };
+
+			UDPCS_WNDDbg(
+				std::chrono::milliseconds min_time{ std::numeric_limits<std::chrono::milliseconds::rep>::max() };
+				std::chrono::milliseconds max_time{ 0 };
+			);
 
 			for (const auto& sample : m_RTTSamples)
 			{
 				total_time += sample.RTT;
 
-				DbgInvoke([&]()
-				{
+				UDPCS_RTTDbg(
 					min_time = std::min(min_time, sample.RTT);
 					max_time = std::max(max_time, sample.RTT);
-				});
+				);
 			}
 
 			const std::chrono::milliseconds rtt_mean = total_time / m_RTTSamples.size();
@@ -88,23 +108,21 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				// that last a short time (e.g., a single message that encounters long delay).
 				// Choosing a value for X close to 0 makes the weighted average respond to changes
 				// in delay very quickly.
-				constexpr auto X = 0.95;
+				const auto X = m_NoLossYetRecorded ? 0.5 : 0.95;
 				const auto new_rtt_sample = (total_rtt.count() / total_rtt_count);
 				const auto new_rtt = X * m_RTT.count() + ((1.0 - X) * new_rtt_sample);
 				m_RTT = std::chrono::milliseconds(static_cast<std::chrono::milliseconds::rep>(new_rtt));
 			}
 
-			SLogDbg(SLogFmt(FGBrightGreen) << L"UDP connection: RTT: " << m_RTT.count() <<
-					L"ms - MinRTT: " << min_time.count() << L"ms - MaxRTT: " << max_time.count() << L"ms" << SLogFmt(Default));
+			UDPCS_RTTDbg(SLogInfo(SLogFmt(FGBrightGreen) << L"UDP connection: RTT: " << m_RTT.count() <<
+								  L"ms - MinRTT: " << min_time.count() << L"ms - MaxRTT: " << max_time.count() << L"ms" << SLogFmt(Default)));
 
 			m_RTTSamplesDirty = false;
 		}
 
-		inline void SetPeerReceiveWindowSize(const Size size) noexcept { m_PeerReceiveWindowSize = size; }
-
 		[[nodiscard]] inline Size GetSendWindowSize() const noexcept
 		{
-			return std::min(m_PeerReceiveWindowSize, m_SendWindowSize);
+			return m_SendWindowSize;
 		}
 
 		inline void RecordPacketRTT(const std::chrono::milliseconds rtt) noexcept
@@ -153,8 +171,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					m_SendWindowSize = std::max(MinSendWindowSize, m_SendWindowSize / 2);
 					m_NoLossYetRecorded = false;
 
-					SLogDbg(SLogFmt(FGBrightMagenta) << L"UDP connection: NoLossSendWindowSize: " <<
-							m_NoLossSendWindowSize << L" - SendWindowSize: " << m_SendWindowSize << SLogFmt(Default));
+					UDPCS_WNDDbg(SLogInfo(SLogFmt(FGBrightMagenta) << L"UDP connection: NoLossSendWindowSize: " <<
+										  m_NoLossSendWindowSize << L" - SendWindowSize: " << m_SendWindowSize << SLogFmt(Default)));
 				}
 			}
 		}
@@ -195,18 +213,20 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			if (!m_SendWindowSizeSamplesDirty || m_SendWindowSizeSamples.empty()) return;
 
 			double total_wnd_size{ 0 };
-			double min_size{ std::numeric_limits<double>::max() };
-			double max_size{ MinSendWindowSize };
+
+			UDPCS_WNDDbg(
+				double min_size{ std::numeric_limits<double>::max() };
+				double max_size{ MinSendWindowSize };
+			);
 
 			for (const auto& sample : m_SendWindowSizeSamples)
 			{
 				total_wnd_size += sample.WindowSize;
 
-				DbgInvoke([&]()
-				{
+				UDPCS_WNDDbg(
 					min_size = std::min(min_size, sample.WindowSize);
 					max_size = std::max(max_size, sample.WindowSize);
-				});
+				);
 			}
 
 			const auto wins_mean = total_wnd_size / m_RTTSamples.size();
@@ -245,9 +265,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				m_SendWindowSize = static_cast<Size>(std::ceil(X * m_SendWindowSize + ((1.0 - X) * new_wins_sample)));
 			}
 
-			SLogDbg(SLogFmt(FGBrightMagenta) << L"UDP connection: SendWindowSize: " << m_SendWindowSize <<
-					L" - Min: " << static_cast<Size>(std::ceil(min_size)) << L" - Max: " <<
-					static_cast<Size>(std::ceil(max_size)) << SLogFmt(Default));
+			UDPCS_WNDDbg(SLogInfo(SLogFmt(FGBrightMagenta) << L"UDP connection: SendWindowSize: " << m_SendWindowSize <<
+								  L" - Min: " << static_cast<Size>(std::ceil(min_size)) << L" - Max: " <<
+								  static_cast<Size>(std::ceil(max_size)) << SLogFmt(Default)));
 
 			m_SendWindowSizeSamplesDirty = false;
 		}
@@ -265,13 +285,15 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			m_RTTSamplesDirty = true;
 		}
 
+	public:
+		static constexpr Size MinSendWindowSize{ 8 };
+
 	private:
 		static constexpr std::chrono::milliseconds StartRTT{ 600 };
 		static constexpr std::chrono::milliseconds MinRetransmissionTimeout{ 1 };
 		static constexpr Size MaxRTTSamples{ 128 };
 
-		static constexpr Size MinSendWindowSize{ 2 };
-		static constexpr Size MaxSendWindowSizeSamples{ 128 };
+		static constexpr Size MaxSendWindowSizeSamples{ 1024 };
 
 	private:
 		std::chrono::milliseconds m_RTT{ StartRTT };
@@ -281,7 +303,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		bool m_NoLossYetRecorded{ true };
 		Size m_NoLossSendWindowSize{ MinSendWindowSize };
 		Size m_SendWindowSize{ MinSendWindowSize };
-		Size m_PeerReceiveWindowSize{ MinSendWindowSize };
 		SendWindowSampleList m_SendWindowSizeSamples;
 		bool m_SendWindowSizeSamplesDirty{ false };
 		double m_NewSendWindowSizeSample{ MinSendWindowSize };
