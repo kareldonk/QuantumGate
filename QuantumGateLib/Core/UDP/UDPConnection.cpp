@@ -196,7 +196,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 			case Status::Connected:
 			{
-				ProcessMTUDiscovery();
+				if (!ProcessMTUDiscovery())
+				{
+					SetCloseCondition(CloseCondition::SendError);
+				}
 
 				if (!ReceivePendingSocketData())
 				{
@@ -216,41 +219,46 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	void Connection::ProcessMTUDiscovery() noexcept
+	bool Connection::ProcessMTUDiscovery() noexcept
 	{
-		if (!m_MTUDiscovery) return;
+		if (!m_MTUDiscovery) return true;
 
-		const auto status = m_MTUDiscovery->Process(m_Socket, m_ConnectionData->WithSharedLock()->GetPeerEndpoint());
+		const auto endpoint = m_ConnectionData->WithSharedLock()->GetPeerEndpoint();
+		const auto status = m_MTUDiscovery->Process(m_Socket, endpoint);
 		switch (status)
 		{
 			case MTUDiscovery::Status::Finished:
 			case MTUDiscovery::Status::Failed:
 			{
 				m_MaxMessageSize = m_MTUDiscovery->GetMaxMessageSize();
-				m_ReceiveWindowSize = std::min(MaxReceiveWindowSize, MaxReceiveWindowBytes / m_MaxMessageSize);
-				m_Statistics.SetPeerReceiveWindowSize(m_ReceiveWindowSize);
+				m_ReceiveWindowSize = std::min(MaxReceiveWindowSize, MaxReceiveWindowBytes / static_cast<UInt32>(m_MaxMessageSize));
+				
+				RecalcPeerReceiveWindowSize();
+				
 				LogWarn(L"UDP connection: receive window size is %zu", m_ReceiveWindowSize);
+
 				m_MTUDiscovery.reset();
-				break;
+
+				return SendStateUpdate(endpoint);
 			}
 			default:
 			{
 				break;
 			}
 		}
+
+		return true;
 	}
 
 	bool Connection::SendOutboundSyn(const IPEndpoint& endpoint) noexcept
 	{
-		LogDbg(L"UDP connection: sending outbound SYN to peer %s for connection %llu",
-			   endpoint.GetString().c_str(), GetID());
+		LogDbg(L"UDP connection: sending outbound SYN to peer %s for connection %llu (seq# %u)",
+			   endpoint.GetString().c_str(), GetID(), m_NextSendSequenceNumber);
 
 		Message msg(Message::Type::Syn, Message::Direction::Outgoing, m_MaxMessageSize);
 		msg.SetProtocolVersion(ProtocolVersion::Major, ProtocolVersion::Minor);
 		msg.SetConnectionID(GetID());
 		msg.SetMessageSequenceNumber(m_NextSendSequenceNumber);
-		msg.SetMessageAckNumber(static_cast<UInt16>(Random::GetPseudoRandomNumber()));
-		msg.SetPort(static_cast<UInt16>(Random::GetPseudoRandomNumber()));
 
 		if (Send(endpoint, std::move(msg), true))
 		{
@@ -263,8 +271,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::SendInboundSyn(const IPEndpoint& endpoint) noexcept
 	{
-		LogDbg(L"UDP connection: sending inbound SYN to peer %s for connection %llu",
-			   endpoint.GetString().c_str(), GetID());
+		LogDbg(L"UDP connection: sending inbound SYN to peer %s for connection %llu (seq# %u)",
+			   endpoint.GetString().c_str(), GetID(), m_NextSendSequenceNumber);
 
 		Message msg(Message::Type::Syn, Message::Direction::Outgoing, m_MaxMessageSize);
 		msg.SetProtocolVersion(ProtocolVersion::Major, ProtocolVersion::Minor);
@@ -284,8 +292,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::SendData(const IPEndpoint& endpoint, Buffer&& data) noexcept
 	{
-		LogDbg(L"UDP connection: sending data to peer %s for connection %llu",
-			   endpoint.GetString().c_str(), GetID());
+		LogDbg(L"UDP connection: sending data to peer %s for connection %llu (seq# %u)",
+			   endpoint.GetString().c_str(), GetID(), m_NextSendSequenceNumber);
 
 		Message msg(Message::Type::Data, Message::Direction::Outgoing, m_MaxMessageSize);
 		msg.SetMessageSequenceNumber(m_NextSendSequenceNumber);
@@ -301,17 +309,46 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
+	bool Connection::SendStateUpdate(const IPEndpoint& endpoint) noexcept
+	{
+		LogDbg(L"UDP connection: sending state update to peer %s for connection %llu (seq# %u)",
+			   endpoint.GetString().c_str(), GetID(), m_NextSendSequenceNumber);
+
+		Message msg(Message::Type::State, Message::Direction::Outgoing, m_MaxMessageSize);
+		msg.SetMessageSequenceNumber(m_NextSendSequenceNumber);
+		msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
+		msg.SetStateData(
+			Message::StateData{
+				.MaxWindowSize = static_cast<UInt32>(m_ReceiveWindowSize),
+				.MaxWindowSizeBytes = static_cast<UInt32>(MaxReceiveWindowBytes)
+			});
+
+		if (Send(endpoint, std::move(msg), true))
+		{
+			IncrementSendSequenceNumber();
+			return true;
+		}
+
+		return false;
+	}
+
 	bool Connection::SendPendingAcks() noexcept
 	{
 		if (m_ReceivePendingAckList.empty()) return true;
+		/*
+		std::erase_if(m_ReceivePendingAckList, [&](const auto& seqnum)
+		{
+			return IsMessageSequenceNumberInPreviousWindow(seqnum,
+														   m_LastInSequenceReceivedSequenceNumber,
+														   m_ReceiveWindowSize);
+		});*/
 
 		const auto endpoint = m_ConnectionData->WithSharedLock()->GetPeerEndpoint();
 
 		LogDbg(L"UDP connection: sending acks to peer %s for connection %llu",
 			   endpoint.GetString().c_str(), GetID());
 
-		Message msg(Message::Type::Ack, Message::Direction::Outgoing, m_MaxMessageSize);
-		msg.SetMessageSequenceNumber(0);
+		Message msg(Message::Type::EAck, Message::Direction::Outgoing, m_MaxMessageSize);
 		msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
 
 		const auto max_num_acks = msg.GetMaxAckSequenceNumbersPerMessage();
@@ -346,7 +383,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		const auto endpoint = m_ConnectionData->WithSharedLock()->GetPeerEndpoint();
 
 		Message msg(Message::Type::Reset, Message::Direction::Outgoing, m_MaxMessageSize);
-		msg.SetMessageSequenceNumber(0);
 		msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
 
 		if (!Send(endpoint, std::move(msg), false))
@@ -509,8 +545,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			if (loss > 0)
 			{
-				LogWarn(L"UDP connection: retransmitted %zu packets (queue size %zu, send window size %zu)",
-						loss, m_SendQueue.size(), m_Statistics.GetSendWindowSize());
+				LogWarn(L"UDP connection: retransmitted %zu packets (queue size %zu, send window size %zu, RTT %jdms)",
+						loss, m_SendQueue.size(), GetSendWindowSize(), m_Statistics.GetRetransmissionTimeout().count());
 			}
 		});
 
@@ -694,45 +730,74 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			case Message::Type::Data:
 			{
+				LogDbg(L"UDP connection: received data message from peer %s (seq# %u)",
+					   endpoint.GetString().c_str(), msg.GetMessageSequenceNumber());
+
 				if (IsExpectedMessageSequenceNumber(msg.GetMessageSequenceNumber()))
 				{
+					assert(msg.HasAck());
 					ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
 
 					if (AckReceivedMessage(msg.GetMessageSequenceNumber()))
 					{
-						ReceiveQueueItem itm{
-							.SequenceNumber = msg.GetMessageSequenceNumber(),
-							.Data = msg.MoveMessageData()
-						};
-
-						try
-						{
-							m_ReceiveQueue.emplace(msg.GetMessageSequenceNumber(), std::move(itm));
-							return true;
-						}
-						catch (...) {}
+						return AddToReceiveQueue(
+							ReceiveQueueItem{
+								.SequenceNumber = msg.GetMessageSequenceNumber(),
+								.Data = msg.MoveMessageData()
+							});
 					}
 				}
 				else return true;
+				break;
 			}
-			case Message::Type::Ack:
+			case Message::Type::State:
 			{
+				LogDbg(L"UDP connection: received state message from peer %s (seq# %u)",
+					   endpoint.GetString().c_str(), msg.GetMessageSequenceNumber());
+
+				assert(msg.HasAck());
+				ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
+				
+				if (AckReceivedMessage(msg.GetMessageSequenceNumber()))
+				{
+					const auto state_data = msg.GetStateData();
+					m_PeerAdvReceiveWindowSize = state_data.MaxWindowSize;
+					m_PeerAdvReceiveWindowSizeBytes = state_data.MaxWindowSizeBytes;
+
+					RecalcPeerReceiveWindowSize();
+				
+					return AddToReceiveQueue(
+						ReceiveQueueItem{
+							.SequenceNumber = msg.GetMessageSequenceNumber()
+						});
+				}
+				break;
+			}
+			case Message::Type::EAck:
+			{
+				LogDbg(L"UDP connection: received ack message from peer %s", endpoint.GetString().c_str());
+
+				assert(msg.HasAck());
 				ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
 				ProcessReceivedAcks(msg.GetAckSequenceNumbers());
 				return true;
 			}
 			case Message::Type::MTUD:
 			{
-				MTUDiscovery::AckSentMessage(m_Socket, endpoint, msg.GetMessageSequenceNumber());
-				return true;
-			}
-			case Message::Type::MTUDAck:
-			{
-				if (m_MTUDiscovery) m_MTUDiscovery->ProcessReceivedAck(msg.GetMessageAckNumber());
+				if (!msg.HasAck())
+				{
+					MTUDiscovery::AckReceivedMessage(m_Socket, endpoint, msg.GetMessageSequenceNumber());
+				}
+				else
+				{
+					if (m_MTUDiscovery) m_MTUDiscovery->ProcessReceivedAck(msg.GetMessageAckNumber());
+				}
 				return true;
 			}
 			case Message::Type::Reset:
 			{
+				LogDbg(L"UDP connection: received reset message from peer %s", endpoint.GetString().c_str());
+
 				m_ConnectionData->WithUniqueLock()->SetCloseRequest();
 				SetCloseCondition(CloseCondition::PeerCloseRequest);
 				return true;
@@ -747,66 +812,90 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
+	bool Connection::AddToReceiveQueue(ReceiveQueueItem&& itm) noexcept
+	{
+		try
+		{
+			m_ReceiveQueue.emplace(itm.SequenceNumber, std::move(itm));
+			return true;
+		}
+		catch (...) {}
+
+		return false;
+	}
+
 	bool Connection::IsExpectedMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept
 	{
-		constexpr const auto max_seqnum = std::numeric_limits<Message::SequenceNumber>::max();
+		if (IsMessageSequenceNumberInCurrentWindow(seqnum, m_LastInSequenceReceivedSequenceNumber,
+												   m_ReceiveWindowSize)) return true;
 
-		// Check if seqnum is in the current receive window range
+		if (IsMessageSequenceNumberInPreviousWindow(seqnum, m_LastInSequenceReceivedSequenceNumber,
+													m_ReceiveWindowSize))
 		{
-			if (max_seqnum - m_ReceiveWindowSize >= m_LastInSequenceReceivedSequenceNumber)
-			{
-				if (m_LastInSequenceReceivedSequenceNumber < seqnum &&
-					seqnum <= m_LastInSequenceReceivedSequenceNumber + m_ReceiveWindowSize)
-				{
-					return true;
-				}
-			}
-			else
-			{
-				const auto r1 = max_seqnum - m_LastInSequenceReceivedSequenceNumber;
-				const auto r2 = m_ReceiveWindowSize - r1;
-				if (m_LastInSequenceReceivedSequenceNumber < seqnum &&
-					seqnum <= m_LastInSequenceReceivedSequenceNumber + r1)
-				{
-					return true;
-				}
-				else if (seqnum < r2) return true;
-			}
-		}
-
-		// Check if seqnum is in the previous receive window range
-		{
-			auto inprev_wnd = false;
-
-			if (m_LastInSequenceReceivedSequenceNumber >= m_ReceiveWindowSize)
-			{
-				if (m_LastInSequenceReceivedSequenceNumber - m_ReceiveWindowSize <= seqnum &&
-					seqnum <= m_LastInSequenceReceivedSequenceNumber)
-				{
-					inprev_wnd = true;
-				}
-			}
-			else
-			{
-				const auto r1 = m_LastInSequenceReceivedSequenceNumber;
-				const auto r2 = max_seqnum - (m_ReceiveWindowSize - r1);
-				if (0 <= seqnum && seqnum <= r1)
-				{
-					inprev_wnd = true;
-				}
-				else if (r2 < seqnum && seqnum <= max_seqnum)
-				{
-					inprev_wnd = true;
-				}
-			}
-
-			if (inprev_wnd)
-			{
-				DiscardReturnValue(AckReceivedMessage(seqnum));
-			}
+			// May have been retransmitted due to delays; send an ack
+			DiscardReturnValue(AckReceivedMessage(seqnum));
 		}
 
 		return false;
+	}
+
+	bool Connection::IsMessageSequenceNumberInCurrentWindow(const Message::SequenceNumber seqnum,
+															const Message::SequenceNumber last_seqnum,
+															const Size wnd_size) noexcept
+	{
+		constexpr const auto max_seqnum = std::numeric_limits<Message::SequenceNumber>::max();
+
+		if (max_seqnum - wnd_size >= last_seqnum)
+		{
+			if (last_seqnum < seqnum && seqnum <= last_seqnum + wnd_size)
+			{
+				return true;
+			}
+		}
+		else
+		{
+			const auto r1 = max_seqnum - last_seqnum;
+			const auto r2 = wnd_size - r1;
+			if (last_seqnum < seqnum && seqnum <= last_seqnum + r1)
+			{
+				return true;
+			}
+			else if (seqnum < r2) return true;
+		}
+
+		return false;
+	}
+
+	bool Connection::IsMessageSequenceNumberInPreviousWindow(const Message::SequenceNumber seqnum,
+															 const Message::SequenceNumber last_seqnum,
+															 const Size wnd_size) noexcept
+	{
+		constexpr const auto max_seqnum = std::numeric_limits<Message::SequenceNumber>::max();
+
+		auto inprev_wnd = false;
+
+		if (last_seqnum >= wnd_size)
+		{
+			if (last_seqnum - wnd_size <= seqnum && seqnum <= last_seqnum)
+			{
+				inprev_wnd = true;
+			}
+		}
+		else
+		{
+			const auto r1 = last_seqnum;
+			const auto r2 = max_seqnum - (wnd_size - r1);
+			if (0 <= seqnum && seqnum <= r1)
+			{
+				inprev_wnd = true;
+			}
+			else if (r2 < seqnum && seqnum <= max_seqnum)
+			{
+				inprev_wnd = true;
+			}
+		}
+
+		return inprev_wnd;
 	}
 
 	bool Connection::AckSentMessage(const Message::SequenceNumber seqnum) noexcept
@@ -1063,8 +1152,22 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
+	void Connection::RecalcPeerReceiveWindowSize() noexcept
+	{
+		const auto wndsize = std::max(MinReceiveWindowSize, m_PeerAdvReceiveWindowSizeBytes / m_MaxMessageSize);
+		m_PeerReceiveWindowSize = std::min(wndsize, m_PeerAdvReceiveWindowSize);
+
+		LogWarn(L"UDP connection: PeerAdvReceiveWindowSizeBytes: %zu - PeerAdvReceiveWindowSize: %zu - PeerReceiveWindowSize: %zu",
+				m_PeerAdvReceiveWindowSizeBytes, m_PeerAdvReceiveWindowSize, m_PeerReceiveWindowSize);
+	}
+
+	Size Connection::GetSendWindowSize() const noexcept
+	{
+		return std::min(m_Statistics.GetSendWindowSize(), m_PeerReceiveWindowSize);
+	}
+
 	bool Connection::HasAvailableSendWindowSpace() const noexcept
 	{
-		return (m_SendQueue.size() < m_Statistics.GetSendWindowSize());
+		return (m_SendQueue.size() < GetSendWindowSize());
 	}
 }

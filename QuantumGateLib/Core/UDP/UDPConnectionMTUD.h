@@ -6,6 +6,15 @@
 #include "UDPMessage.h"
 #include "..\..\Common\Random.h"
 
+// Use to enable/disable MTU discovery debug console output
+// #define UDPMTUD_DEBUG
+
+#ifdef UDPMTUD_DEBUG
+#define UDPMTUDDbg(x) x
+#else
+#define UDPMTUDDbg(x) ((void)0)
+#endif
+
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
 	class MTUDiscovery final
@@ -37,7 +46,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				Message msg(Message::Type::MTUD, Message::Direction::Outgoing, msg_size);
 				msg.SetMessageSequenceNumber(static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber()));
-				msg.SetMessageAckNumber(static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber()));
 				msg.SetMessageData(Random::GetPseudoRandomBytes(msg.GetMaxMessageDataSize()));
 
 				Buffer data;
@@ -73,9 +81,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			// Message must have already been created
 			assert(m_MTUDMessageData.has_value());
 
-			SLogDbg(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: sending MTUD message of size " <<
-					m_MTUDMessageData->Data.GetSize() << L" bytes to peer " << endpoint.GetString() <<
-					L" (" << m_MTUDMessageData->NumTries << L" previous tries)" << SLogFmt(Default));
+			UDPMTUDDbg(SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: sending MTUD message of size " <<
+								m_MTUDMessageData->Data.GetSize() << L" bytes to peer " << endpoint.GetString() <<
+								L" (" << m_MTUDMessageData->NumTries << L" previous tries)" << SLogFmt(Default)));
 
 			const auto result = socket.SendTo(endpoint, m_MTUDMessageData->Data);
 			if (result.Succeeded())
@@ -98,9 +106,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					// 10040 is 'message too large' error;
 					// we are expecting that at some point
-					SLogDbg(SLogFmt(FGBrightBlue) << L"UDP connection MTUD : failed to send MTUD message of size " <<
-							m_MTUDMessageData->Data.GetSize() << L" bytes to peer " << endpoint.GetString() <<
-							L" (" << result.GetErrorString() << L")" << SLogFmt(Default));
+					UDPMTUDDbg(SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD : failed to send MTUD message of size " <<
+										m_MTUDMessageData->Data.GetSize() << L" bytes to peer " << endpoint.GetString() <<
+										L" (" << result.GetErrorString() << L")" << SLogFmt(Default)));
 				}
 				else
 				{
@@ -119,7 +127,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				case Status::Start:
 				{
 					// Begin with first/smallest message size
-					m_MaximumMessageSize = MessageSizes[0];
+					m_MaximumMessageSize = MinMessageSize;
 					m_CurrentMessageSizeIndex = 0;
 
 					// Set MTU discovery option on socket which disables fragmentation
@@ -136,9 +144,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 								   endpoint.GetString().c_str(), result.GetErrorString().c_str());
 						}
 
-						SLogDbg(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: starting MTU discovery for peer " <<
-								endpoint.GetString() << L"; maximum datagram message size is " << maxdg_size <<
-								L" bytes" << SLogFmt(Default));
+						UDPMTUDDbg(SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: starting MTU discovery for peer " <<
+											endpoint.GetString() << L"; maximum datagram message size is " << maxdg_size <<
+											L" bytes" << SLogFmt(Default)));
 
 						if (CreateNewMessage(MessageSizes[m_CurrentMessageSizeIndex], endpoint) &&
 							TransmitMessage(socket, endpoint))
@@ -212,8 +220,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				case Status::Finished:
 				case Status::Failed:
 				{
-					SLogDbg(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: finished MTU discovery; maximum message size is " <<
-							GetMaxMessageSize() << L" bytes for peer " << endpoint.GetString() << SLogFmt(Default));
+					UDPMTUDDbg(SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: finished MTU discovery; maximum message size is " <<
+										GetMaxMessageSize() << L" bytes for peer " << endpoint.GetString() << SLogFmt(Default)));
 
 					// Disable MTU discovery on socket now that we're done
 					if (!socket.SetMTUDiscovery(false))
@@ -243,20 +251,20 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 		}
 
-		static void AckSentMessage(Network::Socket& socket, const IPEndpoint& endpoint,
-								   const Message::SequenceNumber seqnum) noexcept
+		static void AckReceivedMessage(Network::Socket& socket, const IPEndpoint& endpoint,
+									   const Message::SequenceNumber seqnum) noexcept
 		{
 			try
 			{
-				Message msg(Message::Type::MTUDAck, Message::Direction::Outgoing, MessageSizes[0]);
+				Message msg(Message::Type::MTUD, Message::Direction::Outgoing, MinMessageSize);
 				msg.SetMessageSequenceNumber(static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber()));
 				msg.SetMessageAckNumber(seqnum);
 
 				Buffer data;
 				if (msg.Write(data))
 				{
-					SLogDbg(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: sending MTUDAck message to peer " <<
-							endpoint.GetString() << SLogFmt(Default));
+					UDPMTUDDbg(SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: sending MTUDAck message to peer " <<
+										endpoint.GetString() << SLogFmt(Default)));
 
 					const auto result = socket.SendTo(endpoint, data);
 					if (result.Failed())
@@ -286,6 +294,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		// is for 1500 octets or greater.
 		// Maximum message size is 65467 octets (65535 - 8 octet UDP header - 60 octet IP header).
 		static constexpr std::array<Size, 9> MessageSizes{ 508, 1232, 1452, 2048, 4096, 8192, 16384, 32768, 65467 };
+		static constexpr Size MinMessageSize{ 508 };
+		static constexpr Size MaxMessageSize{  65467 };
 
 	private:
 
@@ -295,7 +305,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	private:
 		Status m_Status{ Status::Start };
 		std::optional<MTUDMessageData> m_MTUDMessageData;
-		Size m_MaximumMessageSize{ MessageSizes[0] };
+		Size m_MaximumMessageSize{ MinMessageSize };
 		Size m_CurrentMessageSizeIndex{ 0 };
 		std::chrono::milliseconds m_RetransmissionTimeout{ MinRetransmissionTimeout };
 	};

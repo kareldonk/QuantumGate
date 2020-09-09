@@ -5,13 +5,26 @@
 #include "UDPMessage.h"
 #include "..\..\Memory\BufferReader.h"
 #include "..\..\Memory\BufferWriter.h"
+#include "..\..\Common\Random.h"
 
 using namespace QuantumGate::Implementation::Memory;
 
 namespace QuantumGate::Implementation::Core::UDP
 {
+	Message::SynHeader::SynHeader(const Direction direction) noexcept : m_Direction(direction)
+	{
+		if (m_Direction == Direction::Outgoing)
+		{
+			// These are not used for outgoing Syn so we fill with random data
+			m_MessageAckNumber = static_cast<UInt16>(Random::GetPseudoRandomNumber());
+			m_Port = static_cast<UInt16>(Random::GetPseudoRandomNumber());
+		}
+	}
+
 	bool Message::SynHeader::Read(const BufferView& buffer) noexcept
 	{
+		assert(m_Direction == Direction::Incoming);
+
 		Memory::BufferReader rdr(buffer, true);
 		return rdr.Read(m_MessageHMAC,
 						m_MessageSequenceNumber,
@@ -24,6 +37,8 @@ namespace QuantumGate::Implementation::Core::UDP
 	
 	bool Message::SynHeader::Write(Buffer& buffer) const noexcept
 	{
+		assert(m_Direction == Direction::Outgoing);
+
 		Memory::BufferWriter wrt(buffer, true);
 		return wrt.WriteWithPreallocation(m_MessageHMAC,
 										  m_MessageSequenceNumber,
@@ -34,22 +49,63 @@ namespace QuantumGate::Implementation::Core::UDP
 										  m_Port);
 	}
 
+	Message::MsgHeader::MsgHeader(const Type type, const Direction direction) noexcept :
+		m_Direction(direction), m_MessageType(type)
+	{
+		if (m_Direction == Direction::Outgoing)
+		{
+			if (m_MessageType == Message::Type::EAck ||
+				m_MessageType == Message::Type::Reset)
+			{
+				// Not used for the above message types so we fill with random data
+				m_MessageSequenceNumber = static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber());
+			}
+		}
+	}
+
 	bool Message::MsgHeader::Read(const BufferView& buffer) noexcept
 	{
+		assert(m_Direction == Direction::Incoming);
+
+		UInt8 msgtype_flags{ 0 };
+
 		Memory::BufferReader rdr(buffer, true);
-		return rdr.Read(m_MessageHMAC,
-						m_MessageSequenceNumber,
-						m_MessageAckNumber,
-						m_MessageType);
+		if (rdr.Read(m_MessageHMAC,
+					 m_MessageSequenceNumber,
+					 m_MessageAckNumber,
+					 msgtype_flags))
+		{
+			m_MessageType = static_cast<Type>(msgtype_flags & MessageTypeMask);
+			m_AckFlag = msgtype_flags & AckFlag;
+			m_SeqNumFlag = msgtype_flags & SeqNumFlag;
+
+			return true;
+		}
+
+		return false;
 	}
 
 	bool Message::MsgHeader::Write(Buffer& buffer) const noexcept
 	{
+		assert(m_Direction == Direction::Outgoing);
+
+		UInt8 msgtype_flags{ static_cast<UInt8>(m_MessageType) };
+		
+		if (m_AckFlag)
+		{
+			msgtype_flags = msgtype_flags | AckFlag;
+		}
+
+		if (m_SeqNumFlag)
+		{
+			msgtype_flags = msgtype_flags | SeqNumFlag;
+		}
+
 		Memory::BufferWriter wrt(buffer, true);
 		return wrt.WriteWithPreallocation(m_MessageHMAC,
 										  m_MessageSequenceNumber,
 										  m_MessageAckNumber,
-										  m_MessageType);
+										  msgtype_flags);
 	}
 
 	void Message::SetMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept
@@ -76,6 +132,20 @@ namespace QuantumGate::Implementation::Core::UDP
 			[&](const MsgHeader& hdr) noexcept
 			{
 				return hdr.GetMessageSequenceNumber();
+			}
+		}, m_Header);
+	}
+
+	bool Message::HasAck() const noexcept
+	{
+		return std::visit(Util::Overloaded{
+			[](const SynHeader& hdr) noexcept
+			{
+				return hdr.HasAck();
+			},
+			[](const MsgHeader& hdr) noexcept
+			{
+				return hdr.HasAck();
 			}
 		}, m_Header);
 	}
@@ -152,7 +222,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		if (!buffer.IsEmpty())
 		{
-			m_MessageData = std::move(buffer);
+			m_Data = std::move(buffer);
 
 			Validate();
 		}
@@ -169,13 +239,30 @@ namespace QuantumGate::Implementation::Core::UDP
 		return (std::min(asize, static_cast<Size>(512u)) / sizeof(Message::SequenceNumber));
 	}
 
+	void Message::SetStateData(StateData&& data) noexcept
+	{
+		assert(std::holds_alternative<MsgHeader>(m_Header));
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::State);
+
+		m_StateData = std::move(data);
+	}
+
+	const Message::StateData& Message::GetStateData() const noexcept
+	{
+		assert(std::holds_alternative<MsgHeader>(m_Header));
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::State);
+		assert(IsValid());
+
+		return m_StateData;
+	}
+
 	const Buffer& Message::GetMessageData() const noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
 		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Data);
 		assert(IsValid());
 
-		return m_MessageData;
+		return m_Data;
 	}
 
 	Buffer&& Message::MoveMessageData() noexcept
@@ -184,17 +271,17 @@ namespace QuantumGate::Implementation::Core::UDP
 		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Data);
 		assert(IsValid());
 
-		return std::move(m_MessageData);
+		return std::move(m_Data);
 	}
 
 	void Message::SetAckSequenceNumbers(Vector<Message::SequenceNumber>&& acks) noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Ack);
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::EAck);
 
 		if (!acks.empty())
 		{
-			m_MessageAcks = std::move(acks);
+			m_EAcks = std::move(acks);
 		
 			Validate();
 		}
@@ -203,10 +290,10 @@ namespace QuantumGate::Implementation::Core::UDP
 	const Vector<Message::SequenceNumber>& Message::GetAckSequenceNumbers() noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Ack);
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::EAck);
 		assert(IsValid());
 
-		return m_MessageAcks;
+		return m_EAcks;
 	}
 
 	Size Message::GetHeaderSize() const noexcept
@@ -225,8 +312,6 @@ namespace QuantumGate::Implementation::Core::UDP
 
 	bool Message::Read(BufferView buffer)
 	{
-		assert(m_Direction == Direction::Incoming);
-
 		// Should have enough data for outer message header
 		if (buffer.GetSize() < GetHeaderSize()) return false;
 
@@ -249,15 +334,29 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		if (std::holds_alternative<MsgHeader>(m_Header))
 		{
-			const auto type = std::get<MsgHeader>(m_Header).GetMessageType();
-			if (type == Type::Data)
+			switch (std::get<MsgHeader>(m_Header).GetMessageType())
 			{
-				m_MessageData = buffer;
-			}
-			else if (type == Type::Ack)
-			{
-				Memory::BufferReader rdr(buffer, true);
-				if (!rdr.Read(WithSize(m_MessageAcks, MaxSize::_512B))) return false;
+				case Type::Data:
+				{
+					m_Data = buffer;
+					break;
+				}
+				case Type::EAck:
+				{
+					Memory::BufferReader rdr(buffer, true);
+					if (!rdr.Read(WithSize(m_EAcks, MaxSize::_512B))) return false;
+					break;
+				}
+				case Type::State:
+				{
+					Memory::BufferReader rdr(buffer, true);
+					if (!rdr.Read(m_StateData.MaxWindowSize, m_StateData.MaxWindowSizeBytes)) return false;
+					break;
+				}
+				default:
+				{
+					break;
+				}
 			}
 		}
 
@@ -268,8 +367,6 @@ namespace QuantumGate::Implementation::Core::UDP
 	
 	bool Message::Write(Buffer& buffer)
 	{
-		assert(m_Direction == Direction::Outgoing);
-
 		Buffer msgbuf;
 
 		// Add message header
@@ -288,22 +385,40 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		if (std::holds_alternative<MsgHeader>(m_Header))
 		{
-			const auto type = std::get<MsgHeader>(m_Header).GetMessageType();
-			if (type == Type::Data || type == Type::MTUD)
+			switch (std::get<MsgHeader>(m_Header).GetMessageType())
 			{
-				// Add message data if any
-				if (!m_MessageData.IsEmpty())
+				case Type::Data:
+				case Type::MTUD:
 				{
-					msgbuf += m_MessageData;
+					// Add message data if any
+					if (!m_Data.IsEmpty())
+					{
+						msgbuf += m_Data;
+					}
+					break;
 				}
-			}
-			else if (type == Type::Ack)
-			{
-				Buffer ackbuf;
-				Memory::BufferWriter wrt(ackbuf, true);
-				if (!wrt.WriteWithPreallocation(WithSize(m_MessageAcks, MaxSize::_512B))) return false;
+				case Type::EAck:
+				{
+					Buffer ackbuf;
+					Memory::BufferWriter wrt(ackbuf, true);
+					if (!wrt.WriteWithPreallocation(WithSize(m_EAcks, MaxSize::_512B))) return false;
 
-				msgbuf += ackbuf;
+					msgbuf += ackbuf;
+					break;
+				}
+				case Type::State:
+				{
+					Buffer statebuf;
+					Memory::BufferWriter wrt(statebuf, true);
+					if (!wrt.WriteWithPreallocation(m_StateData.MaxWindowSize, m_StateData.MaxWindowSizeBytes)) return false;
+
+					msgbuf += statebuf;
+					break;
+				}
+				default:
+				{
+					break;
+				}
 			}
 		}
 
