@@ -914,7 +914,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				it->Acked = true;
 				it->TimeAcked = Util::GetCurrentSteadyTime();
 
-				m_Statistics.RecordPacketRTT(std::chrono::duration_cast<std::chrono::milliseconds>(it->TimeAcked - it->TimeResent));
+				if (it->NumTries == 1)
+				{
+					m_Statistics.RecordPacketRTT(std::chrono::duration_cast<std::chrono::milliseconds>(it->TimeAcked - it->TimeResent));
+				}
 
 				return true;
 			}
@@ -973,7 +976,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 						it2->Acked = true;
 						it2->TimeAcked = Util::GetCurrentSteadyTime();
 
-						m_Statistics.RecordPacketRTT(std::chrono::duration_cast<std::chrono::milliseconds>(it2->TimeAcked - it2->TimeResent));
+						if (it2->NumTries == 1)
+						{
+							m_Statistics.RecordPacketRTT(std::chrono::duration_cast<std::chrono::milliseconds>(it2->TimeAcked - it2->TimeResent));
+						}
+
 						++num_acks;
 					}
 				}
