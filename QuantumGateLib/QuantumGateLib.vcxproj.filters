@@ -480,6 +480,12 @@
     <ClInclude Include="Core\UDP\UDPConnectionStats.h">
       <Filter>Header Files\Core\UDP</Filter>
     </ClInclude>
+    <ClInclude Include="Core\UDP\UDPConnectionSendQueue.h">
+      <Filter>Header Files\Core\UDP</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\UDP\UDPConnectionCommon.h">
+      <Filter>Header Files\Core\UDP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

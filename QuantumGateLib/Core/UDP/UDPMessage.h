@@ -49,6 +49,8 @@ namespace QuantumGate::Implementation::Core::UDP
 			SynHeader& operator=(const SynHeader&) = default;
 			SynHeader& operator=(SynHeader&&) noexcept = default;
 
+			[[nodiscard]] bool HasSequenceNumber() const noexcept { return true; }
+
 			void SetMessageSequenceNumber(const SequenceNumber seqnum) noexcept { m_MessageSequenceNumber = seqnum; }
 			[[nodiscard]] SequenceNumber GetMessageSequenceNumber() const noexcept { return m_MessageSequenceNumber; }
 
@@ -193,6 +195,8 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		[[nodiscard]] inline bool IsValid() const noexcept { return m_Valid; }
 
+		[[nodiscard]] bool HasSequenceNumber() const noexcept;
+
 		void SetMessageSequenceNumber(const SequenceNumber seqnum) noexcept;
 		[[nodiscard]] SequenceNumber GetMessageSequenceNumber() const noexcept;
 
@@ -225,6 +229,24 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		[[nodiscard]] bool Read(BufferView buffer);
 		[[nodiscard]] bool Write(Buffer& buffer);
+
+		static SequenceNumber GetNextSequenceNumber(const SequenceNumber current) noexcept
+		{
+			if (current == std::numeric_limits<SequenceNumber>::max())
+			{
+				return 0;
+			}
+			else return current + 1;
+		}
+
+		static SequenceNumber GetPreviousSequenceNumber(const SequenceNumber current) noexcept
+		{
+			if (current == 0)
+			{
+				return std::numeric_limits<SequenceNumber>::max();
+			}
+			else return current - 1;
+		}
 
 	private:
 		inline HeaderType InitializeHeader(const Type type, const Direction direction) const noexcept

@@ -108,6 +108,20 @@ namespace QuantumGate::Implementation::Core::UDP
 										  msgtype_flags);
 	}
 
+	bool Message::HasSequenceNumber() const noexcept
+	{
+		return std::visit(Util::Overloaded{
+			[](const SynHeader& hdr) noexcept
+			{
+				return hdr.HasSequenceNumber();
+			},
+			[](const MsgHeader& hdr) noexcept
+			{
+				return hdr.HasSequenceNumber();
+			}
+		}, m_Header);
+	}
+
 	void Message::SetMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept
 	{
 		std::visit(Util::Overloaded{

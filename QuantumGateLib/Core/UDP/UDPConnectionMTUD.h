@@ -9,12 +9,6 @@
 // Use to enable/disable MTU discovery debug console output
 // #define UDPMTUD_DEBUG
 
-#ifdef UDPMTUD_DEBUG
-#define UDPMTUDDbg(x) x
-#else
-#define UDPMTUDDbg(x) ((void)0)
-#endif
-
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
 	class MTUDiscovery final
@@ -81,10 +75,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			// Message must have already been created
 			assert(m_MTUDMessageData.has_value());
 
-			UDPMTUDDbg(SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: sending MTUD message of size " <<
-								m_MTUDMessageData->Data.GetSize() << L" bytes to peer " << endpoint.GetString() <<
-								L" (" << m_MTUDMessageData->NumTries << L" previous tries)" << SLogFmt(Default)));
-
+#ifdef UDPMTUD_DEBUG
+			SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: sending MTUD message of size " <<
+					 m_MTUDMessageData->Data.GetSize() << L" bytes to peer " << endpoint.GetString() <<
+					 L" (" << m_MTUDMessageData->NumTries << L" previous tries)" << SLogFmt(Default));
+#endif
 			const auto result = socket.SendTo(endpoint, m_MTUDMessageData->Data);
 			if (result.Succeeded())
 			{
@@ -106,9 +101,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					// 10040 is 'message too large' error;
 					// we are expecting that at some point
-					UDPMTUDDbg(SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD : failed to send MTUD message of size " <<
-										m_MTUDMessageData->Data.GetSize() << L" bytes to peer " << endpoint.GetString() <<
-										L" (" << result.GetErrorString() << L")" << SLogFmt(Default)));
+#ifdef UDPMTUD_DEBUG
+					SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD : failed to send MTUD message of size " <<
+							 m_MTUDMessageData->Data.GetSize() << L" bytes to peer " << endpoint.GetString() <<
+							 L" (" << result.GetErrorString() << L")" << SLogFmt(Default));
+#endif
 				}
 				else
 				{
@@ -144,10 +141,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 								   endpoint.GetString().c_str(), result.GetErrorString().c_str());
 						}
 
-						UDPMTUDDbg(SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: starting MTU discovery for peer " <<
-											endpoint.GetString() << L"; maximum datagram message size is " << maxdg_size <<
-											L" bytes" << SLogFmt(Default)));
-
+#ifdef UDPMTUD_DEBUG
+						SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: starting MTU discovery for peer " <<
+								 endpoint.GetString() << L"; maximum datagram message size is " << maxdg_size <<
+								 L" bytes" << SLogFmt(Default));
+#endif
 						if (CreateNewMessage(MessageSizes[m_CurrentMessageSizeIndex], endpoint) &&
 							TransmitMessage(socket, endpoint))
 						{
@@ -220,9 +218,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				case Status::Finished:
 				case Status::Failed:
 				{
-					UDPMTUDDbg(SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: finished MTU discovery; maximum message size is " <<
-										GetMaxMessageSize() << L" bytes for peer " << endpoint.GetString() << SLogFmt(Default)));
-
+#ifdef UDPMTUD_DEBUG
+					SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: finished MTU discovery; maximum message size is " <<
+							 GetMaxMessageSize() << L" bytes for peer " << endpoint.GetString() << SLogFmt(Default));
+#endif
 					// Disable MTU discovery on socket now that we're done
 					if (!socket.SetMTUDiscovery(false))
 					{
@@ -263,9 +262,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				Buffer data;
 				if (msg.Write(data))
 				{
-					UDPMTUDDbg(SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: sending MTUDAck message to peer " <<
-										endpoint.GetString() << SLogFmt(Default)));
-
+#ifdef UDPMTUD_DEBUG
+					SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: sending MTUDAck message to peer " <<
+							 endpoint.GetString() << SLogFmt(Default));
+#endif
 					const auto result = socket.SendTo(endpoint, data);
 					if (result.Failed())
 					{
