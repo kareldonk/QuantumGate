@@ -131,6 +131,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					// so that packets that are larger than the path MTU will get dropped
 					if (socket.SetMTUDiscovery(true))
 					{
+#ifdef UDPMTUD_DEBUG
 						int maxdg_size{ 0 };
 
 						const auto result = socket.GetMaxDatagramMessageSize();
@@ -141,7 +142,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 								   endpoint.GetString().c_str(), result.GetErrorString().c_str());
 						}
 
-#ifdef UDPMTUD_DEBUG
 						SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: starting MTU discovery for peer " <<
 								 endpoint.GetString() << L"; maximum datagram message size is " << maxdg_size <<
 								 L" bytes" << SLogFmt(Default));
@@ -218,10 +218,19 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				case Status::Finished:
 				case Status::Failed:
 				{
+					if (m_Status == Status::Failed)
+					{
+						LogErr(L"UDP connection MTUD: failed MTU discovery; maximum message size is %zu bytes for peer %s",
+							   endpoint.GetString().c_str(), GetMaxMessageSize());
+					}
+					else
+					{
 #ifdef UDPMTUD_DEBUG
-					SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: finished MTU discovery; maximum message size is " <<
-							 GetMaxMessageSize() << L" bytes for peer " << endpoint.GetString() << SLogFmt(Default));
+						SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: finished MTU discovery; maximum message size is " <<
+								 GetMaxMessageSize() << L" bytes for peer " << endpoint.GetString() << SLogFmt(Default));
 #endif
+					}
+
 					// Disable MTU discovery on socket now that we're done
 					if (!socket.SetMTUDiscovery(false))
 					{
@@ -256,7 +265,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			try
 			{
 				Message msg(Message::Type::MTUD, Message::Direction::Outgoing, MinMessageSize);
-				msg.SetMessageSequenceNumber(static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber()));
 				msg.SetMessageAckNumber(seqnum);
 
 				Buffer data;

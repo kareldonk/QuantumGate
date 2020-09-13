@@ -545,9 +545,11 @@
     <ClInclude Include="Common\Dispatcher.h" />
     <ClInclude Include="Common\Endian.h" />
     <ClInclude Include="Common\Hash.h" />
+    <ClInclude Include="Common\OnlineVariance.h" />
     <ClInclude Include="Common\Random.h" />
     <ClInclude Include="Common\RateLimit.h" />
     <ClInclude Include="Common\Result.h" />
+    <ClInclude Include="Common\RingList.h" />
     <ClInclude Include="Common\ScopeGuard.h" />
     <ClInclude Include="Common\Traits.h" />
     <ClInclude Include="Common\Util.h" />
@@ -704,6 +706,7 @@
     <ClCompile Include="Core\Relay\RelaySocket.cpp" />
     <ClCompile Include="Core\TCP\TCPListenerManager.cpp" />
     <ClCompile Include="Core\UDP\UDPConnection.cpp" />
+    <ClCompile Include="Core\UDP\UDPConnectionSendQueue.cpp" />
     <ClCompile Include="Core\UDP\UDPListenerManager.cpp" />
     <ClCompile Include="Core\UDP\UDPConnectionManager.cpp" />
     <ClCompile Include="Core\UDP\UDPMessage.cpp" />

@@ -54,11 +54,27 @@ namespace QuantumGate::Implementation::Core::UDP
 	{
 		if (m_Direction == Direction::Outgoing)
 		{
-			if (m_MessageType == Message::Type::EAck ||
-				m_MessageType == Message::Type::Reset)
+			switch (m_MessageType)
 			{
-				// Not used for the above message types so we fill with random data
-				m_MessageSequenceNumber = static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber());
+				case Message::Type::EAck:
+				{
+					// Not used for the above message type so we fill with random data
+					m_MessageSequenceNumber = static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber());
+					break;
+				}
+				case Message::Type::MTUD:
+				case Message::Type::Null:
+				case Message::Type::Reset:
+				{
+					// Not used for the above message types so we fill with random data
+					m_MessageSequenceNumber = static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber());
+					m_MessageAckNumber = static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber());
+					break;
+				}
+				default:
+				{
+					break;
+				}
 			}
 		}
 	}
@@ -106,6 +122,20 @@ namespace QuantumGate::Implementation::Core::UDP
 										  m_MessageSequenceNumber,
 										  m_MessageAckNumber,
 										  msgtype_flags);
+	}
+
+	Message::Direction Message::GetDirection() const noexcept
+	{
+		return std::visit(Util::Overloaded{
+			[](const SynHeader& hdr) noexcept
+			{
+				return hdr.GetDirection();
+			},
+			[](const MsgHeader& hdr) noexcept
+			{
+				return hdr.GetDirection();
+			}
+		}, m_Header);
 	}
 
 	bool Message::HasSequenceNumber() const noexcept
@@ -232,6 +262,7 @@ namespace QuantumGate::Implementation::Core::UDP
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
 		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Data ||
+			   std::get<MsgHeader>(m_Header).GetMessageType() == Type::Null ||
 			   std::get<MsgHeader>(m_Header).GetMessageType() == Type::MTUD);
 
 		if (!buffer.IsEmpty())
@@ -355,6 +386,12 @@ namespace QuantumGate::Implementation::Core::UDP
 					m_Data = buffer;
 					break;
 				}
+				case Type::MTUD:
+				case Type::Null:
+				{
+					// Skip reading unneeded data message
+					break;
+				}
 				case Type::EAck:
 				{
 					Memory::BufferReader rdr(buffer, true);
@@ -381,6 +418,12 @@ namespace QuantumGate::Implementation::Core::UDP
 	
 	bool Message::Write(Buffer& buffer)
 	{
+		DbgInvoke([&]()
+		{
+			Validate();
+			assert(IsValid());
+		});
+
 		Buffer msgbuf;
 
 		// Add message header
@@ -403,6 +446,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			{
 				case Type::Data:
 				case Type::MTUD:
+				case Type::Null:
 				{
 					// Add message data if any
 					if (!m_Data.IsEmpty())
@@ -451,6 +495,35 @@ namespace QuantumGate::Implementation::Core::UDP
 
 	void Message::Validate() noexcept
 	{
-		m_Valid = true;
+		m_Valid = false;
+
+		auto type_ok{ false };
+
+		// Check if we have a valid message type
+		switch (GetType())
+		{
+			case Type::Data:
+			case Type::State:
+				type_ok = HasAck() && HasSequenceNumber();
+				break;
+			case Type::EAck:
+				type_ok = HasAck();
+				break;
+			case Type::Syn:
+				type_ok = HasSequenceNumber();
+				break;
+			case Type::MTUD:
+				type_ok = (HasSequenceNumber() && !HasAck()) || (!HasSequenceNumber() && HasAck());
+				break;
+			case Type::Null:
+			case Type::Reset:
+				type_ok = !HasAck() && !HasSequenceNumber();
+				break;
+			default:
+				LogErr(L"UDP connection: could not validate message: unknown message type %u", GetType());
+				break;
+		}
+
+		m_Valid = type_ok;
 	}
 }

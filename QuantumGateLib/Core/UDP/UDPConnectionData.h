@@ -4,6 +4,7 @@
 #pragma once
 
 #include "..\..\Concurrency\Event.h"
+#include "..\..\Network\Socket.h"
 
 namespace QuantumGate::Implementation::Core::UDP
 {

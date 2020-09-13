@@ -7,10 +7,15 @@
 #include "UDPConnectionSendQueue.h"
 #include "..\..\Common\Containers.h"
 
+// Use to enable/disable debug console output
+// #define UDPCON_DEBUG
+
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
 	class Connection final
 	{
+		friend class SendQueue;
+
 		struct ReceiveQueueItem final
 		{
 			Message::SequenceNumber SequenceNumber{ 0 };
@@ -55,10 +60,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SendInboundSyn(const IPEndpoint& endpoint) noexcept;
 		[[nodiscard]] bool SendData(const IPEndpoint& endpoint, Buffer&& data) noexcept;
 		[[nodiscard]] bool SendStateUpdate(const IPEndpoint& endpoint) noexcept;
-		[[nodiscard]] bool SendPendingAcks() noexcept;
-		void SendImmediateReset() noexcept;
+		[[nodiscard]] bool SendPendingAcks(const IPEndpoint& endpoint) noexcept;
+		[[nodiscard]] bool SendKeepAlive(const IPEndpoint& endpoint) noexcept;
+		void SendImmediateReset(const IPEndpoint& endpoint) noexcept;
 		
 		[[nodiscard]] bool Send(const IPEndpoint& endpoint, Message&& msg) noexcept;
+		[[nodiscard]] Result<Size> Send(const SteadyTime& now, const IPEndpoint& endpoint,
+										const Buffer& data, const bool use_listener_socket) noexcept;
 
 		[[nodiscard]] bool ReceiveToQueue() noexcept;
 		[[nodiscard]] bool ProcessReceivedData(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
@@ -79,7 +87,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SendPendingSocketData() noexcept;
 		[[nodiscard]] bool ReceivePendingSocketData() noexcept;
 		
-		[[nodiscard]] bool ProcessMTUDiscovery() noexcept;
+		[[nodiscard]] bool CheckKeepAlive(const IPEndpoint& endpoint) noexcept;
+		void ResetKeepAliveTimeout() noexcept;
+		[[nodiscard]] bool ProcessMTUDiscovery(const IPEndpoint& endpoint) noexcept;
 
 		void ProcessSocketEvents() noexcept;
 
@@ -93,7 +103,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		std::unique_ptr<MTUDiscovery> m_MTUDiscovery;
 
-		SendQueue m_SendQueue;
+		SendQueue m_SendQueue{ *this };
+		SteadyTime m_LastSendSteadyTime;
+		std::chrono::seconds m_KeepAliveTimeout{ MaxKeepAliveTimeout };
 
 		Message::SequenceNumber m_LastInSequenceReceivedSequenceNumber{ 0 };
 		Size m_ReceiveWindowSize{ MinReceiveWindowItemSize };
