@@ -6,7 +6,7 @@
 #include "BufferIO.h"
 #include "AllocatorStats.h"
 
-#include <map>
+#include <unordered_map>
 
 namespace QuantumGate::Implementation::Memory::PoolAllocator
 {
@@ -30,7 +30,7 @@ namespace QuantumGate::Implementation::Memory::PoolAllocator
 	};
 
 	template<typename MemoryBufferType>
-	using MemoryBufferPool_T = std::map<std::uintptr_t, MemoryBufferType>;
+	using MemoryBufferPool_T = std::unordered_map<std::uintptr_t, MemoryBufferType>;
 
 	template<typename MemoryBufferType>
 	using MemoryBufferPool_ThS = Concurrency::ThreadSafe<MemoryBufferPool_T<MemoryBufferType>, Concurrency::SharedSpinMutex>;
@@ -51,7 +51,7 @@ namespace QuantumGate::Implementation::Memory::PoolAllocator
 	};
 
 	template<typename Type>
-	using MemoryPoolMap_T = std::map<std::size_t, std::unique_ptr<MemoryPoolData<Type>>>;
+	using MemoryPoolMap_T = std::unordered_map<std::size_t, std::unique_ptr<MemoryPoolData<Type>>>;
 
 	template<typename Type>
 	using MemoryPoolMap_ThS = Concurrency::ThreadSafe<MemoryPoolMap_T<Type>, std::shared_mutex>;

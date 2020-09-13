@@ -6,7 +6,7 @@
 #include "..\Concurrency\ThreadSafe.h"
 #include "..\Concurrency\SharedSpinMutex.h"
 
-#include <map>
+#include <unordered_map>
 
 namespace QuantumGate::Implementation::Memory
 {
@@ -15,7 +15,7 @@ namespace QuantumGate::Implementation::Memory
 		static constexpr std::size_t SizeGranularity{ 16 };
 
 		std::set<std::size_t> Sizes;
-		std::map<std::uintptr_t, std::size_t> MemoryInUse;
+		std::unordered_map<std::uintptr_t, std::size_t> MemoryInUse;
 
 		void AddAllocation(const void* p, const std::size_t len)
 		{
