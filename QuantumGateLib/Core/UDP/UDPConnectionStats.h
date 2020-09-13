@@ -8,7 +8,7 @@
 // Use to enable/disable RTT debug console output
 // #define UDPCS_RTT_DEBUG
 
-// Use to enable/disable Send Window Size debug console output
+// Use to enable/disable MTU Window Size debug console output
 // #define UDPCS_WND_DEBUG
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
@@ -107,6 +107,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			[[nodiscard]] Size GetSize() const noexcept { return m_List.size(); }
 			[[nodiscard]] bool IsMaxSize() const noexcept { return m_List.size() == MaxSize; }
 			[[nodiscard]] const ListType& GetList() const noexcept { return m_List; }
+			void Clear() noexcept { m_List.clear(); m_New = false; }
 
 		private:
 			bool m_New{ false };
@@ -120,12 +121,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		using RTTSampleList = RingList<RTTSample, 128>;
 
-		struct SendWindowSizeSample final
+		struct MTUWindowSizeSample final
 		{
-			double WindowSize{ 0 };
+			double MTUWindowSize{ 0 };
 		};
 
-		using SendWindowSampleList = RingList<SendWindowSizeSample, 128>;
+		using MTUWindowSampleList = RingList<MTUWindowSizeSample, 128>;
 
 	public:
 		Statistics() noexcept {}
@@ -138,6 +139,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] inline std::chrono::milliseconds GetRetransmissionTimeout() const noexcept
 		{
 			return std::max(MinRetransmissionTimeout, m_RTT * 2);
+		}
+
+		inline void RecordRTT(const std::chrono::milliseconds rtt) noexcept
+		{
+			RecordRTTStats(rtt);
 		}
 
 		void RecalcRetransmissionTimeout() noexcept
@@ -191,138 +197,152 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			m_RTTSamples.Expire();
 		}
 
-		[[nodiscard]] inline Size GetSendWindowSize() const noexcept
+		[[nodiscard]] inline Size GetMTUWindowSize() const noexcept
 		{
-			return m_SendWindowSize;
+			return m_MTUWindowSize;
 		}
 
-		inline void RecordPacketRTT(const std::chrono::milliseconds rtt) noexcept
+		inline void RecordMTUAck(const double num_mtu) noexcept
 		{
-			RecordRTTStats(rtt);
-		}
+			if (num_mtu == 0.0) return;
 
-		inline void RecordPacketAck(const Size num_packets) noexcept
-		{
 			// Part of additive increase/multiplicative decrease (AIMD) algorithm
 			if (m_NoLossYetRecorded)
 			{
 				// Fast start
-				m_NewSendWindowSizeSample += num_packets;
+				m_NewMTUWindowSizeSample += num_mtu;
 			}
 			else
 			{
-				if (m_NewSendWindowSizeSample < m_NoLossSendWindowSize)
+				if (m_NewMTUWindowSizeSample < m_ThresholdMTUWindowSize)
 				{
 					// Fast recovery
-					m_NewSendWindowSizeSample += num_packets;
+					m_NewMTUWindowSizeSample += num_mtu;
 				}
 				else
 				{
-					m_NewSendWindowSizeSample += ((1.0 / static_cast<double>(m_SendWindowSize)) * num_packets);
+					m_NewMTUWindowSizeSample += ((1.0 / static_cast<double>(m_MTUWindowSize)) * num_mtu);
 				}
 			}
 		}
 
-		inline void RecordPacketLoss(const Size num_packets) noexcept
+		inline void RecordMTULoss(const double num_mtu) noexcept
 		{
-			if (num_packets == 0)
+			if (num_mtu == 0.0)
 			{
 				if (m_NoLossYetRecorded)
 				{
-					m_NoLossSendWindowSize = std::max(MinSendWindowSize, m_SendWindowSize / 2);
+					m_NoLossMTUWindowSize = std::max(MinMTUWindowSize, m_MTUWindowSize / 2);
+					m_ThresholdMTUWindowSize = m_NoLossMTUWindowSize;
 				}
 			}
 			else
 			{
+				m_LastLossRecordedSteadyTime = Util::GetCurrentSteadyTime();
+
 				// Part of additive increase/multiplicative decrease (AIMD) algorithm
-				m_NewSendWindowSizeSample = m_NewSendWindowSizeSample / std::pow(2.0, num_packets);
+				m_NewMTUWindowSizeSample = m_NewMTUWindowSizeSample / std::pow(2.0, num_mtu);
 
 				if (m_NoLossYetRecorded)
 				{
-					m_SendWindowSizeVariance.Reset();
-					m_SendWindowSize = std::max(MinSendWindowSize, m_SendWindowSize / 2);
+					m_MTUWindowSizeSamples.Clear();
+
+					if (m_MTUStart)
+					{
+						m_MTUWindowSizeVariance.Reset();
+						m_MTUWindowSize = std::max(MinMTUWindowSize, m_MTUWindowSize / 2);
+						m_MTUStart = false;
+					}
+
 					m_NoLossYetRecorded = false;
 
 #ifdef UDPCS_WND_DEBUG
-					SLogInfo(SLogFmt(FGBrightMagenta) << L"UDP connection: NoLossSendWindowSize: " <<
-							 m_NoLossSendWindowSize << L" - SendWindowSize: " << m_SendWindowSize << SLogFmt(Default));
+					SLogInfo(SLogFmt(FGBrightMagenta) << L"UDP connection: NoLossMTUWindowSize: " <<
+							 m_NoLossMTUWindowSize << L" - MTUWindowSize: " << m_MTUWindowSize << SLogFmt(Default));
 #endif
 				}
 			}
 		}
 
-		void RecordSendWindowSizeStats() noexcept
+		void RecordMTUWindowSizeStats() noexcept
 		{
-			if (m_OldSendWindowSizeSample == m_NewSendWindowSizeSample) return;
+			if (m_OldMTUWindowSizeSample == m_NewMTUWindowSizeSample) return;
 
 			const auto rtt = std::invoke([&]()
 			{
-				return (m_SendWindowSizeSamples.IsMaxSize()) ?
+				return (m_MTUWindowSizeSamples.IsMaxSize()) ?
 					GetRetransmissionTimeout() : GetRetransmissionTimeout() / 2;
 			});
 
 			// Only record every RTT for a good sample
 			const auto now = Util::GetCurrentSteadyTime();
-			if (now - m_LastSendWindowSampleSteadyTime >= rtt)
+			if (now - m_LastMTUWindowSizeSampleSteadyTime >= rtt)
 			{
-				m_SendWindowSizeVariance.Update(m_NewSendWindowSizeSample);
-				m_SendWindowSizeSamples.Add(SendWindowSizeSample{ m_NewSendWindowSizeSample });
+				m_MTUWindowSizeVariance.Update(m_NewMTUWindowSizeSample);
+				m_MTUWindowSizeSamples.Add(MTUWindowSizeSample{ m_NewMTUWindowSizeSample });
 
-				m_OldSendWindowSizeSample = m_NewSendWindowSizeSample;
-				m_LastSendWindowSampleSteadyTime = now;
+				m_ThresholdMTUWindowSize = std::max(m_NoLossMTUWindowSize, static_cast<Size>(m_MTUWindowSizeVariance.GetMean() / 2.0));
+
+				m_OldMTUWindowSizeSample = m_NewMTUWindowSizeSample;
+				m_LastMTUWindowSizeSampleSteadyTime = now;
+			}
+
+			if (now - m_LastLossRecordedSteadyTime >= NoLossRestartTimeout)
+			{
+				m_NoLossYetRecorded = true;
 			}
 		}
 
-		void RecalcSendWindowSize() noexcept
+		void RecalcMTUWindowSize() noexcept
 		{
-			if (!m_SendWindowSizeSamples.HasNew()) return;
+			if (!m_MTUWindowSizeSamples.HasNew()) return;
 
-			const auto wins_minm = m_SendWindowSizeVariance.GetMin();
-			const auto wins_maxm = m_SendWindowSizeVariance.GetMax();
+			const auto mtu_minm = m_MTUWindowSizeVariance.GetMin();
+			const auto mtu_maxm = m_MTUWindowSizeVariance.GetMax();
 
-			double total_wins{ 0 };
-			double total_wins_count{ 0 };
+			double total_mtu{ 0 };
+			double total_mtu_num{ 0 };
 
 #ifdef UDPCS_WND_DEBUG
 			double min_size{ std::numeric_limits<double>::max() };
-			double max_size{ MinSendWindowSize };
+			double max_size{ MinMTUWindowSize };
 #endif
 
-			for (const auto& sample : m_SendWindowSizeSamples.GetList())
+			for (const auto& sample : m_MTUWindowSizeSamples.GetList())
 			{
-				if (wins_minm <= sample.WindowSize && sample.WindowSize <= wins_maxm)
+				if (mtu_minm <= sample.MTUWindowSize && sample.MTUWindowSize <= mtu_maxm)
 				{
-					total_wins += sample.WindowSize;
-					++total_wins_count;
+					total_mtu += sample.MTUWindowSize;
+					++total_mtu_num;
 				}
 
 #ifdef UDPCS_WND_DEBUG
-				min_size = std::min(min_size, sample.WindowSize);
-				max_size = std::max(max_size, sample.WindowSize);
+				min_size = std::min(min_size, sample.MTUWindowSize);
+				max_size = std::max(max_size, sample.MTUWindowSize);
 #endif
 			}
 
-			if (total_wins_count > 0)
+			if (total_mtu_num > 0)
 			{
 				// Choosing a value for X close to 1 makes the weighted average immune to changes
 				// that last a short time. Choosing a value for X close to 0 makes the weighted
 				// average respond to changes very quickly.
 				constexpr auto X = 0.95;
-				const auto new_wins_sample = (total_wins / total_wins_count);
-				const auto old_size = m_SendWindowSize;
-				m_SendWindowSize = static_cast<Size>(std::ceil(X * m_SendWindowSize + ((1.0 - X) * new_wins_sample)));
+				const auto new_mtu_sample = (total_mtu / total_mtu_num);
+				const auto old_size = m_MTUWindowSize;
+				m_MTUWindowSize = static_cast<Size>(std::ceil(X * m_MTUWindowSize + ((1.0 - X) * new_mtu_sample)));
 
 				// Never go below minimum
-				m_SendWindowSize = std::max(MinSendWindowSize, m_SendWindowSize);
+				m_MTUWindowSize = std::max(MinMTUWindowSize, m_MTUWindowSize);
 			}
 
 #ifdef UDPCS_WND_DEBUG
-			SLogInfo(SLogFmt(FGBrightMagenta) << L"UDP connection: SendWindowSize: " << m_SendWindowSize <<
+			SLogInfo(SLogFmt(FGBrightMagenta) << L"UDP connection: MTUWindowSize: " << m_MTUWindowSize <<
 					 L" - Min: " << static_cast<Size>(std::ceil(min_size)) << L" - Max: " <<
-					 static_cast<Size>(std::ceil(max_size)) << L" - StdDev: " << m_SendWindowSizeVariance.GetStdDev() <<
-					 L" - Mean: " << m_SendWindowSizeVariance.GetMean() << SLogFmt(Default));
+					 static_cast<Size>(std::ceil(max_size)) << L" - StdDev: " << m_MTUWindowSizeVariance.GetStdDev() <<
+					 L" - Mean: " << m_MTUWindowSizeVariance.GetMean() << SLogFmt(Default));
 #endif
-			m_SendWindowSizeSamples.Expire();
+			m_MTUWindowSizeSamples.Expire();
 		}
 
 	private:
@@ -333,26 +353,28 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 
 	public:
-		static constexpr Size MinSendWindowSize{ 8 };
+		static constexpr Size MinMTUWindowSize{ 8 };
 
 	private:
 		static constexpr std::chrono::milliseconds StartRTT{ 600 };
 		static constexpr std::chrono::milliseconds MinRetransmissionTimeout{ 1 };
-
-		static constexpr Size MaxSendWindowSizeSamples{ 128 };
+		static constexpr std::chrono::seconds NoLossRestartTimeout{ 2 };
 
 	private:
 		std::chrono::milliseconds m_RTT{ StartRTT };
 		OnlineVariance m_RTTVariance;
 		RTTSampleList m_RTTSamples;
 
+		bool m_MTUStart{ true };
 		bool m_NoLossYetRecorded{ true };
-		Size m_NoLossSendWindowSize{ MinSendWindowSize };
-		Size m_SendWindowSize{ MinSendWindowSize };
-		OnlineVariance m_SendWindowSizeVariance;
-		SendWindowSampleList m_SendWindowSizeSamples;
-		double m_NewSendWindowSizeSample{ MinSendWindowSize };
-		double m_OldSendWindowSizeSample{ MinSendWindowSize };
-		SteadyTime m_LastSendWindowSampleSteadyTime;
+		Size m_NoLossMTUWindowSize{ MinMTUWindowSize };
+		SteadyTime m_LastLossRecordedSteadyTime;
+		Size m_ThresholdMTUWindowSize{ MinMTUWindowSize };
+		Size m_MTUWindowSize{ MinMTUWindowSize };
+		OnlineVariance m_MTUWindowSizeVariance;
+		MTUWindowSampleList m_MTUWindowSizeSamples;
+		double m_NewMTUWindowSizeSample{ MinMTUWindowSize };
+		double m_OldMTUWindowSizeSample{ MinMTUWindowSize };
+		SteadyTime m_LastMTUWindowSizeSampleSteadyTime;
 	};
 }
