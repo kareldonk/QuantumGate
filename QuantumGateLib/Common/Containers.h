@@ -8,6 +8,7 @@
 #include <queue>
 #include <map>
 #include <list>
+#include <forward_list>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -30,6 +31,9 @@ namespace QuantumGate::Implementation::Containers
 
 	template<typename T>
 	using List = std::list<T, Memory::DefaultAllocator<T>>;
+
+	template<typename T>
+	using ForwardList = std::forward_list<T, Memory::DefaultAllocator<T>>;
 
 	template <typename Key, typename Hash = std::hash<Key>, typename Pred = std::equal_to<Key>>
 	using UnorderedSet = std::unordered_set<Key, Hash, Pred, Memory::DefaultAllocator<Key>>;
