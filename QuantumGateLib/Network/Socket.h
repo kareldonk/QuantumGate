@@ -93,7 +93,10 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] bool SetIPTimeToLive(const std::chrono::seconds& seconds) noexcept;
 
 		[[nodiscard]] bool SetLinger(const std::chrono::seconds& seconds) noexcept;
+		
 		[[nodiscard]] bool SetNATTraversal(const bool nat_traversal) noexcept;
+		Result<bool> GetNATTraversal() noexcept;
+
 		[[nodiscard]] bool SetConditionalAccept(const bool cond_accept) noexcept;
 		[[nodiscard]] bool SetNoDelay(const bool no_delay) noexcept;
 
