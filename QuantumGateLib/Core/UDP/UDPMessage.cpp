@@ -372,7 +372,16 @@ namespace QuantumGate::Implementation::Core::UDP
 			if (Crypto::HMAC(msgview, hmac, authkeybuf, Algorithm::Hash::BLAKE2S256))
 			{
 				auto msghmac = buffer.GetFirst(sizeof(HMAC));
-				if (msghmac != BufferView(hmac).GetFirst(sizeof(HMAC))) return false;
+				if (msghmac != BufferView(hmac).GetFirst(sizeof(HMAC)))
+				{
+					LogErr(L"Failed HMAC check for UDP connection message");
+					return false;
+				}
+			}
+			else
+			{
+				LogErr(L"Failed HMAC calculation for UDP connection message");
+				return false;
 			}
 		}
 
@@ -517,6 +526,11 @@ namespace QuantumGate::Implementation::Core::UDP
 			{
 				std::memcpy(msgbuf.GetBytes(), hmac.GetBytes(), sizeof(HMAC));
 				buffer = std::move(msgbuf);
+			}
+			else
+			{
+				LogErr(L"Failed HMAC calculation for UDP connection message");
+				return false;
 			}
 		}
 
