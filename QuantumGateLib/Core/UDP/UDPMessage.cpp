@@ -389,7 +389,7 @@ namespace QuantumGate::Implementation::Core::UDP
 				case Type::MTUD:
 				case Type::Null:
 				{
-					// Skip reading unneeded data message
+					// Skip reading unneeded data
 					break;
 				}
 				case Type::EAck:

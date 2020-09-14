@@ -8,13 +8,14 @@
 #include "..\..\Common\Containers.h"
 
 // Use to enable/disable debug console output
-// #define UDPCON_DEBUG
+#define UDPCON_DEBUG
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
 	class Connection final
 	{
 		friend class SendQueue;
+		friend class MTUDiscovery;
 
 		struct ReceiveQueueItem final
 		{
@@ -47,6 +48,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void ProcessEvents() noexcept;
 		[[nodiscard]] inline bool ShouldClose() const noexcept { return (m_CloseCondition != CloseCondition::None); }
 
+		void OnLocalIPInterfaceChanged() noexcept;
+
 		static std::optional<ConnectionID> MakeConnectionID() noexcept;
 
 	private:
@@ -55,18 +58,23 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] inline CloseCondition GetCloseCondition() const noexcept { return m_CloseCondition; }
 		void SetCloseCondition(const CloseCondition cc, int socket_error_code = -1) noexcept;
 		void SetSocketException(const int error_code) noexcept;
-
-		[[nodiscard]] bool SendOutboundSyn(const IPEndpoint& endpoint) noexcept;
-		[[nodiscard]] bool SendInboundSyn(const IPEndpoint& endpoint) noexcept;
-		[[nodiscard]] bool SendData(const IPEndpoint& endpoint, Buffer&& data) noexcept;
-		[[nodiscard]] bool SendStateUpdate(const IPEndpoint& endpoint) noexcept;
-		[[nodiscard]] bool SendPendingAcks(const IPEndpoint& endpoint) noexcept;
-		[[nodiscard]] bool SendKeepAlive(const IPEndpoint& endpoint) noexcept;
-		void SendImmediateReset(const IPEndpoint& endpoint) noexcept;
 		
-		[[nodiscard]] bool Send(const IPEndpoint& endpoint, Message&& msg) noexcept;
-		[[nodiscard]] Result<Size> Send(const SteadyTime& now, const IPEndpoint& endpoint,
-										const Buffer& data, const bool use_listener_socket) noexcept;
+		inline Result<bool> SetMTUDiscovery(const bool enabled) noexcept { return m_Socket.SetMTUDiscovery(enabled); }
+		void ResetMTU() noexcept;
+		[[nodiscard]] bool OnMTUUpdate(const Size mtu) noexcept;
+
+		[[nodiscard]] bool CheckEndpointChange(const IPEndpoint& endpoint) noexcept;
+
+		[[nodiscard]] bool SendOutboundSyn() noexcept;
+		[[nodiscard]] bool SendInboundSyn() noexcept;
+		[[nodiscard]] bool SendData(Buffer&& data) noexcept;
+		[[nodiscard]] bool SendStateUpdate() noexcept;
+		[[nodiscard]] bool SendPendingAcks() noexcept;
+		[[nodiscard]] bool SendKeepAlive() noexcept;
+		void SendImmediateReset() noexcept;
+		
+		[[nodiscard]] bool Send(Message&& msg) noexcept;
+		[[nodiscard]] Result<Size> Send(const SteadyTime& now, const Buffer& data, const bool use_listener_socket) noexcept;
 
 		[[nodiscard]] bool ReceiveToQueue() noexcept;
 		[[nodiscard]] bool ProcessReceivedData(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
@@ -87,9 +95,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SendPendingSocketData() noexcept;
 		[[nodiscard]] bool ReceivePendingSocketData() noexcept;
 		
-		[[nodiscard]] bool CheckKeepAlive(const IPEndpoint& endpoint) noexcept;
+		[[nodiscard]] bool CheckKeepAlive() noexcept;
 		void ResetKeepAliveTimeout() noexcept;
-		[[nodiscard]] bool ProcessMTUDiscovery(const IPEndpoint& endpoint) noexcept;
+		[[nodiscard]] bool ProcessMTUDiscovery() noexcept;
 
 		void ProcessSocketEvents() noexcept;
 
@@ -105,11 +113,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		SendQueue m_SendQueue{ *this };
 		SteadyTime m_LastSendSteadyTime;
+		IPEndpoint m_PeerEndpoint;
 		std::chrono::seconds m_KeepAliveTimeout{ MaxKeepAliveTimeout };
 
 		Message::SequenceNumber m_LastInSequenceReceivedSequenceNumber{ 0 };
 		Size m_ReceiveWindowSize{ MinReceiveWindowItemSize };
 		ReceiveQueue m_ReceiveQueue;
+		SteadyTime m_LastReceiveSteadyTime;
 		ReceiveAckList m_ReceivePendingAckList;
 
 		CloseCondition m_CloseCondition{ CloseCondition::None };

@@ -2,12 +2,11 @@
 
 #include "UDPMessage.h"
 #include "UDPConnectionData.h"
-#include "UDPConnectionMTUD.h"
 #include "UDPConnectionStats.h"
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
-	enum class Status { Open, Handshake, Connected, Closed };
+	enum class Status { Open, Handshake, Connected, Suspended, Closed };
 
 	enum class CloseCondition
 	{

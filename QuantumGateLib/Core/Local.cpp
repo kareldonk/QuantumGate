@@ -491,13 +491,23 @@ namespace QuantumGate::Implementation::Core
 	{
 		if (m_LocalEnvironment.WithUniqueLock()->Update())
 		{
-			if (IsRunning() && (m_TCPListenerManager.IsRunning() || m_UDPListenerManager.IsRunning()))
+			if (IsRunning())
 			{
-				LogDbg(L"Updating listeners because of local environment change");
-
-				if (UpdateListeners().Failed())
+				if (m_TCPListenerManager.IsRunning() || m_UDPListenerManager.IsRunning())
 				{
-					LogErr(L"Failed to update listeners after local environment change");
+					LogDbg(L"Updating listeners because of local environment change");
+
+					if (UpdateListeners().Failed())
+					{
+						LogErr(L"Failed to update listeners after local environment change");
+					}
+				}
+
+				if (m_UDPConnectionManager.IsRunning())
+				{
+					LogDbg(L"Updating UDP connection manager because of local environment change");
+
+					m_UDPConnectionManager.OnLocalIPInterfaceChanged();
 				}
 			}
 		}

@@ -27,14 +27,14 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		RecalcPeerReceiveWindowSize();
 	}
 
-	bool SendQueue::Add(const IPEndpoint& endpoint, Item&& item) noexcept
+	bool SendQueue::Add(Item&& item) noexcept
 	{
 		try
 		{
 			const bool use_listener_socket = (item.MessageType == Message::Type::Syn &&
 											  m_Connection.GetType() == PeerConnectionType::Inbound);
 
-			const auto result = m_Connection.Send(item.TimeSent, endpoint, item.Data, use_listener_socket);
+			const auto result = m_Connection.Send(item.TimeSent, item.Data, use_listener_socket);
 			if (result.Succeeded()) item.NumTries = 1;
 
 			const auto size = item.Data.GetSize();
@@ -64,7 +64,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return {};
 	}
 
-	bool SendQueue::Process(const IPEndpoint& endpoint) noexcept
+	bool SendQueue::Process() noexcept
 	{
 		if (m_Queue.empty()) return true;
 
@@ -99,7 +99,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				const bool use_listener_socket = (it->MessageType == Message::Type::Syn &&
 												  m_Connection.GetType() == PeerConnectionType::Inbound);
 				
-				const auto result = m_Connection.Send(now, endpoint, it->Data, use_listener_socket);
+				const auto result = m_Connection.Send(now, it->Data, use_listener_socket);
 				if (result.Succeeded())
 				{
 					// If data was actually sent, otherwise buffer may
@@ -118,8 +118,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				}
 				else
 				{
-					LogErr(L"UDP connection: send failed for peer %s connection %llu (%s)",
-						   endpoint.GetString().c_str(), m_Connection.GetID(), result.GetErrorString().c_str());
+					LogErr(L"UDP connection: send failed on connection %llu (%s)",
+						   m_Connection.GetID(), result.GetErrorString().c_str());
 					return false;
 				}
 			}
@@ -131,7 +131,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 #ifdef UDPSND_DEBUG
 		if (loss_num > 0)
 		{
-			SLogWarn(SLogFmt(FGBrightCyan) << L"UDP connection: retransmitting " << loss_num <<
+			SLogWarn(SLogFmt(FGBrightCyan) << L"UDP connection: retransmitted " << loss_num <<
 					 " items (" <<  loss_bytes << L" bytes), queue size " << m_Queue.size() << L", MTU window size " <<
 					 m_Statistics.GetMTUWindowSize() << L" (" << GetSendWindowByteSize() << L" bytes), RTT " <<
 					 m_Statistics.GetRetransmissionTimeout().count() << L"ms" << SLogFmt(Default));

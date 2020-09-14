@@ -692,6 +692,9 @@
     <ClCompile Include="Core\UDP\UDPConnectionSendQueue.cpp">
       <Filter>Source Files\Core\UDP</Filter>
     </ClCompile>
+    <ClCompile Include="Core\UDP\UDPConnectionMTUD.cpp">
+      <Filter>Source Files\Core\UDP</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="QuantumGate.rc">
