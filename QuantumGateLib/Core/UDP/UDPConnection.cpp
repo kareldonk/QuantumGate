@@ -869,6 +869,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			
 					return AddToReceiveQueue(
 						ReceiveQueueItem{
+							.MessageType = msg.GetType(),
 							.SequenceNumber = msg.GetMessageSequenceNumber()
 						});
 				}
@@ -1078,20 +1079,29 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 				auto& rcv_itm = next_itm->second;
 
-				if (rcv_itm.Data.IsEmpty())
+				if (rcv_itm.MessageType == Message::Type::Data)
+				{
+					if (connection_data->GetReceiveBuffer().GetWriteSize() >= rcv_itm.Data.GetSize())
+					{
+						if (connection_data->GetReceiveBuffer().Write(rcv_itm.Data) == rcv_itm.Data.GetSize())
+						{
+							rcv_event = true;
+							remove = true;
+						}
+						else return false;
+					}
+					else break;
+				}
+				else if (rcv_itm.MessageType == Message::Type::State)
 				{
 					remove = true;
 				}
-				else if (connection_data->GetReceiveBuffer().GetWriteSize() >= rcv_itm.Data.GetSize())
+				else
 				{
-					if (connection_data->GetReceiveBuffer().Write(rcv_itm.Data) == rcv_itm.Data.GetSize())
-					{
-						rcv_event = true;
-						remove = true;
-					}
-					else return false;
+					assert(false);
+					LogErr(L"Unhandled UDP message");
+					return false;
 				}
-				else break;
 
 				if (remove)
 				{
