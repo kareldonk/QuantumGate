@@ -526,7 +526,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		try
 		{
-			Buffer data = m_SendQueue.GetFreeBuffer();
+			Buffer data;
 			if (msg.Write(data))
 			{
 				const auto now = Util::GetCurrentSteadyTime();
@@ -536,8 +536,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				if (msg.HasSequenceNumber())
 				{
 					SendQueue::Item itm{
-						.SequenceNumber = msg.GetMessageSequenceNumber(),
 						.MessageType = msg.GetType(),
+						.SequenceNumber = msg.GetMessageSequenceNumber(),
 						.TimeSent = now,
 						.TimeResent = now,
 						.Data = std::move(data)
@@ -846,6 +846,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					{
 						return AddToReceiveQueue(
 							ReceiveQueueItem{
+								.MessageType = msg.GetType(),
 								.SequenceNumber = msg.GetMessageSequenceNumber(),
 								.Data = msg.MoveMessageData()
 							});
@@ -1083,7 +1084,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				}
 				else if (connection_data->GetReceiveBuffer().GetWriteSize() >= rcv_itm.Data.GetSize())
 				{
-					if (connection_data->GetReceiveBuffer().Write(rcv_itm.Data) ==  rcv_itm.Data.GetSize())
+					if (connection_data->GetReceiveBuffer().Write(rcv_itm.Data) == rcv_itm.Data.GetSize())
 					{
 						rcv_event = true;
 						remove = true;

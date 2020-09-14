@@ -360,6 +360,22 @@ namespace QuantumGate::Implementation::Core::UDP
 		// Should have enough data for outer message header
 		if (buffer.GetSize() < GetHeaderSize()) return false;
 
+		// TEMPORARY
+		{
+			// Calculate HMAC for the message
+			Buffer hmac;
+			UInt64 authkey{ 369 };
+			BufferView authkeybuf{ reinterpret_cast<Byte*>(&authkey), sizeof(authkey) };
+			BufferView msgview{ buffer };
+			msgview.RemoveFirst(sizeof(HMAC));
+
+			if (Crypto::HMAC(msgview, hmac, authkeybuf, Algorithm::Hash::BLAKE2S256))
+			{
+				auto msghmac = buffer.GetFirst(sizeof(HMAC));
+				if (msghmac != BufferView(hmac).GetFirst(sizeof(HMAC))) return false;
+			}
+		}
+
 		// Get message outer header from buffer
 		auto success = std::visit(Util::Overloaded{
 			[&](SynHeader& hdr) noexcept -> bool
@@ -488,7 +504,21 @@ namespace QuantumGate::Implementation::Core::UDP
 			return false;
 		}
 
-		buffer = std::move(msgbuf);
+		// TEMPORARY
+		{
+			// Calculate HMAC for the message
+			Buffer hmac;
+			UInt64 authkey{ 369 };
+			BufferView authkeybuf{ reinterpret_cast<Byte*>(&authkey), sizeof(authkey) };
+			BufferView msgview{ msgbuf };
+			msgview.RemoveFirst(sizeof(HMAC));
+
+			if (Crypto::HMAC(msgview, hmac, authkeybuf, Algorithm::Hash::BLAKE2S256))
+			{
+				std::memcpy(msgbuf.GetBytes(), hmac.GetBytes(), sizeof(HMAC));
+				buffer = std::move(msgbuf);
+			}
+		}
 
 		return true;
 	}

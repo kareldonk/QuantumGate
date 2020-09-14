@@ -18,8 +18,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	public:
 		struct Item final
 		{
-			Message::SequenceNumber SequenceNumber{ 0 };
 			Message::Type MessageType{ Message::Type::Unknown };
+			Message::SequenceNumber SequenceNumber{ 0 };
 			UInt NumTries{ 0 };
 			SteadyTime TimeSent;
 			SteadyTime TimeResent;
@@ -39,8 +39,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] inline Size GetMaxMessageSize() const noexcept { return m_MaxMessageSize; }
 
 		[[nodiscard]] bool Add(Item&& item) noexcept;
-
-		[[nodiscard]] Buffer GetFreeBuffer() noexcept;
 
 		[[nodiscard]] bool Process() noexcept;
 
@@ -62,12 +60,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	private:
 		using Queue = Containers::List<Item>;
-		using BufferList = Containers::ForwardList<Buffer>;
 
 		Connection& m_Connection;
 		Size m_NumBytesInQueue{ 0 };
 		Queue m_Queue;
-		BufferList m_FreeBufferList;
 		Statistics m_Statistics;
 
 		Message::SequenceNumber m_NextSendSequenceNumber{ 0 };

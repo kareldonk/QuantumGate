@@ -19,6 +19,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		struct ReceiveQueueItem final
 		{
+			Message::Type MessageType{ Message::Type::Unknown };
 			Message::SequenceNumber SequenceNumber{ 0 };
 			Buffer Data;
 		};

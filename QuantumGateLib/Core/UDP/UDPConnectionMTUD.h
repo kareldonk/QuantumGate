@@ -24,6 +24,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			bool Acked{ false };
 		};
 
+		enum class TransmitResult { Success, MessageTooLarge, Failed };
+
 	public:
 		enum class Status { Start, Discovery, Finished, Failed };
 
@@ -38,7 +40,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		[[nodiscard]] bool CreateNewMessage(const Size msg_size) noexcept;
 		
-		[[nodiscard]] bool TransmitMessage() noexcept;
+		[[nodiscard]] TransmitResult TransmitMessage() noexcept;
+		void ProcessTransmitResult(const TransmitResult result) noexcept;
 		
 		[[nodiscard]] Status Process() noexcept;
 		
