@@ -706,6 +706,7 @@
     <ClCompile Include="Core\Relay\RelaySocket.cpp" />
     <ClCompile Include="Core\TCP\TCPListenerManager.cpp" />
     <ClCompile Include="Core\UDP\UDPConnection.cpp" />
+    <ClCompile Include="Core\UDP\UDPConnectionMTUD.cpp" />
     <ClCompile Include="Core\UDP\UDPConnectionSendQueue.cpp" />
     <ClCompile Include="Core\UDP\UDPListenerManager.cpp" />
     <ClCompile Include="Core\UDP\UDPConnectionManager.cpp" />

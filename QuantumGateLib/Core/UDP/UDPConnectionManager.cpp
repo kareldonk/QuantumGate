@@ -366,4 +366,20 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		return success;
 	}
+
+	void Manager::OnLocalIPInterfaceChanged() noexcept
+	{
+		auto thread = m_ThreadPool.GetFirstThread();
+		while (thread)
+		{
+			auto connections = thread->GetData().Connections->WithUniqueLock();
+
+			for (auto& connection : *connections)
+			{
+				connection.second.OnLocalIPInterfaceChanged();
+			}
+
+			thread = m_ThreadPool.GetNextThread(*thread);
+		}
+	}
 }

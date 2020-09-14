@@ -54,8 +54,6 @@ namespace QuantumGate::Implementation::Core
 		Result<> DisableListeners(const API::Local::ListenerType type) noexcept;
 		bool AreListenersEnabled(const API::Local::ListenerType type) const noexcept;
 		
-		Result<> UpdateListeners() noexcept;
-
 		Result<> EnableExtenders() noexcept;
 		Result<> DisableExtenders() noexcept;
 		bool AreExtendersEnabled() const noexcept;
@@ -115,6 +113,8 @@ namespace QuantumGate::Implementation::Core
 
 		void OnLocalEnvironmentChanged() noexcept;
 		void OnUnhandledExtenderException(const ExtenderUUID extuuid) noexcept;
+
+		Result<> UpdateListeners() noexcept;
 
 		Result<bool> AddExtenderImpl(const std::shared_ptr<API::Extender>& extender,
 									 const Extender::ExtenderModuleID moduleid = 0) noexcept;

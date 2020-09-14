@@ -4,6 +4,7 @@
 #pragma once
 
 #include "UDPConnectionCommon.h"
+#include "UDPConnectionMTUD.h"
 
 // Use to enable/disable debug console output
 // #define UDPSND_DEBUG
@@ -37,11 +38,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void SetMaxMessageSize(const Size size) noexcept;
 		[[nodiscard]] inline Size GetMaxMessageSize() const noexcept { return m_MaxMessageSize; }
 
-		[[nodiscard]] bool Add(const IPEndpoint& endpoint, Item&& item) noexcept;
+		[[nodiscard]] bool Add(Item&& item) noexcept;
 
 		[[nodiscard]] Buffer GetFreeBuffer() noexcept;
 
-		[[nodiscard]] bool Process(const IPEndpoint& endpoint) noexcept;
+		[[nodiscard]] bool Process() noexcept;
 
 		void SetPeerAdvertisedReceiveWindowSizes(const Size num_items, const Size num_bytes) noexcept;
 		[[nodiscard]] Size GetAvailableSendWindowByteSize() noexcept;

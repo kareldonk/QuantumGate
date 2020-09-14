@@ -63,6 +63,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 										 const ConnectionID id, const Message::SequenceNumber seqnum,
 										 Socket& socket) noexcept;
 
+		void OnLocalIPInterfaceChanged() noexcept;
+
 	private:
 		[[nodiscard]] inline const Settings& GetSettings() const noexcept { return m_Settings.GetCache(); }
 
