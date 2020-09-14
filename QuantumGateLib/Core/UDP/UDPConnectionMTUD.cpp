@@ -46,7 +46,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
-	bool MTUDiscovery::TransmitMessage() noexcept
+	MTUDiscovery::TransmitResult MTUDiscovery::TransmitMessage() noexcept
 	{
 		// Message must have already been created
 		assert(m_MTUDMessageData.has_value());
@@ -70,7 +70,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				++m_MTUDMessageData->NumTries;
 			}
 
-			return true;
+			return TransmitResult::Success;
 		}
 		else
 		{
@@ -84,6 +84,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 						 m_MTUDMessageData->Data.GetSize() << L" bytes on connection " << m_Connection.GetID() <<
 						 L" (" << result.GetErrorString() << L")" << SLogFmt(Default));
 #endif
+				return TransmitResult::MessageTooLarge;
 			}
 			else
 			{
@@ -92,7 +93,26 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 		}
 
-		return false;
+		return TransmitResult::Failed;
+	}
+
+	void MTUDiscovery::ProcessTransmitResult(const TransmitResult result) noexcept
+	{
+		switch (result)
+		{
+			case TransmitResult::Success:
+				m_Status = Status::Discovery;
+				break;
+			case TransmitResult::MessageTooLarge:
+				m_Status = Status::Finished;
+				break;
+			case TransmitResult::Failed:
+				m_Status = Status::Failed;
+				break;
+			default:
+				assert(false);
+				break;
+		}
 	}
 
 	MTUDiscovery::Status MTUDiscovery::Process() noexcept
@@ -113,10 +133,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: starting MTU discovery on connection " <<
 							 m_Connection.GetID() << SLogFmt(Default));
 #endif
-					if (CreateNewMessage(MessageSizes[m_CurrentMessageSizeIndex]) &&
-						TransmitMessage())
+					if (CreateNewMessage(MessageSizes[m_CurrentMessageSizeIndex]))
 					{
-						m_Status = Status::Discovery;
+						ProcessTransmitResult(TransmitMessage());
 					}
 					else m_Status = Status::Failed;
 				}
@@ -140,10 +159,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					else
 					{
 						// Retry transmission and see if we get an ack
-						if (!TransmitMessage())
-						{
-							m_Status = Status::Failed;
-						}
+						ProcessTransmitResult(TransmitMessage());
 					}
 				}
 				else if (m_MTUDMessageData->Acked)
@@ -157,11 +173,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					{
 						// Create and send bigger message
 						++m_CurrentMessageSizeIndex;
-						if (!CreateNewMessage(MessageSizes[m_CurrentMessageSizeIndex]) ||
-							!TransmitMessage())
+						if (CreateNewMessage(MessageSizes[m_CurrentMessageSizeIndex]))
 						{
-							m_Status = Status::Failed;
+							ProcessTransmitResult(TransmitMessage());
 						}
+						else m_Status = Status::Failed;
 					}
 				}
 				break;

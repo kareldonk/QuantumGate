@@ -52,18 +52,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
-	Buffer SendQueue::GetFreeBuffer() noexcept
-	{
-		if (!m_FreeBufferList.empty())
-		{
-			Buffer buffer = std::move(m_FreeBufferList.front());
-			m_FreeBufferList.pop_front();
-			return buffer;
-		}
-
-		return {};
-	}
-
 	bool SendQueue::Process() noexcept
 	{
 		if (m_Queue.empty()) return true;
@@ -236,17 +224,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			if (it->Acked)
 			{
-				const auto size = it->Data.GetSize();
-
-				try
-				{
-					m_FreeBufferList.emplace_front(std::move(it->Data));
-				}
-				catch (...) {}
-
+				m_NumBytesInQueue -= it->Data.GetSize();
+				
 				it = m_Queue.erase(it);
-
-				m_NumBytesInQueue -= size;
 			}
 			else break;
 		}
