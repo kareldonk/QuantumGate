@@ -458,6 +458,17 @@ namespace QuantumGate::Implementation::Network
 		return true;
 	}
 
+	Result<bool> Socket::GetNATTraversal() noexcept
+	{
+		const auto pl = GetOptInt(IPPROTO_IPV6, IPV6_PROTECTION_LEVEL);
+		if (pl == PROTECTION_LEVEL_UNRESTRICTED)
+		{
+			return false;
+		}
+
+		return false;
+	}
+
 	bool Socket::SetConditionalAccept(const bool cond_accept) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
