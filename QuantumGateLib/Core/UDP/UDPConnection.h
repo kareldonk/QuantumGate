@@ -17,16 +17,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		friend class SendQueue;
 		friend class MTUDiscovery;
 
-		struct ReceiveQueueItem final
-		{
-			Message::Type MessageType{ Message::Type::Unknown };
-			Message::SequenceNumber SequenceNumber{ 0 };
-			Buffer Data;
-		};
-
-		using ReceiveQueue = Containers::UnorderedMap<Message::SequenceNumber, ReceiveQueueItem>;
+		using ReceiveQueue = Containers::UnorderedMap<Message::SequenceNumber, Message>;
 
 		using ReceiveAckList = Vector<Message::SequenceNumber>;
+
+		enum class ReceiveWindow { Unknown, Current, Previous };
 
 	public:
 		Connection(const PeerConnectionType type, const ConnectionID id, const Message::SequenceNumber seqnum) noexcept;
@@ -82,10 +77,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool ProcessReceivedDataHandshake(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedDataConnected(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept;
-		[[nodiscard]] bool AddToReceiveQueue(ReceiveQueueItem&& itm) noexcept;
+		[[nodiscard]] bool AddToReceiveQueue(Message&&) noexcept;
 		[[nodiscard]] bool AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept;
 
-		[[nodiscard]] bool IsExpectedMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept;
+		[[nodiscard]] ReceiveWindow GetMessageSequenceNumberWindow(const Message::SequenceNumber seqnum) noexcept;
 		[[nodiscard]] bool IsMessageSequenceNumberInCurrentWindow(const Message::SequenceNumber seqnum,
 																  const Message::SequenceNumber last_seqnum,
 																  const Size wnd_size) noexcept;
