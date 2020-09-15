@@ -17,9 +17,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		friend class SendQueue;
 		friend class MTUDiscovery;
 
-		using ReceiveQueue = Containers::UnorderedMap<Message::SequenceNumber, Message>;
+		using ReceiveQueue = Containers::Map<Message::SequenceNumber, Message>;
 
 		using ReceiveAckList = Vector<Message::SequenceNumber>;
+		using ReceiveNAckList = Vector<Message::NAckRange>;
 
 		enum class ReceiveWindow { Unknown, Current, Previous };
 
@@ -66,6 +67,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SendData(Buffer&& data) noexcept;
 		[[nodiscard]] bool SendStateUpdate() noexcept;
 		[[nodiscard]] bool SendPendingAcks() noexcept;
+		[[nodiscard]] bool SendPendingNAcks() noexcept;
 		[[nodiscard]] bool SendKeepAlive() noexcept;
 		void SendImmediateReset() noexcept;
 		
@@ -79,6 +81,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool AddToReceiveQueue(Message&&) noexcept;
 		[[nodiscard]] bool AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept;
+		[[nodiscard]] bool ProcessNAcks() noexcept;
 
 		[[nodiscard]] ReceiveWindow GetMessageSequenceNumberWindow(const Message::SequenceNumber seqnum) noexcept;
 		[[nodiscard]] bool IsMessageSequenceNumberInCurrentWindow(const Message::SequenceNumber seqnum,
@@ -116,7 +119,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Size m_ReceiveWindowSize{ MinReceiveWindowItemSize };
 		ReceiveQueue m_ReceiveQueue;
 		SteadyTime m_LastReceiveSteadyTime;
+		SteadyTime m_LastNAckSteadyTime;
 		ReceiveAckList m_ReceivePendingAckList;
+		ReceiveNAckList m_ReceivePendingNAckList;
+		bool m_ReceiveCumulativeAckRequired{ false };
 
 		CloseCondition m_CloseCondition{ CloseCondition::None };
 	};

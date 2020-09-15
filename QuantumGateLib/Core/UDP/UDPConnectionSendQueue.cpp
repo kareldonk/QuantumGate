@@ -95,7 +95,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					if (*result == it->Data.GetSize())
 					{
 						// We'll wait for ack or else continue sending
-						it->TimeResent = Util::GetCurrentSteadyTime();
+						it->TimeResent = now;
 						++it->NumTries;
 					}
 					else
@@ -201,6 +201,70 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			PurgeAcked();
 		}
+	}
+
+	void SendQueue::ProcessReceivedNAcks(const Vector<Message::NAckRange>& nack_ranges) noexcept
+	{
+		m_Statistics.RecalcRetransmissionTimeout();
+
+		Size loss_num{ 0 };
+		Size loss_bytes{ 0 };
+
+		for (const auto nack : nack_ranges)
+		{
+			if (std::numeric_limits<Message::SequenceNumber>::max() - 1 >= nack.Begin)
+			{
+				for (Message::SequenceNumber seqnum = nack.Begin + 1; seqnum < nack.End; ++seqnum)
+				{
+					const auto it = std::find_if(m_Queue.begin(), m_Queue.end(), [&](const auto& itm)
+					{
+						return (itm.SequenceNumber == seqnum);
+					});
+
+					if (it != m_Queue.end())
+					{
+						if (!it->Acked)
+						{
+							++loss_num;
+							loss_bytes += it->Data.GetSize();
+
+							const auto now = Util::GetCurrentSteadyTime();
+
+							const auto result = m_Connection.Send(now, it->Data, false);
+							if (result.Succeeded())
+							{
+								// If data was actually sent, otherwise buffer may
+								// temporarily be full/unavailable
+								if (*result == it->Data.GetSize())
+								{
+									// We'll wait for ack or else continue sending
+									it->TimeResent = now;
+									++it->NumTries;
+								}
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				LogErr(L"UDP connection: received invalid nack range (%u - %u) on connection %llu",
+					   nack.Begin, nack.End, m_Connection.GetID());
+			}
+		}
+
+		m_Statistics.RecordMTULoss(static_cast<double>(loss_bytes) / static_cast<double>(m_MaxMessageSize));
+		m_Statistics.RecordMTUWindowSizeStats();
+
+#ifdef UDPSND_DEBUG
+		if (loss_num > 0)
+		{
+			SLogWarn(SLogFmt(FGBrightCyan) << L"UDP connection: retransmitted " << loss_num <<
+					 " items (" <<  loss_bytes << L" bytes), queue size " << m_Queue.size() << L", MTU window size " <<
+					 m_Statistics.GetMTUWindowSize() << L" (" << GetSendWindowByteSize() << L" bytes), RTT " <<
+					 m_Statistics.GetRetransmissionTimeout().count() << L"ms" << SLogFmt(Default));
+		}
+#endif
 	}
 
 	void SendQueue::AckItem(Item& item) noexcept
