@@ -57,6 +57,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			switch (m_MessageType)
 			{
 				case Message::Type::EAck:
+				case Message::Type::NAck:
 				{
 					// Not used for the above message type so we fill with random data
 					m_MessageSequenceNumber = static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber());
@@ -281,7 +282,13 @@ namespace QuantumGate::Implementation::Core::UDP
 	Size Message::GetMaxAckSequenceNumbersPerMessage() const noexcept
 	{
 		const auto asize = m_MaxMessageSize - (MsgHeader::GetSize() + Memory::BufferIO::GetSizeOfEncodedSize(m_MaxMessageSize));
-		return (std::min(asize, static_cast<Size>(512u)) / sizeof(Message::SequenceNumber));
+		return (asize / sizeof(Message::SequenceNumber));
+	}
+
+	Size Message::GetMaxNAckRangesPerMessage() const noexcept
+	{
+		const auto asize = m_MaxMessageSize - MsgHeader::GetSize();
+		return (asize / sizeof(Message::NAckRange));
 	}
 
 	void Message::SetStateData(StateData&& data) noexcept
@@ -341,6 +348,28 @@ namespace QuantumGate::Implementation::Core::UDP
 		return m_EAcks;
 	}
 
+	void Message::SetNAckRanges(Vector<Message::NAckRange>&& nack_ranges) noexcept
+	{
+		assert(std::holds_alternative<MsgHeader>(m_Header));
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::NAck);
+
+		if (!nack_ranges.empty())
+		{
+			m_NAckRanges = std::move(nack_ranges);
+
+			Validate();
+		}
+	}
+
+	const Vector<Message::NAckRange>& Message::GetNAckRanges() noexcept
+	{
+		assert(std::holds_alternative<MsgHeader>(m_Header));
+		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::NAck);
+		assert(IsValid());
+
+		return m_NAckRanges;
+	}
+
 	Size Message::GetHeaderSize() const noexcept
 	{
 		return std::visit(Util::Overloaded{
@@ -361,7 +390,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		if (buffer.GetSize() < GetHeaderSize()) return false;
 
 		// TEMPORARY
-		{
+		/*{
 			// Calculate HMAC for the message
 			Buffer hmac;
 			UInt64 authkey{ 369 };
@@ -383,7 +412,7 @@ namespace QuantumGate::Implementation::Core::UDP
 				LogErr(L"Failed HMAC calculation for UDP connection message");
 				return false;
 			}
-		}
+		}*/
 
 		// Get message outer header from buffer
 		auto success = std::visit(Util::Overloaded{
@@ -421,6 +450,19 @@ namespace QuantumGate::Implementation::Core::UDP
 				{
 					Memory::BufferReader rdr(buffer, true);
 					if (!rdr.Read(WithSize(m_EAcks, MaxSize::_512B))) return false;
+					break;
+				}
+				case Type::NAck:
+				{
+					// Size should be exact multiple of size of NAckRange
+					// otherwise something is wrong
+					assert(buffer.GetSize() % sizeof(NAckRange) == 0);
+					if (buffer.GetSize() % sizeof(NAckRange) != 0) return false;
+
+					const auto numnack = buffer.GetSize() / sizeof(NAckRange);
+
+					m_NAckRanges.resize(numnack);
+					std::memcpy(m_NAckRanges.data(), buffer.GetBytes(), buffer.GetSize());
 					break;
 				}
 				case Type::State:
@@ -489,6 +531,19 @@ namespace QuantumGate::Implementation::Core::UDP
 					msgbuf += ackbuf;
 					break;
 				}
+				case Type::NAck:
+				{
+					if (!m_NAckRanges.empty())
+					{
+						Buffer nackbuf;
+						BufferView nack_view{ reinterpret_cast<Byte*>(m_NAckRanges.data()), m_NAckRanges.size() * sizeof(Message::NAckRange) };
+						Memory::BufferWriter wrt(nackbuf, true);
+						if (!wrt.WriteWithPreallocation(nack_view)) return false;
+
+						msgbuf += nackbuf;
+					}
+					break;
+				}
 				case Type::State:
 				{
 					Buffer statebuf;
@@ -514,7 +569,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		}
 
 		// TEMPORARY
-		{
+		/*{
 			// Calculate HMAC for the message
 			Buffer hmac;
 			UInt64 authkey{ 369 };
@@ -532,7 +587,9 @@ namespace QuantumGate::Implementation::Core::UDP
 				LogErr(L"Failed HMAC calculation for UDP connection message");
 				return false;
 			}
-		}
+		}*/
+
+		buffer = std::move(msgbuf);
 
 		return true;
 	}
@@ -551,6 +608,9 @@ namespace QuantumGate::Implementation::Core::UDP
 				type_ok = HasAck() && HasSequenceNumber();
 				break;
 			case Type::EAck:
+				type_ok = HasAck();
+				break;
+			case Type::NAck:
 				type_ok = HasAck();
 				break;
 			case Type::Syn:

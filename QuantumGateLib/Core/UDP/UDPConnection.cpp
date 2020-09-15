@@ -196,10 +196,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			SetCloseCondition(CloseCondition::ReceiveError);
 		}
 
-		if (!SendPendingAcks())
+		/*if (!SendPendingAcks())
 		{
 			SetCloseCondition(CloseCondition::SendError);
-		}
+		}*/
 
 		switch (GetStatus())
 		{
@@ -253,6 +253,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				break;
 			}
+		}
+
+		if (!SendPendingNAcks())
+		{
+			SetCloseCondition(CloseCondition::SendError);
 		}
 	}
 
@@ -449,7 +454,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::SendPendingAcks() noexcept
 	{
-		if (m_ReceivePendingAckList.empty()) return true;
 		/*
 		std::erase_if(m_ReceivePendingAckList, [&](const auto& seqnum)
 		{
@@ -460,33 +464,86 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		Dbg(L"UDP connection: sending acks on connection %llu", GetID());
 
-		Message msg(Message::Type::EAck, Message::Direction::Outgoing, m_SendQueue.GetMaxMessageSize());
-		msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
+		while (!m_ReceivePendingAckList.empty())
+		{
+			Message msg(Message::Type::EAck, Message::Direction::Outgoing, m_SendQueue.GetMaxMessageSize());
+			msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
 
-		const auto max_num_acks = msg.GetMaxAckSequenceNumbersPerMessage();
-		if (m_ReceivePendingAckList.size() <= max_num_acks)
-		{
-			msg.SetAckSequenceNumbers(std::move(m_ReceivePendingAckList));
-		}
-		else
-		{
-			Vector<Message::SequenceNumber> temp_acks;
-			const auto last = m_ReceivePendingAckList.begin() + max_num_acks;
-			std::copy(m_ReceivePendingAckList.begin(), last, std::back_inserter(temp_acks));
-			msg.SetAckSequenceNumbers(std::move(temp_acks));
-			m_ReceivePendingAckList.erase(m_ReceivePendingAckList.begin(), last);
+			const auto max_num_acks = msg.GetMaxAckSequenceNumbersPerMessage();
+			if (m_ReceivePendingAckList.size() <= max_num_acks)
+			{
+				msg.SetAckSequenceNumbers(std::move(m_ReceivePendingAckList));
+			}
+			else
+			{
+				Vector<Message::SequenceNumber> temp_acks;
+				const auto last = m_ReceivePendingAckList.begin() + max_num_acks;
+				std::copy(m_ReceivePendingAckList.begin(), last, std::back_inserter(temp_acks));
+				msg.SetAckSequenceNumbers(std::move(temp_acks));
+				m_ReceivePendingAckList.erase(m_ReceivePendingAckList.begin(), last);
+			}
+
+			if (!Send(std::move(msg)))
+			{
+				LogErr(L"UDP connection: failed to send acks on connection %llu", GetID());
+				return false;
+			}
 		}
 
-		if (Send(std::move(msg)))
+		return true;
+	}
+
+	bool Connection::SendPendingNAcks() noexcept
+	{
+		if (m_ReceivePendingNAckList.empty() && m_ReceiveCumulativeAckRequired)
 		{
-			return true;
+			Dbg(L"UDP connection: sending cummulative ack on connection %llu", GetID());
+
+			Message msg(Message::Type::NAck, Message::Direction::Outgoing, m_SendQueue.GetMaxMessageSize());
+			msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
+			
+			if (!Send(std::move(msg)))
+			{
+				LogErr(L"UDP connection: failed to send nacks on connection %llu", GetID());
+				return false;
+			}
+
+			m_ReceiveCumulativeAckRequired = false;
 		}
-		else
+		else if (!m_ReceivePendingNAckList.empty())
 		{
-			LogErr(L"UDP connection: failed to send acks on connection %llu", GetID());
+			Dbg(L"UDP connection: sending nacks on connection %llu", GetID());
+
+			while (!m_ReceivePendingNAckList.empty())
+			{
+				Message msg(Message::Type::NAck, Message::Direction::Outgoing, m_SendQueue.GetMaxMessageSize());
+				msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
+
+				const auto max_num_nacks = msg.GetMaxNAckRangesPerMessage();
+				if (m_ReceivePendingNAckList.size() <= max_num_nacks)
+				{
+					msg.SetNAckRanges(std::move(m_ReceivePendingNAckList));
+				}
+				else
+				{
+					Vector<Message::NAckRange> temp_acks;
+					const auto last = m_ReceivePendingNAckList.begin() + max_num_nacks;
+					std::copy(m_ReceivePendingNAckList.begin(), last, std::back_inserter(temp_acks));
+					msg.SetNAckRanges(std::move(temp_acks));
+					m_ReceivePendingNAckList.erase(m_ReceivePendingNAckList.begin(), last);
+				}
+
+				if (!Send(std::move(msg)))
+				{
+					LogErr(L"UDP connection: failed to send nacks on connection %llu", GetID());
+					return false;
+				}
+			}
+
+			m_LastNAckSteadyTime = Util::GetCurrentSteadyTime();
 		}
 
-		return false;
+		return true;
 	}
 
 	bool Connection::SendKeepAlive() noexcept
@@ -879,6 +936,15 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				m_SendQueue.ProcessReceivedAcks(msg.GetAckSequenceNumbers());
 				return true;
 			}
+			case Message::Type::NAck:
+			{
+				Dbg(L"UDP connection: received nack message from peer %s on connection %llu",
+					endpoint.GetString().c_str(), GetID());
+
+				m_SendQueue.ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
+				m_SendQueue.ProcessReceivedNAcks(msg.GetNAckRanges());
+				return true;
+			}
 			case Message::Type::MTUD:
 			{
 				if (!msg.HasAck())
@@ -1008,6 +1074,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept
 	{
+		m_ReceiveCumulativeAckRequired = true;
+
+		return true;
+		/*
 		try
 		{
 			m_ReceivePendingAckList.emplace_back(seqnum);
@@ -1015,7 +1085,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 		catch (...) {}
 
-		return false;
+		return false;*/
 	}
 
 	bool Connection::SendPendingSocketData() noexcept
@@ -1061,66 +1131,91 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		auto next_itm = m_ReceiveQueue.find(Message::GetNextSequenceNumber(m_LastInSequenceReceivedSequenceNumber));
 		if (next_itm == m_ReceiveQueue.end())
 		{
-			return true;
+			return ProcessNAcks();
 		}
 
-		try
+		auto connection_data = m_ConnectionData->WithUniqueLock();
+
+		auto rcv_event = false;
+
+		while (next_itm != m_ReceiveQueue.end())
 		{
-			auto connection_data = m_ConnectionData->WithUniqueLock();
+			auto remove = false;
 
-			auto rcv_event = false;
+			auto& msg = next_itm->second;
 
-			while (next_itm != m_ReceiveQueue.end())
+			if (msg.GetType() == Message::Type::Data)
 			{
-				auto remove = false;
-
-				auto& msg = next_itm->second;
-
-				if (msg.GetType() == Message::Type::Data)
+				if (connection_data->GetReceiveBuffer().GetWriteSize() >= msg.GetMessageData().GetSize())
 				{
-					if (connection_data->GetReceiveBuffer().GetWriteSize() >= msg.GetMessageData().GetSize())
+					if (connection_data->GetReceiveBuffer().Write(msg.GetMessageData()) == msg.GetMessageData().GetSize())
 					{
-						if (connection_data->GetReceiveBuffer().Write(msg.GetMessageData()) == msg.GetMessageData().GetSize())
-						{
-							rcv_event = true;
-							remove = true;
-						}
-						else return false;
+						rcv_event = true;
+						remove = true;
 					}
-					else break;
+					else return false;
 				}
-				else if (msg.GetType() == Message::Type::State)
-				{
-					const auto state_data = msg.GetStateData();
-					m_SendQueue.SetPeerAdvertisedReceiveWindowSizes(state_data.MaxWindowSize, state_data.MaxWindowSizeBytes);
-
-					remove = true;
-				}
-				else
-				{
-					assert(false);
-					LogErr(L"Unhandled UDP message");
-					return false;
-				}
-
-				if (remove)
-				{
-					m_LastInSequenceReceivedSequenceNumber = msg.GetMessageSequenceNumber();
-					m_ReceiveQueue.erase(next_itm);
-				}
-
-				next_itm = m_ReceiveQueue.find(Message::GetNextSequenceNumber(m_LastInSequenceReceivedSequenceNumber));
+				else break;
 			}
-
-			if (rcv_event)
+			else if (msg.GetType() == Message::Type::State)
 			{
-				connection_data->SetRead(true);
-				connection_data->SignalReceiveEvent();
+				const auto state_data = msg.GetStateData();
+				m_SendQueue.SetPeerAdvertisedReceiveWindowSizes(state_data.MaxWindowSize, state_data.MaxWindowSizeBytes);
+
+				remove = true;
 			}
+			else
+			{
+				assert(false);
+				LogErr(L"UDP connection: unhandled message in receive queue");
+				return false;
+			}
+
+			if (remove)
+			{
+				m_LastInSequenceReceivedSequenceNumber = msg.GetMessageSequenceNumber();
+				m_ReceiveQueue.erase(next_itm);
+			}
+
+			next_itm = m_ReceiveQueue.find(Message::GetNextSequenceNumber(m_LastInSequenceReceivedSequenceNumber));
 		}
-		catch (...) { return false; }
+
+		if (rcv_event)
+		{
+			connection_data->SetRead(true);
+			connection_data->SignalReceiveEvent();
+		}
 
 		return true;
+	}
+
+	bool Connection::ProcessNAcks() noexcept
+	{
+		if (Util::GetCurrentSteadyTime() - m_LastNAckSteadyTime < 2ms)
+		{
+			return SendPendingNAcks();
+		}
+
+		auto curseqnum = m_LastInSequenceReceivedSequenceNumber;
+		
+		for (auto it = m_ReceiveQueue.begin(); it != m_ReceiveQueue.end(); ++it)
+		{
+			const auto dif = it->second.GetMessageSequenceNumber() - curseqnum;
+			if (dif > 0 && dif < MaxReceiveWindowItemSize)
+			{
+				//LogWarn(L"UDP connection: adding nack range %u - %u",
+				//		curseqnum, it->second.GetMessageSequenceNumber());
+
+				m_ReceivePendingNAckList.emplace_back(
+					Message::NAckRange{
+						.Begin = curseqnum,
+						.End = it->second.GetMessageSequenceNumber()
+					});
+			}
+			else curseqnum = it->second.GetMessageSequenceNumber();
+		}
+
+		return SendPendingNAcks();
 	}
 
 	void Connection::ProcessSocketEvents() noexcept

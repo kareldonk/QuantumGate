@@ -30,13 +30,22 @@ namespace QuantumGate::Implementation::Core::UDP
 			EAck = 4,
 			MTUD = 5,
 			Reset = 6,
-			Null = 7
+			Null = 7,
+			NAck = 8,
 		};
 
 		enum class Direction : UInt8 { Unknown, Incoming, Outgoing };
 
 		using SequenceNumber = UInt16;
 		using HMAC = UInt32;
+
+#pragma pack(push, 1) // Disable padding bytes
+		struct NAckRange final
+		{
+			SequenceNumber Begin{ 0 };
+			SequenceNumber End{ 0 };
+		};
+#pragma pack(pop)
 
 	private:
 		class SynHeader final
@@ -219,15 +228,18 @@ namespace QuantumGate::Implementation::Core::UDP
 		void SetStateData(StateData&& data) noexcept;
 		const StateData& GetStateData() const noexcept;
 
+		Size GetMaxAckSequenceNumbersPerMessage() const noexcept;
 		void SetAckSequenceNumbers(Vector<SequenceNumber>&& acks) noexcept;
 		const Vector<SequenceNumber>& GetAckSequenceNumbers() noexcept;
 
+		Size GetMaxNAckRangesPerMessage() const noexcept;
+		void SetNAckRanges(Vector<Message::NAckRange>&& nack_ranges) noexcept;
+		const Vector<Message::NAckRange>& GetNAckRanges() noexcept;
+
+		Size GetMaxMessageDataSize() const noexcept;
 		void SetMessageData(Buffer&& buffer) noexcept;
 		const Buffer& GetMessageData() const noexcept;
 		Buffer&& MoveMessageData() noexcept;
-
-		Size GetMaxMessageDataSize() const noexcept;
-		Size GetMaxAckSequenceNumbersPerMessage() const noexcept;
 
 		[[nodiscard]] bool Read(BufferView buffer);
 		[[nodiscard]] bool Write(Buffer& buffer);
@@ -268,5 +280,6 @@ namespace QuantumGate::Implementation::Core::UDP
 		StateData m_StateData;
 		Buffer m_Data;
 		Vector<SequenceNumber> m_EAcks;
+		Vector<Message::NAckRange> m_NAckRanges;
 	};
 }
