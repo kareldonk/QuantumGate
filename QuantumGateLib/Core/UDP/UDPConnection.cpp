@@ -834,46 +834,41 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		switch (msg.GetType())
 		{
 			case Message::Type::Data:
-			{
-				Dbg(L"UDP connection: received data message from peer %s (seq# %u) on connection %llu",
-					endpoint.GetString().c_str(), msg.GetMessageSequenceNumber(), GetID());
-
-				if (IsExpectedMessageSequenceNumber(msg.GetMessageSequenceNumber()))
-				{
-					m_SendQueue.ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
-
-					if (AckReceivedMessage(msg.GetMessageSequenceNumber()))
-					{
-						return AddToReceiveQueue(
-							ReceiveQueueItem{
-								.MessageType = msg.GetType(),
-								.SequenceNumber = msg.GetMessageSequenceNumber(),
-								.Data = msg.MoveMessageData()
-							});
-					}
-				}
-				else return true;
-				break;
-			}
 			case Message::Type::State:
 			{
-				Dbg(L"UDP connection: received state message from peer %s (seq# %u) on connection %llu",
+				Dbg(L"UDP connection: received data/state message from peer %s (seq# %u) on connection %llu",
 					endpoint.GetString().c_str(), msg.GetMessageSequenceNumber(), GetID());
 
-				m_SendQueue.ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
-				
-				if (AckReceivedMessage(msg.GetMessageSequenceNumber()))
+				const auto window = GetMessageSequenceNumberWindow(msg.GetMessageSequenceNumber());
+				switch (window)
 				{
-					const auto state_data = msg.GetStateData();
-					m_SendQueue.SetPeerAdvertisedReceiveWindowSizes(state_data.MaxWindowSize, state_data.MaxWindowSizeBytes);
-			
-					return AddToReceiveQueue(
-						ReceiveQueueItem{
-							.MessageType = msg.GetType(),
-							.SequenceNumber = msg.GetMessageSequenceNumber()
-						});
+					case ReceiveWindow::Current:
+					{
+						m_SendQueue.ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
+
+						if (AckReceivedMessage(msg.GetMessageSequenceNumber()))
+						{
+							return AddToReceiveQueue(std::move(msg));
+						}
+					}
+					case ReceiveWindow::Previous:
+					{
+						// May have been retransmitted due to delays; send an ack and drop message
+						DiscardReturnValue(AckReceivedMessage(msg.GetMessageSequenceNumber()));
+					}
+					case ReceiveWindow::Unknown:
+					{
+						// Drop message
+						break;
+					}
+					default:
+					{
+						assert(false);
+						break;
+					}
 				}
-				break;
+				
+				return true;
 			}
 			case Message::Type::EAck:
 			{
@@ -923,11 +918,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
-	bool Connection::AddToReceiveQueue(ReceiveQueueItem&& itm) noexcept
+	bool Connection::AddToReceiveQueue(Message&& msg) noexcept
 	{
 		try
 		{
-			m_ReceiveQueue.emplace(itm.SequenceNumber, std::move(itm));
+			m_ReceiveQueue.emplace(msg.GetMessageSequenceNumber(), std::move(msg));
 			return true;
 		}
 		catch (...) {}
@@ -935,19 +930,21 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
-	bool Connection::IsExpectedMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept
+	Connection::ReceiveWindow Connection::GetMessageSequenceNumberWindow(const Message::SequenceNumber seqnum) noexcept
 	{
 		if (IsMessageSequenceNumberInCurrentWindow(seqnum, m_LastInSequenceReceivedSequenceNumber,
-												   m_ReceiveWindowSize)) return true;
+												   m_ReceiveWindowSize))
+		{
+			return ReceiveWindow::Current;
+		}
 
 		if (IsMessageSequenceNumberInPreviousWindow(seqnum, m_LastInSequenceReceivedSequenceNumber,
 													m_ReceiveWindowSize))
 		{
-			// May have been retransmitted due to delays; send an ack
-			DiscardReturnValue(AckReceivedMessage(seqnum));
+			return ReceiveWindow::Previous;
 		}
 
-		return false;
+		return ReceiveWindow::Unknown;
 	}
 
 	bool Connection::IsMessageSequenceNumberInCurrentWindow(const Message::SequenceNumber seqnum,
@@ -1077,13 +1074,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				auto remove = false;
 
-				auto& rcv_itm = next_itm->second;
+				auto& msg = next_itm->second;
 
-				if (rcv_itm.MessageType == Message::Type::Data)
+				if (msg.GetType() == Message::Type::Data)
 				{
-					if (connection_data->GetReceiveBuffer().GetWriteSize() >= rcv_itm.Data.GetSize())
+					if (connection_data->GetReceiveBuffer().GetWriteSize() >= msg.GetMessageData().GetSize())
 					{
-						if (connection_data->GetReceiveBuffer().Write(rcv_itm.Data) == rcv_itm.Data.GetSize())
+						if (connection_data->GetReceiveBuffer().Write(msg.GetMessageData()) == msg.GetMessageData().GetSize())
 						{
 							rcv_event = true;
 							remove = true;
@@ -1092,8 +1089,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					}
 					else break;
 				}
-				else if (rcv_itm.MessageType == Message::Type::State)
+				else if (msg.GetType() == Message::Type::State)
 				{
+					const auto state_data = msg.GetStateData();
+					m_SendQueue.SetPeerAdvertisedReceiveWindowSizes(state_data.MaxWindowSize, state_data.MaxWindowSizeBytes);
+
 					remove = true;
 				}
 				else
@@ -1105,7 +1105,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 				if (remove)
 				{
-					m_LastInSequenceReceivedSequenceNumber = rcv_itm.SequenceNumber;
+					m_LastInSequenceReceivedSequenceNumber = msg.GetMessageSequenceNumber();
 					m_ReceiveQueue.erase(next_itm);
 				}
 
