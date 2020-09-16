@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		struct RTTSample final
 		{
-			std::chrono::milliseconds RTT{ 0 };
+			std::chrono::nanoseconds RTT{ 0 };
 		};
 
 		using RTTSampleList = RingList<RTTSample, 128>;
@@ -41,12 +41,16 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		[[nodiscard]] inline std::chrono::milliseconds GetRetransmissionTimeout() const noexcept
 		{
-			return std::max(MinRetransmissionTimeout, m_RTT * 2);
+			return std::chrono::duration_cast<std::chrono::milliseconds>(m_RTT * m_RTTMTULossFactor * 2);
 		}
 
-		inline void RecordRTT(const std::chrono::milliseconds rtt) noexcept
+		inline void RecordRTT(const std::chrono::nanoseconds rtt) noexcept
 		{
-			RecordRTTStats(rtt);
+			// Never go below minimum
+			const auto ns = std::max(MinRTT.count(), rtt.count());
+
+			m_RTTVariance.AddSample(static_cast<double>(ns));
+			m_RTTSamples.Add(RTTSample{ std::chrono::nanoseconds(ns) });
 		}
 
 		void RecalcRetransmissionTimeout() noexcept
@@ -56,12 +60,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			const auto rtt_minm = m_RTTVariance.GetMinDev();
 			const auto rtt_maxm = m_RTTVariance.GetMaxDev();
 
-			std::chrono::milliseconds total_rtt{ 0 };
+			std::chrono::nanoseconds total_rtt{ 0 };
 			Size total_rtt_count{ 0 };
 
 #ifdef UDPCS_RTT_DEBUG
-			std::chrono::milliseconds min_time{ std::numeric_limits<std::chrono::milliseconds::rep>::max() };
-			std::chrono::milliseconds max_time{ 0 };
+			std::chrono::nanoseconds min_time{ std::numeric_limits<std::chrono::nanoseconds::rep>::max() };
+			std::chrono::nanoseconds max_time{ 0 };
+			const auto old_rtt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(m_RTT);
 #endif
 			for (const auto& sample : m_RTTSamples.GetList())
 			{
@@ -86,13 +91,18 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				const auto X = m_NoLossYetRecorded ? 0.5 : 0.95;
 				const auto new_rtt_sample = (static_cast<double>(total_rtt.count()) / static_cast<double>(total_rtt_count));
 				const auto new_rtt = OnlineVariance<double>::WeightedSampleUpdate(static_cast<double>(m_RTT.count()), new_rtt_sample, X);
-				m_RTT = std::chrono::milliseconds(static_cast<std::chrono::milliseconds::rep>(new_rtt));
+				m_RTT = std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(new_rtt));
 			}
 
 #ifdef UDPCS_RTT_DEBUG
-			SLogInfo(SLogFmt(FGBrightGreen) << L"UDP connection: RTT: " << m_RTT.count() <<
-					 L"ms - Min: " << min_time.count() << L"ms - Max: " << max_time.count() << L"ms - StdDev: " <<
-					 m_RTTVariance.GetStdDev() << L"ms - Mean: " << m_RTTVariance.GetMean() << L"ms" << SLogFmt(Default));
+			if (old_rtt_ms != std::chrono::duration_cast<std::chrono::milliseconds>(m_RTT))
+			{
+				SLogInfo(SLogFmt(FGBrightGreen) << L"UDP connection: RTT: " <<
+						 std::chrono::duration_cast<std::chrono::milliseconds>(m_RTT).count() <<
+						 L"ms - Min: " << std::chrono::duration_cast<std::chrono::milliseconds>(min_time).count() <<
+						 L"ms - Max: " << std::chrono::duration_cast<std::chrono::milliseconds>(max_time).count() << L"ms - StdDev: " <<
+						 m_RTTVariance.GetStdDev() << L"ms - Mean: " << m_RTTVariance.GetMean() << L"ms" << SLogFmt(Default));
+			}
 #endif
 			m_RTTSamples.Expire();
 		}
@@ -138,7 +148,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 			else
 			{
-				m_LastLossRecordedSteadyTime = Util::GetCurrentSteadyTime();
+				const auto now = Util::GetCurrentSteadyTime();
+
+				m_LastLossRecordedSteadyTime = now;
 
 				// Part of additive increase/multiplicative decrease (AIMD) algorithm
 				m_NewMTUWindowSizeSample = m_NewMTUWindowSizeSample / std::pow(2.0, num_mtu);
@@ -161,6 +173,15 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 							 m_NoLossMTUWindowSize << L" - MTUWindowSize: " << m_MTUWindowSize << SLogFmt(Default));
 #endif
 				}
+
+				m_RTTMTULossCount += num_mtu;
+				if (now - m_LastRTTMTULossFactorSteadyTime >= m_RTT)
+				{
+					m_RTTMTULossFactor = 1.0 + (m_RTTMTULossCount / static_cast<double>(m_MTUWindowSize));
+
+					m_RTTMTULossCount = 0;
+					m_LastRTTMTULossFactorSteadyTime = now;
+				}
 			}
 		}
 
@@ -171,7 +192,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			const auto rtt = std::invoke([&]()
 			{
 				return (m_MTUWindowSizeSamples.IsMaxSize()) ?
-					GetRetransmissionTimeout() : GetRetransmissionTimeout() / 2;
+					GetRetransmissionTimeout() : m_RTT;
 			});
 
 			// Only record every RTT for a good sample
@@ -244,25 +265,21 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			m_MTUWindowSizeSamples.Expire();
 		}
 
-	private:
-		void RecordRTTStats(const std::chrono::milliseconds rtt) noexcept
-		{
-			m_RTTVariance.AddSample(static_cast<double>(rtt.count()));
-			m_RTTSamples.Add(RTTSample{ rtt });
-		}
-
 	public:
 		static constexpr Size MinMTUWindowSize{ 8 };
 
 	private:
-		static constexpr std::chrono::milliseconds StartRTT{ 600 };
-		static constexpr std::chrono::milliseconds MinRetransmissionTimeout{ 1 };
+		static constexpr std::chrono::nanoseconds StartRTT{ 600'000'000 };
+		static constexpr std::chrono::nanoseconds MinRTT{ 1'000'000 };
 		static constexpr std::chrono::seconds NoLossRestartTimeout{ 2 };
 
 	private:
-		std::chrono::milliseconds m_RTT{ StartRTT };
+		std::chrono::nanoseconds m_RTT{ StartRTT };
 		OnlineVariance<double> m_RTTVariance;
 		RTTSampleList m_RTTSamples;
+		double m_RTTMTULossCount{ 0 };
+		double m_RTTMTULossFactor{ 1 };
+		SteadyTime m_LastRTTMTULossFactorSteadyTime;
 
 		bool m_MTUStart{ true };
 		bool m_NoLossYetRecorded{ true };

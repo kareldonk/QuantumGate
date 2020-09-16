@@ -154,6 +154,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		if (it != m_Queue.end())
 		{
+			const auto now = Util::GetCurrentSteadyTime();
+
 			auto purge_acked{ false };
 			Size num_bytes{ 0 };
 
@@ -163,7 +165,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					if (!it2->Acked)
 					{
-						AckItem(*it2);
+						AckItem(*it2, now);
 
 						num_bytes += it2->Data.GetSize();
 						purge_acked = true;
@@ -185,6 +187,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void SendQueue::ProcessReceivedAcks(const Vector<Message::AckRange>& ack_ranges) noexcept
 	{
+		const auto now = Util::GetCurrentSteadyTime();
+
 		auto purge_acked{ false };
 		Size num_bytes{ 0 };
 
@@ -192,7 +196,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			for (auto seqnum = ack_range.Begin; seqnum <= ack_range.End;)
 			{
-				const auto [acked, msg_size] = AckSentMessage(seqnum);
+				const auto [acked, msg_size] = AckSentMessage(seqnum, now);
 				if (acked)
 				{
 					num_bytes += msg_size;
@@ -279,16 +283,16 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 #endif
 	}
 
-	void SendQueue::AckItem(Item& item) noexcept
+	void SendQueue::AckItem(Item& item, const SteadyTime& now) noexcept
 	{
 		item.Acked = true;
-		item.TimeAcked = Util::GetCurrentSteadyTime();
+		item.TimeAcked = now;
 
 		// Only record RTT for items that have not been
 		// retransmitted as per Karn's Algorithm
 		if (item.NumTries == 1)
 		{
-			m_Statistics.RecordRTT(std::chrono::duration_cast<std::chrono::milliseconds>(item.TimeAcked - item.TimeSent));
+			m_Statistics.RecordRTT(std::chrono::duration_cast<std::chrono::nanoseconds>(item.TimeAcked - item.TimeSent));
 		}
 	}
 
@@ -308,7 +312,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	std::pair<bool, Size> SendQueue::AckSentMessage(const Message::SequenceNumber seqnum) noexcept
+	std::pair<bool, Size> SendQueue::AckSentMessage(const Message::SequenceNumber seqnum, const SteadyTime& now) noexcept
 	{
 		auto it = std::find_if(m_Queue.begin(), m_Queue.end(), [&](const auto& itm)
 		{
@@ -322,7 +326,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 			if (!it->Acked)
 			{
-				AckItem(*it);
+				AckItem(*it, now);
 
 				return std::make_pair(true, it->Data.GetSize());
 			}
