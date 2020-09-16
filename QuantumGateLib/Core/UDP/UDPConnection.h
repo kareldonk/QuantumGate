@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		using ReceiveQueue = Containers::Map<Message::SequenceNumber, Message>;
 
-		using ReceiveAckList = Vector<Message::SequenceNumber>;
+		using ReceiveAckList = Set<Message::SequenceNumber>;
 		using ReceiveNAckList = Vector<Message::NAckRange>;
 
 		enum class ReceiveWindow { Unknown, Current, Previous };
@@ -119,8 +119,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Size m_ReceiveWindowSize{ MinReceiveWindowItemSize };
 		ReceiveQueue m_ReceiveQueue;
 		SteadyTime m_LastReceiveSteadyTime;
-		SteadyTime m_LastNAckSteadyTime;
 		ReceiveAckList m_ReceivePendingAckList;
+		Vector<Message::AckRange> m_ReceivePendingAckRanges;
+
+		SteadyTime m_LastNAckSteadyTime;
 		ReceiveNAckList m_ReceivePendingNAckList;
 		bool m_ReceiveCumulativeAckRequired{ false };
 

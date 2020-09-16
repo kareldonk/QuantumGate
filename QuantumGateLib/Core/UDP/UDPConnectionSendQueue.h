@@ -48,12 +48,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] inline Message::SequenceNumber GetNextSendSequenceNumber() const noexcept { return m_NextSendSequenceNumber; }
 
 		void ProcessReceivedInSequenceAck(const Message::SequenceNumber seqnum) noexcept;
-		void ProcessReceivedAcks(const Vector<Message::SequenceNumber>& acks) noexcept;
+		void ProcessReceivedAcks(const Vector<Message::AckRange>& ack_ranges) noexcept;
+
 		void ProcessReceivedNAcks(const Vector<Message::NAckRange>& nack_ranges) noexcept;
 
 	private:
 		void AckItem(Item& item) noexcept;
-		[[nodiscard]] Size AckSentMessage(const Message::SequenceNumber seqnum) noexcept;
+		[[nodiscard]] std::pair<bool, Size> AckSentMessage(const Message::SequenceNumber seqnum) noexcept;
 		void PurgeAcked() noexcept;
 
 		void RecalcPeerReceiveWindowSize() noexcept;
