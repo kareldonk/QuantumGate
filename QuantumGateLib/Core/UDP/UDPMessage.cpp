@@ -57,7 +57,6 @@ namespace QuantumGate::Implementation::Core::UDP
 			switch (m_MessageType)
 			{
 				case Message::Type::EAck:
-				case Message::Type::NAck:
 				{
 					// Not used for the above message type so we fill with random data
 					m_MessageSequenceNumber = static_cast<Message::SequenceNumber>(Random::GetPseudoRandomNumber());
@@ -285,12 +284,6 @@ namespace QuantumGate::Implementation::Core::UDP
 		return (asize / sizeof(Message::AckRange));
 	}
 
-	Size Message::GetMaxNAckRangesPerMessage() const noexcept
-	{
-		const auto asize = m_MaxMessageSize - MsgHeader::GetSize();
-		return (asize / sizeof(Message::NAckRange));
-	}
-
 	void Message::SetStateData(StateData&& data) noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
@@ -341,23 +334,6 @@ namespace QuantumGate::Implementation::Core::UDP
 		assert(IsValid());
 
 		return m_EAcks;
-	}
-
-	void Message::SetNAckRanges(Vector<Message::NAckRange>&& nack_ranges) noexcept
-	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::NAck);
-
-		m_NAckRanges = std::move(nack_ranges);
-	}
-
-	const Vector<Message::NAckRange>& Message::GetNAckRanges() noexcept
-	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::NAck);
-		assert(IsValid());
-
-		return m_NAckRanges;
 	}
 
 	Size Message::GetHeaderSize() const noexcept
@@ -438,28 +414,15 @@ namespace QuantumGate::Implementation::Core::UDP
 				}
 				case Type::EAck:
 				{
-					// Size should be exact multiple of size of NAckRange
+					// Size should be exact multiple of size of AckRange
 					// otherwise something is wrong
 					assert(buffer.GetSize() % sizeof(AckRange) == 0);
 					if (buffer.GetSize() % sizeof(AckRange) != 0) return false;
 
-					const auto numack = buffer.GetSize() / sizeof(AckRange);
+					const auto num_ack_ranges = buffer.GetSize() / sizeof(AckRange);
 
-					m_EAcks.resize(numack);
+					m_EAcks.resize(num_ack_ranges);
 					std::memcpy(m_EAcks.data(), buffer.GetBytes(), buffer.GetSize());
-					break;
-				}
-				case Type::NAck:
-				{
-					// Size should be exact multiple of size of NAckRange
-					// otherwise something is wrong
-					assert(buffer.GetSize() % sizeof(NAckRange) == 0);
-					if (buffer.GetSize() % sizeof(NAckRange) != 0) return false;
-
-					const auto numnack = buffer.GetSize() / sizeof(NAckRange);
-
-					m_NAckRanges.resize(numnack);
-					std::memcpy(m_NAckRanges.data(), buffer.GetBytes(), buffer.GetSize());
 					break;
 				}
 				case Type::State:
@@ -529,19 +492,6 @@ namespace QuantumGate::Implementation::Core::UDP
 					msgbuf += ackbuf;
 					break;
 				}
-				case Type::NAck:
-				{
-					if (!m_NAckRanges.empty())
-					{
-						Buffer nackbuf;
-						BufferView nack_view{ reinterpret_cast<Byte*>(m_NAckRanges.data()), m_NAckRanges.size() * sizeof(Message::NAckRange) };
-						Memory::BufferWriter wrt(nackbuf, true);
-						if (!wrt.WriteWithPreallocation(nack_view)) return false;
-
-						msgbuf += nackbuf;
-					}
-					break;
-				}
 				case Type::State:
 				{
 					Buffer statebuf;
@@ -606,9 +556,6 @@ namespace QuantumGate::Implementation::Core::UDP
 				type_ok = HasAck() && HasSequenceNumber();
 				break;
 			case Type::EAck:
-				type_ok = HasAck();
-				break;
-			case Type::NAck:
 				type_ok = HasAck();
 				break;
 			case Type::Syn:

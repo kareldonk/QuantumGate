@@ -39,8 +39,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Statistics& operator=(const Statistics&) = delete;
 		Statistics& operator=(Statistics&&) noexcept = delete;
 
-		[[nodiscard]] inline std::chrono::milliseconds GetRetransmissionTimeout() const noexcept
+		[[nodiscard]] inline std::chrono::milliseconds GetRetransmissionTimeout() noexcept
 		{
+			RecalcRetransmissionTimeout();
+
+			// Retransmission timeout is larger than RTT to avoid premature retransmission,
+			// and will be larger when more MTUs get lost
 			return std::chrono::duration_cast<std::chrono::milliseconds>(m_RTT * m_RTTMTULossFactor * 2);
 		}
 
@@ -53,8 +57,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			m_RTTSamples.Add(RTTSample{ std::chrono::nanoseconds(ns) });
 		}
 
+	private:
 		void RecalcRetransmissionTimeout() noexcept
 		{
+			// No new recorded samples
 			if (!m_RTTSamples.IsUpdated()) return;
 
 			const auto rtt_minm = m_RTTVariance.GetMinDev();
@@ -107,8 +113,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			m_RTTSamples.Expire();
 		}
 
-		[[nodiscard]] inline Size GetMTUWindowSize() const noexcept
+	public:
+		[[nodiscard]] inline Size GetMTUWindowSize() noexcept
 		{
+			RecalcMTUWindowSize();
 			return m_MTUWindowSize;
 		}
 
@@ -214,6 +222,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 		}
 
+	private:
 		void RecalcMTUWindowSize() noexcept
 		{
 			if (!m_MTUWindowSizeSamples.IsUpdated()) return;
