@@ -30,8 +30,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			EAck = 4,
 			MTUD = 5,
 			Reset = 6,
-			Null = 7,
-			NAck = 8,
+			Null = 7
 		};
 
 		enum class Direction : UInt8 { Unknown, Incoming, Outgoing };
@@ -41,12 +40,6 @@ namespace QuantumGate::Implementation::Core::UDP
 
 #pragma pack(push, 1) // Disable padding bytes
 		struct AckRange final
-		{
-			SequenceNumber Begin{ 0 };
-			SequenceNumber End{ 0 };
-		};
-
-		struct NAckRange final
 		{
 			SequenceNumber Begin{ 0 };
 			SequenceNumber End{ 0 };
@@ -238,10 +231,6 @@ namespace QuantumGate::Implementation::Core::UDP
 		void SetAckRanges(Vector<Message::AckRange>&& acks) noexcept;
 		const Vector<Message::AckRange>& GetAckRanges() noexcept;
 
-		Size GetMaxNAckRangesPerMessage() const noexcept;
-		void SetNAckRanges(Vector<Message::NAckRange>&& nack_ranges) noexcept;
-		const Vector<Message::NAckRange>& GetNAckRanges() noexcept;
-
 		Size GetMaxMessageDataSize() const noexcept;
 		void SetMessageData(Buffer&& buffer) noexcept;
 		const Buffer& GetMessageData() const noexcept;
@@ -286,6 +275,5 @@ namespace QuantumGate::Implementation::Core::UDP
 		StateData m_StateData;
 		Buffer m_Data;
 		Vector<Message::AckRange> m_EAcks;
-		Vector<Message::NAckRange> m_NAckRanges;
 	};
 }

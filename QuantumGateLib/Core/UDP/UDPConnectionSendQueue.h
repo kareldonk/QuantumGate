@@ -50,8 +50,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void ProcessReceivedInSequenceAck(const Message::SequenceNumber seqnum) noexcept;
 		void ProcessReceivedAcks(const Vector<Message::AckRange>& ack_ranges) noexcept;
 
-		void ProcessReceivedNAcks(const Vector<Message::NAckRange>& nack_ranges) noexcept;
-
 	private:
 		void AckItem(Item& item, const SteadyTime& now) noexcept;
 		[[nodiscard]] std::pair<bool, Size> AckSentMessage(const Message::SequenceNumber seqnum, const SteadyTime& now) noexcept;

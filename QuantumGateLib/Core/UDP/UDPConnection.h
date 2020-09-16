@@ -8,7 +8,7 @@
 #include "..\..\Common\Containers.h"
 
 // Use to enable/disable debug console output
-#define UDPCON_DEBUG
+// #define UDPCON_DEBUG
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
@@ -19,8 +19,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		using ReceiveQueue = Containers::Map<Message::SequenceNumber, Message>;
 
-		using ReceiveAckList = Set<Message::SequenceNumber>;
-		using ReceiveNAckList = Vector<Message::NAckRange>;
+		using ReceiveAckSet = Set<Message::SequenceNumber>;
 
 		enum class ReceiveWindow { Unknown, Current, Previous };
 
@@ -67,7 +66,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SendData(Buffer&& data) noexcept;
 		[[nodiscard]] bool SendStateUpdate() noexcept;
 		[[nodiscard]] bool SendPendingAcks() noexcept;
-		[[nodiscard]] bool SendPendingNAcks() noexcept;
 		[[nodiscard]] bool SendKeepAlive() noexcept;
 		void SendImmediateReset() noexcept;
 		
@@ -79,9 +77,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool ProcessReceivedDataHandshake(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedDataConnected(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept;
-		[[nodiscard]] bool AddToReceiveQueue(Message&&) noexcept;
 		[[nodiscard]] bool AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept;
-		[[nodiscard]] bool ProcessNAcks() noexcept;
 
 		[[nodiscard]] ReceiveWindow GetMessageSequenceNumberWindow(const Message::SequenceNumber seqnum) noexcept;
 		[[nodiscard]] bool IsMessageSequenceNumberInCurrentWindow(const Message::SequenceNumber seqnum,
@@ -119,12 +115,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Size m_ReceiveWindowSize{ MinReceiveWindowItemSize };
 		ReceiveQueue m_ReceiveQueue;
 		SteadyTime m_LastReceiveSteadyTime;
-		ReceiveAckList m_ReceivePendingAckList;
+		ReceiveAckSet m_ReceivePendingAckSet;
 		Vector<Message::AckRange> m_ReceivePendingAckRanges;
-
-		SteadyTime m_LastNAckSteadyTime;
-		ReceiveNAckList m_ReceivePendingNAckList;
-		bool m_ReceiveCumulativeAckRequired{ false };
 
 		CloseCondition m_CloseCondition{ CloseCondition::None };
 	};
