@@ -40,6 +40,12 @@ namespace QuantumGate::Implementation::Core::UDP
 		using HMAC = UInt32;
 
 #pragma pack(push, 1) // Disable padding bytes
+		struct AckRange final
+		{
+			SequenceNumber Begin{ 0 };
+			SequenceNumber End{ 0 };
+		};
+
 		struct NAckRange final
 		{
 			SequenceNumber Begin{ 0 };
@@ -228,9 +234,9 @@ namespace QuantumGate::Implementation::Core::UDP
 		void SetStateData(StateData&& data) noexcept;
 		const StateData& GetStateData() const noexcept;
 
-		Size GetMaxAckSequenceNumbersPerMessage() const noexcept;
-		void SetAckSequenceNumbers(Vector<SequenceNumber>&& acks) noexcept;
-		const Vector<SequenceNumber>& GetAckSequenceNumbers() noexcept;
+		Size GetMaxAckRangesPerMessage() const noexcept;
+		void SetAckRanges(Vector<Message::AckRange>&& acks) noexcept;
+		const Vector<Message::AckRange>& GetAckRanges() noexcept;
 
 		Size GetMaxNAckRangesPerMessage() const noexcept;
 		void SetNAckRanges(Vector<Message::NAckRange>&& nack_ranges) noexcept;
@@ -279,7 +285,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		HeaderType m_Header;
 		StateData m_StateData;
 		Buffer m_Data;
-		Vector<SequenceNumber> m_EAcks;
+		Vector<Message::AckRange> m_EAcks;
 		Vector<Message::NAckRange> m_NAckRanges;
 	};
 }

@@ -196,11 +196,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			SetCloseCondition(CloseCondition::ReceiveError);
 		}
 
-		/*if (!SendPendingAcks())
-		{
-			SetCloseCondition(CloseCondition::SendError);
-		}*/
-
 		switch (GetStatus())
 		{
 			case Status::Handshake:
@@ -255,10 +250,15 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 		}
 
-		if (!SendPendingNAcks())
+		if (!SendPendingAcks())
 		{
 			SetCloseCondition(CloseCondition::SendError);
 		}
+
+		/*if (!SendPendingNAcks())
+		{
+			SetCloseCondition(CloseCondition::SendError);
+		}*/
 	}
 
 	bool Connection::CheckKeepAlive() noexcept
@@ -464,23 +464,67 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		Dbg(L"UDP connection: sending acks on connection %llu", GetID());
 
-		while (!m_ReceivePendingAckList.empty())
+		for (auto it = m_ReceivePendingAckList.begin(); it != m_ReceivePendingAckList.end();)
+		{
+			auto begin = *it;
+			auto end = begin;
+
+			auto it2 = std::next(it, 1);
+			if (it2 == m_ReceivePendingAckList.end())
+			{
+				it = m_ReceivePendingAckList.erase(it);
+			}
+			else
+			{
+				auto next = begin;
+				for (; it2 != m_ReceivePendingAckList.end();)
+				{
+					if (next < std::numeric_limits<Message::SequenceNumber>::max() &&
+						*it2 == next + 1)
+					{
+						++it2;
+						++next;
+					}
+					else
+					{
+						break;
+					}
+				}
+
+				m_ReceivePendingAckList.erase(m_ReceivePendingAckList.begin(), it2);
+				it = m_ReceivePendingAckList.begin();
+
+				end = next;
+			}
+
+			assert(begin <= end);
+
+			//LogWarn(L"UDP connection: adding ack range %u - %u", begin, end);
+
+			m_ReceivePendingAckRanges.emplace_back(
+				Message::AckRange{
+					.Begin = begin,
+					.End = end
+				});
+		}
+
+		while (!m_ReceivePendingAckRanges.empty())
 		{
 			Message msg(Message::Type::EAck, Message::Direction::Outgoing, m_SendQueue.GetMaxMessageSize());
 			msg.SetMessageAckNumber(m_LastInSequenceReceivedSequenceNumber);
 
-			const auto max_num_acks = msg.GetMaxAckSequenceNumbersPerMessage();
-			if (m_ReceivePendingAckList.size() <= max_num_acks)
+			const auto max_num_acks = msg.GetMaxAckRangesPerMessage();
+			if (m_ReceivePendingAckRanges.size() <= max_num_acks)
 			{
-				msg.SetAckSequenceNumbers(std::move(m_ReceivePendingAckList));
+				msg.SetAckRanges(std::move(m_ReceivePendingAckRanges));
 			}
 			else
 			{
-				Vector<Message::SequenceNumber> temp_acks;
-				const auto last = m_ReceivePendingAckList.begin() + max_num_acks;
-				std::copy(m_ReceivePendingAckList.begin(), last, std::back_inserter(temp_acks));
-				msg.SetAckSequenceNumbers(std::move(temp_acks));
-				m_ReceivePendingAckList.erase(m_ReceivePendingAckList.begin(), last);
+				Vector<Message::AckRange> temp_acks;
+				const auto last = m_ReceivePendingAckRanges.begin() + max_num_acks;
+				std::copy(m_ReceivePendingAckRanges.begin(), last, std::back_inserter(temp_acks));
+				msg.SetAckRanges(std::move(temp_acks));
+				m_ReceivePendingAckRanges.erase(m_ReceivePendingAckRanges.begin(), last);
 			}
 
 			if (!Send(std::move(msg)))
@@ -933,7 +977,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					endpoint.GetString().c_str(), GetID());
 
 				m_SendQueue.ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
-				m_SendQueue.ProcessReceivedAcks(msg.GetAckSequenceNumbers());
+				m_SendQueue.ProcessReceivedAcks(msg.GetAckRanges());
 				return true;
 			}
 			case Message::Type::NAck:
@@ -1074,18 +1118,18 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept
 	{
-		m_ReceiveCumulativeAckRequired = true;
+		/*m_ReceiveCumulativeAckRequired = true;
 
 		return true;
-		/*
+		*/
 		try
 		{
-			m_ReceivePendingAckList.emplace_back(seqnum);
+			m_ReceivePendingAckList.emplace(seqnum);
 			return true;
 		}
 		catch (...) {}
 
-		return false;*/
+		return false;
 	}
 
 	bool Connection::SendPendingSocketData() noexcept
@@ -1131,7 +1175,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		auto next_itm = m_ReceiveQueue.find(Message::GetNextSequenceNumber(m_LastInSequenceReceivedSequenceNumber));
 		if (next_itm == m_ReceiveQueue.end())
 		{
-			return ProcessNAcks();
+			return true;
+			//return ProcessNAcks();
 		}
 
 		auto connection_data = m_ConnectionData->WithUniqueLock();

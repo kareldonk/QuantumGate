@@ -279,10 +279,10 @@ namespace QuantumGate::Implementation::Core::UDP
 		return (m_MaxMessageSize - MsgHeader::GetSize());
 	}
 
-	Size Message::GetMaxAckSequenceNumbersPerMessage() const noexcept
+	Size Message::GetMaxAckRangesPerMessage() const noexcept
 	{
-		const auto asize = m_MaxMessageSize - (MsgHeader::GetSize() + Memory::BufferIO::GetSizeOfEncodedSize(m_MaxMessageSize));
-		return (asize / sizeof(Message::SequenceNumber));
+		const auto asize = m_MaxMessageSize - MsgHeader::GetSize();
+		return (asize / sizeof(Message::AckRange));
 	}
 
 	Size Message::GetMaxNAckRangesPerMessage() const noexcept
@@ -326,20 +326,15 @@ namespace QuantumGate::Implementation::Core::UDP
 		return std::move(m_Data);
 	}
 
-	void Message::SetAckSequenceNumbers(Vector<Message::SequenceNumber>&& acks) noexcept
+	void Message::SetAckRanges(Vector<Message::AckRange>&& acks) noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
 		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::EAck);
 
-		if (!acks.empty())
-		{
-			m_EAcks = std::move(acks);
-		
-			Validate();
-		}
+		m_EAcks = std::move(acks);
 	}
 
-	const Vector<Message::SequenceNumber>& Message::GetAckSequenceNumbers() noexcept
+	const Vector<Message::AckRange>& Message::GetAckRanges() noexcept
 	{
 		assert(std::holds_alternative<MsgHeader>(m_Header));
 		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::EAck);
@@ -353,12 +348,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		assert(std::holds_alternative<MsgHeader>(m_Header));
 		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::NAck);
 
-		if (!nack_ranges.empty())
-		{
-			m_NAckRanges = std::move(nack_ranges);
-
-			Validate();
-		}
+		m_NAckRanges = std::move(nack_ranges);
 	}
 
 	const Vector<Message::NAckRange>& Message::GetNAckRanges() noexcept
@@ -448,8 +438,15 @@ namespace QuantumGate::Implementation::Core::UDP
 				}
 				case Type::EAck:
 				{
-					Memory::BufferReader rdr(buffer, true);
-					if (!rdr.Read(WithSize(m_EAcks, MaxSize::_512B))) return false;
+					// Size should be exact multiple of size of NAckRange
+					// otherwise something is wrong
+					assert(buffer.GetSize() % sizeof(AckRange) == 0);
+					if (buffer.GetSize() % sizeof(AckRange) != 0) return false;
+
+					const auto numack = buffer.GetSize() / sizeof(AckRange);
+
+					m_EAcks.resize(numack);
+					std::memcpy(m_EAcks.data(), buffer.GetBytes(), buffer.GetSize());
 					break;
 				}
 				case Type::NAck:
@@ -525,8 +522,9 @@ namespace QuantumGate::Implementation::Core::UDP
 				case Type::EAck:
 				{
 					Buffer ackbuf;
+					BufferView ack_view{ reinterpret_cast<Byte*>(m_EAcks.data()), m_EAcks.size() * sizeof(Message::AckRange) };
 					Memory::BufferWriter wrt(ackbuf, true);
-					if (!wrt.WriteWithPreallocation(WithSize(m_EAcks, MaxSize::_512B))) return false;
+					if (!wrt.WriteWithPreallocation(ack_view)) return false;
 
 					msgbuf += ackbuf;
 					break;
@@ -562,8 +560,8 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		if (msgbuf.GetSize() > m_MaxMessageSize)
 		{
-			LogErr(L"Size of UDP message data combined with header is too large: %zu bytes (Max. is %zu bytes)",
-				   msgbuf.GetSize(), m_MaxMessageSize);
+			LogErr(L"Size of UDP message (type %u) combined with header is too large: %zu bytes (Max. is %zu bytes)",
+				   GetType(), msgbuf.GetSize(), m_MaxMessageSize);
 
 			return false;
 		}

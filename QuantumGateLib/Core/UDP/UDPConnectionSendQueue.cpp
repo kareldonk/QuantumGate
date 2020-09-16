@@ -95,7 +95,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					if (*result == it->Data.GetSize())
 					{
 						// We'll wait for ack or else continue sending
-						it->TimeResent = now;
+						it->TimeResent = Util::GetCurrentSteadyTime();
 						++it->NumTries;
 					}
 					else
@@ -183,16 +183,28 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	void SendQueue::ProcessReceivedAcks(const Vector<Message::SequenceNumber>& acks) noexcept
+	void SendQueue::ProcessReceivedAcks(const Vector<Message::AckRange>& ack_ranges) noexcept
 	{
 		auto purge_acked{ false };
 		Size num_bytes{ 0 };
 
-		for (const auto ack_num : acks)
+		for (const auto& ack_range : ack_ranges)
 		{
-			const auto msg_size = AckSentMessage(ack_num);
-			num_bytes += msg_size;
-			purge_acked = true;
+			for (auto seqnum = ack_range.Begin; seqnum <= ack_range.End;)
+			{
+				const auto [acked, msg_size] = AckSentMessage(seqnum);
+				if (acked)
+				{
+					num_bytes += msg_size;
+					purge_acked = true;
+				}
+
+				if (seqnum < std::numeric_limits<Message::SequenceNumber>::max())
+				{
+					++seqnum;
+				}
+				else break;
+			}
 		}
 
 		m_Statistics.RecordMTUAck(static_cast<double>(num_bytes) / static_cast<double>(m_MaxMessageSize));
@@ -209,6 +221,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		Size loss_num{ 0 };
 		Size loss_bytes{ 0 };
+		
+		const auto now = Util::GetCurrentSteadyTime();
 
 		for (const auto nack : nack_ranges)
 		{
@@ -223,12 +237,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 					if (it != m_Queue.end())
 					{
-						if (!it->Acked)
+						if (!it->Acked && it->TimeResent != now)
 						{
 							++loss_num;
 							loss_bytes += it->Data.GetSize();
-
-							const auto now = Util::GetCurrentSteadyTime();
 
 							const auto result = m_Connection.Send(now, it->Data, false);
 							if (result.Succeeded())
@@ -296,7 +308,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	Size SendQueue::AckSentMessage(const Message::SequenceNumber seqnum) noexcept
+	std::pair<bool, Size> SendQueue::AckSentMessage(const Message::SequenceNumber seqnum) noexcept
 	{
 		auto it = std::find_if(m_Queue.begin(), m_Queue.end(), [&](const auto& itm)
 		{
@@ -312,11 +324,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				AckItem(*it);
 
-				return it->Data.GetSize();
+				return std::make_pair(true, it->Data.GetSize());
 			}
 		}
 
-		return 0;
+		return std::make_pair(false, 0);
 	}
 
 	void SendQueue::RecalcPeerReceiveWindowSize() noexcept
