@@ -34,6 +34,23 @@ void ResetExecuteState() noexcept
 class CbTestClass
 {
 public:
+	CbTestClass() = default;
+
+	CbTestClass(const CbTestClass& other) noexcept :
+		m_TestVar(other.m_TestVar + 3)
+	{}
+
+	CbTestClass(CbTestClass&& other) noexcept :
+		m_TestVar(other.m_TestVar + 6)
+	{
+		other.m_TestVar = 0;
+	}
+
+	~CbTestClass() = default;
+
+	CbTestClass& operator=(const CbTestClass&) = delete;
+	CbTestClass& operator=(CbTestClass&&) noexcept = delete;
+
 	int MemberTestFunction(int n)
 	{
 		return FreeTestFunctionNoexcept(n);
@@ -349,6 +366,31 @@ namespace UnitTests
 			Assert::AreEqual(410, t.m_TestVar);
 			Assert::AreEqual(static_cast<UInt64>(410), val);
 			Assert::AreEqual(static_cast<UInt64>(410), val2);
+		}
+
+		TEST_METHOD(MoveParameters)
+		{
+			CbTestClass t;
+			t.m_TestVar = 10;
+
+			// Test callback which takes lvalue reference
+			auto cb1 = MakeCallback([](CbTestClass& tv)
+			{
+				Assert::AreEqual(10, tv.m_TestVar);
+			});
+
+			cb1(t);
+
+			// Test callback which takes rvalue reference
+			auto cb2 = MakeCallback([](CbTestClass&& tv)
+			{
+				const auto tv2(std::move(tv));
+				Assert::AreEqual(16, tv2.m_TestVar);
+			});
+
+			cb2(std::move(t));
+
+			Assert::AreEqual(0, t.m_TestVar);
 		}
 
 		TEST_METHOD(MakeCallbackFunctions)
