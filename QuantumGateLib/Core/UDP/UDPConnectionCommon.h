@@ -11,7 +11,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	enum class CloseCondition
 	{
 		None, GeneralFailure, TimedOutError, ReceiveError, SendError, UnknownMessageError,
-		LocalCloseRequest, PeerCloseRequest
+		LocalCloseRequest, PeerCloseRequest, PeerNotAllowed
 	};
 
 	static constexpr std::chrono::seconds ConnectTimeout{ 30 };

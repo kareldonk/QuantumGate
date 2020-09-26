@@ -9,9 +9,9 @@ using namespace std::literals;
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
-	Connection::Connection(const PeerConnectionType type, const ConnectionID id,
+	Connection::Connection(Access::Manager& accessmgr, const PeerConnectionType type, const ConnectionID id,
 						   const Message::SequenceNumber seqnum) noexcept :
-		m_Type(type), m_ID(id), m_LastInSequenceReceivedSequenceNumber(seqnum)
+		m_AccessManager(accessmgr), m_Type(type), m_ID(id), m_LastInSequenceReceivedSequenceNumber(seqnum)
 	{}
 
 	Connection::~Connection()
@@ -160,6 +160,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					break;
 				case CloseCondition::TimedOutError:
 					socket_error_code = WSAETIMEDOUT;
+					break;
+				case CloseCondition::PeerNotAllowed:
+					socket_error_code = WSAEACCES;
 					break;
 				case CloseCondition::LocalCloseRequest:
 				case CloseCondition::PeerCloseRequest:
@@ -839,15 +842,30 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		if (m_PeerEndpoint != endpoint)
 		{
-			m_ConnectionData->WithUniqueLock([&](auto& connection_data) noexcept
+			const auto result1 = m_AccessManager.GetIPAllowed(endpoint.GetIPAddress(), Access::CheckType::IPFilters);
+			const auto result2 = m_AccessManager.GetIPAllowed(endpoint.GetIPAddress(), Access::CheckType::IPReputations);
+
+			if ((result1 && *result1) && (result2 && *result2))
 			{
-				connection_data.SetPeerEndpoint(endpoint);
-			});
+				m_ConnectionData->WithUniqueLock([&](auto& connection_data) noexcept
+				{
+					connection_data.SetPeerEndpoint(endpoint);
+				});
 
-			LogWarn(L"UDP connection: peer endpoint changed from %s to %s for connection %llu",
-					m_PeerEndpoint.GetString().c_str(), endpoint.GetString().c_str(), GetID());
+				LogWarn(L"UDP connection: peer endpoint changed from %s to %s for connection %llu",
+						m_PeerEndpoint.GetString().c_str(), endpoint.GetString().c_str(), GetID());
 
-			m_PeerEndpoint = endpoint;
+				m_PeerEndpoint = endpoint;
+			}
+			else
+			{
+				LogErr(L"UDP connection: attempt to change peer endpoint from %s to %s for connection %llu failed; IP address is not allowed by access configuration",
+					   m_PeerEndpoint.GetString().c_str(), endpoint.GetString().c_str(), GetID());
+				
+				SetCloseCondition(CloseCondition::PeerNotAllowed);
+
+				return false;
+			}
 		}
 
 		return true;
@@ -858,9 +876,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Message msg(Message::Type::Unknown, Message::Direction::Incoming);
 		if (msg.Read(buffer) && msg.IsValid())
 		{
-			if (ProcessReceivedMessageConnected(endpoint, std::move(msg)))
+			if (CheckEndpointChange(endpoint))
 			{
-				return CheckEndpointChange(endpoint);
+				return ProcessReceivedMessageConnected(endpoint, std::move(msg));
 			}
 		}
 		else
