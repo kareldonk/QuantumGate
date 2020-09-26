@@ -120,9 +120,9 @@ namespace QuantumGate::Implementation
 		ResultImpl(const T& value) noexcept(std::is_nothrow_copy_constructible_v<ValueStorageType>) :
 			m_ErrorCode(static_cast<E>(0)), m_Value(value) {}
 
-		template<typename U = T, typename = std::enable_if_t<HasValueType<U>>>
-		ResultImpl(T&& value) noexcept(std::is_nothrow_move_constructible_v<ValueStorageType>) :
-			m_ErrorCode(static_cast<E>(0)), m_Value(std::forward<T>(value)) {}
+		template<typename U, typename = std::enable_if_t<std::is_same_v<U, T> && HasValueType<U>>>
+		ResultImpl(U&& value) noexcept(std::is_nothrow_move_constructible_v<ValueStorageType>) :
+			m_ErrorCode(static_cast<E>(0)), m_Value(std::forward<U>(value)) {}
 
 		ResultImpl(const ResultImpl&) = delete;
 
