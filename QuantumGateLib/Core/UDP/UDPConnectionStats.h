@@ -275,11 +275,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 
 	public:
-		static constexpr Size MinMTUWindowSize{ 8 };
+		static constexpr Size MinMTUWindowSize{ 1 };
 
 	private:
 		static constexpr std::chrono::nanoseconds StartRTT{ 600'000'000 };
-		static constexpr std::chrono::nanoseconds MinRTT{ 1'000'000 };
+		static constexpr std::chrono::nanoseconds MinRTT{ 1'000 };
 		static constexpr std::chrono::seconds NoLossRestartTimeout{ 2 };
 
 	private:
