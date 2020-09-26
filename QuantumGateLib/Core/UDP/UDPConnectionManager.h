@@ -48,7 +48,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	public:
 		Manager() = delete;
-		Manager(const Settings_CThS& settings) noexcept : m_Settings(settings) {}
+
+		Manager(const Settings_CThS& settings, Access::Manager& accessmgr) noexcept :
+			m_Settings(settings), m_AccessManager(accessmgr) {}
+
 		Manager(const Manager&) = delete;
 		Manager(Manager&&) noexcept = default;
 		~Manager() { if (IsRunning()) Shutdown(); }
@@ -90,6 +93,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
 	private:
+		Access::Manager& m_AccessManager;
+
 		std::atomic_bool m_Running{ false };
 		const Settings_CThS& m_Settings;
 

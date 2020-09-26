@@ -6,6 +6,7 @@
 #include "UDPSocket.h"
 #include "UDPConnectionSendQueue.h"
 #include "..\..\Common\Containers.h"
+#include "..\Access\AccessManager.h"
 
 // Use to enable/disable debug console output
 // #define UDPCON_DEBUG
@@ -24,7 +25,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		enum class ReceiveWindow { Unknown, Current, Previous };
 
 	public:
-		Connection(const PeerConnectionType type, const ConnectionID id, const Message::SequenceNumber seqnum) noexcept;
+		Connection(Access::Manager& accessmgr, const PeerConnectionType type,
+				   const ConnectionID id, const Message::SequenceNumber seqnum) noexcept;
 		Connection(const Connection&) = delete;
 		Connection(Connection&&) noexcept = delete;
 		~Connection();
@@ -97,6 +99,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void ProcessSocketEvents() noexcept;
 
 	private:
+		Access::Manager& m_AccessManager;
+
 		PeerConnectionType m_Type{ PeerConnectionType::Unknown };
 		Status m_Status{ Status::Closed };
 		ConnectionID m_ID{ 0 };
