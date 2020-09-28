@@ -42,8 +42,8 @@ namespace QuantumGate::Implementation::Memory
 
 		inline explicit operator bool() const noexcept { return !IsEmpty(); }
 
-		inline Byte& operator[](Size index) { return m_Buffer[index]; }
-		inline const Byte& operator[](Size index) const { return m_Buffer[index]; }
+		inline Byte& operator[](const Size index) { return m_Buffer[index]; }
+		inline const Byte& operator[](const Size index) const { return m_Buffer[index]; }
 
 		inline BufferImpl& operator=(const BufferImpl& other)
 		{

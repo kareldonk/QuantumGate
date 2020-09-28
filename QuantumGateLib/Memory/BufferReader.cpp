@@ -83,6 +83,11 @@ namespace QuantumGate::Implementation::Memory
 		return false;
 	}
 
+	template<> bool BufferReader::ReadImpl(BufferSpan& data)
+	{
+		return ReadBytes(data.GetBytes(), GetDataSize(data));
+	}
+
 	template<> bool BufferReader::ReadImpl(String& data)
 	{
 		return ReadBytes(reinterpret_cast<Byte*>(data.data()), GetDataSize(data));

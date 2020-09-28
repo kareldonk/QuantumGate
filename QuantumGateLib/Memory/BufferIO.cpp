@@ -6,6 +6,16 @@
 
 namespace QuantumGate::Implementation::Memory
 {
+	template<> Size BufferIO::GetDataSize(const BufferSpan& data) noexcept
+	{
+		return data.GetSize();
+	}
+
+	template<> Size BufferIO::GetDataSize(const BufferView& data) noexcept
+	{
+		return data.GetSize();
+	}
+
 	template<> Size BufferIO::GetDataSize(const String& data) noexcept
 	{
 		return (data.size() * sizeof(String::value_type));
@@ -32,11 +42,6 @@ namespace QuantumGate::Implementation::Memory
 	}
 
 	template<> Size BufferIO::GetDataSize(const Buffer& data) noexcept
-	{
-		return data.GetSize();
-	}
-
-	template<> Size BufferIO::GetDataSize(const BufferView& data) noexcept
 	{
 		return data.GetSize();
 	}

@@ -100,11 +100,12 @@ namespace QuantumGate::Implementation::Memory
 	};
 
 	// Specializations
+	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const BufferSpan& data);
+	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const BufferView& data);
 	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const String& data);
 	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const Network::SerializedBinaryIPAddress& data);
 	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const Network::SerializedIPEndpoint& data);
 	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const SerializedUUID& data);
 	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const Buffer& data);
-	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const BufferView& data);
 	template<> [[nodiscard]] Export bool BufferWriter::WriteImpl(const ProtectedBuffer& data);
 }

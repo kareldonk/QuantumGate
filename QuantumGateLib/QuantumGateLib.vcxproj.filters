@@ -495,6 +495,9 @@
     <ClInclude Include="Core\UDP\UDPListenerSocket.h">
       <Filter>Header Files\Core\UDP</Filter>
     </ClInclude>
+    <ClInclude Include="Memory\StackBuffer.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

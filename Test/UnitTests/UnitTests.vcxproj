@@ -393,6 +393,7 @@
     <ClCompile Include="RingBufferTests.cpp" />
     <ClCompile Include="ScopeGuardTests.cpp" />
     <ClCompile Include="SocketTests.cpp" />
+    <ClCompile Include="StackBufferTests.cpp" />
     <ClCompile Include="ThreadLocalCacheTests.cpp" />
     <ClCompile Include="CallbackTests.cpp" />
     <ClCompile Include="IPAccessControlTests.cpp" />
