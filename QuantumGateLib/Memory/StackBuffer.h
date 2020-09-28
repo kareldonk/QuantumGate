@@ -168,6 +168,8 @@ namespace QuantumGate::Implementation::Memory
 	template<Size MaxSize>
 	using StackBuffer = StackBufferImpl<MaxSize>;
 
+	using StackBuffer32 = StackBuffer<32>;
+	using StackBuffer64 = StackBuffer<64>;
 	using StackBuffer128 = StackBuffer<128>;
 	using StackBuffer256 = StackBuffer<256>;
 	using StackBuffer512 = StackBuffer<512>;

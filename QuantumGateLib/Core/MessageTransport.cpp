@@ -31,6 +31,7 @@ namespace QuantumGate::Implementation::Core
 		assert(buffer.GetSize() >= OHeader::GetSize());
 
 		UInt32 size{ 0 };
+		m_MessageHMAC.Allocate(OHeader::MessageHMACSize);
 		BufferSpan hmac(m_MessageHMAC);
 
 		Memory::BufferReader rdr(buffer, true);
@@ -268,7 +269,7 @@ namespace QuantumGate::Implementation::Core
 			// Remaining buffer size should match data size otherwise something is wrong
 			if (m_OHeader.GetMessageDataSize() == buffer.GetSize())
 			{
-				Memory::StackBuffer128 hmac;
+				OHeader::HMACBuffer hmac;
 
 				// Calculate message HMAC
 				if (Crypto::HMAC(buffer, hmac, symkey.AuthKey, Algorithm::Hash::BLAKE2S256))
@@ -351,16 +352,12 @@ namespace QuantumGate::Implementation::Core
 		{
 			msgohdr.SetMessageDataSize(encrdata.GetSize());
 
-			Memory::StackBuffer128 hmac;
-
 			// Calculate HMAC for the encrypted message
-			if (Crypto::HMAC(encrdata, hmac, symkey.AuthKey, Algorithm::Hash::BLAKE2S256))
+			if (Crypto::HMAC(encrdata, msgohdr.GetHMACBuffer(), symkey.AuthKey, Algorithm::Hash::BLAKE2S256))
 			{
-				assert(hmac.GetSize() == OHeader::MessageHMACSize);
+				assert(msgohdr.GetHMACBuffer().GetSize() == OHeader::MessageHMACSize);
 
-				Dbg(L"MessageTransport hash: %s", Util::ToBase64(hmac)->c_str());
-
-				std::memcpy(msgohdr.GetHMACBuffer().GetBytes(), hmac.GetBytes(), hmac.GetSize());
+				Dbg(L"MessageTransport hash: %s", Util::ToBase64(msgohdr.GetHMACBuffer())->c_str());
 
 				auto& msgbuffer = msgdatabuf;
 				msgbuffer.Clear();
