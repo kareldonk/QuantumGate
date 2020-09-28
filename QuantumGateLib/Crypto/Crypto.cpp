@@ -217,6 +217,8 @@ namespace QuantumGate::Implementation::Crypto
 	}
 
 	// Specific instantiations
+	template bool HMAC<Memory::StackBuffer128>(const BufferView& buffer, Memory::StackBuffer128& hmac,
+											   const BufferView& key, const Algorithm::Hash type) noexcept;
 	template bool HMAC<Buffer>(const BufferView& buffer, Buffer& hmac,
 							   const BufferView& key, const Algorithm::Hash type) noexcept;
 	template bool HMAC<ProtectedBuffer>(const BufferView& buffer, ProtectedBuffer& hmac,
