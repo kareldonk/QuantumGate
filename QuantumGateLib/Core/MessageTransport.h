@@ -25,10 +25,12 @@ namespace QuantumGate::Implementation::Core
 	private:
 		class OHeader final
 		{
-		public:
+		private:
 			static constexpr Size MessageHMACSize{ 32 };
 
 		public:
+			using HMACBuffer = Memory::StackBuffer<MessageHMACSize>;
+
 			OHeader(const DataSizeSettings mds_settings) noexcept :
 				m_MessageDataSizeSettings(mds_settings)
 			{}
@@ -51,12 +53,11 @@ namespace QuantumGate::Implementation::Core
 					OHeader::MessageHMACSize;
 			}
 
-			inline Memory::StackBuffer<MessageHMACSize> GetHMACBuffer() noexcept { return m_MessageHMAC; }
+			inline HMACBuffer& GetHMACBuffer() noexcept { return m_MessageHMAC; }
 			inline void SetMessageDataSize(const Size size) noexcept { m_MessageDataSize = static_cast<UInt32>(size); }
 			inline Size GetMessageDataSize() const noexcept { return m_MessageDataSize; }
 			inline void SetMessageNonceSeed(UInt32 seed) noexcept { m_MessageNonceSeed = seed; }
 			inline UInt32 GetMessageNonceSeed() const noexcept { return m_MessageNonceSeed; }
-
 
 			static UInt32 ObfuscateMessageDataSize(const DataSizeSettings mds_settings, const UInt32 rnd_bits,
 												   UInt32 size) noexcept;
@@ -67,7 +68,7 @@ namespace QuantumGate::Implementation::Core
 			UInt32 m_MessageRandomBits{ 0 };
 			UInt32 m_MessageDataSize{ 0 };
 			UInt32 m_MessageNonceSeed{ 0 };
-			Memory::StackBuffer<MessageHMACSize> m_MessageHMAC;
+			HMACBuffer m_MessageHMAC;
 		};
 
 		class IHeader final
