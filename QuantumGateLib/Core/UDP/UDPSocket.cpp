@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		if (m_IOStatus.IsOpen()) Close();
 	}
 
-	bool Socket::Accept(const std::shared_ptr<Listener::Socket_ThS>& listener_socket,
+	bool Socket::Accept(const std::shared_ptr<Listener::SendQueue_ThS>& send_queue,
 						const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
@@ -28,7 +28,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			data.SetConnectRequest();
 			data.SetLocalEndpoint(lendpoint);
 			data.SetPeerEndpoint(pendpoint);
-			data.SetListenerSocket(listener_socket);
+			data.SetListenerSendQueue(send_queue);
 		});
 
 		UpdateSocketInfo();

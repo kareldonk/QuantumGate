@@ -5,8 +5,20 @@
 
 #include "..\..\Network\Socket.h"
 #include "..\..\Concurrency\ThreadSafe.h"
+#include "..\..\Common\Containers.h"
 
 namespace QuantumGate::Implementation::Core::UDP::Listener
 {
-	using Socket_ThS = Concurrency::ThreadSafe<Network::Socket, std::shared_mutex>;
+	class Socket final : public Network::Socket
+	{
+		using Network::Socket::Socket;
+	};
+
+	struct SendQueueItem final
+	{
+		IPEndpoint Endpoint;
+		Buffer Data;
+	};
+
+	using SendQueue_ThS = Concurrency::ThreadSafe<Containers::Queue<SendQueueItem>, std::shared_mutex>;
 }
