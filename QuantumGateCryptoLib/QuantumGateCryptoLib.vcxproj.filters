@@ -362,5 +362,8 @@
     <ClCompile Include="NTRUPrime\sntrup857\ref\uint32.c">
       <Filter>Source Files\NTRUPrime\Ref</Filter>
     </ClCompile>
+    <ClCompile Include="SipHash\halfsiphash.c">
+      <Filter>Source Files\SipHash</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
