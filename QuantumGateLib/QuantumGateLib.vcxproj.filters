@@ -492,6 +492,9 @@
     <ClInclude Include="Common\RingList.h">
       <Filter>Header Files\Common</Filter>
     </ClInclude>
+    <ClInclude Include="Core\UDP\UDPListenerSocket.h">
+      <Filter>Header Files\Core\UDP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

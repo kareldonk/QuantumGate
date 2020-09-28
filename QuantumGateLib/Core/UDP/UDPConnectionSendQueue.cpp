@@ -58,7 +58,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		const auto rtt_timeout = std::invoke([&]()
 		{
-			return (m_Connection.GetStatus() < Status::Connected) ? ConnectRetransmissionTimeout : m_Statistics.GetRetransmissionTimeout();
+			return (m_Connection.GetStatus() < Status::Connected) ?
+				m_Connection.GetSettings().UDP.ConnectRetransmissionTimeout :
+				m_Statistics.GetRetransmissionTimeout();
 		});
 
 #ifdef UDPSND_DEBUG
@@ -77,8 +79,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 #ifdef UDPSND_DEBUG
 					SLogInfo(SLogFmt(FGBrightCyan) << L"UDP connection: retransmitting (" << it->NumTries <<
 							 ") message with sequence number " <<  it->SequenceNumber << L" (timeout " <<
-							 rtt_timeout.count() * it->NumTries << L"ms) for connection " << m_Connection.GetID()
-							 << SLogFmt(Default));
+							 std::chrono::duration_cast<std::chrono::milliseconds>(rtt_timeout).count() * it->NumTries <<
+							 L"ms) for connection " << m_Connection.GetID() << SLogFmt(Default));
+
 					++loss_num;
 #endif	
 					loss_bytes += it->Data.GetSize();

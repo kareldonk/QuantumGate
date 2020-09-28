@@ -32,13 +32,20 @@ BOOL CEndpointDlg::OnInitDialog()
 	SetValue(IDC_PORT, m_Port);
 
 	// Init protocol combo
-	const auto pcombo = (CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO);
-	auto pos = pcombo->AddString(L"TCP");
-	pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::IPEndpoint::Protocol::TCP));
-	if (m_Protocol == QuantumGate::IPEndpoint::Protocol::TCP) pcombo->SetCurSel(pos);
-	pos = pcombo->AddString(L"UDP");
-	pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::IPEndpoint::Protocol::UDP));
-	if (m_Protocol == QuantumGate::IPEndpoint::Protocol::UDP) pcombo->SetCurSel(pos);
+	{
+		const auto pcombo = (CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO);
+		auto pos = pcombo->AddString(L"TCP");
+		pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::IPEndpoint::Protocol::TCP));
+		if (m_Protocol == QuantumGate::IPEndpoint::Protocol::TCP) pcombo->SetCurSel(pos);
+		pos = pcombo->AddString(L"UDP");
+		pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::IPEndpoint::Protocol::UDP));
+		if (m_Protocol == QuantumGate::IPEndpoint::Protocol::UDP) pcombo->SetCurSel(pos);
+
+		if (!m_ProtocolSelection)
+		{
+			pcombo->EnableWindow(false);
+		}
+	}
 
 	SetValue(IDC_HOPS, m_Hops);
 

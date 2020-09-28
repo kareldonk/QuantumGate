@@ -939,6 +939,8 @@ void CTestAppDlg::OnAttacksConnectWithGarbage()
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
 		dlg.SetPort(m_DefaultPort);
+		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
+		dlg.SetProtocolSelection(false);
 
 		if (dlg.DoModal() == IDOK)
 		{
@@ -964,6 +966,8 @@ void CTestAppDlg::OnAttacksConnectAndDisconnect()
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
 		dlg.SetPort(m_DefaultPort);
+		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
+		dlg.SetProtocolSelection(false);
 
 		if (dlg.DoModal() == IDOK)
 		{
@@ -989,6 +993,8 @@ void CTestAppDlg::OnAttacksConnectAndWait()
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
 		dlg.SetPort(m_DefaultPort);
+		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
+		dlg.SetProtocolSelection(false);
 
 		if (dlg.DoModal() == IDOK)
 		{
@@ -1106,6 +1112,7 @@ void CTestAppDlg::OnStressConnectAndDisconnect()
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
 		dlg.SetPort(m_DefaultPort);
+		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
 		dlg.SetShowRelay(true);
 
 		if (dlg.DoModal() == IDOK)
@@ -1120,7 +1127,8 @@ void CTestAppDlg::OnStressConnectAndDisconnect()
 			}
 
 			Stress::StartConnectStress(m_QuantumGate, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort(),
-									   dlg.GetRelayHops(), dlg.GetReuseConnection(), dlg.GetRelayGatewayPeer(), gsecret);
+									   dlg.GetRelayHops(), dlg.GetProtocol(), dlg.GetReuseConnection(),
+									   dlg.GetRelayGatewayPeer(), gsecret);
 		}
 	}
 	else Stress::StopConnectStress();
@@ -1543,6 +1551,11 @@ void CTestAppDlg::OnStressMultipleInstances()
 {
 	if (!Stress::IsMultiInstanceStressRunning())
 	{
+		AfxMessageBox(L"This stress test requires:\r\n\r\n"
+					  L"1) That the Stress extender is loaded on the destination. Make sure to load it before starting this stress test.\r\n\r\n"
+					  L"2) That the number of connection attempts per IP is at least 20 every 10 seconds in the security settings on the destination. "
+					  L"Configure this in the Custom Security Level settings.", MB_ICONINFORMATION);
+
 		auto luuid = m_MainTab.GetTextValue(IDC_LOCAL_UUID);
 		if (luuid.IsEmpty())
 		{
@@ -1553,6 +1566,7 @@ void CTestAppDlg::OnStressMultipleInstances()
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
 		dlg.SetPort(m_DefaultPort);
+		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
 
 		if (dlg.DoModal() == IDOK)
 		{
@@ -1573,6 +1587,7 @@ void CTestAppDlg::OnStressMultipleInstances()
 			}
 
 			params.Listeners.TCP.Enable = false;
+			params.Listeners.UDP.Enable = false;
 			params.EnableExtenders = true;
 			params.RequireAuthentication = false;
 
@@ -1583,7 +1598,8 @@ void CTestAppDlg::OnStressMultipleInstances()
 				if (!GenerateGlobalSharedSecret(passphrase, gsecret)) return;
 			}
 
-			Stress::StartMultiInstanceStress(params, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort(), gsecret);
+			Stress::StartMultiInstanceStress(params, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort(),
+											 dlg.GetProtocol(), gsecret);
 		}
 	}
 	else Stress::StopMultiInstanceStress();

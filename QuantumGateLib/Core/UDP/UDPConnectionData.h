@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "UDPListenerSocket.h"
 #include "..\..\Concurrency\Event.h"
 #include "..\..\Network\Socket.h"
 
@@ -66,8 +67,10 @@ namespace QuantumGate::Implementation::Core::UDP
 		[[nodiscard]] inline bool HasException() const noexcept { return m_HasException; }
 		[[nodiscard]] inline int GetErrorCode() const noexcept { return m_ErrorCode; }
 
-		void SetListenerSocket(Network::Socket* socket) noexcept { m_ListenerSocket = socket; }
-		Network::Socket* GetListenerSocket() const noexcept { return m_ListenerSocket; }
+		void SetListenerSocket(const std::shared_ptr<Listener::Socket_ThS>& socket) noexcept { m_ListenerSocket = socket; }
+		[[nodiscard]] bool HasListenerSocket() const noexcept { return m_ListenerSocket.operator bool(); }
+		[[nodiscard]] Listener::Socket_ThS& GetListenerSocket() const noexcept { return *m_ListenerSocket; }
+		void ReleaseListenerSocket() noexcept { m_ListenerSocket.reset(); }
 
 	private:
 		bool m_CanRead{ false };
@@ -86,7 +89,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		Concurrency::Event m_ReceiveEvent;
 		Concurrency::Event* m_SendEvent{ nullptr };
 
-		Network::Socket* m_ListenerSocket{ nullptr };
+		std::shared_ptr<Listener::Socket_ThS> m_ListenerSocket;
 	};
 
 	using ConnectionData_ThS = Concurrency::ThreadSafe<UDPConnectionData, std::shared_mutex>;

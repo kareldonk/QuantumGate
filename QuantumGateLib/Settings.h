@@ -42,6 +42,14 @@ namespace QuantumGate::Implementation
 		} IPConnectionAttempts;
 	};
 
+	struct UDPSettings final
+	{
+		std::chrono::seconds ConnectTimeout{ 30 };							// Maximum number of seconds to wait for a connection to be established
+		std::chrono::seconds ConnectRetransmissionTimeout{ 1 };				// Minimum number of seconds to wait before retransmission during connection handshake
+		std::chrono::seconds MinKeepAliveTimeout{ 0 };						// Minimum number of seconds to wait before sending a keepalive packet
+		std::chrono::seconds MaxKeepAliveTimeout{ 45 };						// Maximum number of seconds to wait before sending a keepalive packet
+	};
+
 	struct LocalAlgorithms final
 	{
 		Vector<Algorithm::Hash> Hash;
@@ -141,6 +149,7 @@ namespace QuantumGate::Implementation
 		MessageSettings Message;
 		NoiseSettings Noise;
 		RelaySettings Relay;
+		UDPSettings UDP;
 	};
 
 	template<UInt64 ID>

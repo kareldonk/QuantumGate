@@ -244,7 +244,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					auto connections = thread->GetData().Connections->WithUniqueLock();
 					
-					[[maybe_unused]] const auto [it, inserted] = connections->try_emplace(id, m_AccessManager, type, id, seqnum);
+					[[maybe_unused]] const auto [it, inserted] = connections->try_emplace(id, m_Settings, m_AccessManager,
+																						  type, id, seqnum);
 
 					assert(inserted);
 					if (!inserted)

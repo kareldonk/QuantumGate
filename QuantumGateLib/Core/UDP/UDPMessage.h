@@ -47,73 +47,15 @@ namespace QuantumGate::Implementation::Core::UDP
 #pragma pack(pop)
 
 	private:
-		class SynHeader final
+		class Header final
 		{
 		public:
-			SynHeader(const Direction direction) noexcept;
-			SynHeader(const SynHeader&) = default;
-			SynHeader(SynHeader&&) noexcept = default;
-			~SynHeader() = default;
-			SynHeader& operator=(const SynHeader&) = default;
-			SynHeader& operator=(SynHeader&&) noexcept = default;
-
-			[[nodiscard]] inline Direction GetDirection() const noexcept { return m_Direction; }
-
-			[[nodiscard]] inline bool HasSequenceNumber() const noexcept { return true; }
-
-			inline void SetMessageSequenceNumber(const SequenceNumber seqnum) noexcept { m_MessageSequenceNumber = seqnum; }
-			[[nodiscard]] inline SequenceNumber GetMessageSequenceNumber() const noexcept { return m_MessageSequenceNumber; }
-
-			[[nodiscard]] inline bool HasAck() const noexcept { return (m_Direction == Direction::Incoming) ? true : false;; }
-
-			inline void SetMessageAckNumber(const SequenceNumber acknum) noexcept { m_MessageAckNumber = acknum; }
-			[[nodiscard]] inline SequenceNumber GetMessageAckNumber() const noexcept { return m_MessageAckNumber; }
-
-			inline void SetProtocolVersion(const UInt8 major, const UInt8 minor) noexcept { m_ProtocolVersionMajor = major; m_ProtocolVersionMinor = minor; }
-			[[nodiscard]] inline std::pair<UInt8, UInt8> GetProtocolVersion() const noexcept { return std::make_pair(m_ProtocolVersionMajor, m_ProtocolVersionMinor); }
-
-			inline void SetConnectionID(const ConnectionID id) noexcept { m_ConnectionID = id; }
-			[[nodiscard]] inline ConnectionID GetConnectionID() const noexcept { return m_ConnectionID; }
-
-			inline void SetPort(const UInt16 port) noexcept { m_Port = port; }
-			[[nodiscard]] inline UInt16 GetPort() const noexcept { return m_Port; }
-
-			[[nodiscard]] bool Read(const BufferView& buffer) noexcept;
-			[[nodiscard]] bool Write(Buffer& buffer) const noexcept;
-
-			static constexpr Size GetSize() noexcept
-			{
-				return sizeof(m_MessageHMAC) +
-					sizeof(m_MessageSequenceNumber) +
-					sizeof(m_MessageAckNumber) +
-					sizeof(m_ProtocolVersionMajor) +
-					sizeof(m_ProtocolVersionMinor) +
-					sizeof(m_ConnectionID) +
-					sizeof(m_Port);
-			}
-
-			inline UInt64 GetHMAC() noexcept { return m_MessageHMAC; }
-
-		private:
-			const Direction m_Direction{ Direction::Unknown };
-			HMAC m_MessageHMAC{ 0 };
-			SequenceNumber m_MessageSequenceNumber{ 0 };
-			SequenceNumber m_MessageAckNumber{ 0 };
-			UInt8 m_ProtocolVersionMajor{ 0 };
-			UInt8 m_ProtocolVersionMinor{ 0 };
-			ConnectionID m_ConnectionID{ 0 };
-			UInt16 m_Port{ 0 };
-		};
-
-		class MsgHeader final
-		{
-		public:
-			MsgHeader(const Type type, const Direction direction) noexcept;
-			MsgHeader(const MsgHeader&) = default;
-			MsgHeader(MsgHeader&&) noexcept = default;
-			~MsgHeader() = default;
-			MsgHeader& operator=(const MsgHeader&) = default;
-			MsgHeader& operator=(MsgHeader&&) noexcept = default;
+			Header(const Type type, const Direction direction) noexcept;
+			Header(const Header&) = default;
+			Header(Header&&) noexcept = default;
+			~Header() = default;
+			Header& operator=(const Header&) = default;
+			Header& operator=(Header&&) noexcept = default;
 
 			[[nodiscard]] inline Direction GetDirection() const noexcept { return m_Direction; }
 
@@ -123,8 +65,9 @@ namespace QuantumGate::Implementation::Core::UDP
 
 			inline void SetMessageSequenceNumber(const SequenceNumber seqnum) noexcept
 			{
-				assert(m_MessageType != Message::Type::EAck &&
-					   m_MessageType != Message::Type::Reset);
+				assert(m_MessageType == Message::Type::Data ||
+					   m_MessageType == Message::Type::State ||
+					   m_MessageType == Message::Type::Syn);
 
 				m_MessageSequenceNumber = seqnum;
 				m_SeqNumFlag = true;
@@ -132,8 +75,9 @@ namespace QuantumGate::Implementation::Core::UDP
 			
 			[[nodiscard]] inline SequenceNumber GetMessageSequenceNumber() const noexcept
 			{
-				assert(m_MessageType != Message::Type::EAck &&
-					   m_MessageType != Message::Type::Reset);
+				assert(m_MessageType == Message::Type::Data ||
+					   m_MessageType == Message::Type::State ||
+					   m_MessageType == Message::Type::Syn);
 				assert(m_SeqNumFlag);
 
 				return m_MessageSequenceNumber;
@@ -172,8 +116,6 @@ namespace QuantumGate::Implementation::Core::UDP
 			bool m_SeqNumFlag{ false };
 		};
 
-		using HeaderType = std::variant<SynHeader, MsgHeader>;
-
 	public:
 		struct StateData final
 		{
@@ -181,13 +123,25 @@ namespace QuantumGate::Implementation::Core::UDP
 			UInt32 MaxWindowSizeBytes{ 0 };
 		};
 
+		struct SynData final
+		{
+			UInt8 ProtocolVersionMajor{ 0 };
+			UInt8 ProtocolVersionMinor{ 0 };
+			ConnectionID ConnectionID{ 0 };
+			UInt16 Port{ 0 };
+		};
+
 		Message(const Type type, const Direction direction, const Size max_size) noexcept :
-			m_MaxMessageSize(max_size), m_Header(InitializeHeader(type, direction))
-		{}
+			m_MaxMessageSize(max_size), m_Header(type, direction)
+		{
+			InitData(type, direction);
+		}
 
 		Message(const Type type, const Direction direction) noexcept :
-			m_Header(InitializeHeader(type, direction))
-		{}
+			m_Header(type, direction)
+		{
+			InitData(type, direction);
+		}
 
 		Message(const Message&) = delete;
 		Message(Message&&) noexcept = default;
@@ -195,46 +149,36 @@ namespace QuantumGate::Implementation::Core::UDP
 		Message& operator=(const Message&) = delete;
 		Message& operator=(Message&&) noexcept = default;
 
-		[[nodiscard]] inline Type GetType() const noexcept
-		{
-			if (std::holds_alternative<SynHeader>(m_Header)) return Type::Syn;
-			else return std::get<MsgHeader>(m_Header).GetMessageType();
-		}
+		[[nodiscard]] inline Type GetType() const noexcept { return m_Header.GetMessageType(); }
 
-		[[nodiscard]] Direction GetDirection() const noexcept;
+		[[nodiscard]] inline Direction GetDirection() const noexcept { return m_Header.GetDirection(); }
 
 		[[nodiscard]] inline bool IsValid() const noexcept { return m_Valid; }
 
-		[[nodiscard]] bool HasSequenceNumber() const noexcept;
+		[[nodiscard]] inline bool HasSequenceNumber() const noexcept { return m_Header.HasSequenceNumber(); }
 
-		void SetMessageSequenceNumber(const SequenceNumber seqnum) noexcept;
-		[[nodiscard]] SequenceNumber GetMessageSequenceNumber() const noexcept;
+		inline void SetMessageSequenceNumber(const SequenceNumber seqnum) noexcept { m_Header.SetMessageSequenceNumber(seqnum); }
+		[[nodiscard]] inline SequenceNumber GetMessageSequenceNumber() const noexcept { return m_Header.GetMessageSequenceNumber(); }
 
-		[[nodiscard]] bool HasAck() const noexcept;
+		[[nodiscard]] inline bool HasAck() const noexcept { return m_Header.HasAck(); }
 
-		void SetMessageAckNumber(const SequenceNumber acknum) noexcept;
-		[[nodiscard]] SequenceNumber GetMessageAckNumber() const noexcept;
+		inline void SetMessageAckNumber(const SequenceNumber acknum) noexcept { m_Header.SetMessageAckNumber(acknum); }
+		[[nodiscard]] inline SequenceNumber GetMessageAckNumber() const noexcept { return m_Header.GetMessageAckNumber(); }
 
-		void SetProtocolVersion(const UInt8 major, const UInt8 minor) noexcept;
-		[[nodiscard]] std::pair<UInt8, UInt8> GetProtocolVersion() const noexcept;
-
-		void SetConnectionID(const ConnectionID id) noexcept;
-		[[nodiscard]] ConnectionID GetConnectionID() const noexcept;
-
-		void SetPort(const UInt16 port) noexcept;
-		[[nodiscard]] UInt16 GetPort() const noexcept;
+		void SetSynData(SynData&& data) noexcept;
+		[[nodiscard]] const SynData& GetSynData() const noexcept;
 
 		void SetStateData(StateData&& data) noexcept;
-		const StateData& GetStateData() const noexcept;
+		[[nodiscard]] const StateData& GetStateData() const noexcept;
 
-		Size GetMaxAckRangesPerMessage() const noexcept;
-		void SetAckRanges(Vector<Message::AckRange>&& acks) noexcept;
-		const Vector<Message::AckRange>& GetAckRanges() noexcept;
+		[[nodiscard]] Size GetMaxAckRangesPerMessage() const noexcept;
+		void SetAckRanges(Vector<AckRange>&& acks) noexcept;
+		[[nodiscard]] const Vector<AckRange>& GetAckRanges() noexcept;
 
-		Size GetMaxMessageDataSize() const noexcept;
+		[[nodiscard]] Size GetMaxMessageDataSize() const noexcept;
 		void SetMessageData(Buffer&& buffer) noexcept;
-		const Buffer& GetMessageData() const noexcept;
-		Buffer&& MoveMessageData() noexcept;
+		[[nodiscard]] const Buffer& GetMessageData() const noexcept;
+		[[nodiscard]] Buffer&& MoveMessageData() noexcept;
 
 		[[nodiscard]] bool Read(BufferView buffer);
 		[[nodiscard]] bool Write(Buffer& buffer);
@@ -258,10 +202,29 @@ namespace QuantumGate::Implementation::Core::UDP
 		}
 
 	private:
-		inline HeaderType InitializeHeader(const Type type, const Direction direction) const noexcept
+		void InitData(const Type type, const Direction direction) noexcept
 		{
-			if (type == Type::Syn) return SynHeader(direction);
-			else return MsgHeader(type, direction);
+			if (direction == Direction::Incoming) return;
+
+			switch (type)
+			{
+				case Type::Syn:
+					m_Data = SynData();
+					break;
+				case Type::State:
+					m_Data = StateData();
+					break;
+				case Type::Data:
+				case Type::MTUD:
+				case Type::Null:
+					m_Data = Buffer();
+					break;
+				case Type::EAck:
+					m_Data = Vector<AckRange>();
+					break;
+				default:
+					break;
+			}
 		}
 
 		Size GetHeaderSize() const noexcept;
@@ -269,11 +232,11 @@ namespace QuantumGate::Implementation::Core::UDP
 		void Validate() noexcept;
 
 	private:
+		using Data = std::variant<std::monostate, SynData, StateData, Buffer, Vector<AckRange>>;
+
 		const Size m_MaxMessageSize{ 0 };
 		bool m_Valid{ false };
-		HeaderType m_Header;
-		StateData m_StateData;
-		Buffer m_Data;
-		Vector<Message::AckRange> m_EAcks;
+		Header m_Header;
+		Data m_Data;
 	};
 }
