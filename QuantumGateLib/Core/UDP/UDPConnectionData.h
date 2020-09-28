@@ -67,10 +67,10 @@ namespace QuantumGate::Implementation::Core::UDP
 		[[nodiscard]] inline bool HasException() const noexcept { return m_HasException; }
 		[[nodiscard]] inline int GetErrorCode() const noexcept { return m_ErrorCode; }
 
-		void SetListenerSocket(const std::shared_ptr<Listener::Socket_ThS>& socket) noexcept { m_ListenerSocket = socket; }
-		[[nodiscard]] bool HasListenerSocket() const noexcept { return m_ListenerSocket.operator bool(); }
-		[[nodiscard]] Listener::Socket_ThS& GetListenerSocket() const noexcept { return *m_ListenerSocket; }
-		void ReleaseListenerSocket() noexcept { m_ListenerSocket.reset(); }
+		void SetListenerSendQueue(const std::shared_ptr<Listener::SendQueue_ThS>& send_queue) noexcept { m_ListenerSendQueue = send_queue; }
+		[[nodiscard]] bool HasListenerSendQueue() const noexcept { return m_ListenerSendQueue.operator bool(); }
+		[[nodiscard]] Listener::SendQueue_ThS& GetListenerSendQueue() const noexcept { return *m_ListenerSendQueue; }
+		void ReleaseListenerSendQueue() noexcept { m_ListenerSendQueue.reset(); }
 
 	private:
 		bool m_CanRead{ false };
@@ -89,7 +89,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		Concurrency::Event m_ReceiveEvent;
 		Concurrency::Event* m_SendEvent{ nullptr };
 
-		std::shared_ptr<Listener::Socket_ThS> m_ListenerSocket;
+		std::shared_ptr<Listener::SendQueue_ThS> m_ListenerSendQueue;
 	};
 
 	using ConnectionData_ThS = Concurrency::ThreadSafe<UDPConnectionData, std::shared_mutex>;

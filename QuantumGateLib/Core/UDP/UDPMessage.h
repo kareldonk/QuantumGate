@@ -57,6 +57,8 @@ namespace QuantumGate::Implementation::Core::UDP
 			Header& operator=(const Header&) = default;
 			Header& operator=(Header&&) noexcept = default;
 
+			[[nodiscard]] inline HMAC GetHMAC() noexcept { return m_MessageHMAC; }
+
 			[[nodiscard]] inline Direction GetDirection() const noexcept { return m_Direction; }
 
 			[[nodiscard]] inline Type GetMessageType() const noexcept { return m_MessageType; }
@@ -98,8 +100,6 @@ namespace QuantumGate::Implementation::Core::UDP
 					sizeof(m_MessageAckNumber) +
 					sizeof(m_MessageType);
 			}
-
-			inline UInt64 GetHMAC() noexcept { return m_MessageHMAC; }
 
 		private:
 			static constexpr UInt8 MessageTypeMask{ 0b00001111 };
@@ -229,7 +229,12 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		Size GetHeaderSize() const noexcept;
 
+		HMAC CalcHMAC(const BufferView& data, const BufferView& key) noexcept;
+
 		void Validate() noexcept;
+
+	private:
+		static constexpr UInt64 DefaultAuthKey{ 3693693693693693693 };
 
 	private:
 		using Data = std::variant<std::monostate, SynData, StateData, Buffer, Vector<AckRange>>;

@@ -308,15 +308,17 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 				}
 				else if (thdata.Socket.GetIOStatus().HasException())
 				{
-					LogErr(L"Exception on listener socket for endpoint %s (%s)",
+					LogErr(L"Exception on listener socket for endpoint %s (%s); will exit thread",
 						   thdata.Socket.GetLocalEndpoint().GetString().c_str(),
 						   GetSysErrorString(thdata.Socket.GetIOStatus().GetErrorCode()).c_str());
+					break;
 				}
 			}
 			else
 			{
-				LogErr(L"Could not get status of listener socket for endpoint %s",
+				LogErr(L"Could not get status of listener socket for endpoint %s; will exit thread",
 					   thdata.Socket.GetLocalEndpoint().GetString().c_str());
+				break;
 			}
 		}
 	}

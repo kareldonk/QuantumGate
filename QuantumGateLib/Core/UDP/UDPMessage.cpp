@@ -6,6 +6,8 @@
 #include "..\..\Memory\BufferReader.h"
 #include "..\..\Memory\BufferWriter.h"
 #include "..\..\Common\Random.h"
+#include "..\..\..\QuantumGateCryptoLib\QuantumGateCryptoLib.h"
+#include <span>
 
 using namespace QuantumGate::Implementation::Memory;
 
@@ -51,10 +53,11 @@ namespace QuantumGate::Implementation::Core::UDP
 	{
 		assert(m_Direction == Direction::Incoming);
 
+		BufferSpan hmac(reinterpret_cast<Byte*>(&m_MessageHMAC), sizeof(m_MessageHMAC));
 		UInt8 msgtype_flags{ 0 };
 
 		Memory::BufferReader rdr(buffer, true);
-		if (rdr.Read(m_MessageHMAC,
+		if (rdr.Read(hmac,
 					 m_MessageSequenceNumber,
 					 m_MessageAckNumber,
 					 msgtype_flags))
@@ -73,6 +76,8 @@ namespace QuantumGate::Implementation::Core::UDP
 	{
 		assert(m_Direction == Direction::Outgoing);
 
+		BufferView hmac(reinterpret_cast<const Byte*>(&m_MessageHMAC), sizeof(m_MessageHMAC));
+
 		UInt8 msgtype_flags{ static_cast<UInt8>(m_MessageType) };
 		
 		if (m_AckFlag)
@@ -86,7 +91,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		}
 
 		Memory::BufferWriter wrt(buffer, true);
-		return wrt.WriteWithPreallocation(m_MessageHMAC,
+		return wrt.WriteWithPreallocation(hmac,
 										  m_MessageSequenceNumber,
 										  m_MessageAckNumber,
 										  msgtype_flags);
@@ -94,10 +99,9 @@ namespace QuantumGate::Implementation::Core::UDP
 
 	void Message::SetMessageData(Buffer&& buffer) noexcept
 	{
-		assert(std::holds_alternative<Header>(m_Header));
-		assert(std::get<Header>(m_Header).GetMessageType() == Type::Data ||
-			   std::get<Header>(m_Header).GetMessageType() == Type::Null ||
-			   std::get<Header>(m_Header).GetMessageType() == Type::MTUD);
+		assert(m_Header.GetMessageType() == Type::Data ||
+			   m_Header.GetMessageType() == Type::Null ||
+			   m_Header.GetMessageType() == Type::MTUD);
 
 		if (!buffer.IsEmpty())
 		{
@@ -189,33 +193,23 @@ namespace QuantumGate::Implementation::Core::UDP
 		// Should have enough data for outer message header
 		if (buffer.GetSize() < GetHeaderSize()) return false;
 
+		// Get message outer header from buffer
+		if (!m_Header.Read(buffer)) return false;
+
 		// TEMPORARY
-		/*{
+		{
 			// Calculate HMAC for the message
-			Buffer hmac;
-			UInt64 authkey{ 369 };
-			BufferView authkeybuf{ reinterpret_cast<Byte*>(&authkey), sizeof(authkey) };
+			BufferView authkeybuf{ reinterpret_cast<const Byte*>(&DefaultAuthKey), sizeof(DefaultAuthKey) };
 			BufferView msgview{ buffer };
 			msgview.RemoveFirst(sizeof(HMAC));
 
-			if (Crypto::HMAC(msgview, hmac, authkeybuf, Algorithm::Hash::BLAKE2S256))
+			const auto hmac = CalcHMAC(msgview, authkeybuf);
+			if (m_Header.GetHMAC() != hmac)
 			{
-				auto msghmac = buffer.GetFirst(sizeof(HMAC));
-				if (msghmac != BufferView(hmac).GetFirst(sizeof(HMAC)))
-				{
-					LogErr(L"Failed HMAC check for UDP connection message");
-					return false;
-				}
-			}
-			else
-			{
-				LogErr(L"Failed HMAC calculation for UDP connection message");
+				LogErr(L"Failed HMAC check for UDP connection message");
 				return false;
 			}
-		}*/
-
-		// Get message outer header from buffer
-		if (!m_Header.Read(buffer)) return false;
+		}
 
 		// Remove message header from buffer
 		buffer.RemoveFirst(GetHeaderSize());
@@ -354,29 +348,35 @@ namespace QuantumGate::Implementation::Core::UDP
 		}
 
 		// TEMPORARY
-		/*{
+		{
 			// Calculate HMAC for the message
-			Buffer hmac;
-			UInt64 authkey{ 369 };
-			BufferView authkeybuf{ reinterpret_cast<Byte*>(&authkey), sizeof(authkey) };
+			BufferView authkeybuf{ reinterpret_cast<const Byte*>(&DefaultAuthKey), sizeof(DefaultAuthKey) };
 			BufferView msgview{ msgbuf };
 			msgview.RemoveFirst(sizeof(HMAC));
 
-			if (Crypto::HMAC(msgview, hmac, authkeybuf, Algorithm::Hash::BLAKE2S256))
-			{
-				std::memcpy(msgbuf.GetBytes(), hmac.GetBytes(), sizeof(HMAC));
-				buffer = std::move(msgbuf);
-			}
-			else
-			{
-				LogErr(L"Failed HMAC calculation for UDP connection message");
-				return false;
-			}
-		}*/
+			const auto hmac = CalcHMAC(msgview, authkeybuf);
+			std::memcpy(msgbuf.GetBytes(), &hmac, sizeof(hmac));
+		}
 
 		buffer = std::move(msgbuf);
 
 		return true;
+	}
+
+	Message::HMAC Message::CalcHMAC(const BufferView& data, const BufferView& key) noexcept
+	{
+		// Half SipHash requires key size of 8 bytes
+		// and we want 4 byte output size
+		assert(key.GetSize() == 8);
+		assert(sizeof(HMAC) == 4);
+
+		HMAC hmac{ 0 };
+
+		halfsiphash(reinterpret_cast<const uint8_t*>(data.GetBytes()), data.GetSize(),
+					reinterpret_cast<const uint8_t*>(key.GetBytes()),
+					reinterpret_cast<uint8_t*>(&hmac), sizeof(hmac));
+
+		return hmac;
 	}
 
 	void Message::Validate() noexcept

@@ -635,49 +635,63 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		m_LastSendSteadyTime = now;
 
-		Listener::Socket_ThS::UniqueLockedType listener_socket_lock;
-		Network::Socket* s = &m_Socket;
 		if (use_listener_socket)
 		{
-			// Only in handshake mode
+			// Need to use the listener socket to send syn replies for inbound connections.
+			// This is because if the peer is behind NAT, it will expect a reply from the same
+			// IP and port it sent a syn to which is to our listener socket. Our syn will contain
+			// the new port to which the peer should send subsequent messages to.
+
+			// Only in handshake state
 			assert(GetStatus() < Status::Connected);
 
-			// Should still have listener socket (only in handshake state)
-			assert(m_ConnectionData->WithSharedLock()->HasListenerSocket());
+			// Should still have listener send queue (only in handshake state)
+			assert(m_ConnectionData->WithSharedLock()->HasListenerSendQueue());
 
-			LogWarn(L"UDP connection: using listener socket to send UDP msg");
-
-			// Keep lock while in use
-			listener_socket_lock = m_ConnectionData->WithUniqueLock()->GetListenerSocket().WithUniqueLock();
-			s = &(*listener_socket_lock);
-		}
-
-		auto result = s->SendTo(m_PeerEndpoint, data);
-		if (result.Failed())
-		{
-			if (result.GetErrorCode().category() == std::system_category() &&
-				result.GetErrorCode().value() == 10065)
+			try
 			{
-				LogDbg(L"UDP connection: failed to send data on connection %llu (host unreachable)", GetID());
+				m_ConnectionData->WithUniqueLock()->GetListenerSendQueue().
+					WithUniqueLock()->emplace(
+						Listener::SendQueueItem{
+							.Endpoint = m_PeerEndpoint,
+							.Data = data
+						});
 
-				// Host unreachable error; this may occur when the peer is temporarily
-				// not online due to changing IP address or network. In this case
-				// we will keep retrying until we get a message from the peer
-				// with an updated endpoint. We return success with 0 bytes sent and
-				// suspend the socket until we hear from the peer again.
-				if (SetStatus(Status::Suspended))
+				return data.GetSize();
+			}
+			catch (...) {}
+
+			return ResultCode::Failed;
+		}
+		else
+		{
+			auto result = m_Socket.SendTo(m_PeerEndpoint, data);
+			if (result.Failed())
+			{
+				if (result.GetErrorCode().category() == std::system_category() &&
+					result.GetErrorCode().value() == 10065)
 				{
-					return 0;
-				}
-				else
-				{
-					SetCloseCondition(CloseCondition::GeneralFailure);
-					return ResultCode::Failed;
+					LogDbg(L"UDP connection: failed to send data on connection %llu (host unreachable)", GetID());
+
+					// Host unreachable error; this may occur when the peer is temporarily
+					// not online due to changing IP address or network. In this case
+					// we will keep retrying until we get a message from the peer
+					// with an updated endpoint. We return success with 0 bytes sent and
+					// suspend the socket until we hear from the peer again.
+					if (SetStatus(Status::Suspended))
+					{
+						return 0;
+					}
+					else
+					{
+						SetCloseCondition(CloseCondition::GeneralFailure);
+						return ResultCode::Failed;
+					}
 				}
 			}
-		}
 
-		return result;
+			return result;
+		}
 	}
 
 	bool Connection::ReceiveToQueue() noexcept
@@ -815,8 +829,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 									{
 										// Endpoint update
 										connection_data.SetLocalEndpoint(m_Socket.GetLocalEndpoint());
-										// Don't need listener socket anymore
-										connection_data.ReleaseListenerSocket();
+										// Don't need listener send queue anymore
+										connection_data.ReleaseListenerSendQueue();
 										// Socket can now send data
 										connection_data.SetWrite(true);
 										// Notify of state change
@@ -847,8 +861,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					m_ConnectionData->WithUniqueLock([&](auto& connection_data) noexcept
 					{
-						// Don't need listener socket anymore
-						connection_data.ReleaseListenerSocket();
+						// Don't need listener send queue anymore
+						connection_data.ReleaseListenerSendQueue();
 						// Socket can now send data
 						connection_data.SetWrite(true);
 						// Notify of state change
