@@ -645,6 +645,7 @@
     <ClInclude Include="Memory\PoolAllocator.h" />
     <ClInclude Include="Memory\ProtectedFreeStoreAllocatorImpl.h" />
     <ClInclude Include="Memory\RingBuffer.h" />
+    <ClInclude Include="Memory\StackBuffer.h" />
     <ClInclude Include="Module.h" />
     <ClInclude Include="Network\BinaryIPAddress.h" />
     <ClInclude Include="Network\IP.h" />

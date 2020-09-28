@@ -87,6 +87,16 @@ namespace QuantumGate::Implementation::Memory
 		return false;
 	}
 
+	template<> bool BufferWriter::WriteImpl(const BufferSpan& data)
+	{
+		return WriteBytes(data.GetBytes(), GetDataSize(data));
+	}
+
+	template<> bool BufferWriter::WriteImpl(const BufferView& data)
+	{
+		return WriteBytes(data.GetBytes(), GetDataSize(data));
+	}
+
 	template<> bool BufferWriter::WriteImpl(const String& data)
 	{
 		return WriteBytes(reinterpret_cast<const Byte*>(data.data()), GetDataSize(data));
@@ -108,11 +118,6 @@ namespace QuantumGate::Implementation::Memory
 	}
 
 	template<> bool BufferWriter::WriteImpl(const Buffer& data)
-	{
-		return WriteBytes(data.GetBytes(), GetDataSize(data));
-	}
-
-	template<> bool BufferWriter::WriteImpl(const BufferView& data)
 	{
 		return WriteBytes(data.GetBytes(), GetDataSize(data));
 	}

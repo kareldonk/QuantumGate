@@ -54,3 +54,4 @@
 #include "Common\Util.h"
 #include "Common\Console.h"
 #include "Settings.h"
+#include "Memory\StackBuffer.h"

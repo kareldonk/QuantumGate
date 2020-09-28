@@ -135,12 +135,13 @@ namespace QuantumGate::Implementation::Memory
 	};
 
 	// Specializations
+	template<> Export Size BufferIO::GetDataSize(const BufferSpan& data) noexcept;
+	template<> Export Size BufferIO::GetDataSize(const BufferView& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const String& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const Network::SerializedBinaryIPAddress& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const Network::SerializedIPEndpoint& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const SerializedUUID& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const Buffer& data) noexcept;
-	template<> Export Size BufferIO::GetDataSize(const BufferView& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const ProtectedBuffer& data) noexcept;
 
 	// Helper function

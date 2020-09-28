@@ -69,6 +69,7 @@ namespace QuantumGate
 namespace QuantumGate
 {
 	using BufferView = Implementation::Memory::BufferView;
+	using BufferSpan = Implementation::Memory::BufferSpan;
 	using Buffer = Implementation::Memory::Buffer;
 	using ProtectedBuffer = Implementation::Memory::ProtectedBuffer;
 	using RingBuffer = Implementation::Memory::RingBuffer;
