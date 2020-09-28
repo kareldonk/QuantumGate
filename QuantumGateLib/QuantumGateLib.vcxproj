@@ -619,6 +619,7 @@
     <ClInclude Include="Core\UDP\UDPConnectionStats.h" />
     <ClInclude Include="Core\UDP\UDPListenerManager.h" />
     <ClInclude Include="Core\UDP\UDPConnectionManager.h" />
+    <ClInclude Include="Core\UDP\UDPListenerSocket.h" />
     <ClInclude Include="Core\UDP\UDPMessage.h" />
     <ClInclude Include="Core\UDP\UDPSocket.h" />
     <ClInclude Include="Crypto\Crypto.h" />

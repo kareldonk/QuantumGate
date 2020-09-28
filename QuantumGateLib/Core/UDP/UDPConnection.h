@@ -25,7 +25,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		enum class ReceiveWindow { Unknown, Current, Previous };
 
 	public:
-		Connection(Access::Manager& accessmgr, const PeerConnectionType type,
+		Connection(const Settings_CThS& settings, Access::Manager& accessmgr, const PeerConnectionType type,
 				   const ConnectionID id, const Message::SequenceNumber seqnum) noexcept;
 		Connection(const Connection&) = delete;
 		Connection(Connection&&) noexcept = delete;
@@ -51,6 +51,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		static std::optional<ConnectionID> MakeConnectionID() noexcept;
 
 	private:
+		[[nodiscard]] const Settings& GetSettings() const noexcept { return m_Settings.GetCache(true); }
 		[[nodiscard]] bool SetStatus(const Status status) noexcept;
 
 		[[nodiscard]] inline CloseCondition GetCloseCondition() const noexcept { return m_CloseCondition; }
@@ -76,8 +77,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		[[nodiscard]] bool ReceiveToQueue() noexcept;
 		[[nodiscard]] bool ProcessReceivedData(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
-		[[nodiscard]] bool ProcessReceivedDataHandshake(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
-		[[nodiscard]] bool ProcessReceivedDataConnected(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
+		[[nodiscard]] bool ProcessReceivedMessageHandshake(const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept;
 
@@ -99,6 +99,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void ProcessSocketEvents() noexcept;
 
 	private:
+		const Settings_CThS& m_Settings;
 		Access::Manager& m_AccessManager;
 
 		PeerConnectionType m_Type{ PeerConnectionType::Unknown };
@@ -113,7 +114,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		SendQueue m_SendQueue{ *this };
 		SteadyTime m_LastSendSteadyTime;
 		IPEndpoint m_PeerEndpoint;
-		std::chrono::seconds m_KeepAliveTimeout{ MaxKeepAliveTimeout };
+		std::chrono::seconds m_KeepAliveTimeout{ 60 };
 
 		Message::SequenceNumber m_LastInSequenceReceivedSequenceNumber{ 0 };
 		Size m_ReceiveWindowSize{ MinReceiveWindowItemSize };

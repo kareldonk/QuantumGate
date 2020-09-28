@@ -4,6 +4,7 @@
 #pragma once
 
 #include "UDPConnectionManager.h"
+#include "UDPListenerSocket.h"
 #include "..\..\Concurrency\ThreadPool.h"
 #include "..\Peer\PeerManager.h"
 #include "..\Access\AccessManager.h"
@@ -17,16 +18,11 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			ThreadData() noexcept = default;
 			ThreadData(const ThreadData&) = delete;
 			ThreadData(ThreadData&&) noexcept = default;
-
-			~ThreadData()
-			{
-				if (Socket.GetIOStatus().IsOpen()) Socket.Close();
-			}
-
+			~ThreadData() = default;
 			ThreadData& operator=(const ThreadData&) = delete;
 			ThreadData& operator=(ThreadData&&) noexcept = default;
 
-			Network::Socket Socket;
+			std::shared_ptr<Socket_ThS> Socket;
 		};
 
 		struct ThreadPoolData final
@@ -61,7 +57,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
 		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
-		void AcceptConnection(Network::Socket& socket, const IPEndpoint& lendpoint,
+		void AcceptConnection(const std::shared_ptr<Socket_ThS>& socket, const IPEndpoint& lendpoint,
 							  const IPEndpoint& pendpoint, const Buffer& buffer) noexcept;
 
 	private:

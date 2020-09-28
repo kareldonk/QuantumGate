@@ -135,13 +135,13 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 				// Create and start the listenersocket
 				ThreadData ltd;
-				ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
-											 Network::Socket::Type::Datagram, Network::IP::Protocol::UDP);
+				ltd.Socket = std::make_shared<Socket_ThS>(endpoint.GetIPAddress().GetFamily(),
+														  Network::Socket::Type::Datagram, Network::IP::Protocol::UDP);
 
-				if (ltd.Socket.Bind(endpoint, nat_traversal))
+				if (ltd.Socket->WithUniqueLock()->Bind(endpoint, nat_traversal))
 				{
 					if (m_ThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
-													   std::move(ltd), MakeCallback(this, &Manager::WorkerThreadProcessor)))
+											   std::move(ltd), MakeCallback(this, &Manager::WorkerThreadProcessor)))
 					{
 						LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
 					}
@@ -164,7 +164,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 	std::optional<Manager::ThreadPool::ThreadType> Manager::RemoveListenerThread(Manager::ThreadPool::ThreadType&& thread) noexcept
 	{
-		const IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
+		const IPEndpoint endpoint = thread.GetData().Socket->WithSharedLock()->GetLocalEndpoint();
 
 		const auto [success, next_thread] = m_ThreadPool.RemoveThread(std::move(thread));
 		if (success)
@@ -210,7 +210,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 						while (thread.has_value())
 						{
-							if (thread->GetData().Socket.GetLocalIPAddress() == address)
+							if (thread->GetData().Socket->WithSharedLock()->GetLocalIPAddress() == address)
 							{
 								found = true;
 								break;
@@ -241,7 +241,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 				{
 					for (const auto& address : ifs.IPAddresses)
 					{
-						if (thread->GetData().Socket.GetLocalIPAddress() == address)
+						if (thread->GetData().Socket->WithSharedLock()->GetLocalIPAddress() == address)
 						{
 							found = true;
 							break;
@@ -290,63 +290,75 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
-		Network::Socket& socket = thdata.Socket;
-		IPEndpoint endpoint;
+		IPEndpoint lendpoint = thdata.Socket->WithSharedLock()->GetLocalEndpoint();
+		IPEndpoint pendpoint;
 		Buffer buffer;
 
 		while (!shutdown_event.IsSet())
 		{
-			// Check if we have a read event waiting for us
-			if (socket.UpdateIOStatus(1ms))
-			{
-				if (socket.GetIOStatus().CanRead())
-				{
-					const auto result = socket.ReceiveFrom(endpoint, buffer);
-					if (result.Succeeded() && *result > 0)
-					{
-						AcceptConnection(socket, socket.GetLocalEndpoint(), endpoint, buffer);
-					}
+			auto accept = false;
 
-					buffer.Clear();
-				}
-				else if (socket.GetIOStatus().HasException())
-				{
-					LogErr(L"Exception on listener socket for endpoint %s (%s)",
-						   socket.GetLocalEndpoint().GetString().c_str(),
-						   GetSysErrorString(socket.GetIOStatus().GetErrorCode()).c_str());
-				}
-			}
-			else
+			thdata.Socket->WithUniqueLock([&](auto& socket)
 			{
-				LogErr(L"Could not get status of listener socket for endpoint %s",
-					   socket.GetLocalEndpoint().GetString().c_str());
+				// Check if we have a read event waiting for us
+				if (socket.UpdateIOStatus(1ms))
+				{
+					if (socket.GetIOStatus().CanRead())
+					{
+						pendpoint = IPEndpoint();
+						buffer.Clear();
+
+						const auto result = socket.ReceiveFrom(pendpoint, buffer);
+						if (result.Succeeded() && *result > 0)
+						{
+							accept = true;
+						}
+					}
+					else if (socket.GetIOStatus().HasException())
+					{
+						LogErr(L"Exception on listener socket for endpoint %s (%s)",
+							   socket.GetLocalEndpoint().GetString().c_str(),
+							   GetSysErrorString(socket.GetIOStatus().GetErrorCode()).c_str());
+					}
+				}
+				else
+				{
+					LogErr(L"Could not get status of listener socket for endpoint %s",
+						   socket.GetLocalEndpoint().GetString().c_str());
+				}
+			});
+
+			if (accept)
+			{
+				AcceptConnection(thdata.Socket, lendpoint, pendpoint, buffer);
 			}
 		}
 	}
 
-	void Manager::AcceptConnection(Network::Socket& socket, const IPEndpoint& lendpoint,
+	void Manager::AcceptConnection(const std::shared_ptr<Socket_ThS>& socket, const IPEndpoint& lendpoint,
 								   const IPEndpoint& pendpoint, const Buffer& buffer) noexcept
 	{
 		if (CanAcceptConnection(pendpoint.GetIPAddress()))
 		{
 			auto reputation_update = false;
 
-			Message msg(Message::Type::Syn, Message::Direction::Incoming);
-			if (msg.Read(buffer) && msg.IsValid())
+			Message msg(Message::Type::Unknown, Message::Direction::Incoming);
+			if (msg.Read(buffer) && msg.IsValid() && msg.GetType() == Message::Type::Syn)
 			{
-				const auto version = msg.GetProtocolVersion();
+				const auto& syn_data = msg.GetSynData();
 
-				if (version.first == UDP::ProtocolVersion::Major && version.second == UDP::ProtocolVersion::Minor)
+				if (syn_data.ProtocolVersionMajor == UDP::ProtocolVersion::Major &&
+					syn_data.ProtocolVersionMinor == UDP::ProtocolVersion::Minor)
 				{
-					if (!m_UDPConnectionManager.HasConnection(msg.GetConnectionID(), PeerConnectionType::Inbound))
+					if (!m_UDPConnectionManager.HasConnection(syn_data.ConnectionID, PeerConnectionType::Inbound))
 					{
 						auto peerths = m_PeerManager.CreateUDP(pendpoint.GetIPAddress().GetFamily(), PeerConnectionType::Inbound,
-															   msg.GetConnectionID(), msg.GetMessageSequenceNumber(), std::nullopt);
+															   syn_data.ConnectionID, msg.GetMessageSequenceNumber(), std::nullopt);
 						if (peerths != nullptr)
 						{
 							peerths->WithUniqueLock([&](Peer::Peer& peer)
 							{
-								if (peer.GetSocket<Socket>().Accept(&socket, lendpoint, pendpoint))
+								if (peer.GetSocket<Socket>().Accept(socket, lendpoint, pendpoint))
 								{
 									if (m_PeerManager.Accept(peerths))
 									{
@@ -364,20 +376,18 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 					else
 					{
 						LogWarn(L"UDP listenermanager cannot accept incoming connection with ID %llu from peer %s; connection already exists",
-								msg.GetConnectionID(), pendpoint.GetString().c_str());
+								syn_data.ConnectionID, pendpoint.GetString().c_str());
 					}
 				}
 				else
 				{
-					LogErr(L"Could not accept connection from peer %s; unsupported UDP protocol version",
-						   pendpoint.GetString().c_str());
+					LogErr(L"Could not accept connection from peer %s; unsupported UDP protocol version", pendpoint.GetString().c_str());
 					reputation_update = true;
 				}
 			}
 			else
 			{
-				LogErr(L"Peer %s sent invalid message for establishing UDP connection",
-					   pendpoint.GetString().c_str());
+				LogErr(L"Peer %s sent invalid message for establishing UDP connection", pendpoint.GetString().c_str());
 				reputation_update = true;
 			}
 

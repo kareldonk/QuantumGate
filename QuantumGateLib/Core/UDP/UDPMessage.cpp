@@ -11,51 +11,19 @@ using namespace QuantumGate::Implementation::Memory;
 
 namespace QuantumGate::Implementation::Core::UDP
 {
-	Message::SynHeader::SynHeader(const Direction direction) noexcept : m_Direction(direction)
-	{
-		if (m_Direction == Direction::Outgoing)
-		{
-			// These are not used for outgoing Syn so we fill with random data
-			m_MessageAckNumber = static_cast<UInt16>(Random::GetPseudoRandomNumber());
-			m_Port = static_cast<UInt16>(Random::GetPseudoRandomNumber());
-		}
-	}
-
-	bool Message::SynHeader::Read(const BufferView& buffer) noexcept
-	{
-		assert(m_Direction == Direction::Incoming);
-
-		Memory::BufferReader rdr(buffer, true);
-		return rdr.Read(m_MessageHMAC,
-						m_MessageSequenceNumber,
-						m_MessageAckNumber,
-						m_ProtocolVersionMajor,
-						m_ProtocolVersionMinor,
-						m_ConnectionID,
-						m_Port);
-	}
-	
-	bool Message::SynHeader::Write(Buffer& buffer) const noexcept
-	{
-		assert(m_Direction == Direction::Outgoing);
-
-		Memory::BufferWriter wrt(buffer, true);
-		return wrt.WriteWithPreallocation(m_MessageHMAC,
-										  m_MessageSequenceNumber,
-										  m_MessageAckNumber,
-										  m_ProtocolVersionMajor,
-										  m_ProtocolVersionMinor,
-										  m_ConnectionID,
-										  m_Port);
-	}
-
-	Message::MsgHeader::MsgHeader(const Type type, const Direction direction) noexcept :
+	Message::Header::Header(const Type type, const Direction direction) noexcept :
 		m_Direction(direction), m_MessageType(type)
 	{
 		if (m_Direction == Direction::Outgoing)
 		{
 			switch (m_MessageType)
 			{
+				case Message::Type::Syn:
+				{
+					// These are not used for outgoing Syn so we fill with random data
+					m_MessageAckNumber = static_cast<UInt16>(Random::GetPseudoRandomNumber());
+					break;
+				}
 				case Message::Type::EAck:
 				{
 					// Not used for the above message type so we fill with random data
@@ -79,7 +47,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		}
 	}
 
-	bool Message::MsgHeader::Read(const BufferView& buffer) noexcept
+	bool Message::Header::Read(const BufferView& buffer) noexcept
 	{
 		assert(m_Direction == Direction::Incoming);
 
@@ -101,7 +69,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		return false;
 	}
 
-	bool Message::MsgHeader::Write(Buffer& buffer) const noexcept
+	bool Message::Header::Write(Buffer& buffer) const noexcept
 	{
 		assert(m_Direction == Direction::Outgoing);
 
@@ -124,150 +92,16 @@ namespace QuantumGate::Implementation::Core::UDP
 										  msgtype_flags);
 	}
 
-	Message::Direction Message::GetDirection() const noexcept
-	{
-		return std::visit(Util::Overloaded{
-			[](const SynHeader& hdr) noexcept
-			{
-				return hdr.GetDirection();
-			},
-			[](const MsgHeader& hdr) noexcept
-			{
-				return hdr.GetDirection();
-			}
-		}, m_Header);
-	}
-
-	bool Message::HasSequenceNumber() const noexcept
-	{
-		return std::visit(Util::Overloaded{
-			[](const SynHeader& hdr) noexcept
-			{
-				return hdr.HasSequenceNumber();
-			},
-			[](const MsgHeader& hdr) noexcept
-			{
-				return hdr.HasSequenceNumber();
-			}
-		}, m_Header);
-	}
-
-	void Message::SetMessageSequenceNumber(const Message::SequenceNumber seqnum) noexcept
-	{
-		std::visit(Util::Overloaded{
-			[&](SynHeader& hdr) noexcept
-			{
-				hdr.SetMessageSequenceNumber(seqnum);
-			},
-			[&](MsgHeader& hdr) noexcept
-			{
-				hdr.SetMessageSequenceNumber(seqnum);
-			}
-		}, m_Header);
-	}
-
-	Message::SequenceNumber Message::GetMessageSequenceNumber() const noexcept
-	{
-		return std::visit(Util::Overloaded{
-			[&](const SynHeader& hdr) noexcept
-			{
-				return hdr.GetMessageSequenceNumber();
-			},
-			[&](const MsgHeader& hdr) noexcept
-			{
-				return hdr.GetMessageSequenceNumber();
-			}
-		}, m_Header);
-	}
-
-	bool Message::HasAck() const noexcept
-	{
-		return std::visit(Util::Overloaded{
-			[](const SynHeader& hdr) noexcept
-			{
-				return hdr.HasAck();
-			},
-			[](const MsgHeader& hdr) noexcept
-			{
-				return hdr.HasAck();
-			}
-		}, m_Header);
-	}
-
-	void Message::SetMessageAckNumber(const Message::SequenceNumber acknum) noexcept
-	{
-		std::visit(Util::Overloaded{
-			[&](SynHeader& hdr) noexcept
-			{
-				hdr.SetMessageAckNumber(acknum);
-			},
-			[&](MsgHeader& hdr) noexcept
-			{
-				hdr.SetMessageAckNumber(acknum);
-			}
-		}, m_Header);
-	}
-	
-	Message::SequenceNumber Message::GetMessageAckNumber() const noexcept
-	{
-		return std::visit(Util::Overloaded{
-			[](const SynHeader& hdr) noexcept
-			{
-				return hdr.GetMessageAckNumber();
-			},
-			[](const MsgHeader& hdr) noexcept
-			{
-				return hdr.GetMessageAckNumber();
-			}
-		}, m_Header);
-	}
-
-	void Message::SetProtocolVersion(const UInt8 major, const UInt8 minor) noexcept
-	{
-		assert(std::holds_alternative<SynHeader>(m_Header));
-		std::get<SynHeader>(m_Header).SetProtocolVersion(major, minor);
-	}
-
-	std::pair<UInt8, UInt8> Message::GetProtocolVersion() const noexcept
-	{
-		assert(std::holds_alternative<SynHeader>(m_Header));
-		return std::get<SynHeader>(m_Header).GetProtocolVersion();
-	}
-
-	void Message::SetConnectionID(const ConnectionID id) noexcept
-	{
-		assert(std::holds_alternative<SynHeader>(m_Header));
-		std::get<SynHeader>(m_Header).SetConnectionID(id);
-	}
-
-	ConnectionID Message::GetConnectionID() const noexcept
-	{
-		assert(std::holds_alternative<SynHeader>(m_Header));
-		return std::get<SynHeader>(m_Header).GetConnectionID();
-	}
-
-	void Message::SetPort(const UInt16 port) noexcept
-	{
-		assert(std::holds_alternative<SynHeader>(m_Header));
-		std::get<SynHeader>(m_Header).SetPort(port);
-	}
-
-	UInt16 Message::GetPort() const noexcept
-	{
-		assert(std::holds_alternative<SynHeader>(m_Header));
-		return std::get<SynHeader>(m_Header).GetPort();
-	}
-	
 	void Message::SetMessageData(Buffer&& buffer) noexcept
 	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Data ||
-			   std::get<MsgHeader>(m_Header).GetMessageType() == Type::Null ||
-			   std::get<MsgHeader>(m_Header).GetMessageType() == Type::MTUD);
+		assert(std::holds_alternative<Header>(m_Header));
+		assert(std::get<Header>(m_Header).GetMessageType() == Type::Data ||
+			   std::get<Header>(m_Header).GetMessageType() == Type::Null ||
+			   std::get<Header>(m_Header).GetMessageType() == Type::MTUD);
 
 		if (!buffer.IsEmpty())
 		{
-			m_Data = std::move(buffer);
+			std::get<Buffer>(m_Data) = std::move(buffer);
 
 			Validate();
 		}
@@ -275,79 +109,79 @@ namespace QuantumGate::Implementation::Core::UDP
 
 	Size Message::GetMaxMessageDataSize() const noexcept
 	{
-		return (m_MaxMessageSize - MsgHeader::GetSize());
+		return (m_MaxMessageSize - Header::GetSize());
 	}
 
 	Size Message::GetMaxAckRangesPerMessage() const noexcept
 	{
-		const auto asize = m_MaxMessageSize - MsgHeader::GetSize();
+		const auto asize = m_MaxMessageSize - Header::GetSize();
 		return (asize / sizeof(Message::AckRange));
+	}
+
+	void Message::SetSynData(SynData&& data) noexcept
+	{
+		assert(m_Header.GetMessageType() == Type::Syn);
+
+		m_Data = std::move(data);
+	}
+
+	const Message::SynData& Message::GetSynData() const noexcept
+	{
+		assert(m_Header.GetMessageType() == Type::Syn);
+		assert(IsValid());
+
+		return std::get<SynData>(m_Data);
 	}
 
 	void Message::SetStateData(StateData&& data) noexcept
 	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::State);
+		assert(m_Header.GetMessageType() == Type::State);
 
-		m_StateData = std::move(data);
+		m_Data = std::move(data);
 	}
 
 	const Message::StateData& Message::GetStateData() const noexcept
 	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::State);
+		assert(m_Header.GetMessageType() == Type::State);
 		assert(IsValid());
 
-		return m_StateData;
+		return std::get<StateData>(m_Data);
 	}
 
 	const Buffer& Message::GetMessageData() const noexcept
 	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Data);
+		assert(m_Header.GetMessageType() == Type::Data);
 		assert(IsValid());
 
-		return m_Data;
+		return std::get<Buffer>(m_Data);
 	}
 
 	Buffer&& Message::MoveMessageData() noexcept
 	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::Data);
+		assert(m_Header.GetMessageType() == Type::Data);
 		assert(IsValid());
 
-		return std::move(m_Data);
+		return std::move(std::get<Buffer>(m_Data));
 	}
 
 	void Message::SetAckRanges(Vector<Message::AckRange>&& acks) noexcept
 	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::EAck);
+		assert(m_Header.GetMessageType() == Type::EAck);
 
-		m_EAcks = std::move(acks);
+		m_Data = std::move(acks);
 	}
 
 	const Vector<Message::AckRange>& Message::GetAckRanges() noexcept
 	{
-		assert(std::holds_alternative<MsgHeader>(m_Header));
-		assert(std::get<MsgHeader>(m_Header).GetMessageType() == Type::EAck);
+		assert(m_Header.GetMessageType() == Type::EAck);
 		assert(IsValid());
 
-		return m_EAcks;
+		return std::get<Vector<AckRange>>(m_Data);
 	}
 
 	Size Message::GetHeaderSize() const noexcept
 	{
-		return std::visit(Util::Overloaded{
-			[](const SynHeader& hdr) noexcept
-			{
-				return hdr.GetSize();
-			},
-			[](const MsgHeader& hdr) noexcept
-			{
-				return hdr.GetSize();
-			}
-		}, m_Header);
+		return m_Header.GetSize();
 	}
 
 	bool Message::Read(BufferView buffer)
@@ -381,60 +215,60 @@ namespace QuantumGate::Implementation::Core::UDP
 		}*/
 
 		// Get message outer header from buffer
-		auto success = std::visit(Util::Overloaded{
-			[&](SynHeader& hdr) noexcept -> bool
-			{
-				return hdr.Read(buffer);
-			},
-			[&](MsgHeader& hdr) noexcept -> bool
-			{
-				return hdr.Read(buffer);
-			}
-		}, m_Header);
-
-		if (!success) return false;
+		if (!m_Header.Read(buffer)) return false;
 
 		// Remove message header from buffer
 		buffer.RemoveFirst(GetHeaderSize());
 
-		if (std::holds_alternative<MsgHeader>(m_Header))
+		switch (m_Header.GetMessageType())
 		{
-			switch (std::get<MsgHeader>(m_Header).GetMessageType())
+			case Type::Data:
 			{
-				case Type::Data:
-				{
-					m_Data = buffer;
-					break;
-				}
-				case Type::MTUD:
-				case Type::Null:
-				{
-					// Skip reading unneeded data
-					break;
-				}
-				case Type::EAck:
-				{
-					// Size should be exact multiple of size of AckRange
-					// otherwise something is wrong
-					assert(buffer.GetSize() % sizeof(AckRange) == 0);
-					if (buffer.GetSize() % sizeof(AckRange) != 0) return false;
+				m_Data = Buffer(buffer);
+				break;
+			}
+			case Type::MTUD:
+			case Type::Null:
+			{
+				// Skip reading unneeded data
+				m_Data = Buffer();
+				break;
+			}
+			case Type::EAck:
+			{
+				// Size should be exact multiple of size of AckRange
+				// otherwise something is wrong
+				assert(buffer.GetSize() % sizeof(AckRange) == 0);
+				if (buffer.GetSize() % sizeof(AckRange) != 0) return false;
 
-					const auto num_ack_ranges = buffer.GetSize() / sizeof(AckRange);
+				const auto num_ack_ranges = buffer.GetSize() / sizeof(AckRange);
 
-					m_EAcks.resize(num_ack_ranges);
-					std::memcpy(m_EAcks.data(), buffer.GetBytes(), buffer.GetSize());
-					break;
-				}
-				case Type::State:
-				{
-					Memory::BufferReader rdr(buffer, true);
-					if (!rdr.Read(m_StateData.MaxWindowSize, m_StateData.MaxWindowSizeBytes)) return false;
-					break;
-				}
-				default:
-				{
-					break;
-				}
+				Vector<AckRange> eacks;
+				eacks.resize(num_ack_ranges);
+				std::memcpy(eacks.data(), buffer.GetBytes(), buffer.GetSize());
+				m_Data = std::move(eacks);
+				break;
+			}
+			case Type::State:
+			{
+				StateData state_data;
+				Memory::BufferReader rdr(buffer, true);
+				if (!rdr.Read(state_data.MaxWindowSize, state_data.MaxWindowSizeBytes)) return false;
+				m_Data = std::move(state_data);
+				break;
+			}
+			case Type::Syn:
+			{
+				SynData syn_data;
+				Memory::BufferReader rdr(buffer, true);
+				if (!rdr.Read(syn_data.ProtocolVersionMajor, syn_data.ProtocolVersionMinor,
+							  syn_data.ConnectionID, syn_data.Port)) return false;
+				m_Data = std::move(syn_data);
+				break;
+			}
+			default:
+			{
+				break;
 			}
 		}
 
@@ -454,57 +288,60 @@ namespace QuantumGate::Implementation::Core::UDP
 		Buffer msgbuf;
 
 		// Add message header
-		auto result = std::visit(Util::Overloaded{
-			[&](SynHeader& hdr) noexcept -> bool
-			{
-				return hdr.Write(msgbuf);
-			},
-			[&](MsgHeader& hdr) noexcept -> bool
-			{
-				return hdr.Write(msgbuf);
-			}
-		}, m_Header);
+		if (!m_Header.Write(msgbuf)) return false;
 
-		if (!result) return false;
-
-		if (std::holds_alternative<MsgHeader>(m_Header))
+		switch (m_Header.GetMessageType())
 		{
-			switch (std::get<MsgHeader>(m_Header).GetMessageType())
+			case Type::Data:
+			case Type::MTUD:
+			case Type::Null:
 			{
-				case Type::Data:
-				case Type::MTUD:
-				case Type::Null:
+				// Add message data if any
+				const auto& buffer = std::get<Buffer>(m_Data);
+				if (!buffer.IsEmpty())
 				{
-					// Add message data if any
-					if (!m_Data.IsEmpty())
-					{
-						msgbuf += m_Data;
-					}
-					break;
+					msgbuf += buffer;
 				}
-				case Type::EAck:
-				{
-					Buffer ackbuf;
-					BufferView ack_view{ reinterpret_cast<Byte*>(m_EAcks.data()), m_EAcks.size() * sizeof(Message::AckRange) };
-					Memory::BufferWriter wrt(ackbuf, true);
-					if (!wrt.WriteWithPreallocation(ack_view)) return false;
+				break;
+			}
+			case Type::EAck:
+			{
+				const auto& eacks = std::get<Vector<AckRange>>(m_Data);
 
-					msgbuf += ackbuf;
-					break;
-				}
-				case Type::State:
-				{
-					Buffer statebuf;
-					Memory::BufferWriter wrt(statebuf, true);
-					if (!wrt.WriteWithPreallocation(m_StateData.MaxWindowSize, m_StateData.MaxWindowSizeBytes)) return false;
+				Buffer ackbuf;
+				BufferView ack_view{ reinterpret_cast<const Byte*>(eacks.data()), eacks.size() * sizeof(AckRange) };
+				Memory::BufferWriter wrt(ackbuf, true);
+				if (!wrt.WriteWithPreallocation(ack_view)) return false;
 
-					msgbuf += statebuf;
-					break;
-				}
-				default:
-				{
-					break;
-				}
+				msgbuf += ackbuf;
+				break;
+			}
+			case Type::State:
+			{
+				const auto& state_data = std::get<StateData>(m_Data);
+
+				Buffer statebuf;
+				Memory::BufferWriter wrt(statebuf, true);
+				if (!wrt.WriteWithPreallocation(state_data.MaxWindowSize, state_data.MaxWindowSizeBytes)) return false;
+
+				msgbuf += statebuf;
+				break;
+			}
+			case Type::Syn:
+			{
+				const auto& syn_data = std::get<SynData>(m_Data);
+
+				Buffer synbuf;
+				Memory::BufferWriter wrt(synbuf, true);
+				if (!wrt.WriteWithPreallocation(syn_data.ProtocolVersionMajor, syn_data.ProtocolVersionMinor,
+												syn_data.ConnectionID, syn_data.Port)) return false;
+
+				msgbuf += synbuf;
+				break;
+			}
+			default:
+			{
+				break;
 			}
 		}
 
@@ -552,19 +389,23 @@ namespace QuantumGate::Implementation::Core::UDP
 		switch (GetType())
 		{
 			case Type::Data:
+				type_ok = HasAck() && HasSequenceNumber() && std::holds_alternative<Buffer>(m_Data);
+				break;
 			case Type::State:
-				type_ok = HasAck() && HasSequenceNumber();
+				type_ok = HasAck() && HasSequenceNumber() && std::holds_alternative<StateData>(m_Data);
 				break;
 			case Type::EAck:
-				type_ok = HasAck();
+				type_ok = HasAck() && std::holds_alternative<Vector<AckRange>>(m_Data);
 				break;
 			case Type::Syn:
-				type_ok = HasSequenceNumber();
+				type_ok = HasSequenceNumber() && std::holds_alternative<SynData>(m_Data);
 				break;
 			case Type::MTUD:
-				type_ok = (HasSequenceNumber() && !HasAck()) || (!HasSequenceNumber() && HasAck());
+				type_ok = ((HasSequenceNumber() && !HasAck()) || (!HasSequenceNumber() && HasAck())) && std::holds_alternative<Buffer>(m_Data);
 				break;
 			case Type::Null:
+				type_ok = !HasAck() && !HasSequenceNumber() && std::holds_alternative<Buffer>(m_Data);
+				break;
 			case Type::Reset:
 				type_ok = !HasAck() && !HasSequenceNumber();
 				break;

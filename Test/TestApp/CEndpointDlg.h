@@ -22,6 +22,7 @@ public:
 	inline void SetReuseConnection(const bool reuse) noexcept { m_ReuseConnection = reuse; }
 
 	inline void SetShowRelay(const bool show) noexcept { m_ShowRelay = show; }
+	inline void SetProtocolSelection(const bool select) noexcept { m_ProtocolSelection = select; }
 
 	inline const IPAddress& GetIPAddress() const noexcept { return m_IPAddress; }
 	inline UInt16 GetPort() const noexcept { return m_Port; }
@@ -48,5 +49,6 @@ private:
 	std::optional<PeerLUID> m_RelayGatewayPeer;
 	bool m_ReuseConnection{ true };
 	bool m_ShowRelay{ false };
+	bool m_ProtocolSelection{ true };
 };
 

@@ -39,13 +39,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Statistics& operator=(const Statistics&) = delete;
 		Statistics& operator=(Statistics&&) noexcept = delete;
 
-		[[nodiscard]] inline std::chrono::milliseconds GetRetransmissionTimeout() noexcept
+		[[nodiscard]] inline std::chrono::nanoseconds GetRetransmissionTimeout() noexcept
 		{
 			RecalcRetransmissionTimeout();
 
 			// Retransmission timeout is larger than RTT to avoid premature retransmission,
 			// and will be larger when more MTUs get lost
-			return std::chrono::duration_cast<std::chrono::milliseconds>(m_RTT * m_RTTMTULossFactor * 2);
+			return std::chrono::duration_cast<std::chrono::nanoseconds>(m_RTT * m_RTTMTULossFactor * 2);
 		}
 
 		inline void RecordRTT(const std::chrono::nanoseconds rtt) noexcept

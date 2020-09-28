@@ -93,11 +93,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
 	private:
+		const Settings_CThS& m_Settings;
 		Access::Manager& m_AccessManager;
 
 		std::atomic_bool m_Running{ false };
-		const Settings_CThS& m_Settings;
-
+		
 		ThreadPool m_ThreadPool;
 	};
 }
