@@ -66,15 +66,14 @@ namespace QuantumGate::Implementation::Crypto
 						// Calculate hash
 						if (EVP_DigestUpdate(context, buffer.GetBytes(), buffer.GetSize()))
 						{
-							typename T::VectorType hash(EVP_MAX_MD_SIZE, Byte{ 0 });
-							auto hlen = 0u;
+							std::array<Byte, EVP_MAX_MD_SIZE> hash{ Byte{ 0 } };
+							UInt hlen{ EVP_MAX_MD_SIZE };
 
 							// Finalize and get hash and final length back
 							if (EVP_DigestFinal_ex(context, reinterpret_cast<UChar*>(hash.data()), &hlen))
 							{
-								hashbuf = std::move(hash);
 								hashbuf.Resize(hlen);
-								assert(hash.empty());
+								std::memcpy(hashbuf.GetBytes(), hash.data(), hlen);
 								return true;
 							}
 						}
@@ -112,17 +111,14 @@ namespace QuantumGate::Implementation::Crypto
 						return false;
 				}
 
-				typename T::VectorType digest(EVP_MAX_MD_SIZE, Byte{ 0 });
-				Size dlen{ EVP_MAX_MD_SIZE };
+				std::array<Byte, EVP_MAX_MD_SIZE> digest{ Byte{ 0 } };
+				UInt dlen{ EVP_MAX_MD_SIZE };
 
 				if (::HMAC(md, key.GetBytes(), static_cast<int>(key.GetSize()), reinterpret_cast<const UChar*>(buffer.GetBytes()),
-						   static_cast<int>(buffer.GetSize()), reinterpret_cast<UChar*>(digest.data()),
-						   reinterpret_cast<unsigned int*>(&dlen)) != nullptr)
+						   static_cast<int>(buffer.GetSize()), reinterpret_cast<UChar*>(digest.data()), &dlen) != nullptr)
 				{
-					hmac = std::move(digest);
 					hmac.Resize(dlen);
-
-					assert(digest.empty());
+					std::memcpy(hmac.GetBytes(), digest.data(), dlen);
 
 					return true;
 				}
