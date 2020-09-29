@@ -116,6 +116,7 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		inline operator BufferView() const noexcept { return { GetBytes(), GetSize() }; }
+		inline operator BufferSpan() noexcept { return { GetBytes(), GetSize() }; }
 
 		inline BufferImpl& operator+=(const BufferImpl& other) { Add(other.GetBytes(), other.GetSize()); return *this; }
 		inline BufferImpl& operator+=(const BufferView& buffer) { Add(buffer.GetBytes(), buffer.GetSize()); return *this; }
