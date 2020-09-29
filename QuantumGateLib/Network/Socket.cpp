@@ -257,9 +257,9 @@ namespace QuantumGate::Implementation::Network
 		}
 	}
 
-	Buffer& Socket::GetReceiveBuffer() const noexcept
+	Socket::ReceiveBuffer& Socket::GetReceiveBuffer() const noexcept
 	{
-		static thread_local Buffer rcvbuf{ Socket::ReadWriteBufferSize };
+		static thread_local ReceiveBuffer rcvbuf{ ReceiveBuffer::GetMaxSize() };
 		return rcvbuf;
 	}
 
@@ -864,9 +864,6 @@ namespace QuantumGate::Implementation::Network
 
 	Result<Size> Socket::Receive(Buffer& buffer, const Size max_rcv_size) noexcept
 	{
-		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == IP::Protocol::TCP);
-
 		auto& rcvbuf = GetReceiveBuffer();
 
 		const auto read_size = std::invoke([&]()
@@ -875,7 +872,32 @@ namespace QuantumGate::Implementation::Network
 			else return rcvbuf.GetSize();
 		});
 
-		const auto bytesrcv = recv(m_Socket, reinterpret_cast<char*>(rcvbuf.GetBytes()), static_cast<int>(read_size), 0);
+		auto rcvbuf_span = BufferSpan(rcvbuf.GetBytes(), read_size);
+
+		auto result = Receive(rcvbuf_span);
+		if (result.Succeeded() && *result > 0)
+		{
+			try
+			{
+				buffer += rcvbuf_span.GetFirst(*result);
+			}
+			catch (const std::exception& e)
+			{
+				LogErr(L"Receive exception for endpoint %s: %s", GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
+
+				return ResultCode::Failed;
+			}
+		}
+
+		return result;
+	}
+
+	Result<Size> Socket::Receive(BufferSpan& buffer) noexcept
+	{
+		assert(m_Socket != INVALID_SOCKET);
+		assert(GetProtocol() == IP::Protocol::TCP);
+
+		const auto bytesrcv = recv(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()), static_cast<int>(buffer.GetSize()), 0);
 
 		Dbg(L"%d bytes received", bytesrcv);
 
@@ -883,19 +905,10 @@ namespace QuantumGate::Implementation::Network
 
 		if (bytesrcv > 0)
 		{
-			try
-			{
-				buffer += BufferView(rcvbuf.GetBytes(), bytesrcv);
+			// Update the total amount of bytes received
+			m_BytesReceived += bytesrcv;
 
-				// Update the total amount of bytes received
-				m_BytesReceived += bytesrcv;
-
-				return bytesrcv;
-			}
-			catch (const std::exception& e)
-			{
-				LogErr(L"Receive exception for endpoint %s: %s", GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
-			}
+			return bytesrcv;
 		}
 		else if (bytesrcv == 0)
 		{
@@ -926,9 +939,6 @@ namespace QuantumGate::Implementation::Network
 
 	Result<Size> Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size) noexcept
 	{
-		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == IP::Protocol::ICMP || GetProtocol() == IP::Protocol::UDP);
-
 		auto& rcvbuf = GetReceiveBuffer();
 
 		const auto read_size = std::invoke([&]()
@@ -937,10 +947,35 @@ namespace QuantumGate::Implementation::Network
 			else return rcvbuf.GetSize();
 		});
 
+		auto rcvbuf_span = BufferSpan(rcvbuf.GetBytes(), read_size);
+
+		auto result = ReceiveFrom(endpoint, rcvbuf_span);
+		if (result.Succeeded() && *result > 0)
+		{
+			try
+			{
+				buffer += rcvbuf_span.GetFirst(*result);
+			}
+			catch (const std::exception& e)
+			{
+				LogErr(L"Receive exception on endpoint %s: %s", GetLocalName().c_str(), Util::ToStringW(e.what()).c_str());
+				
+				return ResultCode::Failed;
+			}
+		}
+
+		return result;
+	}
+
+	Result<Size> Socket::ReceiveFrom(IPEndpoint& endpoint, BufferSpan& buffer) noexcept
+	{
+		assert(m_Socket != INVALID_SOCKET);
+		assert(GetProtocol() == IP::Protocol::ICMP || GetProtocol() == IP::Protocol::UDP);
+
 		sockaddr_storage sock_addr{ 0 };
 		int sock_addr_len{ sizeof(sock_addr) };
 
-		const auto bytesrcv = recvfrom(m_Socket, reinterpret_cast<char*>(rcvbuf.GetBytes()), static_cast<int>(read_size),
+		const auto bytesrcv = recvfrom(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()), static_cast<int>(buffer.GetSize()),
 									   0, reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len);
 
 		Dbg(L"%d bytes received", bytesrcv);
@@ -960,19 +995,10 @@ namespace QuantumGate::Implementation::Network
 
 		if (bytesrcv > 0)
 		{
-			try
-			{
-				buffer += BufferView(rcvbuf.GetBytes(), bytesrcv);
+			// Update the total amount of bytes received
+			m_BytesReceived += bytesrcv;
 
-				// Update the total amount of bytes received
-				m_BytesReceived += bytesrcv;
-
-				return bytesrcv;
-			}
-			catch (const std::exception& e)
-			{
-				LogErr(L"Receive exception on endpoint %s: %s", GetLocalName().c_str(), Util::ToStringW(e.what()).c_str());
-			}
+			return bytesrcv;
 		}
 		else if (bytesrcv == 0)
 		{

@@ -289,12 +289,18 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		m_ThreadPool.Clear();
 	}
 
+	Manager::ReceiveBuffer& Manager::GetReceiveBuffer() const noexcept
+	{
+		static thread_local ReceiveBuffer rcvbuf{ ReceiveBuffer::GetMaxSize() };
+		return rcvbuf;
+	}
+
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
 		auto& socket = thdata.Socket;
 		IPEndpoint lendpoint = socket.GetLocalEndpoint();
 		IPEndpoint pendpoint;
-		Buffer buffer;
+		auto& buffer = GetReceiveBuffer();
 
 		while (!shutdown_event.IsSet())
 		{
@@ -312,12 +318,14 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 					if (socket.GetIOStatus().CanRead())
 					{
 						pendpoint = IPEndpoint();
-						buffer.Clear();
+						auto bufspan = BufferSpan(buffer);
 
-						const auto result = socket.ReceiveFrom(pendpoint, buffer);
+						const auto result = socket.ReceiveFrom(pendpoint, bufspan);
 						if (result.Succeeded() && *result > 0)
 						{
-							AcceptConnection(thdata.SendQueue, lendpoint, pendpoint, buffer);
+							bufspan = bufspan.GetFirst(*result);
+
+							AcceptConnection(thdata.SendQueue, lendpoint, pendpoint, bufspan);
 						}
 					}
 
@@ -368,7 +376,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 	}
 
 	void Manager::AcceptConnection(const std::shared_ptr<SendQueue_ThS>& send_queue, const IPEndpoint& lendpoint,
-								   const IPEndpoint& pendpoint, const Buffer& buffer) noexcept
+								   const IPEndpoint& pendpoint, const BufferView& buffer) noexcept
 	{
 		if (CanAcceptConnection(pendpoint.GetIPAddress()))
 		{

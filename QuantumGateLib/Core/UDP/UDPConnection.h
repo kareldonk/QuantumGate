@@ -5,6 +5,7 @@
 
 #include "UDPSocket.h"
 #include "UDPConnectionSendQueue.h"
+#include "..\..\Memory\StackBuffer.h"
 #include "..\..\Common\Containers.h"
 #include "..\Access\AccessManager.h"
 
@@ -17,6 +18,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		friend class SendQueue;
 		friend class MTUDiscovery;
+
+		using ReceiveBuffer = Memory::StackBuffer<MTUDiscovery::MaxMessageSize>;
 
 		using ReceiveQueue = Containers::Map<Message::SequenceNumber, Message>;
 
@@ -75,8 +78,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool Send(Message&& msg) noexcept;
 		[[nodiscard]] Result<Size> Send(const SteadyTime& now, const Buffer& data, const bool use_listener_socket) noexcept;
 
+		[[nodiscard]] ReceiveBuffer& GetReceiveBuffer() const noexcept;
 		[[nodiscard]] bool ReceiveToQueue() noexcept;
-		[[nodiscard]] bool ProcessReceivedData(const IPEndpoint& endpoint, const Buffer& buffer) noexcept;
+		[[nodiscard]] bool ProcessReceivedData(const IPEndpoint& endpoint, const BufferView& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageHandshake(const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept;
