@@ -694,10 +694,16 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
+	Connection::ReceiveBuffer& Connection::GetReceiveBuffer() const noexcept
+	{
+		static thread_local ReceiveBuffer rcvbuf{ ReceiveBuffer::GetMaxSize() };
+		return rcvbuf;
+	}
+
 	bool Connection::ReceiveToQueue() noexcept
 	{
 		IPEndpoint endpoint;
-		Buffer buffer;
+		auto& buffer = GetReceiveBuffer();
 
 		while (true)
 		{
@@ -705,12 +711,16 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				if (m_Socket.GetIOStatus().CanRead())
 				{
-					const auto result = m_Socket.ReceiveFrom(endpoint, buffer);
+					auto bufspan = BufferSpan(buffer);
+
+					const auto result = m_Socket.ReceiveFrom(endpoint, bufspan);
 					if (result.Succeeded())
 					{
 						if (*result > 0)
 						{
-							if (!ProcessReceivedData(endpoint, buffer))
+							bufspan = bufspan.GetFirst(*result);
+
+							if (!ProcessReceivedData(endpoint, bufspan))
 							{
 								return false;
 							}
@@ -729,8 +739,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 						return false;
 					}
-
-					buffer.Clear();
 				}
 				else if (m_Socket.GetIOStatus().HasException())
 				{
@@ -754,7 +762,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return true;
 	}
 
-	bool Connection::ProcessReceivedData(const IPEndpoint& endpoint, const Buffer& buffer) noexcept
+	bool Connection::ProcessReceivedData(const IPEndpoint& endpoint, const BufferView& buffer) noexcept
 	{
 		m_LastReceiveSteadyTime = Util::GetCurrentSteadyTime();
 

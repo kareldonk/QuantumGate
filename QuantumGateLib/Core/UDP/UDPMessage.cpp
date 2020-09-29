@@ -7,7 +7,6 @@
 #include "..\..\Memory\BufferWriter.h"
 #include "..\..\Common\Random.h"
 #include "..\..\..\QuantumGateCryptoLib\QuantumGateCryptoLib.h"
-#include <span>
 
 using namespace QuantumGate::Implementation::Memory;
 

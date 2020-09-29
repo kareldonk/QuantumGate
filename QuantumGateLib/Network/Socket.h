@@ -4,6 +4,7 @@
 #pragma once
 
 #include "SocketBase.h"
+#include "..\Memory\StackBuffer.h"
 
 #define USE_SOCKET_EVENT
 
@@ -15,6 +16,8 @@ namespace QuantumGate::Implementation::Network
 {
 	class Export Socket : public SocketBase
 	{
+		using ReceiveBuffer = Memory::StackBuffer<65'535>;
+
 	public:
 		enum class Type
 		{
@@ -58,7 +61,9 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] Result<Size> Send(const BufferView& buffer, const Size max_snd_size = 0) noexcept override;
 		[[nodiscard]] Result<Size> SendTo(const IPEndpoint& endpoint, const BufferView& buffer, const Size max_snd_size = 0) noexcept override;
 		[[nodiscard]] Result<Size> Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> Receive(BufferSpan& buffer) noexcept;
 		[[nodiscard]] Result<Size> ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> ReceiveFrom(IPEndpoint& endpoint, BufferSpan& buffer) noexcept;
 
 		void Close(const bool linger = false) noexcept override;
 
@@ -134,7 +139,6 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] static bool SockAddrGetIPEndpoint(const IP::Protocol protocol, const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept;
 
 		static constexpr std::chrono::seconds DefaultLingerTime{ 10 };
-		static constexpr Size ReadWriteBufferSize{ 65'535 }; //64KB
 
 	private:
 		[[nodiscard]] bool SetSocket(const SOCKET s, const bool excl_addr_use = true,
@@ -148,7 +152,7 @@ namespace QuantumGate::Implementation::Network
 		void DetachEvent() noexcept;
 #endif
 
-		[[nodiscard]] Buffer& GetReceiveBuffer() const noexcept;
+		[[nodiscard]] ReceiveBuffer& GetReceiveBuffer() const noexcept;
 
 		[[nodiscard]] int GetError() const noexcept;
 		[[nodiscard]] int GetSockOptInt(const int optname) const noexcept;

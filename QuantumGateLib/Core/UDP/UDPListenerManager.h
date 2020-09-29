@@ -13,6 +13,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 {
 	class Manager final
 	{
+		using ReceiveBuffer = Memory::StackBuffer<Connection::MTUDiscovery::MaxMessageSize>;
+
 		struct ThreadData final
 		{
 			ThreadData() noexcept = default;
@@ -60,11 +62,13 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		void PreStartup() noexcept;
 		void ResetState() noexcept;
 
+		[[nodiscard]] ReceiveBuffer& GetReceiveBuffer() const noexcept;
+
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
 		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
 		void AcceptConnection(const std::shared_ptr<SendQueue_ThS>& send_queue, const IPEndpoint& lendpoint,
-							  const IPEndpoint& pendpoint, const Buffer& buffer) noexcept;
+							  const IPEndpoint& pendpoint, const BufferView& buffer) noexcept;
 
 	private:
 		std::atomic_bool m_Running{ false };
