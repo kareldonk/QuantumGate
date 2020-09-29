@@ -10,6 +10,12 @@
 
 namespace QuantumGate::Implementation::Memory
 {
+	class StackBufferOverflowException final : public std::exception
+	{
+	public:
+		StackBufferOverflowException(const char* message) noexcept : std::exception(message) {}
+	};
+
 	template<Size MaxSize>
 	class StackBufferImpl
 	{
@@ -33,12 +39,23 @@ namespace QuantumGate::Implementation::Memory
 
 		constexpr StackBufferImpl(const Byte* data, const Size data_size) { Add(data, data_size); }
 
-		~StackBufferImpl() { Clear(); }
+		~StackBufferImpl() = default;
 
 		constexpr explicit operator bool() const noexcept { return !IsEmpty(); }
 
-		constexpr Byte& operator[](const Size index) { return m_Buffer[index]; }
-		constexpr const Byte& operator[](const Size index) const { return m_Buffer[index]; }
+		constexpr Byte& operator[](const Size index)
+		{
+			assert(index < m_Size);
+
+			return m_Buffer[index];
+		}
+		
+		constexpr const Byte& operator[](const Size index) const
+		{
+			assert(index < m_Size);
+
+			return m_Buffer[index];
+		}
 
 		constexpr StackBufferImpl& operator=(const StackBufferImpl& other)
 		{
@@ -65,7 +82,7 @@ namespace QuantumGate::Implementation::Memory
 		constexpr StackBufferImpl& operator=(const BufferView& buffer)
 		{
 			Allocate(buffer.GetSize());
-			std::memcpy(GetBytes(), buffer.GetBytes(), buffer.GetSize());
+			std::copy(buffer.GetBytes(), buffer.GetBytes() + buffer.GetSize(), m_Buffer.data());
 
 			return *this;
 		}
@@ -74,7 +91,19 @@ namespace QuantumGate::Implementation::Memory
 		{
 			if (GetSize() != other.GetSize()) return false;
 
-			return (std::memcmp(GetBytes(), other.GetBytes(), GetSize()) == 0);
+			if (!std::is_constant_evaluated())
+			{
+				return (std::memcmp(GetBytes(), other.GetBytes(), GetSize()) == 0);
+			}
+			else
+			{
+				for (SizeType x = 0; x < m_Size; ++x)
+				{
+					if (m_Buffer[x] != other.m_Buffer[x]) return false;
+				}
+
+				return true;
+			}
 		}
 
 		constexpr bool operator!=(const StackBufferImpl& other) const noexcept
@@ -88,10 +117,19 @@ namespace QuantumGate::Implementation::Memory
 		constexpr StackBufferImpl& operator+=(const StackBufferImpl& other) { Add(other.GetBytes(), other.GetSize()); return *this; }
 		constexpr StackBufferImpl& operator+=(const BufferView& buffer) { Add(buffer.GetBytes(), buffer.GetSize()); return *this; }
 
+		friend constexpr StackBufferImpl operator+(const StackBufferImpl& lhs, const StackBufferImpl& rhs)
+		{
+			StackBufferImpl val;
+			val += lhs;
+			val += rhs;
+			return val;
+		}
+
 		[[nodiscard]] constexpr Byte* GetBytes() noexcept { return m_Buffer.data(); }
 		[[nodiscard]] constexpr const Byte* GetBytes() const noexcept { return m_Buffer.data(); }
 
 		[[nodiscard]] constexpr Size GetSize() const noexcept { return m_Size; }
+		[[nodiscard]] static constexpr Size GetMaxSize() noexcept { return MaxSize; }
 
 		[[nodiscard]] constexpr bool IsEmpty() const noexcept { return (m_Size == 0); }
 
@@ -109,7 +147,7 @@ namespace QuantumGate::Implementation::Memory
 			{
 				m_Size = size;
 			}
-			else throw BadAllocException("Buffer size is larger than maximum.");
+			else throw StackBufferOverflowException("Buffer size is larger than maximum.");
 		}
 
 		constexpr void Clear() noexcept
@@ -122,7 +160,7 @@ namespace QuantumGate::Implementation::Memory
 		{
 			assert(GetSize() >= num);
 			
-			std::memcpy(m_Buffer.data(), m_Buffer.data() + num, m_Size);
+			std::copy(m_Buffer.data() + num, m_Buffer.data() + m_Size, m_Buffer.data());
 			m_Size -= num;
 		}
 
@@ -141,7 +179,7 @@ namespace QuantumGate::Implementation::Memory
 			{
 				m_Size = new_size;
 			}
-			else throw BadAllocException("New buffer size is larger than maximum.");
+			else throw StackBufferOverflowException("New buffer size is larger than maximum.");
 		}
 
 	private:
@@ -153,15 +191,15 @@ namespace QuantumGate::Implementation::Memory
 
 				if (m_Size + size <= MaxSize)
 				{
-					std::memcpy(m_Buffer.data() + m_Size, data, size);
+					std::copy(data, data + size, m_Buffer.data() + m_Size);
 					m_Size += size;
 				}
-				else throw BadAllocException("Buffer overflow.");
+				else throw StackBufferOverflowException("Buffer overflow while trying to add data.");
 			}
 		}
 
 	private:
-		StorageType m_Buffer;
+		StorageType m_Buffer{ Byte{ 0 } };
 		SizeType m_Size{ 0 };
 	};
 
