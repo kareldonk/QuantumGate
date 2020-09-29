@@ -226,6 +226,6 @@ namespace QuantumGate::Implementation::Crypto
 		}
 
 	private:
-		EVP_CIPHER_CTX * m_Context{ nullptr };
+		EVP_CIPHER_CTX* m_Context{ nullptr };
 	};
 }
