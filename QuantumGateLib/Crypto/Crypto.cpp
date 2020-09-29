@@ -11,6 +11,7 @@
 #include "NewHope.h"
 #include "..\Common\Random.h"
 #include "..\Common\ScopeGuard.h"
+#include "..\Memory\StackBuffer.h"
 #include "..\..\QuantumGateCryptoLib\QuantumGateCryptoLib.h"
 
 namespace QuantumGate::Implementation::Crypto
