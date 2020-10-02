@@ -59,6 +59,7 @@ void Benchmarks::BenchmarkThreadLocalCache()
 	LogSys(L"Starting ThreadLocalCache benchmark for %u iterations", maxtr);
 
 	Settings settings;
+	Size val3{ 0 };
 
 	DoBenchmark(std::wstring(L"Settings as normal variable"), maxtr, [&]()
 	{
@@ -66,7 +67,7 @@ void Benchmarks::BenchmarkThreadLocalCache()
 
 		volatile const auto val = settings.Local.Concurrency.PeerManager.MinThreadPools;
 		volatile const auto val2 = settings.Local.Concurrency.WorkerThreadsMaxBurst;
-		volatile auto val3 = val * val2;
+		val3 = val * val2;
 	});
 
 	ThreadLocalSettings<1> settingstl;
@@ -77,7 +78,7 @@ void Benchmarks::BenchmarkThreadLocalCache()
 
 		volatile const auto val = settingstlv.Local.Concurrency.PeerManager.MinThreadPools;
 		volatile const auto val2 = settingstlv.Local.Concurrency.WorkerThreadsMaxBurst;
-		volatile auto val3 = val * val2;
+		val3 = val * val2;
 	});
 }
 
