@@ -274,7 +274,7 @@ namespace QuantumGate::Implementation::Core
 				// Calculate message HMAC
 				if (Crypto::HMAC(buffer, hmac, symkey.AuthKey, Algorithm::Hash::BLAKE2S256))
 				{
-					assert(hmac.GetSize() == OHeader::MessageHMACSize);
+					assert(hmac.GetSize() == OHeader::HMACBuffer::GetMaxSize());
 
 					// Check if message data corresponds to HMAC
 					if (Crypto::CompareBuffers(m_OHeader.GetHMACBuffer(), hmac))
@@ -355,7 +355,7 @@ namespace QuantumGate::Implementation::Core
 			// Calculate HMAC for the encrypted message
 			if (Crypto::HMAC(encrdata, msgohdr.GetHMACBuffer(), symkey.AuthKey, Algorithm::Hash::BLAKE2S256))
 			{
-				assert(msgohdr.GetHMACBuffer().GetSize() == OHeader::MessageHMACSize);
+				assert(msgohdr.GetHMACBuffer().GetSize() == OHeader::HMACBuffer::GetMaxSize());
 
 				Dbg(L"MessageTransport hash: %s", Util::ToBase64(msgohdr.GetHMACBuffer())->c_str());
 
