@@ -26,7 +26,12 @@ namespace QuantumGate::Implementation::Concurrency
 		{
 			std::random_device rnd_dev;
 			std::mt19937 rnd_alg(rnd_dev());
-			m_ValueUpdateFlag = rnd_alg(); 
+
+			do
+			{
+				m_ValueUpdateFlag = rnd_alg();
+			}
+			while (m_ValueUpdateFlag == 0);
 		};
 		
 		ThreadLocalCache(const ThreadLocalCache&) = delete;
