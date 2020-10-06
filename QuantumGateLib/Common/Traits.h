@@ -31,6 +31,13 @@ namespace QuantumGate::Implementation
 		static constexpr bool IsDetectedV = IsDetected<void, D, T...>::value;
 	}
 
+	// AlwaysFalse
+	namespace
+	{
+		template <class... T>
+		constexpr bool AlwaysFalse = false;
+	}
+
 	// FunctionSignatureRemoveConstNoexcept
 	namespace
 	{

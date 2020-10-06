@@ -61,7 +61,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] Size GetAvailableNoiseBufferSize() const noexcept;
 
 	private:
-		template<MessageRateLimits::Type type>
+		template<typename T>
 		Result<> AddMessageImpl(Message&& msg, const SendParameters::PriorityOption priority,
 								const std::chrono::milliseconds delay, SendCallback&& callback) noexcept;
 
