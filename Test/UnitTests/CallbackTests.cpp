@@ -73,6 +73,16 @@ public:
 		return;
 	}
 
+	int MemberTestFunctionRef(int& n)
+	{
+		return FreeTestFunctionNoexcept(n);
+	}
+
+	int MemberTestFunctionRef(int&& n)
+	{
+		return FreeTestFunctionNoexcept(n) + 1;
+	}
+
 	int operator()()
 	{
 		return 11;
@@ -391,6 +401,20 @@ namespace UnitTests
 			cb2(std::move(t));
 
 			Assert::AreEqual(0, t.m_TestVar);
+
+			// Test callback which takes lvalue reference
+			auto cb3 = MakeCallback(&t, static_cast<int(CbTestClass::*)(int&)>(&CbTestClass::MemberTestFunctionRef));
+			int a(10);
+			auto resulta = cb3(a);
+
+			Assert::AreEqual(resulta, 3628800);
+
+			// Test callback which takes rvalue reference
+			auto cb4 = MakeCallback(&t, static_cast<int(CbTestClass::*)(int&&)>(&CbTestClass::MemberTestFunctionRef));
+			int b(10);
+			auto resultb = cb4(std::move(b));
+
+			Assert::AreEqual(resultb, 3628801);
 		}
 
 		TEST_METHOD(MakeCallbackFunctions)
