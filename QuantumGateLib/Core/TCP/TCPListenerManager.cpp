@@ -144,7 +144,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 				if (ltd.Socket.Listen(endpoint, true, nat_traversal))
 				{
 					if (m_ThreadPool.AddThread(L"QuantumGate Listener Thread " + endpoint.GetString(),
-													   std::move(ltd), MakeCallback(this, &Manager::WorkerThreadProcessor)))
+											   std::move(ltd), MakeCallback(this, &Manager::WorkerThreadProcessor)))
 					{
 						LogSys(L"Listening on endpoint %s", endpoint.GetString().c_str());
 					}
