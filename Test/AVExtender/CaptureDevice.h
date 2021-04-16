@@ -423,7 +423,7 @@ namespace QuantumGate::AVExtender
 			return VideoFormat::PixelFormat::Unknown;
 		}
 
-		[[nodiscard]] static Size GetImageSize(const VideoFormat fmt) noexcept
+		[[nodiscard]] static Size GetImageSize(const VideoFormat& fmt) noexcept
 		{
 			UINT32 size{ 0 };
 

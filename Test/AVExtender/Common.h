@@ -26,6 +26,7 @@ namespace QuantumGate::AVExtender
 		QuantumGate::Byte R{ 0 };
 	};
 
+	template<bool flip>
 	inline void RGB24ToBGRA32(BGRAPixel* dest_buffer, const BGRPixel* source_buffer, UInt width, UInt height) noexcept
 	{
 		if (dest_buffer == nullptr || source_buffer == nullptr)
@@ -35,17 +36,31 @@ namespace QuantumGate::AVExtender
 
 		const UInt num_pixels{ width * height };
 
-		UInt c2 = num_pixels - 1;
-		for (UInt c = 0; c < num_pixels; ++c)
+		if constexpr (flip)
 		{
-			dest_buffer[c].B = source_buffer[c2].B;
-			dest_buffer[c].G = source_buffer[c2].G;
-			dest_buffer[c].R = source_buffer[c2].R;
-			dest_buffer[c].A = Byte{ 255 };
-			c2--;
+			UInt c2 = num_pixels - 1;
+			for (UInt c = 0; c < num_pixels; ++c)
+			{
+				dest_buffer[c].B = source_buffer[c2].B;
+				dest_buffer[c].G = source_buffer[c2].G;
+				dest_buffer[c].R = source_buffer[c2].R;
+				dest_buffer[c].A = Byte{ 255 };
+				--c2;
+			}
+		}
+		else
+		{
+			for (UInt c = 0; c < num_pixels; ++c)
+			{
+				dest_buffer[c].B = source_buffer[c].B;
+				dest_buffer[c].G = source_buffer[c].G;
+				dest_buffer[c].R = source_buffer[c].R;
+				dest_buffer[c].A = Byte{ 255 };
+			}
 		}
 	}
 
+	template<bool flip>
 	inline void ARGB32ToBGRA32(BGRAPixel* dest_buffer, const BGRAPixel* source_buffer, UInt width, UInt height) noexcept
 	{
 		if (dest_buffer == nullptr || source_buffer == nullptr)
@@ -54,15 +69,21 @@ namespace QuantumGate::AVExtender
 		}
 
 		const UInt num_pixels{ width * height };
-
-		UInt c2 = num_pixels - 1;
-		for (UInt c = 0; c < num_pixels; ++c)
+		if constexpr (flip)
 		{
-			dest_buffer[c].B = source_buffer[c2].B;
-			dest_buffer[c].G = source_buffer[c2].G;
-			dest_buffer[c].R = source_buffer[c2].R;
-			dest_buffer[c].A = source_buffer[c2].A;
-			c2--;
+			UInt c2 = num_pixels - 1;
+			for (UInt c = 0; c < num_pixels; ++c)
+			{
+				dest_buffer[c].B = source_buffer[c2].B;
+				dest_buffer[c].G = source_buffer[c2].G;
+				dest_buffer[c].R = source_buffer[c2].R;
+				dest_buffer[c].A = source_buffer[c2].A;
+				--c2;
+			}
+		}
+		else
+		{
+			std::memcpy(dest_buffer, source_buffer, num_pixels * sizeof(BGRAPixel));
 		}
 	}
 
