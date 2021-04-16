@@ -268,3 +268,4 @@ paket-files/
 __pycache__/
 *.pyc
 /QuantumGateLib/pch.h.hpp
+*.clang-tidy
