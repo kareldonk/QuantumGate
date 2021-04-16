@@ -105,6 +105,11 @@ namespace QuantumGate::Implementation::Memory
 			return (this->operator BufferView() == other);
 		}
 
+		inline bool operator==(const BufferSpan& other) const noexcept
+		{
+			return (this->operator BufferSpan() == other);
+		}
+
 		inline bool operator!=(const BufferImpl& other) const noexcept
 		{
 			return !(*this == other);
@@ -113,6 +118,11 @@ namespace QuantumGate::Implementation::Memory
 		inline bool operator!=(const BufferView& other) const noexcept
 		{
 			return (this->operator BufferView() != other);
+		}
+
+		inline bool operator!=(const BufferSpan& other) const noexcept
+		{
+			return (this->operator BufferSpan() != other);
 		}
 
 		inline operator BufferView() const noexcept { return { GetBytes(), GetSize() }; }

@@ -106,9 +106,29 @@ namespace QuantumGate::Implementation::Memory
 			}
 		}
 
+		constexpr bool operator==(const BufferView& other) const noexcept
+		{
+			return (this->operator BufferView() == other);
+		}
+
+		constexpr bool operator==(const BufferSpan& other) const noexcept
+		{
+			return (this->operator BufferSpan() == other);
+		}
+
 		constexpr bool operator!=(const StackBufferImpl& other) const noexcept
 		{
 			return !(*this == other);
+		}
+
+		constexpr bool operator!=(const BufferView& other) const noexcept
+		{
+			return (this->operator BufferView() != other);
+		}
+
+		constexpr bool operator!=(const BufferSpan& other) const noexcept
+		{
+			return (this->operator BufferSpan() != other);
 		}
 
 		constexpr operator BufferView() const noexcept { return { GetBytes(), GetSize() }; }
