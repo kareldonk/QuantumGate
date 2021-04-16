@@ -262,6 +262,18 @@ namespace QuantumGate::AVExtender
 	{
 		if (m_VideoResampler.IsOpen()) m_VideoResampler.Close();
 
+		if (fmt.Format == VideoFormat::PixelFormat::RGB24 ||
+			fmt.Format == VideoFormat::PixelFormat::RGB32)
+		{
+			m_Flip = false;
+		}
+		else
+		{
+			// Other pixel formats require image pixel data to be flipped when rendered to GDI compatible bitmap;
+			// see: https://docs.microsoft.com/en-us/windows/win32/directshow/top-down-vs--bottom-up-dibs
+			m_Flip = true;
+		}
+
 		if (m_VideoResampler.Create(fmt.Width, fmt.Height,
 									CaptureDevices::GetMFVideoFormat(fmt.Format),
 									MFVideoFormat_RGB24))
@@ -300,10 +312,10 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	bool VideoRenderer::Render(IMFSample* in_sample, const VideoFormat& format) noexcept
+	bool VideoRenderer::Render(IMFSample* in_sample, const VideoFormat& output_format) noexcept
 	{
 		assert(in_sample != nullptr);
-		assert(format.Format != VideoFormat::PixelFormat::Unknown);
+		assert(output_format.Format != VideoFormat::PixelFormat::Unknown);
 
 		IMFMediaBuffer* media_buffer{ nullptr };
 
@@ -322,7 +334,7 @@ namespace QuantumGate::AVExtender
 			{
 				auto success{ false };
 
-				success = Render(BufferView(reinterpret_cast<Byte*>(in_data), in_data_len), format);
+				success = Render(BufferView(reinterpret_cast<Byte*>(in_data), in_data_len), output_format);
 
 				media_buffer->Unlock();
 
@@ -333,44 +345,61 @@ namespace QuantumGate::AVExtender
 		return false;
 	}
 
-	bool VideoRenderer::Render(const BufferView pixels, const VideoFormat& format) noexcept
+	bool VideoRenderer::Render(const BufferView pixels, const VideoFormat& output_format) noexcept
 	{
 		assert(pixels.GetBytes() != nullptr && m_D2D1Bitmap != nullptr && m_D2D1RenderTarget != nullptr);
-		assert(format.Format != VideoFormat::PixelFormat::Unknown);
+		assert(output_format.Format != VideoFormat::PixelFormat::Unknown);
 
 		// Number of bytes should match expected frame size
-		if (pixels.GetSize() != CaptureDevices::GetImageSize(format))
+		if (pixels.GetSize() != CaptureDevices::GetImageSize(output_format))
 		{
 			assert(false);
 			return false;
 		}
 
 		const auto bmsize = m_D2D1Bitmap->GetSize();
-		if (bmsize.width != static_cast<float>(format.Width) || bmsize.height != static_cast<float>(format.Height))
+		if (bmsize.width != static_cast<float>(output_format.Width) || bmsize.height != static_cast<float>(output_format.Height))
 		{
-			if (!CreateD2DRenderTargetBitmap(D2D1::SizeU(format.Width, format.Height))) return false;
+			if (!CreateD2DRenderTargetBitmap(D2D1::SizeU(output_format.Width, output_format.Height))) return false;
 
 			ResizeDrawRect();
 		}
 
-		switch (format.Format)
+		switch (output_format.Format)
 		{
 			case VideoFormat::PixelFormat::RGB24:
 			{
-				RGB24ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ConversionBuffer.GetBytes()),
-							  reinterpret_cast<const BGRPixel*>(pixels.GetBytes()),
-							  format.Width, format.Height);
+				if (!m_Flip)
+				{
+					RGB24ToBGRA32<false>(reinterpret_cast<BGRAPixel*>(m_ConversionBuffer.GetBytes()),
+										 reinterpret_cast<const BGRPixel*>(pixels.GetBytes()),
+										 output_format.Width, output_format.Height);
+				}
+				else
+				{
+					RGB24ToBGRA32<true>(reinterpret_cast<BGRAPixel*>(m_ConversionBuffer.GetBytes()),
+										reinterpret_cast<const BGRPixel*>(pixels.GetBytes()),
+										output_format.Width, output_format.Height);
+				}
 
-				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ConversionBuffer.GetBytes(), format.Width * sizeof(BGRAPixel));
+				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ConversionBuffer.GetBytes(), output_format.Width * sizeof(BGRAPixel));
 				break;
 			}
 			case VideoFormat::PixelFormat::RGB32:
 			{
-				ARGB32ToBGRA32(reinterpret_cast<BGRAPixel*>(m_ConversionBuffer.GetBytes()),
-							   reinterpret_cast<const BGRAPixel*>(pixels.GetBytes()),
-							   format.Width, format.Height);
+				if (!m_Flip)
+				{
+					m_D2D1Bitmap->CopyFromMemory(nullptr, reinterpret_cast<const BGRAPixel*>(pixels.GetBytes()),
+												 output_format.Width * sizeof(BGRAPixel));
+				}
+				else
+				{
+					ARGB32ToBGRA32<true>(reinterpret_cast<BGRAPixel*>(m_ConversionBuffer.GetBytes()),
+										 reinterpret_cast<const BGRAPixel*>(pixels.GetBytes()),
+										 output_format.Width, output_format.Height);
 
-				m_D2D1Bitmap->CopyFromMemory(nullptr, m_ConversionBuffer.GetBytes(), format.Width * sizeof(BGRAPixel));
+					m_D2D1Bitmap->CopyFromMemory(nullptr, m_ConversionBuffer.GetBytes(), output_format.Width * sizeof(BGRAPixel));
+				}
 				break;
 			}
 			default:

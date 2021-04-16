@@ -51,8 +51,8 @@ namespace QuantumGate::AVExtender
 	private:
 		static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept;
 
-		[[nodiscard]] bool Render(IMFSample* in_sample, const VideoFormat& format) noexcept;
-		[[nodiscard]] bool Render(const BufferView pixels, const VideoFormat& format) noexcept;
+		[[nodiscard]] bool Render(IMFSample* in_sample, const VideoFormat& output_format) noexcept;
+		[[nodiscard]] bool Render(const BufferView pixels, const VideoFormat& output_format) noexcept;
 
 		[[nodiscard]] bool InitializeD2DRenderTarget(const HWND hwnd, const UInt width, const UInt height) noexcept;
 		void DeinitializeD2DRenderTarget() noexcept;
@@ -72,6 +72,7 @@ namespace QuantumGate::AVExtender
 
 		VideoResampler m_VideoResampler;
 
+		bool m_Flip{ false };
 		IMFSample* m_OutputSample{ nullptr };
 
 		Buffer m_ConversionBuffer;
