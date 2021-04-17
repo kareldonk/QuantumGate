@@ -10,8 +10,10 @@ using namespace std::literals;
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
 	Connection::Connection(const Settings_CThS& settings, Access::Manager& accessmgr, const PeerConnectionType type,
-						   const ConnectionID id, const Message::SequenceNumber seqnum) noexcept :
-		m_Settings(settings), m_AccessManager(accessmgr), m_Type(type), m_ID(id), m_LastInSequenceReceivedSequenceNumber(seqnum)
+						   const ConnectionID id, const Message::SequenceNumber seqnum,
+						   const ProtectedBuffer& shared_secret) noexcept :
+		m_Settings(settings), m_AccessManager(accessmgr), m_Type(type), m_ID(id),
+		m_SymmetricKeys(shared_secret), m_LastInSequenceReceivedSequenceNumber(seqnum)
 	{}
 
 	Connection::~Connection()
@@ -571,6 +573,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	void Connection::SendImmediateReset() noexcept
 	{
 		if (GetStatus() != Status::Handshake && GetStatus() != Status::Connected) return;
+		else if (GetStatus() == Status::Handshake && GetType() == PeerConnectionType::Outbound)
+		{
+			// Endpoint still set to server listener in this state
+			// so shouldn't send reset
+			return;
+		}
 
 		Dbg(L"UDP connection: sending reset on connection %llu", GetID());
 
@@ -587,7 +595,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		try
 		{
 			Buffer data;
-			if (msg.Write(data))
+			if (msg.Write(data, m_SymmetricKeys))
 			{
 				const auto now = Util::GetCurrentSteadyTime();
 
@@ -762,12 +770,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return true;
 	}
 
-	bool Connection::ProcessReceivedData(const IPEndpoint& endpoint, const BufferView& buffer) noexcept
+	bool Connection::ProcessReceivedData(const IPEndpoint& endpoint, BufferSpan& buffer) noexcept
 	{
 		m_LastReceiveSteadyTime = Util::GetCurrentSteadyTime();
 
 		Message msg(Message::Type::Unknown, Message::Direction::Incoming);
-		if (msg.Read(buffer) && msg.IsValid())
+		if (msg.Read(buffer, m_SymmetricKeys) && msg.IsValid())
 		{
 			switch (GetStatus())
 			{

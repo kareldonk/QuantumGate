@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			msg.SetMessageData(Random::GetPseudoRandomBytes(msg.GetMaxMessageDataSize()));
 
 			Buffer data;
-			if (msg.Write(data))
+			if (msg.Write(data, m_Connection.GetSymmetricKeys()))
 			{
 				m_MTUDMessageData.emplace(
 					MTUDMessageData{
@@ -250,7 +250,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			msg.SetMessageAckNumber(seqnum);
 
 			Buffer data;
-			if (msg.Write(data))
+			if (msg.Write(data, connection.GetSymmetricKeys()))
 			{
 #ifdef UDPMTUD_DEBUG
 				SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: sending MTUDAck message on connection " <<

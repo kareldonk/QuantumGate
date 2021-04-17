@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "..\..\Crypto\Crypto.h"
 #include "..\..\Memory\BufferIO.h"
 
 #include <variant>
@@ -16,6 +15,38 @@ namespace QuantumGate::Implementation::Core::UDP
 	{
 		static constexpr const UInt8 Major{ 0 };
 		static constexpr const UInt8 Minor{ 1 };
+	};
+
+	struct SymmetricKeys final
+	{
+		SymmetricKeys() = delete;
+		SymmetricKeys(const ProtectedBuffer& shared_secret);
+
+		inline explicit operator bool() const noexcept { return m_KeyData.GetSize() == KeyDataLength; }
+
+		inline BufferView GetKey() const noexcept
+		{
+			assert(m_KeyData.GetSize() == KeyDataLength);
+			return m_KeyData.operator BufferView().GetFirst(KeyLength);
+		}
+		
+		inline BufferView GetAuthKey() const noexcept
+		{
+			assert(m_KeyData.GetSize() == KeyDataLength);
+			return m_KeyData.operator BufferView().GetLast(KeyLength);
+		}
+
+	private:
+		static constexpr UInt8 KeyLength{ sizeof(UInt64) };
+		static constexpr UInt8 KeyDataLength{ KeyLength * 2 };
+
+		static constexpr UInt8 HashKey[16]{
+			99, 66, 33, 99, 66, 33, 99, 66,
+			33, 99, 66, 33, 99, 66, 33, 99
+		};
+
+	private:
+		ProtectedBuffer m_KeyData;
 	};
 
 	class Message final
@@ -69,6 +100,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			{
 				assert(m_MessageType == Message::Type::Data ||
 					   m_MessageType == Message::Type::State ||
+					   m_MessageType == Message::Type::MTUD ||
 					   m_MessageType == Message::Type::Syn);
 
 				m_MessageSequenceNumber = seqnum;
@@ -79,6 +111,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			{
 				assert(m_MessageType == Message::Type::Data ||
 					   m_MessageType == Message::Type::State ||
+					   m_MessageType == Message::Type::MTUD ||
 					   m_MessageType == Message::Type::Syn);
 				assert(m_SeqNumFlag);
 
@@ -180,8 +213,8 @@ namespace QuantumGate::Implementation::Core::UDP
 		[[nodiscard]] const Buffer& GetMessageData() const noexcept;
 		[[nodiscard]] Buffer&& MoveMessageData() noexcept;
 
-		[[nodiscard]] bool Read(BufferView buffer);
-		[[nodiscard]] bool Write(Buffer& buffer);
+		[[nodiscard]] bool Read(BufferSpan& buffer, const SymmetricKeys& symkey);
+		[[nodiscard]] bool Write(Buffer& buffer, const SymmetricKeys& symkey);
 
 		static SequenceNumber GetNextSequenceNumber(const SequenceNumber current) noexcept
 		{
@@ -229,12 +262,11 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		Size GetHeaderSize() const noexcept;
 
-		HMAC CalcHMAC(const BufferView& data, const BufferView& key) noexcept;
+		void Obfuscate(BufferSpan& data, const SymmetricKeys& symkey) noexcept;
+		void Deobfuscate(BufferSpan& data, const SymmetricKeys& symkey) noexcept;
+		HMAC CalcHMAC(const BufferView& data, const SymmetricKeys& symkey) noexcept;
 
 		void Validate() noexcept;
-
-	private:
-		static constexpr UInt64 DefaultAuthKey{ 3693693693693693693 };
 
 	private:
 		using Data = std::variant<std::monostate, SynData, StateData, Buffer, Vector<AckRange>>;

@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		if (!StartupThreadPool())
 		{
 			ShutdownThreadPool();
-
+			
 			LogErr(L"UDP connectionmanager startup failed");
 
 			return false;
@@ -70,7 +70,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		LogSys(L"Creating UDP connection threadpool with %zu worker %s",
 			   numthreadsperpool, numthreadsperpool > 1 ? L"threads" : L"thread");
 		
-		//auto error = !m_ThreadPool.GetData().WorkEvents.Initialize();
 		auto error = false;
 
 		// Create the worker threads
@@ -227,7 +226,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	}
 
 	bool Manager::AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
-								const ConnectionID id, const Message::SequenceNumber seqnum, Socket& socket) noexcept
+								const ConnectionID id, const Message::SequenceNumber seqnum, Socket& socket,
+								std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		assert(m_Running);
 
@@ -242,10 +242,16 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				ConnectionMap::iterator cit;
 
 				{
+					const ProtectedBuffer& sbuf = std::invoke([&]() -> const ProtectedBuffer&
+					{
+						if (shared_secret.has_value()) return shared_secret.value();
+						else return settings.Local.GlobalSharedSecret;
+					});
+
 					auto connections = thread->GetData().Connections->WithUniqueLock();
 					
 					[[maybe_unused]] const auto [it, inserted] = connections->try_emplace(id, m_Settings, m_AccessManager,
-																						  type, id, seqnum);
+																						  type, id, seqnum, sbuf);
 
 					assert(inserted);
 					if (!inserted)

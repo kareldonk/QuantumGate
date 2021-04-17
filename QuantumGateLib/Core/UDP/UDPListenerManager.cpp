@@ -58,7 +58,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 			if (address.has_value())
 			{
-				DiscardReturnValue(AddListenerThreads(*address, listener_ports, nat_traversal));
+				DiscardReturnValue(AddListenerThreads(*address, listener_ports, nat_traversal, settings.Local.GlobalSharedSecret));
 			}
 		}
 
@@ -105,7 +105,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 					if (address.GetFamily() == IPAddress::Family::IPv4 ||
 						address.GetFamily() == IPAddress::Family::IPv6)
 					{
-						DiscardReturnValue(AddListenerThreads(address, listener_ports, nat_traversal));
+						DiscardReturnValue(AddListenerThreads(address, listener_ports, nat_traversal,
+															  settings.Local.GlobalSharedSecret));
 					}
 					else assert(false);
 				}
@@ -124,7 +125,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		return m_Running;
 	}
 
-	bool Manager::AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports, const bool nat_traversal) noexcept
+	bool Manager::AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports, const bool nat_traversal,
+									 const ProtectedBuffer& shared_secret) noexcept
 	{
 		// Separate listener for every port
 		for (const auto port : ports)
@@ -134,7 +136,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 				const auto endpoint = IPEndpoint(IPEndpoint::Protocol::UDP, address, port);
 
 				// Create and start the listenersocket
-				ThreadData ltd;
+				ThreadData ltd(shared_secret);
 				ltd.Socket = Socket(endpoint.GetIPAddress().GetFamily(),
 									Network::Socket::Type::Datagram, Network::IP::Protocol::UDP);
 				ltd.SendQueue = std::make_shared<SendQueue_ThS>();
@@ -221,7 +223,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 						if (!found)
 						{
-							DiscardReturnValue(AddListenerThreads(address, listener_ports, nat_traversal));
+							DiscardReturnValue(AddListenerThreads(address, listener_ports, nat_traversal,
+																  settings.Local.GlobalSharedSecret));
 						}
 					}
 				}
@@ -325,7 +328,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 						{
 							bufspan = bufspan.GetFirst(*result);
 
-							AcceptConnection(thdata.SendQueue, lendpoint, pendpoint, bufspan);
+							AcceptConnection(thdata.SendQueue, lendpoint, pendpoint, bufspan, thdata.SymmetricKeys);
 						}
 					}
 
@@ -376,14 +379,14 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 	}
 
 	void Manager::AcceptConnection(const std::shared_ptr<SendQueue_ThS>& send_queue, const IPEndpoint& lendpoint,
-								   const IPEndpoint& pendpoint, const BufferView& buffer) noexcept
+								   const IPEndpoint& pendpoint, BufferSpan& buffer, const SymmetricKeys& symkeys) noexcept
 	{
 		if (CanAcceptConnection(pendpoint.GetIPAddress()))
 		{
 			auto reputation_update = false;
 
 			Message msg(Message::Type::Unknown, Message::Direction::Incoming);
-			if (msg.Read(buffer) && msg.IsValid() && msg.GetType() == Message::Type::Syn)
+			if (msg.Read(buffer, symkeys) && msg.IsValid() && msg.GetType() == Message::Type::Syn)
 			{
 				const auto& syn_data = msg.GetSynData();
 
