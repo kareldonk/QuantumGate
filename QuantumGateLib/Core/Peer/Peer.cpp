@@ -26,6 +26,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			peer_data.Type = pctype;
 			peer_data.IsRelayed = (GetGateType() == GateType::RelaySocket);
 			peer_data.IsUsingGlobalSharedSecret = !GetGlobalSharedSecret().IsEmpty();
+			peer_data.Algorithms = DefaultAlgorithms;
 		});
 	}
 
@@ -39,6 +40,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			peer_data.Type = pctype;
 			peer_data.IsUsingGlobalSharedSecret = !GetGlobalSharedSecret().IsEmpty();
+			peer_data.Algorithms = DefaultAlgorithms;
 		});
 	}
 

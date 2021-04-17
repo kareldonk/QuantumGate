@@ -7,6 +7,15 @@ namespace QuantumGate::Implementation::Core::Peer
 {
 	using Algorithms = PeerConnectionAlgorithms;
 
+	// All peers should *at least* support these
+	constexpr const Algorithms DefaultAlgorithms{
+		.Hash = Algorithm::Hash::BLAKE2B512,
+		.PrimaryAsymmetric = Algorithm::Asymmetric::ECDH_X25519,
+		.SecondaryAsymmetric = Algorithm::Asymmetric::ECDH_X448,
+		.Symmetric = Algorithm::Symmetric::CHACHA20_POLY1305,
+		.Compression = Algorithm::Compression::ZSTANDARD
+	};
+
 	struct SymmetricKeyPair final
 	{
 		[[nodiscard]] bool IsExpired() const noexcept
@@ -245,14 +254,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			try
 			{
-				Algorithms alg{
-					// All peers should *at least* support these
-					.Hash = Algorithm::Hash::BLAKE2B512,
-					.PrimaryAsymmetric = Algorithm::Asymmetric::ECDH_X25519,
-					.SecondaryAsymmetric = Algorithm::Asymmetric::ECDH_X448,
-					.Symmetric = Algorithm::Symmetric::CHACHA20_POLY1305,
-					.Compression = Algorithm::Compression::ZSTANDARD
-				};
+				const auto alg{ DefaultAlgorithms };
 
 				auto tempkey1 = std::make_shared<Crypto::SymmetricKeyData>(Crypto::SymmetricKeyType::AutoGen,
 																		   alg.Hash, alg.Symmetric,
