@@ -35,7 +35,7 @@ namespace QuantumGate::Implementation::Memory
 			m_Buffer(std::move(other.m_Buffer)), m_Size(std::exchange(other.m_Size, 0))
 		{}
 
-		constexpr StackBufferImpl(const Size size) { Allocate(size); }
+		explicit constexpr StackBufferImpl(const Size size) { Allocate(size); }
 
 		constexpr StackBufferImpl(const Byte* data, const Size data_size) { Add(data, data_size); }
 
