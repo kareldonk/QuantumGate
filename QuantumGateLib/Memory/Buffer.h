@@ -34,7 +34,7 @@ namespace QuantumGate::Implementation::Memory
 			m_Buffer(std::move(buffer))
 		{}
 
-		BufferImpl(const Size size) { Allocate(size); }
+		explicit BufferImpl(const Size size) { Allocate(size); }
 
 		BufferImpl(const Byte* data, const Size data_size) { Add(data, data_size); }
 		
@@ -100,9 +100,19 @@ namespace QuantumGate::Implementation::Memory
 			return (std::memcmp(GetBytes(), other.GetBytes(), GetSize()) == 0);
 		}
 
+		inline bool operator==(const BufferView& other) const noexcept
+		{
+			return (this->operator BufferView() == other);
+		}
+
 		inline bool operator!=(const BufferImpl& other) const noexcept
 		{
 			return !(*this == other);
+		}
+
+		inline bool operator!=(const BufferView& other) const noexcept
+		{
+			return (this->operator BufferView() != other);
 		}
 
 		inline operator BufferView() const noexcept { return { GetBytes(), GetSize() }; }
