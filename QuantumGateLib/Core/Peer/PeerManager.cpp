@@ -444,12 +444,15 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		try
 		{
+			auto shared_secret_copy = shared_secret;
+
 			auto peer_ths = std::make_shared<Peer_ThS>(*this, af, IP::Protocol::UDP, pctype, std::move(shared_secret));
 			auto peer = peer_ths->WithUniqueLock();
 
 			if (peer->Initialize(peer_ths))
 			{
-				if (m_UDPConnectionManager.AddConnection(af, pctype, id, seqnum, peer->GetSocket<UDP::Socket>()))
+				if (m_UDPConnectionManager.AddConnection(af, pctype, id, seqnum, peer->GetSocket<UDP::Socket>(),
+														 std::move(shared_secret_copy)))
 				{
 					return peer_ths;
 				}

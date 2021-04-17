@@ -29,7 +29,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	public:
 		Connection(const Settings_CThS& settings, Access::Manager& accessmgr, const PeerConnectionType type,
-				   const ConnectionID id, const Message::SequenceNumber seqnum) noexcept;
+				   const ConnectionID id, const Message::SequenceNumber seqnum, const ProtectedBuffer& shared_secret) noexcept;
 		Connection(const Connection&) = delete;
 		Connection(Connection&&) noexcept = delete;
 		~Connection();
@@ -39,6 +39,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] inline PeerConnectionType GetType() const noexcept { return m_Type; }
 		[[nodiscard]] inline Status GetStatus() const noexcept { return m_Status; }
 		[[nodiscard]] inline ConnectionID GetID() const noexcept { return m_ID; }
+		[[nodiscard]] inline const SymmetricKeys& GetSymmetricKeys() const noexcept { return m_SymmetricKeys; }
 
 		[[nodiscard]] bool Open(const Network::IP::AddressFamily af,
 								const bool nat_traversal, UDP::Socket& socket) noexcept;
@@ -80,7 +81,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		[[nodiscard]] ReceiveBuffer& GetReceiveBuffer() const noexcept;
 		[[nodiscard]] bool ReceiveToQueue() noexcept;
-		[[nodiscard]] bool ProcessReceivedData(const IPEndpoint& endpoint, const BufferView& buffer) noexcept;
+		[[nodiscard]] bool ProcessReceivedData(const IPEndpoint& endpoint, BufferSpan& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageHandshake(const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept;
@@ -106,9 +107,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		const Settings_CThS& m_Settings;
 		Access::Manager& m_AccessManager;
 
-		PeerConnectionType m_Type{ PeerConnectionType::Unknown };
+		const PeerConnectionType m_Type{ PeerConnectionType::Unknown };
 		Status m_Status{ Status::Closed };
-		ConnectionID m_ID{ 0 };
+		const ConnectionID m_ID{ 0 };
+		const SymmetricKeys m_SymmetricKeys;
+
 		Network::Socket m_Socket;
 		SteadyTime m_LastStatusChangeSteadyTime;
 		std::shared_ptr<ConnectionData_ThS> m_ConnectionData;

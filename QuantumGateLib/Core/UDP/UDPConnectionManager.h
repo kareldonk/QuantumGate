@@ -64,7 +64,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		[[nodiscard]] bool AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
 										 const ConnectionID id, const Message::SequenceNumber seqnum,
-										 Socket& socket) noexcept;
+										 Socket& socket, std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
 		void OnLocalIPInterfaceChanged() noexcept;
 
