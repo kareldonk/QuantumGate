@@ -88,6 +88,12 @@ namespace QuantumGate::Implementation::Memory
 			return (WriteEncodedSize(GetDataSize(*data), data.MaxSize()) && WriteImpl(*data));
 		}
 
+		template<Size MaxSize>
+		[[nodiscard]] bool WriteImpl(const StackBuffer<MaxSize>& data)
+		{
+			return WriteBytes(data.GetBytes(), GetDataSize(data));
+		}
+
 		[[nodiscard]] bool WriteEncodedSize(const Size size, const Size maxsize) noexcept;
 		[[nodiscard]] bool WriteBytes(const Byte* data, const Size len, const bool endian_convert = false);
 

@@ -89,6 +89,21 @@ namespace QuantumGate::Implementation::Memory
 			return ReadImpl(*data);
 		}
 
+		template<Size MaxSize>
+		[[nodiscard]] bool ReadImpl(StackBuffer<MaxSize>& data)
+		{
+			return ReadBytes(data.GetBytes(), GetDataSize(data));
+		}
+
+		template<Size MaxSize>
+		[[nodiscard]] bool ReadImpl(const SizeWrap<StackBuffer<MaxSize>>& data)
+		{
+			Size size{ 0 };
+			return (ReadEncodedSize(size, data.MaxSize()) &&
+					[&]() { data->Resize(size); return true; }() &&
+					ReadImpl(*data));
+		}
+
 		[[nodiscard]] bool ReadEncodedSize(Size& size, const Size maxsize) noexcept;
 		[[nodiscard]] bool ReadBytes(Byte* data, const Size len, const bool endian_convert = false) noexcept;
 

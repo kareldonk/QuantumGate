@@ -7,6 +7,8 @@
 #pragma push_macro("max")
 #undef max
 
+#include "StackBuffer.h"
+
 #include <limits>
 
 namespace QuantumGate::Implementation::Memory
@@ -124,6 +126,12 @@ namespace QuantumGate::Implementation::Memory
 			std::is_same_v<T, SerializedUUID>, Size> GetDataSize(const Vector<T>& data) noexcept
 		{
 			return (data.size() * sizeof(T));
+		}
+
+		template<Size MaxSize>
+		Size GetDataSize(const StackBuffer<MaxSize>& data) noexcept
+		{
+			return data.GetSize();
 		}
 
 		template<typename T>

@@ -233,4 +233,5 @@ namespace QuantumGate::Implementation::Memory
 	using StackBuffer512 = StackBuffer<512>;
 	using StackBuffer1024 = StackBuffer<1024>;
 	using StackBuffer2048 = StackBuffer<2048>;
+	using StackBuffer65K = StackBuffer<65536>;
 }
