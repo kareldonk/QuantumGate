@@ -16,7 +16,7 @@ namespace QuantumGate::Implementation::Network
 {
 	class Export Socket : public SocketBase
 	{
-		using ReceiveBuffer = Memory::StackBuffer<65'535>;
+		using ReceiveBuffer = Memory::StackBuffer65K;
 
 	public:
 		enum class Type

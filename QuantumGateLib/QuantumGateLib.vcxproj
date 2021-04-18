@@ -743,8 +743,6 @@
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Memory\BufferIO.cpp" />
-    <ClCompile Include="Memory\BufferReader.cpp" />
-    <ClCompile Include="Memory\BufferWriter.cpp" />
     <ClCompile Include="Memory\CommonStatic.cpp" />
     <ClCompile Include="Module.cpp" />
     <ClCompile Include="Network\BinaryIPAddress.cpp" />

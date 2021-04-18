@@ -8,6 +8,7 @@
 #undef max
 
 #include "StackBuffer.h"
+#include "..\Common\Endian.h"
 
 #include <limits>
 

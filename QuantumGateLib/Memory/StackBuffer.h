@@ -161,13 +161,16 @@ namespace QuantumGate::Implementation::Memory
 
 		constexpr void Allocate(const Size size)
 		{
+			Resize(size);
+		}
+
+		constexpr void Preallocate(const Size size)
+		{
 			assert(size <= MaxSize);
-			
-			if (size <= MaxSize)
+			if (size > MaxSize)
 			{
-				m_Size = size;
+				throw StackBufferOverflowException("Buffer size is larger than maximum.");
 			}
-			else throw StackBufferOverflowException("Buffer size is larger than maximum.");
 		}
 
 		constexpr void Clear() noexcept

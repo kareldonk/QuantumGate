@@ -343,8 +343,8 @@ namespace QuantumGate::Implementation::Core::UDP
 				const auto& data = std::get<Buffer>(m_Data);
 				if (!data.IsEmpty())
 				{
-					Buffer dbuf;
-					Memory::BufferWriter wrt(dbuf, true);
+					StackBuffer<MaxSize::_65KB> dbuf;
+					Memory::StackBufferWriter<MaxSize::_65KB> wrt(dbuf, true);
 					if (!wrt.WriteWithPreallocation(WithSize(data, MaxSize::_65KB))) return false;
 
 					msgbuf += dbuf;
@@ -355,9 +355,9 @@ namespace QuantumGate::Implementation::Core::UDP
 			{
 				const auto& eacks = std::get<Vector<AckRange>>(m_Data);
 
-				Buffer ackbuf;
+				StackBuffer<MaxSize::_65KB> ackbuf;
 				BufferView ack_view{ reinterpret_cast<const Byte*>(eacks.data()), eacks.size() * sizeof(AckRange) };
-				Memory::BufferWriter wrt(ackbuf, true);
+				Memory::StackBufferWriter<MaxSize::_65KB> wrt(ackbuf, true);
 				if (!wrt.WriteWithPreallocation(WithSize(ack_view, MaxSize::_65KB))) return false;
 
 				msgbuf += ackbuf;
@@ -367,8 +367,8 @@ namespace QuantumGate::Implementation::Core::UDP
 			{
 				const auto& state_data = std::get<StateData>(m_Data);
 
-				Buffer statebuf;
-				Memory::BufferWriter wrt(statebuf, true);
+				StackBuffer<sizeof(StateData)> statebuf;
+				Memory::StackBufferWriter<sizeof(StateData)> wrt(statebuf, true);
 				if (!wrt.WriteWithPreallocation(state_data.MaxWindowSize, state_data.MaxWindowSizeBytes)) return false;
 
 				msgbuf += statebuf;
@@ -378,8 +378,8 @@ namespace QuantumGate::Implementation::Core::UDP
 			{
 				const auto& syn_data = std::get<SynData>(m_Data);
 
-				Buffer synbuf;
-				Memory::BufferWriter wrt(synbuf, true);
+				StackBuffer<sizeof(SynData)> synbuf;
+				Memory::StackBufferWriter<sizeof(SynData)> wrt(synbuf, true);
 				if (!wrt.WriteWithPreallocation(syn_data.ProtocolVersionMajor, syn_data.ProtocolVersionMinor,
 												syn_data.ConnectionID, syn_data.Port)) return false;
 

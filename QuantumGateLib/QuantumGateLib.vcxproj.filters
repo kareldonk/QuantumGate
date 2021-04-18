@@ -548,12 +548,6 @@
     <ClCompile Include="Memory\BufferIO.cpp">
       <Filter>Source Files\Memory</Filter>
     </ClCompile>
-    <ClCompile Include="Memory\BufferReader.cpp">
-      <Filter>Source Files\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="Memory\BufferWriter.cpp">
-      <Filter>Source Files\Memory</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Extender\ExtenderManager.cpp">
       <Filter>Source Files\Core\Extender</Filter>
     </ClCompile>
