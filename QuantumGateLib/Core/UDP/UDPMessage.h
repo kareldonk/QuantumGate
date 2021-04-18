@@ -40,9 +40,9 @@ namespace QuantumGate::Implementation::Core::UDP
 		static constexpr UInt8 KeyLength{ sizeof(UInt64) };
 		static constexpr UInt8 KeyDataLength{ KeyLength * 2 };
 
-		static constexpr UInt8 HashKey[16]{
-			99, 66, 33, 99, 66, 33, 99, 66,
-			33, 99, 66, 33, 99, 66, 33, 99
+		static constexpr UInt8 DefaultKeyData[KeyDataLength]{
+			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+			0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
 		};
 
 	private:
@@ -68,6 +68,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		using SequenceNumber = UInt16;
 		using HMAC = UInt32;
+		using IV = UInt32;
 
 #pragma pack(push, 1) // Disable padding bytes
 		struct AckRange final
@@ -89,6 +90,8 @@ namespace QuantumGate::Implementation::Core::UDP
 			Header& operator=(Header&&) noexcept = default;
 
 			[[nodiscard]] inline HMAC GetHMAC() noexcept { return m_MessageHMAC; }
+
+			[[nodiscard]] inline IV GetIV() noexcept { return m_MessageIV; }
 
 			[[nodiscard]] inline Direction GetDirection() const noexcept { return m_Direction; }
 
@@ -129,6 +132,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			static constexpr Size GetSize() noexcept
 			{
 				return sizeof(m_MessageHMAC) +
+					sizeof(m_MessageIV) +
 					sizeof(m_MessageSequenceNumber) +
 					sizeof(m_MessageAckNumber) +
 					sizeof(m_MessageType);
@@ -142,6 +146,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		private:
 			const Direction m_Direction{ Direction::Unknown };
 			HMAC m_MessageHMAC{ 0 };
+			IV m_MessageIV{ 0 };
 			SequenceNumber m_MessageSequenceNumber{ 0 };
 			SequenceNumber m_MessageAckNumber{ 0 };
 			Type m_MessageType{ 0 };
@@ -249,7 +254,6 @@ namespace QuantumGate::Implementation::Core::UDP
 					break;
 				case Type::Data:
 				case Type::MTUD:
-				case Type::Null:
 					m_Data = Buffer();
 					break;
 				case Type::EAck:
@@ -262,8 +266,8 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		Size GetHeaderSize() const noexcept;
 
-		void Obfuscate(BufferSpan& data, const SymmetricKeys& symkey) noexcept;
-		void Deobfuscate(BufferSpan& data, const SymmetricKeys& symkey) noexcept;
+		void Obfuscate(BufferSpan& data, const SymmetricKeys& symkey, const IV iv) noexcept;
+		void Deobfuscate(BufferSpan& data, const SymmetricKeys& symkey, const IV iv) noexcept;
 		HMAC CalcHMAC(const BufferView& data, const SymmetricKeys& symkey) noexcept;
 
 		void Validate() noexcept;

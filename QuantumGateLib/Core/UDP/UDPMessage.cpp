@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "UDPMessage.h"
+#include "..\..\Memory\StackBuffer.h"
 #include "..\..\Memory\BufferReader.h"
 #include "..\..\Memory\BufferWriter.h"
 #include "..\..\Common\Random.h"
@@ -14,13 +15,20 @@ namespace QuantumGate::Implementation::Core::UDP
 {
 	SymmetricKeys::SymmetricKeys(const ProtectedBuffer& shared_secret)
 	{
+		m_KeyData.Allocate(KeyDataLength);
+
 		if (!shared_secret.IsEmpty())
 		{
-			m_KeyData.Allocate(KeyDataLength);
-
 			siphash(reinterpret_cast<const uint8_t*>(shared_secret.GetBytes()), shared_secret.GetSize(),
-					reinterpret_cast<const uint8_t*>(HashKey),
+					reinterpret_cast<const uint8_t*>(DefaultKeyData),
 					reinterpret_cast<uint8_t*>(m_KeyData.GetBytes()), m_KeyData.GetSize());
+		}
+		else
+		{
+			// Use default keys when Global Shared Secret is not in use;
+			// this provides basic obfuscation and HMAC checks but won't
+			// fool more sophisticated traffic analyzers
+			std::memcpy(m_KeyData.GetBytes(), DefaultKeyData, KeyDataLength);
 		}
 	}
 
@@ -29,6 +37,8 @@ namespace QuantumGate::Implementation::Core::UDP
 	{
 		if (m_Direction == Direction::Outgoing)
 		{
+			m_MessageIV = static_cast<Message::IV>(Random::GetPseudoRandomNumber());
+
 			switch (m_MessageType)
 			{
 				case Message::Type::Syn:
@@ -70,6 +80,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		Memory::BufferReader rdr(buffer, true);
 		if (rdr.Read(hmac,
+					 m_MessageIV,
 					 m_MessageSequenceNumber,
 					 m_MessageAckNumber,
 					 msgtype_flags))
@@ -104,6 +115,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		Memory::BufferWriter wrt(buffer, true);
 		return wrt.WriteWithPreallocation(hmac,
+										  m_MessageIV,
 										  m_MessageSequenceNumber,
 										  m_MessageAckNumber,
 										  msgtype_flags);
@@ -112,7 +124,6 @@ namespace QuantumGate::Implementation::Core::UDP
 	void Message::SetMessageData(Buffer&& buffer) noexcept
 	{
 		assert(m_Header.GetMessageType() == Type::Data ||
-			   m_Header.GetMessageType() == Type::Null ||
 			   m_Header.GetMessageType() == Type::MTUD);
 
 		if (!buffer.IsEmpty())
@@ -125,12 +136,14 @@ namespace QuantumGate::Implementation::Core::UDP
 
 	Size Message::GetMaxMessageDataSize() const noexcept
 	{
-		return (m_MaxMessageSize - Header::GetSize());
+		return std::min(MaxSize::_65KB,
+						(m_MaxMessageSize - (Header::GetSize() + BufferIO::GetSizeOfEncodedSize(MaxSize::_65KB))));
 	}
 
 	Size Message::GetMaxAckRangesPerMessage() const noexcept
 	{
-		const auto asize = m_MaxMessageSize - Header::GetSize();
+		const auto asize = std::min(MaxSize::_65KB,
+									m_MaxMessageSize - (Header::GetSize() + BufferIO::GetSizeOfEncodedSize(MaxSize::_65KB)));
 		return (asize / sizeof(Message::AckRange));
 	}
 
@@ -205,16 +218,16 @@ namespace QuantumGate::Implementation::Core::UDP
 		// Should have enough data for outer message header
 		if (buffer.GetSize() < GetHeaderSize()) return false;
 
-		// TEMPORARY
+		// Deobfuscation and HMAC check
 		{
-			if (symkey)
+			assert(symkey);
+
+			// Calculate and check HMAC for the message
 			{
-				// Calculate HMAC for the message
 				BufferView msgview{ buffer };
 
 				HMAC hmac{ 0 };
-				std::memcpy(&hmac, msgview.GetFirst(sizeof(HMAC)).GetBytes(), sizeof(HMAC));
-				
+				std::memcpy(&hmac, msgview.GetBytes(), sizeof(HMAC));
 				msgview.RemoveFirst(sizeof(HMAC));
 
 				const auto chmac = CalcHMAC(msgview, symkey);
@@ -223,12 +236,18 @@ namespace QuantumGate::Implementation::Core::UDP
 					LogErr(L"Failed HMAC check for UDP connection message");
 					return false;
 				}
+			}
 
+			// Deobfuscate message
+			{
 				BufferSpan msgspan{ buffer };
 				msgspan.RemoveFirst(sizeof(HMAC));
 
-				// Deobfuscate message
-				Deobfuscate(msgspan, symkey);
+				IV iv{ 0 };
+				std::memcpy(&iv, msgspan.GetBytes(), sizeof(IV));
+				msgspan.RemoveFirst(sizeof(IV));
+
+				Deobfuscate(msgspan, symkey, iv);
 			}
 		}
 
@@ -242,11 +261,14 @@ namespace QuantumGate::Implementation::Core::UDP
 		{
 			case Type::Data:
 			{
-				m_Data = Buffer(buffer);
+				Buffer data;
+				Memory::BufferReader rdr(buffer, true);
+				if (!rdr.Read(WithSize(data, MaxSize::_65KB))) return false;
+
+				m_Data = std::move(data);
 				break;
 			}
 			case Type::MTUD:
-			case Type::Null:
 			{
 				// Skip reading unneeded data
 				m_Data = Buffer();
@@ -254,16 +276,20 @@ namespace QuantumGate::Implementation::Core::UDP
 			}
 			case Type::EAck:
 			{
+				StackBuffer<MaxSize::_65KB> data;
+				Memory::BufferReader rdr(buffer, true);
+				if (!rdr.Read(WithSize(data, MaxSize::_65KB))) return false;
+
 				// Size should be exact multiple of size of AckRange
 				// otherwise something is wrong
-				assert(buffer.GetSize() % sizeof(AckRange) == 0);
-				if (buffer.GetSize() % sizeof(AckRange) != 0) return false;
+				assert(data.GetSize() % sizeof(AckRange) == 0);
+				if (data.GetSize() % sizeof(AckRange) != 0) return false;
 
-				const auto num_ack_ranges = buffer.GetSize() / sizeof(AckRange);
+				const auto num_ack_ranges = data.GetSize() / sizeof(AckRange);
 
 				Vector<AckRange> eacks;
 				eacks.resize(num_ack_ranges);
-				std::memcpy(eacks.data(), buffer.GetBytes(), buffer.GetSize());
+				std::memcpy(eacks.data(), data.GetBytes(), data.GetSize());
 				m_Data = std::move(eacks);
 				break;
 			}
@@ -312,13 +338,16 @@ namespace QuantumGate::Implementation::Core::UDP
 		{
 			case Type::Data:
 			case Type::MTUD:
-			case Type::Null:
 			{
 				// Add message data if any
 				const auto& data = std::get<Buffer>(m_Data);
 				if (!data.IsEmpty())
 				{
-					msgbuf += data;
+					Buffer dbuf;
+					Memory::BufferWriter wrt(dbuf, true);
+					if (!wrt.WriteWithPreallocation(WithSize(data, MaxSize::_65KB))) return false;
+
+					msgbuf += dbuf;
 				}
 				break;
 			}
@@ -329,7 +358,7 @@ namespace QuantumGate::Implementation::Core::UDP
 				Buffer ackbuf;
 				BufferView ack_view{ reinterpret_cast<const Byte*>(eacks.data()), eacks.size() * sizeof(AckRange) };
 				Memory::BufferWriter wrt(ackbuf, true);
-				if (!wrt.WriteWithPreallocation(ack_view)) return false;
+				if (!wrt.WriteWithPreallocation(WithSize(ack_view, MaxSize::_65KB))) return false;
 
 				msgbuf += ackbuf;
 				break;
@@ -370,33 +399,42 @@ namespace QuantumGate::Implementation::Core::UDP
 
 			return false;
 		}
-
-		// TEMPORARY
+		else
 		{
-			BufferSpan msgspan{ msgbuf };
-			msgspan.RemoveFirst(sizeof(HMAC));
+			// Add some random padding data at the end of the message
+			const auto free_space = m_MaxMessageSize - msgbuf.GetSize();
+			if (free_space > 0 &&
+				m_Header.GetMessageType() != Type::MTUD && // Excluded because MTUD data needs to be precise size
+				m_Header.GetMessageType() != Type::Data && // Excluded for speed
+				m_Header.GetMessageType() != Type::EAck) // Excluded for speed
+			{
+				msgbuf += Random::GetPseudoRandomBytes(Random::GetPseudoRandomNumber(0, free_space));
+			}
+		}
+
+		// Obfuscation and HMAC
+		{
+			assert(symkey);
 
 			// Obfuscate message
-			if (symkey)
 			{
-				Obfuscate(msgspan, symkey);
+				BufferSpan msgspan{ msgbuf };
+				msgspan.RemoveFirst(sizeof(HMAC));
+
+				IV iv{ 0 };
+				std::memcpy(&iv, msgspan.GetBytes(), sizeof(IV));
+				msgspan.RemoveFirst(sizeof(IV));
+
+				Obfuscate(msgspan, symkey, iv);
 			}
 
 			// Calculate HMAC for the message
-			BufferView msgview{ msgbuf };
-			msgview.RemoveFirst(sizeof(HMAC));
-			const auto hmac = std::invoke([&]() {
-				if (symkey)
-				{
-					return CalcHMAC(msgview, symkey);
-				}
-				else
-				{
-					return static_cast<HMAC>(Random::GetPseudoRandomNumber());
-				}
-			});
-
-			std::memcpy(msgbuf.GetBytes(), &hmac, sizeof(hmac));
+			{
+				BufferView msgview{ msgbuf };
+				msgview.RemoveFirst(sizeof(HMAC));
+				const auto hmac = CalcHMAC(msgview, symkey);
+				std::memcpy(msgbuf.GetBytes(), &hmac, sizeof(hmac));
+			}
 		}
 
 		buffer = std::move(msgbuf);
@@ -404,16 +442,24 @@ namespace QuantumGate::Implementation::Core::UDP
 		return true;
 	}
 
-	void Message::Obfuscate(BufferSpan& data, const SymmetricKeys& symkey) noexcept
+	void Message::Obfuscate(BufferSpan& data, const SymmetricKeys& symkey, const IV iv) noexcept
 	{
+		StackBuffer32 ivkey{ symkey.GetKey() };
+
+		// Initialize key with IV
+		{
+			assert(ivkey.GetSize() == sizeof(UInt64));
+			assert(sizeof(iv) == sizeof(UInt32));
+			auto ivkey32 = reinterpret_cast<UInt32*>(ivkey.GetBytes());
+			ivkey32[0] ^= iv;
+			ivkey32[1] ^= iv;
+		}
+
 		const auto rlen = data.GetSize() % sizeof(UInt64);
 		const auto len = (data.GetSize() - rlen) / sizeof(UInt64);
 
 		auto data64 = reinterpret_cast<UInt64*>(data.GetBytes());
-
-		const auto key = symkey.GetKey();
-		assert(key.GetSize() == sizeof(UInt64));
-		const auto key64 = reinterpret_cast<const UInt64*>(key.GetBytes());
+		const auto key64 = reinterpret_cast<const UInt64*>(ivkey.GetBytes());
 
 		for (Size i = 0; i < len; ++i)
 		{
@@ -422,13 +468,13 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		for (Size i = data.GetSize() - rlen; i < data.GetSize(); ++i)
 		{
-			data[i] = data[i] ^ key[i % key.GetSize()];
+			data[i] = data[i] ^ ivkey[i % ivkey.GetSize()];
 		}
 	}
 
-	void Message::Deobfuscate(BufferSpan& data, const SymmetricKeys& symkey) noexcept
+	void Message::Deobfuscate(BufferSpan& data, const SymmetricKeys& symkey, const IV iv) noexcept
 	{
-		Obfuscate(data, symkey);
+		Obfuscate(data, symkey, iv);
 	}
 
 	Message::HMAC Message::CalcHMAC(const BufferView& data, const SymmetricKeys& symkey) noexcept
@@ -472,7 +518,7 @@ namespace QuantumGate::Implementation::Core::UDP
 				type_ok = ((HasSequenceNumber() && !HasAck()) || (!HasSequenceNumber() && HasAck())) && std::holds_alternative<Buffer>(m_Data);
 				break;
 			case Type::Null:
-				type_ok = !HasAck() && !HasSequenceNumber() && std::holds_alternative<Buffer>(m_Data);
+				type_ok = !HasAck() && !HasSequenceNumber();
 				break;
 			case Type::Reset:
 				type_ok = !HasAck() && !HasSequenceNumber();

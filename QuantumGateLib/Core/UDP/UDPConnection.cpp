@@ -556,7 +556,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Dbg(L"UDP connection: sending keepalive on connection %llu", GetID());
 
 		Message msg(Message::Type::Null, Message::Direction::Outgoing, m_SendQueue.GetMaxMessageSize());
-		msg.SetMessageData(Random::GetPseudoRandomBytes(Random::GetPseudoRandomNumber(0, msg.GetMaxMessageDataSize())));
 
 		if (Send(std::move(msg)))
 		{
@@ -572,13 +571,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void Connection::SendImmediateReset() noexcept
 	{
-		if (GetStatus() != Status::Handshake && GetStatus() != Status::Connected) return;
-		else if (GetStatus() == Status::Handshake && GetType() == PeerConnectionType::Outbound)
-		{
-			// Endpoint still set to server listener in this state
-			// so shouldn't send reset
-			return;
-		}
+		if (GetStatus() != Status::Connected) return;
 
 		Dbg(L"UDP connection: sending reset on connection %llu", GetID());
 
