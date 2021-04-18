@@ -58,7 +58,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		// Maximum message size is 65467 octets (65535 - 8 octet UDP header - 60 octet IP header).
 		static constexpr std::array<Size, 9> MessageSizes{ 508, 1232, 1452, 2048, 4096, 8192, 16384, 32768, 65467 };
 		static constexpr Size MinMessageSize{ 508 };
-		static constexpr Size MaxMessageSize{  65467 };
+		static constexpr Size MaxMessageSize{ 65467 };
 
 	private:
 		static constexpr std::chrono::milliseconds MinRetransmissionTimeout{ 600 };
