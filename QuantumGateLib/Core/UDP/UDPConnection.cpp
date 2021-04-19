@@ -275,10 +275,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			if (now - m_LastReceiveSteadyTime >= GetSettings().UDP.MaxKeepAliveTimeout)
 			{
-				if (!SetStatus(Status::Suspended))
-				{
-					return false;
-				}
+				return Suspend();
 			}
 		}
 
@@ -293,6 +290,38 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			Random::GetPseudoRandomNumber(settings.UDP.MinKeepAliveTimeout.count(),
 										  settings.UDP.MaxKeepAliveTimeout.count())
 		);
+	}
+
+	bool Connection::Suspend() noexcept
+	{
+		assert(GetStatus() == Status::Connected);
+
+		if (SetStatus(Status::Suspended))
+		{
+			auto connection_data = m_ConnectionData->WithUniqueLock();
+			connection_data->SetSuspended(true);
+			connection_data->SignalReceiveEvent();
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Connection::Wakeup() noexcept
+	{
+		assert(GetStatus() == Status::Suspended);
+
+		if (SetStatus(Status::Connected))
+		{
+			auto connection_data = m_ConnectionData->WithUniqueLock();
+			connection_data->SetSuspended(false);
+			connection_data->SignalReceiveEvent();
+
+			return true;
+		}
+
+		return false;
 	}
 
 	bool Connection::ProcessMTUDiscovery() noexcept
@@ -679,7 +708,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					// we will keep retrying until we get a message from the peer
 					// with an updated endpoint. We return success with 0 bytes sent and
 					// suspend the socket until we hear from the peer again.
-					if (SetStatus(Status::Suspended))
+					if (Suspend())
 					{
 						return 0;
 					}
@@ -776,7 +805,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					return ProcessReceivedMessageHandshake(endpoint, std::move(msg));
 				case Status::Suspended:
 					// Receiving data while suspended, so wake up first
-					if (!SetStatus(Status::Connected))
+					if (!Wakeup())
 					{
 						SetCloseCondition(CloseCondition::GeneralFailure);
 						return false;

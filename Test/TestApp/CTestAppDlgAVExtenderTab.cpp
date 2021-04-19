@@ -394,6 +394,26 @@ LRESULT CTestAppDlgAVExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 		UpdateControls();
 		UpdatePeerActivity();
 	}
+	else if (event->Type == QuantumGate::Extender::PeerEvent::Type::Suspended ||
+			 event->Type == QuantumGate::Extender::PeerEvent::Type::Resumed)
+	{
+		auto pluid = Util::FormatString(L"%llu", event->PeerLUID);
+
+		auto lbox = reinterpret_cast<CListBox*>(GetDlgItem(IDC_PEERLIST));
+		const auto pos = lbox->FindString(-1, pluid.c_str());
+		if (pos != LB_ERR)
+		{
+			lbox->DeleteString(pos);
+
+			if (event->Type == QuantumGate::Extender::PeerEvent::Type::Suspended)
+			{
+				// Add hourglass emoji
+				pluid += L" | \u231B";
+			}
+
+			lbox->InsertString(pos, pluid.c_str());
+		}
+	}
 	else if (event->Type == QuantumGate::Extender::PeerEvent::Type::Disconnected)
 	{
 		CString pluid = Util::FormatString(L"%llu", event->PeerLUID).c_str();

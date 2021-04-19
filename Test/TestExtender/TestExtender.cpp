@@ -405,6 +405,14 @@ namespace TestExtender
 				m_Peers.WithUniqueLock()->insert({ event.GetPeerLUID(), std::move(peer) });
 			}
 		}
+		else if (event.GetType() == PeerEvent::Type::Suspended)
+		{
+			ev = L"Suspended";
+		}
+		else if (event.GetType() == PeerEvent::Type::Resumed)
+		{
+			ev = L"Resumed";
+		}
 		else if (event.GetType() == PeerEvent::Type::Disconnected)
 		{
 			ev = L"Disconnect";

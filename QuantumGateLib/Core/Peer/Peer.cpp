@@ -340,6 +340,15 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 		}
 
+		if (status == Status::Ready && GetIOStatus().IsSuspended())
+		{
+			return SetStatus(Status::Suspended);
+		}
+		else if (status == Status::Suspended && !GetIOStatus().IsSuspended())
+		{
+			return SetStatus(Status::Ready);
+		}
+
 		return true;
 	}
 
@@ -515,8 +524,13 @@ namespace QuantumGate::Implementation::Core::Peer
 				else success = false;
 				break;
 			case Status::Ready:
-				assert(prev_status == Status::SessionInit);
-				if (prev_status == Status::SessionInit) m_PeerData.WithUniqueLock()->Status = status;
+				assert(prev_status == Status::SessionInit || prev_status == Status::Suspended);
+				if (prev_status == Status::SessionInit || prev_status == Status::Suspended) m_PeerData.WithUniqueLock()->Status = status;
+				else success = false;
+				break;
+			case Status::Suspended:
+				assert(prev_status == Status::Ready);
+				if (prev_status == Status::Ready) m_PeerData.WithUniqueLock()->Status = status;
 				else success = false;
 				break;
 			case Status::Disconnected:
@@ -584,42 +598,57 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 			case Status::Ready:
 			{
-				// Key exchange data not needed anymore for now
-				ReleaseKeyExchange();
-
-				if (!m_KeyUpdate.SetStatus(KeyUpdate::Status::UpdateWait))
+				if (old_status == Status::SessionInit)
 				{
-					LogErr(L"Unable to set key update status for peer %s", GetPeerName().c_str());
-					SetDisconnectCondition(DisconnectCondition::GeneralFailure);
-					return false;
-				}
-				else
-				{
-					LogInfo(L"Peer %s is ready", GetPeerName().c_str());
+					// Key exchange data not needed anymore for now
+					ReleaseKeyExchange();
 
-					// We went to the ready state; this means the connection attempt succeeded
-					// From now on concatenate messages when possible
-					SetFlag(Flags::ConcatenateMessages, true);
-
-					if (m_ConnectCallbacks)
+					if (!m_KeyUpdate.SetStatus(KeyUpdate::Status::UpdateWait))
 					{
-						const auto pluid = GetLUID();
-						Result<API::Peer> result{ ResultCode::Failed };
-
-						const auto peer_ptr = m_PeerPointer.lock();
-						if (peer_ptr) result = API::Peer(pluid, &peer_ptr);
-
-						ScheduleCallback([dpluid = pluid,
-										 dresult = std::move(result),
-										 dispatcher = std::move(m_ConnectCallbacks)]() mutable
-						{
-							dispatcher(dpluid, std::move(dresult));
-						});
+						LogErr(L"Unable to set key update status for peer %s", GetPeerName().c_str());
+						SetDisconnectCondition(DisconnectCondition::GeneralFailure);
+						return false;
 					}
+					else
+					{
+						LogInfo(L"Peer %s is ready", GetPeerName().c_str());
 
-					// Notify extenders of connected peer
-					ProcessEvent(Event::Type::Connected);
+						// We went to the ready state; this means the connection attempt succeeded
+						// From now on concatenate messages when possible
+						SetFlag(Flags::ConcatenateMessages, true);
+
+						if (m_ConnectCallbacks)
+						{
+							const auto pluid = GetLUID();
+							Result<API::Peer> result{ ResultCode::Failed };
+
+							const auto peer_ptr = m_PeerPointer.lock();
+							if (peer_ptr) result = API::Peer(pluid, &peer_ptr);
+
+							ScheduleCallback([dpluid = pluid,
+											 dresult = std::move(result),
+											 dispatcher = std::move(m_ConnectCallbacks)]() mutable
+							{
+								dispatcher(dpluid, std::move(dresult));
+							});
+						}
+
+						// Notify extenders of connected peer
+						ProcessEvent(Event::Type::Connected);
+					}
 				}
+				else if (old_status == Status::Suspended)
+				{
+					// Notify extenders of resumed peer
+					ProcessEvent(Event::Type::Resumed);
+				}
+
+				break;
+			}
+			case Status::Suspended:
+			{
+				// Notify extenders of suspended peer
+				ProcessEvent(Event::Type::Suspended);
 
 				break;
 			}
@@ -653,7 +682,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					});
 				}
 
-				if (old_status == Status::Ready)
+				if (old_status == Status::Ready || old_status == Status::Suspended)
 				{
 					// Notify extenders of disconnected peer
 					ProcessEvent(Event::Type::Disconnected);
@@ -1861,7 +1890,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			const auto status = GetStatus();
 
 			// Should have a valid PeerUUID in the following states
-			if (status == Status::Ready || status == Status::SessionInit)
+			if (status == Status::Ready || status == Status::SessionInit || status == Status::Suspended)
 			{
 				// Check if peer UUID is still allowed access
 				const auto result2 = GetAccessManager().GetPeerAllowed(GetPeerUUID());

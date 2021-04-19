@@ -38,6 +38,8 @@ namespace QuantumGate::Implementation::Core::UDP
 		[[nodiscard]] inline bool CanRead() const noexcept { return m_CanRead; }
 		inline void SetWrite(const bool enabled) noexcept { m_CanWrite = enabled; }
 		[[nodiscard]] inline bool CanWrite() const noexcept { return m_CanWrite; }
+		inline void SetSuspended(const bool value) noexcept { m_IsSuspended = value; }
+		[[nodiscard]] bool IsSuspended() const noexcept { return m_IsSuspended; }
 
 		inline RingBuffer& GetSendBuffer() noexcept { return m_SendBuffer; }
 		inline RingBuffer& GetReceiveBuffer() noexcept { return m_ReceiveBuffer; }
@@ -75,6 +77,7 @@ namespace QuantumGate::Implementation::Core::UDP
 	private:
 		bool m_CanRead{ false };
 		bool m_CanWrite{ false };
+		bool m_IsSuspended{ false };
 		bool m_HasException{ false };
 		int m_ErrorCode{ 0 };
 

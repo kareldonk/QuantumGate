@@ -136,6 +136,9 @@ void CTestAppDlgMainTab::UpdatePeers()
 						const auto pos = lctrl->InsertItem(0, pluidstr.c_str());
 						if (pos != -1)
 						{
+							if (retval->IsSuspended) lctrl->SetItemData(pos, 1);
+							else lctrl->SetItemData(pos, 0);
+
 							lctrl->SetItemText(pos, 1, relayed);
 							lctrl->SetItemText(pos, 2, auth);
 							lctrl->SetItemText(pos, 3, retval->PeerIPEndpoint.GetString().c_str());
@@ -146,6 +149,19 @@ void CTestAppDlgMainTab::UpdatePeers()
 
 					if (index != -1)
 					{
+						const auto itmd = lctrl->GetItemData(index);
+						if (retval->IsSuspended && itmd == 0)
+						{
+							// Add hourglass emoji
+							lctrl->SetItemText(index, 0, Util::FormatString(L"%llu | \u231B", pluid).c_str());
+							lctrl->SetItemData(index, 1);
+						}
+						else if (!retval->IsSuspended && itmd == 1)
+						{
+							lctrl->SetItemText(index, 0, Util::FormatString(L"%llu", pluid).c_str());
+							lctrl->SetItemData(index, 0);
+						}
+
 						lctrl->SetItemText(index, 4,
 										   Util::FormatString(L"%.2lf KB",
 															  static_cast<double>(retval->BytesSent) / 1024.0).c_str());
@@ -254,6 +270,9 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 				pitxt += Util::FormatString(L"Peer LUID:\t\t%llu\r\n", pluid);
 				pitxt += Util::FormatString(L"Peer UUID:\t\t%s\r\n\r\n", retval->PeerUUID.GetString().c_str());
 
+				pitxt += Util::FormatString(L"Suspended:\t\t%s\r\n\r\n",
+											retval->IsSuspended ? L"Yes" : L"No");
+
 				pitxt += Util::FormatString(L"Authenticated:\t\t%s\r\n",
 											retval->IsAuthenticated ? L"Yes" : L"No");
 				pitxt += Util::FormatString(L"Relayed:\t\t\t%s\r\n",
@@ -324,6 +343,11 @@ void CTestAppDlgMainTab::LogPeerDetails(const QuantumGate::Peer& peer)
 	peer.GetUUID().Succeeded([&](auto& result)
 	{
 		pitxt += Util::FormatString(L"Peer UUID:\t\t\t%s\r\n\r\n", result->GetString().c_str());
+	});
+
+	peer.GetSuspended().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Suspended:\t\t\t%s\r\n\r\n", *result ? L"Yes" : L"No");
 	});
 
 	peer.GetAuthenticated().Succeeded([&](auto& result)

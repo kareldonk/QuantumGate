@@ -38,7 +38,7 @@ namespace QuantumGate::API
 		public:
 			enum class Type : UInt16
 			{
-				Unknown, Connected, Disconnected, Message
+				Unknown, Connected, Suspended, Resumed, Disconnected, Message
 			};
 
 			struct Result

@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		Unknown, Initialized, Connecting, Accepted, Connected, MetaExchange,
 		PrimaryKeyExchange, SecondaryKeyExchange, Authentication,
-		SessionInit, Ready, Disconnected
+		SessionInit, Ready, Suspended, Disconnected
 	};
 
 	struct Data final
@@ -60,8 +60,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<API::Peer::Details> GetDetails() const noexcept
 		{
-			// Only if peer status is ready (handshake succeeded, etc.)
-			if (Status == Status::Ready)
+			// Only if peer status is ready or suspended (handshake succeeded, etc.)
+			if (Status == Status::Ready || Status == Status::Suspended)
 			{
 				API::Peer::Details pdetails;
 
@@ -81,6 +81,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				pdetails.BytesSent = Cached.BytesSent;
 				pdetails.ExtendersBytesReceived = ExtendersBytesReceived;
 				pdetails.ExtendersBytesSent = ExtendersBytesSent;
+				pdetails.IsSuspended = (Status == Status::Suspended);
 
 				return std::move(pdetails);
 			}
@@ -90,8 +91,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<PeerLUID> MatchQuery(const PeerQueryParameters& params) const noexcept
 		{
-			// Only if peer status is ready (handshake succeeded, etc.)
-			if (Status == Status::Ready)
+			// Only if peer status is ready or suspended (handshake succeeded, etc.)
+			if (Status == Status::Ready || Status == Status::Suspended)
 			{
 				if ((params.Authentication == PeerQueryParameters::AuthenticationOption::Authenticated && !IsAuthenticated) ||
 					(params.Authentication == PeerQueryParameters::AuthenticationOption::NotAuthenticated && IsAuthenticated))

@@ -1331,6 +1331,11 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				break;
 			}
+			case Event::Type::Suspended:
+			case Event::Type::Resumed:
+			{
+				break;
+			}
 			case Event::Type::Disconnected:
 			{
 				// Remove peer from lookup maps

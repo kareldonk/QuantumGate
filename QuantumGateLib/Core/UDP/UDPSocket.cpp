@@ -181,7 +181,8 @@ namespace QuantumGate::Implementation::Core::UDP
 		connection_data->ResetReceiveEvent();
 
 		m_IOStatus.SetRead(connection_data->CanRead() || connection_data->HasCloseRequest());
-		m_IOStatus.SetWrite(connection_data->CanWrite());
+		m_IOStatus.SetWrite(connection_data->CanWrite() && !connection_data->IsSuspended());
+		m_IOStatus.SetSuspended(connection_data->IsSuspended());
 
 		if (connection_data->HasException())
 		{
