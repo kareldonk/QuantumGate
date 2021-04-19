@@ -288,15 +288,17 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	void Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
 	{
-		Containers::List<PeerSharedPointer> remove_list;
-
-		const auto& settings = GetSettings();
-		const auto noise_enabled = settings.Noise.Enabled;
-		const auto max_handshake_duration = settings.Local.MaxHandshakeDuration;
-		const auto max_connect_duration = settings.Local.ConnectTimeout;
+		std::optional<Containers::List<PeerSharedPointer>> remove_list;
 
 		thpdata.PeerMap.WithSharedLock([&](const PeerMap& peers)
 		{
+			if (peers.empty()) return;
+
+			const auto& settings = GetSettings();
+			const auto noise_enabled = settings.Noise.Enabled;
+			const auto max_handshake_duration = settings.Local.MaxHandshakeDuration;
+			const auto max_connect_duration = settings.Local.ConnectTimeout;
+
 			for (auto it = peers.begin(); it != peers.end() && !shutdown_event.IsSet(); ++it)
 			{
 				auto& peerths = it->second;
@@ -317,19 +319,21 @@ namespace QuantumGate::Implementation::Core::Peer
 						Disconnect(peer, false);
 
 						// Collect the peer for removal
-						remove_list.emplace_back(peerths);
+						if (!remove_list.has_value()) remove_list.emplace();
+
+						remove_list->emplace_back(peerths);
 					}
 				});
 			}
 		});
 
 		// Remove all peers that were collected for removal
-		if (!remove_list.empty())
+		if (remove_list.has_value() && !remove_list->empty())
 		{
 			LogDbg(L"Removing peers");
-			Remove(remove_list);
+			Remove(*remove_list);
 
-			remove_list.clear();
+			remove_list->clear();
 		}
 	}
 

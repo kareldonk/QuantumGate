@@ -423,7 +423,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		try
 		{
-			Containers::List<RelayPort> remove_list;
+			std::optional<Containers::List<RelayPort>> remove_list;
 
 			m_RelayLinks.WithUniqueLock([&](LinkMap& relays)
 			{
@@ -447,16 +447,18 @@ namespace QuantumGate::Implementation::Core::Relay
 						}
 
 						// Collect the relay for removal
-						remove_list.emplace_back(rl.GetPort());
+						if (!remove_list.has_value()) remove_list.emplace();
+
+						remove_list->emplace_back(rl.GetPort());
 					});
 				}
 			});
 
 			// Remove all relays that were collected for removal
-			if (!remove_list.empty())
+			if (remove_list.has_value() && !remove_list->empty())
 			{
-				Remove(remove_list);
-				remove_list.clear();
+				Remove(*remove_list);
+				remove_list->clear();
 			}
 		}
 		catch (...) {}
@@ -559,15 +561,16 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	void Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
-		Containers::List<RelayPort> remove_list;
-
-		const auto& settings = GetSettings();
-
-		const auto max_connect_duration = settings.Relay.ConnectTimeout;
-		const auto closed_grace_period = settings.Relay.GracePeriod;
+		std::optional<Containers::List<RelayPort>> remove_list;
 
 		m_RelayLinks.WithSharedLock([&](const LinkMap& relays)
 		{
+			if (relays.empty()) return;
+
+			const auto& settings = GetSettings();
+			const auto max_connect_duration = settings.Relay.ConnectTimeout;
+			const auto closed_grace_period = settings.Relay.GracePeriod;
+
 			for (auto it = relays.begin(); it != relays.end() && !shutdown_event.IsSet(); ++it)
 			{
 				it->second->IfUniqueLock([&](Link& rc)
@@ -657,19 +660,21 @@ namespace QuantumGate::Implementation::Core::Relay
 						((Util::GetCurrentSteadyTime() - rc.GetLastStatusChangeSteadyTime()) > closed_grace_period))
 					{
 						// Collect the relay for removal
-						remove_list.emplace_back(rc.GetPort());
+						if (!remove_list.has_value()) remove_list.emplace();
+
+						remove_list->emplace_back(rc.GetPort());
 					}
 				});
 			}
 		});
 
 		// Remove all relays that were collected for removal
-		if (!remove_list.empty())
+		if (remove_list.has_value() && !remove_list->empty())
 		{
 			LogDbg(L"Removing relays");
-			Remove(remove_list);
+			Remove(*remove_list);
 
-			remove_list.clear();
+			remove_list->clear();
 		}
 	}
 

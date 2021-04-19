@@ -199,7 +199,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
-		Containers::List<ConnectionID> remove_list;
+		std::optional<Containers::List<ConnectionID>> remove_list;
 
 		auto connections = thdata.Connections->WithUniqueLock();
 		for (auto it = connections->begin(); it != connections->end() && !shutdown_event.IsSet(); ++it)
@@ -211,17 +211,19 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			if (connection.ShouldClose())
 			{
 				// Collect the connection for removal
-				remove_list.emplace_back(connection.GetID());
+				if (!remove_list.has_value()) remove_list.emplace();
+
+				remove_list->emplace_back(connection.GetID());
 			}
 		}
 
 		// Remove all connections that were collected for removal
-		if (!remove_list.empty())
+		if (remove_list.has_value() && !remove_list->empty())
 		{
 			LogDbg(L"Removing UDP connections");
-			RemoveConnections(remove_list, *connections, thdata);
+			RemoveConnections(*remove_list, *connections, thdata);
 
-			remove_list.clear();
+			remove_list->clear();
 		}
 	}
 
