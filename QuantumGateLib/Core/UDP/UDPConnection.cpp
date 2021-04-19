@@ -308,7 +308,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
-	bool Connection::Wakeup() noexcept
+	bool Connection::Resume() noexcept
 	{
 		assert(GetStatus() == Status::Suspended);
 
@@ -805,7 +805,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					return ProcessReceivedMessageHandshake(endpoint, std::move(msg));
 				case Status::Suspended:
 					// Receiving data while suspended, so wake up first
-					if (!Wakeup())
+					if (!Resume())
 					{
 						SetCloseCondition(CloseCondition::GeneralFailure);
 						return false;

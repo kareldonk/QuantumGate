@@ -59,7 +59,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SetStatus(const Status status) noexcept;
 
 		[[nodiscard]] bool Suspend() noexcept;
-		[[nodiscard]] bool Wakeup() noexcept;
+		[[nodiscard]] bool Resume() noexcept;
 
 		[[nodiscard]] inline CloseCondition GetCloseCondition() const noexcept { return m_CloseCondition; }
 		void SetCloseCondition(const CloseCondition cc, int socket_error_code = -1) noexcept;
