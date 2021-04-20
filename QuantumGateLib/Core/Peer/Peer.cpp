@@ -272,7 +272,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				// Queue more noise
 				const auto inhandshake = (status < Status::Ready);
-				if (!m_NoiseQueue.QueueNoise(GetSettings(), inhandshake)) return false;
+				if (!m_NoiseQueue.QueueNoise(GetSettings(), inhandshake))
+				{
+					LogErr(L"Failed to queue noise for peer %s; will disconnect", GetPeerName().c_str());
+
+					SetDisconnectCondition(DisconnectCondition::GeneralFailure);
+					return false;
+				}
 			}
 		}
 
@@ -430,7 +436,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		// Check if we need to update the symmetric keys
 		// and handle the update process
-		if (!CheckAndProcessKeyUpdate())
+		if (!m_KeyUpdate.ProcessEvents())
 		{
 			SetDisconnectCondition(DisconnectCondition::GeneralFailure);
 			return false;
@@ -544,16 +550,11 @@ namespace QuantumGate::Implementation::Core::Peer
 				break;
 		}
 
-		if (success && OnStatusChange(prev_status, status))
-		{
-			m_LastStatusChangeSteadyTime = Util::GetCurrentSteadyTime();
-		}
-		else
+		if (!success || !(success = OnStatusChange(prev_status, status)))
 		{
 			// If we fail to change the status disconnect as soon as possible
 			LogErr(L"Failed to change status for peer %s to %d", GetPeerName().c_str(), status);
 			SetDisconnectCondition(DisconnectCondition::GeneralFailure);
-			success = false;
 		}
 
 		return success;
@@ -603,9 +604,9 @@ namespace QuantumGate::Implementation::Core::Peer
 					// Key exchange data not needed anymore for now
 					ReleaseKeyExchange();
 
-					if (!m_KeyUpdate.SetStatus(KeyUpdate::Status::UpdateWait))
+					if (!m_KeyUpdate.Initialize())
 					{
-						LogErr(L"Unable to set key update status for peer %s", GetPeerName().c_str());
+						LogErr(L"Unable to initialize key update for peer %s", GetPeerName().c_str());
 						SetDisconnectCondition(DisconnectCondition::GeneralFailure);
 						return false;
 					}
@@ -639,6 +640,20 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 				else if (old_status == Status::Suspended)
 				{
+					if (!m_NoiseQueue.Resume())
+					{
+						LogErr(L"Unable to resume noise queue for peer %s", GetPeerName().c_str());
+						SetDisconnectCondition(DisconnectCondition::GeneralFailure);
+						return false;
+					}
+
+					if (!m_KeyUpdate.Resume())
+					{
+						LogErr(L"Unable to resume key update for peer %s", GetPeerName().c_str());
+						SetDisconnectCondition(DisconnectCondition::GeneralFailure);
+						return false;
+					}
+
 					// Notify extenders of resumed peer
 					ProcessEvent(Event::Type::Resumed);
 				}
@@ -647,6 +662,15 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 			case Status::Suspended:
 			{
+				m_NoiseQueue.Suspend();
+
+				if (!m_KeyUpdate.Suspend())
+				{
+					LogErr(L"Unable to suspend key update for peer %s", GetPeerName().c_str());
+					SetDisconnectCondition(DisconnectCondition::GeneralFailure);
+					return false;
+				}
+
 				// Notify extenders of suspended peer
 				ProcessEvent(Event::Type::Suspended);
 
@@ -1460,25 +1484,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 
 		return false;
-	}
-
-	bool Peer::CheckAndProcessKeyUpdate() noexcept
-	{
-		if (m_KeyUpdate.ShouldUpdate())
-		{
-			if (!m_KeyUpdate.BeginKeyUpdate())
-			{
-				LogErr(L"Couldn't initiate key update for peer %s; will disconnect", GetPeerName().c_str());
-				return false;
-			}
-		}
-		else if (m_KeyUpdate.UpdateTimedOut())
-		{
-			LogErr(L"Key update for peer %s timed out; will disconnect", GetPeerName().c_str());
-			return false;
-		}
-
-		return true;
 	}
 
 	const LocalAlgorithms& Peer::GetSupportedAlgorithms() const noexcept

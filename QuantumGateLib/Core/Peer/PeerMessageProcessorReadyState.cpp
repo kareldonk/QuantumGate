@@ -332,91 +332,12 @@ namespace QuantumGate::Implementation::Core::Peer
 				break;
 			}
 			case MessageType::BeginPrimaryKeyUpdateExchange:
-			{
-				if (m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
-				{
-					if (m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::PrimaryExchange))
-					{
-						if (m_Peer.InitializeKeyExchange())
-						{
-							result = ProcessKeyExchange(std::move(msg));
-							if (result.Handled && result.Success)
-							{
-								result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::SecondaryExchange);
-							}
-						}
-					}
-				}
-
-				break;
-			}
 			case MessageType::EndPrimaryKeyUpdateExchange:
-			{
-				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::PrimaryExchange &&
-					m_Peer.GetConnectionType() == PeerConnectionType::Inbound)
-				{
-					result = ProcessKeyExchange(std::move(msg));
-					if (result.Handled && result.Success)
-					{
-						result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::SecondaryExchange);
-					}
-				}
-
-				break;
-			}
 			case MessageType::BeginSecondaryKeyUpdateExchange:
-			{
-				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::SecondaryExchange &&
-					m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
-				{
-					result = ProcessKeyExchange(std::move(msg));
-					if (result.Handled && result.Success)
-					{
-						result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::ReadyWait);
-					}
-				}
-
-				break;
-			}
 			case MessageType::EndSecondaryKeyUpdateExchange:
-			{
-				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::SecondaryExchange &&
-					m_Peer.GetConnectionType() == PeerConnectionType::Inbound)
-				{
-					result = ProcessKeyExchange(std::move(msg));
-					if (result.Handled && result.Success)
-					{
-						if (m_Peer.Send(MessageType::KeyUpdateReady, Buffer()))
-						{
-							result.Success = (m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::ReadyWait) &&
-											  m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::UpdateWait));
-						}
-						else LogDbg(L"Couldn't send KeyUpdateReady message to peer %s",
-									m_Peer.GetPeerName().c_str());
-					}
-				}
-
-				break;
-			}
 			case MessageType::KeyUpdateReady:
 			{
-				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::ReadyWait &&
-					m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
-				{
-					result.Handled = true;
-
-					if (auto& buffer = msg.GetMessageData(); buffer.IsEmpty())
-					{
-						// From now on we encrypt messages using the
-						// secondary symmetric key-pair
-						m_Peer.GetKeyExchange().StartUsingSecondarySymmetricKeyPairForEncryption();
-
-						result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::UpdateWait);
-					}
-					else LogDbg(L"Invalid KeyUpdateReady message from peer %s; no data expected",
-								m_Peer.GetPeerName().c_str());
-				}
-
+				result = m_Peer.GetKeyUpdate().ProcessKeyUpdateMessage(std::move(msg));
 				break;
 			}
 			default:

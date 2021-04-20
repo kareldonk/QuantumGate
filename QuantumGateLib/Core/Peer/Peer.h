@@ -12,7 +12,6 @@
 #include "PeerGate.h"
 #include "PeerKeyExchange.h"
 #include "PeerKeyUpdate.h"
-#include "PeerMessageProcessor.h"
 #include "PeerNoiseQueue.h"
 #include "PeerSendQueues.h"
 #include "PeerReceiveQueues.h"
@@ -97,8 +96,11 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline bool IsInHandshake() const noexcept
 		{
-			return (GetStatus() > Status::Connected&& GetStatus() < Status::Ready);
+			const auto status = GetStatus();
+			return (status > Status::Connected && status < Status::Ready);
 		}
+
+		[[nodiscard]] inline bool IsSuspended() const noexcept { return (GetStatus() == Status::Suspended); }
 
 		[[nodiscard]] inline bool IsAuthenticated() const noexcept { return m_PeerData.WithSharedLock()->IsAuthenticated; }
 		void SetAuthenticated(const bool auth) noexcept;
@@ -266,8 +268,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		void ProcessEvent(const Event::Type etype) noexcept;
 		void ProcessEvent(const Vector<ExtenderUUID>& extuuids, const Event::Type etype) noexcept;
 
-		[[nodiscard]] bool CheckAndProcessKeyUpdate() noexcept;
-
 		void SetInitialConditionsWithGlobalSharedSecret(const ProtectedBuffer& encr_authkey,
 														const ProtectedBuffer& decr_authkey) noexcept;
 
@@ -294,8 +294,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		Data_ThS m_PeerData;
 
 		PeerWeakPointer m_PeerPointer;
-
-		SteadyTime m_LastStatusChangeSteadyTime;
 
 		std::bitset<8> m_Flags{ 0 };
 

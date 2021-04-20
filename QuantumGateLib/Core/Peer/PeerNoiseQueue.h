@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline bool IsQueuedNoiseReady() const noexcept
 		{
-			if (!m_NoiseQueue.empty())
+			if (!m_NoiseQueue.empty() && !m_SuspendSteadyTime.has_value())
 			{
 				return m_NoiseQueue.top().IsTime();
 			}
@@ -29,7 +29,11 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline bool IsEmpty() const noexcept { return m_NoiseQueue.empty(); }
 
+		void Suspend() noexcept;
+		[[nodiscard]] bool Resume() noexcept;
+
 	private:
 		NoiseItemQueue m_NoiseQueue{ &NoiseItem::Compare };
+		std::optional<SteadyTime> m_SuspendSteadyTime;
 	};
 }

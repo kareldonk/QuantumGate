@@ -34,16 +34,14 @@ namespace QuantumGate::Implementation::Core::Peer
 					const auto msgps = static_cast<Size>(interval.count() * 3);
 					if (maxmsg < msgps) maxmsg = msgps;
 
-					Dbg(L"Handshake noise - Interval: %us, MaxMsg: %u", interval.count(), maxmsg);
+					Dbg(L"Handshake noise - Interval: %llds, MaxMsg: %zu", interval.count(), maxmsg);
 				}
 
 				// Random amount of noise messages
 				const auto num = std::abs(Random::GetPseudoRandomNumber(minmsg, maxmsg));
 				for (auto x = 0ll; x < num; ++x)
 				{
-					m_NoiseQueue.emplace(interval,
-										 settings.Noise.MinMessageSize,
-										 settings.Noise.MaxMessageSize);
+					m_NoiseQueue.emplace(interval, settings.Noise.MinMessageSize, settings.Noise.MaxMessageSize);
 				}
 			}
 		}
@@ -64,14 +62,63 @@ namespace QuantumGate::Implementation::Core::Peer
 				std::optional<NoiseItem> noiseitm = m_NoiseQueue.top();
 				m_NoiseQueue.pop();
 
-				Dbg(L"\r\nQueued noiseitem - time:%u, sec:%u, min:%u, max:%u\r\n",
+				Dbg(L"\r\nQueued noiseitem - time:%lld, sec:%lldms, min:%zu, max:%zu\r\n",
 					(noiseitm->ScheduleSteadyTime).time_since_epoch().count(),
-					noiseitm->ScheduleMilliseconds, noiseitm->MinSize, noiseitm->MaxSize);
+					noiseitm->ScheduleMilliseconds.count(), noiseitm->MinSize, noiseitm->MaxSize);
 
 				return noiseitm;
 			}
 		}
 
 		return std::nullopt;
+	}
+
+	void NoiseQueue::Suspend() noexcept
+	{
+		assert(!m_SuspendSteadyTime.has_value());
+
+		m_SuspendSteadyTime = Util::GetCurrentSteadyTime();
+	}
+
+	bool NoiseQueue::Resume() noexcept
+	{
+		assert(m_SuspendSteadyTime.has_value());
+
+		try
+		{
+			if (!m_NoiseQueue.empty())
+			{
+				// Move all the items to a new queue which will reschedule
+				// them using the current time
+				NoiseItemQueue new_queue{ &NoiseItem::Compare };
+
+				while (!m_NoiseQueue.empty())
+				{
+					const auto& noiseitm = m_NoiseQueue.top();
+
+					const auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(*m_SuspendSteadyTime -
+																							 noiseitm.ScheduleSteadyTime);
+					const auto interval = noiseitm.ScheduleMilliseconds - delta;
+					
+					new_queue.emplace(interval, noiseitm.MinSize, noiseitm.MaxSize);
+
+					Dbg(L"Queued noiseitem - time:%lld, sec:%lldms rescheduled to sec:%lldms (delta: %lldms), min:%zu, max:%zu",
+						(noiseitm.ScheduleSteadyTime).time_since_epoch().count(), noiseitm.ScheduleMilliseconds.count(),
+						interval.count(), delta.count(), noiseitm.MinSize, noiseitm.MaxSize);
+
+					m_NoiseQueue.pop();
+				}
+
+				m_NoiseQueue = std::move(new_queue);
+			}
+		}
+		catch (...)
+		{
+			return false;
+		}
+
+		m_SuspendSteadyTime.reset();
+
+		return true;
 	}
 }

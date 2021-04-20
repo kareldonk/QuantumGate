@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "PeerMessageProcessor.h"
+
 namespace QuantumGate::Implementation::Core::Peer
 {
 	class Peer;
@@ -12,7 +14,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	public:
 		enum class Status
 		{
-			Unknown, UpdateWait, PrimaryExchange, SecondaryExchange, ReadyWait
+			Unknown, UpdateWait, PrimaryExchange, SecondaryExchange, ReadyWait, Suspended
 		};
 
 		KeyUpdate(Peer& peer) noexcept : m_Peer(peer) {}
@@ -22,28 +24,38 @@ namespace QuantumGate::Implementation::Core::Peer
 		KeyUpdate& operator=(const KeyUpdate&) = delete;
 		KeyUpdate& operator=(KeyUpdate&&) noexcept = default;
 
-		[[nodiscard]] bool BeginKeyUpdate() noexcept;
+		[[nodiscard]] inline bool Initialize() noexcept { return SetStatus(KeyUpdate::Status::UpdateWait); }
 
-		inline Status GetStatus() const noexcept { return m_Status; }
+		[[nodiscard]] inline bool HasEvents() noexcept
+		{
+			// No events while suspended
+			if (GetStatus() == Status::Suspended) return false;
+
+			return ShouldUpdate() || UpdateTimedOut();
+		}
+
+		[[nodiscard]] bool ProcessEvents() noexcept;
+		[[nodiscard]] MessageProcessor::Result ProcessKeyUpdateMessage(MessageDetails&& msg) noexcept;
+
+		[[nodiscard]] bool  Suspend() noexcept;
+		[[nodiscard]] bool  Resume() noexcept;
+
+	private:
 		[[nodiscard]] bool SetStatus(const Status status) noexcept;
-		
-		[[nodiscard]] inline bool HasEvents() noexcept { return ShouldUpdate() || UpdateTimedOut(); }
+		inline Status GetStatus() const noexcept { return m_Status; }
+
+		[[nodiscard]] bool BeginKeyUpdate() noexcept;
+		void EndKeyUpdate() noexcept;
 
 		[[nodiscard]] bool UpdateTimedOut() const noexcept;
 		[[nodiscard]] bool ShouldUpdate() noexcept;
-		
-		[[nodiscard]] inline bool IsUpdating() const noexcept
-		{
-			return (GetStatus() == Status::PrimaryExchange || GetStatus() == Status::SecondaryExchange);
-		}
-
-	private:
-		void EndKeyUpdate() noexcept;
 
 	private:
 		Peer& m_Peer;
 		Status m_Status{ Status::Unknown };
 		SteadyTime m_UpdateSteadyTime;
 		std::chrono::seconds m_UpdateInterval{ 0 };
+		Status m_ResumeStatus{ Status::Unknown };
+		std::chrono::seconds m_ResumeUpdateIntervalDelta{ 0 };
 	};
 }
