@@ -510,7 +510,7 @@ void CTestAppDlgTestExtenderTab::OnBnClickedSendStress()
 
 	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - begin);
 
-	SetValue(IDC_STRESSRESULT, Util::FormatString(L"%lldms", ms.count()));
+	SetValue(IDC_STRESSRESULT, Util::FormatString(L"%jdms", ms.count()));
 }
 
 LRESULT CTestAppDlgTestExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)

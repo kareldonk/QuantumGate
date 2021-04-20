@@ -572,7 +572,7 @@ void CTestAppDlgAVExtenderTab::UpdateCallInformation(const QuantumGate::AVExtend
 	{
 		SetValue(IDC_CALL_STATUS, call->GetStatusString());
 		SetValue(IDC_CALL_DURATION,
-				 Util::FormatString(L"%llu seconds",
+				 Util::FormatString(L"%jd seconds",
 									std::chrono::duration_cast<std::chrono::seconds>(call->GetDuration()).count()));
 
 		GetDlgItem(IDC_CALL_BUTTON)->EnableWindow(m_QuantumGate.IsRunning() && call->IsDisconnected());

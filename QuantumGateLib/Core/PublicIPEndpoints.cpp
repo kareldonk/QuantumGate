@@ -683,7 +683,7 @@ namespace QuantumGate::Implementation::Core
 
 					for (auto& ep : temp_endp)
 					{
-						Dbg(L"%s - %s - %s - %llu",
+						Dbg(L"%s - %s - %s - %lld",
 							IPAddress(ep.IPAddress).GetString().c_str(),
 							ep.Trusted ? L"Trusted" : L"Not Trusted",
 							ep.Verified ? L"Verified" : L"Not verified",

@@ -34,7 +34,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					const auto msgps = static_cast<Size>(interval.count() * 3);
 					if (maxmsg < msgps) maxmsg = msgps;
 
-					Dbg(L"Handshake noise - Interval: %llds, MaxMsg: %zu", interval.count(), maxmsg);
+					Dbg(L"Handshake noise - Interval: %jds, MaxMsg: %zu", interval.count(), maxmsg);
 				}
 
 				// Random amount of noise messages
@@ -62,7 +62,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				std::optional<NoiseItem> noiseitm = m_NoiseQueue.top();
 				m_NoiseQueue.pop();
 
-				Dbg(L"\r\nQueued noiseitem - time:%lld, sec:%lldms, min:%zu, max:%zu\r\n",
+				Dbg(L"\r\nQueued noiseitem - time:%jd, sec:%jdms, min:%zu, max:%zu\r\n",
 					(noiseitm->ScheduleSteadyTime).time_since_epoch().count(),
 					noiseitm->ScheduleMilliseconds.count(), noiseitm->MinSize, noiseitm->MaxSize);
 
@@ -102,7 +102,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					
 					new_queue.emplace(interval, noiseitm.MinSize, noiseitm.MaxSize);
 
-					Dbg(L"Queued noiseitem - time:%lld, sec:%lldms rescheduled to sec:%lldms (delta: %lldms), min:%zu, max:%zu",
+					Dbg(L"Queued noiseitem - time:%jd, sec:%jdms rescheduled to sec:%jdms (delta: %jdms), min:%zu, max:%zu",
 						(noiseitm.ScheduleSteadyTime).time_since_epoch().count(), noiseitm.ScheduleMilliseconds.count(),
 						interval.count(), delta.count(), noiseitm.MinSize, noiseitm.MaxSize);
 

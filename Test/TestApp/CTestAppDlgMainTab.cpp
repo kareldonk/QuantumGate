@@ -299,7 +299,7 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 											retval->PeerProtocolVersion.first, retval->PeerProtocolVersion.second);
 				pitxt += Util::FormatString(L"Local session ID:\t\t%llu\r\n", retval->LocalSessionID);
 				pitxt += Util::FormatString(L"Peer session ID:\t\t%llu\r\n", retval->PeerSessionID);
-				pitxt += Util::FormatString(L"Connected time:\t\t%llu seconds\r\n",
+				pitxt += Util::FormatString(L"Connected time:\t\t%jd seconds\r\n",
 											std::chrono::duration_cast<std::chrono::seconds>(retval->ConnectedTime).count());
 				pitxt += Util::FormatString(L"Bytes received:\t\t%zu\r\n", retval->BytesReceived);
 				pitxt += Util::FormatString(L"Bytes sent:\t\t%zu\r\n", retval->BytesSent);
@@ -409,7 +409,7 @@ void CTestAppDlgMainTab::LogPeerDetails(const QuantumGate::Peer& peer)
 
 	peer.GetConnectedTime().Succeeded([&](auto& result)
 	{
-		pitxt += Util::FormatString(L"Connected time:\t\t\t%llu seconds\r\n",
+		pitxt += Util::FormatString(L"Connected time:\t\t\t%jd seconds\r\n",
 									std::chrono::duration_cast<std::chrono::seconds>(*result).count());
 	});
 

@@ -44,7 +44,7 @@ std::chrono::microseconds Benchmarks::DoBenchmark(const std::wstring& desc, unsi
 	}
 
 	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - begin);
-	LogSys(L"Benchmark '%s' result: %dms", desc.c_str(), ms.count());
+	LogSys(L"Benchmark '%s' result: %jdms", desc.c_str(), ms.count());
 
 	return ms;
 }
@@ -184,11 +184,11 @@ void Benchmarks::BenchmarkThreadPause()
 		_mm_pause();
 		const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start);
 		total_time += elapsed;
-		LogInfo(L"_mm_pause() result: %dns", elapsed.count());
+		LogInfo(L"_mm_pause() result: %jdns", elapsed.count());
 	}
 
 	auto avg_time = total_time / maxtr;
-	LogSys(L"_mm_pause() average result: %dns", avg_time.count());
+	LogSys(L"_mm_pause() average result: %jdns", avg_time.count());
 
 	total_time = 0ns;
 
@@ -198,11 +198,11 @@ void Benchmarks::BenchmarkThreadPause()
 		std::this_thread::yield();
 		const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start);
 		total_time += elapsed;
-		LogInfo(L"std::this_thread::yield() result: %dns", elapsed.count());
+		LogInfo(L"std::this_thread::yield() result: %jdns", elapsed.count());
 	}
 
 	avg_time = total_time / maxtr;
-	LogSys(L"std::this_thread::yield() average result: %dns", avg_time.count());
+	LogSys(L"std::this_thread::yield() average result: %jdns", avg_time.count());
 
 	total_time = 0ns;
 
@@ -212,11 +212,11 @@ void Benchmarks::BenchmarkThreadPause()
 		std::this_thread::sleep_for(1ms);
 		const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start);
 		total_time += elapsed;
-		LogInfo(L"std::this_thread::sleep_for(1ms) result: %dns", elapsed.count());
+		LogInfo(L"std::this_thread::sleep_for(1ms) result: %jdns", elapsed.count());
 	}
 
 	avg_time = total_time / maxtr;
-	LogSys(L"std::this_thread::sleep_for(1ms) average result: %dns", avg_time.count());
+	LogSys(L"std::this_thread::sleep_for(1ms) average result: %jdns", avg_time.count());
 }
 
 void Benchmarks::BenchmarkMutexes()
@@ -435,7 +435,7 @@ void Benchmarks::BenchmarkConsole()
 		SLogInfo(L"This is a test message " << number);
 	});
 
-	LogSys(L"Benchmark results: %dms / %dms | %dms / %dms",
+	LogSys(L"Benchmark results: %jdms / %jdms | %jdms / %jdms",
 		   std::chrono::duration_cast<std::chrono::milliseconds>(dur1).count(),
 		   std::chrono::duration_cast<std::chrono::milliseconds>(dur2).count(),
 		   std::chrono::duration_cast<std::chrono::milliseconds>(dur3).count(),

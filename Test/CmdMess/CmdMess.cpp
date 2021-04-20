@@ -287,7 +287,7 @@ bool Send(const std::wstring& pluidstr, const std::wstring& msg, const std::wstr
 	if (success)
 	{
 		const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - begin);
-		PrintInfoLine(L"Sent in %d milliseconds.", ms.count());
+		PrintInfoLine(L"Sent in %jd milliseconds.", ms.count());
 	}
 
 	return success;

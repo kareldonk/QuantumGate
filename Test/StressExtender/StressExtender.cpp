@@ -143,7 +143,7 @@ namespace StressExtender
 							m_IsPeerBenchmarking = false;
 							auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_PeerBenchmarkStart);
 
-							LogSys(L"Peer %s benchmark result: %dms", GetName().c_str(), ms.count());
+							LogSys(L"Peer %s benchmark result: %jdms", GetName().c_str(), ms.count());
 							result.Success = true;
 						}
 					}
@@ -221,7 +221,7 @@ namespace StressExtender
 			m_IsLocalBenchmarking = false;
 			auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_LocalBenchmarkStart);
 
-			LogSys(L"Local %s benchmark result: %dms", GetName().c_str(), ms.count());
+			LogSys(L"Local %s benchmark result: %jdms", GetName().c_str(), ms.count());
 		}
 
 		const UInt16 msgtype = static_cast<UInt16>(MessageType::BenchmarkEnd);
