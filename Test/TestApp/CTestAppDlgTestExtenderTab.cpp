@@ -351,9 +351,13 @@ void CTestAppDlgTestExtenderTab::StopSendThread()
 void CTestAppDlgTestExtenderTab::SendThreadProc(CTestAppDlgTestExtenderTab* dlg, const int interval,
 												const PeerLUID pluid, CString txt)
 {
+	String tmp_str;
+
 	while (!dlg->m_SendThreadStop)
 	{
-		dlg->SendMsgToPeer(pluid, txt.GetString(), QuantumGate::SendParameters::PriorityOption::Normal, std::chrono::milliseconds(0));
+		tmp_str = Util::FormatString(L"%s [%jdms]", txt.GetString(),
+									 std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime().time_since_epoch()).count());
+		dlg->SendMsgToPeer(pluid, tmp_str, QuantumGate::SendParameters::PriorityOption::Normal, std::chrono::milliseconds(0));
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(interval));
 	}
