@@ -1246,16 +1246,42 @@ namespace QuantumGate::Implementation::Core::Peer
 						else if (std::chrono::abs(Util::GetCurrentSystemTime() - msg.GetMessageTime()) >
 								 settings.Message.AgeTolerance)
 						{
-							// Message should not be too old or too far into the future
-							LogErr(L"Peer %s sent a message outside time tolerance (%d seconds)",
-								   GetPeerName().c_str(), settings.Message.AgeTolerance);
-							break;
+							bool disconnect{ true };
+
+							if (CanSuspend())
+							{
+								const auto lres_time = GetLastResumedSteadyTime();
+
+								if (lres_time.has_value())
+								{
+									const auto now = Util::GetCurrentSteadyTime();
+									const auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(now - *lres_time);
+
+									LogWarn(L"Peer %s sent a message outside time tolerance (%d seconds). Connection was suspended; resume steady time %jd, current is %jd, delta is %jdms",
+											GetPeerName().c_str(), settings.Message.AgeTolerance,
+											lres_time->time_since_epoch().count(), now.time_since_epoch().count(),
+											delta.count());
+
+									// Due to connection being suspended some messages can arrive late; we
+									// keep accepting late messages for a brief period
+									if (delta < settings.Local.SuspendTimeout + settings.Message.AgeTolerance + 600s)
+									{
+										disconnect = false;
+									}
+								}
+							}
+
+							if (disconnect)
+							{
+								// Message should not be too old or too far into the future
+								LogErr(L"Peer %s sent a message outside time tolerance (%d seconds)",
+									   GetPeerName().c_str(), settings.Message.AgeTolerance);
+								break;
+							}
 						}
-						else
-						{
-							const auto retval2 = ProcessMessages(msg.GetMessageData(), *symkey);
-							return std::make_tuple(retval2.first, retval2.second, msg.GetNextRandomDataPrefixLength());
-						}
+						
+						const auto retval2 = ProcessMessages(msg.GetMessageData(), *symkey);
+						return std::make_tuple(retval2.first, retval2.second, msg.GetNextRandomDataPrefixLength());
 					}
 					else if (!msg.IsValid() && !retry)
 					{

@@ -44,6 +44,10 @@ namespace QuantumGate::Implementation::Core::UDP
 		[[nodiscard]] inline const IOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
 		[[nodiscard]] bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept override;
 
+		[[nodiscard]] bool CanSuspend() const noexcept override { return true; }
+		[[nodiscard]] std::optional<SteadyTime> GetLastSuspendedSteadyTime() const noexcept override { return m_LastSuspendedSteadyTime; }
+		[[nodiscard]] std::optional<SteadyTime> GetLastResumedSteadyTime() const noexcept override { return m_LastResumedSteadyTime; }
+
 		[[nodiscard]] SystemTime GetConnectedTime() const noexcept override;
 		[[nodiscard]] inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
 		[[nodiscard]] inline Size GetBytesReceived() const noexcept override { return m_BytesReceived; }
@@ -97,6 +101,8 @@ namespace QuantumGate::Implementation::Core::UDP
 		IPEndpoint m_PeerEndpoint;
 
 		SteadyTime m_ConnectedSteadyTime;
+		std::optional<SteadyTime> m_LastSuspendedSteadyTime;
+		std::optional<SteadyTime> m_LastResumedSteadyTime;
 
 		Size m_MaxSendBufferSize{ MinSendBufferSize };
 		std::shared_ptr<ConnectionData_ThS> m_ConnectionData;

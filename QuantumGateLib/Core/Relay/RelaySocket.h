@@ -75,6 +75,10 @@ namespace QuantumGate::Implementation::Core::Relay
 		[[nodiscard]] inline const IOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
 		[[nodiscard]] bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept override;
 
+		[[nodiscard]] bool CanSuspend() const noexcept override { return false; }
+		[[nodiscard]] std::optional<SteadyTime> GetLastSuspendedSteadyTime() const noexcept override { return std::nullopt; }
+		[[nodiscard]] std::optional<SteadyTime> GetLastResumedSteadyTime() const noexcept override { return std::nullopt; }
+
 		[[nodiscard]] SystemTime GetConnectedTime() const noexcept override;
 		[[nodiscard]] inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
 		[[nodiscard]] inline Size GetBytesReceived() const noexcept override { return m_BytesReceived; }

@@ -108,6 +108,10 @@ namespace QuantumGate::Implementation::Network
 		virtual const IOStatus& GetIOStatus() const noexcept = 0;
 		virtual bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept = 0;
 
+		virtual bool CanSuspend() const noexcept = 0;
+		virtual std::optional<SteadyTime> GetLastSuspendedSteadyTime() const noexcept = 0;
+		virtual std::optional<SteadyTime> GetLastResumedSteadyTime() const noexcept = 0;
+
 		virtual SystemTime GetConnectedTime() const noexcept = 0;
 		virtual const SteadyTime& GetConnectedSteadyTime() const noexcept = 0;
 		virtual Size GetBytesReceived() const noexcept = 0;

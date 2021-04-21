@@ -28,51 +28,55 @@ namespace QuantumGate::Implementation::Core::Peer
 		Gate& operator=(Gate&&) noexcept = default;
 
 		template<typename T>
-		T& GetSocket() noexcept { return *dynamic_cast<T*>(m_Socket); }
+		[[nodiscard]] T& GetSocket() noexcept { return *dynamic_cast<T*>(m_Socket); }
 
 		template<typename T>
-		const T& GetSocket() const noexcept { return *dynamic_cast<const T*>(m_Socket); }
+		[[nodiscard]] const T& GetSocket() const noexcept { return *dynamic_cast<const T*>(m_Socket); }
 
-		GateType GetGateType() const noexcept { return m_Type; }
+		[[nodiscard]] GateType GetGateType() const noexcept { return m_Type; }
 
-		bool BeginConnect(const IPEndpoint& endpoint) noexcept
+		[[nodiscard]] bool BeginConnect(const IPEndpoint& endpoint) noexcept
 		{
 			assert(m_Socket); return m_Socket->BeginConnect(endpoint);
 		}
 
-		bool CompleteConnect() noexcept { assert(m_Socket); return m_Socket->CompleteConnect(); }
+		[[nodiscard]] bool CompleteConnect() noexcept { assert(m_Socket); return m_Socket->CompleteConnect(); }
 
-		Result<Size> Send(const BufferView& buffer) noexcept { assert(m_Socket); return m_Socket->Send(buffer); }
-		Result<Size> Receive(Buffer& buffer) noexcept { assert(m_Socket); return m_Socket->Receive(buffer); }
+		[[nodiscard]] Result<Size> Send(const BufferView& buffer) noexcept { assert(m_Socket); return m_Socket->Send(buffer); }
+		[[nodiscard]] Result<Size> Receive(Buffer& buffer) noexcept { assert(m_Socket); return m_Socket->Receive(buffer); }
 
 		void Close(const bool linger = false) noexcept { assert(m_Socket); return m_Socket->Close(linger); }
 
-		const Socket::IOStatus& GetIOStatus() const noexcept { assert(m_Socket); return m_Socket->GetIOStatus(); }
+		[[nodiscard]] const Socket::IOStatus& GetIOStatus() const noexcept { assert(m_Socket); return m_Socket->GetIOStatus(); }
 
-		bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
+		[[nodiscard]] bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept
 		{
 			assert(m_Socket); return m_Socket->UpdateIOStatus(mseconds);
 		}
 
-		SystemTime GetConnectedTime() const noexcept { assert(m_Socket); return m_Socket->GetConnectedTime(); }
+		[[nodiscard]] bool CanSuspend() const noexcept { assert(m_Socket); return m_Socket->CanSuspend(); }
+		[[nodiscard]] std::optional<SteadyTime> GetLastSuspendedSteadyTime() const noexcept { assert(m_Socket); return m_Socket->GetLastSuspendedSteadyTime(); }
+		[[nodiscard]] std::optional<SteadyTime> GetLastResumedSteadyTime() const noexcept { assert(m_Socket); return m_Socket->GetLastResumedSteadyTime(); }
 
-		const SteadyTime& GetConnectedSteadyTime() const noexcept
+		[[nodiscard]] SystemTime GetConnectedTime() const noexcept { assert(m_Socket); return m_Socket->GetConnectedTime(); }
+
+		[[nodiscard]] const SteadyTime& GetConnectedSteadyTime() const noexcept
 		{
 			assert(m_Socket); return m_Socket->GetConnectedSteadyTime();
 		}
 
-		Size GetBytesReceived() const noexcept { assert(m_Socket); return m_Socket->GetBytesReceived(); }
-		Size GetBytesSent() const noexcept { assert(m_Socket); return m_Socket->GetBytesSent(); }
+		[[nodiscard]] Size GetBytesReceived() const noexcept { assert(m_Socket); return m_Socket->GetBytesReceived(); }
+		[[nodiscard]] Size GetBytesSent() const noexcept { assert(m_Socket); return m_Socket->GetBytesSent(); }
 
-		const IPEndpoint& GetLocalEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetLocalEndpoint(); }
-		const IPAddress& GetLocalIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetLocalIPAddress(); }
-		virtual String GetLocalName() const noexcept { assert(m_Socket); return m_Socket->GetLocalName(); }
-		UInt32 GetLocalPort() const noexcept { assert(m_Socket); return m_Socket->GetLocalPort(); }
+		[[nodiscard]] const IPEndpoint& GetLocalEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetLocalEndpoint(); }
+		[[nodiscard]] const IPAddress& GetLocalIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetLocalIPAddress(); }
+		[[nodiscard]] virtual String GetLocalName() const noexcept { assert(m_Socket); return m_Socket->GetLocalName(); }
+		[[nodiscard]] UInt32 GetLocalPort() const noexcept { assert(m_Socket); return m_Socket->GetLocalPort(); }
 
-		const IPEndpoint& GetPeerEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetPeerEndpoint(); }
-		const IPAddress& GetPeerIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetPeerIPAddress(); }
-		UInt32 GetPeerPort() const noexcept { assert(m_Socket); return m_Socket->GetPeerPort(); }
-		virtual String GetPeerName() const noexcept { assert(m_Socket); return m_Socket->GetPeerName(); }
+		[[nodiscard]] const IPEndpoint& GetPeerEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetPeerEndpoint(); }
+		[[nodiscard]] const IPAddress& GetPeerIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetPeerIPAddress(); }
+		[[nodiscard]] UInt32 GetPeerPort() const noexcept { assert(m_Socket); return m_Socket->GetPeerPort(); }
+		[[nodiscard]] virtual String GetPeerName() const noexcept { assert(m_Socket); return m_Socket->GetPeerName(); }
 
 	protected:
 		virtual void OnConnecting() noexcept {}

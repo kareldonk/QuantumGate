@@ -182,7 +182,17 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		m_IOStatus.SetRead(connection_data->CanRead() || connection_data->HasCloseRequest());
 		m_IOStatus.SetWrite(connection_data->CanWrite() && !connection_data->IsSuspended());
-		m_IOStatus.SetSuspended(connection_data->IsSuspended());
+
+		if (!m_IOStatus.IsSuspended() && connection_data->IsSuspended())
+		{
+			m_LastSuspendedSteadyTime = Util::GetCurrentSteadyTime();
+			m_IOStatus.SetSuspended(true);
+		}
+		else if(m_IOStatus.IsSuspended() && !connection_data->IsSuspended())
+		{
+			m_LastResumedSteadyTime = Util::GetCurrentSteadyTime();
+			m_IOStatus.SetSuspended(false);
+		}
 
 		if (connection_data->HasException())
 		{
@@ -208,5 +218,4 @@ namespace QuantumGate::Implementation::Core::UDP
 		m_LocalEndpoint = connection_data->GetLocalEndpoint();
 		m_PeerEndpoint = connection_data->GetPeerEndpoint();
 	}
-
 }
