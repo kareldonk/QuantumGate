@@ -197,6 +197,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 
 		const auto& settings = GetSettings();
+		
+		assert(settings.Local.SuspendTimeout > SuspendTimeoutMargin);
+		const auto max_keepalive_timeout = settings.Local.SuspendTimeout - SuspendTimeoutMargin;
 
 		switch (GetStatus())
 		{
@@ -237,7 +240,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					SetCloseCondition(CloseCondition::SendError);
 				}
 
-				if (Util::GetCurrentSteadyTime() - m_LastReceiveSteadyTime >= settings.UDP.MaxKeepAliveTimeout)
+				if (Util::GetCurrentSteadyTime() - m_LastReceiveSteadyTime >= max_keepalive_timeout)
 				{
 					if (!Suspend())
 					{
@@ -248,7 +251,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 			case Status::Suspended:
 			{
-				const auto suspended_steadytime = m_LastReceiveSteadyTime + settings.UDP.MaxKeepAliveTimeout;
+				const auto suspended_steadytime = m_LastReceiveSteadyTime + max_keepalive_timeout;
 				if (Util::GetCurrentSteadyTime() - suspended_steadytime >= settings.Local.MaxSuspendDuration)
 				{
 					// Connection has been in the suspended state for
@@ -295,10 +298,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void Connection::ResetKeepAliveTimeout(const Settings& settings) noexcept
 	{
-		m_KeepAliveTimeout = std::chrono::seconds(
-			Random::GetPseudoRandomNumber(settings.UDP.MinKeepAliveTimeout.count(),
-										  settings.UDP.MaxKeepAliveTimeout.count())
-		);
+		const auto max_keepalive_timeout = settings.Local.SuspendTimeout - SuspendTimeoutMargin;
+		m_KeepAliveTimeout = std::chrono::seconds(Random::GetPseudoRandomNumber(0, max_keepalive_timeout.count()));
 	}
 
 	bool Connection::Suspend() noexcept

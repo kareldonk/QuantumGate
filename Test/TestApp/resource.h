@@ -114,6 +114,7 @@
 #define IDC_KEYUPDATE_MAXDURATION       1032
 #define IDC_REFRESH                     1032
 #define IDC_IP_TEST_RESULT              1033
+#define IDC_SUSPEND_TIMEOUT             1033
 #define IDC_MESSAGE_AGE_TOLERANCE       1034
 #define IDC_USERNAME                    1035
 #define IDC_NOISE_AUTO_MIN_BANDWIDTH    1035
@@ -122,6 +123,7 @@
 #define IDC_IPSUBNETLIMIT_LIST          1037
 #define IDC_TTL                         1037
 #define IDC_TCP_PORT                    1037
+#define IDC_MAX_SUSPEND_DURATION        1037
 #define IDC_REMOVELIMIT                 1038
 #define IDC_TIMEOUT                     1038
 #define IDC_MAX_CONNECTIONS             1039

@@ -1142,6 +1142,9 @@ namespace QuantumGate::Implementation::Core
 	{
 		if (params.General.ConnectTimeout < 0s) return false;
 
+		if (params.General.SuspendTimeout < 60s) return false;
+		if (params.General.MaxSuspendDuration < 0s) return false;
+
 		if (params.General.MaxHandshakeDelay < 0ms ||
 			params.General.MaxHandshakeDuration < 0s) return false;
 
@@ -1391,7 +1394,12 @@ namespace QuantumGate::Implementation::Core
 							}
 
 							settings.Local.Listeners.TCP.UseConditionalAcceptFunction = params->General.UseConditionalAcceptFunction;
+							
 							settings.Local.ConnectTimeout = params->General.ConnectTimeout;
+							
+							settings.Local.SuspendTimeout = params->General.SuspendTimeout;
+							settings.Local.MaxSuspendDuration = params->General.MaxSuspendDuration;
+							
 							settings.Local.MaxHandshakeDelay = params->General.MaxHandshakeDelay;
 							settings.Local.MaxHandshakeDuration = params->General.MaxHandshakeDuration;
 							settings.Local.IPReputationImprovementInterval = params->General.IPReputationImprovementInterval;
@@ -1475,6 +1483,8 @@ namespace QuantumGate::Implementation::Core
 
 		params.General.UseConditionalAcceptFunction = settings.Local.Listeners.TCP.UseConditionalAcceptFunction;
 		params.General.ConnectTimeout = settings.Local.ConnectTimeout;
+		params.General.SuspendTimeout = settings.Local.SuspendTimeout;
+		params.General.MaxSuspendDuration = settings.Local.MaxSuspendDuration;
 		params.General.MaxHandshakeDelay = settings.Local.MaxHandshakeDelay;
 		params.General.MaxHandshakeDuration = settings.Local.MaxHandshakeDuration;
 
@@ -1514,6 +1524,8 @@ namespace QuantumGate::Implementation::Core
 	{
 		settings.Local.Listeners.TCP.UseConditionalAcceptFunction = true;
 		settings.Local.ConnectTimeout = 60s;
+		settings.Local.SuspendTimeout = 60s;
+		settings.Local.MaxSuspendDuration = 60s;
 		settings.Local.MaxHandshakeDelay = 0ms;
 		settings.Local.MaxHandshakeDuration = 30s;
 

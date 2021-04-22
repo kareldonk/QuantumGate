@@ -46,8 +46,6 @@ namespace QuantumGate::Implementation
 	{
 		std::chrono::seconds ConnectTimeout{ 30 };							// Maximum number of seconds to wait for a connection to be established
 		std::chrono::seconds ConnectRetransmissionTimeout{ 1 };				// Minimum number of seconds to wait before retransmission during connection handshake
-		std::chrono::seconds MinKeepAliveTimeout{ 0 };						// Minimum number of seconds to wait before sending a keepalive packet
-		std::chrono::seconds MaxKeepAliveTimeout{ 45 };						// Maximum number of seconds to wait before sending a keepalive packet (this should be smaller than LocalSettings.SuspendTimeout)
 	};
 
 	struct LocalAlgorithms final
@@ -87,7 +85,7 @@ namespace QuantumGate::Implementation
 
 		std::chrono::seconds ConnectTimeout{ 60 };							// Maximum number of seconds to wait for a connection to be established
 		std::chrono::seconds SuspendTimeout{ 60 };							// Maximum number of seconds of inactivity after which a connection gets suspended (only for endpoints that support suspending connections)
-		std::chrono::seconds MaxSuspendDuration{ 60 };						// Maximum number of seconds that a connection may be suspended before the peer is disconnected
+		std::chrono::seconds MaxSuspendDuration{ 60 };						// Maximum number of seconds that a connection may be suspended before the peer is disconnected (only for endpoints that support suspending connections)
 		std::chrono::milliseconds MaxHandshakeDelay{ 0 };					// Maximum number of milliseconds to wait in between handshake messages
 		std::chrono::seconds MaxHandshakeDuration{ 30 };					// Maximum number of seconds a handshake may last after connecting before peer is disconnected
 

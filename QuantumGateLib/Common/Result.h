@@ -41,6 +41,7 @@ namespace QuantumGate::Implementation
 		PeerNoExtender = 102,
 		PeerAlreadyExists = 103,
 		PeerSendBufferFull = 104,
+		PeerSuspended = 105,
 
 		AddressInvalid = 200,
 		AddressMaskInvalid = 201,

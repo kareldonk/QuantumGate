@@ -35,6 +35,8 @@ BOOL CSecurityDlg::OnInitDialog()
 	SetValue(IDC_COND_ACCEPT, params.General.UseConditionalAcceptFunction);
 
 	SetValue(IDC_CONNECT_TIMEOUT, params.General.ConnectTimeout);
+	SetValue(IDC_SUSPEND_TIMEOUT, params.General.SuspendTimeout);
+	SetValue(IDC_MAX_SUSPEND_DURATION, params.General.MaxSuspendDuration);
 
 	SetValue(IDC_HANDSHAKE_DELAY, params.General.MaxHandshakeDelay);
 	SetValue(IDC_HANDSHAKE_DURATION, params.General.MaxHandshakeDuration);
@@ -93,6 +95,8 @@ void CSecurityDlg::OnBnClickedOk()
 
 	params.General.UseConditionalAcceptFunction = (((CButton*)GetDlgItem(IDC_COND_ACCEPT))->GetCheck() == BST_CHECKED);
 	params.General.ConnectTimeout = std::chrono::seconds(GetSizeValue(IDC_CONNECT_TIMEOUT));
+	params.General.SuspendTimeout = std::chrono::seconds(GetSizeValue(IDC_SUSPEND_TIMEOUT));
+	params.General.MaxSuspendDuration = std::chrono::seconds(GetSizeValue(IDC_MAX_SUSPEND_DURATION));
 	params.General.MaxHandshakeDelay = std::chrono::milliseconds(GetSizeValue(IDC_HANDSHAKE_DELAY));
 	params.General.MaxHandshakeDuration = std::chrono::seconds(GetSizeValue(IDC_HANDSHAKE_DURATION));
 	params.General.IPReputationImprovementInterval = std::chrono::seconds(GetSizeValue(IDC_IPREP_IMPROVE_INTERVAL));

@@ -1212,6 +1212,10 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 			else return ResultCode::PeerNoExtender;
 		}
+		else if (peer.IsSuspended())
+		{
+			return ResultCode::PeerSuspended;
+		}
 
 		return ResultCode::PeerNotReady;
 	}
@@ -1243,7 +1247,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					case BroadcastResult::PeerNotReady:
 					{
-						if (peer.IsInSessionInit())
+						if (peer.IsInSessionInit() || peer.IsSuspended())
 						{
 							// We'll need to send an extender update to the peer
 							// when it gets in the ready state

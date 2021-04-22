@@ -60,6 +60,8 @@ namespace QuantumGate::Implementation
 					return "Operation failed. The peer already exists.";
 				case ResultCode::PeerSendBufferFull:
 					return "Operation failed. The peer send buffer is full.";
+				case ResultCode::PeerSuspended:
+					return "Operation failed. The peer was suspended.";
 				case ResultCode::AddressInvalid:
 					return "Operation failed. The address wasn't recognized and may be invalid.";
 				case ResultCode::AddressMaskInvalid:

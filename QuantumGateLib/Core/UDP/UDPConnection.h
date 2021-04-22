@@ -107,6 +107,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void ProcessSocketEvents() noexcept;
 
 	private:
+		static constexpr const std::chrono::seconds SuspendTimeoutMargin{ 15 };
+
+	private:
 		const Settings_CThS& m_Settings;
 		Access::Manager& m_AccessManager;
 
