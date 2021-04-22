@@ -104,19 +104,14 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				assert(prev_status == Status::Handshake || prev_status == Status::Suspended);
 				if (prev_status == Status::Handshake || prev_status == Status::Suspended)
 				{
-					LogDbg(L"UDP connection: connection %llu has entered Connected state", GetID());
 					m_Status = status;
-					ResetKeepAliveTimeout();
+					ResetKeepAliveTimeout(GetSettings());
 				}
 				else success = false;
 				break;
 			case Status::Suspended:
 				assert(prev_status == Status::Connected);
-				if (prev_status == Status::Connected)
-				{
-					LogDbg(L"UDP connection: connection %llu has entered Suspended state", GetID());
-					m_Status = status;
-				}
+				if (prev_status == Status::Connected) m_Status = status;
 				else success = false;
 				break;
 			case Status::Closed:
@@ -201,11 +196,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			SetCloseCondition(CloseCondition::ReceiveError);
 		}
 
+		const auto& settings = GetSettings();
+
 		switch (GetStatus())
 		{
 			case Status::Handshake:
 			{
-				if (Util::GetCurrentSteadyTime() - m_LastStatusChangeSteadyTime >= GetSettings().UDP.ConnectTimeout)
+				if (Util::GetCurrentSteadyTime() - m_LastStatusChangeSteadyTime >= settings.UDP.ConnectTimeout)
 				{
 					LogDbg(L"UDP connection: handshake timed out for connection %llu", GetID());
 
@@ -225,7 +222,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					SetCloseCondition(CloseCondition::SendError);
 				}
 
-				if (!CheckKeepAlive() || !ProcessMTUDiscovery())
+				if (!CheckKeepAlive(settings) || !ProcessMTUDiscovery())
 				{
 					SetCloseCondition(CloseCondition::GeneralFailure);
 				}
@@ -239,13 +236,34 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					SetCloseCondition(CloseCondition::SendError);
 				}
+
+				if (Util::GetCurrentSteadyTime() - m_LastReceiveSteadyTime >= settings.UDP.MaxKeepAliveTimeout)
+				{
+					if (!Suspend())
+					{
+						SetCloseCondition(CloseCondition::GeneralFailure);
+					}
+				}
 				break;
 			}
 			case Status::Suspended:
 			{
-				if (!CheckKeepAlive())
+				const auto suspended_steadytime = m_LastReceiveSteadyTime + settings.UDP.MaxKeepAliveTimeout;
+				if (Util::GetCurrentSteadyTime() - suspended_steadytime >= settings.Local.MaxSuspendDuration)
 				{
-					SetCloseCondition(CloseCondition::GeneralFailure);
+					// Connection has been in the suspended state for
+					// too long so we disconnect it now
+					LogDbg(L"UDP connection: suspend duration timed out for connection %llu", GetID());
+
+					SetCloseCondition(CloseCondition::TimedOutError);
+				}
+				else
+				{
+					// Try to make contact again
+					if (!CheckKeepAlive(settings))
+					{
+						SetCloseCondition(CloseCondition::GeneralFailure);
+					}
 				}
 				break;
 			}
@@ -261,31 +279,22 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	bool Connection::CheckKeepAlive() noexcept
+	bool Connection::CheckKeepAlive(const Settings& settings) noexcept
 	{
 		const auto now = Util::GetCurrentSteadyTime();
+	
 		if (now - m_LastSendSteadyTime >= m_KeepAliveTimeout)
 		{
-			ResetKeepAliveTimeout();
+			ResetKeepAliveTimeout(settings);
 
 			return SendKeepAlive();
-		}
-
-		if (GetStatus() == Status::Connected)
-		{
-			if (now - m_LastReceiveSteadyTime >= GetSettings().UDP.MaxKeepAliveTimeout)
-			{
-				return Suspend();
-			}
 		}
 
 		return true;
 	}
 
-	void Connection::ResetKeepAliveTimeout() noexcept
+	void Connection::ResetKeepAliveTimeout(const Settings& settings) noexcept
 	{
-		const auto& settings = GetSettings();
-
 		m_KeepAliveTimeout = std::chrono::seconds(
 			Random::GetPseudoRandomNumber(settings.UDP.MinKeepAliveTimeout.count(),
 										  settings.UDP.MaxKeepAliveTimeout.count())
@@ -295,6 +304,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	bool Connection::Suspend() noexcept
 	{
 		assert(GetStatus() == Status::Connected);
+
+		LogDbg(L"UDP connection: connection %llu entering Suspended state", GetID());
 
 		if (SetStatus(Status::Suspended))
 		{
@@ -311,6 +322,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	bool Connection::Resume() noexcept
 	{
 		assert(GetStatus() == Status::Suspended);
+
+		LogDbg(L"UDP connection: connection %llu resuming from Suspended state", GetID());
 
 		if (SetStatus(Status::Connected))
 		{

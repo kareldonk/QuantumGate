@@ -100,8 +100,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SendPendingSocketData() noexcept;
 		[[nodiscard]] bool ReceivePendingSocketData() noexcept;
 		
-		[[nodiscard]] bool CheckKeepAlive() noexcept;
-		void ResetKeepAliveTimeout() noexcept;
+		[[nodiscard]] bool CheckKeepAlive(const Settings& settings) noexcept;
+		void ResetKeepAliveTimeout(const Settings& settings) noexcept;
 		[[nodiscard]] bool ProcessMTUDiscovery() noexcept;
 
 		void ProcessSocketEvents() noexcept;
