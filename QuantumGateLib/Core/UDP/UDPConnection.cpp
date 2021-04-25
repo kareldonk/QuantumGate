@@ -773,15 +773,25 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					}
 					else
 					{
-						LogErr(L"UDP connection: receive failed for connection %llu (%s)",
-							   GetID(), result.GetErrorString().c_str());
-
-						if (result.GetErrorCode().category() == std::system_category())
+						if (result.GetErrorCode().category() == std::system_category() &&
+							result.GetErrorCode().value() == WSAECONNRESET)
 						{
-							SetCloseCondition(CloseCondition::ReceiveError, result.GetErrorCode().value());
-						}
+							LogDbg(L"UDP connection: port unreachable for connection %llu (%s)",
+									GetID(), result.GetErrorString().c_str());
 
-						return false;
+							// If the port is unreachable this is not a fatal error for us; the
+							// connection will be suspended until we hear back from the peer
+							break;
+						}
+						else
+						{
+							LogErr(L"UDP connection: receive failed for connection %llu (%s)",
+								   GetID(), result.GetErrorString().c_str());
+
+							SetCloseCondition(CloseCondition::ReceiveError, result.GetErrorCode().value());
+
+							return false;
+						}
 					}
 				}
 				else if (m_Socket.GetIOStatus().HasException())
