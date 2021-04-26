@@ -66,62 +66,61 @@ namespace QuantumGate::Implementation::Crypto
 			try
 			{
 				auto ctx = GetContext();
-				if (ctx != nullptr)
+				assert(ctx != nullptr);
+
+				// Initialize the encryption operation
+				if (EVP_EncryptInit_ex(ctx, cipher, nullptr, nullptr, nullptr) == 1)
 				{
-					// Initialize the encryption operation
-					if (EVP_EncryptInit_ex(ctx, cipher, nullptr, nullptr, nullptr) == 1)
+					EVP_CIPHER_CTX_set_padding(ctx, 1);
+
+					// Set IV length (default is 12 bytes (96 bits), but AES supports larger ones)
+					if (symkeydata.SymmetricAlgorithm == Algorithm::Symmetric::AES256_GCM)
 					{
-						EVP_CIPHER_CTX_set_padding(ctx, 1);
+						if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN,
+												static_cast<int>(iv.GetSize()), nullptr) != 1) return false;
+					}
 
-						// Set IV length (default is 12 bytes (96 bits), but AES supports larger ones)
-						if (symkeydata.SymmetricAlgorithm == Algorithm::Symmetric::AES256_GCM)
+					// Initialize key and IV
+					if (EVP_EncryptInit_ex(ctx, nullptr, nullptr,
+										   reinterpret_cast<const UChar*>(symkeydata.Key.GetBytes()),
+										   reinterpret_cast<const UChar*>(iv.GetBytes())) == 1)
+					{
+						Size encrlen{ 0 };
+						Size len{ 0 };
+						Size taglen{ 16 };
+
+						encrbuf.Allocate(taglen + buffer.GetSize() + EVP_CIPHER_CTX_block_size(ctx));
+
+						// Provide the message to be encrypted, and obtain the encrypted output
+						if (EVP_EncryptUpdate(ctx, reinterpret_cast<UChar*>(encrbuf.GetBytes()) + taglen,
+											  reinterpret_cast<int*>(&len), reinterpret_cast<const UChar*>(buffer.GetBytes()),
+											  static_cast<int>(buffer.GetSize())) == 1)
 						{
-							if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN,
-													static_cast<int>(iv.GetSize()), nullptr) != 1) return false;
-						}
+							encrlen = len;
+							len = 0;
 
-						// Initialize key and IV
-						if (EVP_EncryptInit_ex(ctx, nullptr, nullptr,
-											   reinterpret_cast<const UChar*>(symkeydata.Key.GetBytes()),
-											   reinterpret_cast<const UChar*>(iv.GetBytes())) == 1)
-						{
-							Size encrlen{ 0 };
-							Size len{ 0 };
-							Size taglen{ 16 };
-
-							encrbuf.Allocate(taglen + buffer.GetSize() + EVP_CIPHER_CTX_block_size(ctx));
-
-							// Provide the message to be encrypted, and obtain the encrypted output
-							if (EVP_EncryptUpdate(ctx, reinterpret_cast<UChar*>(encrbuf.GetBytes()) + taglen,
-												  reinterpret_cast<int*>(&len), reinterpret_cast<const UChar*>(buffer.GetBytes()),
-												  static_cast<int>(buffer.GetSize())) == 1)
+							// Finalize the encryption
+							if (EVP_EncryptFinal_ex(ctx, reinterpret_cast<UChar*>(encrbuf.GetBytes()) + taglen + encrlen,
+													reinterpret_cast<int*>(&len)) == 1)
 							{
-								encrlen = len;
-								len = 0;
+								encrlen += len;
 
-								// Finalize the encryption
-								if (EVP_EncryptFinal_ex(ctx, reinterpret_cast<UChar*>(encrbuf.GetBytes()) + taglen + encrlen,
-														reinterpret_cast<int*>(&len)) == 1)
+								assert(encrlen <= (encrbuf.GetSize() - taglen));
+
+								// Get the tag (16 bytes (128 bits))
+								if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG,
+														static_cast<int>(taglen), encrbuf.GetBytes()) == 1)
 								{
-									encrlen += len;
-
-									assert(encrlen <= (encrbuf.GetSize() - taglen));
-
-									// Get the tag (16 bytes (128 bits))
-									if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG,
-															static_cast<int>(taglen), encrbuf.GetBytes()) == 1)
+									DbgInvoke([&]() noexcept
 									{
-										DbgInvoke([&]() noexcept
-										{
-											const auto tag = BufferView(encrbuf).GetFirst(taglen);
+										const auto tag = BufferView(encrbuf).GetFirst(taglen);
 
-											Dbg(L"Etag: %s", Util::ToBase64(tag)->c_str());
-											Dbg(L"Encr: %s", Util::ToBase64(encrbuf)->c_str());
-										});
+										Dbg(L"Etag: %s", Util::ToBase64(tag)->c_str());
+										Dbg(L"Encr: %s", Util::ToBase64(encrbuf)->c_str());
+									});
 
-										encrbuf.Resize(taglen + encrlen);
-										return true;
-									}
+									encrbuf.Resize(taglen + encrlen);
+									return true;
 								}
 							}
 						}
@@ -159,61 +158,60 @@ namespace QuantumGate::Implementation::Crypto
 			try
 			{
 				auto ctx = GetContext();
-				if (ctx != nullptr)
+				assert(ctx != nullptr);
+
+				// Initialize the decryption operation
+				if (EVP_DecryptInit_ex(ctx, cipher, nullptr, nullptr, nullptr) == 1)
 				{
-					// Initialize the decryption operation
-					if (EVP_DecryptInit_ex(ctx, cipher, nullptr, nullptr, nullptr) == 1)
+					EVP_CIPHER_CTX_set_padding(ctx, 1);
+
+					// Set IV length (default is 12 bytes (96 bits))
+					if (symkeydata.SymmetricAlgorithm == Algorithm::Symmetric::AES256_GCM)
 					{
-						EVP_CIPHER_CTX_set_padding(ctx, 1);
+						if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN,
+												static_cast<int>(iv.GetSize()), nullptr) != 1) return false;
+					}
 
-						// Set IV length (default is 12 bytes (96 bits))
-						if (symkeydata.SymmetricAlgorithm == Algorithm::Symmetric::AES256_GCM)
+					// Initialize key and IV
+					if (EVP_DecryptInit_ex(ctx, nullptr, nullptr,
+										   reinterpret_cast<const UChar*>(symkeydata.Key.GetBytes()),
+										   reinterpret_cast<const UChar*>(iv.GetBytes())) == 1)
+					{
+						buffer.Allocate(encrbuf.GetSize());
+						Size declen{ 0 };
+						Size len{ 0 };
+						const Size taglen{ 16 };
+
+						// Provide the message to be decrypted, and obtain the plaintext output
+						if (EVP_DecryptUpdate(ctx, reinterpret_cast<UChar*>(buffer.GetBytes()), reinterpret_cast<int*>(&len),
+											  reinterpret_cast<const UChar*>(encrbuf.GetBytes()) + taglen,
+											  static_cast<int>(encrbuf.GetSize() - taglen)) == 1)
 						{
-							if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN,
-													static_cast<int>(iv.GetSize()), nullptr) != 1) return false;
-						}
+							declen = len;
 
-						// Initialize key and IV
-						if (EVP_DecryptInit_ex(ctx, nullptr, nullptr,
-											   reinterpret_cast<const UChar*>(symkeydata.Key.GetBytes()),
-											   reinterpret_cast<const UChar*>(iv.GetBytes())) == 1)
-						{
-							buffer.Allocate(encrbuf.GetSize());
-							Size declen{ 0 };
-							Size len{ 0 };
-							const Size taglen{ 16 };
-
-							// Provide the message to be decrypted, and obtain the plaintext output
-							if (EVP_DecryptUpdate(ctx, reinterpret_cast<UChar*>(buffer.GetBytes()), reinterpret_cast<int*>(&len),
-												  reinterpret_cast<const UChar*>(encrbuf.GetBytes()) + taglen,
-												  static_cast<int>(encrbuf.GetSize() - taglen)) == 1)
+							DbgInvoke([&]() noexcept
 							{
-								declen = len;
+								const auto tag = BufferView(encrbuf).GetFirst(taglen);
 
-								DbgInvoke([&]() noexcept
+								Dbg(L"Dtag: %s", Util::ToBase64(tag)->c_str());
+								Dbg(L"Decr: %s", Util::ToBase64(encrbuf)->c_str());
+							});
+
+							// Set expected tag value
+							if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG,
+													static_cast<int>(taglen), const_cast<Byte*>(encrbuf.GetBytes())) == 1)
+							{
+								len = 0;
+
+								// Finalize the decryption; a positive return value indicates success,
+								// anything else is a failure - the plaintext is not trustworthy
+								const auto ret = EVP_DecryptFinal_ex(ctx, reinterpret_cast<UChar*>(buffer.GetBytes()) + declen,
+																	 reinterpret_cast<int*>(&len));
+								if (ret > 0)
 								{
-									const auto tag = BufferView(encrbuf).GetFirst(taglen);
-
-									Dbg(L"Dtag: %s", Util::ToBase64(tag)->c_str());
-									Dbg(L"Decr: %s", Util::ToBase64(encrbuf)->c_str());
-								});
-
-								// Set expected tag value
-								if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG,
-														static_cast<int>(taglen), const_cast<Byte*>(encrbuf.GetBytes())) == 1)
-								{
-									len = 0;
-
-									// Finalize the decryption; a positive return value indicates success,
-									// anything else is a failure - the plaintext is not trustworthy
-									const auto ret = EVP_DecryptFinal_ex(ctx, reinterpret_cast<UChar*>(buffer.GetBytes()) + declen,
-																		 reinterpret_cast<int*>(&len));
-									if (ret > 0)
-									{
-										declen += len;
-										buffer.Resize(declen);
-										return true;
-									}
+									declen += len;
+									buffer.Resize(declen);
+									return true;
 								}
 							}
 						}
