@@ -444,31 +444,40 @@ namespace QuantumGate::Implementation::Core::UDP
 
 	void Message::Obfuscate(BufferSpan& data, const SymmetricKeys& symkey, const IV iv) noexcept
 	{
-		StackBuffer32 ivkey{ symkey.GetKey() };
+		StackBuffer32 ivkey{ sizeof(UInt64) };
+
+		// Half SipHash requires key size of 8 bytes
+		assert(symkey.GetKey().GetSize() >= 8);
 
 		// Initialize key with IV
+		halfsiphash(reinterpret_cast<const uint8_t*>(&iv), sizeof(iv),
+					reinterpret_cast<const uint8_t*>(symkey.GetKey().GetBytes()),
+					reinterpret_cast<uint8_t*>(ivkey.GetBytes()), ivkey.GetSize());
+		
+		const auto ivkey64 = reinterpret_cast<const UInt64*>(ivkey.GetBytes());
+
+		std::array<UInt64, 8> keys{ 0 };
+		for (Size i = 0; i < keys.size(); ++i)
 		{
-			assert(ivkey.GetSize() == sizeof(UInt64));
-			assert(sizeof(iv) == sizeof(UInt32));
-			auto ivkey32 = reinterpret_cast<UInt32*>(ivkey.GetBytes());
-			ivkey32[0] ^= iv;
-			ivkey32[1] ^= iv;
+			keys[i] = std::rotl(*ivkey64, static_cast<int>(symkey.GetKey()[i]));
 		}
 
 		const auto rlen = data.GetSize() % sizeof(UInt64);
 		const auto len = (data.GetSize() - rlen) / sizeof(UInt64);
-
 		auto data64 = reinterpret_cast<UInt64*>(data.GetBytes());
-		const auto key64 = reinterpret_cast<const UInt64*>(ivkey.GetBytes());
 
 		for (Size i = 0; i < len; ++i)
 		{
-			data64[i] = data64[i] ^ *key64;
+			data64[i] = data64[i] ^ keys[i % keys.size()];
 		}
+
+		const auto idx = len % keys.size();
+		const auto rkey64 = keys[idx];
+		const auto rkey = reinterpret_cast<const Byte*>(&rkey64);
 
 		for (Size i = data.GetSize() - rlen; i < data.GetSize(); ++i)
 		{
-			data[i] = data[i] ^ ivkey[i % ivkey.GetSize()];
+			data[i] = data[i] ^ rkey[i % sizeof(rkey64)];
 		}
 	}
 
