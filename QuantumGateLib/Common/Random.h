@@ -4,78 +4,74 @@
 #pragma once
 
 #include <random>
-#include <memory>
 
 // If NO_PCG_RANDOM is defined during compile time then PCG won't be used;
 // instead the Mersenne Twister engine from std will be used (see further below)
 #ifndef NO_PCG_RANDOM
-#pragma warning(push)
-#pragma warning(disable:4244)
 #include <pcg_random.hpp>
-#pragma warning(pop)
 #endif
 
 namespace QuantumGate::Implementation
 {
+	class Random final
+	{
+	private:
 #ifndef NO_PCG_RANDOM
-	using Rng32Alg = pcg32_unique;
-	using Rng64Alg = pcg64_unique;
+		using Rng32Alg = pcg32_unique;
+		using Rng64Alg = pcg64_unique;
 #else
-	using Rng32Alg = std::mt19937;
-	using Rng64Alg = std::mt19937_64;
+		using Rng32Alg = std::mt19937;
+		using Rng64Alg = std::mt19937_64;
 #endif
 
-	struct RngEngine final
-	{
-		std::random_device Device;
-		Rng32Alg Rng32{ Device() };
-		UInt64 Rng32Count{ 0 };
-		Rng64Alg Rng64{ Device() };
-		UInt64 Rng64Count{ 0 };
-		static constexpr UInt64 RngEngineReseedLimit{ 2'147'483'648 }; // 2^31
-
-		ForceInline void CheckSeed32(const UInt64 num = 1) noexcept
+		struct RngEngine final
 		{
-			if (std::numeric_limits<UInt64>::max() - num >= Rng32Count)
-			{
-				Rng32Count += num;
+			std::random_device Device;
+			Rng32Alg Rng32{ Device() };
+			UInt64 Rng32Count{ 0 };
+			Rng64Alg Rng64{ Device() };
+			UInt64 Rng64Count{ 0 };
+			static constexpr UInt64 RngEngineReseedLimit{ 2'147'483'648 }; // 2^31
 
-				if (Rng32Count > RngEngineReseedLimit)
+			ForceInline void CheckSeed32(const UInt64 num = 1) noexcept
+			{
+				if (std::numeric_limits<UInt64>::max() - num >= Rng32Count)
+				{
+					Rng32Count += num;
+
+					if (Rng32Count > RngEngineReseedLimit)
+					{
+						Rng32.seed(Device());
+						Rng32Count = 0;
+					}
+				}
+				else
 				{
 					Rng32.seed(Device());
 					Rng32Count = 0;
 				}
 			}
-			else
-			{
-				Rng32.seed(Device());
-				Rng32Count = 0;
-			}
-		}
 
-		ForceInline void CheckSeed64(const UInt64 num = 1) noexcept
-		{
-			if (std::numeric_limits<UInt64>::max() - num >= Rng64Count)
+			ForceInline void CheckSeed64(const UInt64 num = 1) noexcept
 			{
-				Rng64Count += num;
+				if (std::numeric_limits<UInt64>::max() - num >= Rng64Count)
+				{
+					Rng64Count += num;
 
-				if (Rng64Count > RngEngineReseedLimit)
+					if (Rng64Count > RngEngineReseedLimit)
+					{
+						Rng64.seed(Device());
+						Rng64Count = 0;
+					}
+				}
+				else
 				{
 					Rng64.seed(Device());
 					Rng64Count = 0;
 				}
 			}
-			else
-			{
-				Rng64.seed(Device());
-				Rng64Count = 0;
-			}
-		}
-	};
+		};
 
-	class Random final
-	{
-	private:
 		Random() noexcept = default;
 
 	public:
