@@ -7,6 +7,7 @@
 #include "..\..\Memory\BufferReader.h"
 #include "..\..\Memory\BufferWriter.h"
 #include "..\..\Common\Random.h"
+#include "..\..\Common\Obfuscate.h"
 #include "..\..\..\QuantumGateCryptoLib\QuantumGateCryptoLib.h"
 
 using namespace QuantumGate::Implementation::Memory;
@@ -247,7 +248,7 @@ namespace QuantumGate::Implementation::Core::UDP
 				std::memcpy(&iv, msgspan.GetBytes(), sizeof(IV));
 				msgspan.RemoveFirst(sizeof(IV));
 
-				Deobfuscate(msgspan, symkey, iv);
+				Obfuscate::Undo(msgspan, symkey.GetKey(), iv);
 			}
 		}
 
@@ -425,7 +426,7 @@ namespace QuantumGate::Implementation::Core::UDP
 				std::memcpy(&iv, msgspan.GetBytes(), sizeof(IV));
 				msgspan.RemoveFirst(sizeof(IV));
 
-				Obfuscate(msgspan, symkey, iv);
+				Obfuscate::Do(msgspan, symkey.GetKey(), iv);
 			}
 
 			// Calculate HMAC for the message
@@ -440,50 +441,6 @@ namespace QuantumGate::Implementation::Core::UDP
 		buffer = std::move(msgbuf);
 
 		return true;
-	}
-
-	void Message::Obfuscate(BufferSpan& data, const SymmetricKeys& symkey, const IV iv) noexcept
-	{
-		StackBuffer32 ivkey{ sizeof(UInt64) };
-
-		// Half SipHash requires key size of 8 bytes
-		assert(symkey.GetKey().GetSize() >= 8);
-
-		// Initialize key with IV
-		halfsiphash(reinterpret_cast<const uint8_t*>(&iv), sizeof(iv),
-					reinterpret_cast<const uint8_t*>(symkey.GetKey().GetBytes()),
-					reinterpret_cast<uint8_t*>(ivkey.GetBytes()), ivkey.GetSize());
-		
-		const auto ivkey64 = reinterpret_cast<const UInt64*>(ivkey.GetBytes());
-
-		std::array<UInt64, 8> keys{ 0 };
-		for (Size i = 0; i < keys.size(); ++i)
-		{
-			keys[i] = std::rotl(*ivkey64, static_cast<int>(symkey.GetKey()[i]));
-		}
-
-		const auto rlen = data.GetSize() % sizeof(UInt64);
-		const auto len = (data.GetSize() - rlen) / sizeof(UInt64);
-		auto data64 = reinterpret_cast<UInt64*>(data.GetBytes());
-
-		for (Size i = 0; i < len; ++i)
-		{
-			data64[i] = data64[i] ^ keys[i % keys.size()];
-		}
-
-		const auto idx = len % keys.size();
-		const auto rkey64 = keys[idx];
-		const auto rkey = reinterpret_cast<const Byte*>(&rkey64);
-
-		for (Size i = data.GetSize() - rlen; i < data.GetSize(); ++i)
-		{
-			data[i] = data[i] ^ rkey[i % sizeof(rkey64)];
-		}
-	}
-
-	void Message::Deobfuscate(BufferSpan& data, const SymmetricKeys& symkey, const IV iv) noexcept
-	{
-		Obfuscate(data, symkey, iv);
 	}
 
 	Message::HMAC Message::CalcHMAC(const BufferView& data, const SymmetricKeys& symkey) noexcept

@@ -266,8 +266,6 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		Size GetHeaderSize() const noexcept;
 
-		void Obfuscate(BufferSpan& data, const SymmetricKeys& symkey, const IV iv) noexcept;
-		void Deobfuscate(BufferSpan& data, const SymmetricKeys& symkey, const IV iv) noexcept;
 		HMAC CalcHMAC(const BufferView& data, const SymmetricKeys& symkey) noexcept;
 
 		void Validate() noexcept;
