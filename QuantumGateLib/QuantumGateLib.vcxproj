@@ -545,6 +545,7 @@
     <ClInclude Include="Common\Dispatcher.h" />
     <ClInclude Include="Common\Endian.h" />
     <ClInclude Include="Common\Hash.h" />
+    <ClInclude Include="Common\Obfuscate.h" />
     <ClInclude Include="Common\OnlineVariance.h" />
     <ClInclude Include="Common\Random.h" />
     <ClInclude Include="Common\RateLimit.h" />
