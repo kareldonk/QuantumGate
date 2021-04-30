@@ -103,11 +103,15 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 #ifdef UDPCS_RTT_DEBUG
 			if (old_rtt_ms != std::chrono::duration_cast<std::chrono::milliseconds>(m_RTT))
 			{
+				const auto stddev = std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(m_RTTVariance.GetStdDev()));
+				const auto mean = std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(m_RTTVariance.GetMean()));
+
 				SLogInfo(SLogFmt(FGBrightGreen) << L"UDP connection: RTT: " <<
-						 std::chrono::duration_cast<std::chrono::milliseconds>(m_RTT).count() <<
-						 L"ms - Min: " << std::chrono::duration_cast<std::chrono::milliseconds>(min_time).count() <<
-						 L"ms - Max: " << std::chrono::duration_cast<std::chrono::milliseconds>(max_time).count() << L"ms - StdDev: " <<
-						 m_RTTVariance.GetStdDev() << L"ms - Mean: " << m_RTTVariance.GetMean() << L"ms" << SLogFmt(Default));
+						 std::chrono::duration_cast<std::chrono::milliseconds>(m_RTT) <<
+						 L" - Min: " << std::chrono::duration_cast<std::chrono::milliseconds>(min_time) <<
+						 L" - Max: " << std::chrono::duration_cast<std::chrono::milliseconds>(max_time) <<
+						 L" - StdDev: " << std::chrono::duration_cast<std::chrono::milliseconds>(stddev) <<
+						 L" - Mean: " << std::chrono::duration_cast<std::chrono::milliseconds>(mean) << SLogFmt(Default));
 			}
 #endif
 			m_RTTSamples.Expire();
