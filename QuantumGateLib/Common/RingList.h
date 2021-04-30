@@ -38,7 +38,6 @@ namespace QuantumGate::Implementation
 		[[nodiscard]] inline Size GetSize() const noexcept { return m_List.size(); }
 		[[nodiscard]] inline bool IsMaxSize() const noexcept { return m_List.size() == MaxSize; }
 
-		[[nodiscard]] inline ListType& GetList() noexcept { return m_List; }
 		[[nodiscard]] inline const ListType& GetList() const noexcept { return m_List; }
 		
 		inline void Clear() noexcept
