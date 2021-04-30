@@ -63,10 +63,30 @@ namespace QuantumGate::Implementation
 			}
 			else return std::numeric_limits<T>::lowest();
 		}
+
+		[[nodiscard]] constexpr T GetMinDev2() const noexcept
+		{
+			const auto d = GetStdDev();
+			if (std::numeric_limits<T>::lowest() + d <= m_Mean)
+			{
+				return m_Mean - d;
+			}
+			else return std::numeric_limits<T>::lowest();
+		}
 		
 		[[nodiscard]] constexpr T GetMaxDev() const noexcept
 		{
 			const auto d = GetStdDev() / 2;
+			if (std::numeric_limits<T>::max() - d >= m_Mean)
+			{
+				return m_Mean + d;
+			}
+			else return std::numeric_limits<T>::max();
+		}
+
+		[[nodiscard]] constexpr T GetMaxDev2() const noexcept
+		{
+			const auto d = GetStdDev();
 			if (std::numeric_limits<T>::max() - d >= m_Mean)
 			{
 				return m_Mean + d;
