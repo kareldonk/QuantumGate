@@ -818,37 +818,41 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			auto send_buffer = (*orig_peer)->GetSocket<Socket>().GetSendBuffer();
 
-			const auto send_size = std::invoke([&]()
+			while (success && rl.GetDataRateLimiter().CanAddMTU())
 			{
-				// Shouldn't send more than available window size
-				auto size = std::min(send_buffer->GetSize(), rl.GetDataRateLimiter().GetAvailableWindowSize());
-				// Shouldn't send more than maximum data a relay data message can handle
-				size = std::min(size, RelayDataMessage::MaxMessageDataSize);
-				return size;
-			});
-
-			if (send_size > 0)
-			{
-				const auto msg_id = rl.GetDataRateLimiter().GetNewDataMessageID();
-
-				Events::RelayData red;
-				red.Port = rl.GetPort();
-				red.MessageID = msg_id;
-				red.Data = BufferView(*send_buffer).GetFirst(send_size);
-				red.Origin.PeerLUID = orig_luid;
-
-				if (AddRelayEvent(rl.GetPort(), std::move(red)))
+				const auto send_size = std::invoke([&]()
 				{
-					send_buffer->RemoveFirst(send_size);
+					// Shouldn't send more than available window size
+					auto size = std::min(send_buffer->GetSize(), rl.GetDataRateLimiter().GetMTUSize());
+					// Shouldn't send more than maximum data a relay data message can handle
+					size = std::min(size, RelayDataMessage::MaxMessageDataSize);
+					return size;
+				});
 
-					success = rl.GetDataRateLimiter().AddDataMessage(msg_id, send_size, Util::GetCurrentSteadyTime());
-				}
-				else success = false;
-
-				if (!success)
+				if (send_size > 0)
 				{
-					rl.UpdateStatus(Status::Exception, Exception::GeneralFailure);
+					const auto msg_id = rl.GetDataRateLimiter().GetNewMessageID();
+
+					Events::RelayData red;
+					red.Port = rl.GetPort();
+					red.MessageID = msg_id;
+					red.Data = BufferView(*send_buffer).GetFirst(send_size);
+					red.Origin.PeerLUID = orig_luid;
+
+					if (AddRelayEvent(rl.GetPort(), std::move(red)))
+					{
+						send_buffer->RemoveFirst(send_size);
+
+						success = rl.GetDataRateLimiter().AddMTU(msg_id, send_size, Util::GetCurrentSteadyTime());
+					}
+					else success = false;
+
+					if (!success)
+					{
+						rl.UpdateStatus(Status::Exception, Exception::GeneralFailure);
+					}
 				}
+				else break;
 			}
 		}
 
@@ -1405,7 +1409,7 @@ namespace QuantumGate::Implementation::Core::Relay
 					case Position::Beginning:
 					case Position::End:
 					{
-						if (rl.GetDataRateLimiter().UpdateDataMessage(event.MessageID, Util::GetCurrentSteadyTime()))
+						if (rl.GetDataRateLimiter().AckMTU(event.MessageID, Util::GetCurrentSteadyTime()))
 						{
 							success = true;
 
@@ -1416,7 +1420,7 @@ namespace QuantumGate::Implementation::Core::Relay
 							{
 								// Update the send buffer size of the relay socket to prevent too much data
 								// getting queued up while the connection can't handle it
-								dest_peer->GetSocket<Socket>().SetMaxSendBufferSize(rl.GetDataRateLimiter().GetMaxWindowSize());
+								dest_peer->GetSocket<Socket>().SetMaxSendBufferSize(rl.GetDataRateLimiter().GetWindowSizeInBytes());
 							}
 						}
 
