@@ -3,10 +3,8 @@
 
 #pragma once
 
-#include "..\..\Common\Containers.h"
-#include "..\..\Common\RateLimit.h"
 #include "..\..\Network\SocketBase.h"
-#include "..\..\Concurrency\Event.h"
+#include "..\..\Concurrency\EventComposite.h"
 #include "..\Message.h"
 
 namespace QuantumGate::Implementation::Core::Relay
@@ -15,13 +13,15 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		friend class Manager;
 
+		using IOEvent = Concurrency::EventComposite<2, Concurrency::EventCompositeOperatorType::AND>;
+
 	public:
 		class IOBuffer final
 		{
 		public:
 			IOBuffer() noexcept = delete;
 			
-			IOBuffer(Buffer& buffer, Concurrency::Event& event) noexcept :
+			IOBuffer(Buffer& buffer, IOEvent& event) noexcept :
 				m_Buffer(buffer), m_Event(event)
 			{}
 
@@ -30,8 +30,8 @@ namespace QuantumGate::Implementation::Core::Relay
 			
 			~IOBuffer()
 			{
-				if (!m_Buffer.IsEmpty()) m_Event.Set();
-				else m_Event.Reset();
+				if (!m_Buffer.IsEmpty()) m_Event.GetSubEvent(0).Set();
+				else m_Event.GetSubEvent(0).Reset();
 			}
 			
 			IOBuffer& operator=(const IOBuffer&) = delete;
@@ -43,7 +43,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		private:
 			Buffer& m_Buffer;
-			Concurrency::Event& m_Event;
+			IOEvent& m_Event;
 		};
 
 		Socket() noexcept;
@@ -126,28 +126,31 @@ namespace QuantumGate::Implementation::Core::Relay
 			m_IOStatus.SetErrorCode(errorcode);
 		}
 
-		inline void SetWrite() noexcept { m_IOStatus.SetWrite(true); }
-		inline void SetRead() noexcept { m_ClosingRead = true; m_ReceiveEvent.Set(); }
-
-		inline void SetMaxSendBufferSize(const Size size) noexcept
+		inline void SetSocketWrite() noexcept
 		{
-			auto msbs = (std::max)(size, MinSendBufferSize);
-			msbs = (std::min)(msbs, RelayDataMessage::MaxMessageDataSize);
+			m_ConnectWrite = true;
+			m_ReceiveEvent.GetSubEvent(0).Set();
+		}
 
-			if (m_MaxSendBufferSize != msbs)
-			{
-				m_MaxSendBufferSize = msbs;
+		inline void SetSocketRead() noexcept
+		{
+			m_ClosingRead = true;
+			m_ReceiveEvent.GetSubEvent(0).Set();
+		}
 
-				LogDbg(L"New relay socket send buffer size is %zu", m_MaxSendBufferSize);
-			}
+		inline void SetRelayWrite(const bool enabled) noexcept
+		{
+			if (enabled) m_SendEvent.GetSubEvent(1).Set();
+			else m_SendEvent.GetSubEvent(1).Reset();
 		}
 
 	private:
-		static constexpr Size MinSendBufferSize{ 1u << 16 }; // 65KB
+		static constexpr Size MaxSendBufferSize{ RelayDataMessage::MaxMessageDataSize };
 
 	private:
 		IOStatus m_IOStatus;
 
+		bool m_ConnectWrite{ false };
 		bool m_ClosingRead{ false };
 
 		Size m_BytesReceived{ 0 };
@@ -158,11 +161,10 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		SteadyTime m_ConnectedSteadyTime;
 		
-		Size m_MaxSendBufferSize{ MinSendBufferSize };
 		Buffer m_SendBuffer;
-		Concurrency::Event m_SendEvent;
+		IOEvent m_SendEvent;
 		Buffer m_ReceiveBuffer;
-		Concurrency::Event m_ReceiveEvent;
+		IOEvent m_ReceiveEvent;
 
 		ConnectingCallback m_ConnectingCallback{ []() mutable noexcept {} };
 		AcceptCallback m_AcceptCallback{ []() mutable noexcept {} };

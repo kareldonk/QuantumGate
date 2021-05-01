@@ -11,6 +11,9 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
 		m_IOStatus.SetOpen(true);
+
+		// Always set (unused)
+		m_ReceiveEvent.GetSubEvent(1).Set();
 	}
 
 	Socket::~Socket()
@@ -39,7 +42,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		assert(m_IOStatus.IsOpen());
 
 		m_IOStatus.SetConnected(true);
-		m_IOStatus.SetWrite(true);
+		m_ConnectWrite = true;
 
 		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
 
@@ -94,9 +97,9 @@ namespace QuantumGate::Implementation::Core::Relay
 			const auto available_size = std::invoke([&]()
 			{
 				Size size{ 0 };
-				if (m_MaxSendBufferSize > m_SendBuffer.GetSize())
+				if (MaxSendBufferSize > m_SendBuffer.GetSize())
 				{
-					size = m_MaxSendBufferSize - m_SendBuffer.GetSize();
+					size = MaxSendBufferSize - m_SendBuffer.GetSize();
 				}
 				return size;
 			});
@@ -120,7 +123,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 			if (sent_size > 0)
 			{
-				m_SendEvent.Set();
+				m_SendEvent.GetSubEvent(0).Set();
 
 				m_BytesSent += sent_size;
 			}
@@ -150,14 +153,14 @@ namespace QuantumGate::Implementation::Core::Relay
 			{
 				LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
 
-				m_ReceiveEvent.Reset();
+				m_ReceiveEvent.GetSubEvent(0).Reset();
 			}
 			else
 			{
 				buffer += m_ReceiveBuffer;
 
 				m_ReceiveBuffer.Clear();
-				m_ReceiveEvent.Reset();
+				m_ReceiveEvent.GetSubEvent(0).Reset();
 
 				m_BytesReceived += bytesrcv;
 
@@ -188,18 +191,17 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		assert(m_IOStatus.IsOpen());
 
-		m_ReceiveEvent.Reset();
+		m_ReceiveEvent.GetSubEvent(0).Reset();
 
 		if (!m_IOStatus.IsOpen()) return false;
 
-		if (m_IOStatus.IsConnected())
-		{
-			const bool read = (!m_ReceiveBuffer.IsEmpty() || m_ClosingRead);
+		const bool write = (m_ConnectWrite && m_SendBuffer.GetSize() < MaxSendBufferSize);
+		m_IOStatus.SetWrite(write);
 
-			m_IOStatus.SetRead(read);
+		const bool read = (!m_ReceiveBuffer.IsEmpty() || m_ClosingRead);
+		m_IOStatus.SetRead(read);
 
-			if (read) m_ReceiveEvent.Set();
-		}
+		if (read) m_ReceiveEvent.GetSubEvent(0).Set();
 
 		return true;
 	}

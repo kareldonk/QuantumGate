@@ -817,13 +817,14 @@ namespace QuantumGate::Implementation::Core::Relay
 		if (orig_peer != nullptr)
 		{
 			auto send_buffer = (*orig_peer)->GetSocket<Socket>().GetSendBuffer();
+			auto& rdrl = rl.GetDataRateLimiter();
 
-			while (success && rl.GetDataRateLimiter().CanAddMTU())
+			while (success && rdrl.CanAddMTU())
 			{
 				const auto send_size = std::invoke([&]()
 				{
-					// Shouldn't send more than available window size
-					auto size = std::min(send_buffer->GetSize(), rl.GetDataRateLimiter().GetMTUSize());
+					// Shouldn't send more than available MTU size
+					auto size = std::min(send_buffer->GetSize(), rdrl.GetMTUSize());
 					// Shouldn't send more than maximum data a relay data message can handle
 					size = std::min(size, RelayDataMessage::MaxMessageDataSize);
 					return size;
@@ -831,7 +832,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 				if (send_size > 0)
 				{
-					const auto msg_id = rl.GetDataRateLimiter().GetNewMessageID();
+					const auto msg_id = rdrl.GetNewMessageID();
 
 					Events::RelayData red;
 					red.Port = rl.GetPort();
@@ -843,7 +844,7 @@ namespace QuantumGate::Implementation::Core::Relay
 					{
 						send_buffer->RemoveFirst(send_size);
 
-						success = rl.GetDataRateLimiter().AddMTU(msg_id, send_size, Util::GetCurrentSteadyTime());
+						success = rdrl.AddMTU(msg_id, send_size, Util::GetCurrentSteadyTime());
 					}
 					else success = false;
 
@@ -854,6 +855,9 @@ namespace QuantumGate::Implementation::Core::Relay
 				}
 				else break;
 			}
+
+			// Update socket send event
+			(*orig_peer)->GetSocket<Socket>().SetRelayWrite(rdrl.CanAddMTU());
 		}
 
 		return success;
@@ -915,7 +919,7 @@ namespace QuantumGate::Implementation::Core::Relay
 					// In case the connection was closed properly we just enable read
 					// on the socket so that it will receive 0 bytes indicating the connection closed
 					if (wsaerror != -1) in_peer->GetSocket<Socket>().SetException(wsaerror);
-					else in_peer->GetSocket<Socket>().SetRead();
+					else in_peer->GetSocket<Socket>().SetSocketRead();
 				}
 				else
 				{
@@ -936,7 +940,7 @@ namespace QuantumGate::Implementation::Core::Relay
 					// In case the connection was closed properly we just enable read
 					// on the socket so that it will receive 0 bytes indicating the connection closed
 					if (wsaerror != -1) out_peer->GetSocket<Socket>().SetException(wsaerror);
-					else out_peer->GetSocket<Socket>().SetRead();
+					else out_peer->GetSocket<Socket>().SetSocketRead();
 				}
 				else
 				{
@@ -1176,7 +1180,7 @@ namespace QuantumGate::Implementation::Core::Relay
 							{
 								// We went to the connected state while we were connecting;
 								// the socket is now writable
-								in_peer->GetSocket<Socket>().SetWrite();
+								in_peer->GetSocket<Socket>().SetSocketWrite();
 								success = true;
 							}
 							else if (rl.GetPosition() == Position::Between)
@@ -1409,7 +1413,9 @@ namespace QuantumGate::Implementation::Core::Relay
 					case Position::Beginning:
 					case Position::End:
 					{
-						if (rl.GetDataRateLimiter().AckMTU(event.MessageID, Util::GetCurrentSteadyTime()))
+						auto& rdrl = rl.GetDataRateLimiter();
+
+						if (rdrl.AckMTU(event.MessageID, Util::GetCurrentSteadyTime()))
 						{
 							success = true;
 
@@ -1418,9 +1424,8 @@ namespace QuantumGate::Implementation::Core::Relay
 
 							if (dest_peer) // If peer is present
 							{
-								// Update the send buffer size of the relay socket to prevent too much data
-								// getting queued up while the connection can't handle it
-								dest_peer->GetSocket<Socket>().SetMaxSendBufferSize(rl.GetDataRateLimiter().GetWindowSizeInBytes());
+								// Update socket send event
+								dest_peer->GetSocket<Socket>().SetRelayWrite(rdrl.CanAddMTU());
 							}
 						}
 
