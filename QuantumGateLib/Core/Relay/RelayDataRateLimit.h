@@ -13,6 +13,11 @@ namespace QuantumGate::Implementation::Core::Relay
 {
 	class DataRateLimit final
 	{
+	public:
+		static constexpr Size NumMTUsPerWindow{ 2u };
+		static constexpr Size MinMTUSize{ 1u << 16 }; // 65KB
+
+	private:
 		struct MTUDetails
 		{
 			RelayMessageID ID{ 0 };
@@ -20,9 +25,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			SteadyTime TimeSent;
 		};
 
-		static constexpr Size WindowSize{ 2u };
-
-		using MTUList = RingList<MTUDetails, WindowSize>;
+		using MTUList = RingList<MTUDetails, NumMTUsPerWindow>;
 
 	public:
 		[[nodiscard]] inline RelayMessageID GetNewMessageID() noexcept
@@ -36,7 +39,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 			if (m_MTUList.Add(MTUDetails{ id, num_bytes, time_sent }))
 			{
-				++m_WindowSizeInUse;
+				++m_WindowMTUsInUse;
 
 				LogDbg(L"Relay data rate: added message ID %u, %zu bytes", id, num_bytes);
 
@@ -60,7 +63,7 @@ namespace QuantumGate::Implementation::Core::Relay
 				{
 					const auto rtt = time_ack_received - it->TimeSent;
 
-					--m_WindowSizeInUse;
+					--m_WindowMTUsInUse;
 
 					RecordMTUAck(rtt, it->NumBytes);
 
@@ -83,18 +86,18 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		[[nodiscard]] inline bool CanAddMTU() const noexcept
 		{
-			return (GetAvailableWindowSize() > 0);
+			return (GetAvailableWindowMTUs() > 0);
 		}
 
-		[[nodiscard]] inline Size GetWindowSizeInBytes() const noexcept { return WindowSize * GetMTUSize(); }
+		[[nodiscard]] inline Size GetWindowSizeInBytes() const noexcept { return NumMTUsPerWindow * GetMTUSize(); }
 		[[nodiscard]] inline Size GetMTUSize() const noexcept { return m_MTUSize; }
 
 	private:
-		[[nodiscard]] inline Size GetAvailableWindowSize() const noexcept
+		[[nodiscard]] inline Size GetAvailableWindowMTUs() const noexcept
 		{
-			if (WindowSize > m_WindowSizeInUse)
+			if (NumMTUsPerWindow > m_WindowMTUsInUse)
 			{
-				return (WindowSize - m_WindowSizeInUse);
+				return (NumMTUsPerWindow - m_WindowMTUsInUse);
 			}
 
 			return 0;
@@ -174,14 +177,11 @@ namespace QuantumGate::Implementation::Core::Relay
 				SLogInfo(SLogFmt(FGBrightGreen) << L"Relay connection: RTT: " << rttms << L" (mean: " << meanms <<
 						 L", stddev: " << stddevms << L") - Datarate: " << std::fixed << std::setprecision(2) <<
 						 data_rate_second << L" B/s (mean: " << m_MTUVariance.GetMean() << L" B) - MTUSize: " <<
-						 m_MTUSize << L" B - WindowSize: " << WindowSize << L" (" << GetWindowSizeInBytes() <<
-						 " B), " << m_WindowSizeInUse << L" used" << SLogFmt(Default));
+						 m_MTUSize << L" B - WindowSize: " << NumMTUsPerWindow << L" (" << GetWindowSizeInBytes() <<
+						 " B), " << m_WindowMTUsInUse << L" used" << SLogFmt(Default));
 			}
 #endif
 		}
-
-	private:
-		static constexpr Size MinMTUSize{ 1u << 16 }; // 65KB
 
 	private:
 		RelayMessageID m_MessageIDCounter{ 0 };
@@ -190,7 +190,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		OnlineVariance<double> m_MTUVariance;
 
 		Size m_MTUSize{ MinMTUSize };
-		Size m_WindowSizeInUse{ 0 };
+		Size m_WindowMTUsInUse{ 0 };
 
 		MTUList m_MTUList;
 
