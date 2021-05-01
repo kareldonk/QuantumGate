@@ -501,6 +501,9 @@
     <ClInclude Include="Common\Obfuscate.h">
       <Filter>Header Files\Common</Filter>
     </ClInclude>
+    <ClInclude Include="Concurrency\EventComposite.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

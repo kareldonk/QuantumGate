@@ -562,6 +562,7 @@
     <ClInclude Include="Concurrency\CriticalSection.h" />
     <ClInclude Include="Concurrency\Event.h" />
     <ClInclude Include="Concurrency\ConditionEvent.h" />
+    <ClInclude Include="Concurrency\EventComposite.h" />
     <ClInclude Include="Concurrency\EventGroup.h" />
     <ClInclude Include="Concurrency\Queue.h" />
     <ClInclude Include="Concurrency\RecursiveSharedMutex.h" />
