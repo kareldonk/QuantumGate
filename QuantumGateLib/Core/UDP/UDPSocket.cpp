@@ -180,8 +180,10 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		connection_data->ResetReceiveEvent();
 
-		m_IOStatus.SetRead(connection_data->CanRead() || connection_data->HasCloseRequest());
-		m_IOStatus.SetWrite(connection_data->CanWrite() && !connection_data->IsSuspended());
+		m_IOStatus.SetRead((connection_data->GetReceiveBuffer().GetReadSize() > 0 && connection_data->CanRead()) ||
+						   connection_data->HasCloseRequest());
+		m_IOStatus.SetWrite(connection_data->GetSendBuffer().GetWriteSize() > 0 && connection_data->CanWrite() &&
+							!connection_data->IsSuspended());
 
 		if (!m_IOStatus.IsSuspended() && connection_data->IsSuspended())
 		{
