@@ -45,7 +45,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 			// Retransmission timeout is larger than RTT to avoid premature retransmission,
 			// and will be larger when more MTUs get lost
-			return std::chrono::duration_cast<std::chrono::nanoseconds>(m_RTT * m_RTTMTULossFactor * 2);
+			return std::chrono::duration_cast<std::chrono::nanoseconds>(m_RTT * m_RTTMTULossFactor);
 		}
 
 		inline void RecordRTT(const std::chrono::nanoseconds rtt) noexcept

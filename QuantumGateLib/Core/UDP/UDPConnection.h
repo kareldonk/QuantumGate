@@ -23,9 +23,31 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		using ReceiveQueue = Containers::Map<Message::SequenceNumber, Message>;
 
-		using ReceiveAckSet = Set<Message::SequenceNumber>;
-
 		enum class ReceiveWindow { Unknown, Current, Previous };
+
+		class LastSequenceNumber final
+		{
+		public:
+			LastSequenceNumber(const Message::SequenceNumber number) noexcept :
+				m_SequenceNumber(number)
+			{}
+
+			inline operator Message::SequenceNumber() const noexcept { return m_SequenceNumber; }
+
+			inline LastSequenceNumber& operator=(const Message::SequenceNumber number) noexcept
+			{
+				m_SequenceNumber = number;
+				m_Acked = false;
+				return *this;
+			}
+
+			[[nodiscard]] inline bool IsAcked() const noexcept { return m_Acked; }
+			inline void SetAcked() noexcept { m_Acked = true; }
+
+		private:
+			Message::SequenceNumber m_SequenceNumber{ 0 };
+			bool m_Acked{ false };
+		};
 
 	public:
 		Connection(const Settings_CThS& settings, Access::Manager& accessmgr, const PeerConnectionType type,
@@ -129,11 +151,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		IPEndpoint m_PeerEndpoint;
 		std::chrono::seconds m_KeepAliveTimeout{ 60 };
 
-		Message::SequenceNumber m_LastInSequenceReceivedSequenceNumber{ 0 };
+		LastSequenceNumber m_LastInOrderReceivedSequenceNumber;
 		Size m_ReceiveWindowSize{ MinReceiveWindowItemSize };
 		ReceiveQueue m_ReceiveQueue;
 		SteadyTime m_LastReceiveSteadyTime;
-		ReceiveAckSet m_ReceivePendingAckSet;
+		Vector<Message::SequenceNumber> m_ReceivePendingAcks;
+		SteadyTime m_LastEAckSteadyTime;
 		Vector<Message::AckRange> m_ReceivePendingAckRanges;
 
 		CloseCondition m_CloseCondition{ CloseCondition::None };
