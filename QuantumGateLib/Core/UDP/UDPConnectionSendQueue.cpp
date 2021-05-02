@@ -19,6 +19,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		RecalcPeerReceiveWindowSize();
 	}
 
+	Size SendQueue::GetMaxMessageSize() const noexcept
+	{
+		// Message may not be larger than the peer is willing to receive
+		return std::min(m_PeerAdvReceiveWindowByteSize, m_MaxMessageSize);
+	}
+
 	void SendQueue::SetPeerAdvertisedReceiveWindowSizes(const Size num_items, const Size num_bytes) noexcept
 	{
 		m_PeerAdvReceiveWindowItemSize = num_items;
@@ -116,7 +122,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 		}
 
-		m_Statistics.RecordMTULoss(static_cast<double>(loss_bytes) / static_cast<double>(m_MaxMessageSize));
+		m_Statistics.RecordMTULoss(static_cast<double>(loss_bytes) / static_cast<double>(GetMaxMessageSize()));
 		m_Statistics.RecordMTUWindowSizeStats();
 
 #ifdef UDPSND_DEBUG
@@ -178,7 +184,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				else ++it2;
 			}
 
-			m_Statistics.RecordMTUAck(static_cast<double>(num_bytes) / static_cast<double>(m_MaxMessageSize));
+			m_Statistics.RecordMTUAck(static_cast<double>(num_bytes) / static_cast<double>(GetMaxMessageSize()));
 
 			if (purge_acked)
 			{
@@ -213,7 +219,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 		}
 
-		m_Statistics.RecordMTUAck(static_cast<double>(num_bytes) / static_cast<double>(m_MaxMessageSize));
+		m_Statistics.RecordMTUAck(static_cast<double>(num_bytes) / static_cast<double>(GetMaxMessageSize()));
 
 		if (purge_acked)
 		{
@@ -275,7 +281,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void SendQueue::RecalcPeerReceiveWindowSize() noexcept
 	{
-		const auto wndsize = std::max(MinReceiveWindowItemSize, m_PeerAdvReceiveWindowByteSize / m_MaxMessageSize);
+		const auto wndsize = std::max(MinReceiveWindowItemSize, m_PeerAdvReceiveWindowByteSize / GetMaxMessageSize());
 		m_PeerReceiveWindowItemSize = std::min(wndsize, m_PeerAdvReceiveWindowItemSize);
 
 #ifdef UDPSND_DEBUG
@@ -287,6 +293,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	Size SendQueue::GetSendWindowByteSize() noexcept
 	{
-		return std::min(m_Statistics.GetMTUWindowSize() * m_MaxMessageSize, m_PeerAdvReceiveWindowByteSize);
+		return std::min(m_Statistics.GetMTUWindowSize() * GetMaxMessageSize(), m_PeerAdvReceiveWindowByteSize);
 	}
 }

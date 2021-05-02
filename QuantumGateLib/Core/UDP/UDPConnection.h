@@ -156,7 +156,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		ReceiveQueue m_ReceiveQueue;
 		SteadyTime m_LastReceiveSteadyTime;
 		Vector<Message::SequenceNumber> m_ReceivePendingAcks;
-		SteadyTime m_LastEAckSteadyTime;
 		Vector<Message::AckRange> m_ReceivePendingAckRanges;
 
 		CloseCondition m_CloseCondition{ CloseCondition::None };

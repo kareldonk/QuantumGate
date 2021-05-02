@@ -523,7 +523,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			auto sg = MakeScopeGuard([&]
 			{
 				m_ReceivePendingAcks.clear();
-				m_LastEAckSteadyTime = Util::GetCurrentSteadyTime();
 			});
 
 			std::sort(m_ReceivePendingAcks.begin(), m_ReceivePendingAcks.end());
@@ -1219,11 +1218,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			auto connection_data = m_ConnectionData->WithUniqueLock();
 
-			const Message msg(Message::Type::Data, Message::Direction::Outgoing, m_SendQueue.GetMaxMessageSize());
-
+			const auto maxmsg_size = m_SendQueue.GetMaxMessageSize();
+			const Message msg(Message::Type::Data, Message::Direction::Outgoing, maxmsg_size);
 			auto sendwnd_bytes = m_SendQueue.GetAvailableSendWindowByteSize();
 
-			while (sendwnd_bytes >= m_SendQueue.GetMaxMessageSize() && connection_data->GetSendBuffer().GetReadSize() > 0)
+			while (sendwnd_bytes >= maxmsg_size && connection_data->GetSendBuffer().GetReadSize() > 0)
 			{
 				auto read_size = connection_data->GetSendBuffer().GetReadSize();
 				if (read_size > msg.GetMaxMessageDataSize())

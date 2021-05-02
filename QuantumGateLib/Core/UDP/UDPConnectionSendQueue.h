@@ -36,7 +36,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		SendQueue& operator=(SendQueue&&) noexcept = delete;
 		
 		void SetMaxMessageSize(const Size size) noexcept;
-		[[nodiscard]] inline Size GetMaxMessageSize() const noexcept { return m_MaxMessageSize; }
+		[[nodiscard]] Size GetMaxMessageSize() const noexcept;
 
 		[[nodiscard]] bool Add(Item&& item) noexcept;
 
