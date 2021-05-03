@@ -285,9 +285,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::CheckKeepAlive(const Settings& settings) noexcept
 	{
-		const auto now = Util::GetCurrentSteadyTime();
-	
-		if (now - m_LastSendSteadyTime >= m_KeepAliveTimeout)
+		if (Util::GetCurrentSteadyTime() - m_LastSendSteadyTime >= m_KeepAliveTimeout)
 		{
 			ResetKeepAliveTimeout(settings);
 
