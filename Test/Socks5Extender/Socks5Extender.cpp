@@ -373,6 +373,25 @@ namespace QuantumGate::Socks5Extender
 
 				break;
 			}
+			case PeerEvent::Type::Resumed:
+			{
+				ev = L"Resumed";
+
+				if (!AddPeer(event.GetPeerLUID()))
+				{
+					LogErr(L"Extender '%s' failed to add peer %llu", GetName().c_str(), event.GetPeerLUID());
+				}
+
+				break;
+			}
+			case PeerEvent::Type::Suspended:
+			{
+				ev = L"Suspended";
+				
+				RemovePeer(event.GetPeerLUID());
+
+				break;
+			}
 			case PeerEvent::Type::Disconnected:
 			{
 				ev = L"Disconnect";

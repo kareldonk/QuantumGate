@@ -75,6 +75,8 @@ void MinimalExtender::OnPeerEvent(QuantumGate::Extender::PeerEvent&& event)
 	std::wstring ev(L"Unknown");
 
 	if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Connected) ev = L"Connect";
+	else if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Suspended) ev = L"Suspend";
+	else if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Resumed) ev = L"Resume";
 	else if (event.GetType() == QuantumGate::Extender::PeerEvent::Type::Disconnected) ev = L"Disconnect";
 
 	std::wcout << L"MinimalExtender::OnPeerEvent() got peer event '" << ev <<
