@@ -172,7 +172,7 @@ namespace QuantumGate::Implementation::Concurrency
 				catch (...) {}
 			}
 
-			[[nodiscard]] bool HasEvent(const EventHandle handle) noexcept
+			[[nodiscard]] bool HasEvent(const EventHandle handle) const noexcept
 			{
 				assert(m_ShutdownEvent != nullptr);
 
@@ -195,14 +195,14 @@ namespace QuantumGate::Implementation::Concurrency
 				return found;
 			}
 
-			[[nodiscard]] bool CanAddEvent() noexcept
+			[[nodiscard]] bool CanAddEvent() const noexcept
 			{
 				assert(m_ShutdownEvent != nullptr);
 
 				return (MaxNumEvents > m_SubEvents.WithSharedLock()->size());
 			}
 
-			[[nodiscard]] bool IsEmpty() noexcept
+			[[nodiscard]] bool IsEmpty() const noexcept
 			{
 				assert(m_ShutdownEvent != nullptr);
 
@@ -469,6 +469,29 @@ namespace QuantumGate::Implementation::Concurrency
 				});
 			}
 			catch (...) {}
+		}
+
+		[[nodiscard]] bool HasEvent(const EventHandle handle) const noexcept
+		{
+			auto has_event = false;
+
+			try
+			{
+				m_Data.WithSharedLock([&](const Data& data)
+				{
+					for (auto it = data.EventSubgroups.begin(); it != data.EventSubgroups.end(); ++it)
+					{
+						if ((*it)->HasEvent(handle))
+						{
+							has_event = true;
+							return;
+						}
+					}
+				});
+			}
+			catch (...) {}
+
+			return has_event;
 		}
 
 		WaitResult Wait(const std::chrono::milliseconds max_wait_time) noexcept
