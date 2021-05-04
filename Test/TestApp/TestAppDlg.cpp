@@ -75,7 +75,7 @@ Set<UInt16> CTestAppDlg::GetPorts(const CString ports)
 		start = pos + 1;
 	}
 
-	CString end = ports.Mid(start, ports.GetLength() - start);
+	const CString end = ports.Mid(start, ports.GetLength() - start);
 	if (end.GetLength() > 0)
 	{
 		const auto portn = static_cast<UInt16>(_wtoi((LPCWSTR)end));
@@ -349,6 +349,7 @@ void CTestAppDlg::LoadSettings()
 	{
 		m_MainTab.SetValue(IDC_SERVERPORT, L"999");
 		m_DefaultIP = L"192.168.1.1";
+		m_DefaultIPHistory = L"";
 		m_DefaultPort = 999;
 		return;
 	}
@@ -403,6 +404,12 @@ void CTestAppDlg::LoadSettings()
 					m_DefaultIP = Util::ToStringW(set["ConnectIP"].get<std::string>()).c_str();
 				}
 				else m_DefaultIP = L"192.168.1.1";
+
+				if (set.find("ConnectIPHistory") != set.end())
+				{
+					m_DefaultIPHistory = Util::ToStringW(set["ConnectIPHistory"].get<std::string>()).c_str();
+				}
+				else m_DefaultIPHistory = L"";
 
 				if (set.find("ConnectPort") != set.end())
 				{
@@ -597,6 +604,7 @@ void CTestAppDlg::SaveSettings()
 			else j["Settings"]["PeerAccessDefaultAllowed"] = false;
 
 			j["Settings"]["ConnectIP"] = Util::ToStringA(m_DefaultIP);
+			j["Settings"]["ConnectIPHistory"] = Util::ToStringA(m_DefaultIPHistory);
 			j["Settings"]["ConnectPort"] = m_DefaultPort;
 			j["Settings"]["ConnectProtocol"] = m_DefaultProtocol;
 
@@ -795,8 +803,8 @@ void CTestAppDlg::OnLocalInitialize()
 	params.EnableExtenders = true;
 	params.Relays.Enable = true;
 
-	auto passphrase = m_MainTab.GetTextValue(IDC_PASSPHRASE);
-	if (passphrase.GetLength() > 0)
+	const String passphrase = m_MainTab.GetTextValue(IDC_PASSPHRASE).GetString();
+	if (!passphrase.empty())
 	{
 		params.GlobalSharedSecret.emplace();
 
@@ -811,9 +819,9 @@ void CTestAppDlg::OnLocalInitialize()
 	UpdateControls();
 }
 
-bool CTestAppDlg::GenerateGlobalSharedSecret(CString& passphrase, ProtectedBuffer& buffer) const noexcept
+bool CTestAppDlg::GenerateGlobalSharedSecret(const String& passphrase, ProtectedBuffer& buffer) const noexcept
 {
-	ProtectedBuffer pbuf(reinterpret_cast<Byte*>(passphrase.GetBuffer()), passphrase.GetLength() * sizeof(wchar_t));
+	ProtectedBuffer pbuf(reinterpret_cast<const Byte*>(passphrase.data()), passphrase.size() * sizeof(String::value_type));
 
 	if (Crypto::HKDF(pbuf, buffer, 64, Algorithm::Hash::BLAKE2B512))
 	{
@@ -938,6 +946,7 @@ void CTestAppDlg::OnAttacksConnectWithGarbage()
 	{
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetIPAddressHistory(m_DefaultIPHistory);
 		dlg.SetPort(m_DefaultPort);
 		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
 		dlg.SetProtocolSelection(false);
@@ -965,6 +974,7 @@ void CTestAppDlg::OnAttacksConnectAndDisconnect()
 	{
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetIPAddressHistory(m_DefaultIPHistory);
 		dlg.SetPort(m_DefaultPort);
 		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
 		dlg.SetProtocolSelection(false);
@@ -992,6 +1002,7 @@ void CTestAppDlg::OnAttacksConnectAndWait()
 	{
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetIPAddressHistory(m_DefaultIPHistory);
 		dlg.SetPort(m_DefaultPort);
 		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
 		dlg.SetProtocolSelection(false);
@@ -1111,6 +1122,7 @@ void CTestAppDlg::OnStressConnectAndDisconnect()
 	{
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetIPAddressHistory(m_DefaultIPHistory);
 		dlg.SetPort(m_DefaultPort);
 		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
 		dlg.SetShowRelay(true);
@@ -1121,7 +1133,7 @@ void CTestAppDlg::OnStressConnectAndDisconnect()
 
 			ProtectedBuffer gsecret;
 
-			if (passphrase.GetLength() > 0)
+			if (!passphrase.empty())
 			{
 				if (!GenerateGlobalSharedSecret(passphrase, gsecret)) return;
 			}
@@ -1392,12 +1404,14 @@ void CTestAppDlg::OnLocalConnect()
 {
 	CEndpointDlg dlg;
 	dlg.SetIPAddress(m_DefaultIP);
+	dlg.SetIPAddressHistory(m_DefaultIPHistory);
 	dlg.SetPort(m_DefaultPort);
 	dlg.SetProtocol(m_DefaultProtocol);
 
 	if (dlg.DoModal() == IDOK)
 	{
 		m_DefaultIP = dlg.GetIPAddress().GetString();
+		m_DefaultIPHistory = dlg.GetIPAddressHistory();
 		m_DefaultPort = dlg.GetPort();
 		m_DefaultProtocol = dlg.GetProtocol();
 		auto passphrase = dlg.GetPassPhrase();
@@ -1408,7 +1422,7 @@ void CTestAppDlg::OnLocalConnect()
 
 		params.GlobalSharedSecret.emplace();
 
-		if (passphrase.GetLength() > 0)
+		if (!passphrase.empty())
 		{
 			if (!GenerateGlobalSharedSecret(passphrase, *params.GlobalSharedSecret)) return;
 		}
@@ -1459,6 +1473,7 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 {
 	CEndpointDlg dlg;
 	dlg.SetIPAddress(m_DefaultIP);
+	dlg.SetIPAddressHistory(m_DefaultIPHistory);
 	dlg.SetPort(m_DefaultPort);
 	dlg.SetProtocol(m_DefaultProtocol);
 
@@ -1469,6 +1484,7 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 	if (dlg.DoModal() == IDOK)
 	{
 		m_DefaultIP = dlg.GetIPAddress().GetString();
+		m_DefaultIPHistory = dlg.GetIPAddressHistory();
 		m_DefaultPort = dlg.GetPort();
 		m_DefaultProtocol = dlg.GetProtocol();
 		auto passphrase = dlg.GetPassPhrase();
@@ -1481,7 +1497,7 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 
 		params.GlobalSharedSecret.emplace();
 
-		if (passphrase.GetLength() > 0)
+		if (!passphrase.empty())
 		{
 			if (!GenerateGlobalSharedSecret(passphrase, *params.GlobalSharedSecret)) return;
 		}
@@ -1565,6 +1581,7 @@ void CTestAppDlg::OnStressMultipleInstances()
 
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetIPAddressHistory(m_DefaultIPHistory);
 		dlg.SetPort(m_DefaultPort);
 		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
 
@@ -1593,7 +1610,7 @@ void CTestAppDlg::OnStressMultipleInstances()
 
 			ProtectedBuffer gsecret;
 			auto passphrase = dlg.GetPassPhrase();
-			if (passphrase.GetLength() > 0)
+			if (!passphrase.empty())
 			{
 				if (!GenerateGlobalSharedSecret(passphrase, gsecret)) return;
 			}

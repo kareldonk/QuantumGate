@@ -28,6 +28,36 @@ BOOL CEndpointDlg::OnInitDialog()
 {
 	CDialogBase::OnInitDialog();
 
+	// Init IP combo
+	{
+		const auto pcombo = (CComboBox*)GetDlgItem(IDC_IP);
+
+		IPAddress ip;
+		String::size_type pos{ 0 };
+		String::size_type start{ 0 };
+
+		while ((pos = m_IPAddressHistory.find(L";", start)) != String::npos)
+		{
+			const auto ipstr = m_IPAddressHistory.substr(start, pos - start);
+
+			if (IPAddress::TryParse(ipstr, ip))
+			{
+				pcombo->AddString(ipstr.c_str());
+			}
+
+			start = pos + 1;
+		}
+
+		const auto ipstr = m_IPAddressHistory.substr(start, m_IPAddressHistory.size() - start);
+		if (!ipstr.empty())
+		{
+			if (IPAddress::TryParse(ipstr, ip))
+			{
+				pcombo->AddString(ipstr.c_str());
+			}
+		}
+	}
+
 	SetValue(IDC_IP, m_IPAddress.GetString());
 	SetValue(IDC_PORT, m_Port);
 
@@ -65,10 +95,9 @@ BOOL CEndpointDlg::OnInitDialog()
 
 void CEndpointDlg::OnBnClickedOk()
 {
-	if (IPAddress::TryParse(GetTextValue(IDC_IP).GetString(), m_IPAddress))
+	const auto ipstr = GetTextValue(IDC_IP).GetString();
+	if (IPAddress::TryParse(ipstr, m_IPAddress))
 	{
-		m_Port = static_cast<UInt16>(GetInt64Value(IDC_PORT));
-
 		const auto sel = ((CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO))->GetCurSel();
 		if (sel == CB_ERR)
 		{
@@ -76,11 +105,20 @@ void CEndpointDlg::OnBnClickedOk()
 			return;
 		}
 
+		if (m_IPAddressHistory.find(ipstr) == String::npos)
+		{
+			if (!m_IPAddressHistory.empty()) m_IPAddressHistory += L";";
+
+			m_IPAddressHistory += ipstr;
+		}
+
+		m_Port = static_cast<UInt16>(GetInt64Value(IDC_PORT));
+
 		m_Protocol = static_cast<QuantumGate::IPEndpoint::Protocol>(((CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO))->GetItemData(sel));
 		m_PassPhrase = GetTextValue(IDC_PASSPHRASE);
 		m_Hops = static_cast<UInt8>(GetInt64Value(IDC_HOPS));
 
-		auto id = GetUInt64Value(IDC_RELAY_PEER);
+		const auto id = GetUInt64Value(IDC_RELAY_PEER);
 		if (id != 0) m_RelayGatewayPeer = id;
 
 		m_ReuseConnection = (((CButton*)GetDlgItem(IDC_REUSE_CONNECTION))->GetCheck() == BST_CHECKED);

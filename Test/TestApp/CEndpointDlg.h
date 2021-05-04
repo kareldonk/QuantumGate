@@ -14,6 +14,7 @@ public:
 	enum { IDD = IDD_ENDPOINT_DLG };
 
 	void SetIPAddress(const String& ip) noexcept;
+	void SetIPAddressHistory(const String& ips) noexcept { m_IPAddressHistory = ips; }
 
 	inline void SetPort(const UInt16 port) noexcept { m_Port = port; }
 	inline void SetProtocol(const IPEndpoint::Protocol protocol) noexcept { m_Protocol = protocol; }
@@ -25,9 +26,10 @@ public:
 	inline void SetProtocolSelection(const bool select) noexcept { m_ProtocolSelection = select; }
 
 	inline const IPAddress& GetIPAddress() const noexcept { return m_IPAddress; }
+	inline const String& GetIPAddressHistory() const noexcept { return m_IPAddressHistory; }
 	inline UInt16 GetPort() const noexcept { return m_Port; }
 	inline IPEndpoint::Protocol GetProtocol() const noexcept { return m_Protocol; }
-	inline const CString& GetPassPhrase() const noexcept { return m_PassPhrase; }
+	inline const String& GetPassPhrase() const noexcept { return m_PassPhrase; }
 	inline RelayHop GetRelayHops() const noexcept { return m_Hops; }
 	inline const std::optional<PeerLUID>& GetRelayGatewayPeer() const noexcept { return m_RelayGatewayPeer; }
 	inline bool GetReuseConnection() noexcept { return m_ReuseConnection; }
@@ -42,9 +44,10 @@ protected:
 
 private:
 	IPAddress m_IPAddress;
+	String m_IPAddressHistory;
 	UInt16 m_Port{ 9000 };
 	IPEndpoint::Protocol m_Protocol{ IPEndpoint::Protocol::Unspecified };
-	CString m_PassPhrase;
+	String m_PassPhrase;
 	RelayHop m_Hops{ 0 };
 	std::optional<PeerLUID> m_RelayGatewayPeer;
 	bool m_ReuseConnection{ true };
