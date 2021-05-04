@@ -409,7 +409,7 @@ namespace QuantumGate::Implementation::Core::UDP
 				m_Header.GetMessageType() != Type::Data && // Excluded for speed
 				m_Header.GetMessageType() != Type::EAck) // Excluded for speed
 			{
-				msgbuf += Random::GetPseudoRandomBytes(Random::GetPseudoRandomNumber(0, free_space));
+				msgbuf += Random::GetPseudoRandomBytes(static_cast<Size>(Random::GetPseudoRandomNumber(0, free_space)));
 			}
 		}
 
