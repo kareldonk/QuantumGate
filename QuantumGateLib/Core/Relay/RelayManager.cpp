@@ -969,7 +969,12 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		if (peer != nullptr)
 		{
-			m_ThreadPool.GetData().WorkEvents.RemoveEvent((*peer)->GetSocket<Socket>().GetSendEvent().GetHandle());
+			// Event may not have been added if the link never got to the Connecting state
+			const auto handle = (*peer)->GetSocket<Socket>().GetSendEvent().GetHandle();
+			if (m_ThreadPool.GetData().WorkEvents.HasEvent(handle))
+			{
+				m_ThreadPool.GetData().WorkEvents.RemoveEvent(handle);
+			}
 		}
 
 		rl.UpdateStatus(Status::Closed);
