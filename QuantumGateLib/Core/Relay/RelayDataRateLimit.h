@@ -13,11 +13,8 @@ namespace QuantumGate::Implementation::Core::Relay
 {
 	class DataRateLimit final
 	{
-	public:
 		static constexpr Size NumMTUsPerWindow{ 2u };
-		static constexpr Size MinMTUSize{ 1u << 16 }; // 65KB
 
-	private:
 		struct MTUDetails
 		{
 			RelayMessageID ID{ 0 };
@@ -62,10 +59,9 @@ namespace QuantumGate::Implementation::Core::Relay
 				if (time_ack_received > it->TimeSent)
 				{
 					const auto rtt = time_ack_received - it->TimeSent;
+					RecordMTUAck(rtt, it->NumBytes);
 
 					--m_WindowMTUsInUse;
-
-					RecordMTUAck(rtt, it->NumBytes);
 
 					LogDbg(L"Relay data rate: received ack for message ID %u, %zu bytes, roundtrip time: %jd ms",
 						   id, it->NumBytes, std::chrono::duration_cast<std::chrono::milliseconds>(rtt).count());
@@ -105,7 +101,11 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		void RecordMTUAck(const std::chrono::nanoseconds rtt, const Size num_bytes) noexcept
 		{
-			if (m_RTTVariance.GetCount() > 0 && rtt.count() < m_RTTVariance.GetMinDev2())
+			const auto now = Util::GetCurrentSteadyTime();
+			const auto threshold = std::min(m_RTTVariance.GetMean() / 2, m_RTTVariance.GetMinDev2());
+
+			if (m_RTTVariance.GetCount() > 0 &&
+				(rtt.count() < threshold || now - m_LastSampleRecordedSteadyTime > SampleRecordingRestartTimeout))
 			{
 				m_RTTVariance.Restart();
 				m_MTUVariance.Restart();
@@ -124,6 +124,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 			m_RTTVariance.AddSample(static_cast<double>(rtt.count()));
 			m_MTUVariance.AddSample(static_cast<double>(num_bytes));
+			m_LastSampleRecordedSteadyTime = now;
 
 			const auto rttns = static_cast<double>(rtt.count());
 			const auto meanns = m_RTTVariance.GetMean();
@@ -161,8 +162,6 @@ namespace QuantumGate::Implementation::Core::Relay
 			m_MTUSize = static_cast<Size>(new_mtu);
 
 #ifdef RDRL_DEBUG
-			const auto now = Util::GetCurrentSteadyTime();
-
 			if (now - m_LastLogTime > std::chrono::seconds(1))
 			{
 				m_LastLogTime = now;
@@ -184,10 +183,16 @@ namespace QuantumGate::Implementation::Core::Relay
 		}
 
 	private:
+		static constexpr Size MinMTUSize{ 1u << 16 }; // 65KB
+
+		static constexpr std::chrono::seconds SampleRecordingRestartTimeout{ 2 };
+
+	private:
 		RelayMessageID m_MessageIDCounter{ 0 };
 		
 		OnlineVariance<double> m_RTTVariance;
 		OnlineVariance<double> m_MTUVariance;
+		SteadyTime m_LastSampleRecordedSteadyTime;
 
 		Size m_MTUSize{ MinMTUSize };
 		Size m_WindowMTUsInUse{ 0 };
