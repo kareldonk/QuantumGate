@@ -365,7 +365,11 @@ namespace QuantumGate::Implementation::Core::Relay
 				success = true;
 			}
 		}
-		catch (...) {}
+		catch (const std::exception& e)
+		{
+			LogErr(L"Couldn't add event on relay port %llu due to exception - %s",
+				   rport, Util::ToStringW(e.what()).c_str());
+		}
 
 		return success;
 	}
@@ -791,46 +795,49 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	bool Manager::ProcessRelayConnected(Link& rl,
 										Peer::Peer_ThS::UniqueLockedType& in_peer,
-										Peer::Peer_ThS::UniqueLockedType& out_peer)
+										Peer::Peer_ThS::UniqueLockedType& out_peer) noexcept
 	{
 		assert(rl.GetStatus() == Status::Connected);
-
-		bool success = true;
-
-		PeerLUID orig_luid{ 0 };
-		Peer::Peer_ThS::UniqueLockedType* orig_peer{ nullptr };
 
 		switch (rl.GetPosition())
 		{
 			case Position::Beginning:
-				orig_luid = rl.GetIncomingPeer().PeerLUID;
-				orig_peer = &in_peer;
-				break;
+				return ProcessRelayConnectedBeginEnd(rl, rl.GetIncomingPeer().PeerLUID, in_peer);
 			case Position::End:
-				orig_luid = rl.GetOutgoingPeer().PeerLUID;
-				orig_peer = &out_peer;
-				break;
+				return ProcessRelayConnectedBeginEnd(rl, rl.GetOutgoingPeer().PeerLUID, out_peer);
+			case Position::Between:
+				return true;
 			default:
+				// Shouldn't get here
+				assert(false);
 				break;
 		}
 
-		if (orig_peer != nullptr)
+		return false;
+	}
+
+	bool Manager::ProcessRelayConnectedBeginEnd(Link& rl, const PeerLUID orig_luid,
+												Peer::Peer_ThS::UniqueLockedType& orig_peer) noexcept
+	{
+		bool success = true;
+
+		auto send_buffer = orig_peer->GetSocket<Socket>().GetSendBuffer();
+		auto& rdrl = rl.GetDataRateLimiter();
+
+		while (success && rdrl.CanAddMTU())
 		{
-			auto send_buffer = (*orig_peer)->GetSocket<Socket>().GetSendBuffer();
-			auto& rdrl = rl.GetDataRateLimiter();
-
-			while (success && rdrl.CanAddMTU())
+			const auto send_size = std::invoke([&]()
 			{
-				const auto send_size = std::invoke([&]()
-				{
-					// Shouldn't send more than available MTU size
-					auto size = std::min(send_buffer->GetSize(), rdrl.GetMTUSize());
-					// Shouldn't send more than maximum data a relay data message can handle
-					size = std::min(size, RelayDataMessage::MaxMessageDataSize);
-					return size;
-				});
+				// Shouldn't send more than available MTU size
+				auto size = std::min(send_buffer->GetSize(), rdrl.GetMTUSize());
+				// Shouldn't send more than maximum data a relay data message can handle
+				size = std::min(size, RelayDataMessage::MaxMessageDataSize);
+				return size;
+			});
 
-				if (send_size > 0)
+			if (send_size > 0)
+			{
+				try
 				{
 					const auto msg_id = rdrl.GetNewMessageID();
 
@@ -847,20 +854,33 @@ namespace QuantumGate::Implementation::Core::Relay
 						success = rdrl.AddMTU(msg_id, send_size, Util::GetCurrentSteadyTime());
 					}
 					else success = false;
-
-					if (!success)
-					{
-						rl.UpdateStatus(Status::Exception, Exception::GeneralFailure);
-					}
 				}
-				else break;
-			}
+				catch (const std::exception& e)
+				{
+					LogErr(L"Couldn't send data from peer %s (LUID %llu) on relay port %llu due to exception - %s",
+						   orig_peer->GetPeerName().c_str(), orig_luid, rl.GetPort(), Util::ToStringW(e.what()).c_str());
+					success = false;
+				}
 
-			// Update socket send event
-			(*orig_peer)->GetSocket<Socket>().SetRelayWrite(rdrl.CanAddMTU());
+				if (!success)
+				{
+					rl.UpdateStatus(Status::Exception, Exception::GeneralFailure);
+				}
+			}
+			else break;
 		}
 
+		// Update socket send event
+		orig_peer->GetSocket<Socket>().SetRelayWrite(rdrl.CanAddMTU());
+
 		return success;
+	}
+
+	bool Manager::ProcessRelayConnectedBetween(Link& rl,
+											   Peer::Peer_ThS::UniqueLockedType& in_peer,
+											   Peer::Peer_ThS::UniqueLockedType& out_peer) noexcept
+	{
+		return true;
 	}
 
 	void Manager::ProcessRelayDisconnect(Link& rl,

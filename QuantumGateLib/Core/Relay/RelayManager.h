@@ -119,7 +119,13 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		[[nodiscard]] bool ProcessRelayConnected(Link& rc,
 												 Peer::Peer_ThS::UniqueLockedType& in_peer,
-												 Peer::Peer_ThS::UniqueLockedType& out_peer);
+												 Peer::Peer_ThS::UniqueLockedType& out_peer) noexcept;
+		[[nodiscard]] bool ProcessRelayConnectedBeginEnd(Link& rl,
+														 const PeerLUID orig_luid,
+														 Peer::Peer_ThS::UniqueLockedType& orig_peer) noexcept;
+		[[nodiscard]] bool ProcessRelayConnectedBetween(Link& rc,
+														Peer::Peer_ThS::UniqueLockedType& in_peer,
+														Peer::Peer_ThS::UniqueLockedType& out_peer) noexcept;
 
 		void ProcessRelayDisconnect(Link& rc,
 									Peer::Peer_ThS::UniqueLockedType& in_peer,
