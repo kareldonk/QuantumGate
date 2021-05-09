@@ -50,6 +50,7 @@ namespace UnitTests
 				Assert::AreEqual(false, socket.GetIOStatus().IsListening());
 				Assert::AreEqual(false, socket.GetIOStatus().CanRead());
 				Assert::AreEqual(false, socket.GetIOStatus().CanWrite());
+				Assert::AreEqual(false, socket.GetIOStatus().IsSuspended());
 				Assert::AreEqual(false, socket.GetIOStatus().HasException());
 				Assert::AreEqual(-1, socket.GetIOStatus().GetErrorCode());
 				Assert::AreEqual(true, socket.GetBytesReceived() == 0);
@@ -72,6 +73,7 @@ namespace UnitTests
 				Assert::AreEqual(false, socket.GetIOStatus().IsListening());
 				Assert::AreEqual(false, socket.GetIOStatus().CanRead());
 				Assert::AreEqual(false, socket.GetIOStatus().CanWrite());
+				Assert::AreEqual(false, socket.GetIOStatus().IsSuspended());
 				Assert::AreEqual(false, socket.GetIOStatus().HasException());
 				Assert::AreEqual(-1, socket.GetIOStatus().GetErrorCode());
 				Assert::AreEqual(true, socket.GetBytesReceived() == 0);
@@ -113,6 +115,7 @@ namespace UnitTests
 						Assert::AreEqual(false, socket.GetIOStatus().IsListening());
 						Assert::AreEqual(false, socket.GetIOStatus().CanRead());
 						Assert::AreEqual(false, socket.GetIOStatus().CanWrite());
+						Assert::AreEqual(false, socket.GetIOStatus().IsSuspended());
 						Assert::AreEqual(false, socket.GetIOStatus().HasException());
 						Assert::AreEqual(-1, socket.GetIOStatus().GetErrorCode());
 						Assert::AreEqual(true, socket.GetBytesReceived() == 0);
@@ -159,6 +162,7 @@ namespace UnitTests
 				Assert::AreEqual(false, socket1.GetIOStatus().IsListening());
 				Assert::AreEqual(false, socket1.GetIOStatus().CanRead());
 				Assert::AreEqual(true, socket1.GetIOStatus().CanWrite());
+				Assert::AreEqual(false, socket1.GetIOStatus().IsSuspended());
 				Assert::AreEqual(false, socket1.GetIOStatus().HasException());
 				Assert::AreEqual(-1, socket1.GetIOStatus().GetErrorCode());
 				Assert::AreEqual(true, socket1.GetBytesReceived() == 0);
@@ -177,6 +181,7 @@ namespace UnitTests
 				Assert::AreEqual(false, socket2.GetIOStatus().IsListening());
 				Assert::AreEqual(false, socket2.GetIOStatus().CanRead());
 				Assert::AreEqual(true, socket2.GetIOStatus().CanWrite());
+				Assert::AreEqual(false, socket2.GetIOStatus().IsSuspended());
 				Assert::AreEqual(false, socket2.GetIOStatus().HasException());
 				Assert::AreEqual(-1, socket2.GetIOStatus().GetErrorCode());
 				Assert::AreEqual(true, socket2.GetBytesReceived() == 0);
@@ -212,6 +217,7 @@ namespace UnitTests
 				Assert::AreEqual(true, socket3.GetIOStatus().IsBound());
 				Assert::AreEqual(false, socket3.GetIOStatus().CanRead());
 				Assert::AreEqual(true, socket3.GetIOStatus().CanWrite());
+				Assert::AreEqual(false, socket3.GetIOStatus().IsSuspended());
 				Assert::AreEqual(true, socket3.GetBytesReceived() == snd_buf_len);
 				Assert::AreEqual(true, socket3.GetBytesSent() == 0);
 				Assert::AreEqual(true, socket3.GetLocalEndpoint() == endp2);
@@ -287,6 +293,7 @@ namespace UnitTests
 					Assert::AreEqual(false, socket1.GetIOStatus().IsBound());
 					Assert::AreEqual(false, socket1.GetIOStatus().IsConnected());
 					Assert::AreEqual(false, socket1.GetIOStatus().CanWrite());
+					Assert::AreEqual(false, socket1.GetIOStatus().IsSuspended());
 
 					Assert::AreEqual(true, socket1.UpdateIOStatus(0ms));
 
@@ -326,6 +333,7 @@ namespace UnitTests
 					Assert::AreEqual(false, socket2.GetIOStatus().IsListening());
 					Assert::AreEqual(false, socket2.GetIOStatus().CanRead());
 					Assert::AreEqual(false, socket2.GetIOStatus().CanWrite());
+					Assert::AreEqual(false, socket2.GetIOStatus().IsSuspended());
 					Assert::AreEqual(false, socket2.GetIOStatus().HasException());
 					Assert::AreEqual(-1, socket2.GetIOStatus().GetErrorCode());
 					Assert::AreEqual(true, socket2.GetBytesReceived() == 0);
