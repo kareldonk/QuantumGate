@@ -95,8 +95,8 @@ BOOL CEndpointDlg::OnInitDialog()
 
 void CEndpointDlg::OnBnClickedOk()
 {
-	const auto ipstr = GetTextValue(IDC_IP).GetString();
-	if (IPAddress::TryParse(ipstr, m_IPAddress))
+	const auto ipstr = GetTextValue(IDC_IP);
+	if (IPAddress::TryParse(ipstr.GetString(), m_IPAddress))
 	{
 		const auto sel = ((CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO))->GetCurSel();
 		if (sel == CB_ERR)
@@ -127,6 +127,6 @@ void CEndpointDlg::OnBnClickedOk()
 	}
 	else
 	{
-		AfxMessageBox(L"Specify a valid IP address.", MB_ICONERROR);
+		AfxMessageBox(ipstr, MB_ICONERROR);
 	}
 }
