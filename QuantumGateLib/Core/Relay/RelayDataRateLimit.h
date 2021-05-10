@@ -102,24 +102,27 @@ namespace QuantumGate::Implementation::Core::Relay
 		void RecordMTUAck(const std::chrono::nanoseconds rtt, const Size num_bytes) noexcept
 		{
 			const auto now = Util::GetCurrentSteadyTime();
-			const auto threshold = std::min(m_RTTVariance.GetMean() / 2, m_RTTVariance.GetMinDev2());
 
-			if (m_RTTVariance.GetCount() > 0 &&
-				(rtt.count() < threshold || now - m_LastSampleRecordedSteadyTime > SampleRecordingRestartTimeout))
+			if (m_RTTVariance.GetCount() > 0)
 			{
-				m_RTTVariance.Restart();
-				m_MTUVariance.Restart();
+				const auto threshold = std::min(m_RTTVariance.GetMean() / 2, m_RTTVariance.GetMinDev2());
+
+				if (rtt.count() < threshold || now - m_LastSampleRecordedSteadyTime > SampleRecordingRestartTimeout)
+				{
+					m_RTTVariance.Restart();
+					m_MTUVariance.Restart();
 
 #ifdef RDRL_DEBUG
-				const auto meanms = std::chrono::duration_cast<std::chrono::milliseconds>(
-					std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(m_RTTVariance.GetMean())));
-				const auto stddevms = std::chrono::duration_cast<std::chrono::milliseconds>(
-					std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(m_RTTVariance.GetStdDev())));
+					const auto meanms = std::chrono::duration_cast<std::chrono::milliseconds>(
+						std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(m_RTTVariance.GetMean())));
+					const auto stddevms = std::chrono::duration_cast<std::chrono::milliseconds>(
+						std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(m_RTTVariance.GetStdDev())));
 
-				SLogInfo(SLogFmt(FGBrightCyan) << L"Relay connection: RTT restart: " <<
-						 std::chrono::duration_cast<std::chrono::milliseconds>(rtt) << L" (mean: " << meanms <<
-						 L", stddev: " << stddevms << L")" << SLogFmt(Default));
+					SLogInfo(SLogFmt(FGBrightCyan) << L"Relay connection: RTT restart: " <<
+							 std::chrono::duration_cast<std::chrono::milliseconds>(rtt) << L" (mean: " << meanms <<
+							 L", stddev: " << stddevms << L")" << SLogFmt(Default));
 #endif
+				}
 			}
 
 			m_RTTVariance.AddSample(static_cast<double>(rtt.count()));
