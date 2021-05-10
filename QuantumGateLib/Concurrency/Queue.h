@@ -25,13 +25,13 @@ namespace QuantumGate::Implementation::Concurrency
 		~Queue() = default;
 		Queue& operator=(Queue&&) noexcept = default;
 
-		inline bool IsEmpty() const noexcept
+		[[nodiscard]] inline bool IsEmpty() const noexcept
 		{
 			LockGuardType lock(m_CriticalSection);
 			return m_Queue.empty();
 		}
 
-		inline Size GetSize() const noexcept
+		[[nodiscard]] inline Size GetSize() const noexcept
 		{
 			LockGuardType lock(m_CriticalSection);
 			return m_Queue.size();
@@ -45,7 +45,7 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 		template<typename F> requires std::is_same_v<std::invoke_result_t<F, T&>, bool>
-		inline void PopFrontIf(F&& function)
+		inline void PopFrontIf(F&& function) noexcept(noexcept(function(std::declval<T&>())))
 		{
 			LockGuardType lock(m_CriticalSection);
 			if (!m_Queue.empty())
