@@ -126,6 +126,7 @@
 #define IDC_MAX_SUSPEND_DURATION        1037
 #define IDC_REMOVELIMIT                 1038
 #define IDC_TIMEOUT                     1038
+#define IDC_RELAY_MAX_SUSPEND_DURATION  1038
 #define IDC_MAX_CONNECTIONS             1039
 #define IDC_ADDLIMIT                    1040
 #define IDC_CIDR                        1041

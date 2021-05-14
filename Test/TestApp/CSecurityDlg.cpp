@@ -53,6 +53,7 @@ BOOL CSecurityDlg::OnInitDialog()
 
 	SetValue(IDC_RELAY_CONNECT_TIMEOUT, params.Relay.ConnectTimeout);
 	SetValue(IDC_RELAY_GRACEPERIOD, params.Relay.GracePeriod);
+	SetValue(IDC_RELAY_MAX_SUSPEND_DURATION, params.Relay.MaxSuspendDuration);
 	SetValue(IDC_RELAY_NUM_IPCON_ATTEMPTS, params.Relay.IPConnectionAttempts.MaxPerInterval);
 	SetValue(IDC_RELAY_IPCON_ATTEMPTS_INTERVAL, params.Relay.IPConnectionAttempts.Interval);
 
@@ -110,6 +111,7 @@ void CSecurityDlg::OnBnClickedOk()
 
 	params.Relay.ConnectTimeout = std::chrono::seconds(GetSizeValue(IDC_RELAY_CONNECT_TIMEOUT));
 	params.Relay.GracePeriod = std::chrono::seconds(GetSizeValue(IDC_RELAY_GRACEPERIOD));
+	params.Relay.MaxSuspendDuration = std::chrono::seconds(GetSizeValue(IDC_RELAY_MAX_SUSPEND_DURATION));
 	params.Relay.IPConnectionAttempts.MaxPerInterval = GetSizeValue(IDC_RELAY_NUM_IPCON_ATTEMPTS);
 	params.Relay.IPConnectionAttempts.Interval = std::chrono::seconds(GetSizeValue(IDC_RELAY_IPCON_ATTEMPTS_INTERVAL));
 

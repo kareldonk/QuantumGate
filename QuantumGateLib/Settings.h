@@ -31,6 +31,7 @@ namespace QuantumGate::Implementation
 	{
 		std::chrono::seconds ConnectTimeout{ 60 };					// Maximum number of seconds to wait for a relay link to be established
 		std::chrono::seconds GracePeriod{ 60 };						// Number of seconds after a relay is closed to still silently accept messages for that relay link
+		std::chrono::seconds MaxSuspendDuration{ 60 };				// Maximum number of seconds that a relay link may be suspended before it is closed/removed
 
 		UInt8 IPv4ExcludedNetworksCIDRLeadingBits{ 16 };			// The CIDR leading bits of the IPv4 network address spaces of the source and destination endpoints to exclude from the relay link
 		UInt8 IPv6ExcludedNetworksCIDRLeadingBits{ 48 };			// The CIDR leading bits of the IPv6 network address spaces of the source and destination endpoints to exclude from the relay link
