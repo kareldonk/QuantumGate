@@ -43,6 +43,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 			[[nodiscard]] inline bool IsAcked() const noexcept { return m_Acked; }
 			inline void SetAcked() noexcept { m_Acked = true; }
+			inline void ResetAcked() noexcept { m_Acked = false; }
 
 		private:
 			Message::SequenceNumber m_SequenceNumber{ 0 };

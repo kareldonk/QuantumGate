@@ -1027,8 +1027,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					{
 						// May have been retransmitted due to delays or lost ack;
 						// send an ack (again) and drop message
-						DiscardReturnValue(AckReceivedMessage(msg.GetMessageSequenceNumber()));
-						success = true;
+						m_LastInOrderReceivedSequenceNumber.ResetAcked();
+						success = AckReceivedMessage(msg.GetMessageSequenceNumber());
 						break;
 					}
 					case ReceiveWindow::Unknown:
