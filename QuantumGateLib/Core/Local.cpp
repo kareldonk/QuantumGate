@@ -1166,7 +1166,8 @@ namespace QuantumGate::Implementation::Core
 		if (params.KeyUpdate.RequireAfterNumProcessedBytes < 10'485'760) return false;
 
 		if (params.Relay.ConnectTimeout < 0s ||
-			params.Relay.GracePeriod < 0s) return false;
+			params.Relay.GracePeriod < 0s ||
+			params.Relay.MaxSuspendDuration < 0s) return false;
 
 		if (params.Relay.IPConnectionAttempts.Interval < 0s) return false;
 
@@ -1413,6 +1414,7 @@ namespace QuantumGate::Implementation::Core
 
 							settings.Relay.ConnectTimeout = params->Relay.ConnectTimeout;
 							settings.Relay.GracePeriod = params->Relay.GracePeriod;
+							settings.Relay.MaxSuspendDuration = params->Relay.MaxSuspendDuration;
 							settings.Relay.IPConnectionAttempts.MaxPerInterval = params->Relay.IPConnectionAttempts.MaxPerInterval;
 							settings.Relay.IPConnectionAttempts.Interval = params->Relay.IPConnectionAttempts.Interval;
 
@@ -1500,6 +1502,7 @@ namespace QuantumGate::Implementation::Core
 
 		params.Relay.ConnectTimeout = settings.Relay.ConnectTimeout;
 		params.Relay.GracePeriod = settings.Relay.GracePeriod;
+		params.Relay.MaxSuspendDuration = settings.Relay.MaxSuspendDuration;
 		params.Relay.IPConnectionAttempts.MaxPerInterval = settings.Relay.IPConnectionAttempts.MaxPerInterval;
 		params.Relay.IPConnectionAttempts.Interval = settings.Relay.IPConnectionAttempts.Interval;
 
@@ -1541,6 +1544,7 @@ namespace QuantumGate::Implementation::Core
 
 		settings.Relay.ConnectTimeout = 60s;
 		settings.Relay.GracePeriod = 60s;
+		settings.Relay.MaxSuspendDuration = 60s;
 		settings.Relay.IPConnectionAttempts.MaxPerInterval = 10;
 		settings.Relay.IPConnectionAttempts.Interval = 10s;
 
