@@ -799,7 +799,7 @@ namespace QuantumGate::Implementation::Core::Relay
 						{
 							queue_map.PushFront(rport, std::move(revent));
 
-							if (queue_map.GetDequeCount() == 1)
+							if (queue_map.GetKeyCount() == 1)
 							{
 								// Prevent from spinning if there's only one queue
 								std::this_thread::sleep_for(1ms);
