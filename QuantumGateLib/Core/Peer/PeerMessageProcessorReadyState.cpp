@@ -34,14 +34,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	bool MessageProcessor::SendEndRelay(const RelayPort rport) const noexcept
-	{
-		Dbg(L"*********** SendEndRelay ***********");
-
-		return SendRelayStatus(rport, RelayStatusUpdate::Disconnected);
-	}
-
-	bool MessageProcessor::SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept
+	QuantumGate::Result<> MessageProcessor::SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept
 	{
 		Dbg(L"*********** SendRelayStatus ***********");
 
@@ -50,15 +43,17 @@ namespace QuantumGate::Implementation::Core::Peer
 		BufferWriter wrt(true);
 		if (wrt.WriteWithPreallocation(rport, status))
 		{
-			if (m_Peer.Send(MessageType::RelayStatus, wrt.MoveWrittenBytes()))
+			auto result = m_Peer.Send(MessageType::RelayStatus, wrt.MoveWrittenBytes());
+			if (!result)
 			{
-				return true;
+				LogDbg(L"Couldn't send RelayStatus message to peer %s", m_Peer.GetPeerName().c_str());
 			}
-			else LogDbg(L"Couldn't send RelayStatus message to peer %s", m_Peer.GetPeerName().c_str());
+
+			return result;
 		}
 		else LogDbg(L"Couldn't prepare RelayStatus message for peer %s", m_Peer.GetPeerName().c_str());
 
-		return false;
+		return ResultCode::Failed;
 	}
 
 	QuantumGate::Result<> MessageProcessor::SendRelayData(const RelayDataMessage& msg) const noexcept

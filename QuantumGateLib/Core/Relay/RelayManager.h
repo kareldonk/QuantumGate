@@ -7,6 +7,7 @@
 #include "RelayEvents.h"
 #include "..\..\Concurrency\SharedSpinMutex.h"
 #include "..\..\Concurrency\EventGroup.h"
+#include "..\..\Concurrency\DequeMap.h"
 
 namespace QuantumGate::Implementation::Core::Relay
 {
@@ -14,8 +15,8 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		using ThreadKey = UInt64;
 
-		using EventQueue_ThS = Concurrency::Queue<Event>;
-		using EventQueueMap = Containers::UnorderedMap<ThreadKey, std::unique_ptr<EventQueue_ThS>>;
+		using EventQueueMap_ThS = Concurrency::DequeMap<RelayPort, Event>;
+		using ThreadKeyToEventQueueMap = Containers::UnorderedMap<ThreadKey, std::unique_ptr<EventQueueMap_ThS>>;
 
 		using RelayPortToThreadKeyMap = Containers::UnorderedMap<RelayPort, ThreadKey>;
 		using RelayPortToThreadKeyMap_ThS = Concurrency::ThreadSafe<RelayPortToThreadKeyMap, Concurrency::SharedSpinMutex>;
@@ -28,25 +29,25 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		struct ThreadData final
 		{
-			ThreadData(const ThreadKey thread_key, EventQueue_ThS* event_queue) noexcept :
-				ThreadKey(thread_key), EventQueue(event_queue)
+			ThreadData(const ThreadKey thread_key, EventQueueMap_ThS* event_queue_map) noexcept :
+				ThreadKey(thread_key), EventQueueMap(event_queue_map)
 			{}
 
 			ThreadKey ThreadKey{ 0 };
-			EventQueue_ThS* EventQueue{ nullptr };
+			EventQueueMap_ThS* EventQueueMap{ nullptr };
 		};
 
 		struct ThreadPoolData final
 		{
 			RelayPortToThreadKeyMap_ThS RelayPortToThreadKeys;
 			ThreadKeyToLinkTotalMap_ThS ThreadKeyToLinkTotals;
-			EventQueueMap RelayEventQueues;
+			ThreadKeyToEventQueueMap RelayEventQueues;
 			Concurrency::EventGroup WorkEvents;
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
 
-		enum RelayDataProcessResult
+		enum RelayEventProcessResult
 		{
 			Failed, Succeeded, Retry
 		};
@@ -72,7 +73,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		[[nodiscard]] bool Connect(const PeerLUID in_peer, const PeerLUID out_peer,
 								   const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hops) noexcept;
 
-		[[nodiscard]] bool AddRelayEvent(const RelayPort rport, Event&& event) noexcept;
+		[[nodiscard]] bool AddRelayEvent(RelayPort rport, Event&& event) noexcept;
 
 	private:
 		void PreStartup() noexcept;
@@ -82,9 +83,9 @@ namespace QuantumGate::Implementation::Core::Relay
 		void BeginShutdownThreadPool() noexcept;
 		void EndShutdownThreadPool() noexcept;
 
-		std::optional<ThreadKey> GetThreadKey(const RelayPort rport) const noexcept;
+		[[nodiscard]] std::optional<ThreadKey> GetThreadKey(const RelayPort rport) const noexcept;
 
-		std::optional<ThreadKey> GetThreadKeyWithLeastLinks() const noexcept;
+		[[nodiscard]] std::optional<ThreadKey> GetThreadKeyWithLeastLinks() const noexcept;
 		[[nodiscard]] bool MapRelayPortToThreadKey(const RelayPort rport) noexcept;
 		void UnMapRelayPortFromThreadKey(const RelayPort rport) noexcept;
 
@@ -113,6 +114,23 @@ namespace QuantumGate::Implementation::Core::Relay
 		void WorkerThreadWaitInterrupt(ThreadPoolData& thpdata, ThreadData& thdata);
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
+		void ProcessEvents(EventQueueMap_ThS& queue_map, const Concurrency::Event& shutdown_event);
+
+		bool UpdateRelayStatus(Link& rl,
+							   Peer::Peer_ThS::UniqueLockedType& in_peer,
+							   Peer::Peer_ThS::UniqueLockedType& out_peer,
+							   const Status status, const Exception exception = Exception::Unknown) noexcept;
+
+		bool UpdateRelayStatus(Link& rl,
+							   Peer::Peer_ThS::UniqueLockedType& in_peer,
+							   Peer::Peer_ThS::UniqueLockedType& out_peer,
+							   const PeerLUID from_pluid, const RelayStatusUpdate status) noexcept;
+
+		[[nodiscard]] bool OnRelayStatusUpdate(Link& rl,
+											   Peer::Peer_ThS::UniqueLockedType& in_peer,
+											   Peer::Peer_ThS::UniqueLockedType& out_peer,
+											   const Status prev_status) noexcept;
+
 		[[nodiscard]] bool ProcessRelayConnect(Link& rc,
 											   Peer::Peer_ThS::UniqueLockedType& in_peer,
 											   Peer::Peer_ThS::UniqueLockedType& out_peer);
@@ -120,12 +138,10 @@ namespace QuantumGate::Implementation::Core::Relay
 		[[nodiscard]] bool ProcessRelayConnected(Link& rc,
 												 Peer::Peer_ThS::UniqueLockedType& in_peer,
 												 Peer::Peer_ThS::UniqueLockedType& out_peer) noexcept;
-		[[nodiscard]] bool ProcessRelayConnectedBeginEnd(Link& rl,
-														 const PeerLUID orig_luid,
-														 Peer::Peer_ThS::UniqueLockedType& orig_peer) noexcept;
-		[[nodiscard]] bool ProcessRelayConnectedBetween(Link& rc,
-														Peer::Peer_ThS::UniqueLockedType& in_peer,
-														Peer::Peer_ThS::UniqueLockedType& out_peer) noexcept;
+
+		[[nodiscard]] bool ProcessRelaySuspended(Link& rc,
+												 Peer::Peer_ThS::UniqueLockedType& in_peer,
+												 Peer::Peer_ThS::UniqueLockedType& out_peer) noexcept;
 
 		void ProcessRelayDisconnect(Link& rc,
 									Peer::Peer_ThS::UniqueLockedType& in_peer,
@@ -134,10 +150,13 @@ namespace QuantumGate::Implementation::Core::Relay
 		template<typename T>
 		[[nodiscard]] bool ValidateEventOrigin(const T& event, const Link& rl) const noexcept;
 
-		bool ProcessRelayEvent(const Events::Connect& event) noexcept;
-		bool ProcessRelayEvent(const Events::StatusUpdate& event) noexcept;
-		[[nodiscard]] RelayDataProcessResult ProcessRelayEvent(Events::RelayData& event) noexcept;
-		bool ProcessRelayEvent(const Events::RelayDataAck& event) noexcept;
+		RelayEventProcessResult ProcessRelayEvent(const Events::Connect& event) noexcept;
+		RelayEventProcessResult ProcessRelayEvent(const Events::StatusUpdate& event) noexcept;
+		[[nodiscard]] RelayEventProcessResult ProcessRelayEvent(Events::RelayData& event) noexcept;
+		RelayEventProcessResult ProcessRelayEvent(const Events::RelayDataAck& event) noexcept;
+
+	private:
+		static constexpr RelayPort DefaultQueueRelayPort{ 0 };
 
 	private:
 		std::atomic_bool m_Running{ false };

@@ -42,7 +42,6 @@ namespace QuantumGate::Implementation::Core::Relay
 		assert(m_IOStatus.IsOpen());
 
 		m_IOStatus.SetConnected(true);
-		m_ConnectWrite = true;
 
 		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
 
@@ -195,7 +194,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		if (!m_IOStatus.IsOpen()) return false;
 
-		const bool write = (m_ConnectWrite && m_SendBuffer.GetSize() < MaxSendBufferSize);
+		const bool write = (m_ConnectWrite && m_SendBuffer.GetSize() < MaxSendBufferSize && !m_IOStatus.IsSuspended());
 		m_IOStatus.SetWrite(write);
 
 		const bool read = (!m_ReceiveBuffer.IsEmpty() || m_ClosingRead);
@@ -208,8 +207,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	SystemTime Socket::GetConnectedTime() const noexcept
 	{
-		const auto dif = std::chrono::duration_cast<std::chrono::seconds>(Util::GetCurrentSteadyTime() -
-																		  GetConnectedSteadyTime());
+		const auto dif = std::chrono::duration_cast<std::chrono::seconds>(Util::GetCurrentSteadyTime() - GetConnectedSteadyTime());
 		return (Util::GetCurrentSystemTime() - dif);
 	}
 }

@@ -11,7 +11,7 @@ namespace QuantumGate::Implementation::Core::Relay
 {
 	enum class Status
 	{
-		Opened, Connect, Connecting, Connected, Disconnected, Exception, Closed
+		Opened, Connect, Connecting, Connected, Suspended, Disconnected, Exception, Closed
 	};
 
 	enum class Exception
@@ -30,6 +30,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		PeerLUID PeerLUID{ 0 };
 		Peer::PeerSharedPointer Peer{ nullptr };
 		bool GetStatusUpdates{ true };
+		bool IsSuspended{ false };
+		bool NeedsResumeUpdate{ false };
 	};
 
 	class Link final
@@ -63,7 +65,11 @@ namespace QuantumGate::Implementation::Core::Relay
 			switch (status)
 			{
 				case RelayStatusUpdate::Connected:
+				case RelayStatusUpdate::Resumed:
 					success = UpdateStatus(Status::Connected);
+					break;
+				case RelayStatusUpdate::Suspended:
+					success = UpdateStatus(Status::Suspended);
 					break;
 				case RelayStatusUpdate::Disconnected:
 					success = UpdateStatus(Status::Disconnected);
@@ -125,9 +131,22 @@ namespace QuantumGate::Implementation::Core::Relay
 				}
 				case Status::Connected:
 				{
-					if (m_Status == Status::Connect || m_Status == Status::Connecting)
+					if (m_Status == Status::Connect ||
+						m_Status == Status::Connecting ||
+						m_Status == Status::Suspended)
 					{
 						LogInfo(L"Relay link on port %llu connected (local hop %u)", m_Port, m_Hop);
+						m_Status = status;
+						success = true;
+					}
+					else assert(false);
+					break;
+				}
+				case Status::Suspended:
+				{
+					if (m_Status == Status::Connected)
+					{
+						LogInfo(L"Relay link on port %llu suspended (local hop %u)", m_Port, m_Hop);
 						m_Status = status;
 						success = true;
 					}
@@ -138,7 +157,8 @@ namespace QuantumGate::Implementation::Core::Relay
 				{
 					if (m_Status == Status::Connected ||
 						m_Status == Status::Connecting ||
-						m_Status == Status::Connect)
+						m_Status == Status::Connect ||
+						m_Status == Status::Suspended)
 					{
 						LogDbg(L"Relay link on port %llu disconnected (local hop %u)", m_Port, m_Hop);
 						m_Status = status;
@@ -188,7 +208,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			if (!MayGetStatusUpdate(to_peer.GetLUID())) return true;
 
-			if (to_peer.GetMessageProcessor().SendRelayStatus(GetPort(), status))
+			if (const auto result = to_peer.GetMessageProcessor().SendRelayStatus(GetPort(), status); result.Succeeded())
 			{
 				CheckStatusUpdate(to_peer.GetLUID(), status);
 				if (from_pluid) CheckStatusUpdate(*from_pluid, status);
@@ -204,27 +224,28 @@ namespace QuantumGate::Implementation::Core::Relay
 	private:
 		void CheckStatusUpdate(const PeerLUID from_pluid, const RelayStatusUpdate status) noexcept
 		{
+			assert(m_IncomingPeer.PeerLUID != 0 && m_OutgoingPeer.PeerLUID != 0);
+
 			switch (status)
 			{
 				case RelayStatusUpdate::Connected:
+				case RelayStatusUpdate::Suspended:
+				case RelayStatusUpdate::Resumed:
 				{
 					break;
 				}
 				default:
 				{
-					assert(m_IncomingPeer.PeerLUID != 0 && m_OutgoingPeer.PeerLUID != 0);
-
 					// Since the peer will be gone we should not be
 					// sending/forwarding status updates to it anymore
 					if (m_IncomingPeer.PeerLUID == from_pluid)
 					{
 						m_IncomingPeer.GetStatusUpdates = false;
 					}
-					if (m_OutgoingPeer.PeerLUID == from_pluid)
+					else if (m_OutgoingPeer.PeerLUID == from_pluid)
 					{
 						m_OutgoingPeer.GetStatusUpdates = false;
 					}
-
 					break;
 				}
 			}
@@ -234,10 +255,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			assert(m_IncomingPeer.PeerLUID != 0 && m_OutgoingPeer.PeerLUID != 0);
 
-			if (m_IncomingPeer.PeerLUID == pluid &&
-				m_IncomingPeer.GetStatusUpdates) return true;
-			else if (m_OutgoingPeer.PeerLUID == pluid &&
-					 m_OutgoingPeer.GetStatusUpdates) return true;
+			if (m_IncomingPeer.PeerLUID == pluid && m_IncomingPeer.GetStatusUpdates) return true;
+			else if (m_OutgoingPeer.PeerLUID == pluid && m_OutgoingPeer.GetStatusUpdates) return true;
 
 			return false;
 		}

@@ -75,9 +75,9 @@ namespace QuantumGate::Implementation::Core::Relay
 		[[nodiscard]] inline const IOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
 		[[nodiscard]] bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept override;
 
-		[[nodiscard]] bool CanSuspend() const noexcept override { return false; }
-		[[nodiscard]] std::optional<SteadyTime> GetLastSuspendedSteadyTime() const noexcept override { return std::nullopt; }
-		[[nodiscard]] std::optional<SteadyTime> GetLastResumedSteadyTime() const noexcept override { return std::nullopt; }
+		[[nodiscard]] bool CanSuspend() const noexcept override { return true; }
+		[[nodiscard]] std::optional<SteadyTime> GetLastSuspendedSteadyTime() const noexcept override { return m_LastSuspendedSteadyTime; }
+		[[nodiscard]] std::optional<SteadyTime> GetLastResumedSteadyTime() const noexcept override { return m_LastResumedSteadyTime; }
 
 		[[nodiscard]] SystemTime GetConnectedTime() const noexcept override;
 		[[nodiscard]] inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
@@ -138,6 +138,20 @@ namespace QuantumGate::Implementation::Core::Relay
 			m_ReceiveEvent.GetSubEvent(0).Set();
 		}
 
+		inline void SetSocketSuspended(const bool suspended) noexcept
+		{
+			m_IOStatus.SetSuspended(suspended);
+			if (suspended)
+			{
+				m_LastSuspendedSteadyTime = Util::GetCurrentSteadyTime();
+			}
+			else
+			{
+				m_LastResumedSteadyTime = Util::GetCurrentSteadyTime();
+			}
+			m_ReceiveEvent.GetSubEvent(0).Set();
+		}
+
 		inline void SetRelayWrite(const bool enabled) noexcept
 		{
 			if (enabled) m_SendEvent.GetSubEvent(1).Set();
@@ -160,7 +174,9 @@ namespace QuantumGate::Implementation::Core::Relay
 		IPEndpoint m_PeerEndpoint;
 
 		SteadyTime m_ConnectedSteadyTime;
-		
+		std::optional<SteadyTime> m_LastSuspendedSteadyTime;
+		std::optional<SteadyTime> m_LastResumedSteadyTime;
+
 		Buffer m_SendBuffer;
 		IOEvent m_SendEvent;
 		Buffer m_ReceiveBuffer;

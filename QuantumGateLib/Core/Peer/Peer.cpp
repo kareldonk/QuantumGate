@@ -258,12 +258,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		if (!UpdateSocketStatus()) return false;
 
 		const auto status = GetStatus();
+		const auto current_steadytime = Util::GetCurrentSteadyTime();
 
 		if (status >= Status::Connected)
 		{
 			// Check if send disable period has expired
 			if (IsFlagSet(Flags::SendDisabled) && m_SendDisabledDuration > 0ms &&
-				(Util::GetCurrentSteadyTime() - m_SendDisabledSteadyTime) > m_SendDisabledDuration)
+				(current_steadytime - m_SendDisabledSteadyTime) > m_SendDisabledDuration)
 			{
 				EnableSend();
 			}
@@ -300,8 +301,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				max_handshake_duration = max_handshake_duration * (hops > 2 ? hops : 2);
 			}
 
-			if (GetIOStatus().IsConnecting() &&
-				((Util::GetCurrentSteadyTime() - GetConnectedSteadyTime()) > max_connect_duration))
+			if (GetIOStatus().IsConnecting() && ((current_steadytime - GetConnectedSteadyTime()) > max_connect_duration))
 			{
 				// If the peer couldn't connect
 				LogErr(L"Peer %s could not establish connection quick enough; will remove", GetPeerName().c_str());
@@ -309,8 +309,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				SetDisconnectCondition(DisconnectCondition::TimedOutError);
 				return false;
 			}
-			else if (!GetIOStatus().IsConnecting() &&
-				((Util::GetCurrentSteadyTime() - GetConnectedSteadyTime()) > max_handshake_duration))
+			else if (!GetIOStatus().IsConnecting() && ((current_steadytime - GetConnectedSteadyTime()) > max_handshake_duration))
 			{
 				// If the peer was accepted/connected but did not reach the ready state quick enough remove it
 				LogErr(L"Peer %s did not complete handshake quick enough; will disconnect", GetPeerName().c_str());
@@ -346,13 +345,16 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 		}
 
-		if (status == Status::Ready && GetIOStatus().IsSuspended())
+		if (CanSuspend())
 		{
-			return SetStatus(Status::Suspended);
-		}
-		else if (status == Status::Suspended && !GetIOStatus().IsSuspended())
-		{
-			return SetStatus(Status::Ready);
+			if (status == Status::Ready && GetIOStatus().IsSuspended())
+			{
+				return SetStatus(Status::Suspended);
+			}
+			else if (status == Status::Suspended && !GetIOStatus().IsSuspended())
+			{
+				return SetStatus(Status::Ready);
+			}
 		}
 
 		return true;
