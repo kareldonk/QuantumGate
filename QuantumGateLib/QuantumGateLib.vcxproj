@@ -565,6 +565,7 @@
     <ClInclude Include="Concurrency\EventComposite.h" />
     <ClInclude Include="Concurrency\EventGroup.h" />
     <ClInclude Include="Concurrency\Queue.h" />
+    <ClInclude Include="Concurrency\DequeMap.h" />
     <ClInclude Include="Concurrency\RecursiveSharedMutex.h" />
     <ClInclude Include="Concurrency\SharedSpinMutex.h" />
     <ClInclude Include="Concurrency\SpinMutex.h" />

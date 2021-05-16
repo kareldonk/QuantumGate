@@ -504,6 +504,9 @@
     <ClInclude Include="Concurrency\EventComposite.h">
       <Filter>Header Files\Concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="Concurrency\DequeMap.h">
+      <Filter>Header Files\Concurrency</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
