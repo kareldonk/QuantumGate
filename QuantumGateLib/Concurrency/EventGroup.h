@@ -270,6 +270,8 @@ namespace QuantumGate::Implementation::Concurrency
 							{
 								// One or more of the events were set
 								::SetEvent(subgroup->m_MainEvent);
+
+								::ResetEvent(subgroup->m_BarrierEvent);
 							}
 							else if (ret2 == WAIT_TIMEOUT)
 							{
