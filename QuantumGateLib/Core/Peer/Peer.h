@@ -196,13 +196,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		inline void SetDisconnectCondition(const DisconnectCondition dc) noexcept { if (!ShouldDisconnect()) m_DisconnectCondition = dc; }
 
 		[[nodiscard]] bool UpdateSocketStatus() noexcept;
-		[[nodiscard]] bool CheckStatus(const bool noise_enabled, const std::chrono::seconds max_connect_duration,
-									   std::chrono::seconds max_handshake_duration) noexcept;
+		[[nodiscard]] bool CheckStatus(const bool noise_enabled, const SteadyTime current_steadytime,
+									   const std::chrono::seconds max_connect_duration, std::chrono::seconds max_handshake_duration) noexcept;
 
 		void UpdateReputation(const Access::IPReputationUpdate rep_update) noexcept;
 
-		[[nodiscard]] bool HasPendingEvents() noexcept;
-		[[nodiscard]] bool ProcessEvents();
+		[[nodiscard]] bool HasPendingEvents(const SteadyTime current_steadytime) noexcept;
+		[[nodiscard]] bool ProcessEvents(const SteadyTime current_steadytime);
 		void ProcessLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids);
 		[[nodiscard]] bool ProcessPeerExtenderUpdate(Vector<ExtenderUUID>&& uuids) noexcept;
 

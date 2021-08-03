@@ -247,8 +247,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	bool Peer::CheckStatus(const bool noise_enabled, const std::chrono::seconds max_connect_duration,
-						   std::chrono::seconds max_handshake_duration) noexcept
+	bool Peer::CheckStatus(const bool noise_enabled, const SteadyTime current_steadytime,
+						   const std::chrono::seconds max_connect_duration, std::chrono::seconds max_handshake_duration) noexcept
 	{
 		if (NeedsAccessCheck())
 		{
@@ -258,7 +258,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		if (!UpdateSocketStatus()) return false;
 
 		const auto status = GetStatus();
-		const auto current_steadytime = Util::GetCurrentSteadyTime();
 
 		if (status >= Status::Connected)
 		{
@@ -375,7 +374,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	bool Peer::ProcessEvents()
+	bool Peer::ProcessEvents(const SteadyTime current_steadytime)
 	{
 		if (ShouldDisconnect()) return false;
 
@@ -438,7 +437,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		// Check if we need to update the symmetric keys
 		// and handle the update process
-		if (!m_KeyUpdate.ProcessEvents())
+		if (!m_KeyUpdate.ProcessEvents(current_steadytime))
 		{
 			SetDisconnectCondition(DisconnectCondition::GeneralFailure);
 			return false;
@@ -1529,10 +1528,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		return Util::FormatString(L"%s (LUID %llu)", GetPeerEndpoint().GetString().c_str(), GetLUID());
 	}
 
-	bool Peer::HasPendingEvents() noexcept
+	bool Peer::HasPendingEvents(const SteadyTime current_steadytime) noexcept
 	{
 		if (HasReceiveEvents() || HasSendEvents() ||
-			m_NoiseQueue.IsQueuedNoiseReady() || m_KeyUpdate.HasEvents() ||
+			m_NoiseQueue.IsQueuedNoiseReady() || m_KeyUpdate.HasEvents(current_steadytime) ||
 			(NeedsExtenderUpdate() && IsReady()))
 		{
 			return true;

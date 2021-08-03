@@ -186,27 +186,26 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		});
 	}
 
-	void Connection::ProcessEvents() noexcept
+	void Connection::ProcessEvents(const SteadyTime current_steadytime) noexcept
 	{
 		ProcessSocketEvents();
 
 		if (ShouldClose()) return;
 
-		if (!ReceiveToQueue())
+		if (!ReceiveToQueue(current_steadytime))
 		{
 			SetCloseCondition(CloseCondition::ReceiveError);
 		}
 
 		const auto& settings = GetSettings();
-		
-		assert(settings.Local.SuspendTimeout > SuspendTimeoutMargin);
-		const auto max_keepalive_timeout = settings.Local.SuspendTimeout - SuspendTimeoutMargin;
 
+		const auto max_keepalive_timeout = settings.Local.SuspendTimeout + SuspendTimeoutMargin;
+		
 		switch (GetStatus())
 		{
 			case Status::Handshake:
 			{
-				if (Util::GetCurrentSteadyTime() - m_LastStatusChangeSteadyTime >= settings.UDP.ConnectTimeout)
+				if (current_steadytime - m_LastStatusChangeSteadyTime >= settings.UDP.ConnectTimeout)
 				{
 					LogDbg(L"UDP connection: handshake timed out for connection %llu", GetID());
 
@@ -226,7 +225,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					SetCloseCondition(CloseCondition::SendError);
 				}
 
-				if (!CheckKeepAlive(settings) || !ProcessMTUDiscovery())
+				if (!CheckKeepAlive(settings, current_steadytime) || !ProcessMTUDiscovery())
 				{
 					SetCloseCondition(CloseCondition::GeneralFailure);
 				}
@@ -241,7 +240,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					SetCloseCondition(CloseCondition::SendError);
 				}
 
-				if (Util::GetCurrentSteadyTime() - m_LastReceiveSteadyTime >= max_keepalive_timeout)
+				if (current_steadytime - m_LastReceiveSteadyTime >= max_keepalive_timeout)
 				{
 					if (!Suspend())
 					{
@@ -253,7 +252,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			case Status::Suspended:
 			{
 				const auto suspended_steadytime = m_LastReceiveSteadyTime + max_keepalive_timeout;
-				if (Util::GetCurrentSteadyTime() - suspended_steadytime >= settings.Local.MaxSuspendDuration)
+				if (current_steadytime - suspended_steadytime >= settings.Local.MaxSuspendDuration)
 				{
 					// Connection has been in the suspended state for
 					// too long so we disconnect it now
@@ -264,7 +263,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				else
 				{
 					// Try to make contact again
-					if (!CheckKeepAlive(settings))
+					if (!CheckKeepAlive(settings, current_steadytime))
 					{
 						SetCloseCondition(CloseCondition::GeneralFailure);
 					}
@@ -283,9 +282,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	bool Connection::CheckKeepAlive(const Settings& settings) noexcept
+	bool Connection::CheckKeepAlive(const Settings& settings, const SteadyTime current_steadytime) noexcept
 	{
-		if (Util::GetCurrentSteadyTime() - m_LastSendSteadyTime >= m_KeepAliveTimeout)
+		if (current_steadytime - m_LastSendSteadyTime >= m_KeepAliveTimeout)
 		{
 			ResetKeepAliveTimeout(settings);
 
@@ -297,8 +296,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void Connection::ResetKeepAliveTimeout(const Settings& settings) noexcept
 	{
-		const auto max_keepalive_timeout = settings.Local.SuspendTimeout - SuspendTimeoutMargin;
-		m_KeepAliveTimeout = std::chrono::seconds(Random::GetPseudoRandomNumber(0, max_keepalive_timeout.count()));
+		m_KeepAliveTimeout = std::chrono::seconds(Random::GetPseudoRandomNumber(0, settings.Local.SuspendTimeout.count()));
 	}
 
 	bool Connection::Suspend() noexcept
@@ -691,9 +689,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
-	Result<Size> Connection::Send(const SteadyTime& now, const Buffer& data, const bool use_listener_socket) noexcept
+	Result<Size> Connection::Send(const SteadyTime current_steadytime, const Buffer& data, const bool use_listener_socket) noexcept
 	{
-		m_LastSendSteadyTime = now;
+		m_LastSendSteadyTime = current_steadytime;
 
 		if (use_listener_socket)
 		{
@@ -760,7 +758,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return rcvbuf;
 	}
 
-	bool Connection::ReceiveToQueue() noexcept
+	bool Connection::ReceiveToQueue(const SteadyTime current_steadytime) noexcept
 	{
 		IPEndpoint endpoint;
 		auto& buffer = GetReceiveBuffer();
@@ -780,7 +778,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 						{
 							bufspan = bufspan.GetFirst(*result);
 
-							if (!ProcessReceivedData(endpoint, bufspan))
+							if (!ProcessReceivedData(current_steadytime, endpoint, bufspan))
 							{
 								return false;
 							}
@@ -832,9 +830,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return true;
 	}
 
-	bool Connection::ProcessReceivedData(const IPEndpoint& endpoint, BufferSpan& buffer) noexcept
+	bool Connection::ProcessReceivedData(const SteadyTime current_steadytime, const IPEndpoint& endpoint, BufferSpan& buffer) noexcept
 	{
-		m_LastReceiveSteadyTime = Util::GetCurrentSteadyTime();
+		m_LastReceiveSteadyTime = current_steadytime;
 
 		Message msg(Message::Type::Unknown, Message::Direction::Incoming);
 		if (msg.Read(buffer, m_SymmetricKeys) && msg.IsValid())

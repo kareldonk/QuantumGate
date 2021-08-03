@@ -301,15 +301,18 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			for (auto it = peers.begin(); it != peers.end() && !shutdown_event.IsSet(); ++it)
 			{
+				// Placed in the loop to have the latest time for each peer
+				const auto current_steadytime = Util::GetCurrentSteadyTime();
+
 				auto& peerths = it->second;
 
 				peerths->WithUniqueLock([&](Peer& peer)
 				{
-					if (peer.CheckStatus(noise_enabled, max_connect_duration, max_handshake_duration))
+					if (peer.CheckStatus(noise_enabled, current_steadytime, max_connect_duration, max_handshake_duration))
 					{
-						if (peer.HasPendingEvents())
+						if (peer.HasPendingEvents(current_steadytime))
 						{
-							DiscardReturnValue(peer.ProcessEvents());
+							DiscardReturnValue(peer.ProcessEvents(current_steadytime));
 						}
 					}
 

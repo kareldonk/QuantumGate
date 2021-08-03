@@ -204,9 +204,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		auto connections = thdata.Connections->WithUniqueLock();
 		for (auto it = connections->begin(); it != connections->end() && !shutdown_event.IsSet(); ++it)
 		{
+			// Placed in the loop to have the latest time for each connection
+			const auto current_steadytime = Util::GetCurrentSteadyTime();
+
 			auto& connection = it->second;
 
-			connection.ProcessEvents();
+			connection.ProcessEvents(current_steadytime);
 
 			if (connection.ShouldClose())
 			{

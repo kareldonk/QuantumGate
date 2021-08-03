@@ -70,7 +70,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		Concurrency::Event& GetReadEvent() noexcept { return m_Socket.GetEvent(); }
 
-		void ProcessEvents() noexcept;
+		void ProcessEvents(const SteadyTime current_steadytime) noexcept;
 		[[nodiscard]] inline bool ShouldClose() const noexcept { return (m_CloseCondition != CloseCondition::None); }
 
 		void OnLocalIPInterfaceChanged() noexcept;
@@ -103,11 +103,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void SendImmediateReset() noexcept;
 		
 		[[nodiscard]] bool Send(Message&& msg) noexcept;
-		[[nodiscard]] Result<Size> Send(const SteadyTime& now, const Buffer& data, const bool use_listener_socket) noexcept;
+		[[nodiscard]] Result<Size> Send(const SteadyTime current_steadytime, const Buffer& data, const bool use_listener_socket) noexcept;
 
 		[[nodiscard]] ReceiveBuffer& GetReceiveBuffer() const noexcept;
-		[[nodiscard]] bool ReceiveToQueue() noexcept;
-		[[nodiscard]] bool ProcessReceivedData(const IPEndpoint& endpoint, BufferSpan& buffer) noexcept;
+		[[nodiscard]] bool ReceiveToQueue(const SteadyTime current_steadytime) noexcept;
+		[[nodiscard]] bool ProcessReceivedData(const SteadyTime current_steadytime, const IPEndpoint& endpoint, BufferSpan& buffer) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageHandshake(const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept;
@@ -123,7 +123,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SendPendingSocketData() noexcept;
 		[[nodiscard]] bool ReceivePendingSocketData() noexcept;
 		
-		[[nodiscard]] bool CheckKeepAlive(const Settings& settings) noexcept;
+		[[nodiscard]] bool CheckKeepAlive(const Settings& settings, const SteadyTime current_steadytime) noexcept;
 		void ResetKeepAliveTimeout(const Settings& settings) noexcept;
 		[[nodiscard]] bool ProcessMTUDiscovery() noexcept;
 

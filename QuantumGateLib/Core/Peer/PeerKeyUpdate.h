@@ -26,15 +26,15 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline bool Initialize() noexcept { return SetStatus(KeyUpdate::Status::UpdateWait); }
 
-		[[nodiscard]] inline bool HasEvents() noexcept
+		[[nodiscard]] inline bool HasEvents(const SteadyTime current_steadytime) noexcept
 		{
 			// No events while suspended
 			if (GetStatus() == Status::Suspended) return false;
 
-			return ShouldUpdate() || UpdateTimedOut();
+			return ShouldUpdate(current_steadytime) || UpdateTimedOut(current_steadytime);
 		}
 
-		[[nodiscard]] bool ProcessEvents() noexcept;
+		[[nodiscard]] bool ProcessEvents(const SteadyTime current_steadytime) noexcept;
 		[[nodiscard]] MessageProcessor::Result ProcessKeyUpdateMessage(MessageDetails&& msg) noexcept;
 
 		[[nodiscard]] bool  Suspend() noexcept;
@@ -47,8 +47,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] bool BeginKeyUpdate() noexcept;
 		void EndKeyUpdate() noexcept;
 
-		[[nodiscard]] bool UpdateTimedOut() const noexcept;
-		[[nodiscard]] bool ShouldUpdate() noexcept;
+		[[nodiscard]] bool UpdateTimedOut(const SteadyTime current_steadytime) const noexcept;
+		[[nodiscard]] bool ShouldUpdate(const SteadyTime current_steadytime) noexcept;
 
 	private:
 		Peer& m_Peer;

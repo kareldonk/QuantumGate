@@ -96,12 +96,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		return success;
 	}
 
-	bool KeyUpdate::UpdateTimedOut() const noexcept
+	bool KeyUpdate::UpdateTimedOut(const SteadyTime current_steadytime) const noexcept
 	{
 		if (GetStatus() == Status::PrimaryExchange ||
 			GetStatus() == Status::SecondaryExchange)
 		{
-			if ((Util::GetCurrentSteadyTime() - m_UpdateSteadyTime) >
+			if ((current_steadytime - m_UpdateSteadyTime) >
 				m_Peer.GetSettings().Local.KeyUpdate.MaxDuration)
 			{
 				return true;
@@ -111,7 +111,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	bool KeyUpdate::ShouldUpdate() noexcept
+	bool KeyUpdate::ShouldUpdate(const SteadyTime current_steadytime) noexcept
 	{
 		if (GetStatus() == Status::UpdateWait &&
 			m_Peer.GetConnectionType() == PeerConnectionType::Inbound &&
@@ -128,7 +128,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					std::chrono::seconds(Random::GetPseudoRandomNumber(settings.Local.KeyUpdate.MinInterval.count(),
 																	   settings.Local.KeyUpdate.MaxInterval.count()));
 			}
-			else if (Util::GetCurrentSteadyTime() - m_UpdateSteadyTime > m_UpdateInterval)
+			else if (current_steadytime - m_UpdateSteadyTime > m_UpdateInterval)
 			{
 				return true;
 			}
@@ -191,12 +191,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		return SetStatus(m_ResumeStatus);
 	}
 
-	bool KeyUpdate::ProcessEvents() noexcept
+	bool KeyUpdate::ProcessEvents(const SteadyTime current_steadytime) noexcept
 	{
 		// Nothing to process while suspended
 		if (GetStatus() == Status::Suspended) return true;
 
-		if (ShouldUpdate())
+		if (ShouldUpdate(current_steadytime))
 		{
 			if (!BeginKeyUpdate())
 			{
@@ -204,7 +204,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				return false;
 			}
 		}
-		else if (UpdateTimedOut())
+		else if (UpdateTimedOut(current_steadytime))
 		{
 			LogErr(L"Key update for peer %s timed out; will disconnect", m_Peer.GetPeerName().c_str());
 			return false;
