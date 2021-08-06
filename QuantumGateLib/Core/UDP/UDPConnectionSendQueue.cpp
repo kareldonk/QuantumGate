@@ -37,19 +37,17 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		try
 		{
-			const bool use_listener_socket = (item.MessageType == Message::Type::Syn &&
-											  m_Connection.GetType() == PeerConnectionType::Inbound);
+			auto& qitem = m_Queue.emplace_back(std::move(item));
 
-			const auto result = m_Connection.Send(item.TimeSent, item.Data, use_listener_socket);
-			if (result.Succeeded()) item.NumTries = 1;
-
-			const auto size = item.Data.GetSize();
-
-			m_Queue.emplace_back(std::move(item));
-
-			m_NumBytesInQueue += size;
+			m_NumBytesInQueue += qitem.Data.GetSize();
 
 			m_NextSendSequenceNumber = Message::GetNextSequenceNumber(m_NextSendSequenceNumber);
+
+			const bool use_listener_socket = (qitem.MessageType == Message::Type::Syn &&
+											  m_Connection.GetType() == PeerConnectionType::Inbound);
+
+			const auto result = m_Connection.Send(qitem.TimeSent, qitem.Data, use_listener_socket);
+			if (result.Succeeded()) qitem.NumTries = 1;
 
 			return true;
 		}
