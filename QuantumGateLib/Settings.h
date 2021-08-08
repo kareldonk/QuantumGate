@@ -45,8 +45,10 @@ namespace QuantumGate::Implementation
 
 	struct UDPSettings final
 	{
-		std::chrono::seconds ConnectTimeout{ 30 };							// Maximum number of seconds to wait for a connection to be established
-		std::chrono::seconds ConnectRetransmissionTimeout{ 1 };				// Minimum number of seconds to wait before retransmission during connection handshake
+		std::chrono::seconds ConnectTimeout{ 30 };					// Maximum number of seconds to wait for a connection to be established
+		std::chrono::seconds ConnectRetransmissionTimeout{ 1 };		// Minimum number of seconds to wait before retransmission during connection handshake
+		Size SynCookieRequirementThreshold{ 10 };					// The number of incoming connections that may be in the process of being established after which a cookie is required
+		std::chrono::seconds SynCookieExpiration{ 30 };				// The number of seconds after which a cookie expires
 	};
 
 	struct LocalAlgorithms final
