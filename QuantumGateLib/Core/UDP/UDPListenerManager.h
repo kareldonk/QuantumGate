@@ -13,11 +13,22 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 {
 	class Manager final
 	{
-		using ReceiveBuffer = Memory::StackBuffer<Connection::MTUDiscovery::MaxMessageSize>;
+		using ReceiveBuffer = Memory::StackBuffer<Connection::UDPMessageSizes::Max>;
+
+		struct CookieInfo final
+		{
+			SteadyTime CreationTime;
+			ConnectionID ConnectionID{ 0 };
+			IPEndpoint Endpoint;
+		};
+
+		using CookieMap = Containers::UnorderedMap<CookieID, CookieInfo>;
+		using CookieMap_ThS = Concurrency::ThreadSafe<CookieMap, std::shared_mutex>;
 
 		struct ThreadData final
 		{
-			ThreadData(const ProtectedBuffer& shared_secret) : SymmetricKeys(shared_secret)
+			ThreadData(const ProtectedBuffer& shared_secret, const bool primary = false) :
+				IsPrimary(primary), SymmetricKeys(shared_secret)
 			{}
 
 			ThreadData(const ThreadData&) = delete;
@@ -31,13 +42,16 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			ThreadData& operator=(const ThreadData&) = delete;
 			ThreadData& operator=(ThreadData&&) noexcept = default;
 
+			bool IsPrimary{ false };
 			const SymmetricKeys SymmetricKeys;
 			Socket Socket;
 			std::shared_ptr<SendQueue_ThS> SendQueue;
 		};
 
 		struct ThreadPoolData final
-		{};
+		{
+			CookieMap_ThS Cookies;
+		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
 
@@ -56,8 +70,9 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		void Shutdown() noexcept;
 		[[nodiscard]] inline bool IsRunning() const noexcept { return m_Running; }
 
-		[[nodiscard]] bool AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
-											  const bool nat_traversal, const ProtectedBuffer& shared_secret) noexcept;
+		[[nodiscard]] bool AddPrimaryListenerThread(const ProtectedBuffer& shared_secret) noexcept;
+		[[nodiscard]] bool AddWorkerListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
+													const bool nat_traversal, const ProtectedBuffer& shared_secret) noexcept;
 		std::optional<ThreadPool::ThreadType> RemoveListenerThread(ThreadPool::ThreadType&& thread) noexcept;
 		[[nodiscard]] bool Update(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept;
 
@@ -67,11 +82,22 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 		[[nodiscard]] ReceiveBuffer& GetReceiveBuffer() const noexcept;
 
+		void PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
 		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
-		void AcceptConnection(const std::shared_ptr<SendQueue_ThS>& send_queue, const IPEndpoint& lendpoint,
-							  const IPEndpoint& pendpoint, BufferSpan& buffer, const SymmetricKeys& symkeys) noexcept;
+		[[nodiscard]] std::pair<bool, Access::IPReputationUpdate> AcceptConnection(const std::shared_ptr<SendQueue_ThS>& send_queue,
+																				   const IPEndpoint& lendpoint, const IPEndpoint& pendpoint,
+																				   BufferSpan& buffer, const SymmetricKeys& symkeys) noexcept;
+
+		void SendCookie(const std::shared_ptr<SendQueue_ThS>& send_queue, const IPEndpoint& pendpoint,
+						const ConnectionID connectionid, const SymmetricKeys& symkeys) noexcept;
+
+		[[nodiscard]] std::optional<Message::CookieData> GetCookie(const ConnectionID connectionid,
+																   const IPEndpoint& pendpoint) noexcept;
+		[[nodiscard]] bool VerifyCookie(const Message::CookieData& cookie, const ConnectionID connectionid,
+										const IPEndpoint& pendpoint) noexcept;
+		void CheckCookieExpiration(const std::chrono::seconds expiration_time) noexcept;
 
 	private:
 		std::atomic_bool m_Running{ false };

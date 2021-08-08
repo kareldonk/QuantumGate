@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "UDPConnectionCommon.h"
 #include "UDPMessage.h"
 #include "..\..\Common\Random.h"
 
@@ -49,17 +50,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		static void AckReceivedMessage(Connection& connection, const Message::SequenceNumber seqnum) noexcept;
 
-	public:
-		// According to RFC 791 IPv4 requires an MTU of 576 octets or greater, while
-		// the maximum size of the IP header is 60.
-		// According to RFC 8200 IPv6 requires an MTU of 1280 octets or greater, while
-		// the minimum IPv6 header size (fixed header) is 40 octets. Recommended configuration
-		// is for 1500 octets or greater.
-		// Maximum message size is 65467 octets (65535 - 8 octet UDP header - 60 octet IP header).
-		static constexpr std::array<Size, 9> MessageSizes{ 508, 1232, 1452, 2048, 4096, 8192, 16384, 32768, 65467 };
-		static constexpr Size MinMessageSize{ 508 };
-		static constexpr Size MaxMessageSize{ 65467 };
-
 	private:
 		static constexpr std::chrono::milliseconds MinRetransmissionTimeout{ 600 };
 		static constexpr Size MaxNumRetries{ 6 };
@@ -68,7 +58,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Connection& m_Connection;
 		Status m_Status{ Status::Start };
 		std::optional<MTUDMessageData> m_MTUDMessageData;
-		Size m_MaximumMessageSize{ MinMessageSize };
+		Size m_MaximumMessageSize{ UDPMessageSizes::Min };
 		Size m_CurrentMessageSizeIndex{ 0 };
 		std::chrono::milliseconds m_RetransmissionTimeout{ MinRetransmissionTimeout };
 	};

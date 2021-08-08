@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "UDPConnectionCommon.h"
 #include "UDPConnectionMTUD.h"
 
 // Use to enable/disable debug console output
@@ -42,6 +41,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		[[nodiscard]] bool Process() noexcept;
 
+		void Reset() noexcept;
+
 		void SetPeerAdvertisedReceiveWindowSizes(const Size num_items, const Size num_bytes) noexcept;
 		[[nodiscard]] Size GetAvailableSendWindowByteSize() noexcept;
 
@@ -69,10 +70,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Message::SequenceNumber m_NextSendSequenceNumber{ 0 };
 		Message::SequenceNumber m_LastInSequenceAckedSequenceNumber{ 0 };
 
-		Size m_MaxMessageSize{ MTUDiscovery::MinMessageSize };
+		Size m_MaxMessageSize{ UDPMessageSizes::Min };
 
 		Size m_PeerAdvReceiveWindowItemSize{ MinReceiveWindowItemSize };
-		Size m_PeerAdvReceiveWindowByteSize{ MinReceiveWindowItemSize * MTUDiscovery::MinMessageSize };
+		Size m_PeerAdvReceiveWindowByteSize{ MinReceiveWindowItemSize * UDPMessageSizes::Min };
 		Size m_PeerReceiveWindowItemSize{ MinReceiveWindowItemSize };
 	};
 }

@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		friend class SendQueue;
 		friend class MTUDiscovery;
 
-		using ReceiveBuffer = Memory::StackBuffer<MTUDiscovery::MaxMessageSize>;
+		using ReceiveBuffer = Memory::StackBuffer<UDPMessageSizes::Max>;
 
 		using ReceiveQueue = Containers::Map<Message::SequenceNumber, Message>;
 
@@ -51,8 +51,59 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		};
 
 	public:
+		class HandshakeTracker final
+		{
+		public:
+			HandshakeTracker(std::atomic_int64_t& nhip) noexcept :
+				m_NumHandshakesInProgress(nhip)
+			{
+				++m_NumHandshakesInProgress;
+				m_Active = true;
+			}
+
+			HandshakeTracker(const HandshakeTracker&) = delete;
+			HandshakeTracker(HandshakeTracker&&) noexcept = delete;
+
+			~HandshakeTracker()
+			{
+				Deactivate();
+			}
+
+			HandshakeTracker& operator=(const HandshakeTracker&) = delete;
+			HandshakeTracker& operator=(HandshakeTracker&&) noexcept = delete;
+
+			void Deactivate() noexcept
+			{
+				if (m_Active)
+				{			
+					auto num = m_NumHandshakesInProgress.load();
+
+					while (true)
+					{
+						auto new_num = num;
+
+						assert(new_num > 0);
+						if (new_num > 0) --new_num;
+						else new_num = 0;
+
+						if (m_NumHandshakesInProgress.compare_exchange_strong(num, new_num))
+						{
+							break;
+						}
+					}
+					
+					m_Active = false;
+				}
+			}
+
+		private:
+			std::atomic_int64_t& m_NumHandshakesInProgress;
+			bool m_Active{ false };
+		};
+
 		Connection(const Settings_CThS& settings, Access::Manager& accessmgr, const PeerConnectionType type,
-				   const ConnectionID id, const Message::SequenceNumber seqnum, const ProtectedBuffer& shared_secret) noexcept;
+				   const ConnectionID id, const Message::SequenceNumber seqnum, const ProtectedBuffer& shared_secret,
+				   std::unique_ptr<Connection::HandshakeTracker>&& handshake_tracker);
 		Connection(const Connection&) = delete;
 		Connection(Connection&&) noexcept = delete;
 		~Connection();
@@ -63,6 +114,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] inline Status GetStatus() const noexcept { return m_Status; }
 		[[nodiscard]] inline ConnectionID GetID() const noexcept { return m_ID; }
 		[[nodiscard]] inline const SymmetricKeys& GetSymmetricKeys() const noexcept { return m_SymmetricKeys; }
+		[[nodiscard]] inline const IPEndpoint& GetPeerEndpoint() const noexcept { return m_PeerEndpoint;  }
 
 		[[nodiscard]] bool Open(const Network::IP::AddressFamily af,
 								const bool nat_traversal, UDP::Socket& socket) noexcept;
@@ -92,9 +144,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void ResetMTU() noexcept;
 		[[nodiscard]] bool OnMTUUpdate(const Size mtu) noexcept;
 
-		[[nodiscard]] bool CheckEndpointChange(const IPEndpoint& endpoint) noexcept;
+		[[nodiscard]] bool IsEndpointAllowed(const IPEndpoint& endpoint) noexcept;
+		void CheckEndpointChange(const IPEndpoint& endpoint) noexcept;
 
-		[[nodiscard]] bool SendOutboundSyn() noexcept;
+		[[nodiscard]] bool SendOutboundSyn(std::optional<Message::CookieData>&& cookie = std::nullopt) noexcept;
 		[[nodiscard]] bool SendInboundSyn() noexcept;
 		[[nodiscard]] bool SendData(Buffer&& data) noexcept;
 		[[nodiscard]] bool SendStateUpdate() noexcept;
@@ -129,6 +182,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		void ProcessSocketEvents() noexcept;
 
+		void UpdateReputation(const IPEndpoint& endpoint, const Access::IPReputationUpdate rep_update) noexcept;
+
 	private:
 		static constexpr const std::chrono::seconds SuspendTimeoutMargin{ 15 };
 
@@ -160,5 +215,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Vector<Message::AckRange> m_ReceivePendingAckRanges;
 
 		CloseCondition m_CloseCondition{ CloseCondition::None };
+
+		std::unique_ptr<HandshakeTracker> m_HandshakeTracker;
 	};
 }

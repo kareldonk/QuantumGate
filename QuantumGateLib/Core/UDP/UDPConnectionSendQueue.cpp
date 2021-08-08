@@ -92,7 +92,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				}
 
 				const bool use_listener_socket = (it->MessageType == Message::Type::Syn &&
-												  m_Connection.GetType() == PeerConnectionType::Inbound);
+												  m_Connection.GetType() == PeerConnectionType::Inbound &&
+												  m_Connection.GetStatus() < Status::Connected);
 				
 				const auto result = m_Connection.Send(now, it->Data, use_listener_socket);
 				if (result.Succeeded())
@@ -252,6 +253,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 			else break;
 		}
+	}
+
+	void SendQueue::Reset() noexcept
+	{
+		m_Queue.clear();
+		m_NumBytesInQueue = 0;
 	}
 
 	std::pair<bool, Size> SendQueue::AckSentMessage(const Message::SequenceNumber seqnum, const SteadyTime& now) noexcept

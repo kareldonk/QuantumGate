@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "UDPConnectionManager.h"
+#include "..\..\Crypto\Crypto.h"
 
 using namespace std::literals;
 
@@ -19,7 +20,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		if (!StartupThreadPool())
 		{
 			ShutdownThreadPool();
-			
+
 			LogErr(L"UDP connectionmanager startup failed");
 
 			return false;
@@ -54,6 +55,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void Manager::ResetState() noexcept
 	{
+		m_ThreadPool.GetData().NumIncomingHandshakesInProgress = 0;
 		m_ThreadPool.GetData().ThreadKeyToConnectionTotals.WithUniqueLock()->clear();
 	}
 
@@ -69,7 +71,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		LogSys(L"Creating UDP connection threadpool with %zu worker %s",
 			   numthreadsperpool, numthreadsperpool > 1 ? L"threads" : L"thread");
-		
+
 		auto error = false;
 
 		// Create the worker threads
@@ -122,6 +124,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 
 		m_ThreadPool.Clear();
+
+		DbgInvoke([&]()
+		{
+			// If all threads are shut down, and connections
+			// are cleared the count should be zero
+			assert(m_ThreadPool.GetData().NumIncomingHandshakesInProgress == 0);
+		});
 	}
 
 	std::optional<Manager::ThreadKey> Manager::GetThreadKeyWithLeastConnections() const noexcept
@@ -169,25 +178,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return std::nullopt;
 	}
 
-	bool Manager::HasConnection(const ConnectionID id, const PeerConnectionType type) const noexcept
-	{
-		auto thread = m_ThreadPool.GetFirstThread();
-		while (thread)
-		{
-			auto connections = thread->GetData().Connections->WithSharedLock();
-			
-			const auto it = connections->find(id);
-			if (it != connections->end())
-			{
-				if (it->second.GetType() == type) return true;
-			}
-
-			thread = m_ThreadPool.GetNextThread(*thread);
-		}
-
-		return false;
-	}
-
 	void Manager::WorkerThreadWait(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
 		auto result = thdata.WorkEvents->Wait(1ms);
@@ -231,8 +221,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	}
 
 	bool Manager::AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
-								const ConnectionID id, const Message::SequenceNumber seqnum, Socket& socket,
-								std::optional<ProtectedBuffer>&& shared_secret) noexcept
+								const ConnectionID id, const Message::SequenceNumber seqnum,
+								Socket& socket, std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		assert(m_Running);
 
@@ -253,10 +243,18 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 						else return settings.Local.GlobalSharedSecret;
 					});
 
+					std::unique_ptr<Connection::HandshakeTracker> handshake_tracker;
+					if (type == PeerConnectionType::Inbound)
+					{
+						handshake_tracker = std::make_unique<Connection::HandshakeTracker>(
+							m_ThreadPool.GetData().NumIncomingHandshakesInProgress);
+					}
+
 					auto connections = thread->GetData().Connections->WithUniqueLock();
-					
+
 					[[maybe_unused]] const auto [it, inserted] = connections->try_emplace(id, m_Settings, m_AccessManager,
-																						  type, id, seqnum, sbuf);
+																						  type, id, seqnum, sbuf,
+																						  std::move(handshake_tracker));
 
 					assert(inserted);
 					if (!inserted)
@@ -361,7 +359,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		return success;
 	}
-	
+
 	bool Manager::DecrementThreadConnectionTotal(const ThreadKey key) noexcept
 	{
 		auto success = false;
@@ -393,5 +391,42 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 			thread = m_ThreadPool.GetNextThread(*thread);
 		}
+	}
+
+	Manager::AddQueryCode Manager::QueryAddConnection(const ConnectionID id, const IPEndpoint& pendpoint,
+													  const PeerConnectionType type) const noexcept
+	{
+		const auto& settings = m_Settings.GetCache();
+
+		using int_type = decltype(m_ThreadPool.GetData().NumIncomingHandshakesInProgress.load());
+
+		if (type == PeerConnectionType::Inbound && m_ThreadPool.GetData().NumIncomingHandshakesInProgress >=
+			static_cast<int_type>(settings.UDP.SynCookieRequirementThreshold))
+		{
+			return AddQueryCode::RequireSynCookie;
+		}
+
+		auto thread = m_ThreadPool.GetFirstThread();
+		while (thread)
+		{
+			auto connections = thread->GetData().Connections->WithSharedLock();
+
+			const auto it = connections->find(id);
+			if (it != connections->end())
+			{
+				if (it->second.GetType() == type)
+				{
+					if (it->second.GetPeerEndpoint().GetIPAddress() == pendpoint.GetIPAddress())
+					{
+						return AddQueryCode::ConnectionAlreadyExists;
+					}
+					else return AddQueryCode::ConnectionIDInUse;
+				}
+			}
+
+			thread = m_ThreadPool.GetNextThread(*thread);
+		}
+
+		return AddQueryCode::OK;
 	}
 }

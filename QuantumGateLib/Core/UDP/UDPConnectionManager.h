@@ -16,8 +16,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 {
 	class Manager final
 	{
-		friend class Listener::Manager;
-
 		using ConnectionMap = Containers::UnorderedMap<ConnectionID, Connection>;
 		using ConnectionMap_ThS = Concurrency::ThreadSafe<ConnectionMap, std::shared_mutex>;
 
@@ -41,12 +39,21 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		struct ThreadPoolData final
 		{
+			std::atomic_int64_t NumIncomingHandshakesInProgress{ 0 };
 			ThreadKeyToConnectionTotalMap_ThS ThreadKeyToConnectionTotals;
 		};
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
 
 	public:
+		enum class AddQueryCode
+		{
+			OK,
+			ConnectionIDInUse,
+			ConnectionAlreadyExists,
+			RequireSynCookie
+		};
+
 		Manager() = delete;
 
 		Manager(const Settings_CThS& settings, Access::Manager& accessmgr) noexcept :
@@ -65,6 +72,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
 										 const ConnectionID id, const Message::SequenceNumber seqnum,
 										 Socket& socket, std::optional<ProtectedBuffer>&& shared_secret) noexcept;
+
+		[[nodiscard]] AddQueryCode QueryAddConnection(const ConnectionID id, const IPEndpoint& pendpoint,
+													const PeerConnectionType type) const noexcept;
 
 		void OnLocalIPInterfaceChanged() noexcept;
 
@@ -86,8 +96,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		[[nodiscard]] bool IncrementThreadConnectionTotal(const ThreadKey key) noexcept;
 		[[nodiscard]] bool DecrementThreadConnectionTotal(const ThreadKey key) noexcept;
-
-		[[nodiscard]] bool HasConnection(const ConnectionID id, const PeerConnectionType type) const noexcept;
 
 		void WorkerThreadWait(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);

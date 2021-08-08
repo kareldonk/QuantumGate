@@ -122,7 +122,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			case Status::Start:
 			{
 				// Begin with first/smallest message size
-				m_MaximumMessageSize = MinMessageSize;
+				m_MaximumMessageSize = UDPMessageSizes::Min;
 				m_CurrentMessageSizeIndex = 0;
 
 				// Set MTU discovery option on socket which disables fragmentation
@@ -133,7 +133,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					SLogInfo(SLogFmt(FGBrightBlue) << L"UDP connection MTUD: starting MTU discovery on connection " <<
 							 m_Connection.GetID() << SLogFmt(Default));
 #endif
-					if (CreateNewMessage(MessageSizes[m_CurrentMessageSizeIndex]))
+					if (CreateNewMessage(UDPMessageSizes::All[m_CurrentMessageSizeIndex]))
 					{
 						ProcessTransmitResult(TransmitMessage());
 					}
@@ -164,7 +164,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				}
 				else if (m_MTUDMessageData->Acked)
 				{
-					if (m_CurrentMessageSizeIndex == (MessageSizes.size() - 1))
+					if (m_CurrentMessageSizeIndex == (UDPMessageSizes::All.size() - 1))
 					{
 						// Reached maximum possible message size
 						m_Status = Status::Finished;
@@ -173,7 +173,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					{
 						// Create and send bigger message
 						++m_CurrentMessageSizeIndex;
-						if (CreateNewMessage(MessageSizes[m_CurrentMessageSizeIndex]))
+						if (CreateNewMessage(UDPMessageSizes::All[m_CurrentMessageSizeIndex]))
 						{
 							ProcessTransmitResult(TransmitMessage());
 						}
@@ -246,7 +246,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		try
 		{
-			Message msg(Message::Type::MTUD, Message::Direction::Outgoing, MinMessageSize);
+			Message msg(Message::Type::MTUD, Message::Direction::Outgoing, UDPMessageSizes::Min);
 			msg.SetMessageAckNumber(seqnum);
 
 			Buffer data;

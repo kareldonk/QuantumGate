@@ -10,6 +10,7 @@
 namespace QuantumGate::Implementation::Core::UDP
 {
 	using ConnectionID = UInt64;
+	using CookieID = UInt64;
 
 	struct ProtocolVersion final
 	{
@@ -17,23 +18,29 @@ namespace QuantumGate::Implementation::Core::UDP
 		static constexpr const UInt8 Minor{ 1 };
 	};
 
-	struct SymmetricKeys final
+	class SymmetricKeys final
 	{
+	public:
 		SymmetricKeys() = delete;
 		SymmetricKeys(const ProtectedBuffer& shared_secret);
 
 		inline explicit operator bool() const noexcept { return m_KeyData.GetSize() == KeyDataLength; }
 
-		inline BufferView GetKey() const noexcept
+		[[nodiscard]] inline BufferView GetKey() const noexcept
 		{
 			assert(m_KeyData.GetSize() == KeyDataLength);
 			return m_KeyData.operator BufferView().GetFirst(KeyLength);
 		}
 		
-		inline BufferView GetAuthKey() const noexcept
+		[[nodiscard]] inline BufferView GetAuthKey() const noexcept
 		{
 			assert(m_KeyData.GetSize() == KeyDataLength);
 			return m_KeyData.operator BufferView().GetLast(KeyLength);
+		}
+
+		[[nodiscard]] inline bool IsUsingGlobalSharedSecret() const noexcept
+		{
+			return m_IsUsingGlobalSharedSecret;
 		}
 
 	private:
@@ -46,6 +53,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		};
 
 	private:
+		bool m_IsUsingGlobalSharedSecret{ false };
 		ProtectedBuffer m_KeyData;
 	};
 
@@ -61,7 +69,8 @@ namespace QuantumGate::Implementation::Core::UDP
 			EAck = 4,
 			MTUD = 5,
 			Reset = 6,
-			Null = 7
+			Null = 7,
+			Cookie = 8
 		};
 
 		enum class Direction : UInt8 { Unknown, Incoming, Outgoing };
@@ -161,12 +170,20 @@ namespace QuantumGate::Implementation::Core::UDP
 			UInt32 MaxWindowSizeBytes{ 0 };
 		};
 
+		struct CookieData
+		{
+			CookieID CookieID{ 0 };
+		};
+
 		struct SynData final
 		{
 			UInt8 ProtocolVersionMajor{ 0 };
 			UInt8 ProtocolVersionMinor{ 0 };
 			ConnectionID ConnectionID{ 0 };
 			UInt16 Port{ 0 };
+			std::optional<CookieData> Cookie;
+
+			static constexpr UInt8 CookieFlag{ 0b00000001 };
 		};
 
 		Message(const Type type, const Direction direction, const Size max_size) noexcept :
@@ -188,7 +205,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		Message& operator=(Message&&) noexcept = default;
 
 		[[nodiscard]] inline Type GetType() const noexcept { return m_Header.GetMessageType(); }
-
+		
 		[[nodiscard]] inline Direction GetDirection() const noexcept { return m_Header.GetDirection(); }
 
 		[[nodiscard]] inline bool IsValid() const noexcept { return m_Valid; }
@@ -206,6 +223,9 @@ namespace QuantumGate::Implementation::Core::UDP
 		void SetSynData(SynData&& data) noexcept;
 		[[nodiscard]] const SynData& GetSynData() const noexcept;
 
+		void SetCookieData(CookieData&& data) noexcept;
+		[[nodiscard]] const CookieData& GetCookieData() const noexcept;
+
 		void SetStateData(StateData&& data) noexcept;
 		[[nodiscard]] const StateData& GetStateData() const noexcept;
 
@@ -218,8 +238,8 @@ namespace QuantumGate::Implementation::Core::UDP
 		[[nodiscard]] const Buffer& GetMessageData() const noexcept;
 		[[nodiscard]] Buffer&& MoveMessageData() noexcept;
 
-		[[nodiscard]] bool Read(BufferSpan& buffer, const SymmetricKeys& symkey);
-		[[nodiscard]] bool Write(Buffer& buffer, const SymmetricKeys& symkey);
+		[[nodiscard]] bool Read(BufferSpan& buffer, const SymmetricKeys& symkey) noexcept;
+		[[nodiscard]] bool Write(Buffer& buffer, const SymmetricKeys& symkey) noexcept;
 
 		static SequenceNumber GetNextSequenceNumber(const SequenceNumber current) noexcept
 		{
@@ -239,6 +259,36 @@ namespace QuantumGate::Implementation::Core::UDP
 			else return current - 1;
 		}
 
+		static const WChar* TypeToString(const Type type) noexcept
+		{
+			switch (type)
+			{
+				case Type::Syn:
+					return L"Syn";
+				case Type::Cookie:
+					return L"Cookie";
+				case Type::Data:
+					return L"Data";
+				case Type::EAck:
+					return L"EAck";
+				case Type::MTUD:
+					return L"MTUD";
+				case Type::Null:
+					return L"Null";
+				case Type::Reset:
+					return L"Reset";
+				case Type::State:
+					return L"State";
+				case Type::Unknown:
+					return L"Unknown";
+				default:
+					assert(false);
+					break;
+			}
+
+			return L"Unsupported";
+		}
+
 	private:
 		void InitData(const Type type, const Direction direction) noexcept
 		{
@@ -248,6 +298,9 @@ namespace QuantumGate::Implementation::Core::UDP
 			{
 				case Type::Syn:
 					m_Data = SynData();
+					break;
+				case Type::Cookie:
+					m_Data = CookieData();
 					break;
 				case Type::State:
 					m_Data = StateData();
@@ -271,7 +324,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		void Validate() noexcept;
 
 	private:
-		using Data = std::variant<std::monostate, SynData, StateData, Buffer, Vector<AckRange>>;
+		using Data = std::variant<std::monostate, SynData, CookieData, StateData, Buffer, Vector<AckRange>>;
 
 		const Size m_MaxMessageSize{ 0 };
 		bool m_Valid{ false };
