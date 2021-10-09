@@ -31,13 +31,13 @@ namespace QuantumGate::Implementation
 		};
 
 		template<typename F>
-		class FreeCallbackFunction : public CallbackFunction
+		class FreeCallbackFunction final : public CallbackFunction
 		{
 		public:
 			FreeCallbackFunction(F&& function) noexcept : m_Function(std::move(function)) {}
 
 		private:
-			ForceInline R operator()(Args... args) const noexcept(NoExcept) override
+			ForceInline R operator()(Args... args) const noexcept(NoExcept) override final
 			{
 				if constexpr (std::is_pointer_v<F>)
 				{
@@ -60,14 +60,14 @@ namespace QuantumGate::Implementation
 		};
 
 		template<typename T, typename F>
-		class MemberCallbackFunction : public CallbackFunction
+		class MemberCallbackFunction final : public CallbackFunction
 		{
 		public:
 			MemberCallbackFunction(T* object, F member_function_ptr) noexcept :
 				m_Object(object), m_Function(member_function_ptr) {}
 
 		private:
-			ForceInline R operator()(Args... args) const noexcept(NoExcept) override
+			ForceInline R operator()(Args... args) const noexcept(NoExcept) override final
 			{
 				assert(m_Object != nullptr && m_Function != nullptr);
 
@@ -80,12 +80,31 @@ namespace QuantumGate::Implementation
 		};
 
 	public:
+		using FunctionSignature = FunctionSignatureDetails<R(Args...), Const, NoExcept>::Type;
+
 		CallbackImpl() noexcept {}
 		CallbackImpl(std::nullptr_t) noexcept {}
 
 		template<typename F>
 		CallbackImpl(F&& function) noexcept(sizeof(FreeCallbackFunction<F>) <= FunctionStorageSize)
 		{
+			static_assert(!std::is_base_of_v<CallbackImplBase, F>,
+						  "Attempt to pass in Callback object which is not allowed.");
+
+			if constexpr (std::is_pointer_v<F>)
+			{
+				static_assert(std::is_same_v<FunctionSignature, FunctionSignatureT<std::decay_t<F>>>,
+							  "Function parameter does not have the expected signature. "
+							  "Remember to check for matching const and noexcept specifiers.");
+			}
+			else
+			{
+				static_assert(CheckFunctionCallOperatorSignature<FunctionSignature, F>(),
+							  "Function parameter does not have an operator() overload with the expected signature. "
+							  "Remember to check for matching const and noexcept specifiers. Lambda functions need "
+							  "to be defined as mutable if the function signature does not have the const specifier.");
+			}
+
 			if constexpr (NoExcept)
 			{
 				static_assert(std::is_nothrow_invocable_r_v<R,
@@ -113,6 +132,10 @@ namespace QuantumGate::Implementation
 		template<typename T, typename F>
 		CallbackImpl(T* object, F member_function_ptr) noexcept
 		{
+			static_assert(std::is_same_v<FunctionSignature, FunctionSignatureT<std::decay_t<F>>>,
+						  "Function parameter does not have the expected signature. "
+						  "Remember to check for matching const and noexcept specifiers.");
+
 			if constexpr (NoExcept)
 			{
 				static_assert(std::is_nothrow_invocable_r_v<R,
@@ -242,54 +265,26 @@ namespace QuantumGate::Implementation
 	class Callback : public CallbackImpl<FunctionSignatureRemoveConstNoexceptT<Sig>,
 		FunctionSignatureIsConstV<Sig>, FunctionSignatureIsNoexceptV<Sig>>
 	{
+		using Base = CallbackImpl<FunctionSignatureRemoveConstNoexceptT<Sig>,
+			FunctionSignatureIsConstV<Sig>, FunctionSignatureIsNoexceptV<Sig>>;
+
 	public:
-		using FunctionSignature = Sig;
-
-		Callback() noexcept {}
-		Callback(std::nullptr_t) noexcept {}
-
-		template<typename F>
-		Callback(F&& function) noexcept(noexcept(CallbackImpl<FunctionSignatureRemoveConstNoexceptT<Sig>,
-												 FunctionSignatureIsConstV<Sig>,
-												 FunctionSignatureIsNoexceptV<Sig>>(std::move(function)))) :
-			CallbackImpl<FunctionSignatureRemoveConstNoexceptT<Sig>,
-			FunctionSignatureIsConstV<Sig>, FunctionSignatureIsNoexceptV<Sig>>(std::move(function))
-		{
-			static_assert(!std::is_base_of_v<CallbackImplBase, F>,
-						  "Attempt to pass in Callback object which is not allowed.");
-
-			if constexpr (std::is_pointer_v<F>)
-			{
-				static_assert(std::is_same_v<Sig, FunctionSignatureT<std::decay_t<F>>>,
-							  "Function parameter does not have the expected signature. "
-							  "Remember to check for matching const and noexcept specifiers.");
-			}
-			else
-			{
-				static_assert(CheckFunctionCallOperatorSignature<Sig, F>(),
-							  "Function parameter does not have an operator() overload with the expected signature. "
-							  "Remember to check for matching const and noexcept specifiers. Lambda functions need "
-							  "to be defined as mutable if the function signature does not have the const specifier.");
-			}
-		}
-
-		template<typename T, typename F>
-		Callback(T* object, F member_function_ptr) noexcept :
-			CallbackImpl<FunctionSignatureRemoveConstNoexceptT<Sig>,
-			FunctionSignatureIsConstV<Sig>, FunctionSignatureIsNoexceptV<Sig>>(object, member_function_ptr)
-		{
-			static_assert(std::is_same_v<Sig, FunctionSignatureT<std::decay_t<F>>>,
-						  "Function parameter does not have the expected signature. "
-						  "Remember to check for matching const and noexcept specifiers.");
-		}
-
-		virtual ~Callback() = default;
-		Callback(const Callback&) = delete;
-		Callback(Callback&& other) noexcept = default;
-		Callback& operator=(const Callback&) = delete;
-		Callback& operator=(Callback&& other) noexcept = default;
+		// Import baseclass constructors
+		using Base::Base;
 	};
 
+	// Template deduction guides
+	template<typename F, typename = std::enable_if_t<std::is_pointer_v<F>>>
+	Callback(F function)->Callback<FunctionSignatureT<F>>;
+
+	template<typename F, typename OT = std::decay_t<F>, typename FF = decltype(&OT::operator()),
+		typename fsig = FunctionSignatureT<FF>, typename = std::enable_if_t<!std::is_pointer_v<F>>>
+	Callback(F function)->Callback<fsig>;
+
+	template<typename T, typename F>
+	Callback(T* object, F member_function_ptr)->Callback<FunctionSignatureT<F>>;
+
+	// Factory functions
 	template<typename F>
 	inline auto MakeCallback(F&& function) noexcept(std::is_pointer_v<F>)
 	{
