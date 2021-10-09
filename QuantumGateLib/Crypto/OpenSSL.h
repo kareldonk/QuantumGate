@@ -159,11 +159,13 @@ namespace QuantumGate::Implementation::Crypto
 							return false;
 					}
 
+					constexpr std::array salt{ 'q', 'g', 'k', 'e', 'y', 's', 'a', 'l', 't' };
+
 					if (EVP_PKEY_derive_init(pctx) == 1 &&
 						EVP_PKEY_CTX_set_hkdf_md(pctx, md) == 1 &&
-						EVP_PKEY_CTX_set1_hkdf_salt(pctx, "qgkeysalt", 9) == 1 &&
-						EVP_PKEY_CTX_set1_hkdf_key(pctx, secret.GetBytes(), static_cast<int>(secret.GetSize())) == 1 &&
-						EVP_PKEY_CTX_add1_hkdf_info(pctx, "qgkeylabel", 10) == 1)
+						EVP_PKEY_CTX_set1_hkdf_salt(pctx, reinterpret_cast<const UChar*>(salt.data()), static_cast<int>(salt.size())) == 1 &&
+						EVP_PKEY_CTX_set1_hkdf_key(pctx, reinterpret_cast<const UChar*>(secret.GetBytes()), static_cast<int>(secret.GetSize())) == 1 &&
+						EVP_PKEY_CTX_add1_hkdf_info(pctx, reinterpret_cast<const UChar*>(salt.data()), static_cast<int>(salt.size())) == 1)
 					{
 						outkey.Allocate(outkeylen);
 						Size len = outkeylen;

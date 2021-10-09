@@ -174,7 +174,7 @@ namespace QuantumGate::Implementation::Crypto
 	std::optional<UInt64> GetCryptoRandomNumber() noexcept
 	{
 		UInt64 num{ 0 };
-		if (QGCryptoGetRandomBytes(reinterpret_cast<UChar*>(&num), sizeof(num)) == 0)
+		if (QGCryptoGetRandomBytes(reinterpret_cast<UChar*>(&num), sizeof(num)) == 1)
 		{
 			return { num };
 		}
@@ -189,7 +189,7 @@ namespace QuantumGate::Implementation::Crypto
 			Buffer bytes(size);
 
 			if (QGCryptoGetRandomBytes(reinterpret_cast<UChar*>(bytes.GetBytes()),
-									   static_cast<ULong>(bytes.GetSize())) == 0)
+									   static_cast<ULong>(bytes.GetSize())) == 1)
 			{
 				return { std::move(bytes) };
 			}

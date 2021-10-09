@@ -35,7 +35,7 @@ You'll require the latest version of Microsoft Visual Studio 2019, as well as th
 
 | Name | Version |
 |------|---------|
-| [OpenSSL](https://github.com/openssl/openssl) | At least 1.1.1 |
+| [OpenSSL](https://github.com/openssl/openssl) | At least 3.0.0 |
 | [PCG-Random](https://github.com/imneme/pcg-cpp) | Latest. |
 | [zlib](https://github.com/madler/zlib) | At least 1.2.11 |
 | [Zstandard](https://github.com/facebook/zstd) | At least 1.4.5 |
