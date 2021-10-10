@@ -34,6 +34,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				m_PrimaryAsymmetricKeys->GetOwner() == Crypto::AsymmetricKeyOwner::Alice)
 			{
 				m_PrimaryAsymmetricKeys->EncryptedSharedSecret = std::move(buffer);
+				return;
 			}
 
 			m_PrimaryAsymmetricKeys->PeerPublicKey = std::move(buffer);
@@ -68,6 +69,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				m_SecondaryAsymmetricKeys->GetOwner() == Crypto::AsymmetricKeyOwner::Alice)
 			{
 				m_SecondaryAsymmetricKeys->EncryptedSharedSecret = std::move(buffer);
+				return;
 			}
 
 			m_SecondaryAsymmetricKeys->PeerPublicKey = std::move(buffer);

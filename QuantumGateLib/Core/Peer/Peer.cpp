@@ -56,13 +56,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			DisableSend();
 		}
 
+		auto& shared_secret = GetGlobalSharedSecret();
+
 		// If we have a global shared secret
-		if (!GetGlobalSharedSecret().IsEmpty())
+		if (!shared_secret.IsEmpty())
 		{
 			// We can start with symmetric keys generated with the global shared secret
-			if (m_Keys.GenerateAndAddSymmetricKeyPair(GetGlobalSharedSecret(),
-													  ProtectedBuffer(), GetAlgorithms(),
-													  GetConnectionType()))
+			if (m_Keys.GenerateAndAddSymmetricKeyPair(shared_secret, ProtectedBuffer(), GetAlgorithms(), GetConnectionType()))
 			{
 				// We need to have symmetric keys already if we get here
 				assert(!m_Keys.GetSymmetricKeyPairs().empty());
