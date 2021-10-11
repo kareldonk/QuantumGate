@@ -101,8 +101,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			bool m_Active{ false };
 		};
 
-		Connection(const Settings_CThS& settings, Access::Manager& accessmgr, const PeerConnectionType type,
-				   const ConnectionID id, const Message::SequenceNumber seqnum, const ProtectedBuffer& shared_secret,
+		Connection(const Settings_CThS& settings, KeyGeneration::Manager& keymgr, Access::Manager& accessmgr,
+				   const PeerConnectionType type, const ConnectionID id, const Message::SequenceNumber seqnum,
+				   ProtectedBuffer&& handshake_data, std::optional<ProtectedBuffer>&& shared_secret,
 				   std::unique_ptr<Connection::HandshakeTracker>&& handshake_tracker);
 		Connection(const Connection&) = delete;
 		Connection(Connection&&) noexcept = delete;
@@ -113,7 +114,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] inline PeerConnectionType GetType() const noexcept { return m_Type; }
 		[[nodiscard]] inline Status GetStatus() const noexcept { return m_Status; }
 		[[nodiscard]] inline ConnectionID GetID() const noexcept { return m_ID; }
-		[[nodiscard]] inline const SymmetricKeys& GetSymmetricKeys() const noexcept { return m_SymmetricKeys; }
+		[[nodiscard]] inline const SymmetricKeys& GetSymmetricKeys() const noexcept { return m_SymmetricKeys[0]; }
 		[[nodiscard]] inline const IPEndpoint& GetPeerEndpoint() const noexcept { return m_PeerEndpoint;  }
 
 		[[nodiscard]] bool Open(const Network::IP::AddressFamily af,
@@ -131,7 +132,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	private:
 		[[nodiscard]] const Settings& GetSettings() const noexcept { return m_Settings.GetCache(true); }
+
 		[[nodiscard]] bool SetStatus(const Status status) noexcept;
+		[[nodiscard]] bool OnStatusChange(const Status old_status, const Status new_status) noexcept;
+
+		[[nodiscard]] const ProtectedBuffer& GetGlobalSharedSecret() const noexcept;
+		[[nodiscard]] bool InitializeKeyExchange(KeyGeneration::Manager& keymgr, ProtectedBuffer&& handshake_data) noexcept;
+		[[nodiscard]] bool FinalizeKeyExchange() noexcept;
 
 		[[nodiscard]] bool Suspend() noexcept;
 		[[nodiscard]] bool Resume() noexcept;
@@ -194,7 +201,10 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		const PeerConnectionType m_Type{ PeerConnectionType::Unknown };
 		Status m_Status{ Status::Closed };
 		const ConnectionID m_ID{ 0 };
-		const SymmetricKeys m_SymmetricKeys;
+		
+		std::unique_ptr<KeyExchange> m_KeyExchange{ nullptr };
+		std::optional<ProtectedBuffer> m_GlobalSharedSecret;
+		std::array<SymmetricKeys, 2> m_SymmetricKeys;
 
 		Network::Socket m_Socket;
 		SteadyTime m_LastStatusChangeSteadyTime;
@@ -204,6 +214,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		SendQueue m_SendQueue{ *this };
 		SteadyTime m_LastSendSteadyTime;
+		IPEndpoint m_OriginalPeerEndpoint;
 		IPEndpoint m_PeerEndpoint;
 		std::chrono::seconds m_KeepAliveTimeout{ 60 };
 

@@ -447,7 +447,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	PeerSharedPointer Manager::CreateUDP(const IP::AddressFamily af, const PeerConnectionType pctype,
 										 const UDP::ConnectionID id, const UDP::Message::SequenceNumber seqnum,
-										 std::optional<ProtectedBuffer>&& shared_secret) noexcept
+										 ProtectedBuffer&& handshake_data, std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		try
 		{
@@ -458,8 +458,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			if (peer->Initialize(peer_ths))
 			{
-				if (m_UDPConnectionManager.AddConnection(af, pctype, id, seqnum, peer->GetSocket<UDP::Socket>(),
-														 std::move(shared_secret_copy)))
+				if (m_UDPConnectionManager.AddConnection(af, pctype, id, seqnum, std::move(handshake_data),
+														 peer->GetSocket<UDP::Socket>(), std::move(shared_secret_copy)))
 				{
 					return peer_ths;
 				}
@@ -500,7 +500,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				const auto id = UDP::Connection::Connection::MakeConnectionID();
 				if (id)
 				{
-					return CreateUDP(af, pctype, *id, 0, std::move(shared_secret));
+					return CreateUDP(af, pctype, *id, 0, {}, std::move(shared_secret));
 				}
 				else
 				{

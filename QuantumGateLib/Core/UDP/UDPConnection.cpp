@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "UDPConnection.h"
+#include "UDPConnectionManager.h"
 #include "..\..\Crypto\Crypto.h"
 #include "..\..\Common\ScopeGuard.h"
 
@@ -10,20 +11,66 @@ using namespace std::literals;
 
 namespace QuantumGate::Implementation::Core::UDP::Connection
 {
-	Connection::Connection(const Settings_CThS& settings, Access::Manager& accessmgr, const PeerConnectionType type,
-						   const ConnectionID id, const Message::SequenceNumber seqnum, const ProtectedBuffer& shared_secret,
+	Connection::Connection(const Settings_CThS& settings, KeyGeneration::Manager& keymgr, Access::Manager& accessmgr,
+						   const PeerConnectionType type, const ConnectionID id, const Message::SequenceNumber seqnum,
+						   ProtectedBuffer&& handshake_data, std::optional<ProtectedBuffer>&& shared_secret,
 						   std::unique_ptr<Connection::HandshakeTracker>&& handshake_tracker) :
-		m_Settings(settings), m_AccessManager(accessmgr), m_Type(type), m_ID(id), m_SymmetricKeys(shared_secret),
+		m_Settings(settings), m_AccessManager(accessmgr), m_Type(type), m_ID(id),
 		m_LastInOrderReceivedSequenceNumber(seqnum), m_HandshakeTracker(std::move(handshake_tracker))
-	{}
+	{
+		if (shared_secret) m_GlobalSharedSecret = std::move(shared_secret);
+
+		if (!InitializeKeyExchange(keymgr, std::move(handshake_data)))
+		{
+			throw std::exception("Failed to initialize keyexchange for UDP connection.");
+		}
+	}
 
 	Connection::~Connection()
 	{
 		if (m_Socket.GetIOStatus().IsOpen()) m_Socket.Close();
 	}
 
-	bool Connection::Open(const Network::IP::AddressFamily af,
-						  const bool nat_traversal, UDP::Socket& socket) noexcept
+	bool Connection::InitializeKeyExchange(KeyGeneration::Manager& keymgr, ProtectedBuffer&& handshake_data) noexcept
+	{
+		try
+		{
+			auto& gss = GetGlobalSharedSecret();
+			m_SymmetricKeys[0] = SymmetricKeys{ gss };
+
+			m_KeyExchange = std::make_unique<KeyExchange>(keymgr, GetType(), std::move(handshake_data));
+
+			return true;
+		}
+		catch (...) {}
+
+		return false;
+	}
+
+	bool Connection::FinalizeKeyExchange() noexcept
+	{
+		assert(m_KeyExchange != nullptr);
+
+		// Assuming peer handshakedata has been set, generate derived keys
+		m_SymmetricKeys[1] = m_KeyExchange->GenerateSymmetricKeys(GetGlobalSharedSecret());
+		if (m_SymmetricKeys[1])
+		{
+			// Set default key to expire (will still be used to decrypt messages for a grace period)
+			m_SymmetricKeys[0].Expire();
+
+			// Swap the keys so that the derived keys will be used from now on
+			m_SymmetricKeys[0] = std::exchange(m_SymmetricKeys[1], std::move(m_SymmetricKeys[0]));
+
+			// Remove asymmetric keys from memory
+			m_KeyExchange.reset();
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Connection::Open(const Network::IP::AddressFamily af, const bool nat_traversal, UDP::Socket& socket) noexcept
 	{
 		try
 		{
@@ -34,7 +81,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 										 0), nat_traversal))
 			{
 				m_ConnectionData = std::make_shared<ConnectionData_ThS>(&m_Socket.GetEvent());
-				
+
 				ResetMTU();
 
 				if (SetStatus(Status::Open))
@@ -84,6 +131,15 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return std::nullopt;
 	}
 
+	const ProtectedBuffer& Connection::GetGlobalSharedSecret() const noexcept
+	{
+		// If we have a specific global shared secret for this peer use it,
+		// otherwise return the default from settings
+		if (m_GlobalSharedSecret) return *m_GlobalSharedSecret;
+
+		return GetSettings().Local.GlobalSharedSecret;
+	}
+
 	bool Connection::SetStatus(const Status status) noexcept
 	{
 		auto success = true;
@@ -103,13 +159,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				break;
 			case Status::Connected:
 				assert(prev_status == Status::Handshake || prev_status == Status::Suspended);
-				if (prev_status == Status::Handshake || prev_status == Status::Suspended)
-				{
-					m_Status = status;
-					ResetKeepAliveTimeout(GetSettings());
-
-					if (m_HandshakeTracker) m_HandshakeTracker.reset();
-				}
+				if (prev_status == Status::Handshake || prev_status == Status::Suspended) m_Status = status;
 				else success = false;
 				break;
 			case Status::Suspended:
@@ -128,15 +178,49 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				break;
 		}
 
-		if (success)
-		{
-			m_LastStatusChangeSteadyTime = Util::GetCurrentSteadyTime();
-		}
-		else
+		if (!success || !(success = OnStatusChange(prev_status, status)))
 		{
 			// If we fail to change the status disconnect as soon as possible
 			LogErr(L"UDP connection: failed to change status for connection %llu to %d", GetID(), status);
 			SetCloseCondition(CloseCondition::GeneralFailure);
+		}
+
+		return success;
+	}
+
+	bool Connection::OnStatusChange(const Status old_status, const Status new_status) noexcept
+	{
+		auto success = true;
+		m_LastStatusChangeSteadyTime = Util::GetCurrentSteadyTime();
+
+		switch (new_status)
+		{
+			case Status::Handshake:
+			{
+				if (GetType() == PeerConnectionType::Inbound)
+				{
+					success = FinalizeKeyExchange();
+				}
+				
+				break;
+			}
+			case Status::Connected:
+			{
+				ResetKeepAliveTimeout(GetSettings());
+
+				if (m_HandshakeTracker) m_HandshakeTracker.reset();
+
+				if (GetType() == PeerConnectionType::Outbound && old_status == Status::Handshake)
+				{
+					success = FinalizeKeyExchange();
+				}
+
+				break;
+			}
+			default:
+			{
+				break;
+			}
 		}
 
 		return success;
@@ -437,7 +521,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				.ProtocolVersionMinor = ProtocolVersion::Minor,
 				.ConnectionID = GetID(),
 				.Port = static_cast<UInt16>(Random::GetPseudoRandomNumber()),
-				.Cookie = std::move(cookie)
+				.Cookie = std::move(cookie),
+				.HandshakeData = m_KeyExchange->GetHandshakeData() // TODO: eliminate copy
 			});
 
 		if (Send(std::move(msg)))
@@ -465,7 +550,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				.ProtocolVersionMajor = ProtocolVersion::Major,
 				.ProtocolVersionMinor = ProtocolVersion::Minor,
 				.ConnectionID = GetID(),
-				.Port = m_Socket.GetLocalEndpoint().GetPort()
+				.Port = m_Socket.GetLocalEndpoint().GetPort(),
+				.HandshakeData = m_KeyExchange->GetHandshakeData() // TODO: eliminate copy
 			});
 
 		if (Send(std::move(msg)))
@@ -667,7 +753,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		try
 		{
 			Buffer data;
-			if (msg.Write(data, m_SymmetricKeys))
+			if (msg.Write(data, m_SymmetricKeys[0]))
 			{
 				const auto now = Util::GetCurrentSteadyTime();
 
@@ -863,8 +949,31 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		auto success{ false };
 
+		auto read_message = [this](Message& msg, BufferSpan& buf) noexcept -> bool
+		{
+			assert(!m_SymmetricKeys[0].IsExpired());
+
+			if (msg.Read(buf, m_SymmetricKeys[0]))
+			{
+				return true;
+			}
+			else
+			{
+				if (m_SymmetricKeys[1])
+				{
+					if (!m_SymmetricKeys[1].IsExpired())
+					{
+						return msg.Read(buf, m_SymmetricKeys[1]);
+					}
+					else m_SymmetricKeys[1].Clear();
+				}
+			}
+
+			return false;
+		};
+
 		Message msg(Message::Type::Unknown, Message::Direction::Incoming);
-		if (msg.Read(buffer, m_SymmetricKeys) && msg.IsValid())
+		if (read_message(msg, buffer) && msg.IsValid())
 		{
 			switch (GetStatus())
 			{
@@ -926,101 +1035,101 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::ProcessReceivedMessageHandshake(const IPEndpoint& endpoint, Message&& msg) noexcept
 	{
+		// In handshake state we only accept messages from
+		// the same endpoint that we're connecting to
+		if (endpoint != m_PeerEndpoint)
+		{
+			LogErr(L"UDP connection: received handshake response from unexpected endpoint %s on connection %llu",
+				   endpoint.GetString().c_str(), GetID());
+
+			UpdateReputation(endpoint, Access::IPReputationUpdate::DeteriorateMinimal);
+
+			// Might be someone else trying to interfere; we just
+			// ignore the message and keep the connection alive
+			return true;
+		}
+
 		if (GetType() == PeerConnectionType::Outbound)
 		{
-			// Handshake response should come from same
-			// IP address that we tried connecting to
-			if (endpoint == m_PeerEndpoint)
+			switch (msg.GetType())
 			{
-				switch (msg.GetType())
+				case Message::Type::Syn:
 				{
-					case Message::Type::Syn:
+					auto& syn_data = msg.GetSynData();
+
+					if (syn_data.ProtocolVersionMajor == UDP::ProtocolVersion::Major &&
+						syn_data.ProtocolVersionMinor == UDP::ProtocolVersion::Minor)
 					{
-						const auto& syn_data = msg.GetSynData();
-
-						if (syn_data.ProtocolVersionMajor == UDP::ProtocolVersion::Major &&
-							syn_data.ProtocolVersionMinor == UDP::ProtocolVersion::Minor)
+						if (GetID() == syn_data.ConnectionID)
 						{
-							if (GetID() == syn_data.ConnectionID)
+							m_KeyExchange->SetPeerHandshakeData(std::move(syn_data.HandshakeData));
+
+							m_LastInOrderReceivedSequenceNumber = msg.GetMessageSequenceNumber();
+
+							assert(msg.HasAck());
+
+							if (msg.HasAck())
 							{
-								m_LastInOrderReceivedSequenceNumber = msg.GetMessageSequenceNumber();
+								m_SendQueue.ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
+							}
 
-								assert(msg.HasAck());
-
-								if (msg.HasAck())
+							if (AckReceivedMessage(msg.GetMessageSequenceNumber()))
+							{
+								if (SetStatus(Status::Connected))
 								{
-									m_SendQueue.ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
-								}
+									// Endpoint update with new received port
+									m_PeerEndpoint = IPEndpoint(endpoint.GetProtocol(), endpoint.GetIPAddress(), syn_data.Port);
 
-								if (AckReceivedMessage(msg.GetMessageSequenceNumber()))
-								{
-									if (SetStatus(Status::Connected))
+									m_ConnectionData->WithUniqueLock([&](auto& connection_data) noexcept
 									{
-										// Endpoint update with new received port
-										m_PeerEndpoint = IPEndpoint(endpoint.GetProtocol(), endpoint.GetIPAddress(), syn_data.Port);
+										// Endpoint update
+										connection_data.SetLocalEndpoint(m_Socket.GetLocalEndpoint());
+										// Don't need listener send queue anymore
+										connection_data.ReleaseListenerSendQueue();
+										// Socket can now send data
+										connection_data.SetWrite(true);
+										// Notify of state change
+										connection_data.SignalReceiveEvent();
+									});
 
-										m_ConnectionData->WithUniqueLock([&](auto& connection_data) noexcept
-										{
-											// Endpoint update
-											connection_data.SetLocalEndpoint(m_Socket.GetLocalEndpoint());
-											// Don't need listener send queue anymore
-											connection_data.ReleaseListenerSendQueue();
-											// Socket can now send data
-											connection_data.SetWrite(true);
-											// Notify of state change
-											connection_data.SignalReceiveEvent();
-										});
-
-										return true;
-									}
+									return true;
 								}
 							}
-							else LogErr(L"UDP connection: received invalid Syn message from peer %s on connection %llu; unexpected connection ID %llu",
-										endpoint.GetString().c_str(), GetID(), syn_data.ConnectionID);
 						}
-						else LogErr(L"UDP connection: could not accept connection from peer %s on connection %llu; unsupported UDP protocol version",
-									endpoint.GetString().c_str(), GetID());
-						break;
+						else LogErr(L"UDP connection: received invalid Syn message from peer %s on connection %llu; unexpected connection ID %llu",
+									endpoint.GetString().c_str(), GetID(), syn_data.ConnectionID);
 					}
-					case Message::Type::Cookie:
-					{
-						// Remove previous connect message
-						m_SendQueue.Reset();
-
-						// Send connect message again, this time with cookie
-						const auto& cookie_data = msg.GetCookieData();
-						if (SendOutboundSyn(cookie_data)) return true;
-						else
-						{
-							SetCloseCondition(CloseCondition::GeneralFailure);
-						}
-						break;
-					}
-					case Message::Type::Null:
-					{
-						// Ignored
-						return true;
-					}
-					default:
-					{
-						LogErr(L"UDP connection: received unexpected message type %u during handshake on connection %llu",
-							   msg.GetType(), GetID());
-
-						UpdateReputation(endpoint, Access::IPReputationUpdate::DeteriorateModerate);
-						break;
-					}
+					else LogErr(L"UDP connection: could not accept connection from peer %s on connection %llu; unsupported UDP protocol version",
+								endpoint.GetString().c_str(), GetID());
+					break;
 				}
-			}
-			else
-			{
-				LogErr(L"UDP connection: received handshake response from unexpected endpoint %s on connection %llu",
-					   endpoint.GetString().c_str(), GetID());
+				case Message::Type::Cookie:
+				{
+					// Remove previous connect message
+					m_SendQueue.Reset();
 
-				UpdateReputation(endpoint, Access::IPReputationUpdate::DeteriorateSevere);
+					// Send connect message again, this time with cookie
+					const auto& cookie_data = msg.GetCookieData();
+					if (SendOutboundSyn(cookie_data)) return true;
+					else
+					{
+						SetCloseCondition(CloseCondition::GeneralFailure);
+					}
+					break;
+				}
+				case Message::Type::Null:
+				{
+					// Ignored
+					return true;
+				}
+				default:
+				{
+					LogErr(L"UDP connection: received unexpected message type %u during handshake on connection %llu",
+							msg.GetType(), GetID());
 
-				// Might be someone else trying to interfere; we just
-				// ignore the message and keep the connection alive
-				return true;
+					UpdateReputation(endpoint, Access::IPReputationUpdate::DeteriorateModerate);
+					break;
+				}
 			}
 		}
 		else if (GetType() == PeerConnectionType::Inbound)
@@ -1215,6 +1324,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void Connection::CheckEndpointChange(const IPEndpoint& endpoint) noexcept
 	{
+		if (GetType() == PeerConnectionType::Outbound && endpoint == m_OriginalPeerEndpoint)
+		{
+			// Never change back to the listener endpoint
+			return;
+		}
+
 		if (m_PeerEndpoint != endpoint)
 		{
 			if (IsEndpointAllowed(endpoint))
@@ -1437,6 +1552,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				auto success = true;
 
 				// Update endpoint with the one we should connect to
+				m_OriginalPeerEndpoint = connection_data->GetPeerEndpoint();
 				m_PeerEndpoint = connection_data->GetPeerEndpoint();
 
 				connection_data.UnlockShared();

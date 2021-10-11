@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "UDPConnectionKeys.h"
 #include "..\..\Memory\BufferIO.h"
 
 #include <variant>
@@ -16,45 +17,6 @@ namespace QuantumGate::Implementation::Core::UDP
 	{
 		static constexpr const UInt8 Major{ 0 };
 		static constexpr const UInt8 Minor{ 1 };
-	};
-
-	class SymmetricKeys final
-	{
-	public:
-		SymmetricKeys() = delete;
-		SymmetricKeys(const ProtectedBuffer& shared_secret);
-
-		inline explicit operator bool() const noexcept { return m_KeyData.GetSize() == KeyDataLength; }
-
-		[[nodiscard]] inline BufferView GetKey() const noexcept
-		{
-			assert(m_KeyData.GetSize() == KeyDataLength);
-			return m_KeyData.operator BufferView().GetFirst(KeyLength);
-		}
-		
-		[[nodiscard]] inline BufferView GetAuthKey() const noexcept
-		{
-			assert(m_KeyData.GetSize() == KeyDataLength);
-			return m_KeyData.operator BufferView().GetLast(KeyLength);
-		}
-
-		[[nodiscard]] inline bool IsUsingGlobalSharedSecret() const noexcept
-		{
-			return m_IsUsingGlobalSharedSecret;
-		}
-
-	private:
-		static constexpr UInt8 KeyLength{ sizeof(UInt64) };
-		static constexpr UInt8 KeyDataLength{ KeyLength * 2 };
-
-		static constexpr UInt8 DefaultKeyData[KeyDataLength]{
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
-		};
-
-	private:
-		bool m_IsUsingGlobalSharedSecret{ false };
-		ProtectedBuffer m_KeyData;
 	};
 
 	class Message final
@@ -182,6 +144,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			ConnectionID ConnectionID{ 0 };
 			UInt16 Port{ 0 };
 			std::optional<CookieData> Cookie;
+			ProtectedBuffer HandshakeData;
 
 			static constexpr UInt8 CookieFlag{ 0b00000001 };
 		};
@@ -221,7 +184,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		[[nodiscard]] inline SequenceNumber GetMessageAckNumber() const noexcept { return m_Header.GetMessageAckNumber(); }
 
 		void SetSynData(SynData&& data) noexcept;
-		[[nodiscard]] const SynData& GetSynData() const noexcept;
+		[[nodiscard]] SynData& GetSynData() noexcept;
 
 		void SetCookieData(CookieData&& data) noexcept;
 		[[nodiscard]] const CookieData& GetCookieData() const noexcept;

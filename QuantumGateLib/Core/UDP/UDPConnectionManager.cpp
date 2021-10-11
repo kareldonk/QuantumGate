@@ -221,7 +221,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	}
 
 	bool Manager::AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
-								const ConnectionID id, const Message::SequenceNumber seqnum,
+								const ConnectionID id, const Message::SequenceNumber seqnum, ProtectedBuffer&& handshake_data,
 								Socket& socket, std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
 		assert(m_Running);
@@ -237,12 +237,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				ConnectionMap::iterator cit;
 
 				{
-					const ProtectedBuffer& sbuf = std::invoke([&]() -> const ProtectedBuffer&
-					{
-						if (shared_secret.has_value()) return shared_secret.value();
-						else return settings.Local.GlobalSharedSecret;
-					});
-
 					std::unique_ptr<Connection::HandshakeTracker> handshake_tracker;
 					if (type == PeerConnectionType::Inbound)
 					{
@@ -252,8 +246,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 					auto connections = thread->GetData().Connections->WithUniqueLock();
 
-					[[maybe_unused]] const auto [it, inserted] = connections->try_emplace(id, m_Settings, m_AccessManager,
-																						  type, id, seqnum, sbuf,
+					[[maybe_unused]] const auto [it, inserted] = connections->try_emplace(id, m_Settings, m_KeyManager, m_AccessManager,
+																						  type, id, seqnum, std::move(handshake_data), 
+																						  std::move(shared_secret),
 																						  std::move(handshake_tracker));
 
 					assert(inserted);

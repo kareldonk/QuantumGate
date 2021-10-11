@@ -43,7 +43,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			ThreadData& operator=(ThreadData&&) noexcept = default;
 
 			bool IsPrimary{ false };
-			const SymmetricKeys SymmetricKeys;
+			SymmetricKeys SymmetricKeys;
 			Socket Socket;
 			std::shared_ptr<SendQueue_ThS> SendQueue;
 		};

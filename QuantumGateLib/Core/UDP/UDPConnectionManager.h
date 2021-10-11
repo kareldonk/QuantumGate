@@ -56,8 +56,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		Manager() = delete;
 
-		Manager(const Settings_CThS& settings, Access::Manager& accessmgr) noexcept :
-			m_Settings(settings), m_AccessManager(accessmgr) {}
+		Manager(const Settings_CThS& settings, KeyGeneration::Manager& keymgr, Access::Manager& accessmgr) noexcept :
+			m_Settings(settings), m_KeyManager(keymgr), m_AccessManager(accessmgr) {}
 
 		Manager(const Manager&) = delete;
 		Manager(Manager&&) noexcept = default;
@@ -71,10 +71,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		[[nodiscard]] bool AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
 										 const ConnectionID id, const Message::SequenceNumber seqnum,
-										 Socket& socket, std::optional<ProtectedBuffer>&& shared_secret) noexcept;
+										 ProtectedBuffer&& handshake_data, Socket& socket,
+										 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
 		[[nodiscard]] AddQueryCode QueryAddConnection(const ConnectionID id, const IPEndpoint& pendpoint,
-													const PeerConnectionType type) const noexcept;
+													  const PeerConnectionType type) const noexcept;
 
 		void OnLocalIPInterfaceChanged() noexcept;
 
@@ -102,6 +103,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	private:
 		const Settings_CThS& m_Settings;
+		KeyGeneration::Manager& m_KeyManager;
 		Access::Manager& m_AccessManager;
 
 		std::atomic_bool m_Running{ false };

@@ -445,7 +445,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			{
 				case Message::Type::Syn:
 				{
-					const auto& syn_data = msg.GetSynData();
+					auto& syn_data = msg.GetSynData();
 
 					if (syn_data.ProtocolVersionMajor == UDP::ProtocolVersion::Major &&
 						syn_data.ProtocolVersionMinor == UDP::ProtocolVersion::Minor)
@@ -516,7 +516,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 							if (CanAcceptConnection(pendpoint.GetIPAddress()))
 							{
 								auto peerths = m_PeerManager.CreateUDP(pendpoint.GetIPAddress().GetFamily(), PeerConnectionType::Inbound,
-																	   syn_data.ConnectionID, msg.GetMessageSequenceNumber(), std::nullopt);
+																	   syn_data.ConnectionID, msg.GetMessageSequenceNumber(),
+																	   std::move(syn_data.HandshakeData), std::nullopt);
 								if (peerths != nullptr)
 								{
 									auto peer = peerths->WithUniqueLock();

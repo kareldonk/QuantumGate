@@ -14,27 +14,6 @@ using namespace QuantumGate::Implementation::Memory;
 
 namespace QuantumGate::Implementation::Core::UDP
 {
-	SymmetricKeys::SymmetricKeys(const ProtectedBuffer& shared_secret)
-	{
-		m_KeyData.Allocate(KeyDataLength);
-
-		if (!shared_secret.IsEmpty())
-		{
-			siphash(reinterpret_cast<const uint8_t*>(shared_secret.GetBytes()), shared_secret.GetSize(),
-					reinterpret_cast<const uint8_t*>(DefaultKeyData),
-					reinterpret_cast<uint8_t*>(m_KeyData.GetBytes()), m_KeyData.GetSize());
-
-			m_IsUsingGlobalSharedSecret = true;
-		}
-		else
-		{
-			// Use default keys when Global Shared Secret is not in use;
-			// this provides basic obfuscation and HMAC checks but won't
-			// fool more sophisticated traffic analyzers
-			std::memcpy(m_KeyData.GetBytes(), DefaultKeyData, KeyDataLength);
-		}
-	}
-
 	Message::Header::Header(const Type type, const Direction direction) noexcept :
 		m_Direction(direction), m_MessageType(type)
 	{
@@ -158,7 +137,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		m_Data = std::move(data);
 	}
 
-	const Message::SynData& Message::GetSynData() const noexcept
+	Message::SynData& Message::GetSynData() noexcept
 	{
 		assert(m_Header.GetMessageType() == Type::Syn);
 		assert(IsValid());
@@ -337,6 +316,8 @@ namespace QuantumGate::Implementation::Core::UDP
 						if (!rdr.Read(syn_data.Cookie->CookieID)) return false;
 					}
 
+					if (!rdr.Read(WithSize(syn_data.HandshakeData, MaxSize::_512B))) return false;
+
 					m_Data = std::move(syn_data);
 					break;
 				}
@@ -447,6 +428,8 @@ namespace QuantumGate::Implementation::Core::UDP
 					{
 						if (!wrt.Write(syn_data.Cookie->CookieID)) return false;
 					}
+
+					if (!wrt.Write(WithSize(syn_data.HandshakeData, MaxSize::_512B))) return false;
 
 					msgbuf += synbuf;
 

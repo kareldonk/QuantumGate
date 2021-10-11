@@ -507,6 +507,9 @@
     <ClInclude Include="Concurrency\DequeMap.h">
       <Filter>Header Files\Concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="Core\UDP\UDPConnectionKeys.h">
+      <Filter>Header Files\Core\UDP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -702,6 +705,9 @@
       <Filter>Source Files\Core\UDP</Filter>
     </ClCompile>
     <ClCompile Include="Core\UDP\UDPConnectionMTUD.cpp">
+      <Filter>Source Files\Core\UDP</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\UDP\UDPConnectionKeys.cpp">
       <Filter>Source Files\Core\UDP</Filter>
     </ClCompile>
   </ItemGroup>

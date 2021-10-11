@@ -617,6 +617,7 @@
     <ClInclude Include="Core\UDP\UDPConnectionCommon.h" />
     <ClInclude Include="Core\UDP\UDPConnectionData.h" />
     <ClInclude Include="Core\UDP\UDPConnection.h" />
+    <ClInclude Include="Core\UDP\UDPConnectionKeys.h" />
     <ClInclude Include="Core\UDP\UDPConnectionMTUD.h" />
     <ClInclude Include="Core\UDP\UDPConnectionSendQueue.h" />
     <ClInclude Include="Core\UDP\UDPConnectionStats.h" />
@@ -711,6 +712,7 @@
     <ClCompile Include="Core\Relay\RelaySocket.cpp" />
     <ClCompile Include="Core\TCP\TCPListenerManager.cpp" />
     <ClCompile Include="Core\UDP\UDPConnection.cpp" />
+    <ClCompile Include="Core\UDP\UDPConnectionKeys.cpp" />
     <ClCompile Include="Core\UDP\UDPConnectionMTUD.cpp" />
     <ClCompile Include="Core\UDP\UDPConnectionSendQueue.cpp" />
     <ClCompile Include="Core\UDP\UDPListenerManager.cpp" />

@@ -159,7 +159,7 @@ namespace QuantumGate::Implementation::Core
 		Access::Manager m_AccessManager{ m_Settings };
 		Extender::Manager m_ExtenderManager{ m_Settings };
 		KeyGeneration::Manager m_KeyGenerationManager{ m_Settings };
-		UDP::Connection::Manager m_UDPConnectionManager{ m_Settings, m_AccessManager };
+		UDP::Connection::Manager m_UDPConnectionManager{ m_Settings, m_KeyGenerationManager, m_AccessManager };
 		Peer::Manager m_PeerManager{ m_Settings, m_LocalEnvironment, m_UDPConnectionManager,
 			m_KeyGenerationManager, m_AccessManager, m_ExtenderManager };
 		TCP::Listener::Manager m_TCPListenerManager{ m_Settings, m_AccessManager, m_PeerManager };
