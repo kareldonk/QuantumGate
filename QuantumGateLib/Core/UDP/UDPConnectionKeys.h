@@ -8,17 +8,17 @@
 
 namespace QuantumGate::Implementation::Core::UDP
 {
-	enum class SymmetricKeysType
-	{
-		Unknown, Default, Derived
-	};
-
 	class SymmetricKeys final
 	{
 	public:
+		enum class Type
+		{
+			Unknown, Default, Derived
+		};
+
 		SymmetricKeys() noexcept {};
 		SymmetricKeys(const ProtectedBuffer& global_sharedsecret) :
-			m_Type(SymmetricKeysType::Default)
+			m_Type(Type::Default)
 		{
 			// This will use default keydata when Global Shared Secret is not in use;
 			// this provides basic obfuscation and HMAC checks but won't
@@ -28,7 +28,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		}
 
 		SymmetricKeys(const ProtectedBuffer& global_sharedsecret, const BufferView key_input_data) :
-			m_Type(SymmetricKeysType::Derived)
+			m_Type(Type::Derived)
 		{
 			CreateKeys(global_sharedsecret, key_input_data);
 		}
@@ -41,7 +41,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		inline explicit operator bool() const noexcept
 		{
-			return (m_Type != SymmetricKeysType::Unknown && m_KeyData.GetSize() == KeyDataLength);
+			return (m_Type != Type::Unknown && m_KeyData.GetSize() == KeyDataLength);
 		}
 
 		[[nodiscard]] inline BufferView GetKey() const noexcept
@@ -75,7 +75,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		inline void Clear() noexcept
 		{
-			m_Type = SymmetricKeysType::Unknown;
+			m_Type = Type::Unknown;
 			m_KeyData.Clear();
 			m_ExpirationSteadyTime.reset();
 		}
@@ -93,7 +93,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		};
 
 	private:
-		SymmetricKeysType m_Type{ SymmetricKeysType::Unknown };
+		Type m_Type{ Type::Unknown };
 		ProtectedBuffer m_KeyData;
 		std::optional<SteadyTime> m_ExpirationSteadyTime;
 
@@ -149,7 +149,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			m_AsymmetricKeys->PeerPublicKey = std::move(buffer);
 		}
 
-		inline const ProtectedBuffer& GetHandshakeData() const noexcept
+		[[nodiscard]] inline const ProtectedBuffer& GetHandshakeData() const noexcept
 		{
 			// Asymmetric keys should already have been created
 			assert(m_AsymmetricKeys.has_value());
