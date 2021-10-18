@@ -80,7 +80,7 @@ namespace QuantumGate::Implementation
 		};
 
 	public:
-		using FunctionSignature = FunctionSignatureDetails<R(Args...), Const, NoExcept>::Type;
+		using FunctionSignature = typename FunctionSignatureDetails<R(Args...), Const, NoExcept>::Type;
 
 		CallbackImpl() noexcept {}
 		CallbackImpl(std::nullptr_t) noexcept {}
