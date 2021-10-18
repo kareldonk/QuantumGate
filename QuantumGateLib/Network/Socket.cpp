@@ -671,8 +671,6 @@ namespace QuantumGate::Implementation::Network
 			as = accept(m_Socket, reinterpret_cast<sockaddr*>(&addr), &addrlen);
 		}
 
-		m_IOStatus.SetRead(false);
-
 		if (as != INVALID_SOCKET)
 		{
 			if (s.SetSocket(as))
@@ -688,9 +686,12 @@ namespace QuantumGate::Implementation::Network
 		}
 		else
 		{
-			Dbg(GetLastSocketErrorString().c_str());
-			LogErr(L"A connection could not be accepted on endpoint %s (%s)",
-				   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
+			const auto error = WSAGetLastError();
+			if (error != WSAEWOULDBLOCK)
+			{
+				LogErr(L"A connection could not be accepted on endpoint %s (%s)",
+					   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
+			}
 		}
 
 		return false;
@@ -901,8 +902,6 @@ namespace QuantumGate::Implementation::Network
 
 		Dbg(L"%d bytes received", bytesrcv);
 
-		m_IOStatus.SetRead(false);
-
 		if (bytesrcv > 0)
 		{
 			// Update the total amount of bytes received
@@ -919,10 +918,8 @@ namespace QuantumGate::Implementation::Network
 			const auto error = WSAGetLastError();
 			if (error == WSAENOBUFS || error == WSAEWOULDBLOCK)
 			{
-				// Buffer is temporarily unavailable, we'll try again later
-				LogDbg(L"Receive buffer unavailable for endpoint %s (%s)",
-					   GetPeerName().c_str(), GetLastSocketErrorString().c_str());
-
+				// Buffer is temporarily unavailable,
+				// or there is no data to receive
 				return 0;
 			}
 			else
@@ -980,8 +977,6 @@ namespace QuantumGate::Implementation::Network
 
 		Dbg(L"%d bytes received", bytesrcv);
 
-		m_IOStatus.SetRead(false);
-
 		if (sock_addr.ss_family != 0)
 		{
 			if (!SockAddrGetIPEndpoint(IP::Protocol::UDP, &sock_addr, endpoint))
@@ -1009,10 +1004,8 @@ namespace QuantumGate::Implementation::Network
 			const auto error = WSAGetLastError();
 			if (error == WSAENOBUFS || error == WSAEWOULDBLOCK)
 			{
-				// Buffer is temporarily unavailable, we'll try again later
-				LogDbg(L"Receive buffer unavailable on endpoint %s (%s)",
-					   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
-
+				// Buffer is temporarily unavailable,
+				// or there is no data to receive
 				return 0;
 			}
 			else 
@@ -1054,11 +1047,8 @@ namespace QuantumGate::Implementation::Network
 
 		if (!m_IOStatus.IsClosing()) m_IOStatus.SetClosing(events.lNetworkEvents & FD_CLOSE);
 
-		if (!m_IOStatus.CanRead())
-		{
-			m_IOStatus.SetRead((events.lNetworkEvents & FD_READ) ||
-								(events.lNetworkEvents & FD_ACCEPT) || m_IOStatus.IsClosing());
-		}
+		m_IOStatus.SetRead((events.lNetworkEvents & FD_READ) ||
+							(events.lNetworkEvents & FD_ACCEPT) || m_IOStatus.IsClosing());
 
 		if (!m_IOStatus.CanWrite())
 		{

@@ -143,6 +143,8 @@ namespace QuantumGate::Implementation::Core::UDP
 			}
 			else
 			{
+				if (!connection_data->HasCloseRequest()) return 0;
+				
 				LogDbg(L"UDP socket connection closed for endpoint %s", GetPeerName().c_str());
 
 				connection_data->ResetReceiveEvent();

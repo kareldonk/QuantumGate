@@ -1123,13 +1123,15 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 		}
 
-		// Read as much data as possible
-		while (GetIOStatus().CanRead() &&
-			   (m_ReceiveBuffer.GetSize() < (MessageTransport::MaxMessageSize + m_NextPeerRandomDataPrefixLength)))
+		if (GetIOStatus().CanRead())
 		{
-			if (!Receive(m_ReceiveBuffer)) return false;
-
-			if (!UpdateSocketStatus()) return false;
+			// Read as much data as possible
+			while (m_ReceiveBuffer.GetSize() < (MessageTransport::MaxMessageSize + m_NextPeerRandomDataPrefixLength))
+			{
+				const auto result = Receive(m_ReceiveBuffer);
+				if (!result) return false;	// Receive error
+				if (*result == 0) break;	// No data to receive
+			}
 		}
 
 		m_ReceiveBuffer.ResetEvent();

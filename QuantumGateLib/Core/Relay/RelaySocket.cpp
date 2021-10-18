@@ -148,8 +148,10 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			const auto bytesrcv = m_ReceiveBuffer.GetSize();
 
-			if (bytesrcv == 0 && m_ClosingRead)
+			if (bytesrcv == 0)
 			{
+				if (!m_ClosingRead) return 0;
+				
 				LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
 
 				m_ReceiveEvent.GetSubEvent(0).Reset();
