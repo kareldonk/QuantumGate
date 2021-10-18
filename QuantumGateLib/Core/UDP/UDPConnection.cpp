@@ -522,7 +522,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				.ConnectionID = GetID(),
 				.Port = static_cast<UInt16>(Random::GetPseudoRandomNumber()),
 				.Cookie = std::move(cookie),
-				.HandshakeData = m_KeyExchange->GetHandshakeData() // TODO: eliminate copy
+				.HandshakeDataOut = &m_KeyExchange->GetHandshakeData()
 			});
 
 		if (Send(std::move(msg)))
@@ -551,7 +551,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				.ProtocolVersionMinor = ProtocolVersion::Minor,
 				.ConnectionID = GetID(),
 				.Port = m_Socket.GetLocalEndpoint().GetPort(),
-				.HandshakeData = m_KeyExchange->GetHandshakeData() // TODO: eliminate copy
+				.HandshakeDataOut = &m_KeyExchange->GetHandshakeData()
 			});
 
 		if (Send(std::move(msg)))
@@ -871,11 +871,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		IPEndpoint endpoint;
 		auto& buffer = GetReceiveBuffer();
 
-		while (true)
+		if (m_Socket.UpdateIOStatus(0ms))
 		{
-			if (m_Socket.UpdateIOStatus(0ms))
+			if (m_Socket.GetIOStatus().CanRead())
 			{
-				if (m_Socket.GetIOStatus().CanRead())
+				while (true)
 				{
 					auto bufspan = BufferSpan(buffer);
 
@@ -906,7 +906,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 							result.GetErrorCode().value() == WSAECONNRESET)
 						{
 							LogDbg(L"UDP connection: port unreachable for connection %llu (%s)",
-									GetID(), result.GetErrorString().c_str());
+								   GetID(), result.GetErrorString().c_str());
 
 							// If the port is unreachable this is not a fatal error for us; the
 							// connection will be suspended until we hear back from the peer
@@ -923,23 +923,22 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 						}
 					}
 				}
-				else if (m_Socket.GetIOStatus().HasException())
-				{
-					LogErr(L"UDP connection: exception on socket for connection %llu (%s)",
-						   GetID(), GetSysErrorString(m_Socket.GetIOStatus().GetErrorCode()).c_str());
-
-					SetCloseCondition(CloseCondition::ReceiveError, m_Socket.GetIOStatus().GetErrorCode());
-
-					return false;
-				}
-				else break;
 			}
-			else
+			else if (m_Socket.GetIOStatus().HasException())
 			{
-				LogDbg(L"UDP connection: failed to update socket IOStatus for connection %llu", GetID());
+				LogErr(L"UDP connection: exception on socket for connection %llu (%s)",
+						GetID(), GetSysErrorString(m_Socket.GetIOStatus().GetErrorCode()).c_str());
+
+				SetCloseCondition(CloseCondition::ReceiveError, m_Socket.GetIOStatus().GetErrorCode());
 
 				return false;
 			}
+		}
+		else
+		{
+			LogDbg(L"UDP connection: failed to update socket IOStatus for connection %llu", GetID());
+
+			return false;
 		}
 
 		return true;
@@ -1062,7 +1061,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					{
 						if (GetID() == syn_data.ConnectionID)
 						{
-							m_KeyExchange->SetPeerHandshakeData(std::move(syn_data.HandshakeData));
+							m_KeyExchange->SetPeerHandshakeData(std::move(*syn_data.HandshakeDataIn));
 
 							m_LastInOrderReceivedSequenceNumber = msg.GetMessageSequenceNumber();
 

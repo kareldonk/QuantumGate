@@ -517,7 +517,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 							{
 								auto peerths = m_PeerManager.CreateUDP(pendpoint.GetIPAddress().GetFamily(), PeerConnectionType::Inbound,
 																	   syn_data.ConnectionID, msg.GetMessageSequenceNumber(),
-																	   std::move(syn_data.HandshakeData), std::nullopt);
+																	   std::move(*syn_data.HandshakeDataIn), std::nullopt);
 								if (peerths != nullptr)
 								{
 									auto peer = peerths->WithUniqueLock();

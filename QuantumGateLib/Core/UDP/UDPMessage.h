@@ -4,6 +4,7 @@
 #pragma once
 
 #include "UDPConnectionKeys.h"
+#include "..\..\Common\Wrapped.h"
 #include "..\..\Memory\BufferIO.h"
 
 #include <variant>
@@ -144,7 +145,8 @@ namespace QuantumGate::Implementation::Core::UDP
 			ConnectionID ConnectionID{ 0 };
 			UInt16 Port{ 0 };
 			std::optional<CookieData> Cookie;
-			ProtectedBuffer HandshakeData;
+			Wrapped<ProtectedBuffer> HandshakeDataIn;
+			Wrapped<const ProtectedBuffer> HandshakeDataOut;
 
 			static constexpr UInt8 CookieFlag{ 0b00000001 };
 		};
@@ -260,7 +262,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			switch (type)
 			{
 				case Type::Syn:
-					m_Data = SynData();
+					m_Data.emplace<SynData>();
 					break;
 				case Type::Cookie:
 					m_Data = CookieData();

@@ -134,7 +134,7 @@ namespace QuantumGate::Implementation::Core::UDP
 	{
 		assert(m_Header.GetMessageType() == Type::Syn);
 
-		m_Data = std::move(data);
+		m_Data.emplace<SynData>(std::move(data));
 	}
 
 	Message::SynData& Message::GetSynData() noexcept
@@ -316,9 +316,11 @@ namespace QuantumGate::Implementation::Core::UDP
 						if (!rdr.Read(syn_data.Cookie->CookieID)) return false;
 					}
 
-					if (!rdr.Read(WithSize(syn_data.HandshakeData, MaxSize::_512B))) return false;
+					syn_data.HandshakeDataIn.Emplace();
 
-					m_Data = std::move(syn_data);
+					if (!rdr.Read(WithSize(*syn_data.HandshakeDataIn, MaxSize::_512B))) return false;
+
+					m_Data.emplace<SynData>(std::move(syn_data));
 					break;
 				}
 				case Type::Cookie:
@@ -429,7 +431,7 @@ namespace QuantumGate::Implementation::Core::UDP
 						if (!wrt.Write(syn_data.Cookie->CookieID)) return false;
 					}
 
-					if (!wrt.Write(WithSize(syn_data.HandshakeData, MaxSize::_512B))) return false;
+					if (!wrt.Write(WithSize(*syn_data.HandshakeDataOut, MaxSize::_512B))) return false;
 
 					msgbuf += synbuf;
 
