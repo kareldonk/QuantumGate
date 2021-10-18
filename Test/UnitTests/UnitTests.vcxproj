@@ -412,6 +412,7 @@
     <ClCompile Include="ThreadSafeTests.cpp" />
     <ClCompile Include="UtilTests.cpp" />
     <ClCompile Include="UUIDTests.cpp" />
+    <ClCompile Include="WrappedTests.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

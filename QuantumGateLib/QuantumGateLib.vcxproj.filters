@@ -510,6 +510,9 @@
     <ClInclude Include="Core\UDP\UDPConnectionKeys.h">
       <Filter>Header Files\Core\UDP</Filter>
     </ClInclude>
+    <ClInclude Include="Common\Wrapped.h">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
