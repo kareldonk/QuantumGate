@@ -233,6 +233,14 @@ namespace QuantumGate
 
 		struct
 		{
+			Size SynCookieRequirementThreshold{ 10 };					// The number of incoming connections that may be in the process of being established after which a cookie is required
+			std::chrono::milliseconds MaxMTUDiscoveryDelay{ 0 };		// Maximum number of milliseconds to wait before starting MTU discovery
+			Size MaxNumDecoyMessages{ 0 };								// Maximum number of decoy messages to send during handshake
+			std::chrono::milliseconds MaxDecoyMessageInterval{ 1000 };	// Maximum time interval for decoy messages during handshake
+		} UDP;
+
+		struct
+		{
 			std::chrono::seconds AgeTolerance{ 0 };				// Maximum age of a message in seconds before it's not accepted
 			std::chrono::seconds ExtenderGracePeriod{ 0 };		// Number of seconds after an extender is removed to still silently accept messages for that extender
 			Size MinRandomDataPrefixSize{ 0 };					// Minimum size in bytes of random data prefix sent with messages

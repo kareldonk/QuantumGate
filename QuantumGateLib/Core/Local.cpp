@@ -1171,6 +1171,9 @@ namespace QuantumGate::Implementation::Core
 
 		if (params.Relay.IPConnectionAttempts.Interval < 0s) return false;
 
+		if (params.UDP.MaxMTUDiscoveryDelay < 0ms ||
+			params.UDP.MaxDecoyMessageInterval < 0ms) return false;
+
 		if (params.Message.AgeTolerance < 0s ||
 			params.Message.ExtenderGracePeriod < 0s ||
 			params.Noise.TimeInterval < 0s) return false;
@@ -1270,6 +1273,11 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MaxMessagesPerInterval = 30;
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 256;
+
+					settings.UDP.SynCookieRequirementThreshold = 10;
+					settings.UDP.MaxMTUDiscoveryDelay = 2000ms;
+					settings.UDP.MaxNumDecoyMessages = 12;
+					settings.UDP.MaxDecoyMessageInterval = 2000ms;
 					break;
 				}
 				case SecurityLevel::Three:
@@ -1307,6 +1315,11 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MaxMessagesPerInterval = 60;
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 512;
+
+					settings.UDP.SynCookieRequirementThreshold = 10;
+					settings.UDP.MaxMTUDiscoveryDelay = 4000ms;
+					settings.UDP.MaxNumDecoyMessages = 24;
+					settings.UDP.MaxDecoyMessageInterval = 4000ms;
 					break;
 				}
 				case SecurityLevel::Four:
@@ -1344,6 +1357,11 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MaxMessagesPerInterval = 120;
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 1024;
+
+					settings.UDP.SynCookieRequirementThreshold = 10;
+					settings.UDP.MaxMTUDiscoveryDelay = 8000ms;
+					settings.UDP.MaxNumDecoyMessages = 48;
+					settings.UDP.MaxDecoyMessageInterval = 8000ms;
 					break;
 				}
 				case SecurityLevel::Five:
@@ -1381,6 +1399,11 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MaxMessagesPerInterval = 240;
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 2048;
+
+					settings.UDP.SynCookieRequirementThreshold = 10;
+					settings.UDP.MaxMTUDiscoveryDelay = 16000ms;
+					settings.UDP.MaxNumDecoyMessages = 96;
+					settings.UDP.MaxDecoyMessageInterval = 16000ms;
 					break;
 				}
 				case SecurityLevel::Custom:
@@ -1431,6 +1454,11 @@ namespace QuantumGate::Implementation::Core
 							settings.Noise.MaxMessagesPerInterval = params->Noise.MaxMessagesPerInterval;
 							settings.Noise.MinMessageSize = params->Noise.MinMessageSize;
 							settings.Noise.MaxMessageSize = params->Noise.MaxMessageSize;
+
+							settings.UDP.SynCookieRequirementThreshold = params->UDP.SynCookieRequirementThreshold;
+							settings.UDP.MaxMTUDiscoveryDelay = params->UDP.MaxMTUDiscoveryDelay;
+							settings.UDP.MaxNumDecoyMessages = params->UDP.MaxNumDecoyMessages;
+							settings.UDP.MaxDecoyMessageInterval = params->UDP.MaxDecoyMessageInterval;
 						}
 						else
 						{
@@ -1520,6 +1548,11 @@ namespace QuantumGate::Implementation::Core
 		params.Noise.MinMessageSize = settings.Noise.MinMessageSize;
 		params.Noise.MaxMessageSize = settings.Noise.MaxMessageSize;
 
+		params.UDP.SynCookieRequirementThreshold = settings.UDP.SynCookieRequirementThreshold;
+		params.UDP.MaxMTUDiscoveryDelay = settings.UDP.MaxMTUDiscoveryDelay;
+		params.UDP.MaxNumDecoyMessages = settings.UDP.MaxNumDecoyMessages;
+		params.UDP.MaxDecoyMessageInterval = settings.UDP.MaxDecoyMessageInterval;
+
 		return params;
 	}
 
@@ -1561,6 +1594,11 @@ namespace QuantumGate::Implementation::Core
 		settings.Noise.MaxMessagesPerInterval = 0;
 		settings.Noise.MinMessageSize = 0;
 		settings.Noise.MaxMessageSize = 0;
+
+		settings.UDP.SynCookieRequirementThreshold = 10;
+		settings.UDP.MaxMTUDiscoveryDelay = 0ms;
+		settings.UDP.MaxNumDecoyMessages = 0;
+		settings.UDP.MaxDecoyMessageInterval = 1000ms;
 	}
 
 	void Local::FreeUnusedMemory() noexcept

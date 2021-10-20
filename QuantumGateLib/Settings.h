@@ -49,6 +49,9 @@ namespace QuantumGate::Implementation
 		std::chrono::seconds ConnectRetransmissionTimeout{ 1 };		// Minimum number of seconds to wait before retransmission during connection handshake
 		Size SynCookieRequirementThreshold{ 10 };					// The number of incoming connections that may be in the process of being established after which a cookie is required
 		std::chrono::seconds SynCookieExpiration{ 30 };				// The number of seconds after which a cookie expires
+		std::chrono::milliseconds MaxMTUDiscoveryDelay{ 0 };		// Maximum number of milliseconds to wait before starting MTU discovery
+		Size MaxNumDecoyMessages{ 0 };								// Maximum number of decoy messages to send during handshake
+		std::chrono::milliseconds MaxDecoyMessageInterval{ 1000 };	// Maximum time interval for decoy messages during handshake
 	};
 
 	struct LocalAlgorithms final
