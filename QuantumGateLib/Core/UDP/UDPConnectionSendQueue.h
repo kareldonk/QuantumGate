@@ -19,6 +19,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			Message::Type MessageType{ Message::Type::Unknown };
 			Message::SequenceNumber SequenceNumber{ 0 };
+			std::shared_ptr<Listener::SendQueue_ThS> ListenerSendQueue;
+			std::optional<IPEndpoint> PeerEndpoint;
 			UInt NumTries{ 0 };
 			SteadyTime TimeSent;
 			SteadyTime TimeResent;

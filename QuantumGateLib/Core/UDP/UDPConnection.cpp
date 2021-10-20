@@ -274,19 +274,24 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void Connection::ProcessEvents(const SteadyTime current_steadytime) noexcept
 	{
-		ProcessSocketEvents();
+		const auto& settings = GetSettings();
+
+		const auto max_keepalive_timeout = settings.Local.SuspendTimeout + SuspendTimeoutMargin;
+
+		ProcessSocketEvents(settings);
 
 		if (ShouldClose()) return;
+
+		if (!SendDelayedItems(current_steadytime))
+		{
+			SetCloseCondition(CloseCondition::SendError);
+		}
 
 		if (!ReceiveToQueue(current_steadytime))
 		{
 			SetCloseCondition(CloseCondition::ReceiveError);
 		}
 
-		const auto& settings = GetSettings();
-
-		const auto max_keepalive_timeout = settings.Local.SuspendTimeout + SuspendTimeoutMargin;
-		
 		switch (GetStatus())
 		{
 			case Status::Handshake:
@@ -468,7 +473,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		try
 		{
-			m_MTUDiscovery = std::make_unique<MTUDiscovery>(*this);
+			m_MTUDiscovery = std::make_unique<MTUDiscovery>(*this, GetSettings().UDP.MaxMTUDiscoveryDelay);
 			
 			if (OnMTUUpdate(m_MTUDiscovery->GetMaxMessageSize()))
 			{
@@ -748,7 +753,51 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	bool Connection::Send(Message&& msg) noexcept
+	void Connection::SendDecoyMessages(const Size max_num, const std::chrono::milliseconds max_interval) noexcept
+	{
+		const auto num = static_cast<Size>(std::abs(Random::GetPseudoRandomNumber(0, max_num)));
+		for (Size x = 0; x < num; ++x)
+		{
+			Message msg(Message::Type::Null, Message::Direction::Outgoing, m_SendQueue.GetMaxMessageSize());
+
+			const auto delay = std::chrono::milliseconds(std::abs(Random::GetPseudoRandomNumber(0, max_interval.count())));
+			// Note that we save the endpoint for decoy messages since they are intended for a specific endpoint
+			DiscardReturnValue(Send(std::move(msg), delay, true));
+		}
+	}
+
+	bool Connection::SendDelayedItems(const SteadyTime current_steadytime) noexcept
+	{
+		while (!m_DelayedSendQueue.empty())
+		{
+			auto& itm = m_DelayedSendQueue.top();
+
+			if (itm.IsTime(current_steadytime))
+			{
+				Dbg(L"\r\nDelayed UDP senditem - time:%jd, sec:%jdms\r\n",
+					itm.ScheduleSteadyTime.time_since_epoch().count(), itm.ScheduleMilliseconds.count());
+
+				if (!Send(current_steadytime, itm.MessageType, itm.SequenceNumber,
+						  std::move(const_cast<DelayedSendItem&>(itm).Data),
+						  std::move(const_cast<DelayedSendItem&>(itm).ListenerSendQueue),
+						  std::move(const_cast<DelayedSendItem&>(itm).PeerEndpoint))) return false;
+
+				m_DelayedSendQueue.pop();
+
+				if (m_DelayedSendQueue.empty())
+				{
+					// Release memory
+					DelayedSendItemQueue tmp;
+					m_DelayedSendQueue.swap(tmp);
+				}
+			}
+			else break;
+		}
+
+		return true;
+	}
+
+	bool Connection::Send(Message&& msg, const std::chrono::milliseconds delay, const bool save_endpoint) noexcept
 	{
 		try
 		{
@@ -757,34 +806,49 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				const auto now = Util::GetCurrentSteadyTime();
 
-				// Messages with sequence numbers need to be tracked
-				// for ack and go into the send queue
-				if (msg.HasSequenceNumber())
-				{
-					SendQueue::Item itm{
-						.MessageType = msg.GetType(),
-						.SequenceNumber = msg.GetMessageSequenceNumber(),
-						.TimeSent = now,
-						.TimeResent = now,
-						.Data = std::move(data)
-					};
+				// Need to use the listener socket to send syn replies for inbound connections.
+				// This is because if the peer is behind NAT, it will expect a reply from the same
+				// IP and port it sent a syn to which is to our listener socket. Our syn will contain
+				// the new port to which the peer should send subsequent messages to.
+				// Also use the listener socket to send decoy messages (nulls) in handshake state.
+				const bool use_listener_socket = ((msg.GetType() == Message::Type::Syn || msg.GetType() == Message::Type::Null) &&
+												  GetType() == PeerConnectionType::Inbound &&
+												  GetStatus() < Status::Connected);
 
-					return m_SendQueue.Add(std::move(itm));
+				std::shared_ptr<Listener::SendQueue_ThS> listener_send_queue;
+
+				if (use_listener_socket)
+				{
+					// Should still have listener send queue
+					assert(m_ConnectionData->WithSharedLock()->HasListenerSendQueue());
+
+					listener_send_queue = m_ConnectionData->WithUniqueLock()->GetListenerSendQueue();
+				}
+
+				std::optional<Message::SequenceNumber> msgseqnum;
+				if (msg.HasSequenceNumber()) msgseqnum = msg.GetMessageSequenceNumber();
+
+				// If the message is intended for a specific endpoint we save it
+				std::optional<IPEndpoint> endpoint;
+				if (save_endpoint) endpoint = m_PeerEndpoint;
+
+				if (delay > 0ms)
+				{
+					m_DelayedSendQueue.emplace(DelayedSendItem{
+						.MessageType = msg.GetType(),
+						.SequenceNumber = msgseqnum,
+						.ListenerSendQueue = std::move(listener_send_queue),
+						.PeerEndpoint = std::move(endpoint),
+						.ScheduleSteadyTime = now,
+						.ScheduleMilliseconds = delay,
+						.Data = std::move(data)});
+
+					return true;
 				}
 				else
 				{
-					// Messages without sequence numbers are sent in one try
-					// and we don't care if they arrive or not
-					const auto result = Send(now, data, false);
-					if (result.Succeeded())
-					{
-						return true;
-					}
-					else
-					{
-						LogErr(L"UDP connection: send failed on connection %llu (%s)",
-							   GetID(), result.GetErrorString().c_str());
-					}
+					return Send(now, msg.GetType(), msgseqnum, std::move(data),
+								std::move(listener_send_queue), std::move(endpoint));
 				}
 			}
 		}
@@ -797,33 +861,65 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
-	Result<Size> Connection::Send(const SteadyTime current_steadytime, const Buffer& data, const bool use_listener_socket) noexcept
+	bool Connection::Send(const SteadyTime current_steadytime, const Message::Type msgtype,
+						  const std::optional<Message::SequenceNumber>& msgseqnum, Buffer&& msgdata,
+						  std::shared_ptr<Listener::SendQueue_ThS>&& listener_send_queue,
+						  std::optional<IPEndpoint>&& peer_endpoint) noexcept
+	{
+		// Messages with sequence numbers need to be tracked
+		// for ack and go into the send queue
+		if (msgseqnum.has_value())
+		{
+			SendQueue::Item itm{
+				.MessageType = msgtype,
+				.SequenceNumber = *msgseqnum,
+				.ListenerSendQueue = std::move(listener_send_queue),
+				.PeerEndpoint = std::move(peer_endpoint),
+				.TimeSent = current_steadytime,
+				.TimeResent = current_steadytime,
+				.Data = std::move(msgdata)
+			};
+
+			return m_SendQueue.Add(std::move(itm));
+		}
+		else
+		{
+			// Messages without sequence numbers are sent in one try
+			// and we don't care if they arrive or not
+			const auto result = Send(current_steadytime, msgdata, listener_send_queue, peer_endpoint);
+			if (result.Succeeded())
+			{
+				return true;
+			}
+			else
+			{
+				LogErr(L"UDP connection: send failed on connection %llu (%s)",
+					   GetID(), result.GetErrorString().c_str());
+			}
+		}
+
+		return false;
+	}
+
+	Result<Size> Connection::Send(const SteadyTime current_steadytime, const Buffer& msgdata,
+								  const std::shared_ptr<Listener::SendQueue_ThS>& listener_send_queue,
+								  const std::optional<IPEndpoint>& peer_endpoint) noexcept
 	{
 		m_LastSendSteadyTime = current_steadytime;
 
-		if (use_listener_socket)
+		const auto& endpoint = peer_endpoint.has_value() ? *peer_endpoint : m_PeerEndpoint;
+
+		if (listener_send_queue)
 		{
-			// Need to use the listener socket to send syn replies for inbound connections.
-			// This is because if the peer is behind NAT, it will expect a reply from the same
-			// IP and port it sent a syn to which is to our listener socket. Our syn will contain
-			// the new port to which the peer should send subsequent messages to.
-
-			// Only in handshake state
-			assert(GetStatus() < Status::Connected);
-
-			// Should still have listener send queue (only in handshake state)
-			assert(m_ConnectionData->WithSharedLock()->HasListenerSendQueue());
-
 			try
 			{
-				m_ConnectionData->WithUniqueLock()->GetListenerSendQueue().
-					WithUniqueLock()->emplace(
-						Listener::SendQueueItem{
-							.Endpoint = m_PeerEndpoint,
-							.Data = data
-						});
+				listener_send_queue->WithUniqueLock()->emplace(
+					Listener::SendQueueItem{
+						.Endpoint = endpoint,
+						.Data = msgdata
+					});
 
-				return data.GetSize();
+				return msgdata.GetSize();
 			}
 			catch (...) {}
 
@@ -831,7 +927,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 		else
 		{
-			auto result = m_Socket.SendTo(m_PeerEndpoint, data);
+			auto result = m_Socket.SendTo(endpoint, msgdata);
 			if (result.Failed())
 			{
 				if (result.GetErrorCode().category() == std::system_category() &&
@@ -1538,7 +1634,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return true;
 	}
 
-	void Connection::ProcessSocketEvents() noexcept
+	void Connection::ProcessSocketEvents(const Settings& settings) noexcept
 	{
 		auto close_condition = CloseCondition::None;
 
@@ -1555,6 +1651,19 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				m_PeerEndpoint = connection_data->GetPeerEndpoint();
 
 				connection_data.UnlockShared();
+
+				if (Random::GetPseudoRandomNumber(0, 1) == 1)
+				{
+					SendDecoyMessages(10, std::chrono::milliseconds(100));
+				}
+
+				if (settings.UDP.MaxNumDecoyMessages > 0)
+				{
+					if (Random::GetPseudoRandomNumber(0, 1) == 1)
+					{
+						SendDecoyMessages(settings.UDP.MaxNumDecoyMessages, settings.UDP.MaxDecoyMessageInterval);
+					}
+				}
 
 				switch (GetType())
 				{

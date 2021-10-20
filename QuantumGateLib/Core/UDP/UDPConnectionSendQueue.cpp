@@ -43,10 +43,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 			m_NextSendSequenceNumber = Message::GetNextSequenceNumber(m_NextSendSequenceNumber);
 
-			const bool use_listener_socket = (qitem.MessageType == Message::Type::Syn &&
-											  m_Connection.GetType() == PeerConnectionType::Inbound);
-
-			const auto result = m_Connection.Send(qitem.TimeSent, qitem.Data, use_listener_socket);
+			const auto result = m_Connection.Send(qitem.TimeSent, qitem.Data, qitem.ListenerSendQueue, qitem.PeerEndpoint);
 			if (result.Succeeded()) qitem.NumTries = 1;
 
 			return true;
@@ -91,11 +88,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					loss_bytes += it->Data.GetSize();
 				}
 
-				const bool use_listener_socket = (it->MessageType == Message::Type::Syn &&
-												  m_Connection.GetType() == PeerConnectionType::Inbound &&
-												  m_Connection.GetStatus() < Status::Connected);
-				
-				const auto result = m_Connection.Send(now, it->Data, use_listener_socket);
+				const auto result = m_Connection.Send(now, it->Data, it->ListenerSendQueue, it->PeerEndpoint);
 				if (result.Succeeded())
 				{
 					// If data was actually sent, otherwise buffer may

@@ -25,6 +25,31 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		enum class ReceiveWindow { Unknown, Current, Previous };
 
+		struct DelayedSendItem final
+		{
+			Message::Type MessageType{ Message::Type::Unknown };
+			std::optional<Message::SequenceNumber> SequenceNumber;
+			std::shared_ptr<Listener::SendQueue_ThS> ListenerSendQueue;
+			std::optional<IPEndpoint> PeerEndpoint;
+			SteadyTime ScheduleSteadyTime;
+			std::chrono::milliseconds ScheduleMilliseconds{ 0 };
+			Buffer Data;
+
+			inline bool IsTime(const SteadyTime now) const noexcept
+			{
+				if ((now - ScheduleSteadyTime) >= ScheduleMilliseconds) return true;
+
+				return false;
+			}
+
+			inline static bool Compare(const DelayedSendItem& item1, const DelayedSendItem& item2) noexcept
+			{
+				return (item1.ScheduleSteadyTime + item1.ScheduleMilliseconds) > (item2.ScheduleSteadyTime + item2.ScheduleMilliseconds);
+			}
+		};
+
+		using DelayedSendItemQueue = Containers::PriorityQueue<DelayedSendItem, Vector<DelayedSendItem>, decltype(&DelayedSendItem::Compare)>;
+
 		class LastSequenceNumber final
 		{
 		public:
@@ -51,6 +76,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		};
 
 	public:
+		using SymmetricKeysCollection = std::array<SymmetricKeys, 2>;
+
 		class HandshakeTracker final
 		{
 		public:
@@ -160,10 +187,19 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] bool SendStateUpdate() noexcept;
 		[[nodiscard]] bool SendPendingAcks() noexcept;
 		[[nodiscard]] bool SendKeepAlive() noexcept;
+		[[nodiscard]] bool SendDelayedItems(const SteadyTime current_steadytime) noexcept;
 		void SendImmediateReset() noexcept;
+		void SendDecoyMessages(const Size max_num, const std::chrono::milliseconds max_interval) noexcept;
 		
-		[[nodiscard]] bool Send(Message&& msg) noexcept;
-		[[nodiscard]] Result<Size> Send(const SteadyTime current_steadytime, const Buffer& data, const bool use_listener_socket) noexcept;
+		[[nodiscard]] bool Send(Message&& msg, const std::chrono::milliseconds delay = std::chrono::milliseconds{ 0 },
+								const bool save_endpoint = false) noexcept;
+		[[nodiscard]] bool Send(const SteadyTime current_steadytime, const Message::Type msgtype,
+								const std::optional<Message::SequenceNumber>& msgseqnum, Buffer&& msgdata,
+								std::shared_ptr<Listener::SendQueue_ThS>&& listener_send_queue,
+								std::optional<IPEndpoint>&& peer_endpoint) noexcept;
+		[[nodiscard]] Result<Size> Send(const SteadyTime current_steadytime, const Buffer& msgdata,
+										const std::shared_ptr<Listener::SendQueue_ThS>& listener_send_queue,
+										const std::optional<IPEndpoint>& peer_endpoint) noexcept;
 
 		[[nodiscard]] ReceiveBuffer& GetReceiveBuffer() const noexcept;
 		[[nodiscard]] bool ReceiveToQueue(const SteadyTime current_steadytime) noexcept;
@@ -187,7 +223,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void ResetKeepAliveTimeout(const Settings& settings) noexcept;
 		[[nodiscard]] bool ProcessMTUDiscovery() noexcept;
 
-		void ProcessSocketEvents() noexcept;
+		void ProcessSocketEvents(const Settings& settings) noexcept;
 
 		void UpdateReputation(const IPEndpoint& endpoint, const Access::IPReputationUpdate rep_update) noexcept;
 
@@ -204,7 +240,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		
 		std::unique_ptr<KeyExchange> m_KeyExchange{ nullptr };
 		std::optional<ProtectedBuffer> m_GlobalSharedSecret;
-		std::array<SymmetricKeys, 2> m_SymmetricKeys;
+		SymmetricKeysCollection m_SymmetricKeys;
 
 		Network::Socket m_Socket;
 		SteadyTime m_LastStatusChangeSteadyTime;
@@ -212,6 +248,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		std::unique_ptr<MTUDiscovery> m_MTUDiscovery;
 
+		DelayedSendItemQueue m_DelayedSendQueue{ &DelayedSendItem::Compare };
 		SendQueue m_SendQueue{ *this };
 		SteadyTime m_LastSendSteadyTime;
 		IPEndpoint m_OriginalPeerEndpoint;

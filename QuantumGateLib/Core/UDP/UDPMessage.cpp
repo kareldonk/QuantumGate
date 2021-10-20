@@ -233,7 +233,7 @@ namespace QuantumGate::Implementation::Core::UDP
 					const auto chmac = CalcHMAC(msgview, symkey);
 					if (hmac != chmac)
 					{
-						LogErr(L"Failed HMAC check for UDP connection message");
+						SLogDbg(SLogFmt(FGBrightRed) << L"Failed HMAC check for UDP connection message" << SLogFmt(Default));
 						return false;
 					}
 				}
@@ -468,17 +468,42 @@ namespace QuantumGate::Implementation::Core::UDP
 			{
 				// Add some random padding data at the end of the message
 				const auto free_space = m_MaxMessageSize - msgbuf.GetSize();
-				if (free_space > 0 &&
-					m_Header.GetMessageType() != Type::MTUD && // Excluded because MTUD data needs to be precise size
-					m_Header.GetMessageType() != Type::Data && // Excluded for speed
-					m_Header.GetMessageType() != Type::Cookie && // Excluded to prevent amplification attacks
-					m_Header.GetMessageType() != Type::EAck) // Excluded for speed
+				if (free_space > 0)
 				{
-					const auto rndnum = static_cast<Size>(Random::GetPseudoRandomNumber(0, free_space));
+					switch (m_Header.GetMessageType())
+					{
+						case Type::Cookie: // Excluded to prevent amplification attacks
+						case Type::Data: // Excluded for speed
+						case Type::EAck: // Excluded for speed
+						{
+							break;
+						}
+						case Type::MTUD:
+						{
+							if (m_Header.HasSequenceNumber())
+							{
+								// Excluded because MTUD data needs to be precise size (except for MTUD acks)
+								break;
+							}
+							[[fallthrough]];
+						}
+						case Type::Syn:
+						case Type::State:
+						case Type::Reset:
+						case Type::Null:
+						{
+							const auto rndnum = static_cast<Size>(Random::GetPseudoRandomNumber(0, free_space));
 
-					Dbg(L"UDPMessageRnd: %zu bytes", rndnum);
+							Dbg(L"UDPMessageRnd: %zu bytes", rndnum);
 
-					msgbuf += Random::GetPseudoRandomBytes(rndnum);
+							msgbuf += Random::GetPseudoRandomBytes(rndnum);
+							break;
+						}
+						default:
+						{
+							break;
+						}
+					}
 				}
 			}
 

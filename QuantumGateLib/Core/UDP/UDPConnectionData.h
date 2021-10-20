@@ -71,7 +71,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		void SetListenerSendQueue(const std::shared_ptr<Listener::SendQueue_ThS>& send_queue) noexcept { m_ListenerSendQueue = send_queue; }
 		[[nodiscard]] bool HasListenerSendQueue() const noexcept { return m_ListenerSendQueue.operator bool(); }
-		[[nodiscard]] Listener::SendQueue_ThS& GetListenerSendQueue() const noexcept { return *m_ListenerSendQueue; }
+		[[nodiscard]] const std::shared_ptr<Listener::SendQueue_ThS>& GetListenerSendQueue() const noexcept { return m_ListenerSendQueue; }
 		void ReleaseListenerSendQueue() noexcept { m_ListenerSendQueue.reset(); }
 
 	private:

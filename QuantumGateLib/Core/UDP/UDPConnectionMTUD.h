@@ -18,6 +18,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		struct MTUDMessageData final
 		{
+			Size MaximumMessageSize{ 0 };
+			bool Final{ false };
 			Message::SequenceNumber SequenceNumber{ 0 };
 			UInt NumTries{ 0 };
 			SteadyTime TimeSent;
@@ -30,7 +32,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	public:
 		enum class Status { Start, Discovery, Finished, Failed };
 
-		MTUDiscovery(Connection& connection) noexcept;
+		MTUDiscovery(Connection& connection, const std::chrono::milliseconds max_start_delay) noexcept;
 		MTUDiscovery(const MTUDiscovery&) = delete;
 		MTUDiscovery(MTUDiscovery&&) noexcept = delete;
 		~MTUDiscovery() = default;
@@ -39,16 +41,19 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		[[nodiscard]] inline Size GetMaxMessageSize() const noexcept { return m_MaximumMessageSize; }
 
-		[[nodiscard]] bool CreateNewMessage(const Size msg_size) noexcept;
-		
-		[[nodiscard]] TransmitResult TransmitMessage() noexcept;
-		void ProcessTransmitResult(const TransmitResult result) noexcept;
-		
 		[[nodiscard]] Status Process() noexcept;
-		
+
 		void ProcessReceivedAck(const Message::SequenceNumber seqnum) noexcept;
 
 		static void AckReceivedMessage(Connection& connection, const Message::SequenceNumber seqnum) noexcept;
+
+	private:
+		[[nodiscard]] Status CreateAndTransmitMessage(const Size prev_msg_size, const Size msg_size,
+													  const bool final_msg = false) noexcept;
+		[[nodiscard]] bool CreateNewMessage(const Size msg_size, const Size next_msg_size,
+											const bool final_msg) noexcept;
+		[[nodiscard]] TransmitResult TransmitMessage() noexcept;
+		[[nodiscard]] Status ProcessTransmitResult(const TransmitResult result) noexcept;
 
 	private:
 		static constexpr std::chrono::milliseconds MinRetransmissionTimeout{ 600 };
@@ -61,5 +66,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Size m_MaximumMessageSize{ UDPMessageSizes::Min };
 		Size m_CurrentMessageSizeIndex{ 0 };
 		std::chrono::milliseconds m_RetransmissionTimeout{ MinRetransmissionTimeout };
+		std::chrono::milliseconds m_StartDelay{ 0 };
+		SteadyTime m_StartTime;
 	};
 }
