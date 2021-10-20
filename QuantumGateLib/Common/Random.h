@@ -83,6 +83,8 @@ namespace QuantumGate::Implementation
 
 		inline static Int64 GetPseudoRandomNumber(const Int64 min, const Int64 max) noexcept
 		{
+			assert(min <= max);
+
 			GetRngEngine().CheckSeed64();
 			const std::uniform_int_distribution<Int64> dist(min, max);
 
