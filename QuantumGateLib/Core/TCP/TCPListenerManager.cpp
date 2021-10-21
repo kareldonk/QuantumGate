@@ -374,7 +374,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 		// for a given interval the IP will get a bad reputation and this will fail
 		if (m_AccessManager.AddIPConnectionAttempt(ipaddr))
 		{
-			// Check if IP is allowed through filters/limits and if it has acceptible reputation
+			// Check if IP is allowed through filters/limits and if it has acceptable reputation
 			if (const auto result = m_AccessManager.GetIPConnectionAllowed(ipaddr, Access::CheckType::All); result.Succeeded())
 			{
 				return *result;
