@@ -105,7 +105,7 @@ namespace QuantumGate::Implementation::Core::UDP
 	{
 	public:
 		KeyExchange() = delete;
-		
+
 		KeyExchange(KeyGeneration::Manager& keymgr, const PeerConnectionType connection_type, ProtectedBuffer&& handshake_data)
 		{
 			const auto owner = (connection_type == PeerConnectionType::Outbound) ?
