@@ -588,8 +588,6 @@ namespace QuantumGate::Implementation::Core::UDP
 				type_ok = ((HasSequenceNumber() && !HasAck()) || (!HasSequenceNumber() && HasAck())) && std::holds_alternative<Buffer>(m_Data);
 				break;
 			case Type::Null:
-				type_ok = !HasAck() && !HasSequenceNumber();
-				break;
 			case Type::Reset:
 				type_ok = !HasAck() && !HasSequenceNumber();
 				break;
