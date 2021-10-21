@@ -35,8 +35,6 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			return false;
 		}
 
-		if (!AddPrimaryListenerThread(shared_secret)) return false;
-
 		const std::array<IPAddress::Family, 2> afs{ IPAddress::Family::IPv4, IPAddress::Family::IPv6 };
 
 		for (const auto& af : afs)
@@ -65,7 +63,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			}
 		}
 
-		if (m_ThreadPool.Startup())
+		if (m_ThreadPool.GetData().ConnectionCookies.WithUniqueLock()->Initialize() &&
+			m_ThreadPool.Startup())
 		{
 			m_Running = true;
 			m_ListeningOnAnyAddresses = true;
@@ -98,8 +97,6 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			return false;
 		}
 
-		if (!AddPrimaryListenerThread(shared_secret)) return false;
-
 		// Create a listening socket for each interface that's online
 		for (const auto& ifs : interfaces)
 		{
@@ -118,7 +115,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			}
 		}
 
-		if (m_ThreadPool.Startup())
+		if (m_ThreadPool.GetData().ConnectionCookies.WithUniqueLock()->Initialize() && 
+			m_ThreadPool.Startup())
 		{
 			m_Running = true;
 			m_ListeningOnAnyAddresses = false;
@@ -128,26 +126,6 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		else LogErr(L"UDP listenermanager startup failed");
 
 		return m_Running;
-	}
-
-	bool Manager::AddPrimaryListenerThread(const ProtectedBuffer& shared_secret) noexcept
-	{
-		try
-		{
-			if (m_ThreadPool.AddThread(L"QuantumGate Listener Thread (UDP Main)", ThreadData(shared_secret, true),
-									   MakeCallback(this, &Manager::PrimaryThreadProcessor)))
-			{
-				return true;
-			}
-			else LogErr(L"UDP listenermanager could not add main listener thread");
-		}
-		catch (const std::exception& e)
-		{
-			LogErr(L"UDP listenermanager could not add main listener thread due to exception: %s", Util::ToStringW(e.what()).c_str());
-		}
-		catch (...) {}
-
-		return false;
 	}
 
 	bool Manager::AddWorkerListenerThreads(const IPAddress& address, const Vector<UInt16> ports, const bool nat_traversal,
@@ -238,7 +216,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 						while (thread.has_value())
 						{
-							if (!thread->GetData().IsPrimary && thread->GetData().Socket.GetLocalIPAddress() == address)
+							if (thread->GetData().Socket.GetLocalIPAddress() == address)
 							{
 								found = true;
 								break;
@@ -270,7 +248,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 				{
 					for (const auto& address : ifs.IPAddresses)
 					{
-						if (!thread->GetData().IsPrimary && thread->GetData().Socket.GetLocalIPAddress() == address)
+						if (thread->GetData().Socket.GetLocalIPAddress() == address)
 						{
 							found = true;
 							break;
@@ -281,7 +259,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 				if (found) break;
 			}
 
-			if (!thread->GetData().IsPrimary && !found)
+			if (!found)
 			{
 				thread = RemoveListenerThread(std::move(*thread));
 			}
@@ -314,7 +292,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 	void Manager::ResetState() noexcept
 	{
 		m_ListeningOnAnyAddresses = false;
-		m_ThreadPool.GetData().Cookies.WithUniqueLock()->clear();
+		m_ThreadPool.GetData().ConnectionCookies.WithUniqueLock()->Deinitialize();
 		m_ThreadPool.Clear();
 	}
 
@@ -322,16 +300,6 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 	{
 		static thread_local ReceiveBuffer rcvbuf{ ReceiveBuffer::GetMaxSize() };
 		return rcvbuf;
-	}
-
-	void Manager::PrimaryThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
-	{
-		while (!shutdown_event.Wait(1s))
-		{
-			const auto& settings = m_Settings.GetCache();
-
-			CheckCookieExpiration(settings.UDP.SynCookieExpiration);
-		}
 	}
 
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
@@ -362,7 +330,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 						const auto result = socket.ReceiveFrom(pendpoint, bufspan);
 						if (result.Succeeded() && *result > 0)
 						{
-							// Check if IP is allowed through filters/limits and if it has acceptible reputation
+							// Check if IP is allowed through filters/limits and if it has acceptable reputation
 							if (const auto result1 = m_AccessManager.GetIPConnectionAllowed(pendpoint.GetIPAddress(),
 																							Access::CheckType::All); result1.Succeeded())
 							{
@@ -454,12 +422,23 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 						if (syn_data.Cookie.has_value())
 						{
-							if (VerifyCookie(*syn_data.Cookie, syn_data.ConnectionID, pendpoint))
+							const auto& connection_cookies = m_ThreadPool.GetData().ConnectionCookies;
+							if (connection_cookies.WithSharedLock()->VerifyCookie(*syn_data.Cookie, syn_data.ConnectionID,
+																				  pendpoint))
 							{
+								LogDbg(L"UDP listenermanager verified cookie from peer %s for incoming connection with ID %llu",
+									   pendpoint.GetString().c_str(), syn_data.ConnectionID);
+
 								cookie_verified = true;
 							}
 							else
 							{
+								DbgInvoke([&]() noexcept
+								{
+									LogErr(L"UDP listenermanager failed to verify cookie from peer %s for incoming connection with ID %llu",
+										   pendpoint.GetString().c_str(), syn_data.ConnectionID);
+								});
+
 								LogWarn(L"UDP listenermanager cannot accept incoming connection with ID %llu from peer %s; invalid cookie",
 										syn_data.ConnectionID, pendpoint.GetString().c_str());
 
@@ -580,13 +559,18 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		LogDbg(L"UDP listenermanager sending cookie to peer %s for incoming connection with ID %llu",
 			   pendpoint.GetString().c_str(), connectionid);
 
-		auto cookie = GetCookie(connectionid, pendpoint);
-		if (cookie.has_value())
+		const auto& settings = m_Settings.GetCache();
+
+		auto& connection_cookies = m_ThreadPool.GetData().ConnectionCookies;
+		auto cookie_data = connection_cookies.WithUniqueLock()->GetCookie(connectionid, pendpoint,
+																		  Util::GetCurrentSteadyTime(),
+																		  settings.UDP.SynCookieExpirationInterval);
+		if (cookie_data.has_value())
 		{
 			try
 			{
 				Message msg(Message::Type::Cookie, Message::Direction::Outgoing, Connection::UDPMessageSizes::Min);
-				msg.SetCookieData(std::move(*cookie));
+				msg.SetCookieData(std::move(*cookie_data));
 
 				Buffer data;
 				if (msg.Write(data, symkeys))
@@ -604,81 +588,11 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 					   pendpoint.GetString().c_str(), Util::ToStringW(e.what()).c_str());
 			}
 		}
-	}
-
-	std::optional<Message::CookieData> Manager::GetCookie(const ConnectionID connectionid, const IPEndpoint& pendpoint) noexcept
-	{
-		try
+		else
 		{
-			const auto cookieid = Crypto::GetCryptoRandomNumber();
-			if (cookieid.has_value())
-			{
-				auto cookies = m_ThreadPool.GetData().Cookies.WithUniqueLock();
-				[[maybe_unused]] const auto& [it, inserted] = cookies->emplace(*cookieid,
-																			   CookieInfo{
-																				   .CreationTime = Util::GetCurrentSteadyTime(),
-																				   .ConnectionID = connectionid,
-																				   .Endpoint = pendpoint
-																			   });
-				assert(inserted);
-
-				Message::CookieData cookie{
-					.CookieID = it->first
-				};
-
-				return cookie;
-			}
+			LogErr(L"UDP listenermanager failed to send a cookie to peer %s; a cookie could not be created",
+				   pendpoint.GetString().c_str());
 		}
-		catch (...) {}
-
-		return std::nullopt;
-	}
-
-	bool Manager::VerifyCookie(const Message::CookieData& cookie, const ConnectionID connectionid,
-							   const IPEndpoint& pendpoint) noexcept
-	{
-		auto cookies = m_ThreadPool.GetData().Cookies.WithUniqueLock();
-		const auto it = cookies->find(cookie.CookieID);
-		if (it != cookies->end())
-		{
-			if (it->second.ConnectionID == connectionid && it->second.Endpoint == pendpoint)
-			{
-				LogDbg(L"UDP listenermanager verified cookie from peer %s for incoming connection with ID %llu",
-					   pendpoint.GetString().c_str(), connectionid);
-
-				cookies->erase(it);
-				return true;
-			}
-		}
-
-		DbgInvoke([&]() noexcept
-		{
-			LogErr(L"UDP listenermanager failed to verify cookie from peer %s for incoming connection with ID %llu",
-				   pendpoint.GetString().c_str(), connectionid);
-		});
-
-		return false;
-	}
-
-	void Manager::CheckCookieExpiration(const std::chrono::seconds expiration_time) noexcept
-	{
-		const auto now = Util::GetCurrentSteadyTime();
-		auto cookies = m_ThreadPool.GetData().Cookies.WithUniqueLock();
-		std::erase_if(*cookies, [&](const auto& item)
-		{
-			[[maybe_unused]] const auto& [key, value] = item;
-
-			DbgInvoke([&]()
-			{
-				if (now - value.CreationTime >= expiration_time)
-				{
-					LogWarn(L"UDP listenermanager removing expired cookie for peer %s for incoming connection with ID %llu",
-							value.Endpoint.GetString().c_str(), value.ConnectionID);
-				}
-			});
-
-			return (now - value.CreationTime >= expiration_time);
-		});
 	}
 
 	bool Manager::CanAcceptConnection(const IPAddress& ipaddr) const noexcept
@@ -687,7 +601,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		// for a given interval the IP will get a bad reputation and this will fail
 		if (m_AccessManager.AddIPConnectionAttempt(ipaddr))
 		{
-			// Check if IP is allowed through filters/limits and if it has acceptible reputation
+			// Check if IP is allowed through filters/limits and if it has acceptable reputation
 			if (const auto result = m_AccessManager.GetIPConnectionAllowed(ipaddr, Access::CheckType::All); result.Succeeded())
 			{
 				return *result;

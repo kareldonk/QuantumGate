@@ -616,6 +616,7 @@
     <ClInclude Include="Core\TCP\TCPListenerManager.h" />
     <ClInclude Include="Core\TCP\TCPSocket.h" />
     <ClInclude Include="Core\UDP\UDPConnectionCommon.h" />
+    <ClInclude Include="Core\UDP\UDPConnectionCookies.h" />
     <ClInclude Include="Core\UDP\UDPConnectionData.h" />
     <ClInclude Include="Core\UDP\UDPConnection.h" />
     <ClInclude Include="Core\UDP\UDPConnectionKeys.h" />
