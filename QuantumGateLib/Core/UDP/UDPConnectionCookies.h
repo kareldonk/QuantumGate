@@ -23,9 +23,10 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		};
 
 	public:
-		[[nodiscard]] inline bool Initialize() noexcept
+		[[nodiscard]] inline bool Initialize(const SteadyTime current_steadytime,
+											 const std::chrono::seconds cookie_expiration_interval) noexcept
 		{
-			return RotateKeys();
+			return RotateKeys(current_steadytime, cookie_expiration_interval);
 		}
 
 		inline void Deinitialize() noexcept
@@ -41,7 +42,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 																   const SteadyTime current_steadytime,
 																   const std::chrono::seconds cookie_expiration_interval) noexcept
 		{
-			if (CheckPrimaryKey(current_steadytime, cookie_expiration_interval))
+			if (CheckKeyExpiration(current_steadytime, cookie_expiration_interval))
 			{
 				assert(m_Keys[0].has_value());
 
@@ -56,14 +57,18 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		}
 
 		[[nodiscard]] bool VerifyCookie(const Message::CookieData& cookie, const ConnectionID connectionid,
-										const IPEndpoint& endpoint) const noexcept
+										const IPEndpoint& endpoint, const SteadyTime current_steadytime,
+										const std::chrono::seconds cookie_expiration_interval) noexcept
 		{
-			for (auto& key : m_Keys)
+			if (CheckKeyExpiration(current_steadytime, cookie_expiration_interval))
 			{
-				if (key.has_value())
+				for (auto& key : m_Keys)
 				{
-					const auto cookieid = CalcCookieID(key.value(), connectionid, endpoint);
-					if (cookieid == cookie.CookieID) return true;
+					if (key.has_value())
+					{
+						const auto cookieid = CalcCookieID(key.value(), connectionid, endpoint);
+						if (cookieid == cookie.CookieID) return true;
+					}
 				}
 			}
 
@@ -89,30 +94,37 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			return cookieid;
 		}
 
-		[[nodiscard]] bool CheckPrimaryKey(const SteadyTime current_steadytime,
-										   const std::chrono::seconds cookie_expiration_interval) noexcept
+		[[nodiscard]] bool CheckKeyExpiration(const SteadyTime current_steadytime,
+											  const std::chrono::seconds cookie_expiration_interval) noexcept
 		{
 			assert(m_Keys[0].has_value());
 
-			// Check if primary key is expired and if so replace it
-			if (m_Keys[0]->CreationSteadyTime + cookie_expiration_interval > current_steadytime)
+			// Check if primary key is about to expire and if so replace it
+			if (current_steadytime - m_Keys[0]->CreationSteadyTime > cookie_expiration_interval / 2)
 			{
-				return RotateKeys();
+				return RotateKeys(current_steadytime, cookie_expiration_interval);
 			}
 
 			return true;
 		}
 
-		[[nodiscard]] bool RotateKeys() noexcept
+		[[nodiscard]] bool RotateKeys(const SteadyTime current_steadytime,
+									  const std::chrono::seconds cookie_expiration_interval) noexcept
 		{
 			const auto rnd = Crypto::GetCryptoRandomNumber();
 			if (rnd)
 			{
-				// Replace old key 1 with new key
-				m_Keys[1].emplace(CookieKey{ .CreationSteadyTime = Util::GetCurrentSteadyTime(), .Key = *rnd });
+				// Replace old secondary key with new key
+				m_Keys[1].emplace(CookieKey{ .CreationSteadyTime = current_steadytime, .Key = *rnd });
 
-				// Key 0 (primary) becomes key 1 and the new key 1 becomes key 0
+				// Old primary key becomes secondary key and the new key becomes primary key
 				m_Keys[0] = std::exchange(m_Keys[1], std::move(m_Keys[0]));
+
+				// Check if secondary key is expired and if so remove it
+				if (m_Keys[1].has_value() && (current_steadytime - m_Keys[1]->CreationSteadyTime > cookie_expiration_interval))
+				{
+					m_Keys[1].reset();
+				}
 
 				return true;
 			}
