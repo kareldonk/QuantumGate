@@ -4,20 +4,18 @@
 #pragma once
 
 #include "CDialogBase.h"
+#include "CTabCtrlEx.h"
+#include "CSecurityDlgGeneralTab.h"
+#include "CSecurityDlgMessagesTab.h"
+#include "CSecurityDlgNoiseTab.h"
+#include "CSecurityDlgKeyUpdatesTab.h"
+#include "CSecurityDlgUDPTab.h"
+#include "CSecurityDlgRelaysTab.h"
 
 using namespace QuantumGate;
 
 class CSecurityDlg final : public CDialogBase
 {
-	struct NoiseBasedOnBandwidth
-	{
-		bool Use{ false };
-		bool Saturate{ false };
-		std::chrono::seconds TimeInterval{ 60 };
-		Size MinimumBandwidth{ 100'000 };
-		Size MaximumBandwidth{ 1'000'000 };
-	};
-
 public:
 	CSecurityDlg(CWnd* pParent = NULL);
 	virtual ~CSecurityDlg();
@@ -29,24 +27,19 @@ public:
 protected:
 	virtual BOOL OnInitDialog();
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
+	virtual BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
 
 	DECLARE_MESSAGE_MAP()
 	
 	afx_msg void OnBnClickedOk();
-	afx_msg void OnBnClickedNoiseAutoUse();
-	afx_msg void OnEnChangeNoiseAutoSeconds();
-	afx_msg void OnEnChangeNoiseAutoMinBandwidth();
-	afx_msg void OnEnChangeNoiseAutoMaxBandwidth();
-	afx_msg void OnBnClickedNoiseAutoSaturate();
 
 private:
-	void UpdateNoiseControls() noexcept;
-	void CalculateNoiseSettings() noexcept;
+	bool InitializeTabCtrl() noexcept;
 
 private:
 	QuantumGate::Local* m_QuantumGate{ nullptr };
+	QuantumGate::SecurityParameters m_SecurityParameters;
 
-	bool m_CanCalculateNoiseSettings{ false };
-	inline static NoiseBasedOnBandwidth m_NoiseBasedOnBandwidth;
+	CTabCtrlEx m_TabCtrl;
 };
 

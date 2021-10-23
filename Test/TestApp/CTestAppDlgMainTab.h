@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "CTabBase.h"
+#include "CTestAppDlgTabCtrlPage.h"
 #include "TestAppConsole.h"
 
 #define CONSOLE_TIMER	1
@@ -11,17 +11,17 @@
 
 enum class ConsoleState { Disabled, Enabled, EnabledWindow };
 
-class CTestAppDlgMainTab final : public CTabBase
+class CTestAppDlgMainTab final : public CTestAppDlgTabCtrlPage
 {
-	DECLARE_DYNAMIC(CTestAppDlgMainTab)
+	DECLARE_DYNCREATE(CTestAppDlgMainTab)
 
 public:
-	CTestAppDlgMainTab(QuantumGate::Local& local, CWnd* pParent = nullptr);
-	virtual ~CTestAppDlgMainTab();
+	CTestAppDlgMainTab() noexcept {}
+	virtual ~CTestAppDlgMainTab() {}
 
-	void UpdateControls() noexcept;
+	void UpdateControls() noexcept override;
 
-// Dialog Data
+	// Dialog Data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_QGTESTAPP_DIALOG_MAIN_TAB };
 #endif
@@ -76,7 +76,6 @@ protected:
 	afx_msg void OnUpdatePeerlistCreateRelay(CCmdUI* pCmdUI);
 
 private:
-	QuantumGate::Local& m_QuantumGate;
 	CBrush m_ConsoleBrush;
 	CFont m_ConsoleFont;
 

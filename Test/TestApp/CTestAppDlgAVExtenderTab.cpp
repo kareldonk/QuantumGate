@@ -11,21 +11,14 @@
 
 using namespace QuantumGate::Implementation;
 
-IMPLEMENT_DYNAMIC(CTestAppDlgAVExtenderTab, CTabBase)
-
-CTestAppDlgAVExtenderTab::CTestAppDlgAVExtenderTab(QuantumGate::Local& local, CWnd* pParent /*=nullptr*/)
-	: CTabBase(IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB, pParent), m_QuantumGate(local)
-{}
-
-CTestAppDlgAVExtenderTab::~CTestAppDlgAVExtenderTab()
-{}
+IMPLEMENT_DYNCREATE(CTestAppDlgAVExtenderTab, CTestAppDlgTabCtrlPage)
 
 void CTestAppDlgAVExtenderTab::DoDataExchange(CDataExchange* pDX)
 {
-	CTabBase::DoDataExchange(pDX);
+	CTestAppDlgTabCtrlPage::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTabBase)
+BEGIN_MESSAGE_MAP(CTestAppDlgAVExtenderTab, CTestAppDlgTabCtrlPage)
 	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::PeerEvent), &CTestAppDlgAVExtenderTab::OnPeerEvent)
 	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::ExtenderInit), &CTestAppDlgAVExtenderTab::OnExtenderInit)
 	ON_MESSAGE(static_cast<UINT>(QuantumGate::AVExtender::WindowsMessage::ExtenderDeinit), &CTestAppDlgAVExtenderTab::OnExtenderDeInit)
@@ -84,7 +77,7 @@ void CTestAppDlgAVExtenderTab::UpdateControls() noexcept
 
 BOOL CTestAppDlgAVExtenderTab::OnInitDialog()
 {
-	CTabBase::OnInitDialog();
+	CTestAppDlgTabCtrlPage::OnInitDialog();
 
 	UpdateVideoDeviceCombo();
 	UpdateAudioDeviceCombo();
@@ -362,7 +355,7 @@ void CTestAppDlgAVExtenderTab::OnDestroy()
 
 	m_VideoRenderer.Close();
 
-	CTabBase::OnDestroy();
+	CTestAppDlgTabCtrlPage::OnDestroy();
 }
 
 void CTestAppDlgAVExtenderTab::OnTimer(UINT_PTR nIDEvent)
@@ -375,7 +368,7 @@ void CTestAppDlgAVExtenderTab::OnTimer(UINT_PTR nIDEvent)
 		}
 	}
 
-	CTabBase::OnTimer(nIDEvent);
+	CTestAppDlgTabCtrlPage::OnTimer(nIDEvent);
 }
 
 LRESULT CTestAppDlgAVExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
@@ -523,7 +516,7 @@ void CTestAppDlgAVExtenderTab::LoadAVExtender() noexcept
 		{
 			m_AVExtender = std::make_shared<QuantumGate::AVExtender::Extender>(GetSafeHwnd());
 			auto extp = std::static_pointer_cast<Extender>(m_AVExtender);
-			if (!m_QuantumGate.AddExtender(extp))
+			if (!GetQuantumGateInstance()->AddExtender(extp))
 			{
 				LogErr(L"Failed to add AVExtender");
 				m_AVExtender.reset();
@@ -553,7 +546,7 @@ void CTestAppDlgAVExtenderTab::UnloadAVExtender() noexcept
 		m_AVExtender->StopAVSourceReaders();
 
 		auto extp = std::static_pointer_cast<Extender>(m_AVExtender);
-		if (!m_QuantumGate.RemoveExtender(extp))
+		if (!GetQuantumGateInstance()->RemoveExtender(extp))
 		{
 			LogErr(L"Failed to remove AVExtender");
 		}
@@ -570,22 +563,24 @@ void CTestAppDlgAVExtenderTab::UpdateCallInformation(const QuantumGate::AVExtend
 
 	if (call != nullptr)
 	{
+		auto local = GetQuantumGateInstance();
+
 		SetValue(IDC_CALL_STATUS, call->GetStatusString());
 		SetValue(IDC_CALL_DURATION,
 				 Util::FormatString(L"%jd seconds",
 									std::chrono::duration_cast<std::chrono::seconds>(call->GetDuration()).count()));
 
-		GetDlgItem(IDC_CALL_BUTTON)->EnableWindow(m_QuantumGate.IsRunning() && call->IsDisconnected());
-		GetDlgItem(IDC_HANGUP_BUTTON)->EnableWindow(m_QuantumGate.IsRunning() && !call->IsDisconnected());
+		GetDlgItem(IDC_CALL_BUTTON)->EnableWindow(local->IsRunning() && call->IsDisconnected());
+		GetDlgItem(IDC_HANGUP_BUTTON)->EnableWindow(local->IsRunning() && !call->IsDisconnected());
 
-		send_video_check->EnableWindow(m_QuantumGate.IsRunning());
+		send_video_check->EnableWindow(local->IsRunning());
 		if (call->GetSendVideo())
 		{
 			send_video_check->SetCheck(BST_CHECKED);
 		}
 		else send_video_check->SetCheck(BST_UNCHECKED);
 
-		send_audio_check->EnableWindow(m_QuantumGate.IsRunning());
+		send_audio_check->EnableWindow(local->IsRunning());
 		if (call->GetSendAudio())
 		{
 			send_audio_check->SetCheck(BST_CHECKED);

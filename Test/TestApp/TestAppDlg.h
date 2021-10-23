@@ -4,6 +4,7 @@
 #pragma once
 
 #include "CDialogBase.h"
+#include "CTabCtrlEx.h"
 
 #include "..\Socks5Extender\Socks5Extender.h"
 
@@ -29,8 +30,7 @@ public:
 	enum { IDD = IDD_QGTESTAPP_DIALOG };
 
 protected:
-	void InitializeTabCtrl();
-	void UpdateTabCtrl();
+	bool InitializeTabCtrl();
 
 	void LoadSettings();
 	void SaveSettings();
@@ -115,7 +115,6 @@ protected:
 	afx_msg void OnUpdateLocalConnect(CCmdUI* pCmdUI);
 	afx_msg void OnLocalConnectRelayed();
 	afx_msg void OnUpdateLocalConnectRelayed(CCmdUI* pCmdUI);
-	afx_msg void OnTcnSelchangeTabCtrl(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
 	afx_msg void OnLocalSupportedAlgorithms();
 	afx_msg void OnUpdateLocalSupportedAlgorithms(CCmdUI* pCmdUI);
@@ -148,11 +147,12 @@ private:
 
 	HICON m_hIcon{ 0 };
 
-	CTestAppDlgMainTab m_MainTab{ m_QuantumGate };
-	CTestAppDlgTestExtenderTab m_TestExtenderTab{ m_QuantumGate };
+	CTabCtrlEx m_TabCtrl;
+	CTestAppDlgMainTab* m_MainTab{ nullptr };
+	CTestAppDlgTestExtenderTab* m_TestExtenderTab{ nullptr };
 
 #ifdef INCLUDE_AVEXTENDER
-	CTestAppDlgAVExtenderTab m_AVExtenderTab{ m_QuantumGate };
+	CTestAppDlgAVExtenderTab* m_AVExtenderTab{ nullptr };
 #endif
 
 	std::atomic_bool m_ConnectStressThreadStop{ false };

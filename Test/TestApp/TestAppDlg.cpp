@@ -57,6 +57,7 @@ CTestAppDlg::CTestAppDlg(CWnd* pParent) : CDialogBase(CTestAppDlg::IDD, pParent)
 void CTestAppDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogBase::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_TAB_CTRL, m_TabCtrl);
 }
 
 Set<UInt16> CTestAppDlg::GetPorts(const CString ports)
@@ -87,12 +88,7 @@ Set<UInt16> CTestAppDlg::GetPorts(const CString ports)
 
 void CTestAppDlg::UpdateControls()
 {
-	m_MainTab.UpdateControls();
-	m_TestExtenderTab.UpdateControls();
-
-#ifdef INCLUDE_AVEXTENDER	
-	m_AVExtenderTab.UpdateControls();
-#endif
+	m_TabCtrl.UpdateControls();
 }
 
 BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
@@ -156,7 +152,6 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_COMMAND(ID_LOCAL_CONNECT_RELAYED, &CTestAppDlg::OnLocalConnectRelayed)
 	ON_UPDATE_COMMAND_UI(ID_LOCAL_CONNECT_RELAYED, &CTestAppDlg::OnUpdateLocalConnectRelayed)
 	ON_WM_CTLCOLOR()
-	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_CTRL, &CTestAppDlg::OnTcnSelchangeTabCtrl)
 	ON_WM_SHOWWINDOW()
 	ON_COMMAND(ID_LOCAL_SUPPORTEDALGORITHMS, &CTestAppDlg::OnLocalSupportedAlgorithms)
 	ON_UPDATE_COMMAND_UI(ID_LOCAL_SUPPORTEDALGORITHMS, &CTestAppDlg::OnUpdateLocalSupportedAlgorithms)
@@ -191,13 +186,48 @@ BOOL CTestAppDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
-	InitializeTabCtrl();
+	if (!InitializeTabCtrl())
+	{
+		AfxMessageBox(L"Cannot start TestApp; failed to create tab control.", MB_ICONERROR);
+		EndDialog(IDCANCEL);
+		return TRUE;
+	}
 
 	LoadSettings();
 
 	UpdateControls();
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
+}
+
+bool CTestAppDlg::InitializeTabCtrl()
+{
+	// Tabpages
+	if (m_TabCtrl.AddPage(RUNTIME_CLASS(CTestAppDlgMainTab), IDD_QGTESTAPP_DIALOG_MAIN_TAB, L"Main") &&
+		m_TabCtrl.AddPage(RUNTIME_CLASS(CTestAppDlgTestExtenderTab), IDD_QGTESTAPP_DIALOG_TESTEXTENDER_TAB, L"Test Extender")
+#ifdef INCLUDE_AVEXTENDER
+		&& m_TabCtrl.AddPage(RUNTIME_CLASS(CTestAppDlgAVExtenderTab), IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB, L"AV Extender")
+#endif
+		)
+	{
+		if (m_TabCtrl.Initialize())
+		{
+			m_TabCtrl.ForEachTab([&](CTabCtrlPage* tab)
+			{
+				auto dlgtab = dynamic_cast<CTestAppDlgTabCtrlPage*>(tab);
+				dlgtab->SetQuantumGateInstance(&m_QuantumGate);
+			});
+
+			m_MainTab = (CTestAppDlgMainTab*)m_TabCtrl.GetTab(RUNTIME_CLASS(CTestAppDlgMainTab));
+			m_TestExtenderTab = (CTestAppDlgTestExtenderTab*)m_TabCtrl.GetTab(RUNTIME_CLASS(CTestAppDlgTestExtenderTab));
+#ifdef INCLUDE_AVEXTENDER
+			m_AVExtenderTab = (CTestAppDlgAVExtenderTab*)m_TabCtrl.GetTab(RUNTIME_CLASS(CTestAppDlgAVExtenderTab));
+#endif
+			return true;
+		}
+	}
+
+	return false;
 }
 
 // If you add a minimize button to your dialog, you will need the code below
@@ -236,101 +266,16 @@ HCURSOR CTestAppDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-void CTestAppDlg::InitializeTabCtrl()
-{
-	auto tabctrl = (CTabCtrl*)GetDlgItem(IDC_TAB_CTRL);
-
-	m_MainTab.Create(IDD_QGTESTAPP_DIALOG_MAIN_TAB, tabctrl);
-	m_TestExtenderTab.Create(IDD_QGTESTAPP_DIALOG_TESTEXTENDER_TAB, tabctrl);
-
-	tabctrl->InsertItem(0, L"Main");
-	tabctrl->InsertItem(1, L"Test Extender");
-
-#ifdef INCLUDE_AVEXTENDER
-	m_AVExtenderTab.Create(IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB, tabctrl);
-	tabctrl->InsertItem(2, L"AV Extender");
-#endif
-
-	UpdateTabCtrl();
-}
-
-void CTestAppDlg::UpdateTabCtrl()
-{
-	const auto tabctrl = (CTabCtrl*)GetDlgItem(IDC_TAB_CTRL);
-
-	CRect itemRect;
-	tabctrl->GetItemRect(0, &itemRect);
-
-	CRect tabRect;
-	tabctrl->GetClientRect(tabRect);
-
-	tabRect.top = itemRect.bottom + 4;
-	tabRect.left += 4;
-	tabRect.right -= 10;
-	tabRect.bottom -= (itemRect.bottom + 9);
-
-	switch (tabctrl->GetCurSel())
-	{
-		case 0:
-			m_MainTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_SHOWWINDOW);
-			m_TestExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-#ifdef INCLUDE_AVEXTENDER
-			m_AVExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-#endif
-			m_MainTab.GotoDlgCtrl(m_MainTab.GetDlgItem(IDC_SERVERPORT));
-			break;
-		case 1:
-			m_TestExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_SHOWWINDOW);
-			m_MainTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-#ifdef INCLUDE_AVEXTENDER
-			m_AVExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-#endif
-			m_TestExtenderTab.GotoDlgCtrl(m_TestExtenderTab.GetDlgItem(IDC_PEERLIST));
-			break;
-#ifdef INCLUDE_AVEXTENDER
-		case 2:
-			m_MainTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-			m_TestExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-			m_AVExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_SHOWWINDOW);
-			m_AVExtenderTab.GotoDlgCtrl(m_AVExtenderTab.GetDlgItem(IDC_PEERLIST));
-			break;
-#endif
-		default:
-			assert(false);
-			break;
-	}
-}
-
-void CTestAppDlg::OnTcnSelchangeTabCtrl(NMHDR* pNMHDR, LRESULT* pResult)
-{
-	UpdateTabCtrl();
-	*pResult = 0;
-}
-
 BOOL CTestAppDlg::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo)
 {
-	// Don't send close system command to tab
-	if (nID != 2)
-	{
-		if (m_MainTab.OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) return TRUE;
-		else if (m_TestExtenderTab.OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) return TRUE;
-#ifdef INCLUDE_AVEXTENDER
-		else if (m_AVExtenderTab.OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) return TRUE;
-#endif
-	}
+	// Let tab pages handle commands first
+	if (m_TabCtrl.ForwardOnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) return TRUE;
 
 	return CDialogBase::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
 }
 
 BOOL CTestAppDlg::PreTranslateMessage(MSG* pMsg)
 {
-	// Check first if tabs can handle the message
-	if (m_MainTab.PreTranslateMessage(pMsg)) return TRUE;
-	else if (m_TestExtenderTab.PreTranslateMessage(pMsg)) return TRUE;
-#ifdef INCLUDE_AVEXTENDER
-	else if (m_AVExtenderTab.PreTranslateMessage(pMsg)) return TRUE;
-#endif
-
 	return CDialogBase::PreTranslateMessage(pMsg);
 }
 
@@ -347,7 +292,7 @@ void CTestAppDlg::LoadSettings()
 	// No settings file to load; we'll create one on exit
 	if (!std::filesystem::exists(Path(filepath)))
 	{
-		m_MainTab.SetValue(IDC_SERVERPORT, L"999");
+		m_MainTab->SetValue(IDC_SERVERPORT, L"999");
 		m_DefaultIP = L"192.168.1.1";
 		m_DefaultIPHistory = L"";
 		m_DefaultPort = 999;
@@ -369,13 +314,13 @@ void CTestAppDlg::LoadSettings()
 
 				if (set.find("LocalPorts") != set.end())
 				{
-					m_MainTab.SetValue(IDC_SERVERPORT, set["LocalPorts"].get<std::string>());
+					m_MainTab->SetValue(IDC_SERVERPORT, set["LocalPorts"].get<std::string>());
 				}
-				else m_MainTab.SetValue(IDC_SERVERPORT, L"999");
+				else m_MainTab->SetValue(IDC_SERVERPORT, L"999");
 
 				if (set.find("LocalUUID") != set.end())
 				{
-					m_MainTab.SetValue(IDC_LOCAL_UUID, set["LocalUUID"].get<std::string>());
+					m_MainTab->SetValue(IDC_LOCAL_UUID, set["LocalUUID"].get<std::string>());
 				}
 
 				if (set.find("RequirePeerAuthentication") != set.end())
@@ -437,7 +382,7 @@ void CTestAppDlg::LoadSettings()
 
 				if (set.find("AutoFileTransferFile") != set.end())
 				{
-					m_TestExtenderTab.SetValue(IDC_FILE_PATH, set["AutoFileTransferFile"].get<std::string>());
+					m_TestExtenderTab->SetValue(IDC_FILE_PATH, set["AutoFileTransferFile"].get<std::string>());
 				}
 			}
 		}
@@ -586,9 +531,9 @@ void CTestAppDlg::SaveSettings()
 
 		try
 		{
-			auto localport = m_MainTab.GetTextValue(IDC_SERVERPORT);
-			auto luuid = m_MainTab.GetTextValue(IDC_LOCAL_UUID);
-			auto autotrf_file = m_TestExtenderTab.GetTextValue(IDC_FILE_PATH);
+			auto localport = m_MainTab->GetTextValue(IDC_SERVERPORT);
+			auto luuid = m_MainTab->GetTextValue(IDC_LOCAL_UUID);
+			auto autotrf_file = m_TestExtenderTab->GetTextValue(IDC_FILE_PATH);
 
 			j["Settings"] = json::object();
 			j["Settings"]["LocalPorts"] = Util::ToStringA((LPCWSTR)localport);
@@ -747,7 +692,7 @@ void CTestAppDlg::OnClose()
 	if (m_QuantumGate.IsRunning())
 	{
 #ifdef INCLUDE_AVEXTENDER
-		m_AVExtenderTab.OnPreDeinitializeQuantumGate();
+		m_AVExtenderTab->OnPreDeinitializeQuantumGate();
 #endif
 
 		OnLocalDeinitialize();
@@ -765,14 +710,14 @@ void CTestAppDlg::OnClose()
 
 void CTestAppDlg::OnLocalInitialize()
 {
-	auto ports = m_MainTab.GetTextValue(IDC_SERVERPORT);
+	auto ports = m_MainTab->GetTextValue(IDC_SERVERPORT);
 	if (ports.IsEmpty())
 	{
 		AfxMessageBox(L"Specify at least one listener port for the local instance.");
 		return;
 	}
 
-	auto luuid = m_MainTab.GetTextValue(IDC_LOCAL_UUID);
+	auto luuid = m_MainTab->GetTextValue(IDC_LOCAL_UUID);
 	if (luuid.IsEmpty())
 	{
 		AfxMessageBox(L"Specify a UUID for the local instance.");
@@ -803,7 +748,7 @@ void CTestAppDlg::OnLocalInitialize()
 	params.EnableExtenders = true;
 	params.Relays.Enable = true;
 
-	const String passphrase = m_MainTab.GetTextValue(IDC_PASSPHRASE).GetString();
+	const String passphrase = m_MainTab->GetTextValue(IDC_PASSPHRASE).GetString();
 	if (!passphrase.empty())
 	{
 		params.GlobalSharedSecret.emplace();
@@ -1527,7 +1472,6 @@ void CTestAppDlg::OnUpdateLocalConnectRelayed(CCmdUI* pCmdUI)
 void CTestAppDlg::OnShowWindow(BOOL bShow, UINT nStatus)
 {
 	CDialogBase::OnShowWindow(bShow, nStatus);
-	UpdateTabCtrl();
 }
 
 void CTestAppDlg::OnLocalSupportedAlgorithms()
@@ -1572,7 +1516,7 @@ void CTestAppDlg::OnStressMultipleInstances()
 					  L"2) That the number of connection attempts per IP is at least 20 every 10 seconds in the security settings on the destination. "
 					  L"Configure this in the Custom Security Level settings.", MB_ICONINFORMATION);
 
-		auto luuid = m_MainTab.GetTextValue(IDC_LOCAL_UUID);
+		auto luuid = m_MainTab->GetTextValue(IDC_LOCAL_UUID);
 		if (luuid.IsEmpty())
 		{
 			AfxMessageBox(L"Specify a UUID for the local instance.");

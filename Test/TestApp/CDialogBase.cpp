@@ -8,6 +8,8 @@
 
 using namespace QuantumGate::Implementation;
 
+IMPLEMENT_DYNCREATE(CDialogBase, CDialogEx)
+
 CDialogBase::CDialogBase(UINT nIDTemplate, CWnd* pParent) : CDialogEx(nIDTemplate, pParent)
 {}
 

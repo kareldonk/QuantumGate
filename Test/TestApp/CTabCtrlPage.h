@@ -5,11 +5,18 @@
 
 #include "CDialogBase.h"
 
-class CTabBase : public CDialogBase
+class CTabCtrlPage : public CDialogBase
 {
+	DECLARE_DYNCREATE(CTabCtrlPage)
+
 public:
-	CTabBase(UINT nIDTemplate, CWnd *pParent = NULL);
-	virtual ~CTabBase();
+	CTabCtrlPage(UINT nIDTemplate = 0, CWnd *pParent = NULL);
+	virtual ~CTabCtrlPage();
+
+	virtual void UpdateControls() noexcept {}
+
+	virtual bool LoadData() noexcept { return true; }
+	virtual bool SaveData() noexcept { return true; }
 
 	// Prevent dialog from closing when pressing Enter or Esc
 	virtual void OnOK() { /* Do nothing */ };

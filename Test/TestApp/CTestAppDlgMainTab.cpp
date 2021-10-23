@@ -13,29 +13,24 @@
 
 using namespace QuantumGate::Implementation;
 
-IMPLEMENT_DYNAMIC(CTestAppDlgMainTab, CTabBase)
-
-CTestAppDlgMainTab::CTestAppDlgMainTab(QuantumGate::Local& local, CWnd* pParent /*=nullptr*/)
-	: CTabBase(IDD_QGTESTAPP_DIALOG_MAIN_TAB, pParent), m_QuantumGate(local)
-{}
-
-CTestAppDlgMainTab::~CTestAppDlgMainTab()
-{}
+IMPLEMENT_DYNCREATE(CTestAppDlgMainTab, CTestAppDlgTabCtrlPage)
 
 void CTestAppDlgMainTab::UpdateControls() noexcept
 {
-	((CEdit*)GetDlgItem(IDC_SERVERPORT))->SetReadOnly(m_QuantumGate.IsRunning());
-	((CEdit*)GetDlgItem(IDC_LOCAL_UUID))->SetReadOnly(m_QuantumGate.IsRunning());
-	GetDlgItem(IDC_CREATE_UUID)->EnableWindow(!m_QuantumGate.IsRunning());
-	((CEdit*)GetDlgItem(IDC_PASSPHRASE))->SetReadOnly(m_QuantumGate.IsRunning());
+	auto local = GetQuantumGateInstance();
+
+	((CEdit*)GetDlgItem(IDC_SERVERPORT))->SetReadOnly(local->IsRunning());
+	((CEdit*)GetDlgItem(IDC_LOCAL_UUID))->SetReadOnly(local->IsRunning());
+	GetDlgItem(IDC_CREATE_UUID)->EnableWindow(!local->IsRunning());
+	((CEdit*)GetDlgItem(IDC_PASSPHRASE))->SetReadOnly(local->IsRunning());
 }
 
 void CTestAppDlgMainTab::DoDataExchange(CDataExchange* pDX)
 {
-	CTabBase::DoDataExchange(pDX);
+	CTestAppDlgTabCtrlPage::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CTestAppDlgMainTab, CTabBase)
+BEGIN_MESSAGE_MAP(CTestAppDlgMainTab, CTestAppDlgTabCtrlPage)
 	ON_WM_TIMER()
 	ON_WM_CTLCOLOR()
 	ON_COMMAND(ID_PEERLIST_VIEW_DETAILS, &CTestAppDlgMainTab::OnPeerlistViewDetails)
@@ -72,7 +67,7 @@ END_MESSAGE_MAP()
 
 BOOL CTestAppDlgMainTab::OnInitDialog()
 {
-	CTabBase::OnInitDialog();
+	CTestAppDlgTabCtrlPage::OnInitDialog();
 
 	SetValue(IDC_VERSION_INFO, GetApp()->GetAppVersion());
 
@@ -114,14 +109,15 @@ BOOL CTestAppDlgMainTab::OnInitDialog()
 
 void CTestAppDlgMainTab::UpdatePeers()
 {
-	const auto result = m_QuantumGate.QueryPeers(m_PeerQueryParams, m_PeerLUIDs);
+	auto local = GetQuantumGateInstance();
+	const auto result = local->QueryPeers(m_PeerQueryParams, m_PeerLUIDs);
 	if (result.Succeeded())
 	{
 		auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
 
 		for (const auto& pluid : m_PeerLUIDs)
 		{
-			m_QuantumGate.GetPeer(pluid).Succeeded([&](auto& result)
+			local->GetPeer(pluid).Succeeded([&](auto& result)
 			{
 				const auto retval = result->GetDetails();
 				if (retval.Succeeded())
@@ -234,7 +230,7 @@ void CTestAppDlgMainTab::OnTimer(UINT_PTR nIDEvent)
 		}
 	}
 
-	CTabBase::OnTimer(nIDEvent);
+	CTestAppDlgTabCtrlPage::OnTimer(nIDEvent);
 }
 
 HBRUSH CTestAppDlgMainTab::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
@@ -251,7 +247,7 @@ HBRUSH CTestAppDlgMainTab::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		return (HBRUSH)GetStockObject(HOLLOW_BRUSH);
 	}
 
-	return CTabBase::OnCtlColor(pDC, pWnd, nCtlColor);
+	return CTestAppDlgTabCtrlPage::OnCtlColor(pDC, pWnd, nCtlColor);
 }
 
 void CTestAppDlgMainTab::OnPeerlistViewDetails()
@@ -259,7 +255,7 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 	const auto pluid = GetSelectedPeerLUID();
 	if (pluid > 0)
 	{
-		m_QuantumGate.GetPeer(pluid).Succeeded([&](auto& result)
+		GetQuantumGateInstance()->GetPeer(pluid).Succeeded([&](auto& result)
 		{
 			const auto retval = result->GetDetails();
 			if (retval.Succeeded())
@@ -459,19 +455,19 @@ void CTestAppDlgMainTab::OnNMRClickAllPeersList(NMHDR* pNMHDR, LRESULT* pResult)
 void CTestAppDlgMainTab::OnUpdatePeerlistViewDetails(CCmdUI* pCmdUI)
 {
 	const auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
-	pCmdUI->Enable(m_QuantumGate.IsRunning() && (lctrl->GetSelectedCount() > 0));
+	pCmdUI->Enable(GetQuantumGateInstance()->IsRunning() && (lctrl->GetSelectedCount() > 0));
 }
 
 void CTestAppDlgMainTab::OnUpdatePeerlistDisconnect(CCmdUI* pCmdUI)
 {
 	const auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
-	pCmdUI->Enable(m_QuantumGate.IsRunning() && (lctrl->GetSelectedCount() > 0));
+	pCmdUI->Enable(GetQuantumGateInstance()->IsRunning() && (lctrl->GetSelectedCount() > 0));
 }
 
 void CTestAppDlgMainTab::OnUpdatePeerlistCreateRelay(CCmdUI* pCmdUI)
 {
 	const auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
-	pCmdUI->Enable(m_QuantumGate.IsRunning() && (lctrl->GetSelectedCount() > 0));
+	pCmdUI->Enable(GetQuantumGateInstance()->IsRunning() && (lctrl->GetSelectedCount() > 0));
 }
 
 void CTestAppDlgMainTab::OnNMDblclkAllPeersList(NMHDR* pNMHDR, LRESULT* pResult)
@@ -485,7 +481,7 @@ void CTestAppDlgMainTab::OnPeerlistDisconnect()
 	const auto pluid = GetSelectedPeerLUID();
 	if (pluid != 0)
 	{
-		if (!m_QuantumGate.DisconnectFrom(pluid, [](QuantumGate::PeerLUID pluid, const PeerUUID puuid) mutable
+		if (!GetQuantumGateInstance()->DisconnectFrom(pluid, [](QuantumGate::PeerLUID pluid, const PeerUUID puuid) mutable
 		{
 			LogInfo(L"Peer LUID %llu manually disconnected", pluid);
 		}))
@@ -632,7 +628,7 @@ void CTestAppDlgMainTab::OnDestroy()
 		m_PeerActivityTimer = 0;
 	}
 
-	CTabBase::OnDestroy();
+	CTestAppDlgTabCtrlPage::OnDestroy();
 }
 
 void CTestAppDlgMainTab::OnBnClickedOnlyRelayedCheck()
