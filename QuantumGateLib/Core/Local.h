@@ -123,7 +123,7 @@ namespace QuantumGate::Implementation::Core
 
 		bool ValidateInitParameters(const StartupParameters& params) const noexcept;
 		bool ValidateSupportedAlgorithms(const Algorithms& algorithms) const noexcept;
-		bool ValidateSecurityParameters(const SecurityParameters& params) const noexcept;
+		std::pair<bool, const WChar*> ValidateSecurityParameters(const SecurityParameters& params) const noexcept;
 
 		Result<Size> Send(const ExtenderUUID& uuid, const std::atomic_bool& running, const std::atomic_bool& ready,
 						  const PeerLUID id, const BufferView& buffer, const SendParameters& params,

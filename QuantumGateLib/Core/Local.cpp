@@ -1138,61 +1138,74 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::NotRunning;
 	}
 
-	bool Local::ValidateSecurityParameters(const SecurityParameters& params) const noexcept
+	std::pair<bool, const WChar*> Local::ValidateSecurityParameters(const SecurityParameters& params) const noexcept
 	{
-		if (params.General.ConnectTimeout < 0s) return false;
+		if (params.General.ConnectTimeout < 0s) return { false, L"General.ConnectTimeout should be at least 0 seconds" };
 
-		if (params.General.SuspendTimeout < 60s) return false;
-		if (params.General.MaxSuspendDuration < 0s) return false;
+		if (params.General.SuspendTimeout < 60s) return { false, L"General.SuspendTimeout should be at least 60 seconds" };
+		if (params.General.MaxSuspendDuration < 0s) return { false, L"General.MaxSuspendDuration should be at least 0 seconds" };
 
-		if (params.General.MaxHandshakeDelay < 0ms ||
-			params.General.MaxHandshakeDuration < 0s) return false;
+		if (params.General.MaxHandshakeDelay < 0ms) return { false, L"General.MaxHandshakeDelay should be at least 0 milliseconds" };
+		if (params.General.MaxHandshakeDuration < 0s) return { false, L"General.MaxHandshakeDuration should be at least 0 seconds" };
 
 		// If maximum handshake delay is greater than the maximum duration,
 		// the handshake will often fail, which is bad
-		if (params.General.MaxHandshakeDelay > params.General.MaxHandshakeDuration) return false;
+		if (params.General.MaxHandshakeDelay > params.General.MaxHandshakeDuration)
+			return { false, L"General.MaxHandshakeDelay should be greater than General.MaxHandshakeDuration" };
 
-		if (params.General.IPReputationImprovementInterval < 0s ||
-			params.General.IPConnectionAttempts.Interval < 0s) return false;
+		if (params.General.IPReputationImprovementInterval < 0s) return { false, L"General.IPReputationImprovementInterval should be at least 0 seconds" };
+		if (params.General.IPConnectionAttempts.Interval < 0s) return { false, L"General.IPConnectionAttempts.Interval should be at least 0 seconds" };
 
-		if (params.KeyUpdate.MinInterval < 0s ||
-			params.KeyUpdate.MaxInterval < 0s ||
-			params.KeyUpdate.MaxDuration < 0s) return false;
+		if (params.KeyUpdate.MinInterval < 0s) return { false, L"KeyUpdate.MinInterval should be at least 0 seconds" };
+		if (params.KeyUpdate.MaxInterval < 0s) return { false, L"KeyUpdate.MaxInterval should be at least 0 seconds" };
+		if (params.KeyUpdate.MaxDuration < 0s) return { false, L"KeyUpdate.MaxDuration should be at least 0 seconds" };
 
 		// Minimum should not be greater than maximum
-		if (params.KeyUpdate.MinInterval > params.KeyUpdate.MaxInterval) return false;
+		if (params.KeyUpdate.MinInterval > params.KeyUpdate.MaxInterval)
+			return { false, L"KeyUpdate.MaxInterval should be greater than KeyUpdate.MinInterval" };
 
 		// Should be at least 10MB
-		if (params.KeyUpdate.RequireAfterNumProcessedBytes < 10'485'760) return false;
+		if (params.KeyUpdate.RequireAfterNumProcessedBytes < 10'485'760) return { false, L"KeyUpdate.RequireAfterNumProcessedBytes should be at least 10.485.760 bytes" };
 
-		if (params.Relay.ConnectTimeout < 0s ||
-			params.Relay.GracePeriod < 0s ||
-			params.Relay.MaxSuspendDuration < 0s) return false;
+		if (params.Relay.ConnectTimeout < 0s) return { false, L"Relay.ConnectTimeout should be at least 0 seconds" };
+		if (params.Relay.GracePeriod < 0s) return { false, L"Relay.GracePeriod should be at least 0 seconds" };
+		if (params.Relay.MaxSuspendDuration < 0s) return { false, L"Relay.MaxSuspendDuration should be at least 0 seconds" };
 
-		if (params.Relay.IPConnectionAttempts.Interval < 0s) return false;
+		if (params.Relay.IPConnectionAttempts.Interval < 0s) return { false, L"Relay.IPConnectionAttempts.Interval should be at least 0 seconds" };
 
-		if (params.UDP.MaxMTUDiscoveryDelay < 0ms ||
-			params.UDP.MaxDecoyMessageInterval < 0ms ||
-			params.UDP.SynCookieExpirationInterval < 30s) return false;
+		if (params.UDP.MaxMTUDiscoveryDelay < 0ms) return { false, L"UDP.MaxMTUDiscoveryDelay should be at least 0 milliseconds" };
+		if (params.UDP.MaxDecoyMessageInterval < 0ms) return { false, L"UDP.MaxDecoyMessageInterval should be at least 0 milliseconds" };
+		if (params.UDP.SynCookieExpirationInterval < 30s) return { false, L"UDP.SynCookieExpirationInterval should be at least 30 seconds" };
 
-		if (params.Message.AgeTolerance < 0s ||
-			params.Message.ExtenderGracePeriod < 0s ||
-			params.Noise.TimeInterval < 0s) return false;
+		if (params.Message.AgeTolerance < 0s) return { false, L"Message.AgeTolerance should be at least 0 seconds" };
+		if (params.Message.ExtenderGracePeriod < 0s) return { false, L"Message.ExtenderGracePeriod should be at least 0 seconds" };
+		if (params.Noise.TimeInterval < 0s) return { false, L"Noise.TimeInterval should be at least 0 seconds" };
 
 		// Minimum should not be greater than maximum
-		if (params.Message.MinRandomDataPrefixSize > params.Message.MaxRandomDataPrefixSize) return false;
+		if (params.Message.MinRandomDataPrefixSize > params.Message.MaxRandomDataPrefixSize)
+			return { false, L"Message.MaxRandomDataPrefixSize should be greater than Message.MinRandomDataPrefixSize" };
+
 		// Only supports random data prefix size up to UInt16 (2^16)
-		if (params.Message.MaxRandomDataPrefixSize > std::numeric_limits<UInt16>::max()) return false;
+		if (params.Message.MaxRandomDataPrefixSize > std::numeric_limits<UInt16>::max())
+			return { false, L"Message.MaxRandomDataPrefixSize should not be greater than 65.535 bytes" };
 
-		if (params.Message.MinInternalRandomDataSize > params.Message.MaxInternalRandomDataSize) return false;
+		if (params.Message.MinInternalRandomDataSize > params.Message.MaxInternalRandomDataSize)
+			return { false, L"Message.MaxInternalRandomDataSize should be greater than Message.MinInternalRandomDataSize" };
+
 		// Only supports random data size up to UInt16 (2^16)
-		if (params.Message.MaxInternalRandomDataSize > std::numeric_limits<UInt16>::max()) return false;
+		if (params.Message.MaxInternalRandomDataSize > std::numeric_limits<UInt16>::max())
+			return { false, L"Message.MaxInternalRandomDataSize should not be greater than 65.535 bytes" };
 
-		if (params.Noise.MinMessagesPerInterval > params.Noise.MaxMessagesPerInterval) return false;
-		if (params.Noise.MinMessageSize > params.Noise.MaxMessageSize) return false;
-		if (params.Noise.MaxMessageSize > Message::MaxMessageDataSize) return false;
+		if (params.Noise.MinMessagesPerInterval > params.Noise.MaxMessagesPerInterval)
+			return { false, L"Noise.MaxMessagesPerInterval should be greater than Noise.MinMessagesPerInterval" };
 
-		return true;
+		if (params.Noise.MinMessageSize > params.Noise.MaxMessageSize)
+			return { false, L"Noise.MaxMessageSize should be greater than Noise.MinMessageSize" };
+		
+		if (params.Noise.MaxMessageSize > Message::MaxMessageDataSize)
+			return { false, L"Noise.MaxMessageSize should not be greater than 1.048.000 bytes" };
+
+		return { true, L"" };
 	}
 
 	Result<Size> Local::Send(const ExtenderUUID& uuid, const std::atomic_bool& running, const std::atomic_bool& ready,
@@ -1415,7 +1428,8 @@ namespace QuantumGate::Implementation::Core
 				{
 					if (params)
 					{
-						if (ValidateSecurityParameters(*params))
+						const auto [success, error_msg] = ValidateSecurityParameters(*params);
+						if (success)
 						{
 							if (!silent)
 							{
@@ -1470,7 +1484,7 @@ namespace QuantumGate::Implementation::Core
 						{
 							if (!silent)
 							{
-								LogErr(L"Invalid parameters passed for Custom security level");
+								LogErr(L"Invalid parameters passed for Custom security level (%s)", error_msg);
 							}
 
 							result_code = ResultCode::InvalidArgument;
