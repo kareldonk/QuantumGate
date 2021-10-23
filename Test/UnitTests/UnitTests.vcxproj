@@ -410,6 +410,7 @@
     </ClCompile>
     <ClCompile Include="IPFiltersTests.cpp" />
     <ClCompile Include="ThreadSafeTests.cpp" />
+    <ClCompile Include="UDPConnectionCookiesTests.cpp" />
     <ClCompile Include="UtilTests.cpp" />
     <ClCompile Include="UUIDTests.cpp" />
     <ClCompile Include="WrappedTests.cpp" />
