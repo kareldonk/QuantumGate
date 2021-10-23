@@ -938,17 +938,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					// Host unreachable error; this may occur when the peer is temporarily
 					// not online due to changing IP address or network. In this case
 					// we will keep retrying until we get a message from the peer
-					// with an updated endpoint. We return success with 0 bytes sent and
-					// suspend the socket until we hear from the peer again.
-					if (Suspend())
-					{
-						return 0;
-					}
-					else
-					{
-						SetCloseCondition(CloseCondition::GeneralFailure);
-						return ResultCode::Failed;
-					}
+					// with an updated endpoint. We return success with 0 bytes sent.
+					// Eventually the socket will get suspended after enough inactivity.
+					return 0;
 				}
 			}
 
