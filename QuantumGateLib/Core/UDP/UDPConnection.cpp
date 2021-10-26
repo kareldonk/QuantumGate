@@ -36,7 +36,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		try
 		{
 			auto& gss = GetGlobalSharedSecret();
-			m_SymmetricKeys[0] = SymmetricKeys{ gss };
+			m_SymmetricKeys[0] = SymmetricKeys{ GetType(), gss };
 
 			m_KeyExchange = std::make_unique<KeyExchange>(keymgr, GetType(), std::move(handshake_data));
 
@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		assert(m_KeyExchange != nullptr);
 
 		// Assuming peer handshakedata has been set, generate derived keys
-		m_SymmetricKeys[1] = m_KeyExchange->GenerateSymmetricKeys(GetGlobalSharedSecret());
+		m_SymmetricKeys[1] = m_KeyExchange->GenerateSymmetricKeys(GetType(), GetGlobalSharedSecret());
 		if (m_SymmetricKeys[1])
 		{
 			// Set default key to expire (will still be used to decrypt messages for a grace period)
@@ -201,7 +201,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					success = FinalizeKeyExchange();
 				}
-				
+
 				break;
 			}
 			case Status::Connected:
@@ -272,7 +272,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		});
 	}
 
-	void Connection::ProcessEvents(const SteadyTime current_steadytime) noexcept
+	void Connection::ProcessEvents(const SteadyTime current_steadytime, const SystemTime current_systemtime) noexcept
 	{
 		const auto& settings = GetSettings();
 
@@ -287,7 +287,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			SetCloseCondition(CloseCondition::SendError);
 		}
 
-		if (!ReceiveToQueue(current_steadytime))
+		if (!ReceiveToQueue(current_steadytime, current_systemtime, settings.Message.AgeTolerance))
 		{
 			SetCloseCondition(CloseCondition::ReceiveError);
 		}
@@ -302,9 +302,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 					SetCloseCondition(CloseCondition::TimedOutError);
 
-					// This might be an attack ("slowloris" for example) so limit the
-					// number of times this may happen by updating the IP reputation
-					UpdateReputation(m_PeerEndpoint, Access::IPReputationUpdate::DeteriorateMinimal);
+					if (GetType() == PeerConnectionType::Inbound)
+					{
+						// This might be an attack ("slowloris" for example) so limit the
+						// number of times this may happen by updating the IP reputation
+						UpdateReputation(m_PeerEndpoint, Access::IPReputationUpdate::DeteriorateMinimal);
+					}
 				}
 
 				if (!m_SendQueue.Process())
@@ -474,7 +477,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		try
 		{
 			m_MTUDiscovery = std::make_unique<MTUDiscovery>(*this, GetSettings().UDP.MaxMTUDiscoveryDelay);
-			
+
 			if (OnMTUUpdate(m_MTUDiscovery->GetMaxMessageSize()))
 			{
 				return;
@@ -494,7 +497,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		assert(mtu >= UDPMessageSizes::Min);
 
 		m_SendQueue.SetMaxMessageSize(mtu);
-		
+
 		m_ReceiveWindowSize = std::min(MaxReceiveWindowItemSize, MaxReceiveWindowBytes / mtu);
 		m_ReceiveWindowSize = std::max(MinReceiveWindowItemSize, m_ReceiveWindowSize);
 
@@ -518,6 +521,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Dbg(L"UDP connection: sending outbound SYN on connection %llu (seq# %u)",
 			GetID(), m_SendQueue.GetNextSendSequenceNumber());
 
+		// Maybe schedule some decoy messages to send along with the SYN
+		if (Random::GetPseudoRandomNumber(0, 1) == 1)
+		{
+			SendDecoyMessages(MaxHandshakeInitiationDecoyMessages, MaxHandshakeInitiationDelay);
+		}
+
 		Message msg(Message::Type::Syn, Message::Direction::Outgoing, m_SendQueue.GetMaxMessageSize());
 		msg.SetMessageSequenceNumber(m_SendQueue.GetNextSendSequenceNumber());
 		msg.SetSynData(
@@ -526,11 +535,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				.ProtocolVersionMinor = ProtocolVersion::Minor,
 				.ConnectionID = GetID(),
 				.Port = static_cast<UInt16>(Random::GetPseudoRandomNumber()),
+				.Time = static_cast<UInt64>(Util::ToTimeT(Util::GetCurrentSystemTime())),
 				.Cookie = std::move(cookie),
 				.HandshakeDataOut = &m_KeyExchange->GetHandshakeData()
 			});
 
-		if (Send(std::move(msg)))
+		const auto delay = std::chrono::milliseconds(std::abs(Random::GetPseudoRandomNumber(0, MaxHandshakeInitiationDelay.count())));
+		if (Send(std::move(msg), delay))
 		{
 			return true;
 		}
@@ -547,6 +558,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		Dbg(L"UDP connection: sending inbound SYN on connection %llu (seq# %u)",
 			GetID(), m_SendQueue.GetNextSendSequenceNumber());
 
+		// Maybe schedule some decoy messages to send along with the SYN
+		if (Random::GetPseudoRandomNumber(0, 1) == 1)
+		{
+			SendDecoyMessages(MaxHandshakeInitiationDecoyMessages, MaxHandshakeInitiationDelay);
+		}
+
 		Message msg(Message::Type::Syn, Message::Direction::Outgoing, m_SendQueue.GetMaxMessageSize());
 		msg.SetMessageSequenceNumber(m_SendQueue.GetNextSendSequenceNumber());
 		msg.SetMessageAckNumber(m_LastInOrderReceivedSequenceNumber);
@@ -556,10 +573,12 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				.ProtocolVersionMinor = ProtocolVersion::Minor,
 				.ConnectionID = GetID(),
 				.Port = m_Socket.GetLocalEndpoint().GetPort(),
+				.Time = static_cast<UInt64>(Util::ToTimeT(Util::GetCurrentSystemTime())),
 				.HandshakeDataOut = &m_KeyExchange->GetHandshakeData()
 			});
 
-		if (Send(std::move(msg)))
+		const auto delay = std::chrono::milliseconds(std::abs(Random::GetPseudoRandomNumber(0, MaxHandshakeInitiationDelay.count())));
+		if (Send(std::move(msg), delay))
 		{
 			m_LastInOrderReceivedSequenceNumber.SetAcked();
 			return true;
@@ -644,7 +663,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				return true;
 			}
-			
+
 			// Make ranges out of sequence numbers; i.e. 2, 3, 4, 6, 7, 8, 9
 			// becomes [2, 4], [6, 9]
 			for (auto it = m_ReceivePendingAcks.begin(); it != m_ReceivePendingAcks.end();)
@@ -696,7 +715,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					const auto last = m_ReceivePendingAckRanges.begin() + max_num_ranges;
 					std::copy(m_ReceivePendingAckRanges.begin(), last, std::back_inserter(temp_ack_ranges));
 					m_ReceivePendingAckRanges.erase(m_ReceivePendingAckRanges.begin(), last);
-					
+
 					msg.SetAckRanges(std::move(temp_ack_ranges));
 				}
 
@@ -841,7 +860,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 						.PeerEndpoint = std::move(endpoint),
 						.ScheduleSteadyTime = now,
 						.ScheduleMilliseconds = delay,
-						.Data = std::move(data)});
+						.Data = std::move(data) });
 
 					return true;
 				}
@@ -954,7 +973,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return rcvbuf;
 	}
 
-	bool Connection::ReceiveToQueue(const SteadyTime current_steadytime) noexcept
+	bool Connection::ReceiveToQueue(const SteadyTime current_steadytime, const SystemTime current_systemtime,
+									const std::chrono::seconds msg_age_tolerance) noexcept
 	{
 		IPEndpoint endpoint;
 		auto& buffer = GetReceiveBuffer();
@@ -981,7 +1001,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 							bufspan = bufspan.GetFirst(*result);
 
-							if (!ProcessReceivedData(current_steadytime, endpoint, bufspan))
+							if (!ProcessReceivedData(current_steadytime, current_systemtime,
+													 msg_age_tolerance, endpoint, bufspan))
 							{
 								return false;
 							}
@@ -1015,7 +1036,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			else if (m_Socket.GetIOStatus().HasException())
 			{
 				LogErr(L"UDP connection: exception on socket for connection %llu (%s)",
-						GetID(), GetSysErrorString(m_Socket.GetIOStatus().GetErrorCode()).c_str());
+					   GetID(), GetSysErrorString(m_Socket.GetIOStatus().GetErrorCode()).c_str());
 
 				SetCloseCondition(CloseCondition::ReceiveError, m_Socket.GetIOStatus().GetErrorCode());
 
@@ -1032,7 +1053,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return true;
 	}
 
-	bool Connection::ProcessReceivedData(const SteadyTime current_steadytime, const IPEndpoint& endpoint, BufferSpan& buffer) noexcept
+	bool Connection::ProcessReceivedData(const SteadyTime current_steadytime, const SystemTime current_systemtime,
+										 const std::chrono::seconds msg_age_tolerance, const IPEndpoint& endpoint,
+										 BufferSpan& buffer) noexcept
 	{
 		auto success{ false };
 
@@ -1050,6 +1073,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					if (!m_SymmetricKeys[1].IsExpired())
 					{
+						SLogDbg(SLogFmt(FGBrightYellow) << L"UDP connection: failed reading message; retrying with second key" << SLogFmt(Default));
+
 						return msg.Read(buf, m_SymmetricKeys[1]);
 					}
 					else m_SymmetricKeys[1].Clear();
@@ -1066,7 +1091,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			{
 				case Status::Handshake:
 				{
-					success = ProcessReceivedMessageHandshake(endpoint, std::move(msg));
+					success = ProcessReceivedMessageHandshake(current_systemtime, msg_age_tolerance, endpoint, std::move(msg));
 					break;
 				}
 				case Status::Suspended:
@@ -1120,7 +1145,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return success;
 	}
 
-	bool Connection::ProcessReceivedMessageHandshake(const IPEndpoint& endpoint, Message&& msg) noexcept
+	bool Connection::ProcessReceivedMessageHandshake(const SystemTime current_systemtime,
+													 const std::chrono::seconds msg_age_tolerance,
+													 const IPEndpoint& endpoint, Message&& msg) noexcept
 	{
 		// In handshake state we only accept messages from
 		// the same endpoint that we're connecting to
@@ -1144,50 +1171,63 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					auto& syn_data = msg.GetSynData();
 
-					if (syn_data.ProtocolVersionMajor == UDP::ProtocolVersion::Major &&
-						syn_data.ProtocolVersionMinor == UDP::ProtocolVersion::Minor)
+					if (!(syn_data.ProtocolVersionMajor == UDP::ProtocolVersion::Major &&
+						  syn_data.ProtocolVersionMinor == UDP::ProtocolVersion::Minor))
 					{
-						if (GetID() == syn_data.ConnectionID)
-						{
-							m_KeyExchange->SetPeerHandshakeData(std::move(*syn_data.HandshakeDataIn));
-
-							m_LastInOrderReceivedSequenceNumber = msg.GetMessageSequenceNumber();
-
-							assert(msg.HasAck());
-
-							if (msg.HasAck())
-							{
-								m_SendQueue.ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
-							}
-
-							if (AckReceivedMessage(msg.GetMessageSequenceNumber()))
-							{
-								if (SetStatus(Status::Connected))
-								{
-									// Endpoint update with new received port
-									m_PeerEndpoint = IPEndpoint(endpoint.GetProtocol(), endpoint.GetIPAddress(), syn_data.Port);
-
-									m_ConnectionData->WithUniqueLock([&](auto& connection_data) noexcept
-									{
-										// Endpoint update
-										connection_data.SetLocalEndpoint(m_Socket.GetLocalEndpoint());
-										// Don't need listener send queue anymore
-										connection_data.ReleaseListenerSendQueue();
-										// Socket can now send data
-										connection_data.SetWrite(true);
-										// Notify of state change
-										connection_data.SignalReceiveEvent();
-									});
-
-									return true;
-								}
-							}
-						}
-						else LogErr(L"UDP connection: received invalid Syn message from peer %s on connection %llu; unexpected connection ID %llu",
-									endpoint.GetString().c_str(), GetID(), syn_data.ConnectionID);
+						LogErr(L"UDP connection: could not accept connection from peer %s on connection %llu; unsupported UDP protocol version",
+							   endpoint.GetString().c_str(), GetID());
+						break;
 					}
-					else LogErr(L"UDP connection: could not accept connection from peer %s on connection %llu; unsupported UDP protocol version",
-								endpoint.GetString().c_str(), GetID());
+
+					if (GetID() != syn_data.ConnectionID)
+					{
+						LogErr(L"UDP connection: received invalid Syn message from peer %s on connection %llu; unexpected connection ID %llu",
+							   endpoint.GetString().c_str(), GetID(), syn_data.ConnectionID);
+						break;
+					}
+
+					const auto msgtime = Util::ToTime(syn_data.Time);
+					if (std::chrono::abs(current_systemtime - msgtime) > msg_age_tolerance)
+					{
+						// Message should not be too old or too far into the future
+						LogErr(L"UDP connection: could not accept connection from peer %s on connection %llu; message outside time tolerance (%jd seconds)",
+							   endpoint.GetString().c_str(), GetID(), msg_age_tolerance.count());
+						break;
+					}
+
+					m_KeyExchange->SetPeerHandshakeData(std::move(*syn_data.HandshakeDataIn));
+
+					m_LastInOrderReceivedSequenceNumber = msg.GetMessageSequenceNumber();
+
+					assert(msg.HasAck());
+
+					if (msg.HasAck())
+					{
+						m_SendQueue.ProcessReceivedInSequenceAck(msg.GetMessageAckNumber());
+					}
+
+					if (AckReceivedMessage(msg.GetMessageSequenceNumber()))
+					{
+						if (SetStatus(Status::Connected))
+						{
+							// Endpoint update with new received port
+							m_PeerEndpoint = IPEndpoint(endpoint.GetProtocol(), endpoint.GetIPAddress(), syn_data.Port);
+
+							m_ConnectionData->WithUniqueLock([&](auto& connection_data) noexcept
+							{
+								// Endpoint update
+								connection_data.SetLocalEndpoint(m_Socket.GetLocalEndpoint());
+								// Don't need listener send queue anymore
+								connection_data.ReleaseListenerSendQueue();
+								// Socket can now send data
+								connection_data.SetWrite(true);
+								// Notify of state change
+								connection_data.SignalReceiveEvent();
+							});
+
+							return true;
+						}
+					}
 					break;
 				}
 				case Message::Type::Cookie:
@@ -1212,7 +1252,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				default:
 				{
 					LogErr(L"UDP connection: received unexpected message type %u during handshake on connection %llu",
-							msg.GetType(), GetID());
+						   msg.GetType(), GetID());
 
 					UpdateReputation(endpoint, Access::IPReputationUpdate::DeteriorateModerate);
 					break;
@@ -1644,13 +1684,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 				connection_data.UnlockShared();
 
-				if (Random::GetPseudoRandomNumber(0, 1) == 1)
-				{
-					SendDecoyMessages(10, std::chrono::milliseconds(100));
-				}
-
 				if (settings.UDP.MaxNumDecoyMessages > 0)
 				{
+					// Maybe schedule some decoy messages to mix up with the handshake
 					if (Random::GetPseudoRandomNumber(0, 1) == 1)
 					{
 						SendDecoyMessages(settings.UDP.MaxNumDecoyMessages, settings.UDP.MaxDecoyMessageInterval);

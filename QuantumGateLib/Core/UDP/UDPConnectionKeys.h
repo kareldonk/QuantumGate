@@ -17,20 +17,22 @@ namespace QuantumGate::Implementation::Core::UDP
 		};
 
 		SymmetricKeys() noexcept {};
-		SymmetricKeys(const ProtectedBuffer& global_sharedsecret) :
+		SymmetricKeys(const PeerConnectionType connection_type, const ProtectedBuffer& global_sharedsecret) :
 			m_Type(Type::Default)
 		{
 			// This will use default keydata when Global Shared Secret is not in use;
 			// this provides basic obfuscation and HMAC checks but won't
 			// fool more sophisticated traffic analyzers
-			CreateKeys(global_sharedsecret, BufferView(reinterpret_cast<const Byte*>(&SymmetricKeys::DefaultKeyData),
-													   SymmetricKeys::KeyDataLength));
+			CreateKeys(connection_type, global_sharedsecret,
+					   BufferView(reinterpret_cast<const Byte*>(&SymmetricKeys::DefaultKeyData),
+								  SymmetricKeys::KeyDataLength));
 		}
 
-		SymmetricKeys(const ProtectedBuffer& global_sharedsecret, const BufferView key_input_data) :
+		SymmetricKeys(const PeerConnectionType connection_type, const ProtectedBuffer& global_sharedsecret,
+					  const BufferView key_input_data) :
 			m_Type(Type::Derived)
 		{
-			CreateKeys(global_sharedsecret, key_input_data);
+			CreateKeys(connection_type, global_sharedsecret, key_input_data);
 		}
 
 		SymmetricKeys(const SymmetricKeys&) = delete;
@@ -44,13 +46,25 @@ namespace QuantumGate::Implementation::Core::UDP
 			return (m_Type != Type::Unknown && m_KeyData.GetSize() == KeyDataLength);
 		}
 
-		[[nodiscard]] inline BufferView GetKey() const noexcept
+		[[nodiscard]] inline BufferView GetLocalKey() const noexcept
 		{
 			assert(m_KeyData.GetSize() == KeyDataLength);
 			return m_KeyData.operator BufferView().GetFirst(KeyLength);
 		}
 
-		[[nodiscard]] inline BufferView GetAuthKey() const noexcept
+		[[nodiscard]] inline BufferView GetLocalAuthKey() const noexcept
+		{
+			assert(m_KeyData.GetSize() == KeyDataLength);
+			return m_KeyData.operator BufferView().GetSub(KeyLength, KeyLength);
+		}
+
+		[[nodiscard]] inline BufferView GetPeerKey() const noexcept
+		{
+			assert(m_KeyData.GetSize() == KeyDataLength);
+			return m_KeyData.operator BufferView().GetSub(KeyLength * 2, KeyLength);
+		}
+
+		[[nodiscard]] inline BufferView GetPeerAuthKey() const noexcept
 		{
 			assert(m_KeyData.GetSize() == KeyDataLength);
 			return m_KeyData.operator BufferView().GetLast(KeyLength);
@@ -81,15 +95,19 @@ namespace QuantumGate::Implementation::Core::UDP
 		}
 
 	private:
-		void CreateKeys(const ProtectedBuffer& global_sharedsecret, const BufferView key_input_data);
+		void CreateKeys(const PeerConnectionType connection_type, const ProtectedBuffer& global_sharedsecret, const BufferView key_input_data);
 
 	private:
 		static constexpr UInt8 KeyLength{ sizeof(UInt64) };
-		static constexpr UInt8 KeyDataLength{ KeyLength * 2 };
+		static constexpr UInt8 KeyDataLength{ KeyLength * 4 };
 
+		// C2055 DA 5EA5 0F C01055A1 0B57AC1E5 A10F7
+		// 70 DA AB0DE5 0F DA 102D5 CA2E F02 A11
 		static constexpr UInt8 DefaultKeyData[KeyDataLength]{
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
+			0xc2, 0x05, 0x5d, 0xa5, 0xea, 0x50, 0xfc, 0x01,
+			0x05, 0x5a, 0x10, 0xb5, 0x7a, 0xc1, 0xe5, 0xa1,
+			0x0f, 0x77, 0x0d, 0xaa, 0xb0, 0xde, 0x50, 0xfd,
+			0xa1, 0x02, 0xd5, 0xca, 0x2e, 0xf0, 0x2a, 0x11
 		};
 
 	private:
@@ -163,13 +181,14 @@ namespace QuantumGate::Implementation::Core::UDP
 			return m_AsymmetricKeys->LocalPublicKey;
 		}
 
-		[[nodiscard]] SymmetricKeys GenerateSymmetricKeys(const ProtectedBuffer& global_sharedsecret) noexcept
+		[[nodiscard]] SymmetricKeys GenerateSymmetricKeys(const PeerConnectionType connection_type,
+														  const ProtectedBuffer& global_sharedsecret) noexcept
 		{
 			if (GenerateSharedSecret())
 			{
 				try
 				{
-					return { global_sharedsecret, m_AsymmetricKeys->SharedSecret };
+					return { connection_type, global_sharedsecret, m_AsymmetricKeys->SharedSecret };
 				}
 				catch (...) {}
 			}

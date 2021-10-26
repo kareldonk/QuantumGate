@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		struct ThreadData final
 		{
 			ThreadData(const ProtectedBuffer& shared_secret, const bool primary = false) :
-				SymmetricKeys(shared_secret)
+				SymmetricKeys(PeerConnectionType::Inbound, shared_secret)
 			{}
 
 			ThreadData(const ThreadData&) = delete;
@@ -76,6 +76,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
 		[[nodiscard]] std::pair<bool, Access::IPReputationUpdate> AcceptConnection(const Settings& settings, 
 																				   const SteadyTime current_steadytime,
+																				   const SystemTime current_systemtime,
 																				   const std::shared_ptr<SendQueue_ThS>& send_queue,
 																				   const IPEndpoint& lendpoint, const IPEndpoint& pendpoint,
 																				   BufferSpan& buffer, const SymmetricKeys& symkeys) noexcept;

@@ -150,7 +150,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		Concurrency::Event& GetReadEvent() noexcept { return m_Socket.GetEvent(); }
 
-		void ProcessEvents(const SteadyTime current_steadytime) noexcept;
+		void ProcessEvents(const SteadyTime current_steadytime, const SystemTime current_systemtime) noexcept;
 		[[nodiscard]] inline bool ShouldClose() const noexcept { return (m_CloseCondition != CloseCondition::None); }
 
 		void OnLocalIPInterfaceChanged() noexcept;
@@ -202,9 +202,14 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 										const std::optional<IPEndpoint>& peer_endpoint) noexcept;
 
 		[[nodiscard]] ReceiveBuffer& GetReceiveBuffer() const noexcept;
-		[[nodiscard]] bool ReceiveToQueue(const SteadyTime current_steadytime) noexcept;
-		[[nodiscard]] bool ProcessReceivedData(const SteadyTime current_steadytime, const IPEndpoint& endpoint, BufferSpan& buffer) noexcept;
-		[[nodiscard]] bool ProcessReceivedMessageHandshake(const IPEndpoint& endpoint, Message&& msg) noexcept;
+		[[nodiscard]] bool ReceiveToQueue(const SteadyTime current_steadytime, const SystemTime current_systemtime,
+										  const std::chrono::seconds msg_age_tolerance) noexcept;
+		[[nodiscard]] bool ProcessReceivedData(const SteadyTime current_steadytime, const SystemTime current_systemtime,
+											   const std::chrono::seconds msg_age_tolerance, const IPEndpoint& endpoint,
+											   BufferSpan& buffer) noexcept;
+		[[nodiscard]] bool ProcessReceivedMessageHandshake(const SystemTime current_systemtime,
+														   const std::chrono::seconds msg_age_tolerance,
+														   const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept;
 		[[nodiscard]] bool AckReceivedMessage(const Message::SequenceNumber seqnum) noexcept;
 
@@ -229,6 +234,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	private:
 		static constexpr const std::chrono::seconds SuspendTimeoutMargin{ 15 };
+		static constexpr const std::chrono::milliseconds MaxHandshakeInitiationDelay{ 100 };
+		static constexpr Size MaxHandshakeInitiationDecoyMessages{ 10 };
 
 	private:
 		const Settings_CThS& m_Settings;

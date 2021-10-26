@@ -230,12 +230,8 @@ namespace QuantumGate::Implementation::Core::UDP
 					std::memcpy(&hmac, msgview.GetBytes(), sizeof(HMAC));
 					msgview.RemoveFirst(sizeof(HMAC));
 
-					const auto chmac = CalcHMAC(msgview, symkey);
-					if (hmac != chmac)
-					{
-						SLogDbg(SLogFmt(FGBrightRed) << L"Failed HMAC check for UDP connection message" << SLogFmt(Default));
-						return false;
-					}
+					const auto chmac = CalcHMAC(msgview, symkey.GetPeerAuthKey());
+					if (hmac != chmac) return false;
 				}
 
 				// Deobfuscate message
@@ -247,7 +243,7 @@ namespace QuantumGate::Implementation::Core::UDP
 					std::memcpy(&iv, msgspan.GetBytes(), sizeof(IV));
 					msgspan.RemoveFirst(sizeof(IV));
 
-					Obfuscate::Undo(msgspan, symkey.GetKey(), iv);
+					Obfuscate::Undo(msgspan, symkey.GetPeerKey(), iv);
 				}
 			}
 
@@ -308,7 +304,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 					Memory::BufferReader rdr(buffer, true);
 					if (!rdr.Read(syn_data.ProtocolVersionMajor, syn_data.ProtocolVersionMinor, syn_flags,
-								  syn_data.ConnectionID, syn_data.Port)) return false;
+								  syn_data.ConnectionID, syn_data.Port, syn_data.Time)) return false;
 
 					if (syn_flags & SynData::CookieFlag)
 					{
@@ -424,7 +420,7 @@ namespace QuantumGate::Implementation::Core::UDP
 					StackBuffer<sizeof(SynData)> synbuf;
 					Memory::StackBufferWriter<sizeof(SynData)> wrt(synbuf, true);
 					if (!wrt.WriteWithPreallocation(syn_data.ProtocolVersionMajor, syn_data.ProtocolVersionMinor, syn_flags,
-													syn_data.ConnectionID, syn_data.Port)) return false;
+													syn_data.ConnectionID, syn_data.Port, syn_data.Time)) return false;
 
 					if (syn_data.Cookie.has_value())
 					{
@@ -520,14 +516,14 @@ namespace QuantumGate::Implementation::Core::UDP
 					std::memcpy(&iv, msgspan.GetBytes(), sizeof(IV));
 					msgspan.RemoveFirst(sizeof(IV));
 
-					Obfuscate::Do(msgspan, symkey.GetKey(), iv);
+					Obfuscate::Do(msgspan, symkey.GetLocalKey(), iv);
 				}
 
 				// Calculate HMAC for the message
 				{
 					BufferView msgview{ msgbuf };
 					msgview.RemoveFirst(sizeof(HMAC));
-					const auto hmac = CalcHMAC(msgview, symkey);
+					const auto hmac = CalcHMAC(msgview, symkey.GetLocalAuthKey());
 					std::memcpy(msgbuf.GetBytes(), &hmac, sizeof(hmac));
 				}
 			}
@@ -544,17 +540,17 @@ namespace QuantumGate::Implementation::Core::UDP
 		return false;
 	}
 
-	Message::HMAC Message::CalcHMAC(const BufferView& data, const SymmetricKeys& symkey) noexcept
+	Message::HMAC Message::CalcHMAC(const BufferView& data, const BufferView& authkey) noexcept
 	{
 		// Half SipHash requires key size of 8 bytes
 		// and we want 4 byte output size
-		assert(symkey.GetAuthKey().GetSize() == 8);
+		assert(authkey.GetSize() == 8);
 		assert(sizeof(HMAC) == 4);
 
 		HMAC hmac{ 0 };
 
 		halfsiphash(reinterpret_cast<const uint8_t*>(data.GetBytes()), data.GetSize(),
-					reinterpret_cast<const uint8_t*>(symkey.GetAuthKey().GetBytes()),
+					reinterpret_cast<const uint8_t*>(authkey.GetBytes()),
 					reinterpret_cast<uint8_t*>(&hmac), sizeof(hmac));
 
 		return hmac;

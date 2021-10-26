@@ -196,10 +196,11 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		{
 			// Placed in the loop to have the latest time for each connection
 			const auto current_steadytime = Util::GetCurrentSteadyTime();
+			const auto current_systemtime = Util::GetCurrentSystemTime();
 
 			auto& connection = it->second;
 
-			connection.ProcessEvents(current_steadytime);
+			connection.ProcessEvents(current_steadytime, current_systemtime);
 
 			if (connection.ShouldClose())
 			{
@@ -396,7 +397,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		using int_type = decltype(m_ThreadPool.GetData().NumIncomingHandshakesInProgress.load());
 
 		if (type == PeerConnectionType::Inbound && m_ThreadPool.GetData().NumIncomingHandshakesInProgress >=
-			static_cast<int_type>(settings.UDP.SynCookieRequirementThreshold))
+			static_cast<int_type>(settings.UDP.ConnectCookieRequirementThreshold))
 		{
 			return AddQueryCode::RequireSynCookie;
 		}

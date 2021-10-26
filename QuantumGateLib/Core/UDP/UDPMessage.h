@@ -144,6 +144,7 @@ namespace QuantumGate::Implementation::Core::UDP
 			UInt8 ProtocolVersionMinor{ 0 };
 			ConnectionID ConnectionID{ 0 };
 			UInt16 Port{ 0 };
+			UInt64 Time{ 0 };
 			std::optional<CookieData> Cookie;
 			Wrapped<ProtectedBuffer> HandshakeDataIn;
 			Wrapped<const ProtectedBuffer> HandshakeDataOut;
@@ -284,7 +285,7 @@ namespace QuantumGate::Implementation::Core::UDP
 
 		Size GetHeaderSize() const noexcept;
 
-		HMAC CalcHMAC(const BufferView& data, const SymmetricKeys& symkey) noexcept;
+		HMAC CalcHMAC(const BufferView& data, const BufferView& authkey) noexcept;
 
 		void Validate() noexcept;
 

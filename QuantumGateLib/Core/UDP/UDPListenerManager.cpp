@@ -27,7 +27,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		const auto& listener_ports = settings.Local.Listeners.UDP.Ports;
 		const auto nat_traversal = settings.Local.Listeners.NATTraversal;
 		const auto& shared_secret = settings.Local.GlobalSharedSecret;
-		const auto cookie_expiration_interval = settings.UDP.SynCookieExpirationInterval;
+		const auto cookie_expiration_interval = settings.UDP.CookieExpirationInterval;
 
 		// Should have at least one port
 		if (listener_ports.empty())
@@ -92,7 +92,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		const auto& listener_ports = settings.Local.Listeners.UDP.Ports;
 		const auto nat_traversal = settings.Local.Listeners.NATTraversal;
 		const auto& shared_secret = settings.Local.GlobalSharedSecret;
-		const auto cookie_expiration_interval = settings.UDP.SynCookieExpirationInterval;
+		const auto cookie_expiration_interval = settings.UDP.CookieExpirationInterval;
 
 		// Should have at least one port
 		if (listener_ports.empty())
@@ -345,8 +345,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 								bufspan = bufspan.GetFirst(*result);
 
 								[[maybe_unused]] const auto& [success, rep_update] =
-									AcceptConnection(settings, Util::GetCurrentSteadyTime(), thdata.SendQueue, lendpoint,
-													 pendpoint, bufspan, thdata.SymmetricKeys);
+									AcceptConnection(settings, Util::GetCurrentSteadyTime(), Util::GetCurrentSystemTime(),
+													 thdata.SendQueue, lendpoint, pendpoint, bufspan, thdata.SymmetricKeys);
 								if (rep_update != Access::IPReputationUpdate::None)
 								{
 									const auto result2 = m_AccessManager.UpdateIPReputation(pendpoint.GetIPAddress(), rep_update);
@@ -411,7 +411,9 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		}
 	}
 
-	std::pair<bool, Access::IPReputationUpdate> Manager::AcceptConnection(const Settings& settings, const SteadyTime current_steadytime,
+	std::pair<bool, Access::IPReputationUpdate> Manager::AcceptConnection(const Settings& settings,
+																		  const SteadyTime current_steadytime,
+																		  const SystemTime current_systemtime,
 																		  const std::shared_ptr<SendQueue_ThS>& send_queue,
 																		  const IPEndpoint& lendpoint, const IPEndpoint& pendpoint,
 																		  BufferSpan& buffer, const SymmetricKeys& symkeys) noexcept
@@ -425,118 +427,126 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 				{
 					auto& syn_data = msg.GetSynData();
 
-					if (syn_data.ProtocolVersionMajor == UDP::ProtocolVersion::Major &&
-						syn_data.ProtocolVersionMinor == UDP::ProtocolVersion::Minor)
-					{
-						auto cookie_verified{ false };
-
-						if (syn_data.Cookie.has_value())
-						{
-							auto& connection_cookies = m_ThreadPool.GetData().ConnectionCookies;
-							if (connection_cookies.WithUniqueLock()->VerifyCookie(*syn_data.Cookie, syn_data.ConnectionID,
-																				  pendpoint, Util::GetCurrentSteadyTime(),
-																				  settings.UDP.SynCookieExpirationInterval))
-							{
-								LogDbg(L"UDP listenermanager verified cookie from peer %s for incoming connection with ID %llu",
-									   pendpoint.GetString().c_str(), syn_data.ConnectionID);
-
-								cookie_verified = true;
-							}
-							else
-							{
-								DbgInvoke([&]() noexcept
-								{
-									LogErr(L"UDP listenermanager failed to verify cookie from peer %s for incoming connection with ID %llu",
-										   pendpoint.GetString().c_str(), syn_data.ConnectionID);
-								});
-
-								LogWarn(L"UDP listenermanager cannot accept incoming connection with ID %llu from peer %s; invalid cookie",
-										syn_data.ConnectionID, pendpoint.GetString().c_str());
-
-								return { false, Access::IPReputationUpdate::DeteriorateModerate };
-							}
-						}
-
-						auto create_connection{ false };
-
-						const auto retval = m_UDPConnectionManager.QueryAddConnection(syn_data.ConnectionID, pendpoint,
-																					  PeerConnectionType::Inbound);
-						switch (retval)
-						{
-							case UDP::Connection::Manager::AddQueryCode::OK:
-							{
-								create_connection = true;
-								break;
-							}
-							case UDP::Connection::Manager::AddQueryCode::RequireSynCookie:
-							{
-								LogDbg(L"UDP listenermanager requires cookie for incoming connection with ID %llu from peer %s",
-									   syn_data.ConnectionID, pendpoint.GetString().c_str());
-
-								if (cookie_verified) create_connection = true;
-								else
-								{
-									SendCookie(settings, current_steadytime, send_queue, pendpoint, syn_data.ConnectionID, symkeys);
-								}
-								break;
-							}
-							case UDP::Connection::Manager::AddQueryCode::ConnectionAlreadyExists:
-							{
-								LogDbg(L"UDP listenermanager cannot accept incoming connection with ID %llu from peer %s; connection already exists",
-									   syn_data.ConnectionID, pendpoint.GetString().c_str());
-								break;
-							}
-							case UDP::Connection::Manager::AddQueryCode::ConnectionIDInUse:
-							{
-								LogWarn(L"UDP listenermanager cannot accept incoming connection with ID %llu from peer %s; connection ID is in use by another peer",
-										syn_data.ConnectionID, pendpoint.GetString().c_str());
-
-								return { false, Access::IPReputationUpdate::DeteriorateModerate };
-							}
-							default:
-							{
-								// Shouldn't get here
-								assert(false);
-								break;
-							}
-						}
-
-						if (create_connection)
-						{
-							if (CanAcceptConnection(pendpoint.GetIPAddress()))
-							{
-								auto peerths = m_PeerManager.CreateUDP(pendpoint.GetIPAddress().GetFamily(), PeerConnectionType::Inbound,
-																	   syn_data.ConnectionID, msg.GetMessageSequenceNumber(),
-																	   std::move(*syn_data.HandshakeDataIn), std::nullopt);
-								if (peerths != nullptr)
-								{
-									auto peer = peerths->WithUniqueLock();
-									if (peer->GetSocket<UDP::Socket>().Accept(send_queue, lendpoint, pendpoint))
-									{
-										if (m_PeerManager.Accept(peerths))
-										{
-											LogInfo(L"Connection accepted from peer %s", peer->GetPeerName().c_str());
-
-											return { true, Access::IPReputationUpdate::None };
-										}
-										else
-										{
-											peer->Close();
-											LogErr(L"Could not accept connection from peer %s", peer->GetPeerName().c_str());
-										}
-									}
-								}
-							}
-							else LogWarn(L"UDP listenermanager refused connection from peer %s; IP address is not allowed by access configuration",
-										 pendpoint.GetString().c_str());
-						}
-					}
-					else
+					if (!(syn_data.ProtocolVersionMajor == UDP::ProtocolVersion::Major &&
+						  syn_data.ProtocolVersionMinor == UDP::ProtocolVersion::Minor))
 					{
 						LogErr(L"UDP listenermanager could not accept connection from peer %s; unsupported UDP protocol version",
 							   pendpoint.GetString().c_str());
 
 						return { false, Access::IPReputationUpdate::DeteriorateMinimal };
+					}
+
+					const auto msgtime = Util::ToTime(syn_data.Time);
+					if (std::chrono::abs(current_systemtime - msgtime) > settings.Message.AgeTolerance)
+					{
+						// Message should not be too old or too far into the future
+						LogErr(L"UDP listenermanager refused connection from peer %s; message outside time tolerance (%jd seconds)",
+							   pendpoint.GetString().c_str(), settings.Message.AgeTolerance.count());
+
+						return { false, Access::IPReputationUpdate::DeteriorateModerate };
+					}
+
+					auto cookie_verified{ false };
+
+					if (syn_data.Cookie.has_value())
+					{
+						auto& connection_cookies = m_ThreadPool.GetData().ConnectionCookies;
+						if (connection_cookies.WithUniqueLock()->VerifyCookie(*syn_data.Cookie, syn_data.ConnectionID,
+																			  pendpoint, Util::GetCurrentSteadyTime(),
+																			  settings.UDP.CookieExpirationInterval))
+						{
+							LogDbg(L"UDP listenermanager verified cookie from peer %s for incoming connection with ID %llu",
+								   pendpoint.GetString().c_str(), syn_data.ConnectionID);
+
+							cookie_verified = true;
+						}
+						else
+						{
+							DbgInvoke([&]() noexcept
+							{
+								LogErr(L"UDP listenermanager failed to verify cookie from peer %s for incoming connection with ID %llu",
+									   pendpoint.GetString().c_str(), syn_data.ConnectionID);
+							});
+
+							LogWarn(L"UDP listenermanager cannot accept incoming connection with ID %llu from peer %s; invalid cookie",
+									syn_data.ConnectionID, pendpoint.GetString().c_str());
+
+							return { false, Access::IPReputationUpdate::DeteriorateModerate };
+						}
+					}
+
+					auto create_connection{ false };
+
+					const auto retval = m_UDPConnectionManager.QueryAddConnection(syn_data.ConnectionID, pendpoint,
+																				  PeerConnectionType::Inbound);
+					switch (retval)
+					{
+						case UDP::Connection::Manager::AddQueryCode::OK:
+						{
+							create_connection = true;
+							break;
+						}
+						case UDP::Connection::Manager::AddQueryCode::RequireSynCookie:
+						{
+							LogDbg(L"UDP listenermanager requires cookie for incoming connection with ID %llu from peer %s",
+								   syn_data.ConnectionID, pendpoint.GetString().c_str());
+
+							if (cookie_verified) create_connection = true;
+							else
+							{
+								SendCookie(settings, current_steadytime, send_queue, pendpoint, syn_data.ConnectionID, symkeys);
+							}
+							break;
+						}
+						case UDP::Connection::Manager::AddQueryCode::ConnectionAlreadyExists:
+						{
+							LogDbg(L"UDP listenermanager cannot accept incoming connection with ID %llu from peer %s; connection already exists",
+								   syn_data.ConnectionID, pendpoint.GetString().c_str());
+							break;
+						}
+						case UDP::Connection::Manager::AddQueryCode::ConnectionIDInUse:
+						{
+							LogWarn(L"UDP listenermanager cannot accept incoming connection with ID %llu from peer %s; connection ID is in use by another peer",
+									syn_data.ConnectionID, pendpoint.GetString().c_str());
+
+							return { false, Access::IPReputationUpdate::DeteriorateModerate };
+						}
+						default:
+						{
+							// Shouldn't get here
+							assert(false);
+							break;
+						}
+					}
+
+					if (create_connection)
+					{
+						if (CanAcceptConnection(pendpoint.GetIPAddress()))
+						{
+							auto peerths = m_PeerManager.CreateUDP(pendpoint.GetIPAddress().GetFamily(), PeerConnectionType::Inbound,
+																   syn_data.ConnectionID, msg.GetMessageSequenceNumber(),
+																   std::move(*syn_data.HandshakeDataIn), std::nullopt);
+							if (peerths != nullptr)
+							{
+								auto peer = peerths->WithUniqueLock();
+								if (peer->GetSocket<UDP::Socket>().Accept(send_queue, lendpoint, pendpoint))
+								{
+									if (m_PeerManager.Accept(peerths))
+									{
+										LogInfo(L"Connection accepted from peer %s", peer->GetPeerName().c_str());
+
+										return { true, Access::IPReputationUpdate::None };
+									}
+									else
+									{
+										peer->Close();
+										LogErr(L"Could not accept connection from peer %s", peer->GetPeerName().c_str());
+									}
+								}
+							}
+						}
+						else LogWarn(L"UDP listenermanager refused connection from peer %s; IP address is not allowed by access configuration",
+									 pendpoint.GetString().c_str());
 					}
 					break;
 				}
@@ -574,7 +584,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		auto& connection_cookies = m_ThreadPool.GetData().ConnectionCookies;
 		auto cookie_data = connection_cookies.WithUniqueLock()->GetCookie(connectionid, pendpoint,
 																		  Util::GetCurrentSteadyTime(),
-																		  settings.UDP.SynCookieExpirationInterval);
+																		  settings.UDP.CookieExpirationInterval);
 		if (cookie_data.has_value())
 		{
 			try
