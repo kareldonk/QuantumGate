@@ -1260,8 +1260,9 @@ namespace QuantumGate::Implementation::Core::Peer
 									const auto now = Util::GetCurrentSteadyTime();
 									const auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(now - *lres_time);
 
-									LogWarn(L"Peer %s sent a message outside time tolerance (%d seconds). Connection was suspended; resume steady time %jd, current is %jd, delta is %jdms",
-											GetPeerName().c_str(), settings.Message.AgeTolerance,
+									LogWarn(L"Peer %s sent a message outside time tolerance (%jd seconds). "
+											L"Connection was suspended; resume steady time %jd, current is %jd, delta is %jdms",
+											GetPeerName().c_str(), settings.Message.AgeTolerance.count(),
 											lres_time->time_since_epoch().count(), now.time_since_epoch().count(),
 											delta.count());
 
@@ -1277,8 +1278,8 @@ namespace QuantumGate::Implementation::Core::Peer
 							if (disconnect)
 							{
 								// Message should not be too old or too far into the future
-								LogErr(L"Peer %s sent a message outside time tolerance (%d seconds)",
-									   GetPeerName().c_str(), settings.Message.AgeTolerance);
+								LogErr(L"Peer %s sent a message outside time tolerance (%jd seconds)",
+									   GetPeerName().c_str(), settings.Message.AgeTolerance.count());
 								break;
 							}
 						}
