@@ -28,8 +28,8 @@ bool CSecurityDlgUDPTab::LoadData() noexcept
 {
 	auto params = GetSecurityParameters();
 
-	SetValue(IDC_UDP_COOKIE_THRESHOLD, params->UDP.SynCookieRequirementThreshold);
-	SetValue(IDC_UDP_COOKIE_INTERVAL, params->UDP.SynCookieExpirationInterval);
+	SetValue(IDC_UDP_COOKIE_THRESHOLD, params->UDP.ConnectCookieRequirementThreshold);
+	SetValue(IDC_UDP_COOKIE_INTERVAL, params->UDP.CookieExpirationInterval);
 	SetValue(IDC_UDP_NUM_DECOY_MESSAGES, params->UDP.MaxNumDecoyMessages);
 	SetValue(IDC_UDP_DECOY_MESSAGES_INTERVAL, params->UDP.MaxDecoyMessageInterval);
 	SetValue(IDC_UDP_MTU_DELAY, params->UDP.MaxMTUDiscoveryDelay);
@@ -41,8 +41,8 @@ bool CSecurityDlgUDPTab::SaveData() noexcept
 {
 	auto params = GetSecurityParameters();
 
-	params->UDP.SynCookieRequirementThreshold = GetSizeValue(IDC_UDP_COOKIE_THRESHOLD);
-	params->UDP.SynCookieExpirationInterval = std::chrono::seconds(GetSizeValue(IDC_UDP_COOKIE_INTERVAL));
+	params->UDP.ConnectCookieRequirementThreshold = GetSizeValue(IDC_UDP_COOKIE_THRESHOLD);
+	params->UDP.CookieExpirationInterval = std::chrono::seconds(GetSizeValue(IDC_UDP_COOKIE_INTERVAL));
 	params->UDP.MaxNumDecoyMessages = GetSizeValue(IDC_UDP_NUM_DECOY_MESSAGES);
 	params->UDP.MaxDecoyMessageInterval = std::chrono::milliseconds(GetSizeValue(IDC_UDP_DECOY_MESSAGES_INTERVAL));
 	params->UDP.MaxMTUDiscoveryDelay = std::chrono::milliseconds(GetSizeValue(IDC_UDP_MTU_DELAY));

@@ -1175,7 +1175,7 @@ namespace QuantumGate::Implementation::Core
 
 		if (params.UDP.MaxMTUDiscoveryDelay < 0ms) return { false, L"UDP.MaxMTUDiscoveryDelay should be at least 0 milliseconds" };
 		if (params.UDP.MaxDecoyMessageInterval < 0ms) return { false, L"UDP.MaxDecoyMessageInterval should be at least 0 milliseconds" };
-		if (params.UDP.SynCookieExpirationInterval < 30s) return { false, L"UDP.SynCookieExpirationInterval should be at least 30 seconds" };
+		if (params.UDP.CookieExpirationInterval < 30s) return { false, L"UDP.CookieExpirationInterval should be at least 30 seconds" };
 
 		if (params.Message.AgeTolerance < 0s) return { false, L"Message.AgeTolerance should be at least 0 seconds" };
 		if (params.Message.ExtenderGracePeriod < 0s) return { false, L"Message.ExtenderGracePeriod should be at least 0 seconds" };
@@ -1288,8 +1288,8 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 256;
 
-					settings.UDP.SynCookieRequirementThreshold = 10;
-					settings.UDP.SynCookieExpirationInterval = 120s;
+					settings.UDP.ConnectCookieRequirementThreshold = 10;
+					settings.UDP.CookieExpirationInterval = 120s;
 					settings.UDP.MaxMTUDiscoveryDelay = 2000ms;
 					settings.UDP.MaxNumDecoyMessages = 12;
 					settings.UDP.MaxDecoyMessageInterval = 2000ms;
@@ -1331,8 +1331,8 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 512;
 
-					settings.UDP.SynCookieRequirementThreshold = 10;
-					settings.UDP.SynCookieExpirationInterval = 120s;
+					settings.UDP.ConnectCookieRequirementThreshold = 10;
+					settings.UDP.CookieExpirationInterval = 120s;
 					settings.UDP.MaxMTUDiscoveryDelay = 4000ms;
 					settings.UDP.MaxNumDecoyMessages = 24;
 					settings.UDP.MaxDecoyMessageInterval = 4000ms;
@@ -1374,8 +1374,8 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 1024;
 
-					settings.UDP.SynCookieRequirementThreshold = 10;
-					settings.UDP.SynCookieExpirationInterval = 120s;
+					settings.UDP.ConnectCookieRequirementThreshold = 10;
+					settings.UDP.CookieExpirationInterval = 120s;
 					settings.UDP.MaxMTUDiscoveryDelay = 8000ms;
 					settings.UDP.MaxNumDecoyMessages = 48;
 					settings.UDP.MaxDecoyMessageInterval = 8000ms;
@@ -1417,8 +1417,8 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 2048;
 
-					settings.UDP.SynCookieRequirementThreshold = 10;
-					settings.UDP.SynCookieExpirationInterval = 120s;
+					settings.UDP.ConnectCookieRequirementThreshold = 10;
+					settings.UDP.CookieExpirationInterval = 120s;
 					settings.UDP.MaxMTUDiscoveryDelay = 16000ms;
 					settings.UDP.MaxNumDecoyMessages = 96;
 					settings.UDP.MaxDecoyMessageInterval = 16000ms;
@@ -1474,8 +1474,8 @@ namespace QuantumGate::Implementation::Core
 							settings.Noise.MinMessageSize = params->Noise.MinMessageSize;
 							settings.Noise.MaxMessageSize = params->Noise.MaxMessageSize;
 
-							settings.UDP.SynCookieRequirementThreshold = params->UDP.SynCookieRequirementThreshold;
-							settings.UDP.SynCookieExpirationInterval = params->UDP.SynCookieExpirationInterval;
+							settings.UDP.ConnectCookieRequirementThreshold = params->UDP.ConnectCookieRequirementThreshold;
+							settings.UDP.CookieExpirationInterval = params->UDP.CookieExpirationInterval;
 							settings.UDP.MaxMTUDiscoveryDelay = params->UDP.MaxMTUDiscoveryDelay;
 							settings.UDP.MaxNumDecoyMessages = params->UDP.MaxNumDecoyMessages;
 							settings.UDP.MaxDecoyMessageInterval = params->UDP.MaxDecoyMessageInterval;
@@ -1568,8 +1568,8 @@ namespace QuantumGate::Implementation::Core
 		params.Noise.MinMessageSize = settings.Noise.MinMessageSize;
 		params.Noise.MaxMessageSize = settings.Noise.MaxMessageSize;
 
-		params.UDP.SynCookieRequirementThreshold = settings.UDP.SynCookieRequirementThreshold;
-		params.UDP.SynCookieExpirationInterval = settings.UDP.SynCookieExpirationInterval;
+		params.UDP.ConnectCookieRequirementThreshold = settings.UDP.ConnectCookieRequirementThreshold;
+		params.UDP.CookieExpirationInterval = settings.UDP.CookieExpirationInterval;
 		params.UDP.MaxMTUDiscoveryDelay = settings.UDP.MaxMTUDiscoveryDelay;
 		params.UDP.MaxNumDecoyMessages = settings.UDP.MaxNumDecoyMessages;
 		params.UDP.MaxDecoyMessageInterval = settings.UDP.MaxDecoyMessageInterval;
@@ -1616,8 +1616,8 @@ namespace QuantumGate::Implementation::Core
 		settings.Noise.MinMessageSize = 0;
 		settings.Noise.MaxMessageSize = 0;
 
-		settings.UDP.SynCookieRequirementThreshold = 10;
-		settings.UDP.SynCookieExpirationInterval = 120s;
+		settings.UDP.ConnectCookieRequirementThreshold = 10;
+		settings.UDP.CookieExpirationInterval = 120s;
 		settings.UDP.MaxMTUDiscoveryDelay = 0ms;
 		settings.UDP.MaxNumDecoyMessages = 0;
 		settings.UDP.MaxDecoyMessageInterval = 1000ms;
