@@ -76,7 +76,7 @@ void CTabCtrlEx::PositionTabPages() noexcept
 
 	const auto cursel = GetCurSel();
 
-	for (int idx = 0; idx < m_TabPages.size(); ++idx)
+	for (TabPages::size_type idx = 0; idx < m_TabPages.size(); ++idx)
 	{
 		auto tabpage = m_TabPages[idx]->TabWnd.get();
 		
