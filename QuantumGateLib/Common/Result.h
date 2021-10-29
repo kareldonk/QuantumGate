@@ -127,6 +127,11 @@ namespace QuantumGate::Implementation
 
 		ResultImpl(const ResultImpl&) = delete;
 
+		/*
+		Temporarily (?) removed due to bug in VC compiler;
+		See: https://developercommunity.visualstudio.com/t/C-Compiler-Error-possible-SFINAE-prob/1490706
+		A workaround using concepts is included below.
+
 		template<typename U = T>
 		ResultImpl(std::enable_if_t<HasValueType<U>, ResultImpl&&> other) noexcept(std::is_nothrow_move_constructible_v<ValueStorageType>) :
 			m_ErrorCode(std::move(other.m_ErrorCode)), m_Value(std::move(other.m_Value))
@@ -136,6 +141,21 @@ namespace QuantumGate::Implementation
 
 		template<typename U = T>
 		ResultImpl(std::enable_if_t<!HasValueType<U>, ResultImpl&&> other) noexcept :
+			m_ErrorCode(std::move(other.m_ErrorCode))
+		{
+			other.m_ErrorCode = DefaultErrorCode;
+		}
+		*/
+
+		template<typename U = T>
+		ResultImpl(ResultImpl&& other) noexcept(std::is_nothrow_move_constructible_v<ValueStorageType>) requires (HasValueType<U>) :
+			m_ErrorCode(std::move(other.m_ErrorCode)), m_Value(std::move(other.m_Value))
+		{
+			other.m_ErrorCode = DefaultErrorCode;
+		}
+
+		template<typename U = T>
+		ResultImpl(ResultImpl&& other) noexcept requires (!HasValueType<U>) :
 			m_ErrorCode(std::move(other.m_ErrorCode))
 		{
 			other.m_ErrorCode = DefaultErrorCode;
