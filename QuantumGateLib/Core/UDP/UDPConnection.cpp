@@ -807,7 +807,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				if (m_DelayedSendQueue.empty())
 				{
 					// Release memory
-					DelayedSendItemQueue tmp;
+					DelayedSendItemQueue tmp(&DelayedSendItem::Compare);
 					m_DelayedSendQueue.swap(tmp);
 				}
 			}
