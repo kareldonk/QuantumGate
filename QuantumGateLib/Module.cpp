@@ -12,42 +12,31 @@
 
 namespace QuantumGate
 {
-	void InitOpenSSL() noexcept
+	int InitOpenSSL() noexcept
 	{
-		// Load the human readable error strings for libcrypto
-		ERR_load_crypto_strings();
-
-		// Load all digest and cipher algorithms
-		OpenSSL_add_all_algorithms();
-
-		// Load config file, and other important initialization
-		OPENSSL_config(NULL);
+		return OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS | OPENSSL_INIT_LOAD_CRYPTO_STRINGS, NULL);
 	}
 
 	void DeinitOpenSSL() noexcept
 	{
-		// Removes all digests and ciphers
-		EVP_cleanup();
-
-		// If you omit the next, a small leak may be left when you make 
-		// use of the BIO (low level API) for e.g. base64 transformations
-		CRYPTO_cleanup_all_ex_data();
-
-		// Remove error strings
-		ERR_free_strings();
+		OPENSSL_cleanup();
 	}
 
 	void InitQuantumGateModule() noexcept
 	{
 		Dbg(L"QuantumGate module initializing...");
 
-		if (QGCryptoInitRng() != 0)
+		if (QGCryptoInitRng() != 1)
 		{
 			Dbg(L"WARNING: QGCryptoInitRng() failed");
 			abort();
 		}
 
-		InitOpenSSL();
+		if (InitOpenSSL() != 1)
+		{
+			Dbg(L"WARNING: InitOpenSSL() failed");
+			abort();
+		}
 	}
 
 	void DeinitQuantumGateModule() noexcept

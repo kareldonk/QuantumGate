@@ -69,7 +69,8 @@ namespace QuantumGate::Implementation::Core
 				// Choose port randomly from dynamic port range (RFC 6335)
 				const auto port = static_cast<UInt16>(Util::GetPseudoRandomNumber(49152, 65535));
 
-				const auto endpoint = IPEndpoint((m_IPAddress.AddressFamily == BinaryIPAddress::Family::IPv4) ?
+				const auto endpoint = IPEndpoint(IPEndpoint::Protocol::UDP,
+												 (m_IPAddress.AddressFamily == BinaryIPAddress::Family::IPv4) ?
 												 IPAddress::AnyIPv4() : IPAddress::AnyIPv6(), port);
 				m_Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
 										   Network::Socket::Type::Datagram,
@@ -104,7 +105,7 @@ namespace QuantumGate::Implementation::Core
 
 		try
 		{
-			const IPEndpoint endpoint(m_IPAddress, m_Socket.GetLocalEndpoint().GetPort());
+			const IPEndpoint endpoint(IPEndpoint::Protocol::UDP, m_IPAddress, m_Socket.GetLocalEndpoint().GetPort());
 
 			const auto num = Crypto::GetCryptoRandomNumber();
 			if (num.has_value())
@@ -117,13 +118,11 @@ namespace QuantumGate::Implementation::Core
 				const UInt64 num_nbo = Endian::ToNetworkByteOrder(*num);
 				Buffer snd_buf(reinterpret_cast<const Byte*>(&num_nbo), sizeof(num_nbo));
 
-				if (m_Socket.SendTo(endpoint, snd_buf))
+				const auto result = m_Socket.SendTo(endpoint, snd_buf);
+				if (result.Succeeded() && *result == snd_buf.GetSize())
 				{
-					if (snd_buf.IsEmpty())
-					{
-						m_StartSteadyTime = Util::GetCurrentSteadyTime();
-						return true;
-					}
+					m_StartSteadyTime = Util::GetCurrentSteadyTime();
+					return true;
 				}
 			}
 
@@ -153,26 +152,30 @@ namespace QuantumGate::Implementation::Core
 				std::optional<UInt64> num;
 				Buffer rcv_buffer;
 
-				if (m_Socket.ReceiveFrom(sender_endpoint, rcv_buffer))
+				const auto result = m_Socket.ReceiveFrom(sender_endpoint, rcv_buffer);
+				if (result.Succeeded())
 				{
-					// Message should only contain a 64-bit number (8 bytes)
-					if (rcv_buffer.GetSize() == sizeof(UInt64))
+					if (*result > 0)
 					{
-						num = Endian::FromNetworkByteOrder(*reinterpret_cast<UInt64*>(rcv_buffer.GetBytes()));
+						// Message should only contain a 64-bit number (8 bytes)
+						if (rcv_buffer.GetSize() == sizeof(UInt64))
+						{
+							num = Endian::FromNetworkByteOrder(*reinterpret_cast<UInt64*>(rcv_buffer.GetBytes()));
 
-						LogInfo(L"Received public IP address data verification (%llu) from endpoint %s",
-								num.value(), sender_endpoint.GetString().c_str());
-					}
-					else
-					{
-						LogWarn(L"Received invalid public IP address data verification from endpoint %s",
-								sender_endpoint.GetString().c_str());
+							LogInfo(L"Received public IP address data verification (%llu) from endpoint %s",
+									num.value(), sender_endpoint.GetString().c_str());
+						}
+						else
+						{
+							LogWarn(L"Received invalid public IP address data verification from endpoint %s",
+									sender_endpoint.GetString().c_str());
+						}
 					}
 				}
 				else
 				{
-					LogWarn(L"Failed to receive public IP address data verification from endpoint %s; the port may not be open",
-							sender_endpoint.GetString().c_str());
+					LogWarn(L"Failed to receive public IP address data verification from endpoint %s (%s)",
+							sender_endpoint.GetString().c_str(), result.GetErrorString().c_str());
 				}
 
 				// If we received verification data
@@ -282,8 +285,6 @@ namespace QuantumGate::Implementation::Core
 			return false;
 		}
 
-		const auto& settings = m_Settings.GetCache();
-
 		if (!m_ThreadPool.Startup())
 		{
 			LogErr(L"PublicIPEndpoints threadpool initialization failed");
@@ -348,7 +349,7 @@ namespace QuantumGate::Implementation::Core
 		{
 			const auto& settings = m_Settings.GetCache();
 
-			if (data_verification->Verify(settings.Local.NATTraversal) &&
+			if (data_verification->Verify(settings.Local.Listeners.NATTraversal) &&
 				data_verification->IsVerified())
 			{
 				m_IPEndpoints.WithUniqueLock([&](auto& ipendpoints)
@@ -512,6 +513,8 @@ namespace QuantumGate::Implementation::Core
 																   const PeerConnectionType rep_con_type,
 																   const bool trusted, const bool verified) noexcept
 	{
+		assert(pub_endpoint.GetProtocol() == rep_peer.GetProtocol());
+
 		if (rep_con_type != PeerConnectionType::Unknown &&
 			pub_endpoint.GetIPAddress().GetFamily() == rep_peer.GetIPAddress().GetFamily())
 		{
@@ -549,13 +552,20 @@ namespace QuantumGate::Implementation::Core
 
 							try
 							{
-								// Only interested in the port for inbound peers
-								// so we know what public port they actually used
+								// Only interested in the protocol and port for inbound peers
+								// so we know what protocol and public port they actually used
 								// to connect to us
-								if (rep_con_type == PeerConnectionType::Inbound &&
-									pub_ipd->Ports.size() < MaxPortsPerIPAddress)
+								if (rep_con_type == PeerConnectionType::Inbound)
 								{
-									pub_ipd->Ports.emplace(pub_endpoint.GetPort());
+									if (pub_ipd->PortsMap.size() < MaxProtocolsPerIPAddress)
+									{
+										// If protocol does't exist it will get inserted
+										auto& ports = pub_ipd->PortsMap[pub_endpoint.GetProtocol()];
+										if (ports.size() < MaxPortsPerProtocol)
+										{
+											ports.emplace(pub_endpoint.GetPort());
+										}
+									}
 								}
 
 								if (pub_ipd->ReportingPeerNetworkHashes.size() < MaxReportingPeerNetworks)
@@ -673,7 +683,7 @@ namespace QuantumGate::Implementation::Core
 
 					for (auto& ep : temp_endp)
 					{
-						Dbg(L"%s - %s - %s - %llu",
+						Dbg(L"%s - %s - %s - %lld",
 							IPAddress(ep.IPAddress).GetString().c_str(),
 							ep.Trusted ? L"Trusted" : L"Not Trusted",
 							ep.Verified ? L"Verified" : L"Not verified",

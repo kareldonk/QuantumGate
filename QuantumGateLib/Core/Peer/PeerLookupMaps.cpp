@@ -335,6 +335,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		struct HashData final
 		{
+			IPEndpoint::Protocol Protocol{ IPEndpoint::Protocol::Unspecified };
 			BinaryIPAddress IP;
 			UInt16 Port{ 0 };
 			RelayHop RelayHop{ 0 };
@@ -342,6 +343,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		HashData data;
 		MemInit(&data, sizeof(data)); // Needed to zero out padding bytes for consistent hash
+		data.Protocol = endpoint.GetProtocol();
 		data.IP = endpoint.GetIPAddress().GetBinary();
 		data.Port = endpoint.GetPort();
 		data.RelayHop = endpoint.GetRelayHop();

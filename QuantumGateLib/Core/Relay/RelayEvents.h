@@ -5,6 +5,8 @@
 
 #include "..\Peer\PeerMessageDetails.h"
 
+#include <variant>
+
 namespace QuantumGate::Implementation::Core::Relay::Events
 {
 	struct Connect final

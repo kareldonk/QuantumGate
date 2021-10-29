@@ -41,7 +41,7 @@ namespace QuantumGate::Implementation::Network
 
 		try
 		{
-			LogDbg(L"Pinging %s (Buffer: %u bytes, TTL: %llus, Timeout: %llums)",
+			LogDbg(L"Pinging %s (Buffer: %u bytes, TTL: %jds, Timeout: %jdms)",
 				   IPAddress(m_DestinationIPAddress).GetString().c_str(), m_BufferSize, m_TTL.count(), m_Timeout.count());
 
 			IPAddr dest_addr4{ 0 };
@@ -205,7 +205,7 @@ namespace QuantumGate::Implementation::Network
 
 		try
 		{
-			LogDbg(L"Pinging %s (Buffer: %u bytes, TTL: %llus, Timeout: %llums)",
+			LogDbg(L"Pinging %s (Buffer: %u bytes, TTL: %jds, Timeout: %jdms)",
 				   IPAddress(m_DestinationIPAddress).GetString().c_str(), m_BufferSize, m_TTL.count(), m_Timeout.count());
 
 			ICMP::EchoMessage icmp_hdr;
@@ -228,7 +228,8 @@ namespace QuantumGate::Implementation::Network
 
 			if (!socket.SetIPTimeToLive(m_TTL)) return false;
 
-			if (socket.SendTo(IPEndpoint(m_DestinationIPAddress, 0), icmp_msg) && icmp_msg.IsEmpty())
+			const auto result = socket.SendTo(IPEndpoint(IP::Protocol::ICMP, m_DestinationIPAddress, 0), icmp_msg);
+			if (result.Succeeded() && *result == icmp_msg.GetSize())
 			{
 				const auto snd_steady_time = Util::GetCurrentSteadyTime();
 
@@ -241,7 +242,7 @@ namespace QuantumGate::Implementation::Network
 						IPEndpoint endpoint;
 						Buffer data;
 
-						if (socket.ReceiveFrom(endpoint, data))
+						if (socket.ReceiveFrom(endpoint, data).Succeeded())
 						{
 							if (data.GetSize() >= sizeof(IP::Header))
 							{
@@ -465,29 +466,29 @@ namespace QuantumGate::Implementation::Network
 	{
 		try
 		{
-			String str = Util::FormatString(L"Destination [IP: %s, Timeout: %llums, Buffer size: %u bytes, TTL: %llus]",
+			String str = Util::FormatString(L"Destination [IP: %s, Timeout: %jdms, Buffer size: %u bytes, TTL: %jds]",
 											IPAddress(m_DestinationIPAddress).GetString().c_str(), m_Timeout.count(),
 											m_BufferSize, m_TTL.count());
 			String rttl_str;
 			if (m_ResponseTTL.has_value())
 			{
-				rttl_str += Util::FormatString(L", Response TTL: %llus", m_ResponseTTL->count());
+				rttl_str += Util::FormatString(L", Response TTL: %jds", m_ResponseTTL->count());
 			}
 
 			switch (m_Status)
 			{
 				case Status::Succeeded:
-					str += Util::FormatString(L" / Result [Succeeded, Responding IP: %s, Response time: %llums%s]",
+					str += Util::FormatString(L" / Result [Succeeded, Responding IP: %s, Response time: %jdms%s]",
 											  IPAddress(*m_RespondingIPAddress).GetString().c_str(), m_RoundTripTime->count(),
 											  rttl_str.c_str());
 					break;
 				case Status::TimeToLiveExceeded:
-					str += Util::FormatString(L" / Result [TTL Exceeded, Responding IP: %s, Response time: %llums%s]",
+					str += Util::FormatString(L" / Result [TTL Exceeded, Responding IP: %s, Response time: %jdms%s]",
 											  IPAddress(*m_RespondingIPAddress).GetString().c_str(), m_RoundTripTime->count(),
 											  rttl_str.c_str());
 					break;
 				case Status::DestinationUnreachable:
-					str += Util::FormatString(L" / Result [Destination unreachable, Responding IP: %s, Response time: %llums%s]",
+					str += Util::FormatString(L" / Result [Destination unreachable, Responding IP: %s, Response time: %jdms%s]",
 											  IPAddress(*m_RespondingIPAddress).GetString().c_str(), m_RoundTripTime->count(),
 											  rttl_str.c_str());
 					break;

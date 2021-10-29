@@ -297,7 +297,7 @@ namespace QuantumGate::Socks5Extender
 		{
 			m_Listener.ShutdownEvent.Reset();
 
-			const auto endpoint = IPEndpoint(IPAddress::AnyIPv4(), m_Listener.TCPPort);
+			const auto endpoint = IPEndpoint(QuantumGate::IPEndpoint::Protocol::TCP, IPAddress::AnyIPv4(), m_Listener.TCPPort);
 			m_Listener.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
 												Network::Socket::Type::Stream, IP::Protocol::TCP);
 			if (m_Listener.Socket.Listen(endpoint, false, false))
@@ -370,6 +370,25 @@ namespace QuantumGate::Socks5Extender
 				{
 					LogErr(L"Extender '%s' failed to add peer %llu", GetName().c_str(), event.GetPeerLUID());
 				}
+
+				break;
+			}
+			case PeerEvent::Type::Resumed:
+			{
+				ev = L"Resumed";
+
+				if (!AddPeer(event.GetPeerLUID()))
+				{
+					LogErr(L"Extender '%s' failed to add peer %llu", GetName().c_str(), event.GetPeerLUID());
+				}
+
+				break;
+			}
+			case PeerEvent::Type::Suspended:
+			{
+				ev = L"Suspended";
+				
+				RemovePeer(event.GetPeerLUID());
 
 				break;
 			}
@@ -1276,8 +1295,9 @@ namespace QuantumGate::Socks5Extender
 		assert(ip.AddressFamily != BinaryIPAddress::Family::Unspecified);
 
 		SLogInfo(GetName() << L": connecting to " << SLogFmt(FGBrightMagenta) <<
-				 IPEndpoint(IPAddress(ip), port).GetString().c_str() << SLogFmt(Default) << L" through peer " << pluid <<
-				 L" for connection " << cid << L" (Socks version " << static_cast<UInt8>(socks_version) << L")");
+				 IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(ip), port).GetString().c_str() <<
+				 SLogFmt(Default) << L" through peer " << pluid << L" for connection " << cid << L" (Socks version " <<
+				 static_cast<UInt8>(socks_version) << L")");
 
 		constexpr UInt16 msgtype = static_cast<const UInt16>(MessageType::ConnectIP);
 		const UInt8 socksv = static_cast<UInt8>(socks_version);
@@ -1440,7 +1460,7 @@ namespace QuantumGate::Socks5Extender
 
 		if (IsOutgoingIPAllowed(ip))
 		{
-			const IPEndpoint endp(ip, port);
+			const IPEndpoint endp(IPEndpoint::Protocol::TCP, ip, port);
 			Socket s(endp.GetIPAddress().GetFamily());
 
 			LogInfo(L"%s: connecting to %s for peer %llu for connection %llu (Socks version %u)",

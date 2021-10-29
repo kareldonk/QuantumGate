@@ -594,6 +594,8 @@ namespace QuantumGate::Implementation::Core::Extender
 	void Manager::OnPeerEvent(const Vector<ExtenderUUID>& extuuids, Peer::Event&& event) noexcept
 	{
 		assert(event.GetType() == Peer::Event::Type::Connected ||
+			   event.GetType() == Peer::Event::Type::Suspended ||
+			   event.GetType() == Peer::Event::Type::Resumed ||
 			   event.GetType() == Peer::Event::Type::Disconnected);
 
 		m_Extenders.WithSharedLock([&](const ExtenderMap& extenders) noexcept

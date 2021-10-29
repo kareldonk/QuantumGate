@@ -31,6 +31,7 @@ namespace QuantumGate::Implementation
 	{
 		std::chrono::seconds ConnectTimeout{ 60 };					// Maximum number of seconds to wait for a relay link to be established
 		std::chrono::seconds GracePeriod{ 60 };						// Number of seconds after a relay is closed to still silently accept messages for that relay link
+		std::chrono::seconds MaxSuspendDuration{ 60 };				// Maximum number of seconds that a relay link may be suspended before it is closed/removed
 
 		UInt8 IPv4ExcludedNetworksCIDRLeadingBits{ 16 };			// The CIDR leading bits of the IPv4 network address spaces of the source and destination endpoints to exclude from the relay link
 		UInt8 IPv6ExcludedNetworksCIDRLeadingBits{ 48 };			// The CIDR leading bits of the IPv6 network address spaces of the source and destination endpoints to exclude from the relay link
@@ -40,6 +41,17 @@ namespace QuantumGate::Implementation
 			Size MaxPerInterval{ 10 };								// Maximum number of allowed relay connection attempts per interval before IP gets blocked
 			std::chrono::seconds Interval{ 10 };					// Period of time after which the relay connection attempts are reset to 0 for an IP
 		} IPConnectionAttempts;
+	};
+
+	struct UDPSettings final
+	{
+		std::chrono::seconds ConnectTimeout{ 30 };					// Maximum number of seconds to wait for a connection to be established
+		std::chrono::seconds ConnectRetransmissionTimeout{ 1 };		// Minimum number of seconds to wait before retransmission during connection handshake
+		Size ConnectCookieRequirementThreshold{ 10 };				// The number of incoming connections that may be in the process of being established after which a cookie is required
+		std::chrono::seconds CookieExpirationInterval{ 120 };		// The number of seconds after which a cookie expires
+		std::chrono::milliseconds MaxMTUDiscoveryDelay{ 0 };		// Maximum number of milliseconds to wait before starting MTU discovery
+		Size MaxNumDecoyMessages{ 0 };								// Maximum number of decoy messages to send during handshake
+		std::chrono::milliseconds MaxDecoyMessageInterval{ 1000 };	// Maximum time interval for decoy messages during handshake
 	};
 
 	struct LocalAlgorithms final
@@ -61,11 +73,25 @@ namespace QuantumGate::Implementation
 		LocalAlgorithms SupportedAlgorithms;								// The supported algorithms
 		Size NumPreGeneratedKeysPerAlgorithm{ 5 };							// The number of pregenerated keys per supported algorithm
 
-		Vector<UInt16> ListenerPorts{ 999 };								// Which ports to listen on
-		bool NATTraversal{ false };											// Whether NAT traversal is enabled
-		bool UseConditionalAcceptFunction{ true };							// Whether to use the conditional accept function before accepting connections
+		struct
+		{
+			struct
+			{
+				Vector<UInt16> Ports{ 999 };								// Which ports to listen on
+				bool UseConditionalAcceptFunction{ true };					// Whether to use the conditional accept function before accepting connections
+			} TCP;
+			
+			struct
+			{
+				Vector<UInt16> Ports{ 999 };								// Which ports to listen on
+			} UDP;
+
+			bool NATTraversal{ false };										// Whether NAT traversal is enabled
+		} Listeners;
 
 		std::chrono::seconds ConnectTimeout{ 60 };							// Maximum number of seconds to wait for a connection to be established
+		std::chrono::seconds SuspendTimeout{ 60 };							// Maximum number of seconds of inactivity after which a connection gets suspended (only for endpoints that support suspending connections)
+		std::chrono::seconds MaxSuspendDuration{ 60 };						// Maximum number of seconds that a connection may be suspended before the peer is disconnected (only for endpoints that support suspending connections)
 		std::chrono::milliseconds MaxHandshakeDelay{ 0 };					// Maximum number of milliseconds to wait in between handshake messages
 		std::chrono::seconds MaxHandshakeDuration{ 30 };					// Maximum number of seconds a handshake may last after connecting before peer is disconnected
 
@@ -92,6 +118,12 @@ namespace QuantumGate::Implementation
 				Size MinThreads{ 2 };										// Minumum number of worker threads
 				Size MaxThreads{ 8 };										// Maximum number of worker threads
 			} KeyGenerationManager;
+
+			struct
+			{
+				Size MinThreads{ 1 };										// Minumum number of worker threads
+				Size MaxThreads{ 8 };										// Maximum number of worker threads
+			} UDPConnectionManager;
 
 			struct
 			{
@@ -123,6 +155,7 @@ namespace QuantumGate::Implementation
 		MessageSettings Message;
 		NoiseSettings Noise;
 		RelaySettings Relay;
+		UDPSettings UDP;
 	};
 
 	template<UInt64 ID>

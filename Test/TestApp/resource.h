@@ -23,6 +23,12 @@
 #define IDD_PING_DIALOG                 160
 #define IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB 162
 #define IDD_SOCKS5EXTENDER_CONFIG       164
+#define IDD_SECURITY_SETTINGS_GENERAL_TAB 166
+#define IDD_SECURITY_SETTINGS_NOISE_TAB 168
+#define IDD_SECURITY_SETTINGS_KEYUPDATES_TAB 170
+#define IDD_SECURITY_SETTINGS_RELAYS_TAB 172
+#define IDD_SECURITY_SETTINGS_MESSAGES_TAB 174
+#define IDD_SECURITY_SETTINGS_UDP_TAB   176
 #define IDC_INIT                        1000
 #define IDC_CONSOLE                     1001
 #define IDC_DEINIT                      1002
@@ -114,6 +120,7 @@
 #define IDC_KEYUPDATE_MAXDURATION       1032
 #define IDC_REFRESH                     1032
 #define IDC_IP_TEST_RESULT              1033
+#define IDC_SUSPEND_TIMEOUT             1033
 #define IDC_MESSAGE_AGE_TOLERANCE       1034
 #define IDC_USERNAME                    1035
 #define IDC_NOISE_AUTO_MIN_BANDWIDTH    1035
@@ -122,8 +129,10 @@
 #define IDC_IPSUBNETLIMIT_LIST          1037
 #define IDC_TTL                         1037
 #define IDC_TCP_PORT                    1037
+#define IDC_MAX_SUSPEND_DURATION        1037
 #define IDC_REMOVELIMIT                 1038
 #define IDC_TIMEOUT                     1038
+#define IDC_RELAY_MAX_SUSPEND_DURATION  1038
 #define IDC_MAX_CONNECTIONS             1039
 #define IDC_ADDLIMIT                    1040
 #define IDC_CIDR                        1041
@@ -201,9 +210,16 @@
 #define IDC_VERSION_INFO                1083
 #define IDC_CHECK21                     1084
 #define IDC_AUDIO_COMPRESSION_CHECK     1084
+#define IDC_PROTOCOL_COMBO              1084
 #define IDC_CHECK22                     1085
 #define IDC_VIDEO_FILL_CHECK            1085
 #define IDC_VIDEO_SIZE_FORCE            1086
+#define IDC_UDP_THRESHOLD               1086
+#define IDC_UDP_COOKIE_THRESHOLD        1086
+#define IDC_UDP_COOKIE_INTERVAL         1087
+#define IDC_UDP_NUM_DECOY_MESSAGES      1088
+#define IDC_UDP_DECOY_MESSAGES_INTERVAL 1089
+#define IDC_UDP_MTU_DELAY               1090
 #define ID_CONSOLE_ENABLED              32771
 #define ID_CONSOLE_TERMINALWINDOW       32772
 #define ID_LOCAL_SECURITYLEVEL          32773
@@ -289,14 +305,15 @@
 #define ID_LOCAL_FREEUNUSEDMEMORY       32853
 #define ID_BENCHMARKS_THREADPAUSE       32854
 #define ID_SOCKS5EXTENDER_CONFIGURATION 32855
+#define ID_LOCAL_UDPLISTENERSENABLED    32856
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        166
-#define _APS_NEXT_COMMAND_VALUE         32856
-#define _APS_NEXT_CONTROL_VALUE         1084
+#define _APS_NEXT_RESOURCE_VALUE        178
+#define _APS_NEXT_COMMAND_VALUE         32857
+#define _APS_NEXT_CONTROL_VALUE         1091
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

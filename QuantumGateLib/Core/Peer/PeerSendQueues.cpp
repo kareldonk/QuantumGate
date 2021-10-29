@@ -23,13 +23,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	template<MessageRateLimits::Type type>
+	template<typename T>
 	Result<> PeerSendQueues::AddMessageImpl(Message&& msg, const SendParameters::PriorityOption priority,
 											const std::chrono::milliseconds delay, SendCallback&& callback) noexcept
 	{
 		const auto msg_size = msg.GetMessageData().GetSize();
 
-		if (!m_Peer.GetMessageRateLimits().CanAdd<type>(msg_size))
+		if (!m_Peer.GetMessageRateLimits().CanAdd<T>(msg_size))
 		{
 			return ResultCode::PeerSendBufferFull;
 		}
@@ -53,7 +53,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					break;
 			}
 
-			m_Peer.GetMessageRateLimits().Add<type>(msg_size);
+			m_Peer.GetMessageRateLimits().Add<T>(msg_size);
 		}
 		catch (...)
 		{
@@ -77,7 +77,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 			else
 			{
-				assert(false);
+				static_assert(AlwaysFalse<T>, "Unsupported type.");
 			}
 		});
 

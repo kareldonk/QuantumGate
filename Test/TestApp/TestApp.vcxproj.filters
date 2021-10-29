@@ -117,7 +117,7 @@
     <ClInclude Include="CTestAppDlgAVExtenderTab.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CTabBase.h">
+    <ClInclude Include="CTabCtrlPage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\AVExtender\AudioRenderer.h">
@@ -178,6 +178,33 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CSocks5ExtenderConfigurationDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CSecurityDlgGeneralTab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CTabCtrlEx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CSecurityDlgTabCtrlPage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CSecurityDlgMessagesTab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CTestAppDlgTabCtrlPage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CSecurityDlgKeyUpdatesTab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CSecurityDlgRelaysTab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CSecurityDlgNoiseTab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CSecurityDlgUDPTab.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -266,7 +293,7 @@
     <ClCompile Include="CTestAppDlgAVExtenderTab.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CTabBase.cpp">
+    <ClCompile Include="CTabCtrlPage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\AVExtender\AVErrorCode.cpp">
@@ -309,6 +336,33 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CSocks5ExtenderConfigurationDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CSecurityDlgGeneralTab.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CTabCtrlEx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CSecurityDlgTabCtrlPage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CSecurityDlgMessagesTab.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CTestAppDlgTabCtrlPage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CSecurityDlgKeyUpdatesTab.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CSecurityDlgRelaysTab.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CSecurityDlgNoiseTab.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CSecurityDlgUDPTab.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

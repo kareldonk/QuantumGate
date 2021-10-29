@@ -4,6 +4,7 @@
 #pragma once
 
 #include "CDialogBase.h"
+#include "CTabCtrlEx.h"
 
 #include "..\Socks5Extender\Socks5Extender.h"
 
@@ -29,8 +30,7 @@ public:
 	enum { IDD = IDD_QGTESTAPP_DIALOG };
 
 protected:
-	void InitializeTabCtrl();
-	void UpdateTabCtrl();
+	bool InitializeTabCtrl();
 
 	void LoadSettings();
 	void SaveSettings();
@@ -46,7 +46,7 @@ protected:
 
 	void SetSecurityLevel(const QuantumGate::SecurityLevel level);
 
-	bool GenerateGlobalSharedSecret(CString& passphrase, ProtectedBuffer& buffer) const noexcept;
+	bool GenerateGlobalSharedSecret(const String& passphrase, ProtectedBuffer& buffer) const noexcept;
 
 	virtual BOOL OnInitDialog();
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
@@ -115,7 +115,6 @@ protected:
 	afx_msg void OnUpdateLocalConnect(CCmdUI* pCmdUI);
 	afx_msg void OnLocalConnectRelayed();
 	afx_msg void OnUpdateLocalConnectRelayed(CCmdUI* pCmdUI);
-	afx_msg void OnTcnSelchangeTabCtrl(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
 	afx_msg void OnLocalSupportedAlgorithms();
 	afx_msg void OnUpdateLocalSupportedAlgorithms(CCmdUI* pCmdUI);
@@ -137,6 +136,8 @@ protected:
 	afx_msg void OnBenchmarksThreadPause();
 	afx_msg void OnSocks5ExtenderConfiguration();
 	afx_msg void OnUpdateSocks5ExtenderConfiguration(CCmdUI* pCmdUI);
+	afx_msg void OnLocalUDPListenersEnabled();
+	afx_msg void OnUpdateLocalUDPListenersEnabled(CCmdUI* pCmdUI);
 
 private:
 	static inline const char* m_SettingsFilename{ "TestAppSettings.json" };
@@ -146,16 +147,19 @@ private:
 
 	HICON m_hIcon{ 0 };
 
-	CTestAppDlgMainTab m_MainTab{ m_QuantumGate };
-	CTestAppDlgTestExtenderTab m_TestExtenderTab{ m_QuantumGate };
+	CTabCtrlEx m_TabCtrl;
+	CTestAppDlgMainTab* m_MainTab{ nullptr };
+	CTestAppDlgTestExtenderTab* m_TestExtenderTab{ nullptr };
 
 #ifdef INCLUDE_AVEXTENDER
-	CTestAppDlgAVExtenderTab m_AVExtenderTab{ m_QuantumGate };
+	CTestAppDlgAVExtenderTab* m_AVExtenderTab{ nullptr };
 #endif
 
 	std::atomic_bool m_ConnectStressThreadStop{ false };
 	std::unique_ptr<std::thread> m_ConnectStressThread;
 
 	String m_DefaultIP;
+	String m_DefaultIPHistory;
 	UInt16 m_DefaultPort{ 999 };
+	IPEndpoint::Protocol m_DefaultProtocol{ IPEndpoint::Protocol::TCP };
 };

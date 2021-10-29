@@ -44,11 +44,13 @@ namespace UnitTests
 			{
 				Socket socket;
 				Assert::AreEqual(false, socket.GetIOStatus().IsOpen());
+				Assert::AreEqual(false, socket.GetIOStatus().IsBound());
 				Assert::AreEqual(false, socket.GetIOStatus().IsConnecting());
 				Assert::AreEqual(false, socket.GetIOStatus().IsConnected());
 				Assert::AreEqual(false, socket.GetIOStatus().IsListening());
 				Assert::AreEqual(false, socket.GetIOStatus().CanRead());
 				Assert::AreEqual(false, socket.GetIOStatus().CanWrite());
+				Assert::AreEqual(false, socket.GetIOStatus().IsSuspended());
 				Assert::AreEqual(false, socket.GetIOStatus().HasException());
 				Assert::AreEqual(-1, socket.GetIOStatus().GetErrorCode());
 				Assert::AreEqual(true, socket.GetBytesReceived() == 0);
@@ -65,11 +67,13 @@ namespace UnitTests
 
 				Socket socket(handle);
 				Assert::AreEqual(true, socket.GetIOStatus().IsOpen());
+				Assert::AreEqual(false, socket.GetIOStatus().IsBound());
 				Assert::AreEqual(false, socket.GetIOStatus().IsConnecting());
 				Assert::AreEqual(false, socket.GetIOStatus().IsConnected());
 				Assert::AreEqual(false, socket.GetIOStatus().IsListening());
 				Assert::AreEqual(false, socket.GetIOStatus().CanRead());
 				Assert::AreEqual(false, socket.GetIOStatus().CanWrite());
+				Assert::AreEqual(false, socket.GetIOStatus().IsSuspended());
 				Assert::AreEqual(false, socket.GetIOStatus().HasException());
 				Assert::AreEqual(-1, socket.GetIOStatus().GetErrorCode());
 				Assert::AreEqual(true, socket.GetBytesReceived() == 0);
@@ -105,11 +109,13 @@ namespace UnitTests
 					{
 						Socket socket(af, test.Type, test.Protocol);
 						Assert::AreEqual(true, socket.GetIOStatus().IsOpen());
+						Assert::AreEqual(false, socket.GetIOStatus().IsBound());
 						Assert::AreEqual(false, socket.GetIOStatus().IsConnecting());
 						Assert::AreEqual(false, socket.GetIOStatus().IsConnected());
 						Assert::AreEqual(false, socket.GetIOStatus().IsListening());
 						Assert::AreEqual(false, socket.GetIOStatus().CanRead());
 						Assert::AreEqual(false, socket.GetIOStatus().CanWrite());
+						Assert::AreEqual(false, socket.GetIOStatus().IsSuspended());
 						Assert::AreEqual(false, socket.GetIOStatus().HasException());
 						Assert::AreEqual(-1, socket.GetIOStatus().GetErrorCode());
 						Assert::AreEqual(true, socket.GetBytesReceived() == 0);
@@ -144,34 +150,38 @@ namespace UnitTests
 			for (const auto& ip : ips)
 			{
 				// Create first socket
-				const auto endp1 = IPEndpoint(ip, 9000);
+				const auto endp1 = IPEndpoint(IPEndpoint::Protocol::UDP, ip, 9000);
 				Socket socket1(endp1.GetIPAddress().GetFamily(), Socket::Type::Datagram, IP::Protocol::UDP);
 				Assert::AreEqual(true, socket1.Bind(endp1, false));
 
 				Assert::AreEqual(true, socket1.UpdateIOStatus(0ms));
 				Assert::AreEqual(true, socket1.GetIOStatus().IsOpen());
+				Assert::AreEqual(true, socket1.GetIOStatus().IsBound());
 				Assert::AreEqual(false, socket1.GetIOStatus().IsConnecting());
 				Assert::AreEqual(false, socket1.GetIOStatus().IsConnected());
 				Assert::AreEqual(false, socket1.GetIOStatus().IsListening());
 				Assert::AreEqual(false, socket1.GetIOStatus().CanRead());
 				Assert::AreEqual(true, socket1.GetIOStatus().CanWrite());
+				Assert::AreEqual(false, socket1.GetIOStatus().IsSuspended());
 				Assert::AreEqual(false, socket1.GetIOStatus().HasException());
 				Assert::AreEqual(-1, socket1.GetIOStatus().GetErrorCode());
 				Assert::AreEqual(true, socket1.GetBytesReceived() == 0);
 				Assert::AreEqual(true, socket1.GetBytesSent() == 0);
 
 				// Create second socket
-				const auto endp2 = IPEndpoint(ip, 9001);
+				const auto endp2 = IPEndpoint(IPEndpoint::Protocol::UDP, ip, 9001);
 				Socket socket2(endp2.GetIPAddress().GetFamily(), Socket::Type::Datagram, IP::Protocol::UDP);
 				Assert::AreEqual(true, socket2.Bind(endp2, true));
 
 				Assert::AreEqual(true, socket2.UpdateIOStatus(0ms));
 				Assert::AreEqual(true, socket2.GetIOStatus().IsOpen());
+				Assert::AreEqual(true, socket2.GetIOStatus().IsBound());
 				Assert::AreEqual(false, socket2.GetIOStatus().IsConnecting());
 				Assert::AreEqual(false, socket2.GetIOStatus().IsConnected());
 				Assert::AreEqual(false, socket2.GetIOStatus().IsListening());
 				Assert::AreEqual(false, socket2.GetIOStatus().CanRead());
 				Assert::AreEqual(true, socket2.GetIOStatus().CanWrite());
+				Assert::AreEqual(false, socket2.GetIOStatus().IsSuspended());
 				Assert::AreEqual(false, socket2.GetIOStatus().HasException());
 				Assert::AreEqual(-1, socket2.GetIOStatus().GetErrorCode());
 				Assert::AreEqual(true, socket2.GetBytesReceived() == 0);
@@ -181,8 +191,9 @@ namespace UnitTests
 				const auto snd_buf_len = 32u;
 				const auto snd_buf1a = Util::GetPseudoRandomBytes(snd_buf_len);
 				Buffer snd_buf1b = snd_buf1a;
-				Assert::AreEqual(true, socket1.SendTo(endp2, snd_buf1b));
-				Assert::AreEqual(true, snd_buf1b.IsEmpty());
+				const auto snd_result1 = socket1.SendTo(endp2, snd_buf1b);
+				Assert::AreEqual(true, snd_result1.Succeeded());
+				Assert::AreEqual(true, *snd_result1 == snd_buf1b.GetSize());
 				Assert::AreEqual(true, socket1.GetBytesSent() == snd_buf_len);
 
 				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms));
@@ -191,7 +202,9 @@ namespace UnitTests
 				// Receive data sent by first socket
 				IPEndpoint endp_rcv;
 				Buffer rcv_buf;
-				Assert::AreEqual(true, socket2.ReceiveFrom(endp_rcv, rcv_buf));
+				const auto rcv_result2 = socket2.ReceiveFrom(endp_rcv, rcv_buf);
+				Assert::AreEqual(true, rcv_result2.Succeeded());
+				Assert::AreEqual(true, rcv_buf.GetSize() == *rcv_result2);
 				Assert::AreEqual(true, rcv_buf.GetSize() == snd_buf_len);
 				Assert::AreEqual(true, socket2.GetBytesReceived() == snd_buf_len);
 				Assert::AreEqual(true, endp_rcv == endp1);
@@ -201,8 +214,10 @@ namespace UnitTests
 				Socket socket3(std::move(socket2));
 				Assert::AreEqual(true, socket3.UpdateIOStatus(0ms));
 				Assert::AreEqual(true, socket3.GetIOStatus().IsOpen());
+				Assert::AreEqual(true, socket3.GetIOStatus().IsBound());
 				Assert::AreEqual(false, socket3.GetIOStatus().CanRead());
 				Assert::AreEqual(true, socket3.GetIOStatus().CanWrite());
+				Assert::AreEqual(false, socket3.GetIOStatus().IsSuspended());
 				Assert::AreEqual(true, socket3.GetBytesReceived() == snd_buf_len);
 				Assert::AreEqual(true, socket3.GetBytesSent() == 0);
 				Assert::AreEqual(true, socket3.GetLocalEndpoint() == endp2);
@@ -210,8 +225,9 @@ namespace UnitTests
 				// Send data from second socket to first socket
 				const auto snd_buf2a = Util::GetPseudoRandomBytes(snd_buf_len);
 				Buffer snd_buf2b = snd_buf2a;
-				Assert::AreEqual(true, socket3.SendTo(endp1, snd_buf2b));
-				Assert::AreEqual(true, snd_buf2b.IsEmpty());
+				const auto snd_result3 = socket3.SendTo(endp1, snd_buf2b);
+				Assert::AreEqual(true, snd_result3.Succeeded());
+				Assert::AreEqual(true, *snd_result3 == snd_buf2b.GetSize());
 				Assert::AreEqual(true, socket3.GetBytesSent() == snd_buf_len);
 
 				Assert::AreEqual(true, socket1.UpdateIOStatus(5000ms));
@@ -220,7 +236,9 @@ namespace UnitTests
 				// Receive data on first socket
 				IPEndpoint endp_rcv2;
 				Buffer rcv_buf2;
-				Assert::AreEqual(true, socket1.ReceiveFrom(endp_rcv2, rcv_buf2));
+				const auto rcv_result1 = socket1.ReceiveFrom(endp_rcv2, rcv_buf2);
+				Assert::AreEqual(true, rcv_result1.Succeeded());
+				Assert::AreEqual(true, rcv_buf2.GetSize() == *rcv_result1);
 				Assert::AreEqual(true, rcv_buf2.GetSize() == snd_buf_len);
 				Assert::AreEqual(true, socket1.GetBytesReceived() == snd_buf_len);
 				Assert::AreEqual(true, endp_rcv2 == endp2);
@@ -228,8 +246,8 @@ namespace UnitTests
 
 				socket1.Close();
 				Assert::AreEqual(false, socket1.GetIOStatus().IsOpen());
-				socket2.Close();
-				Assert::AreEqual(false, socket2.GetIOStatus().IsOpen());
+				socket3.Close();
+				Assert::AreEqual(false, socket3.GetIOStatus().IsOpen());
 			}
 
 			WSACleanup();
@@ -247,12 +265,13 @@ namespace UnitTests
 			for (const auto& ip : ips)
 			{
 				// Create listener socket
-				const auto listen_endp = IPEndpoint(ip, 9000);
+				const auto listen_endp = IPEndpoint(IPEndpoint::Protocol::TCP, ip, 9000);
 				Socket listener(listen_endp.GetIPAddress().GetFamily(), Socket::Type::Stream, IP::Protocol::TCP);
 				Assert::AreEqual(true, listener.Listen(listen_endp, false, false));
 
 				Assert::AreEqual(true, listener.UpdateIOStatus(0ms));
 				Assert::AreEqual(true, listener.GetIOStatus().IsOpen());
+				Assert::AreEqual(false, listener.GetIOStatus().IsBound());
 				Assert::AreEqual(false, listener.GetIOStatus().IsConnecting());
 				Assert::AreEqual(false, listener.GetIOStatus().IsConnected());
 				Assert::AreEqual(true, listener.GetIOStatus().IsListening());
@@ -271,8 +290,10 @@ namespace UnitTests
 					Assert::AreEqual(true, socket1.BeginConnect(listen_endp));
 					Assert::AreEqual(true, socket1.GetIOStatus().IsOpen());
 					Assert::AreEqual(true, socket1.GetIOStatus().IsConnecting());
+					Assert::AreEqual(false, socket1.GetIOStatus().IsBound());
 					Assert::AreEqual(false, socket1.GetIOStatus().IsConnected());
 					Assert::AreEqual(false, socket1.GetIOStatus().CanWrite());
+					Assert::AreEqual(false, socket1.GetIOStatus().IsSuspended());
 
 					Assert::AreEqual(true, socket1.UpdateIOStatus(0ms));
 
@@ -283,6 +304,7 @@ namespace UnitTests
 					Assert::AreEqual(false, socket1.GetIOStatus().IsConnecting());
 					Assert::AreEqual(true, socket1.GetIOStatus().IsConnected());
 					Assert::AreEqual(false, socket1.GetIOStatus().IsListening());
+					Assert::AreEqual(false, socket1.GetIOStatus().IsBound());
 					Assert::AreEqual(false, socket1.GetIOStatus().CanRead());
 					Assert::AreEqual(false, socket1.GetIOStatus().HasException());
 					Assert::AreEqual(-1, socket1.GetIOStatus().GetErrorCode());
@@ -305,11 +327,13 @@ namespace UnitTests
 
 				{
 					Assert::AreEqual(true, socket2.GetIOStatus().IsOpen());
+					Assert::AreEqual(false, socket2.GetIOStatus().IsBound());
 					Assert::AreEqual(false, socket2.GetIOStatus().IsConnecting());
 					Assert::AreEqual(true, socket2.GetIOStatus().IsConnected());
 					Assert::AreEqual(false, socket2.GetIOStatus().IsListening());
 					Assert::AreEqual(false, socket2.GetIOStatus().CanRead());
 					Assert::AreEqual(false, socket2.GetIOStatus().CanWrite());
+					Assert::AreEqual(false, socket2.GetIOStatus().IsSuspended());
 					Assert::AreEqual(false, socket2.GetIOStatus().HasException());
 					Assert::AreEqual(-1, socket2.GetIOStatus().GetErrorCode());
 					Assert::AreEqual(true, socket2.GetBytesReceived() == 0);
@@ -328,8 +352,9 @@ namespace UnitTests
 				const auto snd_buf_len = 32u;
 				const auto snd_buf1a = Util::GetPseudoRandomBytes(snd_buf_len);
 				Buffer snd_buf1b = snd_buf1a;
-				Assert::AreEqual(true, socket1.Send(snd_buf1b));
-				Assert::AreEqual(true, snd_buf1b.IsEmpty());
+				const auto snd_result = socket1.Send(snd_buf1b);
+				Assert::AreEqual(true, snd_result.Succeeded());
+				Assert::AreEqual(true, *snd_result == snd_buf1b.GetSize());
 				Assert::AreEqual(true, socket1.GetBytesSent() == snd_buf_len);
 
 				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms));
@@ -337,7 +362,9 @@ namespace UnitTests
 
 				// Receive data on second socket
 				Buffer rcv_buf;
-				Assert::AreEqual(true, socket2.Receive(rcv_buf));
+				const auto rcv_result2 = socket2.Receive(rcv_buf);
+				Assert::AreEqual(true, rcv_result2.Succeeded());
+				Assert::AreEqual(true, rcv_buf.GetSize() == *rcv_result2);
 				Assert::AreEqual(true, rcv_buf.GetSize() == snd_buf_len);
 				Assert::AreEqual(true, socket2.GetBytesReceived() == snd_buf_len);
 				Assert::AreEqual(true, rcv_buf == snd_buf1a);
@@ -351,7 +378,8 @@ namespace UnitTests
 
 				// Connection closed on second socket; read returns false
 				Assert::AreEqual(true, socket2.UpdateIOStatus(5000ms));
-				Assert::AreEqual(false, socket2.Receive(rcv_buf));
+				const auto rcv_result3 = socket2.Receive(rcv_buf);
+				Assert::AreEqual(false, rcv_result3.Succeeded());
 				socket2.Close();
 				Assert::AreEqual(false, socket2.GetIOStatus().IsOpen());
 			}
@@ -371,12 +399,13 @@ namespace UnitTests
 			for (const auto& ip : ips)
 			{
 				// Create listener socket
-				const auto listen_endp = IPEndpoint(ip, 9000);
+				const auto listen_endp = IPEndpoint(IPEndpoint::Protocol::TCP, ip, 9000);
 				Socket listener(listen_endp.GetIPAddress().GetFamily(), Socket::Type::Stream, IP::Protocol::TCP);
 				Assert::AreEqual(true, listener.Listen(listen_endp, true, true));
 
 				Assert::AreEqual(true, listener.UpdateIOStatus(0ms));
 				Assert::AreEqual(true, listener.GetIOStatus().IsOpen());
+				Assert::AreEqual(false, listener.GetIOStatus().IsBound());
 				Assert::AreEqual(false, listener.GetIOStatus().IsConnecting());
 				Assert::AreEqual(false, listener.GetIOStatus().IsConnected());
 				Assert::AreEqual(true, listener.GetIOStatus().IsListening());
@@ -394,6 +423,7 @@ namespace UnitTests
 				{
 					Assert::AreEqual(true, socket1.BeginConnect(listen_endp));
 					Assert::AreEqual(true, socket1.GetIOStatus().IsOpen());
+					Assert::AreEqual(false, socket1.GetIOStatus().IsBound());
 					Assert::AreEqual(true, socket1.GetIOStatus().IsConnecting());
 					Assert::AreEqual(false, socket1.GetIOStatus().IsConnected());
 					Assert::AreEqual(false, socket1.GetIOStatus().CanWrite());
@@ -449,6 +479,7 @@ namespace UnitTests
 				// Failure to connect on socket1 because of rejection
 				{
 					Assert::AreEqual(true, socket1.GetIOStatus().IsOpen());
+					Assert::AreEqual(false, socket1.GetIOStatus().IsBound());
 					Assert::AreEqual(false, socket1.GetIOStatus().CanWrite());
 					Assert::AreEqual(true, socket1.GetIOStatus().IsConnecting());
 					Assert::AreEqual(false, socket1.GetIOStatus().IsConnected());
@@ -469,6 +500,7 @@ namespace UnitTests
 				{
 					Assert::AreEqual(true, socket1.BeginConnect(listen_endp));
 					Assert::AreEqual(true, socket1.GetIOStatus().IsOpen());
+					Assert::AreEqual(false, socket1.GetIOStatus().IsBound());
 					Assert::AreEqual(true, socket1.GetIOStatus().IsConnecting());
 					Assert::AreEqual(false, socket1.GetIOStatus().IsConnected());
 					Assert::AreEqual(false, socket1.GetIOStatus().CanWrite());
@@ -500,6 +532,7 @@ namespace UnitTests
 					Assert::AreEqual(true, socket1.CompleteConnect());
 
 					Assert::AreEqual(false, socket1.GetIOStatus().IsConnecting());
+					Assert::AreEqual(false, socket1.GetIOStatus().IsBound());
 					Assert::AreEqual(true, socket1.GetIOStatus().IsConnected());
 					Assert::AreEqual(false, socket1.GetIOStatus().IsListening());
 					Assert::AreEqual(false, socket1.GetIOStatus().CanRead());
@@ -512,6 +545,7 @@ namespace UnitTests
 				// Connection succeeded on socket2
 				{
 					Assert::AreEqual(true, socket2.GetIOStatus().IsOpen());
+					Assert::AreEqual(false, socket2.GetIOStatus().IsBound());
 					Assert::AreEqual(false, socket2.GetIOStatus().IsConnecting());
 					Assert::AreEqual(true, socket2.GetIOStatus().IsConnected());
 					Assert::AreEqual(false, socket2.GetIOStatus().IsListening());

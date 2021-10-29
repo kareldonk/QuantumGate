@@ -29,7 +29,8 @@ namespace QuantumGate::API
 
 	inline static bool IsPeerConnected(const PeerData_ThS::SharedLockedConstType& peer_data) noexcept
 	{
-		return (peer_data->Status == QuantumGate::Implementation::Core::Peer::Status::Ready);
+		return (peer_data->Status == QuantumGate::Implementation::Core::Peer::Status::Ready ||
+				peer_data->Status == QuantumGate::Implementation::Core::Peer::Status::Suspended);
 	}
 
 	template<typename T, typename F>
@@ -293,5 +294,15 @@ namespace QuantumGate::API
 		assert(HasPeer());
 		return GetPeerDataItem<Size>(PeerDataCast(GetPeerDataStorage()),
 									 [](auto& peer_data) { return peer_data->ExtendersBytesSent; });
+	}
+
+	Result<bool> Peer::GetSuspended() const noexcept
+	{
+		assert(HasPeer());
+		return GetPeerDataItem<bool>(PeerDataCast(GetPeerDataStorage()),
+									 [](auto& peer_data)
+		{
+			return (peer_data->Status == QuantumGate::Implementation::Core::Peer::Status::Suspended);
+		});
 	}
 }

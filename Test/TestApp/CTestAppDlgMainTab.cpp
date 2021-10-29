@@ -13,29 +13,24 @@
 
 using namespace QuantumGate::Implementation;
 
-IMPLEMENT_DYNAMIC(CTestAppDlgMainTab, CTabBase)
-
-CTestAppDlgMainTab::CTestAppDlgMainTab(QuantumGate::Local& local, CWnd* pParent /*=nullptr*/)
-	: CTabBase(IDD_QGTESTAPP_DIALOG_MAIN_TAB, pParent), m_QuantumGate(local)
-{}
-
-CTestAppDlgMainTab::~CTestAppDlgMainTab()
-{}
+IMPLEMENT_DYNCREATE(CTestAppDlgMainTab, CTestAppDlgTabCtrlPage)
 
 void CTestAppDlgMainTab::UpdateControls() noexcept
 {
-	((CEdit*)GetDlgItem(IDC_SERVERPORT))->SetReadOnly(m_QuantumGate.IsRunning());
-	((CEdit*)GetDlgItem(IDC_LOCAL_UUID))->SetReadOnly(m_QuantumGate.IsRunning());
-	GetDlgItem(IDC_CREATE_UUID)->EnableWindow(!m_QuantumGate.IsRunning());
-	((CEdit*)GetDlgItem(IDC_PASSPHRASE))->SetReadOnly(m_QuantumGate.IsRunning());
+	auto local = GetQuantumGateInstance();
+
+	((CEdit*)GetDlgItem(IDC_SERVERPORT))->SetReadOnly(local->IsRunning());
+	((CEdit*)GetDlgItem(IDC_LOCAL_UUID))->SetReadOnly(local->IsRunning());
+	GetDlgItem(IDC_CREATE_UUID)->EnableWindow(!local->IsRunning());
+	((CEdit*)GetDlgItem(IDC_PASSPHRASE))->SetReadOnly(local->IsRunning());
 }
 
 void CTestAppDlgMainTab::DoDataExchange(CDataExchange* pDX)
 {
-	CTabBase::DoDataExchange(pDX);
+	CTestAppDlgTabCtrlPage::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CTestAppDlgMainTab, CTabBase)
+BEGIN_MESSAGE_MAP(CTestAppDlgMainTab, CTestAppDlgTabCtrlPage)
 	ON_WM_TIMER()
 	ON_WM_CTLCOLOR()
 	ON_COMMAND(ID_PEERLIST_VIEW_DETAILS, &CTestAppDlgMainTab::OnPeerlistViewDetails)
@@ -72,7 +67,7 @@ END_MESSAGE_MAP()
 
 BOOL CTestAppDlgMainTab::OnInitDialog()
 {
-	CTabBase::OnInitDialog();
+	CTestAppDlgTabCtrlPage::OnInitDialog();
 
 	SetValue(IDC_VERSION_INFO, GetApp()->GetAppVersion());
 
@@ -114,14 +109,15 @@ BOOL CTestAppDlgMainTab::OnInitDialog()
 
 void CTestAppDlgMainTab::UpdatePeers()
 {
-	const auto result = m_QuantumGate.QueryPeers(m_PeerQueryParams, m_PeerLUIDs);
+	auto local = GetQuantumGateInstance();
+	const auto result = local->QueryPeers(m_PeerQueryParams, m_PeerLUIDs);
 	if (result.Succeeded())
 	{
 		auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
 
 		for (const auto& pluid : m_PeerLUIDs)
 		{
-			m_QuantumGate.GetPeer(pluid).Succeeded([&](auto& result)
+			local->GetPeer(pluid).Succeeded([&](auto& result)
 			{
 				const auto retval = result->GetDetails();
 				if (retval.Succeeded())
@@ -136,6 +132,9 @@ void CTestAppDlgMainTab::UpdatePeers()
 						const auto pos = lctrl->InsertItem(0, pluidstr.c_str());
 						if (pos != -1)
 						{
+							if (retval->IsSuspended) lctrl->SetItemData(pos, 1);
+							else lctrl->SetItemData(pos, 0);
+
 							lctrl->SetItemText(pos, 1, relayed);
 							lctrl->SetItemText(pos, 2, auth);
 							lctrl->SetItemText(pos, 3, retval->PeerIPEndpoint.GetString().c_str());
@@ -146,6 +145,19 @@ void CTestAppDlgMainTab::UpdatePeers()
 
 					if (index != -1)
 					{
+						const auto itmd = lctrl->GetItemData(index);
+						if (retval->IsSuspended && itmd == 0)
+						{
+							// Add hourglass emoji
+							lctrl->SetItemText(index, 0, Util::FormatString(L"%llu | \u231B", pluid).c_str());
+							lctrl->SetItemData(index, 1);
+						}
+						else if (!retval->IsSuspended && itmd == 1)
+						{
+							lctrl->SetItemText(index, 0, Util::FormatString(L"%llu", pluid).c_str());
+							lctrl->SetItemData(index, 0);
+						}
+
 						lctrl->SetItemText(index, 4,
 										   Util::FormatString(L"%.2lf KB",
 															  static_cast<double>(retval->BytesSent) / 1024.0).c_str());
@@ -218,7 +230,7 @@ void CTestAppDlgMainTab::OnTimer(UINT_PTR nIDEvent)
 		}
 	}
 
-	CTabBase::OnTimer(nIDEvent);
+	CTestAppDlgTabCtrlPage::OnTimer(nIDEvent);
 }
 
 HBRUSH CTestAppDlgMainTab::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
@@ -235,7 +247,7 @@ HBRUSH CTestAppDlgMainTab::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		return (HBRUSH)GetStockObject(HOLLOW_BRUSH);
 	}
 
-	return CTabBase::OnCtlColor(pDC, pWnd, nCtlColor);
+	return CTestAppDlgTabCtrlPage::OnCtlColor(pDC, pWnd, nCtlColor);
 }
 
 void CTestAppDlgMainTab::OnPeerlistViewDetails()
@@ -243,7 +255,7 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 	const auto pluid = GetSelectedPeerLUID();
 	if (pluid > 0)
 	{
-		m_QuantumGate.GetPeer(pluid).Succeeded([&](auto& result)
+		GetQuantumGateInstance()->GetPeer(pluid).Succeeded([&](auto& result)
 		{
 			const auto retval = result->GetDetails();
 			if (retval.Succeeded())
@@ -253,6 +265,9 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 				String pitxt;
 				pitxt += Util::FormatString(L"Peer LUID:\t\t%llu\r\n", pluid);
 				pitxt += Util::FormatString(L"Peer UUID:\t\t%s\r\n\r\n", retval->PeerUUID.GetString().c_str());
+
+				pitxt += Util::FormatString(L"Suspended:\t\t%s\r\n\r\n",
+											retval->IsSuspended ? L"Yes" : L"No");
 
 				pitxt += Util::FormatString(L"Authenticated:\t\t%s\r\n",
 											retval->IsAuthenticated ? L"Yes" : L"No");
@@ -280,7 +295,7 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 											retval->PeerProtocolVersion.first, retval->PeerProtocolVersion.second);
 				pitxt += Util::FormatString(L"Local session ID:\t\t%llu\r\n", retval->LocalSessionID);
 				pitxt += Util::FormatString(L"Peer session ID:\t\t%llu\r\n", retval->PeerSessionID);
-				pitxt += Util::FormatString(L"Connected time:\t\t%llu seconds\r\n",
+				pitxt += Util::FormatString(L"Connected time:\t\t%jd seconds\r\n",
 											std::chrono::duration_cast<std::chrono::seconds>(retval->ConnectedTime).count());
 				pitxt += Util::FormatString(L"Bytes received:\t\t%zu\r\n", retval->BytesReceived);
 				pitxt += Util::FormatString(L"Bytes sent:\t\t%zu\r\n", retval->BytesSent);
@@ -324,6 +339,11 @@ void CTestAppDlgMainTab::LogPeerDetails(const QuantumGate::Peer& peer)
 	peer.GetUUID().Succeeded([&](auto& result)
 	{
 		pitxt += Util::FormatString(L"Peer UUID:\t\t\t%s\r\n\r\n", result->GetString().c_str());
+	});
+
+	peer.GetSuspended().Succeeded([&](auto& result)
+	{
+		pitxt += Util::FormatString(L"Suspended:\t\t\t%s\r\n\r\n", *result ? L"Yes" : L"No");
 	});
 
 	peer.GetAuthenticated().Succeeded([&](auto& result)
@@ -385,7 +405,7 @@ void CTestAppDlgMainTab::LogPeerDetails(const QuantumGate::Peer& peer)
 
 	peer.GetConnectedTime().Succeeded([&](auto& result)
 	{
-		pitxt += Util::FormatString(L"Connected time:\t\t\t%llu seconds\r\n",
+		pitxt += Util::FormatString(L"Connected time:\t\t\t%jd seconds\r\n",
 									std::chrono::duration_cast<std::chrono::seconds>(*result).count());
 	});
 
@@ -435,19 +455,19 @@ void CTestAppDlgMainTab::OnNMRClickAllPeersList(NMHDR* pNMHDR, LRESULT* pResult)
 void CTestAppDlgMainTab::OnUpdatePeerlistViewDetails(CCmdUI* pCmdUI)
 {
 	const auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
-	pCmdUI->Enable(m_QuantumGate.IsRunning() && (lctrl->GetSelectedCount() > 0));
+	pCmdUI->Enable(GetQuantumGateInstance()->IsRunning() && (lctrl->GetSelectedCount() > 0));
 }
 
 void CTestAppDlgMainTab::OnUpdatePeerlistDisconnect(CCmdUI* pCmdUI)
 {
 	const auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
-	pCmdUI->Enable(m_QuantumGate.IsRunning() && (lctrl->GetSelectedCount() > 0));
+	pCmdUI->Enable(GetQuantumGateInstance()->IsRunning() && (lctrl->GetSelectedCount() > 0));
 }
 
 void CTestAppDlgMainTab::OnUpdatePeerlistCreateRelay(CCmdUI* pCmdUI)
 {
 	const auto lctrl = (CListCtrl*)GetDlgItem(IDC_ALL_PEERS_LIST);
-	pCmdUI->Enable(m_QuantumGate.IsRunning() && (lctrl->GetSelectedCount() > 0));
+	pCmdUI->Enable(GetQuantumGateInstance()->IsRunning() && (lctrl->GetSelectedCount() > 0));
 }
 
 void CTestAppDlgMainTab::OnNMDblclkAllPeersList(NMHDR* pNMHDR, LRESULT* pResult)
@@ -461,7 +481,7 @@ void CTestAppDlgMainTab::OnPeerlistDisconnect()
 	const auto pluid = GetSelectedPeerLUID();
 	if (pluid != 0)
 	{
-		if (!m_QuantumGate.DisconnectFrom(pluid, [](QuantumGate::PeerLUID pluid, const PeerUUID puuid) mutable
+		if (!GetQuantumGateInstance()->DisconnectFrom(pluid, [](QuantumGate::PeerLUID pluid, const PeerUUID puuid) mutable
 		{
 			LogInfo(L"Peer LUID %llu manually disconnected", pluid);
 		}))
@@ -608,7 +628,7 @@ void CTestAppDlgMainTab::OnDestroy()
 		m_PeerActivityTimer = 0;
 	}
 
-	CTabBase::OnDestroy();
+	CTestAppDlgTabCtrlPage::OnDestroy();
 }
 
 void CTestAppDlgMainTab::OnBnClickedOnlyRelayedCheck()

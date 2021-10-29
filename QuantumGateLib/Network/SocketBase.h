@@ -25,32 +25,38 @@ namespace QuantumGate::Implementation::Network
 			enum class StatusType : UInt8
 			{
 				Open = 0,
+				Bound,
 				Connecting,
 				Connected,
 				Listening,
 				Read,
 				Write,
+				Suspended,
 				Closing,
 				Exception
 			};
 
 		public:
 			inline void SetOpen(const bool state) noexcept { Set(StatusType::Open, state); }
+			inline void SetBound(const bool state) noexcept { Set(StatusType::Bound, state); }
 			inline void SetConnecting(const bool state) noexcept { Set(StatusType::Connecting, state); }
 			inline void SetConnected(const bool state) noexcept { Set(StatusType::Connected, state); }
 			inline void SetListening(const bool state) noexcept { Set(StatusType::Listening, state); }
 			inline void SetRead(const bool state) noexcept { Set(StatusType::Read, state); }
 			inline void SetWrite(const bool state) noexcept { Set(StatusType::Write, state); }
+			inline void SetSuspended(const bool state) noexcept { Set(StatusType::Suspended, state); }
 			inline void SetClosing(const bool state) noexcept { Set(StatusType::Closing, state); }
 			inline void SetException(const bool state) noexcept { Set(StatusType::Exception, state); }
 			inline void SetErrorCode(const Int errorcode) noexcept { ErrorCode = errorcode; }
 
 			inline bool IsOpen() const noexcept { return IsSet(StatusType::Open); }
+			inline bool IsBound() const noexcept { return IsSet(StatusType::Bound); }
 			inline bool IsConnecting() const noexcept { return IsSet(StatusType::Connecting); }
 			inline bool IsConnected() const noexcept { return IsSet(StatusType::Connected); }
 			inline bool IsListening() const noexcept { return IsSet(StatusType::Listening); }
 			inline bool CanRead() const noexcept { return IsSet(StatusType::Read); }
 			inline bool CanWrite() const noexcept { return IsSet(StatusType::Write); }
+			inline bool IsSuspended() const noexcept { return IsSet(StatusType::Suspended); }
 			inline bool IsClosing() const noexcept { return IsSet(StatusType::Closing); }
 			inline bool HasException() const noexcept { return IsSet(StatusType::Exception); }
 			inline Int GetErrorCode() const noexcept { return ErrorCode; }
@@ -73,7 +79,7 @@ namespace QuantumGate::Implementation::Network
 			}
 
 		private:
-			std::bitset<8> Status{ 0 };
+			std::bitset<10> Status{ 0 };
 			Int ErrorCode{ -1 };
 		};
 
@@ -92,15 +98,19 @@ namespace QuantumGate::Implementation::Network
 		virtual bool BeginConnect(const IPEndpoint& endpoint) noexcept = 0;
 		virtual bool CompleteConnect() noexcept = 0;
 
-		virtual bool Send(Buffer& buffer, const Size max_snd_size = 0) noexcept = 0;
-		virtual bool SendTo(const IPEndpoint& endpoint, Buffer& buffer, const Size max_snd_size = 0) noexcept = 0;
-		virtual bool Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept = 0;
-		virtual bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept = 0;
+		virtual Result<Size> Send(const BufferView& buffer, const Size max_snd_size = 0) noexcept = 0;
+		virtual Result<Size> SendTo(const IPEndpoint& endpoint, const BufferView& buffer, const Size max_snd_size = 0) noexcept = 0;
+		virtual Result<Size> Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept = 0;
+		virtual Result<Size> ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept = 0;
 
 		virtual void Close(const bool linger = false) noexcept = 0;
 
 		virtual const IOStatus& GetIOStatus() const noexcept = 0;
 		virtual bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept = 0;
+
+		virtual bool CanSuspend() const noexcept = 0;
+		virtual std::optional<SteadyTime> GetLastSuspendedSteadyTime() const noexcept = 0;
+		virtual std::optional<SteadyTime> GetLastResumedSteadyTime() const noexcept = 0;
 
 		virtual SystemTime GetConnectedTime() const noexcept = 0;
 		virtual const SteadyTime& GetConnectedSteadyTime() const noexcept = 0;

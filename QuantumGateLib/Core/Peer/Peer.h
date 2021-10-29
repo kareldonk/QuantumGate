@@ -12,7 +12,6 @@
 #include "PeerGate.h"
 #include "PeerKeyExchange.h"
 #include "PeerKeyUpdate.h"
-#include "PeerMessageProcessor.h"
 #include "PeerNoiseQueue.h"
 #include "PeerSendQueues.h"
 #include "PeerReceiveQueues.h"
@@ -59,8 +58,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Peer() = delete;
 		Peer(Manager& peers, const GateType pgtype, const PeerConnectionType pctype,
 			 std::optional<ProtectedBuffer>&& shared_secret);
-		Peer(Manager& peers, const IP::AddressFamily af, const Socket::Type type,
-			 const IP::Protocol protocol, const PeerConnectionType pctype,
+		Peer(Manager& peers, const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
 			 std::optional<ProtectedBuffer>&& shared_secret);
 		Peer(const Peer&) = delete;
 		Peer(Peer&&) noexcept = default;
@@ -98,8 +96,11 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] inline bool IsInHandshake() const noexcept
 		{
-			return (GetStatus() > Status::Connected&& GetStatus() < Status::Ready);
+			const auto status = GetStatus();
+			return (status > Status::Connected && status < Status::Ready);
 		}
+
+		[[nodiscard]] inline bool IsSuspended() const noexcept { return (GetStatus() == Status::Suspended); }
 
 		[[nodiscard]] inline bool IsAuthenticated() const noexcept { return m_PeerData.WithSharedLock()->IsAuthenticated; }
 		void SetAuthenticated(const bool auth) noexcept;
@@ -195,13 +196,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		inline void SetDisconnectCondition(const DisconnectCondition dc) noexcept { if (!ShouldDisconnect()) m_DisconnectCondition = dc; }
 
 		[[nodiscard]] bool UpdateSocketStatus() noexcept;
-		[[nodiscard]] bool CheckStatus(const bool noise_enabled, const std::chrono::seconds max_connect_duration,
-									   std::chrono::seconds max_handshake_duration) noexcept;
+		[[nodiscard]] bool CheckStatus(const bool noise_enabled, const SteadyTime current_steadytime,
+									   const std::chrono::seconds max_connect_duration, std::chrono::seconds max_handshake_duration) noexcept;
 
 		void UpdateReputation(const Access::IPReputationUpdate rep_update) noexcept;
 
-		[[nodiscard]] bool HasPendingEvents() noexcept;
-		[[nodiscard]] bool ProcessEvents();
+		[[nodiscard]] bool HasPendingEvents(const SteadyTime current_steadytime) noexcept;
+		[[nodiscard]] bool ProcessEvents(const SteadyTime current_steadytime);
 		void ProcessLocalExtenderUpdate(const Vector<ExtenderUUID>& extuuids);
 		[[nodiscard]] bool ProcessPeerExtenderUpdate(Vector<ExtenderUUID>&& uuids) noexcept;
 
@@ -267,8 +268,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		void ProcessEvent(const Event::Type etype) noexcept;
 		void ProcessEvent(const Vector<ExtenderUUID>& extuuids, const Event::Type etype) noexcept;
 
-		[[nodiscard]] bool CheckAndProcessKeyUpdate() noexcept;
-
 		void SetInitialConditionsWithGlobalSharedSecret(const ProtectedBuffer& encr_authkey,
 														const ProtectedBuffer& decr_authkey) noexcept;
 
@@ -295,8 +294,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		Data_ThS m_PeerData;
 
 		PeerWeakPointer m_PeerPointer;
-
-		SteadyTime m_LastStatusChangeSteadyTime;
 
 		std::bitset<8> m_Flags{ 0 };
 

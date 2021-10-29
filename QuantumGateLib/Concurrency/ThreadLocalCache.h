@@ -26,7 +26,12 @@ namespace QuantumGate::Implementation::Concurrency
 		{
 			std::random_device rnd_dev;
 			std::mt19937 rnd_alg(rnd_dev());
-			m_ValueUpdateFlag = rnd_alg(); 
+
+			do
+			{
+				m_ValueUpdateFlag = rnd_alg();
+			}
+			while (m_ValueUpdateFlag == 0);
 		};
 		
 		ThreadLocalCache(const ThreadLocalCache&) = delete;
@@ -45,7 +50,7 @@ namespace QuantumGate::Implementation::Concurrency
 			return GetCache();
 		}
 
-		inline const CacheType& GetCache(const bool latest = true) const noexcept(noexcept(UpdateCache()))
+		[[nodiscard]] inline const CacheType& GetCache(const bool latest = true) const noexcept(noexcept(UpdateCache()))
 		{
 			if (latest && IsCacheExpired()) UpdateCache();
 
@@ -66,14 +71,14 @@ namespace QuantumGate::Implementation::Concurrency
 		}
 
 	private:
-		ForceInline static CacheType& Cache() noexcept
+		[[nodiscard]] ForceInline static CacheType& Cache() noexcept
 		{
 			// Static object for use by the current thread
 			static thread_local CacheType m_Cache;
 			return m_Cache;
 		}
 
-		ForceInline static UInt& CacheUpdateFlag() noexcept
+		[[nodiscard]] ForceInline static UInt& CacheUpdateFlag() noexcept
 		{
 			// Static object for use by the current thread
 			static thread_local UInt m_CacheUpdateFlag{ 0 };
@@ -98,9 +103,9 @@ namespace QuantumGate::Implementation::Concurrency
 			});
 		}
 
-		ForceInline bool IsCacheExpired() const noexcept
+		[[nodiscard]] ForceInline bool IsCacheExpired() const noexcept
 		{
-			return (m_ValueUpdateFlag.load() != CacheUpdateFlag());
+			return (m_ValueUpdateFlag.load(std::memory_order_relaxed) != CacheUpdateFlag());
 		}
 
 	private:

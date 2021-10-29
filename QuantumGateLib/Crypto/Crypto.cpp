@@ -11,6 +11,7 @@
 #include "NewHope.h"
 #include "..\Common\Random.h"
 #include "..\Common\ScopeGuard.h"
+#include "..\Memory\StackBuffer.h"
 #include "..\..\QuantumGateCryptoLib\QuantumGateCryptoLib.h"
 
 namespace QuantumGate::Implementation::Crypto
@@ -173,7 +174,7 @@ namespace QuantumGate::Implementation::Crypto
 	std::optional<UInt64> GetCryptoRandomNumber() noexcept
 	{
 		UInt64 num{ 0 };
-		if (QGCryptoGetRandomBytes(reinterpret_cast<UChar*>(&num), sizeof(num)) == 0)
+		if (QGCryptoGetRandomBytes(reinterpret_cast<UChar*>(&num), sizeof(num)) == 1)
 		{
 			return { num };
 		}
@@ -188,7 +189,7 @@ namespace QuantumGate::Implementation::Crypto
 			Buffer bytes(size);
 
 			if (QGCryptoGetRandomBytes(reinterpret_cast<UChar*>(bytes.GetBytes()),
-									   static_cast<ULong>(bytes.GetSize())) == 0)
+									   static_cast<ULong>(bytes.GetSize())) == 1)
 			{
 				return { std::move(bytes) };
 			}
@@ -217,6 +218,8 @@ namespace QuantumGate::Implementation::Crypto
 	}
 
 	// Specific instantiations
+	template bool HMAC<Memory::StackBuffer32>(const BufferView& buffer, Memory::StackBuffer32& hmac,
+											  const BufferView& key, const Algorithm::Hash type) noexcept;
 	template bool HMAC<Buffer>(const BufferView& buffer, Buffer& hmac,
 							   const BufferView& key, const Algorithm::Hash type) noexcept;
 	template bool HMAC<ProtectedBuffer>(const BufferView& buffer, ProtectedBuffer& hmac,

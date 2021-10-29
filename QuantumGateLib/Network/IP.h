@@ -37,6 +37,8 @@ namespace QuantumGate::Implementation::Network::IP
 		TCP = 6,
 		UDP = 17
 	};
+
+	[[nodiscard]] const WChar* GetProtocolName(const Protocol protocol) noexcept;
 }
 
 namespace QuantumGate::Implementation::Network::ICMP

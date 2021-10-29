@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "CTabBase.h"
+#include "CTestAppDlgTabCtrlPage.h"
 
 #include "..\AVExtender\AVExtender.h"
 #include "..\AVExtender\VideoSourceReader.h"
@@ -13,15 +13,15 @@
 
 constexpr auto AVEXTENDER_PEER_ACTIVITY_TIMER = 10;
 
-class CTestAppDlgAVExtenderTab : public CTabBase
+class CTestAppDlgAVExtenderTab : public CTestAppDlgTabCtrlPage
 {
-	DECLARE_DYNAMIC(CTestAppDlgAVExtenderTab)
+	DECLARE_DYNCREATE(CTestAppDlgAVExtenderTab)
 
 public:
-	CTestAppDlgAVExtenderTab(QuantumGate::Local& local, CWnd* pParent = nullptr);
-	virtual ~CTestAppDlgAVExtenderTab();
+	CTestAppDlgAVExtenderTab() noexcept {}
+	virtual ~CTestAppDlgAVExtenderTab() {}
 
-	void UpdateControls() noexcept;
+	void UpdateControls() noexcept override;
 
 	void OnPreDeinitializeQuantumGate() noexcept;
 
@@ -83,8 +83,6 @@ protected:
 	afx_msg void OnBnClickedVideoSizeForce();
 
 private:
-	QuantumGate::Local& m_QuantumGate;
-
 	std::optional<PeerLUID> m_SelectedPeerLUID;
 	UINT_PTR m_PeerActivityTimer{ 0 };
 

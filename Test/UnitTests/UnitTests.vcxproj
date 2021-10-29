@@ -377,6 +377,7 @@
     <ClCompile Include="DispatcherTests.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="EndianTests.cpp" />
+    <ClCompile Include="EventCompositeTests.cpp" />
     <ClCompile Include="EventGroupTests.cpp" />
     <ClCompile Include="EventTests.cpp" />
     <ClCompile Include="IPEndPointTests.cpp" />
@@ -393,6 +394,7 @@
     <ClCompile Include="RingBufferTests.cpp" />
     <ClCompile Include="ScopeGuardTests.cpp" />
     <ClCompile Include="SocketTests.cpp" />
+    <ClCompile Include="StackBufferTests.cpp" />
     <ClCompile Include="ThreadLocalCacheTests.cpp" />
     <ClCompile Include="CallbackTests.cpp" />
     <ClCompile Include="IPAccessControlTests.cpp" />
@@ -408,8 +410,10 @@
     </ClCompile>
     <ClCompile Include="IPFiltersTests.cpp" />
     <ClCompile Include="ThreadSafeTests.cpp" />
+    <ClCompile Include="UDPConnectionCookiesTests.cpp" />
     <ClCompile Include="UtilTests.cpp" />
     <ClCompile Include="UUIDTests.cpp" />
+    <ClCompile Include="WrappedTests.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

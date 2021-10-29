@@ -31,6 +31,13 @@ namespace QuantumGate::Implementation
 		static constexpr bool IsDetectedV = IsDetected<void, D, T...>::value;
 	}
 
+	// AlwaysFalse
+	namespace
+	{
+		template <class... T>
+		constexpr bool AlwaysFalse = false;
+	}
+
 	// FunctionSignatureRemoveConstNoexcept
 	namespace
 	{
@@ -133,6 +140,22 @@ namespace QuantumGate::Implementation
 		using FunctionSignatureAddNoexceptT = typename FunctionSignatureAddNoexcept<T>::Type;
 	}
 
+	// GetMemberFunctionObjectType
+	namespace
+	{
+		template<typename F>
+		struct GetMemberFunctionObjectType;
+		
+		template<typename T, typename R>
+		struct GetMemberFunctionObjectType<R T::*>
+		{
+			using Type = T;
+		};
+
+		template<typename F>
+		using GetMemberFunctionObjectTypeT = typename GetMemberFunctionObjectType<F>::Type;
+	}
+
 	// MakeMemberFunctionPointer
 	namespace
 	{
@@ -170,13 +193,26 @@ namespace QuantumGate::Implementation
 	// FunctionSignature
 	namespace
 	{
+		template<typename... Args>
+		struct FunctionArgumentPack
+		{};
+
 		template<typename T, bool Const, bool NoExcept>
-		struct FunctionSignatureBase;
+		struct FunctionSignatureDetails;
 
 		template<typename R, typename... Args, bool Const, bool NoExcept>
-		struct FunctionSignatureBase<R(Args...), Const, NoExcept>
+		struct FunctionSignatureDetails<R(Args...), Const, NoExcept>
 		{
+			using Type =
+				std::conditional_t<!Const && !NoExcept, R(Args...),
+				std::conditional_t<Const && !NoExcept, R(Args...) const, 
+				std::conditional_t<!Const && NoExcept, R(Args...) noexcept,
+				std::conditional_t<Const && NoExcept, R(Args...) const noexcept, void>>>>;
+
 			using ReturnType = R;
+
+			using Arguments = FunctionArgumentPack<Args...>;
+
 			static constexpr bool IsConst = Const;
 			static constexpr bool IsNoexcept = NoExcept;
 
@@ -195,75 +231,59 @@ namespace QuantumGate::Implementation
 		template<typename T>
 		struct FunctionSignature;
 
+		template<typename T>
+		struct FunctionSignature : public FunctionSignature<decltype(&std::decay_t<T>::operator())>
+		{};
+
 		template<typename R, typename... Args>
 		struct FunctionSignature<R(*)(Args...)> :
-			public FunctionSignatureBase<R(Args...), false, false>
-		{
-			using Type = R(Args...);
-		};
+			public FunctionSignatureDetails<R(Args...), false, false>
+		{};
 
 		template<typename R, typename... Args>
 		struct FunctionSignature<R(*)(Args...) noexcept> :
-			public FunctionSignatureBase<R(Args...), false, true>
-		{
-			using Type = R(Args...) noexcept;
-		};
+			public FunctionSignatureDetails<R(Args...), false, true>
+		{};
 
 		template<typename R, typename... Args>
 		struct FunctionSignature<R(Args...)> :
-			public FunctionSignatureBase<R(Args...), false, false>
-		{
-			using Type = R(Args...);
-		};
+			public FunctionSignatureDetails<R(Args...), false, false>
+		{};
 
 		template<typename R, typename... Args>
 		struct FunctionSignature<R(Args...) noexcept> :
-			public FunctionSignatureBase<R(Args...), false, true>
-		{
-			using Type = R(Args...) noexcept;
-		};
+			public FunctionSignatureDetails<R(Args...), false, true>
+		{};
 
 		template<typename R, typename... Args>
 		struct FunctionSignature<R(Args...) const> :
-			public FunctionSignatureBase<R(Args...), true, false>
-		{
-			using Type = R(Args...) const;
-		};
+			public FunctionSignatureDetails<R(Args...), true, false>
+		{};
 
 		template<typename R, typename... Args>
 		struct FunctionSignature<R(Args...) const noexcept> :
-			public FunctionSignatureBase<R(Args...), true, true>
-		{
-			using Type = R(Args...) const noexcept;
-		};
+			public FunctionSignatureDetails<R(Args...), true, true>
+		{};
 
 		template<typename R, typename T, typename... Args>
 		struct FunctionSignature<R(T::*)(Args...)> :
-			public FunctionSignatureBase<R(Args...), false, false>
-		{
-			using Type = R(Args...);
-		};
+			public FunctionSignatureDetails<R(Args...), false, false>
+		{};
 
 		template<typename R, typename T, typename... Args>
 		struct FunctionSignature<R(T::*)(Args...) const> :
-			public FunctionSignatureBase<R(Args...), true, false>
-		{
-			using Type = R(Args...) const;
-		};
+			public FunctionSignatureDetails<R(Args...), true, false>
+		{};
 
 		template<typename R, typename T, typename... Args>
 		struct FunctionSignature<R(T::*)(Args...) noexcept> :
-			public FunctionSignatureBase<R(Args...), false, true>
-		{
-			using Type = R(Args...) noexcept;
-		};
+			public FunctionSignatureDetails<R(Args...), false, true>
+		{};
 
 		template<typename R, typename T, typename... Args>
 		struct FunctionSignature<R(T::*)(Args...) const noexcept> :
-			public FunctionSignatureBase<R(Args...), true, true>
-		{
-			using Type = R(Args...) const noexcept;
-		};
+			public FunctionSignatureDetails<R(Args...), true, true>
+		{};
 
 		template<typename T>
 		using FunctionSignatureT = typename FunctionSignature<T>::Type;

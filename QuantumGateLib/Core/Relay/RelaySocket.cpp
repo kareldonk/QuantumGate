@@ -11,6 +11,9 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
 		m_IOStatus.SetOpen(true);
+
+		// Always set (unused)
+		m_ReceiveEvent.GetSubEvent(1).Set();
 	}
 
 	Socket::~Socket()
@@ -22,10 +25,11 @@ namespace QuantumGate::Implementation::Core::Relay
 							 const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
+		assert(lendpoint.GetProtocol() == pendpoint.GetProtocol());
 
-		m_LocalEndpoint = IPEndpoint(lendpoint.GetIPAddress(),
+		m_LocalEndpoint = IPEndpoint(lendpoint.GetProtocol(), lendpoint.GetIPAddress(),
 									 lendpoint.GetPort(), rport, hop);
-		m_PeerEndpoint = IPEndpoint(pendpoint.GetIPAddress(),
+		m_PeerEndpoint = IPEndpoint(pendpoint.GetProtocol(), pendpoint.GetIPAddress(),
 									pendpoint.GetPort(), rport, hop);
 
 		m_AcceptCallback();
@@ -38,7 +42,6 @@ namespace QuantumGate::Implementation::Core::Relay
 		assert(m_IOStatus.IsOpen());
 
 		m_IOStatus.SetConnected(true);
-		m_IOStatus.SetWrite(true);
 
 		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
 
@@ -74,19 +77,17 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	void Socket::SetLocalEndpoint(const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept
 	{
-		m_LocalEndpoint = IPEndpoint(endpoint.GetIPAddress(),
-									 endpoint.GetPort(),
-									 rport, hop);
-		m_PeerEndpoint = IPEndpoint(m_PeerEndpoint.GetIPAddress(),
-									m_PeerEndpoint.GetPort(),
-									rport, hop);
+		assert(endpoint.GetProtocol() == m_PeerEndpoint.GetProtocol());
+
+		m_LocalEndpoint = IPEndpoint(endpoint.GetProtocol(), endpoint.GetIPAddress(),
+									 endpoint.GetPort(), rport, hop);
+		m_PeerEndpoint = IPEndpoint(m_PeerEndpoint.GetProtocol(), m_PeerEndpoint.GetIPAddress(),
+									m_PeerEndpoint.GetPort(), rport, hop);
 	}
 
-	bool Socket::Send(Buffer& buffer, const Size /*max_snd_size*/) noexcept
+	Result<Size> Socket::Send(const BufferView& buffer, const Size /*max_snd_size*/) noexcept
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanWrite());
-
-		if (m_IOStatus.HasException()) return false;
 
 		try
 		{
@@ -95,9 +96,9 @@ namespace QuantumGate::Implementation::Core::Relay
 			const auto available_size = std::invoke([&]()
 			{
 				Size size{ 0 };
-				if (m_MaxSendBufferSize > m_SendBuffer.GetSize())
+				if (MaxSendBufferSize > m_SendBuffer.GetSize())
 				{
-					size = m_MaxSendBufferSize - m_SendBuffer.GetSize();
+					size = MaxSendBufferSize - m_SendBuffer.GetSize();
 				}
 				return size;
 			});
@@ -109,7 +110,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			}
 			else if (available_size > 0)
 			{
-				const auto pbuffer = BufferView(buffer).GetFirst(available_size);
+				const auto pbuffer = buffer.GetFirst(available_size);
 				m_SendBuffer += pbuffer;
 				sent_size = pbuffer.GetSize();
 			}
@@ -121,14 +122,12 @@ namespace QuantumGate::Implementation::Core::Relay
 
 			if (sent_size > 0)
 			{
-				buffer.RemoveFirst(sent_size);
-				
-				m_SendEvent.Set();
+				m_SendEvent.GetSubEvent(0).Set();
 
 				m_BytesSent += sent_size;
 			}
 
-			return true;
+			return sent_size;
 		}
 		catch (const std::exception& e)
 		{
@@ -138,48 +137,46 @@ namespace QuantumGate::Implementation::Core::Relay
 			SetException(WSAENOBUFS);
 		}
 
-		return false;
+		return ResultCode::Failed;
 	}
 
-	bool Socket::Receive(Buffer& buffer, const Size /* max_rcv_size */) noexcept
+	Result<Size> Socket::Receive(Buffer& buffer, const Size /* max_rcv_size */) noexcept
 	{
 		assert(m_IOStatus.IsOpen() && m_IOStatus.IsConnected() && m_IOStatus.CanRead());
-
-		if (m_IOStatus.HasException()) return false;
-
-		auto success = false;
 
 		try
 		{
 			const auto bytesrcv = m_ReceiveBuffer.GetSize();
 
-			if (bytesrcv == 0 && m_ClosingRead)
+			if (bytesrcv == 0)
 			{
+				if (!m_ClosingRead) return 0;
+				
 				LogDbg(L"Relay socket connection closed for endpoint %s", GetPeerName().c_str());
 
-				m_ReceiveEvent.Reset();
+				m_ReceiveEvent.GetSubEvent(0).Reset();
 			}
 			else
 			{
 				buffer += m_ReceiveBuffer;
-				
+
 				m_ReceiveBuffer.Clear();
-				m_ReceiveEvent.Reset();
+				m_ReceiveEvent.GetSubEvent(0).Reset();
 
 				m_BytesReceived += bytesrcv;
 
-				success = true;
+				return bytesrcv;
 			}
 		}
 		catch (const std::exception& e)
 		{
 			LogErr(L"Relay socket receive exception for endpoint %s - %s",
-				   GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
+					GetPeerName().c_str(), Util::ToStringW(e.what()).c_str());
 
 			SetException(WSAENOBUFS);
 		}
 
-		return success;
+		return ResultCode::Failed;
 	}
 
 	void Socket::Close(const bool linger) noexcept
@@ -195,26 +192,24 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		assert(m_IOStatus.IsOpen());
 
-		m_ReceiveEvent.Reset();
+		m_ReceiveEvent.GetSubEvent(0).Reset();
 
 		if (!m_IOStatus.IsOpen()) return false;
 
-		if (m_IOStatus.IsConnected())
-		{
-			const bool read = (!m_ReceiveBuffer.IsEmpty() || m_ClosingRead);
+		const bool write = (m_ConnectWrite && m_SendBuffer.GetSize() < MaxSendBufferSize && !m_IOStatus.IsSuspended());
+		m_IOStatus.SetWrite(write);
 
-			m_IOStatus.SetRead(read);
+		const bool read = (!m_ReceiveBuffer.IsEmpty() || m_ClosingRead);
+		m_IOStatus.SetRead(read);
 
-			if (read) m_ReceiveEvent.Set();
-		}
+		if (read) m_ReceiveEvent.GetSubEvent(0).Set();
 
 		return true;
 	}
 
 	SystemTime Socket::GetConnectedTime() const noexcept
 	{
-		const auto dif = std::chrono::duration_cast<std::chrono::seconds>(Util::GetCurrentSteadyTime() -
-																		  GetConnectedSteadyTime());
+		const auto dif = std::chrono::duration_cast<std::chrono::seconds>(Util::GetCurrentSteadyTime() - GetConnectedSteadyTime());
 		return (Util::GetCurrentSystemTime() - dif);
 	}
 }

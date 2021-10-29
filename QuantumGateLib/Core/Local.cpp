@@ -266,8 +266,9 @@ namespace QuantumGate::Implementation::Core
 					settings.Local.SupportedAlgorithms.Compression = Util::SetToVector(params.SupportedAlgorithms.Compression);
 				}
 
-				settings.Local.ListenerPorts = Util::SetToVector(params.Listeners.TCPPorts);
-				settings.Local.NATTraversal = params.Listeners.EnableNATTraversal;
+				settings.Local.Listeners.TCP.Ports = Util::SetToVector(params.Listeners.TCP.Ports);
+				settings.Local.Listeners.UDP.Ports = Util::SetToVector(params.Listeners.UDP.Ports);
+				settings.Local.Listeners.NATTraversal = params.Listeners.EnableNATTraversal;
 				settings.Local.NumPreGeneratedKeysPerAlgorithm = params.NumPreGeneratedKeysPerAlgorithm;
 				settings.Relay.IPv4ExcludedNetworksCIDRLeadingBits = params.Relays.IPv4ExcludedNetworksCIDRLeadingBits;
 				settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits = params.Relays.IPv6ExcludedNetworksCIDRLeadingBits;
@@ -321,13 +322,21 @@ namespace QuantumGate::Implementation::Core
 		// Upon failure shut down key manager when we return
 		auto sg1 = MakeScopeGuard([&]() noexcept { m_KeyGenerationManager.Shutdown(); });
 
+		if (!m_UDPConnectionManager.Startup())
+		{
+			return ResultCode::FailedUDPConnectionManagerStartup;
+		}
+
+		// Upon failure shut down UDP connection manager when we return
+		auto sg2 = MakeScopeGuard([&]() noexcept { m_UDPConnectionManager.Shutdown(); });
+
 		if (!m_PeerManager.Startup())
 		{
 			return ResultCode::FailedPeerManagerStartup;
 		}
 
 		// Upon failure shut down peer manager when we return
-		auto sg2 = MakeScopeGuard([&]() noexcept { m_PeerManager.Shutdown(); });
+		auto sg3 = MakeScopeGuard([&]() noexcept { m_PeerManager.Shutdown(); });
 
 		if (params.Relays.Enable && !m_PeerManager.StartupRelays())
 		{
@@ -335,26 +344,31 @@ namespace QuantumGate::Implementation::Core
 		}
 
 		// Upon failure shut down relay manager when we return
-		auto sg3 = MakeScopeGuard([&]() noexcept { m_PeerManager.ShutdownRelays(); });
+		auto sg4 = MakeScopeGuard([&]() noexcept { m_PeerManager.ShutdownRelays(); });
 
+		if (params.Listeners.TCP.Enable &&
+			!m_TCPListenerManager.Startup(m_LocalEnvironment.WithSharedLock()->GetEthernetInterfaces()))
 		{
-			const auto local_env = m_LocalEnvironment.WithSharedLock();
-
-			if (params.Listeners.Enable &&
-				!m_ListenerManager.Startup(local_env->GetEthernetInterfaces()))
-			{
-				return ResultCode::FailedListenerManagerStartup;
-			}
+			return ResultCode::FailedTCPListenerManagerStartup;
 		}
 
-		// Upon failure shut down listener manager when we return
-		auto sg4 = MakeScopeGuard([&]() noexcept { m_ListenerManager.Shutdown(); });
+		// Upon failure shut down TCP listener manager when we return
+		auto sg5 = MakeScopeGuard([&]() noexcept { m_TCPListenerManager.Shutdown(); });
+
+		if (params.Listeners.UDP.Enable &&
+			!m_UDPListenerManager.Startup(m_LocalEnvironment.WithSharedLock()->GetEthernetInterfaces()))
+		{
+			return ResultCode::FailedUDPListenerManagerStartup;
+		}
+
+		// Upon failure shut down UDP listener manager when we return
+		auto sg6 = MakeScopeGuard([&]() noexcept { m_UDPListenerManager.Shutdown(); });
 
 		// Enter running state; important for extenders
 		m_Running = true;
 
 		// Upon failure exit running state when we return
-		auto sg5 = MakeScopeGuard([&]() noexcept { m_Running = false; });
+		auto sg7 = MakeScopeGuard([&]() noexcept { m_Running = false; });
 
 		if (params.EnableExtenders && !m_ExtenderManager.Startup())
 		{
@@ -367,6 +381,8 @@ namespace QuantumGate::Implementation::Core
 		sg3.Deactivate();
 		sg4.Deactivate();
 		sg5.Deactivate();
+		sg6.Deactivate();
+		sg7.Deactivate();
 
 		LogSys(L"QuantumGate startup successful");
 
@@ -388,7 +404,8 @@ namespace QuantumGate::Implementation::Core
 		m_ShutdownEvent.Set();
 
 		// Stop accepting connections
-		m_ListenerManager.Shutdown();
+		m_TCPListenerManager.Shutdown();
+		m_UDPListenerManager.Shutdown();
 
 		// Shut down extenders
 		m_ExtenderManager.Shutdown();
@@ -396,6 +413,8 @@ namespace QuantumGate::Implementation::Core
 		// Close all connections
 		m_PeerManager.ShutdownRelays();
 		m_PeerManager.Shutdown();
+
+		m_UDPConnectionManager.Shutdown();
 
 		m_KeyGenerationManager.Shutdown();
 
@@ -472,13 +491,23 @@ namespace QuantumGate::Implementation::Core
 	{
 		if (m_LocalEnvironment.WithUniqueLock()->Update())
 		{
-			if (IsRunning() && m_ListenerManager.IsRunning())
+			if (IsRunning())
 			{
-				LogDbg(L"Updating Listenermanager because of local environment change");
-
-				if (UpdateListeners().Failed())
+				if (m_TCPListenerManager.IsRunning() || m_UDPListenerManager.IsRunning())
 				{
-					LogErr(L"Failed to update Listenermanager after local environment change");
+					LogDbg(L"Updating listeners because of local environment change");
+
+					if (UpdateListeners().Failed())
+					{
+						LogErr(L"Failed to update listeners after local environment change");
+					}
+				}
+
+				if (m_UDPConnectionManager.IsRunning())
+				{
+					LogDbg(L"Updating UDP connection manager because of local environment change");
+
+					m_UDPConnectionManager.OnLocalIPInterfaceChanged();
 				}
 			}
 		}
@@ -505,7 +534,7 @@ namespace QuantumGate::Implementation::Core
 		}
 	}
 
-	Result<> Local::EnableListeners() noexcept
+	Result<> Local::EnableListeners(const API::Local::ListenerType type) noexcept
 	{
 		if (IsRunning())
 		{
@@ -513,51 +542,108 @@ namespace QuantumGate::Implementation::Core
 
 			auto local_env = m_LocalEnvironment.WithSharedLock();
 
-			if (m_ListenerManager.Startup(local_env->GetEthernetInterfaces()))
+			auto result = ResultCode::Failed;
+
+			switch (type)
 			{
-				return ResultCode::Succeeded;
+				case API::Local::ListenerType::TCP:
+					if (m_TCPListenerManager.Startup(local_env->GetEthernetInterfaces()))
+					{
+						result = ResultCode::Succeeded;
+					}
+					break;
+				case API::Local::ListenerType::UDP:
+					if (m_UDPListenerManager.Startup(local_env->GetEthernetInterfaces()))
+					{
+						result = ResultCode::Succeeded;
+					}
+					break;
+				default:
+					assert(false);
+					result = ResultCode::InvalidArgument;
+					break;
 			}
-			else return ResultCode::Failed;
+
+			return result;
 		}
 
 		return ResultCode::NotRunning;
+	}
+
+	Result<> Local::DisableListeners(const API::Local::ListenerType type) noexcept
+	{
+		if (IsRunning())
+		{
+			std::unique_lock<std::shared_mutex> lock(m_Mutex);
+
+			auto result = ResultCode::Succeeded;
+
+			switch (type)
+			{
+				case API::Local::ListenerType::TCP:
+					m_TCPListenerManager.Shutdown();
+					break;
+				case API::Local::ListenerType::UDP:
+					m_UDPListenerManager.Shutdown();
+					break;
+				default:
+					assert(false);
+					result = ResultCode::InvalidArgument;
+					break;
+			}
+
+			return result;
+		}
+
+		return ResultCode::NotRunning;
+	}
+
+	bool Local::AreListenersEnabled(const API::Local::ListenerType type) const noexcept
+	{
+		switch (type)
+		{
+			case API::Local::ListenerType::TCP:
+				return m_TCPListenerManager.IsRunning();
+			case API::Local::ListenerType::UDP:
+				return m_UDPListenerManager.IsRunning();
+			default:
+				assert(false);
+				break;
+		}
+
+		return false;
 	}
 
 	Result<> Local::UpdateListeners() noexcept
 	{
-		if (IsRunning() && m_ListenerManager.IsRunning())
+		if (IsRunning())
 		{
 			std::unique_lock<std::shared_mutex> lock(m_Mutex);
 
 			auto local_env = m_LocalEnvironment.WithSharedLock();
 
-			if (m_ListenerManager.Update(local_env->GetEthernetInterfaces()))
+			auto result = ResultCode::Succeeded;
+
+			if (m_TCPListenerManager.IsRunning())
 			{
-				return ResultCode::Succeeded;
+				if (!m_TCPListenerManager.Update(local_env->GetEthernetInterfaces()))
+				{
+					result = ResultCode::Failed;
+				}
 			}
 
-			return ResultCode::Failed;
+			if (m_UDPListenerManager.IsRunning())
+			{
+				if (!m_UDPListenerManager.Update(local_env->GetEthernetInterfaces()))
+				{
+					result = ResultCode::Failed;
+				}
+			}
+
+			return result;
 		}
 
 		return ResultCode::NotRunning;
-	}
-
-	Result<> Local::DisableListeners() noexcept
-	{
-		if (IsRunning())
-		{
-			std::unique_lock<std::shared_mutex> lock(m_Mutex);
-
-			m_ListenerManager.Shutdown();
-			return ResultCode::Succeeded;
-		}
-
-		return ResultCode::NotRunning;
-	}
-
-	bool Local::AreListenersEnabled() const noexcept
-	{
-		return m_ListenerManager.IsRunning();
 	}
 
 	Result<> Local::EnableExtenders() noexcept
@@ -679,7 +765,7 @@ namespace QuantumGate::Implementation::Core
 		catch (...) {}
 	}
 
-	Result<bool> Local::AddExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
+	Result<bool> Local::AddExtenderImpl(const std::shared_ptr<API::Extender>& extender,
 										const Extender::ExtenderModuleID moduleid) noexcept
 	{
 		assert(extender);
@@ -702,7 +788,7 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	Result<> Local::RemoveExtenderImpl(const std::shared_ptr<QuantumGate::API::Extender>& extender,
+	Result<> Local::RemoveExtenderImpl(const std::shared_ptr<API::Extender>& extender,
 									   const Extender::ExtenderModuleID moduleid) noexcept
 	{
 		assert(extender);
@@ -722,14 +808,14 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	Result<bool> Local::AddExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender) noexcept
+	Result<bool> Local::AddExtender(const std::shared_ptr<API::Extender>& extender) noexcept
 	{
 		std::unique_lock<std::shared_mutex> lock(m_Mutex);
 
 		return AddExtenderImpl(extender);
 	}
 
-	Result<> Local::RemoveExtender(const std::shared_ptr<QuantumGate::API::Extender>& extender) noexcept
+	Result<> Local::RemoveExtender(const std::shared_ptr<API::Extender>& extender) noexcept
 	{
 		std::unique_lock<std::shared_mutex> lock(m_Mutex);
 
@@ -1052,53 +1138,74 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::NotRunning;
 	}
 
-	bool Local::ValidateSecurityParameters(const SecurityParameters& params) const noexcept
+	std::pair<bool, const WChar*> Local::ValidateSecurityParameters(const SecurityParameters& params) const noexcept
 	{
-		if (params.General.ConnectTimeout < 0s) return false;
+		if (params.General.ConnectTimeout < 0s) return { false, L"General.ConnectTimeout should be at least 0 seconds" };
 
-		if (params.General.MaxHandshakeDelay < 0ms ||
-			params.General.MaxHandshakeDuration < 0s) return false;
+		if (params.General.SuspendTimeout < 60s) return { false, L"General.SuspendTimeout should be at least 60 seconds" };
+		if (params.General.MaxSuspendDuration < 0s) return { false, L"General.MaxSuspendDuration should be at least 0 seconds" };
+
+		if (params.General.MaxHandshakeDelay < 0ms) return { false, L"General.MaxHandshakeDelay should be at least 0 milliseconds" };
+		if (params.General.MaxHandshakeDuration < 0s) return { false, L"General.MaxHandshakeDuration should be at least 0 seconds" };
 
 		// If maximum handshake delay is greater than the maximum duration,
 		// the handshake will often fail, which is bad
-		if (params.General.MaxHandshakeDelay > params.General.MaxHandshakeDuration) return false;
+		if (params.General.MaxHandshakeDelay > params.General.MaxHandshakeDuration)
+			return { false, L"General.MaxHandshakeDelay should be greater than General.MaxHandshakeDuration" };
 
-		if (params.General.IPReputationImprovementInterval < 0s ||
-			params.General.IPConnectionAttempts.Interval < 0s) return false;
+		if (params.General.IPReputationImprovementInterval < 0s) return { false, L"General.IPReputationImprovementInterval should be at least 0 seconds" };
+		if (params.General.IPConnectionAttempts.Interval < 0s) return { false, L"General.IPConnectionAttempts.Interval should be at least 0 seconds" };
 
-		if (params.KeyUpdate.MinInterval < 0s ||
-			params.KeyUpdate.MaxInterval < 0s ||
-			params.KeyUpdate.MaxDuration < 0s) return false;
+		if (params.KeyUpdate.MinInterval < 0s) return { false, L"KeyUpdate.MinInterval should be at least 0 seconds" };
+		if (params.KeyUpdate.MaxInterval < 0s) return { false, L"KeyUpdate.MaxInterval should be at least 0 seconds" };
+		if (params.KeyUpdate.MaxDuration < 0s) return { false, L"KeyUpdate.MaxDuration should be at least 0 seconds" };
 
 		// Minimum should not be greater than maximum
-		if (params.KeyUpdate.MinInterval > params.KeyUpdate.MaxInterval) return false;
+		if (params.KeyUpdate.MinInterval > params.KeyUpdate.MaxInterval)
+			return { false, L"KeyUpdate.MaxInterval should be greater than KeyUpdate.MinInterval" };
 
 		// Should be at least 10MB
-		if (params.KeyUpdate.RequireAfterNumProcessedBytes < 10'485'760) return false;
+		if (params.KeyUpdate.RequireAfterNumProcessedBytes < 10'485'760) return { false, L"KeyUpdate.RequireAfterNumProcessedBytes should be at least 10.485.760 bytes" };
 
-		if (params.Relay.ConnectTimeout < 0s ||
-			params.Relay.GracePeriod < 0s) return false;
+		if (params.Relay.ConnectTimeout < 0s) return { false, L"Relay.ConnectTimeout should be at least 0 seconds" };
+		if (params.Relay.GracePeriod < 0s) return { false, L"Relay.GracePeriod should be at least 0 seconds" };
+		if (params.Relay.MaxSuspendDuration < 0s) return { false, L"Relay.MaxSuspendDuration should be at least 0 seconds" };
 
-		if (params.Relay.IPConnectionAttempts.Interval < 0s) return false;
+		if (params.Relay.IPConnectionAttempts.Interval < 0s) return { false, L"Relay.IPConnectionAttempts.Interval should be at least 0 seconds" };
 
-		if (params.Message.AgeTolerance < 0s ||
-			params.Message.ExtenderGracePeriod < 0s ||
-			params.Noise.TimeInterval < 0s) return false;
+		if (params.UDP.MaxMTUDiscoveryDelay < 0ms) return { false, L"UDP.MaxMTUDiscoveryDelay should be at least 0 milliseconds" };
+		if (params.UDP.MaxDecoyMessageInterval < 0ms) return { false, L"UDP.MaxDecoyMessageInterval should be at least 0 milliseconds" };
+		if (params.UDP.CookieExpirationInterval < 30s) return { false, L"UDP.CookieExpirationInterval should be at least 30 seconds" };
+
+		if (params.Message.AgeTolerance < 0s) return { false, L"Message.AgeTolerance should be at least 0 seconds" };
+		if (params.Message.ExtenderGracePeriod < 0s) return { false, L"Message.ExtenderGracePeriod should be at least 0 seconds" };
+		if (params.Noise.TimeInterval < 0s) return { false, L"Noise.TimeInterval should be at least 0 seconds" };
 
 		// Minimum should not be greater than maximum
-		if (params.Message.MinRandomDataPrefixSize > params.Message.MaxRandomDataPrefixSize) return false;
+		if (params.Message.MinRandomDataPrefixSize > params.Message.MaxRandomDataPrefixSize)
+			return { false, L"Message.MaxRandomDataPrefixSize should be greater than Message.MinRandomDataPrefixSize" };
+
 		// Only supports random data prefix size up to UInt16 (2^16)
-		if (params.Message.MaxRandomDataPrefixSize > std::numeric_limits<UInt16>::max()) return false;
+		if (params.Message.MaxRandomDataPrefixSize > std::numeric_limits<UInt16>::max())
+			return { false, L"Message.MaxRandomDataPrefixSize should not be greater than 65.535 bytes" };
 
-		if (params.Message.MinInternalRandomDataSize > params.Message.MaxInternalRandomDataSize) return false;
+		if (params.Message.MinInternalRandomDataSize > params.Message.MaxInternalRandomDataSize)
+			return { false, L"Message.MaxInternalRandomDataSize should be greater than Message.MinInternalRandomDataSize" };
+
 		// Only supports random data size up to UInt16 (2^16)
-		if (params.Message.MaxInternalRandomDataSize > std::numeric_limits<UInt16>::max()) return false;
+		if (params.Message.MaxInternalRandomDataSize > std::numeric_limits<UInt16>::max())
+			return { false, L"Message.MaxInternalRandomDataSize should not be greater than 65.535 bytes" };
 
-		if (params.Noise.MinMessagesPerInterval > params.Noise.MaxMessagesPerInterval) return false;
-		if (params.Noise.MinMessageSize > params.Noise.MaxMessageSize) return false;
-		if (params.Noise.MaxMessageSize > Message::MaxMessageDataSize) return false;
+		if (params.Noise.MinMessagesPerInterval > params.Noise.MaxMessagesPerInterval)
+			return { false, L"Noise.MaxMessagesPerInterval should be greater than Noise.MinMessagesPerInterval" };
 
-		return true;
+		if (params.Noise.MinMessageSize > params.Noise.MaxMessageSize)
+			return { false, L"Noise.MaxMessageSize should be greater than Noise.MinMessageSize" };
+		
+		if (params.Noise.MaxMessageSize > Message::MaxMessageDataSize)
+			return { false, L"Noise.MaxMessageSize should not be greater than 1.048.000 bytes" };
+
+		return { true, L"" };
 	}
 
 	Result<Size> Local::Send(const ExtenderUUID& uuid, const std::atomic_bool& running, const std::atomic_bool& ready,
@@ -1180,6 +1287,12 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MaxMessagesPerInterval = 30;
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 256;
+
+					settings.UDP.ConnectCookieRequirementThreshold = 10;
+					settings.UDP.CookieExpirationInterval = 120s;
+					settings.UDP.MaxMTUDiscoveryDelay = 2000ms;
+					settings.UDP.MaxNumDecoyMessages = 12;
+					settings.UDP.MaxDecoyMessageInterval = 2000ms;
 					break;
 				}
 				case SecurityLevel::Three:
@@ -1217,6 +1330,12 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MaxMessagesPerInterval = 60;
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 512;
+
+					settings.UDP.ConnectCookieRequirementThreshold = 10;
+					settings.UDP.CookieExpirationInterval = 120s;
+					settings.UDP.MaxMTUDiscoveryDelay = 4000ms;
+					settings.UDP.MaxNumDecoyMessages = 24;
+					settings.UDP.MaxDecoyMessageInterval = 4000ms;
 					break;
 				}
 				case SecurityLevel::Four:
@@ -1254,6 +1373,12 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MaxMessagesPerInterval = 120;
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 1024;
+
+					settings.UDP.ConnectCookieRequirementThreshold = 10;
+					settings.UDP.CookieExpirationInterval = 120s;
+					settings.UDP.MaxMTUDiscoveryDelay = 8000ms;
+					settings.UDP.MaxNumDecoyMessages = 48;
+					settings.UDP.MaxDecoyMessageInterval = 8000ms;
 					break;
 				}
 				case SecurityLevel::Five:
@@ -1291,21 +1416,33 @@ namespace QuantumGate::Implementation::Core
 					settings.Noise.MaxMessagesPerInterval = 240;
 					settings.Noise.MinMessageSize = 0;
 					settings.Noise.MaxMessageSize = 2048;
+
+					settings.UDP.ConnectCookieRequirementThreshold = 10;
+					settings.UDP.CookieExpirationInterval = 120s;
+					settings.UDP.MaxMTUDiscoveryDelay = 16000ms;
+					settings.UDP.MaxNumDecoyMessages = 96;
+					settings.UDP.MaxDecoyMessageInterval = 16000ms;
 					break;
 				}
 				case SecurityLevel::Custom:
 				{
 					if (params)
 					{
-						if (ValidateSecurityParameters(*params))
+						const auto [success, error_msg] = ValidateSecurityParameters(*params);
+						if (success)
 						{
 							if (!silent)
 							{
 								LogWarn(L"Setting security level to Custom");
 							}
 
-							settings.Local.UseConditionalAcceptFunction = params->General.UseConditionalAcceptFunction;
+							settings.Local.Listeners.TCP.UseConditionalAcceptFunction = params->General.UseConditionalAcceptFunction;
+							
 							settings.Local.ConnectTimeout = params->General.ConnectTimeout;
+							
+							settings.Local.SuspendTimeout = params->General.SuspendTimeout;
+							settings.Local.MaxSuspendDuration = params->General.MaxSuspendDuration;
+							
 							settings.Local.MaxHandshakeDelay = params->General.MaxHandshakeDelay;
 							settings.Local.MaxHandshakeDuration = params->General.MaxHandshakeDuration;
 							settings.Local.IPReputationImprovementInterval = params->General.IPReputationImprovementInterval;
@@ -1319,6 +1456,7 @@ namespace QuantumGate::Implementation::Core
 
 							settings.Relay.ConnectTimeout = params->Relay.ConnectTimeout;
 							settings.Relay.GracePeriod = params->Relay.GracePeriod;
+							settings.Relay.MaxSuspendDuration = params->Relay.MaxSuspendDuration;
 							settings.Relay.IPConnectionAttempts.MaxPerInterval = params->Relay.IPConnectionAttempts.MaxPerInterval;
 							settings.Relay.IPConnectionAttempts.Interval = params->Relay.IPConnectionAttempts.Interval;
 
@@ -1335,12 +1473,18 @@ namespace QuantumGate::Implementation::Core
 							settings.Noise.MaxMessagesPerInterval = params->Noise.MaxMessagesPerInterval;
 							settings.Noise.MinMessageSize = params->Noise.MinMessageSize;
 							settings.Noise.MaxMessageSize = params->Noise.MaxMessageSize;
+
+							settings.UDP.ConnectCookieRequirementThreshold = params->UDP.ConnectCookieRequirementThreshold;
+							settings.UDP.CookieExpirationInterval = params->UDP.CookieExpirationInterval;
+							settings.UDP.MaxMTUDiscoveryDelay = params->UDP.MaxMTUDiscoveryDelay;
+							settings.UDP.MaxNumDecoyMessages = params->UDP.MaxNumDecoyMessages;
+							settings.UDP.MaxDecoyMessageInterval = params->UDP.MaxDecoyMessageInterval;
 						}
 						else
 						{
 							if (!silent)
 							{
-								LogErr(L"Invalid parameters passed for Custom security level");
+								LogErr(L"Invalid parameters passed for Custom security level (%s)", error_msg);
 							}
 
 							result_code = ResultCode::InvalidArgument;
@@ -1387,8 +1531,10 @@ namespace QuantumGate::Implementation::Core
 
 		const auto& settings = m_Settings.GetCache();
 
-		params.General.UseConditionalAcceptFunction = settings.Local.UseConditionalAcceptFunction;
+		params.General.UseConditionalAcceptFunction = settings.Local.Listeners.TCP.UseConditionalAcceptFunction;
 		params.General.ConnectTimeout = settings.Local.ConnectTimeout;
+		params.General.SuspendTimeout = settings.Local.SuspendTimeout;
+		params.General.MaxSuspendDuration = settings.Local.MaxSuspendDuration;
 		params.General.MaxHandshakeDelay = settings.Local.MaxHandshakeDelay;
 		params.General.MaxHandshakeDuration = settings.Local.MaxHandshakeDuration;
 
@@ -1404,6 +1550,7 @@ namespace QuantumGate::Implementation::Core
 
 		params.Relay.ConnectTimeout = settings.Relay.ConnectTimeout;
 		params.Relay.GracePeriod = settings.Relay.GracePeriod;
+		params.Relay.MaxSuspendDuration = settings.Relay.MaxSuspendDuration;
 		params.Relay.IPConnectionAttempts.MaxPerInterval = settings.Relay.IPConnectionAttempts.MaxPerInterval;
 		params.Relay.IPConnectionAttempts.Interval = settings.Relay.IPConnectionAttempts.Interval;
 
@@ -1421,13 +1568,21 @@ namespace QuantumGate::Implementation::Core
 		params.Noise.MinMessageSize = settings.Noise.MinMessageSize;
 		params.Noise.MaxMessageSize = settings.Noise.MaxMessageSize;
 
+		params.UDP.ConnectCookieRequirementThreshold = settings.UDP.ConnectCookieRequirementThreshold;
+		params.UDP.CookieExpirationInterval = settings.UDP.CookieExpirationInterval;
+		params.UDP.MaxMTUDiscoveryDelay = settings.UDP.MaxMTUDiscoveryDelay;
+		params.UDP.MaxNumDecoyMessages = settings.UDP.MaxNumDecoyMessages;
+		params.UDP.MaxDecoyMessageInterval = settings.UDP.MaxDecoyMessageInterval;
+
 		return params;
 	}
 
 	void Local::SetDefaultSecuritySettings(Settings& settings) noexcept
 	{
-		settings.Local.UseConditionalAcceptFunction = true;
+		settings.Local.Listeners.TCP.UseConditionalAcceptFunction = true;
 		settings.Local.ConnectTimeout = 60s;
+		settings.Local.SuspendTimeout = 60s;
+		settings.Local.MaxSuspendDuration = 60s;
 		settings.Local.MaxHandshakeDelay = 0ms;
 		settings.Local.MaxHandshakeDuration = 30s;
 
@@ -1443,6 +1598,7 @@ namespace QuantumGate::Implementation::Core
 
 		settings.Relay.ConnectTimeout = 60s;
 		settings.Relay.GracePeriod = 60s;
+		settings.Relay.MaxSuspendDuration = 60s;
 		settings.Relay.IPConnectionAttempts.MaxPerInterval = 10;
 		settings.Relay.IPConnectionAttempts.Interval = 10s;
 
@@ -1459,6 +1615,12 @@ namespace QuantumGate::Implementation::Core
 		settings.Noise.MaxMessagesPerInterval = 0;
 		settings.Noise.MinMessageSize = 0;
 		settings.Noise.MaxMessageSize = 0;
+
+		settings.UDP.ConnectCookieRequirementThreshold = 10;
+		settings.UDP.CookieExpirationInterval = 120s;
+		settings.UDP.MaxMTUDiscoveryDelay = 0ms;
+		settings.UDP.MaxNumDecoyMessages = 0;
+		settings.UDP.MaxDecoyMessageInterval = 1000ms;
 	}
 
 	void Local::FreeUnusedMemory() noexcept

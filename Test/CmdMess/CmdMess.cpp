@@ -59,8 +59,8 @@ int main()
 		Algorithm::Compression::ZSTANDARD };
 
 	params.RequireAuthentication = false;
-	params.Listeners.Enable = true;
-	params.Listeners.TCPPorts = { 9999 };
+	params.Listeners.TCP.Enable = true;
+	params.Listeners.TCP.Ports = { 9999 };
 	params.EnableExtenders = true;
 	params.Relays.Enable = true;
 
@@ -159,7 +159,7 @@ bool HandleCommand(const String& cmdline)
 					IPAddress addr;
 					if (IPAddress::TryParse(m[1].str().c_str(), addr))
 					{
-						const auto endp = IPEndpoint(addr, static_cast<UInt16>(port));
+						const auto endp = IPEndpoint(IPEndpoint::Protocol::TCP, addr, static_cast<UInt16>(port));
 
 						const auto result = m_QuantumGate.ConnectTo({ endp }, [&](PeerLUID pluid, Result<Peer> cresult) mutable
 						{
@@ -287,7 +287,7 @@ bool Send(const std::wstring& pluidstr, const std::wstring& msg, const std::wstr
 	if (success)
 	{
 		const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - begin);
-		PrintInfoLine(L"Sent in %d milliseconds.", ms.count());
+		PrintInfoLine(L"Sent in %jd milliseconds.", ms.count());
 	}
 
 	return success;

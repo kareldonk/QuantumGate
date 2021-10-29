@@ -123,6 +123,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			case Status::SessionInit:
 				return ProcessMessageSessionInit(std::move(msg));
 			case Status::Ready:
+			case Status::Suspended:
 				return ProcessMessageReadyState(std::move(msg));
 			default:
 				break;

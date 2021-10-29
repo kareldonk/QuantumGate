@@ -74,46 +74,46 @@ namespace UnitTests
 			const std::vector<TestCases> tests
 			{
 				{
-					IPEndpoint(IPAddress(L"200.168.5.51"), 999),
-					IPEndpoint(IPAddress(L"172.217.17.142"), 5000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"200.168.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"172.217.17.142"), 5000),
 					PeerConnectionType::Inbound,
 					false, true, std::make_pair(true, true)
 				},
 
 				{
 					// Should fail because of unknown connection type
-					IPEndpoint(IPAddress(L"160.16.5.51"), 999),
-					IPEndpoint(IPAddress(L"210.21.117.42"), 7000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"160.16.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"210.21.117.42"), 7000),
 					PeerConnectionType::Unknown,
 					false, false, std::make_pair(true, true)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"160.16.5.51"), 999),
-					IPEndpoint(IPAddress(L"210.21.117.42"), 7000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"160.16.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"210.21.117.42"), 7000),
 					PeerConnectionType::Inbound,
 					false, true, std::make_pair(true, true)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193"), 9000),
-					IPEndpoint(IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0"), 2000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193"), 9000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"e835:625f:48ce:c433:7c5d:ea3:76c3:ca0"), 2000),
 					PeerConnectionType::Inbound,
 					false, true, std::make_pair(true, true)
 				},
 
 				{
 					// Should fail because of different IP address types
-					IPEndpoint(IPAddress(L"160.16.5.51"), 9000),
-					IPEndpoint(IPAddress(L"e825:625f:48ce:c433:7c5d:ea3:76c3:ca0"), 2000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"160.16.5.51"), 9000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"e825:625f:48ce:c433:7c5d:ea3:76c3:ca0"), 2000),
 					PeerConnectionType::Inbound,
 					false, false, std::make_pair(false, false)
 				},
 
 				{
 					// Should fail because of different IP address types
-					IPEndpoint(IPAddress(L"e825:625f:48ce:c433:7c5d:ea3:76c3:ca0"), 2000),
-					IPEndpoint(IPAddress(L"160.16.5.51"), 9000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"e825:625f:48ce:c433:7c5d:ea3:76c3:ca0"), 2000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"160.16.5.51"), 9000),
 					PeerConnectionType::Outbound,
 					false, false, std::make_pair(false, false)
 				},
@@ -121,8 +121,17 @@ namespace UnitTests
 				{
 					// Should get accepted but not a new address because 160.16.5.51
 					// was already added previously; port will get added
-					IPEndpoint(IPAddress(L"160.16.5.51"), 3333),
-					IPEndpoint(IPAddress(L"83.21.117.20"), 4500),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"160.16.5.51"), 3333),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"83.21.117.20"), 4500),
+					PeerConnectionType::Inbound,
+					false, true, std::make_pair(true, false)
+				},
+
+				{
+					// Should get accepted but not a new address because 160.16.5.51
+					// was already added previously; protocol and port will get added
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"160.16.5.51"), 6666),
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"83.121.117.20"), 4500),
 					PeerConnectionType::Inbound,
 					false, true, std::make_pair(true, false)
 				},
@@ -130,8 +139,8 @@ namespace UnitTests
 				{
 					// Should not get accepted because reporting IP 210.21.117.20 is on
 					// same /16 network as previous reporting IP 210.21.117.42
-					IPEndpoint(IPAddress(L"120.16.115.51"), 999),
-					IPEndpoint(IPAddress(L"210.21.117.20"), 7000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"120.16.115.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"210.21.117.20"), 7000),
 					PeerConnectionType::Inbound,
 					false, true, std::make_pair(false, false)
 				},
@@ -139,8 +148,8 @@ namespace UnitTests
 				{
 					// Should not get accepted because reporting IP 210.21.217.42 is on
 					// same /16 network as previous reporting IP 210.21.117.42
-					IPEndpoint(IPAddress(L"170.216.5.51"), 999),
-					IPEndpoint(IPAddress(L"210.21.217.42"), 7000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"170.216.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"210.21.217.42"), 7000),
 					PeerConnectionType::Inbound,
 					false, true, std::make_pair(false, false)
 				},
@@ -148,8 +157,8 @@ namespace UnitTests
 				{
 					// Should not get accepted because reporting IP e835:625f:48ce:c333:: is on
 					// same /48 network as previous reporting IP e835:625f:48ce:c433:7c5d:ea3:76c3:ca0
-					IPEndpoint(IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de"), 999),
-					IPEndpoint(IPAddress(L"e835:625f:48ce:c333::"), 2100),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"e835:625f:48ce:c333::"), 2100),
 					PeerConnectionType::Inbound,
 					false, true, std::make_pair(false, false)
 				},
@@ -158,16 +167,16 @@ namespace UnitTests
 					// Should get accepted now because even though reporting IP e835:625f:48ce:c333:: is on
 					// same /48 network as previous reporting IP e835:625f:48ce:c433:7c5d:ea3:76c3:ca0,
 					// this is from a trusted peer
-					IPEndpoint(IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de"), 999),
-					IPEndpoint(IPAddress(L"e835:625f:48ce:c333::"), 2100),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"e835:625f:48ce:c333::"), 2100),
 					PeerConnectionType::Inbound,
 					true, true, std::make_pair(true, true)
 				},
 
 				{
 					// Outgoing connection won't get port added
-					IPEndpoint(IPAddress(L"199.111.110.30"), 6666),
-					IPEndpoint(IPAddress(L"120.221.17.2"), 8000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"199.111.110.30"), 6666),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"120.221.17.2"), 8000),
 					PeerConnectionType::Outbound,
 					true, true, std::make_pair(true, true)
 				}
@@ -197,17 +206,18 @@ namespace UnitTests
 				{
 					BinaryIPAddress IPAddress;
 					bool Trusted{ false };
-					Set<UInt16> Ports;
+					Set<UInt16> TCPPorts;
+					Set<UInt16> UDPPorts;
 					Size NumReportingPeerNetworks{ 0 };
 				};
 
 				std::vector<ExpectedIP> expected_ips
 				{
-					{ IPAddress(L"200.168.5.51").GetBinary(), false, { 999 }, 1 },
-					{ IPAddress(L"160.16.5.51").GetBinary(), false, { 999, 3333 }, 2 },
-					{ IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193").GetBinary(), false, { 9000 }, 1 },
-					{ IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de").GetBinary(), true, { 999 }, 1 },
-					{ IPAddress(L"199.111.110.30").GetBinary(), true, {}, 1 }
+					{ IPAddress(L"200.168.5.51").GetBinary(), false, { 999 }, {}, 1 },
+					{ IPAddress(L"160.16.5.51").GetBinary(), false, { 999, 3333 }, { 6666 }, 3 },
+					{ IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193").GetBinary(), false, { 9000 }, {}, 1 },
+					{ IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de").GetBinary(), true, { 999 }, {}, 1 },
+					{ IPAddress(L"199.111.110.30").GetBinary(), true, {}, {}, 1 }
 				};
 
 				// Check that we got back the expected IPs
@@ -245,7 +255,27 @@ namespace UnitTests
 						Assert::AreEqual(true, it2->second.Trusted == exp_details.Trusted);
 						Assert::AreEqual(true, it2->second.ReportingPeerNetworkHashes.size() ==
 										 exp_details.NumReportingPeerNetworks);
-						Assert::AreEqual(true, it2->second.Ports == exp_details.Ports);
+
+						if (exp_details.TCPPorts.size() > 0 || exp_details.UDPPorts.size() > 0)
+						{
+							Assert::AreEqual(true, it2->second.PortsMap.size() > 0);
+						}
+
+						for (auto ports : it2->second.PortsMap)
+						{
+							if (ports.first == IPEndpoint::Protocol::TCP)
+							{
+								Assert::AreEqual(true, ports.second == exp_details.TCPPorts);
+							}
+							else if (ports.first == IPEndpoint::Protocol::UDP)
+							{
+								Assert::AreEqual(true, ports.second == exp_details.UDPPorts);
+							}
+							else
+							{
+								Assert::Fail();
+							}
+						}
 					}
 				}
 
@@ -270,57 +300,57 @@ namespace UnitTests
 			const std::vector<TestCases> tests
 			{
 				{
-					IPEndpoint(IPAddress(L"200.168.5.51"), 999),
-					IPEndpoint(IPAddress(L"172.217.17.142"), 5000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"200.168.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"172.217.17.142"), 5000),
 					PeerConnectionType::Inbound,
 					false, true, true, std::make_pair(true, true)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"200.168.5.51"), 999),
-					IPEndpoint(IPAddress(L"173.217.17.142"), 5000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"200.168.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"173.217.17.142"), 5000),
 					PeerConnectionType::Inbound,
 					false, true, true, std::make_pair(true, false)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"200.168.5.51"), 999),
-					IPEndpoint(IPAddress(L"174.217.17.142"), 5000),
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"200.168.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"174.217.17.142"), 5000),
 					PeerConnectionType::Inbound,
 					false, true, true, std::make_pair(true, false)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de"), 999),
-					IPEndpoint(IPAddress(L"e835:625f:48ce:c333::"), 2100),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"e835:625f:48ce:c333::"), 2100),
 					PeerConnectionType::Inbound,
 					true, false, true, std::make_pair(true, true)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"160.16.5.51"), 999),
-					IPEndpoint(IPAddress(L"210.21.117.42"), 7000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"160.16.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"210.21.117.42"), 7000),
 					PeerConnectionType::Inbound,
 					false, false, true, std::make_pair(true, true)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193"), 9000),
-					IPEndpoint(IPAddress(L"e845:625f:48ce:c433:7c5d:ea3:76c3:ca0"), 2000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193"), 9000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"e845:625f:48ce:c433:7c5d:ea3:76c3:ca0"), 2000),
 					PeerConnectionType::Inbound,
 					false, false, true, std::make_pair(true, true)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"160.16.5.51"), 3333),
-					IPEndpoint(IPAddress(L"83.21.117.20"), 4500),
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"160.16.5.51"), 3333),
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"83.21.117.20"), 4500),
 					PeerConnectionType::Inbound,
 					false, false, true, std::make_pair(true, false)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"199.111.110.30"), 6666),
-					IPEndpoint(IPAddress(L"120.221.17.2"), 8000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"199.111.110.30"), 6666),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"120.221.17.2"), 8000),
 					PeerConnectionType::Outbound,
 					true, false, true, std::make_pair(true, true)
 				}
@@ -397,8 +427,8 @@ namespace UnitTests
 				auto pubip_str = Util::FormatString(L"180.100.90.%u", x);
 				auto repip_str = Util::FormatString(L"18.%u.40.100", x);
 
-				const auto result = pubendp.AddIPEndpoint(IPEndpoint(IPAddress(pubip_str), 999),
-														  IPEndpoint(IPAddress(repip_str), 5000),
+				const auto result = pubendp.AddIPEndpoint(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(pubip_str), 999),
+														  IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(repip_str), 5000),
 														  PeerConnectionType::Inbound, true, false);
 				Assert::AreEqual(true, result.Succeeded());
 				if (result.Succeeded())
@@ -428,57 +458,57 @@ namespace UnitTests
 			const std::vector<TestCases> tests
 			{
 				{
-					IPEndpoint(IPAddress(L"200.168.5.51"), 999),
-					IPEndpoint(IPAddress(L"172.217.17.142"), 5000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"200.168.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"172.217.17.142"), 5000),
 					PeerConnectionType::Inbound,
 					false, true, true, std::make_pair(true, true)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"200.168.5.51"), 999),
-					IPEndpoint(IPAddress(L"173.217.17.142"), 5000),
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"200.168.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"173.217.17.142"), 5000),
 					PeerConnectionType::Inbound,
 					false, true, true, std::make_pair(true, false)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"200.168.5.51"), 999),
-					IPEndpoint(IPAddress(L"174.217.17.142"), 5000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"200.168.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"174.217.17.142"), 5000),
 					PeerConnectionType::Inbound,
 					false, true, true, std::make_pair(true, false)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de"), 999),
-					IPEndpoint(IPAddress(L"e835:625f:48ce:c333::"), 2100),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"e835:625f:48ce:c333::"), 2100),
 					PeerConnectionType::Inbound,
 					true, true, true, std::make_pair(true, true)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"160.16.5.51"), 999),
-					IPEndpoint(IPAddress(L"210.21.117.42"), 7000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"160.16.5.51"), 999),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"210.21.117.42"), 7000),
 					PeerConnectionType::Inbound,
 					false, false, true, std::make_pair(true, true)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193"), 9000),
-					IPEndpoint(IPAddress(L"e845:625f:48ce:c433:7c5d:ea3:76c3:ca0"), 2000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193"), 9000),
+					IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(L"e845:625f:48ce:c433:7c5d:ea3:76c3:ca0"), 2000),
 					PeerConnectionType::Inbound,
 					false, false, true, std::make_pair(true, true)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"160.16.5.51"), 3333),
-					IPEndpoint(IPAddress(L"83.21.117.20"), 4500),
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"160.16.5.51"), 3333),
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"83.21.117.20"), 4500),
 					PeerConnectionType::Inbound,
 					false, false, true, std::make_pair(true, false)
 				},
 
 				{
-					IPEndpoint(IPAddress(L"199.111.110.30"), 6666),
-					IPEndpoint(IPAddress(L"120.221.17.2"), 8000),
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"199.111.110.30"), 6666),
+					IPEndpoint(IPEndpoint::Protocol::UDP, IPAddress(L"120.221.17.2"), 8000),
 					PeerConnectionType::Outbound,
 					true, false, true, std::make_pair(true, true)
 				}

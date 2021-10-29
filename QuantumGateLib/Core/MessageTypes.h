@@ -40,11 +40,13 @@ namespace QuantumGate::Implementation::Core
 	{
 		Disconnected = 0,
 		Connected = 1,
-		GeneralFailure = 2,
-		ConnectionReset = 3,
-		NoPeersAvailable = 4,
-		HostUnreachable = 5,
-		ConnectionRefused = 6,
-		TimedOut = 7
+		Suspended = 2,
+		Resumed = 3,
+		GeneralFailure = 4,
+		ConnectionReset = 5,
+		NoPeersAvailable = 6,
+		HostUnreachable = 7,
+		ConnectionRefused = 8,
+		TimedOut = 9
 	};
 }

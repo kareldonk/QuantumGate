@@ -31,10 +31,11 @@ namespace QuantumGate::Implementation::Core
 		assert(buffer.GetSize() >= OHeader::GetSize());
 
 		UInt32 size{ 0 };
-		m_MessageHMAC.Allocate(MessageHMACSize);
+		m_MessageHMAC.Allocate(OHeader::MessageHMACSize);
+		BufferSpan hmac(m_MessageHMAC);
 
 		Memory::BufferReader rdr(buffer, true);
-		if (rdr.Read(size, m_MessageNonceSeed, m_MessageHMAC))
+		if (rdr.Read(size, m_MessageNonceSeed, hmac))
 		{
 			m_MessageDataSize = DeObfuscateMessageDataSize(m_MessageDataSizeSettings, size);
 
@@ -48,8 +49,10 @@ namespace QuantumGate::Implementation::Core
 	{
 		const auto size = ObfuscateMessageDataSize(m_MessageDataSizeSettings, m_MessageRandomBits, m_MessageDataSize);
 
+		BufferView hmac(m_MessageHMAC);
+
 		Memory::BufferWriter wrt(buffer, true);
-		return wrt.WriteWithPreallocation(size, m_MessageNonceSeed, m_MessageHMAC);
+		return wrt.WriteWithPreallocation(size, m_MessageNonceSeed, hmac);
 	}
 
 	UInt32 MessageTransport::OHeader::ObfuscateMessageDataSize(const DataSizeSettings mds_settings,
@@ -266,12 +269,12 @@ namespace QuantumGate::Implementation::Core
 			// Remaining buffer size should match data size otherwise something is wrong
 			if (m_OHeader.GetMessageDataSize() == buffer.GetSize())
 			{
-				Buffer hmac;
+				OHeader::HMACBuffer hmac;
 
 				// Calculate message HMAC
 				if (Crypto::HMAC(buffer, hmac, symkey.AuthKey, Algorithm::Hash::BLAKE2S256))
 				{
-					assert(hmac.GetSize() == OHeader::MessageHMACSize);
+					assert(hmac.GetSize() == OHeader::HMACBuffer::GetMaxSize());
 
 					// Check if message data corresponds to HMAC
 					if (Crypto::CompareBuffers(m_OHeader.GetHMACBuffer(), hmac))
@@ -352,7 +355,7 @@ namespace QuantumGate::Implementation::Core
 			// Calculate HMAC for the encrypted message
 			if (Crypto::HMAC(encrdata, msgohdr.GetHMACBuffer(), symkey.AuthKey, Algorithm::Hash::BLAKE2S256))
 			{
-				assert(msgohdr.GetHMACBuffer().GetSize() == OHeader::MessageHMACSize);
+				assert(msgohdr.GetHMACBuffer().GetSize() == OHeader::HMACBuffer::GetMaxSize());
 
 				Dbg(L"MessageTransport hash: %s", Util::ToBase64(msgohdr.GetHMACBuffer())->c_str());
 

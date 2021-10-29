@@ -405,6 +405,14 @@ namespace TestExtender
 				m_Peers.WithUniqueLock()->insert({ event.GetPeerLUID(), std::move(peer) });
 			}
 		}
+		else if (event.GetType() == PeerEvent::Type::Suspended)
+		{
+			ev = L"Suspended";
+		}
+		else if (event.GetType() == PeerEvent::Type::Resumed)
+		{
+			ev = L"Resumed";
+		}
 		else if (event.GetType() == PeerEvent::Type::Disconnected)
 		{
 			ev = L"Disconnect";
@@ -492,7 +500,7 @@ namespace TestExtender
 								m_IsPeerBenchmarking = false;
 								auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_PeerBenchmarkStart.load());
 
-								LogSys(L"Peer %s benchmark result: %dms", GetName().c_str(), ms.count());
+								LogSys(L"Peer %s benchmark result: %jdms", GetName().c_str(), ms.count());
 								result.Success = true;
 							}
 							break;
@@ -713,7 +721,7 @@ namespace TestExtender
 											const auto elapsed_time =
 												std::chrono::duration_cast<std::chrono::milliseconds>(time_received - ping.TimeSent);
 
-											LogInfo(L"Ping reply from peer %llu (Buffer: %zu bytes, Result: %zums)",
+											LogInfo(L"Ping reply from peer %llu (Buffer: %zu bytes, Result: %jdms)",
 													event.GetPeerLUID(), echo_data.GetSize(), elapsed_time.count());
 
 											PostMessage(m_Window, static_cast<UINT>(WindowsMessage::PingResult),
@@ -918,7 +926,7 @@ namespace TestExtender
 			m_IsLocalBenchmarking = false;
 			auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_LocalBenchmarkStart.load());
 
-			LogSys(L"Local %s benchmark result: %dms", GetName().c_str(), ms.count());
+			LogSys(L"Local %s benchmark result: %jdms", GetName().c_str(), ms.count());
 		}
 
 		constexpr UInt16 msgtype = static_cast<UInt16>(MessageType::BenchmarkEnd);
@@ -943,7 +951,7 @@ namespace TestExtender
 		{
 			if (!ping.Active)
 			{
-				LogInfo(L"Pinging peer %llu (Buffer: %zu bytes, Timeout: %zums)", pluid, size, timeout.count());
+				LogInfo(L"Pinging peer %llu (Buffer: %zu bytes, Timeout: %jdms)", pluid, size, timeout.count());
 
 				ping.PeerLUID = pluid;
 				ping.Data = Util::GetPseudoRandomBytes(size);

@@ -19,7 +19,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		Dbg(L"*********** SendBeginRelay ***********");
 
 		BufferWriter wrt(true);
-		if (wrt.WriteWithPreallocation(rport, Network::SerializedBinaryIPAddress{ endpoint.GetIPAddress().GetBinary() },
+		if (wrt.WriteWithPreallocation(rport, endpoint.GetProtocol(),
+									   Network::SerializedBinaryIPAddress{ endpoint.GetIPAddress().GetBinary() },
 									   endpoint.GetPort(), hops))
 		{
 			if (m_Peer.Send(MessageType::RelayCreate, wrt.MoveWrittenBytes()))
@@ -33,14 +34,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	bool MessageProcessor::SendEndRelay(const RelayPort rport) const noexcept
-	{
-		Dbg(L"*********** SendEndRelay ***********");
-
-		return SendRelayStatus(rport, RelayStatusUpdate::Disconnected);
-	}
-
-	bool MessageProcessor::SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept
+	QuantumGate::Result<> MessageProcessor::SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept
 	{
 		Dbg(L"*********** SendRelayStatus ***********");
 
@@ -49,15 +43,17 @@ namespace QuantumGate::Implementation::Core::Peer
 		BufferWriter wrt(true);
 		if (wrt.WriteWithPreallocation(rport, status))
 		{
-			if (m_Peer.Send(MessageType::RelayStatus, wrt.MoveWrittenBytes()))
+			auto result = m_Peer.Send(MessageType::RelayStatus, wrt.MoveWrittenBytes());
+			if (!result)
 			{
-				return true;
+				LogDbg(L"Couldn't send RelayStatus message to peer %s", m_Peer.GetPeerName().c_str());
 			}
-			else LogDbg(L"Couldn't send RelayStatus message to peer %s", m_Peer.GetPeerName().c_str());
+
+			return result;
 		}
 		else LogDbg(L"Couldn't prepare RelayStatus message for peer %s", m_Peer.GetPeerName().c_str());
 
-		return false;
+		return ResultCode::Failed;
 	}
 
 	QuantumGate::Result<> MessageProcessor::SendRelayData(const RelayDataMessage& msg) const noexcept
@@ -163,28 +159,39 @@ namespace QuantumGate::Implementation::Core::Peer
 					if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 					{
 						RelayPort rport{ 0 };
-						Network::SerializedBinaryIPAddress ip;
+						IP::Protocol protocol{ IPEndpoint::Protocol::Unspecified };
+						SerializedBinaryIPAddress ip;
 						UInt16 port{ 0 };
 						RelayHop hop{ 0 };
 
 						BufferReader rdr(buffer, true);
-						if (rdr.Read(rport, ip, port, hop))
+						if (rdr.Read(rport, protocol, ip, port, hop))
 						{
-							Relay::Events::Connect rce;
-							rce.Port = rport;
-							rce.Endpoint = IPEndpoint(IPAddress{ ip }, port);
-							rce.Hop = hop;
-							rce.Origin.PeerLUID = m_Peer.GetLUID();
-							rce.Origin.LocalEndpoint = m_Peer.GetLocalEndpoint();
-							rce.Origin.PeerEndpoint = m_Peer.GetPeerEndpoint();
-
-							if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rce)))
+							if (protocol == IP::Protocol::UDP || protocol == IP::Protocol::TCP)
 							{
-								// Let the peer know we couldn't accept
-								SendRelayStatus(rport, RelayStatusUpdate::GeneralFailure);
-							}
+								if (ip.AddressFamily == IP::AddressFamily::IPv4 || ip.AddressFamily == IP::AddressFamily::IPv6)
+								{
+									Relay::Events::Connect rce;
+									rce.Port = rport;
+									rce.Endpoint = IPEndpoint(protocol, IPAddress{ ip }, port);
+									rce.Hop = hop;
+									rce.Origin.PeerLUID = m_Peer.GetLUID();
+									rce.Origin.LocalEndpoint = m_Peer.GetLocalEndpoint();
+									rce.Origin.PeerEndpoint = m_Peer.GetPeerEndpoint();
 
-							result.Success = true;
+									if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rce)))
+									{
+										// Let the peer know we couldn't accept
+										SendRelayStatus(rport, RelayStatusUpdate::GeneralFailure);
+									}
+
+									result.Success = true;
+								}
+								else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported internetwork address family",
+											m_Peer.GetPeerName().c_str());
+							}
+							else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported internetwork protocol",
+										m_Peer.GetPeerName().c_str());
 						}
 						else LogDbg(L"Invalid RelayCreate message from peer %s; couldn't read message data",
 									m_Peer.GetPeerName().c_str());
@@ -320,91 +327,12 @@ namespace QuantumGate::Implementation::Core::Peer
 				break;
 			}
 			case MessageType::BeginPrimaryKeyUpdateExchange:
-			{
-				if (m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
-				{
-					if (m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::PrimaryExchange))
-					{
-						if (m_Peer.InitializeKeyExchange())
-						{
-							result = ProcessKeyExchange(std::move(msg));
-							if (result.Handled && result.Success)
-							{
-								result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::SecondaryExchange);
-							}
-						}
-					}
-				}
-
-				break;
-			}
 			case MessageType::EndPrimaryKeyUpdateExchange:
-			{
-				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::PrimaryExchange &&
-					m_Peer.GetConnectionType() == PeerConnectionType::Inbound)
-				{
-					result = ProcessKeyExchange(std::move(msg));
-					if (result.Handled && result.Success)
-					{
-						result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::SecondaryExchange);
-					}
-				}
-
-				break;
-			}
 			case MessageType::BeginSecondaryKeyUpdateExchange:
-			{
-				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::SecondaryExchange &&
-					m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
-				{
-					result = ProcessKeyExchange(std::move(msg));
-					if (result.Handled && result.Success)
-					{
-						result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::ReadyWait);
-					}
-				}
-
-				break;
-			}
 			case MessageType::EndSecondaryKeyUpdateExchange:
-			{
-				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::SecondaryExchange &&
-					m_Peer.GetConnectionType() == PeerConnectionType::Inbound)
-				{
-					result = ProcessKeyExchange(std::move(msg));
-					if (result.Handled && result.Success)
-					{
-						if (m_Peer.Send(MessageType::KeyUpdateReady, Buffer()))
-						{
-							result.Success = (m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::ReadyWait) &&
-											  m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::UpdateWait));
-						}
-						else LogDbg(L"Couldn't send KeyUpdateReady message to peer %s",
-									m_Peer.GetPeerName().c_str());
-					}
-				}
-
-				break;
-			}
 			case MessageType::KeyUpdateReady:
 			{
-				if (m_Peer.GetKeyUpdate().GetStatus() == KeyUpdate::Status::ReadyWait &&
-					m_Peer.GetConnectionType() == PeerConnectionType::Outbound)
-				{
-					result.Handled = true;
-
-					if (auto& buffer = msg.GetMessageData(); buffer.IsEmpty())
-					{
-						// From now on we encrypt messages using the
-						// secondary symmetric key-pair
-						m_Peer.GetKeyExchange().StartUsingSecondarySymmetricKeyPairForEncryption();
-
-						result.Success = m_Peer.GetKeyUpdate().SetStatus(KeyUpdate::Status::UpdateWait);
-					}
-					else LogDbg(L"Invalid KeyUpdateReady message from peer %s; no data expected",
-								m_Peer.GetPeerName().c_str());
-				}
-
+				result = m_Peer.GetKeyUpdate().ProcessKeyUpdateMessage(std::move(msg));
 				break;
 			}
 			default:

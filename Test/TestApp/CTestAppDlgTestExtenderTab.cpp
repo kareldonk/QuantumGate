@@ -11,49 +11,44 @@
 
 using namespace QuantumGate::Implementation;
 
-IMPLEMENT_DYNAMIC(CTestAppDlgTestExtenderTab, CTabBase)
-
-CTestAppDlgTestExtenderTab::CTestAppDlgTestExtenderTab(QuantumGate::Local& local, CWnd* pParent /*=nullptr*/)
-	: CTabBase(IDD_QGTESTAPP_DIALOG_TESTEXTENDER_TAB, pParent), m_QuantumGate(local)
-{}
-
-CTestAppDlgTestExtenderTab::~CTestAppDlgTestExtenderTab()
-{}
+IMPLEMENT_DYNCREATE(CTestAppDlgTestExtenderTab, CTestAppDlgTabCtrlPage)
 
 void CTestAppDlgTestExtenderTab::UpdateControls() noexcept
 {
+	auto local = GetQuantumGateInstance();
+
 	auto peerselected = false;
 	const auto lbox = (CListBox*)GetDlgItem(IDC_PEERLIST);
 	if (lbox->GetCurSel() != LB_ERR) peerselected = true;
 
-	GetDlgItem(IDC_SENDTEXT)->EnableWindow(m_QuantumGate.IsRunning());
-	GetDlgItem(IDC_SENDBUTTON)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
-	GetDlgItem(IDC_SENDCHECK)->EnableWindow(m_QuantumGate.IsRunning() && (peerselected || m_SendThread != nullptr));
-	GetDlgItem(IDC_SENDSECONDS)->EnableWindow(m_QuantumGate.IsRunning() && m_SendThread == nullptr);
+	GetDlgItem(IDC_SENDTEXT)->EnableWindow(local->IsRunning());
+	GetDlgItem(IDC_SENDBUTTON)->EnableWindow(local->IsRunning() && peerselected);
+	GetDlgItem(IDC_SENDCHECK)->EnableWindow(local->IsRunning() && (peerselected || m_SendThread != nullptr));
+	GetDlgItem(IDC_SENDSECONDS)->EnableWindow(local->IsRunning() && m_SendThread == nullptr);
 	
 	const auto ping_active = (m_TestExtender != nullptr ? m_TestExtender->IsPingActive() : false);
 
-	GetDlgItem(IDC_PING)->EnableWindow(m_QuantumGate.IsRunning() && peerselected && !ping_active);
-	GetDlgItem(IDC_PING_NUM_BYTES)->EnableWindow(m_QuantumGate.IsRunning() && !ping_active);
+	GetDlgItem(IDC_PING)->EnableWindow(local->IsRunning() && peerselected && !ping_active);
+	GetDlgItem(IDC_PING_NUM_BYTES)->EnableWindow(local->IsRunning() && !ping_active);
 
-	GetDlgItem(IDC_SENDFILE)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
-	GetDlgItem(IDC_AUTO_SENDFILE)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
-	GetDlgItem(IDC_START_BENCHMARK)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
+	GetDlgItem(IDC_SENDFILE)->EnableWindow(local->IsRunning() && peerselected);
+	GetDlgItem(IDC_AUTO_SENDFILE)->EnableWindow(local->IsRunning() && peerselected);
+	GetDlgItem(IDC_START_BENCHMARK)->EnableWindow(local->IsRunning() && peerselected);
 
-	GetDlgItem(IDC_SENDSTRESS)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
-	GetDlgItem(IDC_NUMSTRESSMESS)->EnableWindow(m_QuantumGate.IsRunning());
+	GetDlgItem(IDC_SENDSTRESS)->EnableWindow(local->IsRunning() && peerselected);
+	GetDlgItem(IDC_NUMSTRESSMESS)->EnableWindow(local->IsRunning());
 
-	GetDlgItem(IDC_SEND_PRIORITY)->EnableWindow(m_QuantumGate.IsRunning() && peerselected);
-	GetDlgItem(IDC_PRIORITY_COMBO)->EnableWindow(m_QuantumGate.IsRunning());
-	GetDlgItem(IDC_SEND_DELAY)->EnableWindow(m_QuantumGate.IsRunning());
+	GetDlgItem(IDC_SEND_PRIORITY)->EnableWindow(local->IsRunning() && peerselected);
+	GetDlgItem(IDC_PRIORITY_COMBO)->EnableWindow(local->IsRunning());
+	GetDlgItem(IDC_SEND_DELAY)->EnableWindow(local->IsRunning());
 }
 
 void CTestAppDlgTestExtenderTab::DoDataExchange(CDataExchange* pDX)
 {
-	CTabBase::DoDataExchange(pDX);
+	CTestAppDlgTabCtrlPage::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CTestAppDlgTestExtenderTab, CTabBase)
+BEGIN_MESSAGE_MAP(CTestAppDlgTestExtenderTab, CTestAppDlgTabCtrlPage)
 	ON_MESSAGE(static_cast<UINT>(TestExtender::WindowsMessage::PeerEvent), &CTestAppDlgTestExtenderTab::OnPeerEvent)
 	ON_MESSAGE(static_cast<UINT>(TestExtender::WindowsMessage::FileAccept), &CTestAppDlgTestExtenderTab::OnPeerFileAccept)
 	ON_MESSAGE(static_cast<UINT>(TestExtender::WindowsMessage::ExtenderInit), &CTestAppDlgTestExtenderTab::OnExtenderInit)
@@ -99,7 +94,7 @@ END_MESSAGE_MAP()
 
 BOOL CTestAppDlgTestExtenderTab::OnInitDialog()
 {
-	CTabBase::OnInitDialog();
+	CTestAppDlgTabCtrlPage::OnInitDialog();
 
 	SetValue(IDC_SENDTEXT, L"Hello world");
 	SetValue(IDC_SENDSECONDS, L"10");
@@ -219,7 +214,7 @@ void CTestAppDlgTestExtenderTab::LoadTestExtender()
 		m_TestExtender = std::make_shared<TestExtender::Extender>(GetSafeHwnd());
 		m_TestExtender->SetAutoFileTransferPath(GetApp()->GetFolder());
 		auto extp = std::static_pointer_cast<Extender>(m_TestExtender);
-		if (!m_QuantumGate.AddExtender(extp))
+		if (!GetQuantumGateInstance()->AddExtender(extp))
 		{
 			LogErr(L"Failed to add TestExtender");
 			m_TestExtender.reset();
@@ -232,7 +227,7 @@ void CTestAppDlgTestExtenderTab::UnloadTestExtender()
 	if (m_TestExtender != nullptr)
 	{
 		auto extp = std::static_pointer_cast<Extender>(m_TestExtender);
-		if (!m_QuantumGate.RemoveExtender(extp))
+		if (!GetQuantumGateInstance()->RemoveExtender(extp))
 		{
 			LogErr(L"Failed to remove TestExtender");
 		}
@@ -246,7 +241,7 @@ void CTestAppDlgTestExtenderTab::LoadStressExtender()
 	{
 		m_StressExtender = std::make_shared<StressExtender::Extender>();
 		auto extp = std::static_pointer_cast<Extender>(m_StressExtender);
-		if (!m_QuantumGate.AddExtender(extp))
+		if (!GetQuantumGateInstance()->AddExtender(extp))
 		{
 			LogErr(L"Failed to add StressExtender");
 			m_StressExtender.reset();
@@ -261,7 +256,7 @@ void CTestAppDlgTestExtenderTab::UnloadStressExtender()
 		m_UseStressExtender = false;
 
 		auto extp = std::static_pointer_cast<Extender>(m_StressExtender);
-		if (!m_QuantumGate.RemoveExtender(extp))
+		if (!GetQuantumGateInstance()->RemoveExtender(extp))
 		{
 			LogErr(L"Failed to remove StressExtender");
 		}
@@ -351,9 +346,13 @@ void CTestAppDlgTestExtenderTab::StopSendThread()
 void CTestAppDlgTestExtenderTab::SendThreadProc(CTestAppDlgTestExtenderTab* dlg, const int interval,
 												const PeerLUID pluid, CString txt)
 {
+	String tmp_str;
+
 	while (!dlg->m_SendThreadStop)
 	{
-		dlg->SendMsgToPeer(pluid, txt.GetString(), QuantumGate::SendParameters::PriorityOption::Normal, std::chrono::milliseconds(0));
+		tmp_str = Util::FormatString(L"%s [%jdms]", txt.GetString(),
+									 std::chrono::duration_cast<std::chrono::milliseconds>(Util::GetCurrentSteadyTime().time_since_epoch()).count());
+		dlg->SendMsgToPeer(pluid, tmp_str, QuantumGate::SendParameters::PriorityOption::Normal, std::chrono::milliseconds(0));
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(interval));
 	}
@@ -411,7 +410,7 @@ void CTestAppDlgTestExtenderTab::OnStressextenderMessages()
 
 void CTestAppDlgTestExtenderTab::OnUpdateStressextenderMessages(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(m_QuantumGate.IsRunning() && m_StressExtender != nullptr);
+	pCmdUI->Enable(GetQuantumGateInstance()->IsRunning() && m_StressExtender != nullptr);
 }
 
 void CTestAppDlgTestExtenderTab::OnStressExtenderUseCompression()
@@ -510,7 +509,7 @@ void CTestAppDlgTestExtenderTab::OnBnClickedSendStress()
 
 	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - begin);
 
-	SetValue(IDC_STRESSRESULT, Util::FormatString(L"%lldms", ms.count()));
+	SetValue(IDC_STRESSRESULT, Util::FormatString(L"%jdms", ms.count()));
 }
 
 LRESULT CTestAppDlgTestExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
@@ -530,6 +529,26 @@ LRESULT CTestAppDlgTestExtenderTab::OnPeerEvent(WPARAM w, LPARAM l)
 		UpdateSelectedPeer();
 		UpdateControls();
 		UpdatePeerActivity();
+	}
+	else if (event->Type == QuantumGate::Extender::PeerEvent::Type::Suspended ||
+			 event->Type == QuantumGate::Extender::PeerEvent::Type::Resumed)
+	{
+		auto pluid = Util::FormatString(L"%llu", event->PeerLUID);
+
+		auto lbox = reinterpret_cast<CListBox*>(GetDlgItem(IDC_PEERLIST));
+		const auto pos = lbox->FindString(-1, pluid.c_str());
+		if (pos != LB_ERR)
+		{
+			lbox->DeleteString(pos);
+
+			if (event->Type == QuantumGate::Extender::PeerEvent::Type::Suspended)
+			{
+				// Add hourglass emoji
+				pluid += L" | \u231B";
+			}
+
+			lbox->InsertString(pos, pluid.c_str());
+		}
 	}
 	else if (event->Type == QuantumGate::Extender::PeerEvent::Type::Disconnected)
 	{
@@ -652,7 +671,7 @@ void CTestAppDlgTestExtenderTab::OnTimer(UINT_PTR nIDEvent)
 		}
 	}
 
-	CTabBase::OnTimer(nIDEvent);
+	CTestAppDlgTabCtrlPage::OnTimer(nIDEvent);
 }
 
 void CTestAppDlgTestExtenderTab::OnDestroy()
@@ -662,7 +681,7 @@ void CTestAppDlgTestExtenderTab::OnDestroy()
 	UnloadTestExtender();
 	UnloadStressExtender();
 
-	CTabBase::OnDestroy();
+	CTestAppDlgTabCtrlPage::OnDestroy();
 }
 
 void CTestAppDlgTestExtenderTab::OnExceptiontestStartup()

@@ -57,6 +57,7 @@ CTestAppDlg::CTestAppDlg(CWnd* pParent) : CDialogBase(CTestAppDlg::IDD, pParent)
 void CTestAppDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogBase::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_TAB_CTRL, m_TabCtrl);
 }
 
 Set<UInt16> CTestAppDlg::GetPorts(const CString ports)
@@ -75,7 +76,7 @@ Set<UInt16> CTestAppDlg::GetPorts(const CString ports)
 		start = pos + 1;
 	}
 
-	CString end = ports.Mid(start, ports.GetLength() - start);
+	const CString end = ports.Mid(start, ports.GetLength() - start);
 	if (end.GetLength() > 0)
 	{
 		const auto portn = static_cast<UInt16>(_wtoi((LPCWSTR)end));
@@ -87,12 +88,7 @@ Set<UInt16> CTestAppDlg::GetPorts(const CString ports)
 
 void CTestAppDlg::UpdateControls()
 {
-	m_MainTab.UpdateControls();
-	m_TestExtenderTab.UpdateControls();
-
-#ifdef INCLUDE_AVEXTENDER	
-	m_AVExtenderTab.UpdateControls();
-#endif
+	m_TabCtrl.UpdateControls();
 }
 
 BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
@@ -156,7 +152,6 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_COMMAND(ID_LOCAL_CONNECT_RELAYED, &CTestAppDlg::OnLocalConnectRelayed)
 	ON_UPDATE_COMMAND_UI(ID_LOCAL_CONNECT_RELAYED, &CTestAppDlg::OnUpdateLocalConnectRelayed)
 	ON_WM_CTLCOLOR()
-	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_CTRL, &CTestAppDlg::OnTcnSelchangeTabCtrl)
 	ON_WM_SHOWWINDOW()
 	ON_COMMAND(ID_LOCAL_SUPPORTEDALGORITHMS, &CTestAppDlg::OnLocalSupportedAlgorithms)
 	ON_UPDATE_COMMAND_UI(ID_LOCAL_SUPPORTEDALGORITHMS, &CTestAppDlg::OnUpdateLocalSupportedAlgorithms)
@@ -178,6 +173,8 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_COMMAND(ID_BENCHMARKS_THREADPAUSE, &CTestAppDlg::OnBenchmarksThreadPause)
 	ON_COMMAND(ID_SOCKS5EXTENDER_CONFIGURATION, &CTestAppDlg::OnSocks5ExtenderConfiguration)
 	ON_UPDATE_COMMAND_UI(ID_SOCKS5EXTENDER_CONFIGURATION, &CTestAppDlg::OnUpdateSocks5ExtenderConfiguration)
+	ON_COMMAND(ID_LOCAL_UDPLISTENERSENABLED, &CTestAppDlg::OnLocalUDPListenersEnabled)
+	ON_UPDATE_COMMAND_UI(ID_LOCAL_UDPLISTENERSENABLED, &CTestAppDlg::OnUpdateLocalUDPListenersEnabled)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlg::OnInitDialog()
@@ -189,13 +186,48 @@ BOOL CTestAppDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
-	InitializeTabCtrl();
+	if (!InitializeTabCtrl())
+	{
+		AfxMessageBox(L"Cannot start TestApp; failed to create tab control.", MB_ICONERROR);
+		EndDialog(IDCANCEL);
+		return TRUE;
+	}
 
 	LoadSettings();
 
 	UpdateControls();
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
+}
+
+bool CTestAppDlg::InitializeTabCtrl()
+{
+	// Tabpages
+	if (m_TabCtrl.AddPage(RUNTIME_CLASS(CTestAppDlgMainTab), IDD_QGTESTAPP_DIALOG_MAIN_TAB, L"Main") &&
+		m_TabCtrl.AddPage(RUNTIME_CLASS(CTestAppDlgTestExtenderTab), IDD_QGTESTAPP_DIALOG_TESTEXTENDER_TAB, L"Test Extender")
+#ifdef INCLUDE_AVEXTENDER
+		&& m_TabCtrl.AddPage(RUNTIME_CLASS(CTestAppDlgAVExtenderTab), IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB, L"AV Extender")
+#endif
+		)
+	{
+		if (m_TabCtrl.Initialize())
+		{
+			m_TabCtrl.ForEachTab([&](CTabCtrlPage* tab)
+			{
+				auto dlgtab = dynamic_cast<CTestAppDlgTabCtrlPage*>(tab);
+				dlgtab->SetQuantumGateInstance(&m_QuantumGate);
+			});
+
+			m_MainTab = (CTestAppDlgMainTab*)m_TabCtrl.GetTab(RUNTIME_CLASS(CTestAppDlgMainTab));
+			m_TestExtenderTab = (CTestAppDlgTestExtenderTab*)m_TabCtrl.GetTab(RUNTIME_CLASS(CTestAppDlgTestExtenderTab));
+#ifdef INCLUDE_AVEXTENDER
+			m_AVExtenderTab = (CTestAppDlgAVExtenderTab*)m_TabCtrl.GetTab(RUNTIME_CLASS(CTestAppDlgAVExtenderTab));
+#endif
+			return true;
+		}
+	}
+
+	return false;
 }
 
 // If you add a minimize button to your dialog, you will need the code below
@@ -234,101 +266,16 @@ HCURSOR CTestAppDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-void CTestAppDlg::InitializeTabCtrl()
-{
-	auto tabctrl = (CTabCtrl*)GetDlgItem(IDC_TAB_CTRL);
-
-	m_MainTab.Create(IDD_QGTESTAPP_DIALOG_MAIN_TAB, tabctrl);
-	m_TestExtenderTab.Create(IDD_QGTESTAPP_DIALOG_TESTEXTENDER_TAB, tabctrl);
-
-	tabctrl->InsertItem(0, L"Main");
-	tabctrl->InsertItem(1, L"Test Extender");
-
-#ifdef INCLUDE_AVEXTENDER
-	m_AVExtenderTab.Create(IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB, tabctrl);
-	tabctrl->InsertItem(2, L"AV Extender");
-#endif
-
-	UpdateTabCtrl();
-}
-
-void CTestAppDlg::UpdateTabCtrl()
-{
-	const auto tabctrl = (CTabCtrl*)GetDlgItem(IDC_TAB_CTRL);
-
-	CRect itemRect;
-	tabctrl->GetItemRect(0, &itemRect);
-
-	CRect tabRect;
-	tabctrl->GetClientRect(tabRect);
-
-	tabRect.top = itemRect.bottom + 4;
-	tabRect.left += 4;
-	tabRect.right -= 10;
-	tabRect.bottom -= (itemRect.bottom + 9);
-
-	switch (tabctrl->GetCurSel())
-	{
-		case 0:
-			m_MainTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_SHOWWINDOW);
-			m_TestExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-#ifdef INCLUDE_AVEXTENDER
-			m_AVExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-#endif
-			m_MainTab.GotoDlgCtrl(m_MainTab.GetDlgItem(IDC_SERVERPORT));
-			break;
-		case 1:
-			m_TestExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_SHOWWINDOW);
-			m_MainTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-#ifdef INCLUDE_AVEXTENDER
-			m_AVExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-#endif
-			m_TestExtenderTab.GotoDlgCtrl(m_TestExtenderTab.GetDlgItem(IDC_PEERLIST));
-			break;
-#ifdef INCLUDE_AVEXTENDER
-		case 2:
-			m_MainTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-			m_TestExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_HIDEWINDOW);
-			m_AVExtenderTab.SetWindowPos(nullptr, tabRect.left, tabRect.top, tabRect.right, tabRect.bottom, SWP_SHOWWINDOW);
-			m_AVExtenderTab.GotoDlgCtrl(m_AVExtenderTab.GetDlgItem(IDC_PEERLIST));
-			break;
-#endif
-		default:
-			assert(false);
-			break;
-	}
-}
-
-void CTestAppDlg::OnTcnSelchangeTabCtrl(NMHDR* pNMHDR, LRESULT* pResult)
-{
-	UpdateTabCtrl();
-	*pResult = 0;
-}
-
 BOOL CTestAppDlg::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo)
 {
-	// Don't send close system command to tab
-	if (nID != 2)
-	{
-		if (m_MainTab.OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) return TRUE;
-		else if (m_TestExtenderTab.OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) return TRUE;
-#ifdef INCLUDE_AVEXTENDER
-		else if (m_AVExtenderTab.OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) return TRUE;
-#endif
-	}
+	// Let tab pages handle commands first
+	if (m_TabCtrl.ForwardOnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) return TRUE;
 
 	return CDialogBase::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
 }
 
 BOOL CTestAppDlg::PreTranslateMessage(MSG* pMsg)
 {
-	// Check first if tabs can handle the message
-	if (m_MainTab.PreTranslateMessage(pMsg)) return TRUE;
-	else if (m_TestExtenderTab.PreTranslateMessage(pMsg)) return TRUE;
-#ifdef INCLUDE_AVEXTENDER
-	else if (m_AVExtenderTab.PreTranslateMessage(pMsg)) return TRUE;
-#endif
-
 	return CDialogBase::PreTranslateMessage(pMsg);
 }
 
@@ -345,8 +292,9 @@ void CTestAppDlg::LoadSettings()
 	// No settings file to load; we'll create one on exit
 	if (!std::filesystem::exists(Path(filepath)))
 	{
-		m_MainTab.SetValue(IDC_SERVERPORT, L"999");
+		m_MainTab->SetValue(IDC_SERVERPORT, L"999");
 		m_DefaultIP = L"192.168.1.1";
+		m_DefaultIPHistory = L"";
 		m_DefaultPort = 999;
 		return;
 	}
@@ -366,13 +314,13 @@ void CTestAppDlg::LoadSettings()
 
 				if (set.find("LocalPorts") != set.end())
 				{
-					m_MainTab.SetValue(IDC_SERVERPORT, set["LocalPorts"].get<std::string>());
+					m_MainTab->SetValue(IDC_SERVERPORT, set["LocalPorts"].get<std::string>());
 				}
-				else m_MainTab.SetValue(IDC_SERVERPORT, L"999");
+				else m_MainTab->SetValue(IDC_SERVERPORT, L"999");
 
 				if (set.find("LocalUUID") != set.end())
 				{
-					m_MainTab.SetValue(IDC_LOCAL_UUID, set["LocalUUID"].get<std::string>());
+					m_MainTab->SetValue(IDC_LOCAL_UUID, set["LocalUUID"].get<std::string>());
 				}
 
 				if (set.find("RequirePeerAuthentication") != set.end())
@@ -402,15 +350,39 @@ void CTestAppDlg::LoadSettings()
 				}
 				else m_DefaultIP = L"192.168.1.1";
 
+				if (set.find("ConnectIPHistory") != set.end())
+				{
+					m_DefaultIPHistory = Util::ToStringW(set["ConnectIPHistory"].get<std::string>()).c_str();
+				}
+				else m_DefaultIPHistory = L"";
+
 				if (set.find("ConnectPort") != set.end())
 				{
 					m_DefaultPort = set["ConnectPort"].get<int>();
 				}
 				else m_DefaultPort = 999;
 
+				if (set.find("ConnectProtocol") != set.end())
+				{
+					const auto protocol = set["ConnectProtocol"].get<IPEndpoint::Protocol>();
+					switch (protocol)
+					{
+						case IPEndpoint::Protocol::TCP:
+							m_DefaultProtocol = IPEndpoint::Protocol::TCP;
+							break;
+						case IPEndpoint::Protocol::UDP:
+							m_DefaultProtocol = IPEndpoint::Protocol::UDP;
+							break;
+						default:
+							m_DefaultProtocol = IPEndpoint::Protocol::TCP;
+							break;
+					}
+				}
+				else m_DefaultProtocol = IPEndpoint::Protocol::TCP;
+
 				if (set.find("AutoFileTransferFile") != set.end())
 				{
-					m_TestExtenderTab.SetValue(IDC_FILE_PATH, set["AutoFileTransferFile"].get<std::string>());
+					m_TestExtenderTab->SetValue(IDC_FILE_PATH, set["AutoFileTransferFile"].get<std::string>());
 				}
 			}
 		}
@@ -559,9 +531,9 @@ void CTestAppDlg::SaveSettings()
 
 		try
 		{
-			auto localport = m_MainTab.GetTextValue(IDC_SERVERPORT);
-			auto luuid = m_MainTab.GetTextValue(IDC_LOCAL_UUID);
-			auto autotrf_file = m_TestExtenderTab.GetTextValue(IDC_FILE_PATH);
+			auto localport = m_MainTab->GetTextValue(IDC_SERVERPORT);
+			auto luuid = m_MainTab->GetTextValue(IDC_LOCAL_UUID);
+			auto autotrf_file = m_TestExtenderTab->GetTextValue(IDC_FILE_PATH);
 
 			j["Settings"] = json::object();
 			j["Settings"]["LocalPorts"] = Util::ToStringA((LPCWSTR)localport);
@@ -577,7 +549,9 @@ void CTestAppDlg::SaveSettings()
 			else j["Settings"]["PeerAccessDefaultAllowed"] = false;
 
 			j["Settings"]["ConnectIP"] = Util::ToStringA(m_DefaultIP);
+			j["Settings"]["ConnectIPHistory"] = Util::ToStringA(m_DefaultIPHistory);
 			j["Settings"]["ConnectPort"] = m_DefaultPort;
+			j["Settings"]["ConnectProtocol"] = m_DefaultProtocol;
 
 			j["Settings"]["AutoFileTransferFile"] = Util::ToStringA((LPCWSTR)autotrf_file);
 		}
@@ -718,7 +692,7 @@ void CTestAppDlg::OnClose()
 	if (m_QuantumGate.IsRunning())
 	{
 #ifdef INCLUDE_AVEXTENDER
-		m_AVExtenderTab.OnPreDeinitializeQuantumGate();
+		m_AVExtenderTab->OnPreDeinitializeQuantumGate();
 #endif
 
 		OnLocalDeinitialize();
@@ -736,14 +710,14 @@ void CTestAppDlg::OnClose()
 
 void CTestAppDlg::OnLocalInitialize()
 {
-	auto ports = m_MainTab.GetTextValue(IDC_SERVERPORT);
+	auto ports = m_MainTab->GetTextValue(IDC_SERVERPORT);
 	if (ports.IsEmpty())
 	{
 		AfxMessageBox(L"Specify at least one listener port for the local instance.");
 		return;
 	}
 
-	auto luuid = m_MainTab.GetTextValue(IDC_LOCAL_UUID);
+	auto luuid = m_MainTab->GetTextValue(IDC_LOCAL_UUID);
 	if (luuid.IsEmpty())
 	{
 		AfxMessageBox(L"Specify a UUID for the local instance.");
@@ -766,14 +740,16 @@ void CTestAppDlg::OnLocalInitialize()
 		return;
 	}
 
-	params.Listeners.Enable = true;
-	params.Listeners.TCPPorts = GetPorts(ports);
+	params.Listeners.TCP.Enable = true;
+	params.Listeners.TCP.Ports = GetPorts(ports);
+	params.Listeners.UDP.Enable = true;
+	params.Listeners.UDP.Ports = GetPorts(ports);
 	params.Listeners.EnableNATTraversal = true;
 	params.EnableExtenders = true;
 	params.Relays.Enable = true;
 
-	auto passphrase = m_MainTab.GetTextValue(IDC_PASSPHRASE);
-	if (passphrase.GetLength() > 0)
+	const String passphrase = m_MainTab->GetTextValue(IDC_PASSPHRASE).GetString();
+	if (!passphrase.empty())
 	{
 		params.GlobalSharedSecret.emplace();
 
@@ -788,9 +764,9 @@ void CTestAppDlg::OnLocalInitialize()
 	UpdateControls();
 }
 
-bool CTestAppDlg::GenerateGlobalSharedSecret(CString& passphrase, ProtectedBuffer& buffer) const noexcept
+bool CTestAppDlg::GenerateGlobalSharedSecret(const String& passphrase, ProtectedBuffer& buffer) const noexcept
 {
-	ProtectedBuffer pbuf(reinterpret_cast<Byte*>(passphrase.GetBuffer()), passphrase.GetLength() * sizeof(wchar_t));
+	ProtectedBuffer pbuf(reinterpret_cast<const Byte*>(passphrase.data()), passphrase.size() * sizeof(String::value_type));
 
 	if (Crypto::HKDF(pbuf, buffer, 64, Algorithm::Hash::BLAKE2B512))
 	{
@@ -915,7 +891,10 @@ void CTestAppDlg::OnAttacksConnectWithGarbage()
 	{
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetIPAddressHistory(m_DefaultIPHistory);
 		dlg.SetPort(m_DefaultPort);
+		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
+		dlg.SetProtocolSelection(false);
 
 		if (dlg.DoModal() == IDOK)
 		{
@@ -940,7 +919,10 @@ void CTestAppDlg::OnAttacksConnectAndDisconnect()
 	{
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetIPAddressHistory(m_DefaultIPHistory);
 		dlg.SetPort(m_DefaultPort);
+		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
+		dlg.SetProtocolSelection(false);
 
 		if (dlg.DoModal() == IDOK)
 		{
@@ -965,7 +947,10 @@ void CTestAppDlg::OnAttacksConnectAndWait()
 	{
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetIPAddressHistory(m_DefaultIPHistory);
 		dlg.SetPort(m_DefaultPort);
+		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
+		dlg.SetProtocolSelection(false);
 
 		if (dlg.DoModal() == IDOK)
 		{
@@ -986,25 +971,49 @@ void CTestAppDlg::OnUpdateAttacksConnectAndWait(CCmdUI* pCmdUI)
 
 void CTestAppDlg::OnLocalListenersEnabled()
 {
-	if (!m_QuantumGate.AreListenersEnabled())
+	if (!m_QuantumGate.AreListenersEnabled(Local::ListenerType::TCP))
 	{
-		m_QuantumGate.EnableListeners().Failed([](auto& result)
+		m_QuantumGate.EnableListeners(Local::ListenerType::TCP).Failed([](auto& result)
 		{
-			LogErr(L"Failed to enable listeners: %s", result.GetErrorString().c_str());
+			LogErr(L"Failed to enable TCP listeners: %s", result.GetErrorString().c_str());
 		});
 	}
 	else
 	{
-		m_QuantumGate.DisableListeners().Failed([](auto& result)
+		m_QuantumGate.DisableListeners(Local::ListenerType::TCP).Failed([](auto& result)
 		{
-			LogErr(L"Failed to disable listeners: %s", result.GetErrorString().c_str());
+			LogErr(L"Failed to disable TCP listeners: %s", result.GetErrorString().c_str());
 		});
 	}
 }
 
 void CTestAppDlg::OnUpdateLocalListenersEnabled(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_QuantumGate.AreListenersEnabled());
+	pCmdUI->SetCheck(m_QuantumGate.AreListenersEnabled(Local::ListenerType::TCP));
+	pCmdUI->Enable(m_QuantumGate.IsRunning());
+}
+
+void CTestAppDlg::OnLocalUDPListenersEnabled()
+{
+	if (!m_QuantumGate.AreListenersEnabled(Local::ListenerType::UDP))
+	{
+		m_QuantumGate.EnableListeners(Local::ListenerType::UDP).Failed([](auto& result)
+		{
+			LogErr(L"Failed to enable UDP listeners: %s", result.GetErrorString().c_str());
+		});
+	}
+	else
+	{
+		m_QuantumGate.DisableListeners(Local::ListenerType::UDP).Failed([](auto& result)
+		{
+			LogErr(L"Failed to disable UDP listeners: %s", result.GetErrorString().c_str());
+		});
+	}
+}
+
+void CTestAppDlg::OnUpdateLocalUDPListenersEnabled(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_QuantumGate.AreListenersEnabled(Local::ListenerType::UDP));
 	pCmdUI->Enable(m_QuantumGate.IsRunning());
 }
 
@@ -1058,7 +1067,9 @@ void CTestAppDlg::OnStressConnectAndDisconnect()
 	{
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetIPAddressHistory(m_DefaultIPHistory);
 		dlg.SetPort(m_DefaultPort);
+		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
 		dlg.SetShowRelay(true);
 
 		if (dlg.DoModal() == IDOK)
@@ -1067,13 +1078,14 @@ void CTestAppDlg::OnStressConnectAndDisconnect()
 
 			ProtectedBuffer gsecret;
 
-			if (passphrase.GetLength() > 0)
+			if (!passphrase.empty())
 			{
 				if (!GenerateGlobalSharedSecret(passphrase, gsecret)) return;
 			}
 
 			Stress::StartConnectStress(m_QuantumGate, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort(),
-									   dlg.GetRelayHops(), dlg.GetReuseConnection(), dlg.GetRelayGatewayPeer(), gsecret);
+									   dlg.GetRelayHops(), dlg.GetProtocol(), dlg.GetReuseConnection(),
+									   dlg.GetRelayGatewayPeer(), gsecret);
 		}
 	}
 	else Stress::StopConnectStress();
@@ -1337,21 +1349,25 @@ void CTestAppDlg::OnLocalConnect()
 {
 	CEndpointDlg dlg;
 	dlg.SetIPAddress(m_DefaultIP);
+	dlg.SetIPAddressHistory(m_DefaultIPHistory);
 	dlg.SetPort(m_DefaultPort);
+	dlg.SetProtocol(m_DefaultProtocol);
 
 	if (dlg.DoModal() == IDOK)
 	{
 		m_DefaultIP = dlg.GetIPAddress().GetString();
+		m_DefaultIPHistory = dlg.GetIPAddressHistory();
 		m_DefaultPort = dlg.GetPort();
+		m_DefaultProtocol = dlg.GetProtocol();
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerIPEndpoint = IPEndpoint(IPAddress(m_DefaultIP), m_DefaultPort);
+		params.PeerIPEndpoint = IPEndpoint(m_DefaultProtocol, IPAddress(m_DefaultIP), m_DefaultPort);
 		params.ReuseExistingConnection = dlg.GetReuseConnection();
 
 		params.GlobalSharedSecret.emplace();
 
-		if (passphrase.GetLength() > 0)
+		if (!passphrase.empty())
 		{
 			if (!GenerateGlobalSharedSecret(passphrase, *params.GlobalSharedSecret)) return;
 		}
@@ -1402,7 +1418,9 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 {
 	CEndpointDlg dlg;
 	dlg.SetIPAddress(m_DefaultIP);
+	dlg.SetIPAddressHistory(m_DefaultIPHistory);
 	dlg.SetPort(m_DefaultPort);
+	dlg.SetProtocol(m_DefaultProtocol);
 
 	if (gateway_pluid) dlg.SetRelayGatewayPeer(*gateway_pluid);
 
@@ -1411,18 +1429,20 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 	if (dlg.DoModal() == IDOK)
 	{
 		m_DefaultIP = dlg.GetIPAddress().GetString();
+		m_DefaultIPHistory = dlg.GetIPAddressHistory();
 		m_DefaultPort = dlg.GetPort();
+		m_DefaultProtocol = dlg.GetProtocol();
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerIPEndpoint = IPEndpoint(IPAddress(m_DefaultIP), m_DefaultPort);
+		params.PeerIPEndpoint = IPEndpoint(m_DefaultProtocol, IPAddress(m_DefaultIP), m_DefaultPort);
 		params.ReuseExistingConnection = dlg.GetReuseConnection();
 		params.Relay.Hops = dlg.GetRelayHops();
 		params.Relay.GatewayPeer = dlg.GetRelayGatewayPeer();
 
 		params.GlobalSharedSecret.emplace();
 
-		if (passphrase.GetLength() > 0)
+		if (!passphrase.empty())
 		{
 			if (!GenerateGlobalSharedSecret(passphrase, *params.GlobalSharedSecret)) return;
 		}
@@ -1452,7 +1472,6 @@ void CTestAppDlg::OnUpdateLocalConnectRelayed(CCmdUI* pCmdUI)
 void CTestAppDlg::OnShowWindow(BOOL bShow, UINT nStatus)
 {
 	CDialogBase::OnShowWindow(bShow, nStatus);
-	UpdateTabCtrl();
 }
 
 void CTestAppDlg::OnLocalSupportedAlgorithms()
@@ -1492,7 +1511,12 @@ void CTestAppDlg::OnStressMultipleInstances()
 {
 	if (!Stress::IsMultiInstanceStressRunning())
 	{
-		auto luuid = m_MainTab.GetTextValue(IDC_LOCAL_UUID);
+		AfxMessageBox(L"This stress test requires:\r\n\r\n"
+					  L"1) That the Stress extender is loaded on the destination. Make sure to load it before starting this stress test.\r\n\r\n"
+					  L"2) That the number of connection attempts per IP is at least 20 every 10 seconds in the security settings on the destination. "
+					  L"Configure this in the Custom Security Level settings.", MB_ICONINFORMATION);
+
+		auto luuid = m_MainTab->GetTextValue(IDC_LOCAL_UUID);
 		if (luuid.IsEmpty())
 		{
 			AfxMessageBox(L"Specify a UUID for the local instance.");
@@ -1501,7 +1525,9 @@ void CTestAppDlg::OnStressMultipleInstances()
 
 		CEndpointDlg dlg;
 		dlg.SetIPAddress(m_DefaultIP);
+		dlg.SetIPAddressHistory(m_DefaultIPHistory);
 		dlg.SetPort(m_DefaultPort);
+		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
 
 		if (dlg.DoModal() == IDOK)
 		{
@@ -1521,18 +1547,20 @@ void CTestAppDlg::OnStressMultipleInstances()
 				return;
 			}
 
-			params.Listeners.Enable = false;
+			params.Listeners.TCP.Enable = false;
+			params.Listeners.UDP.Enable = false;
 			params.EnableExtenders = true;
 			params.RequireAuthentication = false;
 
 			ProtectedBuffer gsecret;
 			auto passphrase = dlg.GetPassPhrase();
-			if (passphrase.GetLength() > 0)
+			if (!passphrase.empty())
 			{
 				if (!GenerateGlobalSharedSecret(passphrase, gsecret)) return;
 			}
 
-			Stress::StartMultiInstanceStress(params, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort(), gsecret);
+			Stress::StartMultiInstanceStress(params, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort(),
+											 dlg.GetProtocol(), gsecret);
 		}
 	}
 	else Stress::StopMultiInstanceStress();

@@ -30,10 +30,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	Peer::Peer(Manager& peers, const IP::AddressFamily af, const Socket::Type type,
-			   const IP::Protocol protocol, const PeerConnectionType pctype,
+	Peer::Peer(Manager& peers, const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
 			   std::optional<ProtectedBuffer>&& shared_secret) :
-		Gate(af, type, protocol), m_PeerManager(peers)
+		Gate(af, protocol), m_PeerManager(peers)
 	{
 		if (shared_secret) m_GlobalSharedSecret = std::move(shared_secret);
 
@@ -57,13 +56,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			DisableSend();
 		}
 
+		auto& shared_secret = GetGlobalSharedSecret();
+
 		// If we have a global shared secret
-		if (!GetGlobalSharedSecret().IsEmpty())
+		if (!shared_secret.IsEmpty())
 		{
 			// We can start with symmetric keys generated with the global shared secret
-			if (m_Keys.GenerateAndAddSymmetricKeyPair(GetGlobalSharedSecret(),
-													  ProtectedBuffer(), GetAlgorithms(),
-													  GetConnectionType()))
+			if (m_Keys.GenerateAndAddSymmetricKeyPair(shared_secret, ProtectedBuffer(), GetAlgorithms(), GetConnectionType()))
 			{
 				// We need to have symmetric keys already if we get here
 				assert(!m_Keys.GetSymmetricKeyPairs().empty());
@@ -248,8 +247,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	bool Peer::CheckStatus(const bool noise_enabled, const std::chrono::seconds max_connect_duration,
-						   std::chrono::seconds max_handshake_duration) noexcept
+	bool Peer::CheckStatus(const bool noise_enabled, const SteadyTime current_steadytime,
+						   const std::chrono::seconds max_connect_duration, std::chrono::seconds max_handshake_duration) noexcept
 	{
 		if (NeedsAccessCheck())
 		{
@@ -264,7 +263,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			// Check if send disable period has expired
 			if (IsFlagSet(Flags::SendDisabled) && m_SendDisabledDuration > 0ms &&
-				(Util::GetCurrentSteadyTime() - m_SendDisabledSteadyTime) > m_SendDisabledDuration)
+				(current_steadytime - m_SendDisabledSteadyTime) > m_SendDisabledDuration)
 			{
 				EnableSend();
 			}
@@ -273,7 +272,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				// Queue more noise
 				const auto inhandshake = (status < Status::Ready);
-				if (!m_NoiseQueue.QueueNoise(GetSettings(), inhandshake)) return false;
+				if (!m_NoiseQueue.QueueNoise(GetSettings(), inhandshake))
+				{
+					LogErr(L"Failed to queue noise for peer %s; will disconnect", GetPeerName().c_str());
+
+					SetDisconnectCondition(DisconnectCondition::GeneralFailure);
+					return false;
+				}
 			}
 		}
 
@@ -295,8 +300,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				max_handshake_duration = max_handshake_duration * (hops > 2 ? hops : 2);
 			}
 
-			if (GetIOStatus().IsConnecting() &&
-				((Util::GetCurrentSteadyTime() - GetConnectedSteadyTime()) > max_connect_duration))
+			if (GetIOStatus().IsConnecting() && ((current_steadytime - GetConnectedSteadyTime()) > max_connect_duration))
 			{
 				// If the peer couldn't connect
 				LogErr(L"Peer %s could not establish connection quick enough; will remove", GetPeerName().c_str());
@@ -304,8 +308,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				SetDisconnectCondition(DisconnectCondition::TimedOutError);
 				return false;
 			}
-			else if (!GetIOStatus().IsConnecting() &&
-				((Util::GetCurrentSteadyTime() - GetConnectedSteadyTime()) > max_handshake_duration))
+			else if (!GetIOStatus().IsConnecting() && ((current_steadytime - GetConnectedSteadyTime()) > max_handshake_duration))
 			{
 				// If the peer was accepted/connected but did not reach the ready state quick enough remove it
 				LogErr(L"Peer %s did not complete handshake quick enough; will disconnect", GetPeerName().c_str());
@@ -341,6 +344,18 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 		}
 
+		if (CanSuspend())
+		{
+			if (status == Status::Ready && GetIOStatus().IsSuspended())
+			{
+				return SetStatus(Status::Suspended);
+			}
+			else if (status == Status::Suspended && !GetIOStatus().IsSuspended())
+			{
+				return SetStatus(Status::Ready);
+			}
+		}
+
 		return true;
 	}
 
@@ -359,7 +374,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	bool Peer::ProcessEvents()
+	bool Peer::ProcessEvents(const SteadyTime current_steadytime)
 	{
 		if (ShouldDisconnect()) return false;
 
@@ -422,7 +437,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		// Check if we need to update the symmetric keys
 		// and handle the update process
-		if (!CheckAndProcessKeyUpdate())
+		if (!m_KeyUpdate.ProcessEvents(current_steadytime))
 		{
 			SetDisconnectCondition(DisconnectCondition::GeneralFailure);
 			return false;
@@ -516,8 +531,13 @@ namespace QuantumGate::Implementation::Core::Peer
 				else success = false;
 				break;
 			case Status::Ready:
-				assert(prev_status == Status::SessionInit);
-				if (prev_status == Status::SessionInit) m_PeerData.WithUniqueLock()->Status = status;
+				assert(prev_status == Status::SessionInit || prev_status == Status::Suspended);
+				if (prev_status == Status::SessionInit || prev_status == Status::Suspended) m_PeerData.WithUniqueLock()->Status = status;
+				else success = false;
+				break;
+			case Status::Suspended:
+				assert(prev_status == Status::Ready);
+				if (prev_status == Status::Ready) m_PeerData.WithUniqueLock()->Status = status;
 				else success = false;
 				break;
 			case Status::Disconnected:
@@ -531,16 +551,11 @@ namespace QuantumGate::Implementation::Core::Peer
 				break;
 		}
 
-		if (success && OnStatusChange(prev_status, status))
-		{
-			m_LastStatusChangeSteadyTime = Util::GetCurrentSteadyTime();
-		}
-		else
+		if (!success || !(success = OnStatusChange(prev_status, status)))
 		{
 			// If we fail to change the status disconnect as soon as possible
 			LogErr(L"Failed to change status for peer %s to %d", GetPeerName().c_str(), status);
 			SetDisconnectCondition(DisconnectCondition::GeneralFailure);
-			success = false;
 		}
 
 		return success;
@@ -585,42 +600,80 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 			case Status::Ready:
 			{
-				// Key exchange data not needed anymore for now
-				ReleaseKeyExchange();
-
-				if (!m_KeyUpdate.SetStatus(KeyUpdate::Status::UpdateWait))
+				if (old_status == Status::SessionInit)
 				{
-					LogErr(L"Unable to set key update status for peer %s", GetPeerName().c_str());
+					// Key exchange data not needed anymore for now
+					ReleaseKeyExchange();
+
+					if (!m_KeyUpdate.Initialize())
+					{
+						LogErr(L"Unable to initialize key update for peer %s", GetPeerName().c_str());
+						SetDisconnectCondition(DisconnectCondition::GeneralFailure);
+						return false;
+					}
+					else
+					{
+						LogInfo(L"Peer %s is ready", GetPeerName().c_str());
+
+						// We went to the ready state; this means the connection attempt succeeded
+						// From now on concatenate messages when possible
+						SetFlag(Flags::ConcatenateMessages, true);
+
+						if (m_ConnectCallbacks)
+						{
+							const auto pluid = GetLUID();
+							Result<API::Peer> result{ ResultCode::Failed };
+
+							const auto peer_ptr = m_PeerPointer.lock();
+							if (peer_ptr) result = API::Peer(pluid, &peer_ptr);
+
+							ScheduleCallback([dpluid = pluid,
+											 dresult = std::move(result),
+											 dispatcher = std::move(m_ConnectCallbacks)]() mutable
+							{
+								dispatcher(dpluid, std::move(dresult));
+							});
+						}
+
+						// Notify extenders of connected peer
+						ProcessEvent(Event::Type::Connected);
+					}
+				}
+				else if (old_status == Status::Suspended)
+				{
+					if (!m_NoiseQueue.Resume())
+					{
+						LogErr(L"Unable to resume noise queue for peer %s", GetPeerName().c_str());
+						SetDisconnectCondition(DisconnectCondition::GeneralFailure);
+						return false;
+					}
+
+					if (!m_KeyUpdate.Resume())
+					{
+						LogErr(L"Unable to resume key update for peer %s", GetPeerName().c_str());
+						SetDisconnectCondition(DisconnectCondition::GeneralFailure);
+						return false;
+					}
+
+					// Notify extenders of resumed peer
+					ProcessEvent(Event::Type::Resumed);
+				}
+
+				break;
+			}
+			case Status::Suspended:
+			{
+				m_NoiseQueue.Suspend();
+
+				if (!m_KeyUpdate.Suspend())
+				{
+					LogErr(L"Unable to suspend key update for peer %s", GetPeerName().c_str());
 					SetDisconnectCondition(DisconnectCondition::GeneralFailure);
 					return false;
 				}
-				else
-				{
-					LogInfo(L"Peer %s is ready", GetPeerName().c_str());
 
-					// We went to the ready state; this means the connection attempt succeeded
-					// From now on concatenate messages when possible
-					SetFlag(Flags::ConcatenateMessages, true);
-
-					if (m_ConnectCallbacks)
-					{
-						const auto pluid = GetLUID();
-						Result<API::Peer> result{ ResultCode::Failed };
-
-						const auto peer_ptr = m_PeerPointer.lock();
-						if (peer_ptr) result = API::Peer(pluid, &peer_ptr);
-
-						ScheduleCallback([dpluid = pluid,
-										 dresult = std::move(result),
-										 dispatcher = std::move(m_ConnectCallbacks)]() mutable
-						{
-							dispatcher(dpluid, std::move(dresult));
-						});
-					}
-
-					// Notify extenders of connected peer
-					ProcessEvent(Event::Type::Connected);
-				}
+				// Notify extenders of suspended peer
+				ProcessEvent(Event::Type::Suspended);
 
 				break;
 			}
@@ -654,7 +707,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					});
 				}
 
-				if (old_status == Status::Ready)
+				if (old_status == Status::Ready || old_status == Status::Suspended)
 				{
 					// Notify extenders of disconnected peer
 					ProcessEvent(Event::Type::Disconnected);
@@ -793,8 +846,14 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			switch (GetGateType())
 			{
-				case GateType::Socket:
-					if (!GetSocket<Socket>().GetEvent().Set())
+				case GateType::TCPSocket:
+					if (!GetSocket<TCP::Socket>().GetEvent().Set())
+					{
+						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
+					}
+					break;
+				case GateType::UDPSocket:
+					if (!GetSocket<UDP::Socket>().GetReceiveEvent().Set())
 					{
 						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
 					}
@@ -890,16 +949,22 @@ namespace QuantumGate::Implementation::Core::Peer
 		// If the send buffer isn't empty yet
 		if (!m_SendBuffer.IsEmpty())
 		{
-			if (!Gate::Send(m_SendBuffer))
+			const auto result = Gate::Send(m_SendBuffer);
+			if (result.Succeeded())
+			{
+				m_SendBuffer.RemoveFirst(*result);
+
+				if (!m_SendBuffer.IsEmpty())
+				{
+					// If we weren't able to send (all) data we'll try again later
+					return true;
+				}
+				else m_SendBuffer.ResetEvent();
+			}
+			else
 			{
 				return false;
 			}
-			else if (!m_SendBuffer.IsEmpty())
-			{
-				// If we weren't able to send (all) data we'll try again later
-				return true;
-			}
-			else m_SendBuffer.ResetEvent();
 		}
 
 		// If the send buffer is empty get more messages from the send queues
@@ -967,17 +1032,23 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				if (msg.IsValid() && msg.Write(sndbuf, *symkey, nonce))
 				{
-					if (!Gate::Send(sndbuf))
+					const auto result = Gate::Send(sndbuf);
+					if (result.Succeeded())
+					{
+						sndbuf.RemoveFirst(*result);
+
+						if (!sndbuf.IsEmpty())
+						{
+							// If we weren't able to send all
+							// data we'll try again later
+							m_SendBuffer = std::move(sndbuf);
+							m_SendBuffer.SetEvent();
+							break;
+						}
+					}
+					else
 					{
 						return false;
-					}
-					else if (sndbuf.GetSize() != 0)
-					{
-						// If we weren't able to send all
-						// data we'll try again later
-						m_SendBuffer = std::move(sndbuf);
-						m_SendBuffer.SetEvent();
-						break;
 					}
 				}
 				else
@@ -1052,13 +1123,15 @@ namespace QuantumGate::Implementation::Core::Peer
 			}
 		}
 
-		// Read as much data as possible
-		while (GetIOStatus().CanRead() &&
-			   (m_ReceiveBuffer.GetSize() < (MessageTransport::MaxMessageSize + m_NextPeerRandomDataPrefixLength)))
+		if (GetIOStatus().CanRead())
 		{
-			if (!Receive(m_ReceiveBuffer)) return false;
-
-			if (!UpdateSocketStatus()) return false;
+			// Read as much data as possible
+			while (m_ReceiveBuffer.GetSize() < (MessageTransport::MaxMessageSize + m_NextPeerRandomDataPrefixLength))
+			{
+				const auto result = Receive(m_ReceiveBuffer);
+				if (!result) return false;	// Receive error
+				if (*result == 0) break;	// No data to receive
+			}
 		}
 
 		m_ReceiveBuffer.ResetEvent();
@@ -1176,16 +1249,43 @@ namespace QuantumGate::Implementation::Core::Peer
 						else if (std::chrono::abs(Util::GetCurrentSystemTime() - msg.GetMessageTime()) >
 								 settings.Message.AgeTolerance)
 						{
-							// Message should not be too old or too far into the future
-							LogErr(L"Peer %s sent a message outside time tolerance (%d seconds)",
-								   GetPeerName().c_str(), settings.Message.AgeTolerance);
-							break;
+							bool disconnect{ true };
+
+							if (CanSuspend())
+							{
+								const auto lres_time = GetLastResumedSteadyTime();
+
+								if (lres_time.has_value())
+								{
+									const auto now = Util::GetCurrentSteadyTime();
+									const auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(now - *lres_time);
+
+									LogWarn(L"Peer %s sent a message outside time tolerance (%jd seconds). "
+											L"Connection was suspended; resume steady time %jd, current is %jd, delta is %jdms",
+											GetPeerName().c_str(), settings.Message.AgeTolerance.count(),
+											lres_time->time_since_epoch().count(), now.time_since_epoch().count(),
+											delta.count());
+
+									// Due to connection being suspended some messages can arrive late; we
+									// keep accepting late messages for a brief period
+									if (delta < settings.Local.SuspendTimeout + settings.Message.AgeTolerance + 600s)
+									{
+										disconnect = false;
+									}
+								}
+							}
+
+							if (disconnect)
+							{
+								// Message should not be too old or too far into the future
+								LogErr(L"Peer %s sent a message outside time tolerance (%jd seconds)",
+									   GetPeerName().c_str(), settings.Message.AgeTolerance.count());
+								break;
+							}
 						}
-						else
-						{
-							const auto retval2 = ProcessMessages(msg.GetMessageData(), *symkey);
-							return std::make_tuple(retval2.first, retval2.second, msg.GetNextRandomDataPrefixLength());
-						}
+						
+						const auto retval2 = ProcessMessages(msg.GetMessageData(), *symkey);
+						return std::make_tuple(retval2.first, retval2.second, msg.GetNextRandomDataPrefixLength());
 					}
 					else if (!msg.IsValid() && !retry)
 					{
@@ -1416,25 +1516,6 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	bool Peer::CheckAndProcessKeyUpdate() noexcept
-	{
-		if (m_KeyUpdate.ShouldUpdate())
-		{
-			if (!m_KeyUpdate.BeginKeyUpdate())
-			{
-				LogErr(L"Couldn't initiate key update for peer %s; will disconnect", GetPeerName().c_str());
-				return false;
-			}
-		}
-		else if (m_KeyUpdate.UpdateTimedOut())
-		{
-			LogErr(L"Key update for peer %s timed out; will disconnect", GetPeerName().c_str());
-			return false;
-		}
-
-		return true;
-	}
-
 	const LocalAlgorithms& Peer::GetSupportedAlgorithms() const noexcept
 	{
 		return GetSettings().Local.SupportedAlgorithms;
@@ -1450,10 +1531,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		return Util::FormatString(L"%s (LUID %llu)", GetPeerEndpoint().GetString().c_str(), GetLUID());
 	}
 
-	bool Peer::HasPendingEvents() noexcept
+	bool Peer::HasPendingEvents(const SteadyTime current_steadytime) noexcept
 	{
 		if (HasReceiveEvents() || HasSendEvents() ||
-			m_NoiseQueue.IsQueuedNoiseReady() || m_KeyUpdate.HasEvents() ||
+			m_NoiseQueue.IsQueuedNoiseReady() || m_KeyUpdate.HasEvents(current_steadytime) ||
 			(NeedsExtenderUpdate() && IsReady()))
 		{
 			return true;
@@ -1479,15 +1560,17 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		struct HashData final
 		{
+			IPEndpoint::Protocol Protocol{ IPEndpoint::Protocol::Unspecified };
 			BinaryIPAddress IP;
-			RelayPort RelayPort{ 0 };
-			UInt64 UniqueData{ 0 };
 			UInt16 Port{ 0 };
+			RelayPort RelayPort{ 0 };
 			RelayHop RelayHop{ 0 };
+			UInt64 UniqueData{ 0 };
 		};
 
 		HashData data;
 		MemInit(&data, sizeof(data)); // Needed to zero out padding bytes for consistent hash
+		data.Protocol = endpoint.GetProtocol();
 		data.IP = endpoint.GetIPAddress().GetBinary();
 		data.Port = endpoint.GetPort();
 		data.RelayPort = endpoint.GetRelayPort();
@@ -1619,17 +1702,22 @@ namespace QuantumGate::Implementation::Core::Peer
 		// are other peers in between
 		if (!IsRelayed())
 		{
-			IPAddress ip;
-			if (IPAddress::TryParse(pub_endpoint.IPAddress, ip))
+			// Protocol reported by peer should be the same protocol
+			// as used for this connection
+			if (pub_endpoint.Protocol == GetLocalEndpoint().GetProtocol())
 			{
 				// Public IP reported by peer should be the same
 				// family type as the address used for this connection
-				if (ip.GetFamily() == GetLocalIPAddress().GetFamily())
+				if (pub_endpoint.IPAddress.AddressFamily == GetLocalIPAddress().GetFamily())
 				{
-					const auto trusted = IsUsingGlobalSharedSecret() || IsAuthenticated();
-					GetPeerManager().AddReportedPublicIPEndpoint(IPEndpoint(ip, pub_endpoint.Port), GetPeerEndpoint(),
-																 GetConnectionType(), trusted);
-					return true;
+					IPAddress ip;
+					if (IPAddress::TryParse(pub_endpoint.IPAddress, ip))
+					{
+						const auto trusted = IsUsingGlobalSharedSecret() || IsAuthenticated();
+						GetPeerManager().AddReportedPublicIPEndpoint(IPEndpoint(pub_endpoint.Protocol, ip, pub_endpoint.Port),
+																	 GetPeerEndpoint(), GetConnectionType(), trusted);
+						return true;
+					}
 				}
 			}
 		}
@@ -1837,7 +1925,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			const auto status = GetStatus();
 
 			// Should have a valid PeerUUID in the following states
-			if (status == Status::Ready || status == Status::SessionInit)
+			if (status == Status::Ready || status == Status::SessionInit || status == Status::Suspended)
 			{
 				// Check if peer UUID is still allowed access
 				const auto result2 = GetAccessManager().GetPeerAllowed(GetPeerUUID());

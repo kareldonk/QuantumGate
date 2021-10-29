@@ -9,9 +9,12 @@
 namespace QuantumGate::Implementation::Core::Peer
 {
 	class Peer;
+	class KeyUpdate;
 
 	class MessageProcessor final
 	{
+		friend KeyUpdate;
+
 	public:
 		struct Result
 		{
@@ -29,19 +32,17 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		bool SendBeginHandshake() const noexcept;
 
-		bool SendBeginPrimaryKeyUpdateExchange() const noexcept;
-
 		bool SendBeginRelay(const RelayPort rport, const IPEndpoint& endpoint, const RelayHop hops) const noexcept;
-		bool SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept;
+		QuantumGate::Result<> SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept;
 		QuantumGate::Result<> SendRelayData(const RelayDataMessage& msg) const noexcept;
 		bool SendRelayDataAck(const RelayDataAckMessage& msg) const noexcept;
-		bool SendEndRelay(const RelayPort rport) const noexcept;
 
 		Result ProcessMessage(MessageDetails&& msg) const;
 
 	private:
 		bool SendBeginPrimaryKeyExchange() const noexcept;
 		bool SendBeginKeyExchange(const MessageType type) const noexcept;
+		bool SendBeginPrimaryKeyUpdateExchange() const noexcept;
 
 		Result ProcessMessageMetaExchange(MessageDetails&& msg) const;
 		Result ProcessMessagePrimaryKeyExchange(MessageDetails&& msg) const;

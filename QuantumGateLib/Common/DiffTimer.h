@@ -102,7 +102,7 @@ namespace QuantumGate::Implementation
 
 			for (const auto& measurement : m_Measurements)
 			{
-				if (id == AllIDs || measurement.ID == id) total += measurement.GetElapsedTime();
+				if (id == AllIDs || measurement.ID == id) total += measurement.End - measurement.Start;
 			}
 
 			return total;

@@ -4,9 +4,6 @@
 #include "pch.h"
 #include "Random.h"
 
-#include <algorithm>
-#include <limits>
-
 #ifndef NO_PCG_RANDOM
 #pragma message("Using PCG as random number generator")
 #else

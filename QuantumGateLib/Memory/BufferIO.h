@@ -7,6 +7,9 @@
 #pragma push_macro("max")
 #undef max
 
+#include "StackBuffer.h"
+#include "..\Common\Endian.h"
+
 #include <limits>
 
 namespace QuantumGate::Implementation::Memory
@@ -15,6 +18,7 @@ namespace QuantumGate::Implementation::Memory
 	{
 		static constexpr Size _1B{ 0x00000001UL };
 		static constexpr Size _256B{ 0x00000100UL };
+		static constexpr Size _512B{ 0x00000200UL };
 		static constexpr Size _1KB{ 0x00000400UL };
 		static constexpr Size _65KB{ 0x00010000UL };
 		static constexpr Size _1MB{ 0x00100000UL };
@@ -36,6 +40,7 @@ namespace QuantumGate::Implementation::Memory
 		static constexpr Size _UINT32{ std::numeric_limits<UInt32>::max() };
 
 		static constexpr Size _256B{ _UINT8 };
+		static constexpr Size _512B{ 0x00000200UL };
 		static constexpr Size _1KB{ 0x00000400UL };
 		static constexpr Size _65KB{ _UINT16 };
 		static constexpr Size _1MB{ 0x00100000UL };
@@ -124,6 +129,12 @@ namespace QuantumGate::Implementation::Memory
 			return (data.size() * sizeof(T));
 		}
 
+		template<Size MaxSize>
+		Size GetDataSize(const StackBuffer<MaxSize>& data) noexcept
+		{
+			return data.GetSize();
+		}
+
 		template<typename T>
 		Size GetDataSize(const SizeWrap<T>& data) noexcept
 		{
@@ -133,12 +144,13 @@ namespace QuantumGate::Implementation::Memory
 	};
 
 	// Specializations
+	template<> Export Size BufferIO::GetDataSize(const BufferSpan& data) noexcept;
+	template<> Export Size BufferIO::GetDataSize(const BufferView& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const String& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const Network::SerializedBinaryIPAddress& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const Network::SerializedIPEndpoint& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const SerializedUUID& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const Buffer& data) noexcept;
-	template<> Export Size BufferIO::GetDataSize(const BufferView& data) noexcept;
 	template<> Export Size BufferIO::GetDataSize(const ProtectedBuffer& data) noexcept;
 
 	// Helper function

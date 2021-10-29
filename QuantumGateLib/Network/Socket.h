@@ -4,6 +4,7 @@
 #pragma once
 
 #include "SocketBase.h"
+#include "..\Memory\StackBuffer.h"
 
 #define USE_SOCKET_EVENT
 
@@ -15,6 +16,8 @@ namespace QuantumGate::Implementation::Network
 {
 	class Export Socket : public SocketBase
 	{
+		using ReceiveBuffer = Memory::StackBuffer65K;
+
 	public:
 		enum class Type
 		{
@@ -55,15 +58,21 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] bool BeginConnect(const IPEndpoint& endpoint) noexcept override;
 		[[nodiscard]] bool CompleteConnect() noexcept override;
 
-		[[nodiscard]] bool Send(Buffer& buffer, const Size max_snd_size = 0) noexcept override;
-		[[nodiscard]] bool SendTo(const IPEndpoint& endpoint, Buffer& buffer, const Size max_snd_size = 0) noexcept override;
-		[[nodiscard]] bool Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
-		[[nodiscard]] bool ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> Send(const BufferView& buffer, const Size max_snd_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> SendTo(const IPEndpoint& endpoint, const BufferView& buffer, const Size max_snd_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> Receive(BufferSpan& buffer) noexcept;
+		[[nodiscard]] Result<Size> ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> ReceiveFrom(IPEndpoint& endpoint, BufferSpan& buffer) noexcept;
 
 		void Close(const bool linger = false) noexcept override;
 
 		[[nodiscard]] inline const IOStatus& GetIOStatus() const noexcept override { return m_IOStatus; }
 		[[nodiscard]] bool UpdateIOStatus(const std::chrono::milliseconds& mseconds) noexcept override;
+
+		[[nodiscard]] bool CanSuspend() const noexcept override { return false; }
+		[[nodiscard]] std::optional<SteadyTime> GetLastSuspendedSteadyTime() const noexcept override { return std::nullopt; }
+		[[nodiscard]] std::optional<SteadyTime> GetLastResumedSteadyTime() const noexcept override { return std::nullopt; }
 
 		[[nodiscard]] SystemTime GetConnectedTime() const noexcept override;
 		[[nodiscard]] inline const SteadyTime& GetConnectedSteadyTime() const noexcept override { return m_ConnectedSteadyTime; }
@@ -85,7 +94,7 @@ namespace QuantumGate::Implementation::Network
 
 		[[nodiscard]] bool SetReuseAddress(const bool reuse) noexcept;
 		[[nodiscard]] bool SetExclusiveAddressUse(const bool exclusive) noexcept;
-		[[nodiscard]] bool GetExclusiveAddressUse() const noexcept;
+		[[nodiscard]] Result<bool> GetExclusiveAddressUse() const noexcept;
 
 		[[nodiscard]] bool SetSendTimeout(const std::chrono::milliseconds& milliseconds) noexcept;
 		[[nodiscard]] bool SetReceiveTimeout(const std::chrono::milliseconds& milliseconds) noexcept;
@@ -93,16 +102,22 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] bool SetIPTimeToLive(const std::chrono::seconds& seconds) noexcept;
 
 		[[nodiscard]] bool SetLinger(const std::chrono::seconds& seconds) noexcept;
+		
 		[[nodiscard]] bool SetNATTraversal(const bool nat_traversal) noexcept;
+		Result<bool> GetNATTraversal() noexcept;
+
 		[[nodiscard]] bool SetConditionalAccept(const bool cond_accept) noexcept;
 		[[nodiscard]] bool SetNoDelay(const bool no_delay) noexcept;
+
+		[[nodiscard]] bool SetMTUDiscovery(const bool enabled) noexcept;
+		[[nodiscard]] Result<bool> IsMTUDiscoveryEnabled() noexcept;
 
 		[[nodiscard]] bool SetSendBufferSize(const int len) noexcept;
 		[[nodiscard]] bool SetReceiveBufferSize(const int len) noexcept;
 
-		[[nodiscard]] int GetMaxDatagramMessageSize() const noexcept;
-		[[nodiscard]] int GetSendBufferSize() const noexcept;
-		[[nodiscard]] int GetReceiveBufferSize() const noexcept;
+		[[nodiscard]] Result<int> GetMaxDatagramMessageSize() const noexcept;
+		[[nodiscard]] Result<int> GetSendBufferSize() const noexcept;
+		[[nodiscard]] Result<int> GetReceiveBufferSize() const noexcept;
 
 		inline void SetConnectingCallback(ConnectingCallback&& callback) noexcept override
 		{
@@ -125,10 +140,9 @@ namespace QuantumGate::Implementation::Network
 		}
 
 		[[nodiscard]] static bool SockAddrSetEndpoint(sockaddr_storage& addr, const IPEndpoint& endpoint) noexcept;
-		[[nodiscard]] static bool SockAddrGetIPEndpoint(const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept;
+		[[nodiscard]] static bool SockAddrGetIPEndpoint(const IP::Protocol protocol, const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept;
 
 		static constexpr std::chrono::seconds DefaultLingerTime{ 10 };
-		static constexpr Size ReadWriteBufferSize{ 65'535 }; //64KB
 
 	private:
 		[[nodiscard]] bool SetSocket(const SOCKET s, const bool excl_addr_use = true,
@@ -142,10 +156,11 @@ namespace QuantumGate::Implementation::Network
 		void DetachEvent() noexcept;
 #endif
 
-		[[nodiscard]] Buffer& GetReceiveBuffer() const noexcept;
+		[[nodiscard]] ReceiveBuffer& GetReceiveBuffer() const noexcept;
 
 		[[nodiscard]] int GetError() const noexcept;
 		[[nodiscard]] int GetSockOptInt(const int optname) const noexcept;
+		[[nodiscard]] int GetOptInt(const int level, const int optname) const noexcept;
 
 		[[nodiscard]] bool UpdateIOStatusFDSet(const std::chrono::milliseconds& mseconds) noexcept;
 

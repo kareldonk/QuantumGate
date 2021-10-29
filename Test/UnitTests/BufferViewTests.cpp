@@ -104,7 +104,7 @@ namespace UnitTests
 			auto bviewf = bview.GetFirst(4);
 			Assert::AreEqual(true, (bviewf.GetSize() == 4));
 
-			auto bviewsub = bview.GetSubView(0, 4);
+			auto bviewsub = bview.GetSub(0, 4);
 			Assert::AreEqual(true, (bviewsub.GetSize() == 4));
 			Assert::AreEqual(true, std::memcmp(bviewsub.GetBytes(), "long", bviewsub.GetSize()) == 0);
 
@@ -113,7 +113,7 @@ namespace UnitTests
 			auto bviewl = bview.GetLast(6);
 			Assert::AreEqual(true, (bviewl.GetSize() == 6));
 
-			auto bviewsub2 = bview.GetSubView(bview.GetSize()-6, 6);
+			auto bviewsub2 = bview.GetSub(bview.GetSize()-6, 6);
 			Assert::AreEqual(true, (bviewsub2.GetSize() == 6));
 			Assert::AreEqual(true, std::memcmp(bviewsub2.GetBytes(), "Albert", bviewsub2.GetSize()) == 0);
 

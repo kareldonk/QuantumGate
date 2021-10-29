@@ -60,7 +60,6 @@ namespace QuantumGate
 
 	using RelayPort = UInt64;
 	using RelayHop = UInt8;
-	using RelayMessageID = UInt16;
 }
 
 #include "Memory\RingBuffer.h"
@@ -69,6 +68,7 @@ namespace QuantumGate
 namespace QuantumGate
 {
 	using BufferView = Implementation::Memory::BufferView;
+	using BufferSpan = Implementation::Memory::BufferSpan;
 	using Buffer = Implementation::Memory::Buffer;
 	using ProtectedBuffer = Implementation::Memory::ProtectedBuffer;
 	using RingBuffer = Implementation::Memory::RingBuffer;
@@ -159,8 +159,18 @@ namespace QuantumGate
 
 		struct
 		{
-			bool Enable{ false };								// Enable listening for incoming connections on startup?
-			Set<UInt16> TCPPorts{ 999 };						// Which TCP ports to listen on
+			struct
+			{
+				bool Enable{ false };							// Enable listening for incoming connections on startup?
+				Set<UInt16> Ports{ 999 };						// Which TCP ports to listen on
+			} TCP;
+
+			struct
+			{
+				bool Enable{ false };							// Enable listening for incoming connections on startup?
+				Set<UInt16> Ports{ 999 };						// Which UDP ports to listen on
+			} UDP;
+
 			bool EnableNATTraversal{ false };					// Whether NAT traversal is enabled
 		} Listeners;
 
@@ -184,6 +194,9 @@ namespace QuantumGate
 			bool UseConditionalAcceptFunction{ true };							// Whether to use the conditional accept function before accepting connections
 
 			std::chrono::seconds ConnectTimeout{ 0 };							// Maximum number of seconds to wait for a connection to be established
+
+			std::chrono::seconds SuspendTimeout{ 60 };							// Maximum number of seconds of inactivity after which a connection gets suspended (only for endpoints that support suspending connections)
+			std::chrono::seconds MaxSuspendDuration{ 60 };						// Maximum number of seconds that a connection may be suspended before the peer is disconnected (only for endpoints that support suspending connections)
 
 			std::chrono::milliseconds MaxHandshakeDelay{ 0 };					// Maximum number of milliseconds to delay a handshake
 			std::chrono::seconds MaxHandshakeDuration{ 0 };						// Maximum number of seconds a handshake may last after connecting before peer is disconnected
@@ -209,6 +222,7 @@ namespace QuantumGate
 		{
 			std::chrono::seconds ConnectTimeout{ 0 };					// Maximum number of seconds to wait for a relay link to be established
 			std::chrono::seconds GracePeriod{ 0 };						// Number of seconds after a relay is closed to still silently accept messages for that relay link
+			std::chrono::seconds MaxSuspendDuration{ 60 };				// Maximum number of seconds that a relay link may be suspended before it is closed/removed
 
 			struct
 			{
@@ -216,6 +230,15 @@ namespace QuantumGate
 				std::chrono::seconds Interval{ 0 };						// Period of time after which the relay connection attempts are reset to 0 for an IP
 			} IPConnectionAttempts;
 		} Relay;
+
+		struct
+		{
+			Size ConnectCookieRequirementThreshold{ 10 };				// The number of incoming connections that may be in the process of being established after which a cookie is required
+			std::chrono::seconds CookieExpirationInterval{ 120 };		// The number of seconds after which a cookie expires
+			std::chrono::milliseconds MaxMTUDiscoveryDelay{ 0 };		// Maximum number of milliseconds to wait before starting MTU discovery
+			Size MaxNumDecoyMessages{ 0 };								// Maximum number of decoy messages to send during handshake
+			std::chrono::milliseconds MaxDecoyMessageInterval{ 1000 };	// Maximum time interval for decoy messages during handshake
+		} UDP;
 
 		struct
 		{

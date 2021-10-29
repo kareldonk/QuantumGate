@@ -3,11 +3,11 @@
 
 #pragma once
 
-#include "..\Concurrency\ThreadPool.h"
-#include "Peer\PeerManager.h"
-#include "Access\AccessManager.h"
+#include "..\..\Concurrency\ThreadPool.h"
+#include "..\Peer\PeerManager.h"
+#include "..\Access\AccessManager.h"
 
-namespace QuantumGate::Implementation::Core::Listener
+namespace QuantumGate::Implementation::Core::TCP::Listener
 {
 	class Manager final
 	{
@@ -50,7 +50,7 @@ namespace QuantumGate::Implementation::Core::Listener
 
 		[[nodiscard]] bool AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
 											  const bool cond_accept, const bool nat_traversal) noexcept;
-		std::optional<ThreadPool::Thread> RemoveListenerThread(ThreadPool::Thread&& thread) noexcept;
+		std::optional<ThreadPool::ThreadType> RemoveListenerThread(ThreadPool::ThreadType&& thread) noexcept;
 		[[nodiscard]] bool Update(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept;
 
 	private:
@@ -74,6 +74,6 @@ namespace QuantumGate::Implementation::Core::Listener
 		Access::Manager& m_AccessManager;
 		Peer::Manager& m_PeerManager;
 
-		ThreadPool m_ListenerThreadPool;
+		ThreadPool m_ThreadPool;
 	};
 }

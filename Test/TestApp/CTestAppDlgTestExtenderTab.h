@@ -3,22 +3,22 @@
 
 #pragma once
 
-#include "CTabBase.h"
+#include "CTestAppDlgTabCtrlPage.h"
 
 #include "..\TestExtender\TestExtender.h"
 #include "..\StressExtender\StressExtender.h"
 
 #define EXTENDER_PEER_ACTIVITY_TIMER	5
 
-class CTestAppDlgTestExtenderTab final : public CTabBase
+class CTestAppDlgTestExtenderTab final : public CTestAppDlgTabCtrlPage
 {
-	DECLARE_DYNAMIC(CTestAppDlgTestExtenderTab)
+	DECLARE_DYNCREATE(CTestAppDlgTestExtenderTab)
 
 public:
-	CTestAppDlgTestExtenderTab(QuantumGate::Local& local, CWnd* pParent = nullptr);
-	virtual ~CTestAppDlgTestExtenderTab();
+	CTestAppDlgTestExtenderTab() noexcept {}
+	virtual ~CTestAppDlgTestExtenderTab() {}
 
-	void UpdateControls() noexcept;
+	void UpdateControls() noexcept override;
 
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
@@ -98,8 +98,6 @@ protected:
 	afx_msg void OnBnClickedPing();
 
 private:
-	QuantumGate::Local& m_QuantumGate;
-	
 	std::optional<PeerLUID> m_SelectedPeerLUID;
 	UINT_PTR m_PeerActivityTimer{ 0 };
 

@@ -3,148 +3,207 @@
 
 #pragma once
 
-#include "..\..\Common\Containers.h"
+#include "..\..\Common\OnlineVariance.h"
+#include "..\..\Common\RingList.h"
+
+// Use to enable/disable debug console output
+// #define RDRL_DEBUG
 
 namespace QuantumGate::Implementation::Core::Relay
 {
 	class DataRateLimit final
 	{
-		struct DataMessageDetails
+		static constexpr Size NumMTUsPerWindow{ 2u };
+
+		struct MTUDetails
 		{
 			RelayMessageID ID{ 0 };
 			Size NumBytes{ 0 };
 			SteadyTime TimeSent;
-			std::optional<SteadyTime> TimeAckReceived;
 		};
 
-		using DataMessageList = Containers::List<DataMessageDetails>;
+		using MTUList = RingList<MTUDetails, NumMTUsPerWindow>;
 
 	public:
-		[[nodiscard]] inline RelayMessageID GetNewDataMessageID() noexcept
+		[[nodiscard]] inline RelayMessageID GetNewMessageID() noexcept
 		{
 			return m_MessageIDCounter++;
 		}
 
-		[[nodiscard]] bool AddDataMessage(const RelayMessageID id, const Size num_bytes, const SteadyTime time_sent) noexcept
+		[[nodiscard]] bool AddMTU(const RelayMessageID id, const Size num_bytes, const SteadyTime time_sent) noexcept
 		{
-			assert(CanAddDataMessage(num_bytes));
+			assert(CanAddMTU());
 
-			try
+			if (m_MTUList.Add(MTUDetails{ id, num_bytes, time_sent }))
 			{
-				m_DataMessageList.emplace_front(DataMessageDetails{ id, num_bytes, time_sent });
-
-				if (m_DataMessageList.size() > MaxDataMessageHistory)
-				{
-					m_DataMessageList.pop_back();
-				}
-
-				m_CurrentWindowSizeInUse += num_bytes;
+				++m_WindowMTUsInUse;
 
 				LogDbg(L"Relay data rate: added message ID %u, %zu bytes", id, num_bytes);
 
 				return true;
 			}
-			catch (...) {}
 
-			LogErr(L"Failed to add message ID %u with %zu bytes to relay data limit", id, num_bytes);
+			LogErr(L"Relay data rate: failed to add message ID %u with %zu bytes to relay data limit", id, num_bytes);
 
 			return false;
 		}
 
-		[[nodiscard]] bool UpdateDataMessage(const RelayMessageID id, const SteadyTime time_ack_received) noexcept
+		[[nodiscard]] bool AckMTU(const RelayMessageID id, const SteadyTime time_ack_received) noexcept
 		{
-			const auto it = std::find_if(m_DataMessageList.begin(), m_DataMessageList.end(),
+			const auto it = std::find_if(m_MTUList.GetList().begin(), m_MTUList.GetList().end(),
 										 [&](const auto& dmd) { return (dmd.ID == id); });
-			if (it != m_DataMessageList.end())
+			if (it != m_MTUList.GetList().end())
 			{
 				assert(time_ack_received > it->TimeSent);
 
 				if (time_ack_received > it->TimeSent)
 				{
-					it->TimeAckReceived = time_ack_received;
+					const auto rtt = time_ack_received - it->TimeSent;
+					RecordMTUAck(rtt, it->NumBytes);
 
-					if (m_CurrentWindowSizeInUse > it->NumBytes)
-					{
-						m_CurrentWindowSizeInUse -= it->NumBytes;
-					}
-					else m_CurrentWindowSizeInUse = 0;
+					--m_WindowMTUsInUse;
 
 					LogDbg(L"Relay data rate: received ack for message ID %u, %zu bytes, roundtrip time: %jd ms",
-						   id, it->NumBytes, std::chrono::duration_cast<std::chrono::milliseconds>(time_ack_received - it->TimeSent).count());
-
-					CalculateDataRate();
+						   id, it->NumBytes, std::chrono::duration_cast<std::chrono::milliseconds>(rtt).count());
 				}
 				else
 				{
-					LogErr(L"Failed to update message ID %u on relay data limit; the ACK time was smaller than the sent time", id);
+					LogErr(L"Relay data rate: failed to update message ID %u on relay data limit; the ACK time was smaller than the sent time", id);
 					return false;
 				}
+			}
+			else
+			{
+				LogErr(L"Relay data rate: received ACK for message ID %u which does not exist", id);
 			}
 
 			return true;
 		}
 
-		[[nodiscard]] inline bool CanAddDataMessage(const Size num_bytes) const noexcept
+		[[nodiscard]] inline bool CanAddMTU() const noexcept
 		{
-			return (GetAvailableWindowSize() >= num_bytes);
+			return (GetAvailableWindowMTUs() > 0);
 		}
 
-		[[nodiscard]] inline Size GetAvailableWindowSize() const noexcept
+		[[nodiscard]] inline Size GetWindowSizeInBytes() const noexcept { return NumMTUsPerWindow * GetMTUSize(); }
+		[[nodiscard]] inline Size GetMTUSize() const noexcept { return m_MTUSize; }
+
+	private:
+		[[nodiscard]] inline Size GetAvailableWindowMTUs() const noexcept
 		{
-			if (m_MaxWindowSize > m_CurrentWindowSizeInUse)
+			if (NumMTUsPerWindow > m_WindowMTUsInUse)
 			{
-				return (m_MaxWindowSize - m_CurrentWindowSizeInUse);
+				return (NumMTUsPerWindow - m_WindowMTUsInUse);
 			}
 
 			return 0;
 		}
 
-		[[nodiscard]] inline Size GetMaxWindowSize() const noexcept { return m_MaxWindowSize; }
-
-	private:
-		void CalculateDataRate() noexcept
+		void RecordMTUAck(const std::chrono::nanoseconds rtt, const Size num_bytes) noexcept
 		{
-			Size total_bytes{ 0 };
-			std::chrono::nanoseconds total_time{ 0 };
+			const auto now = Util::GetCurrentSteadyTime();
 
-			for (const auto& dmd : m_DataMessageList)
+			if (m_RTTVariance.GetCount() > 0)
 			{
-				if (dmd.TimeAckReceived.has_value())
+				const auto threshold = std::min(m_RTTVariance.GetMean() / 2, m_RTTVariance.GetMinDev2());
+
+				if (rtt.count() < threshold || now - m_LastSampleRecordedSteadyTime > SampleRecordingRestartTimeout)
 				{
-					total_bytes += dmd.NumBytes;
-					total_time += (*dmd.TimeAckReceived - dmd.TimeSent);
+					m_RTTVariance.Restart();
+					m_MTUVariance.Restart();
+
+#ifdef RDRL_DEBUG
+					const auto meanms = std::chrono::duration_cast<std::chrono::milliseconds>(
+						std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(m_RTTVariance.GetMean())));
+					const auto stddevms = std::chrono::duration_cast<std::chrono::milliseconds>(
+						std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(m_RTTVariance.GetStdDev())));
+
+					SLogInfo(SLogFmt(FGBrightCyan) << L"Relay connection: RTT restart: " <<
+							 std::chrono::duration_cast<std::chrono::milliseconds>(rtt) << L" (mean: " << meanms <<
+							 L", stddev: " << stddevms << L")" << SLogFmt(Default));
+#endif
 				}
 			}
 
-			// Assuming sending data takes 75% of the RTT and receiving ACK 25% of the RTT
-			// we only use 75% (0.75) of the total RTT (rough average estimate)
-			const double data_rate_milliseconds =
-				(static_cast<double>(total_bytes) / ((static_cast<double>(total_time.count()) * 0.75) / 1'000'000.0));
+			m_RTTVariance.AddSample(static_cast<double>(rtt.count()));
+			m_MTUVariance.AddSample(static_cast<double>(num_bytes));
+			m_LastSampleRecordedSteadyTime = now;
 
-			m_MaxWindowSize = std::max(static_cast<Size>(data_rate_milliseconds * static_cast<double>(WindowInterval.count())), MinWindowSize);
+			const auto rttns = static_cast<double>(rtt.count());
+			const auto meanns = m_RTTVariance.GetMean();
 
-			if (m_CurrentWindowSizeInUse > m_MaxWindowSize)
+			const double data_rate_second = (m_MTUVariance.GetMean() / (m_RTTVariance.GetMean() / 1'000'000'000.0));
+
+			Size mtu{ m_MTUSize };
+
+			if (rttns <= meanns)
 			{
-				m_CurrentWindowSizeInUse = m_MaxWindowSize;
+				const auto mtua = static_cast<Size>(data_rate_second * (1.0 - (rttns / meanns)));
+				if (RelayDataMessage::MaxMessageDataSize - mtu > mtua)
+				{
+					mtu += mtua;
+				}
+				else mtu = RelayDataMessage::MaxMessageDataSize;
+			}
+			else
+			{
+				const auto mtur = static_cast<Size>(data_rate_second * (1.0 - (meanns / rttns)));
+				if (mtur < mtu)
+				{
+					mtu -= mtur;
+					mtu = std::max(MinMTUSize, mtu);
+				}
+				else mtu = MinMTUSize;
 			}
 
-			LogDbg(L"Relay data rate - total bytes sent: %zu in %jd ms - rate: %.2lf B/ms - MaxWindowSize: %zu bytes",
-				   total_bytes, std::chrono::duration_cast<std::chrono::milliseconds>(total_time).count(),
-				   data_rate_milliseconds, m_MaxWindowSize);
+			// Choosing a value for X close to 1 makes the weighted average immune to changes
+			// that last a short time (e.g., a single message that encounters long delay).
+			// Choosing a value for X close to 0 makes the weighted average respond to changes
+			// in delay very quickly.
+			const auto X{ 0.95 };
+			const auto new_mtu = OnlineVariance<double>::WeightedSampleUpdate(static_cast<double>(m_MTUSize), static_cast<double>(mtu), X);
+			m_MTUSize = static_cast<Size>(new_mtu);
+
+#ifdef RDRL_DEBUG
+			if (now - m_LastLogTime > std::chrono::seconds(1))
+			{
+				m_LastLogTime = now;
+
+				const auto rttms = std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(rttns)));
+				const auto meanms = std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(m_RTTVariance.GetMean())));
+				const auto stddevms = std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::nanoseconds(static_cast<std::chrono::nanoseconds::rep>(m_RTTVariance.GetStdDev())));
+
+				SLogInfo(SLogFmt(FGBrightGreen) << L"Relay connection: RTT: " << rttms << L" (mean: " << meanms <<
+						 L", stddev: " << stddevms << L") - Datarate: " << std::fixed << std::setprecision(2) <<
+						 data_rate_second << L" B/s (mean: " << m_MTUVariance.GetMean() << L" B) - MTUSize: " <<
+						 m_MTUSize << L" B - WindowSize: " << NumMTUsPerWindow << L" (" << GetWindowSizeInBytes() <<
+						 " B), " << m_WindowMTUsInUse << L" used" << SLogFmt(Default));
+			}
+#endif
 		}
 
 	private:
-		static constexpr Size MaxDataMessageHistory{ 100 };
+		static constexpr Size MinMTUSize{ 1u << 16 }; // 65KB
 
-		static constexpr Size MinWindowSize{ 1u << 12 }; // 4KB
-
-		// Allow 1000ms of data to be in transit before receiving ACK
-		static constexpr std::chrono::milliseconds WindowInterval{ 1000 };
+		static constexpr std::chrono::seconds SampleRecordingRestartTimeout{ 2 };
 
 	private:
 		RelayMessageID m_MessageIDCounter{ 0 };
-		Size m_MaxWindowSize{ MinWindowSize };
-		Size m_CurrentWindowSizeInUse{ 0 };
-		DataMessageList m_DataMessageList;
+		
+		OnlineVariance<double> m_RTTVariance;
+		OnlineVariance<double> m_MTUVariance;
+		SteadyTime m_LastSampleRecordedSteadyTime;
+
+		Size m_MTUSize{ MinMTUSize };
+		Size m_WindowMTUsInUse{ 0 };
+
+		MTUList m_MTUList;
+
+#ifdef RDRL_DEBUG
+		SteadyTime m_LastLogTime;
+#endif
 	};
 }

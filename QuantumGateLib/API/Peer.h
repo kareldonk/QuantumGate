@@ -40,6 +40,7 @@ namespace QuantumGate::API
 			Size BytesSent{ 0 };
 			Size ExtendersBytesReceived{ 0 };
 			Size ExtendersBytesSent{ 0 };
+			bool IsSuspended{ false };
 		};
 
 		Peer() noexcept;
@@ -79,6 +80,8 @@ namespace QuantumGate::API
 
 		Result<Size> GetExtendersBytesReceived() const noexcept;
 		Result<Size> GetExtendersBytesSent() const noexcept;
+
+		Result<bool> GetSuspended() const noexcept;
 
 		Result<Details> GetDetails() const noexcept;
 

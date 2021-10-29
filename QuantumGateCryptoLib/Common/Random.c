@@ -25,10 +25,10 @@ int QGCryptoInitRng()
 	if (BCryptOpenAlgorithmProvider(&BCryptAlgorithm, BCRYPT_RNG_ALGORITHM, NULL, 0) == STATUS_SUCCESS &&
 		BCryptAlgorithm != NULL)
 	{
-		return 0;
+		return 1;
 	}
 
-	return -1;
+	return 0;
 }
 
 void QGCryptoDeinitRng()
@@ -51,14 +51,14 @@ int QGCryptoGetRandomBytes(unsigned char* buffer, unsigned long buffer_len)
 
 	if (BCryptGenRandom(BCryptAlgorithm, buffer, buffer_len, 0) == STATUS_SUCCESS)
 	{
-		return 0;
+		return 1;
 	}
 
-	return -1;
+	return 0;
 }
 
 void randombytes(unsigned char* buffer, unsigned long buffer_len)
 {
-	while (QGCryptoGetRandomBytes(buffer, buffer_len) != 0)
+	while (QGCryptoGetRandomBytes(buffer, buffer_len) != 1)
 	{}
 }

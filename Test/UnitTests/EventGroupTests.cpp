@@ -34,7 +34,9 @@ namespace UnitTests
 			Assert::AreEqual(false, result.HadEvent);
 
 			Assert::AreEqual(true, eventgroup.AddEvent(event1));
+			Assert::AreEqual(true, eventgroup.HasEvent(event1));
 			Assert::AreEqual(true, eventgroup.AddEvent(event2));
+			Assert::AreEqual(true, eventgroup.HasEvent(event2));
 			
 			const auto result2 = eventgroup.Wait(1s);
 			Assert::AreEqual(true, result2.Waited);
@@ -58,6 +60,7 @@ namespace UnitTests
 			Assert::AreEqual(true, measurement.GetElapsedTime() >= 5s);
 
 			eventgroup.RemoveEvent(event1);
+			Assert::AreEqual(false, eventgroup.HasEvent(event1));
 
 			const auto result4 = eventgroup.Wait(1s);
 			Assert::AreEqual(true, result4.Waited);
@@ -130,9 +133,11 @@ namespace UnitTests
 			Assert::AreEqual(false, eventgroup.AddEvent(levent));
 
 			eventgroup.RemoveEvent(events[0]);
+			Assert::AreEqual(false, eventgroup.HasEvent(events[0]));
 			events.erase(events.begin());
 
 			Assert::AreEqual(true, eventgroup.AddEvent(levent));
+			Assert::AreEqual(true, eventgroup.HasEvent(levent));
 			
 			eventgroup.Deinitialize();
 		}

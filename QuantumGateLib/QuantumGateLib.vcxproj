@@ -545,13 +545,17 @@
     <ClInclude Include="Common\Dispatcher.h" />
     <ClInclude Include="Common\Endian.h" />
     <ClInclude Include="Common\Hash.h" />
+    <ClInclude Include="Common\Obfuscate.h" />
+    <ClInclude Include="Common\OnlineVariance.h" />
     <ClInclude Include="Common\Random.h" />
     <ClInclude Include="Common\RateLimit.h" />
     <ClInclude Include="Common\Result.h" />
+    <ClInclude Include="Common\RingList.h" />
     <ClInclude Include="Common\ScopeGuard.h" />
     <ClInclude Include="Common\Traits.h" />
     <ClInclude Include="Common\Util.h" />
     <ClInclude Include="Common\UUID.h" />
+    <ClInclude Include="Common\Wrapped.h" />
     <ClInclude Include="Compression\Compression.h" />
     <ClInclude Include="Compression\ZlibStreams.h" />
     <ClInclude Include="Compression\ZstdStreams.h" />
@@ -559,8 +563,10 @@
     <ClInclude Include="Concurrency\CriticalSection.h" />
     <ClInclude Include="Concurrency\Event.h" />
     <ClInclude Include="Concurrency\ConditionEvent.h" />
+    <ClInclude Include="Concurrency\EventComposite.h" />
     <ClInclude Include="Concurrency\EventGroup.h" />
     <ClInclude Include="Concurrency\Queue.h" />
+    <ClInclude Include="Concurrency\DequeMap.h" />
     <ClInclude Include="Concurrency\RecursiveSharedMutex.h" />
     <ClInclude Include="Concurrency\SharedSpinMutex.h" />
     <ClInclude Include="Concurrency\SpinMutex.h" />
@@ -578,7 +584,6 @@
     <ClInclude Include="Core\Extender\ExtenderManager.h" />
     <ClInclude Include="Core\KeyGeneration\KeyGenerationEvent.h" />
     <ClInclude Include="Core\KeyGeneration\KeyGenerationManager.h" />
-    <ClInclude Include="Core\ListenerManager.h" />
     <ClInclude Include="Core\LocalEnvironment.h" />
     <ClInclude Include="Core\Local.h" />
     <ClInclude Include="Core\Message.h" />
@@ -608,6 +613,21 @@
     <ClInclude Include="Core\Relay\RelayLink.h" />
     <ClInclude Include="Core\Relay\RelayManager.h" />
     <ClInclude Include="Core\Relay\RelaySocket.h" />
+    <ClInclude Include="Core\TCP\TCPListenerManager.h" />
+    <ClInclude Include="Core\TCP\TCPSocket.h" />
+    <ClInclude Include="Core\UDP\UDPConnectionCommon.h" />
+    <ClInclude Include="Core\UDP\UDPConnectionCookies.h" />
+    <ClInclude Include="Core\UDP\UDPConnectionData.h" />
+    <ClInclude Include="Core\UDP\UDPConnection.h" />
+    <ClInclude Include="Core\UDP\UDPConnectionKeys.h" />
+    <ClInclude Include="Core\UDP\UDPConnectionMTUD.h" />
+    <ClInclude Include="Core\UDP\UDPConnectionSendQueue.h" />
+    <ClInclude Include="Core\UDP\UDPConnectionStats.h" />
+    <ClInclude Include="Core\UDP\UDPListenerManager.h" />
+    <ClInclude Include="Core\UDP\UDPConnectionManager.h" />
+    <ClInclude Include="Core\UDP\UDPListenerSocket.h" />
+    <ClInclude Include="Core\UDP\UDPMessage.h" />
+    <ClInclude Include="Core\UDP\UDPSocket.h" />
     <ClInclude Include="Crypto\Crypto.h" />
     <ClInclude Include="Crypto\KeyData.h" />
     <ClInclude Include="Crypto\McEliece.h" />
@@ -631,6 +651,7 @@
     <ClInclude Include="Memory\PoolAllocator.h" />
     <ClInclude Include="Memory\ProtectedFreeStoreAllocatorImpl.h" />
     <ClInclude Include="Memory\RingBuffer.h" />
+    <ClInclude Include="Memory\StackBuffer.h" />
     <ClInclude Include="Module.h" />
     <ClInclude Include="Network\BinaryIPAddress.h" />
     <ClInclude Include="Network\IP.h" />
@@ -670,7 +691,6 @@
     <ClCompile Include="Core\Extender\ExtenderModule.cpp" />
     <ClCompile Include="Core\Extender\ExtenderManager.cpp" />
     <ClCompile Include="Core\KeyGeneration\KeyGenerationManager.cpp" />
-    <ClCompile Include="Core\ListenerManager.cpp" />
     <ClCompile Include="Core\LocalEnvironment.cpp" />
     <ClCompile Include="Core\Local.cpp" />
     <ClCompile Include="Core\Message.cpp" />
@@ -692,6 +712,15 @@
     <ClCompile Include="Core\PublicIPEndpoints.cpp" />
     <ClCompile Include="Core\Relay\RelayManager.cpp" />
     <ClCompile Include="Core\Relay\RelaySocket.cpp" />
+    <ClCompile Include="Core\TCP\TCPListenerManager.cpp" />
+    <ClCompile Include="Core\UDP\UDPConnection.cpp" />
+    <ClCompile Include="Core\UDP\UDPConnectionKeys.cpp" />
+    <ClCompile Include="Core\UDP\UDPConnectionMTUD.cpp" />
+    <ClCompile Include="Core\UDP\UDPConnectionSendQueue.cpp" />
+    <ClCompile Include="Core\UDP\UDPListenerManager.cpp" />
+    <ClCompile Include="Core\UDP\UDPConnectionManager.cpp" />
+    <ClCompile Include="Core\UDP\UDPMessage.cpp" />
+    <ClCompile Include="Core\UDP\UDPSocket.cpp" />
     <ClCompile Include="Crypto\Crypto.cpp" />
     <ClCompile Include="Crypto\KeyData.cpp" />
     <ClCompile Include="dllmain.cpp">
@@ -721,8 +750,6 @@
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Memory\BufferIO.cpp" />
-    <ClCompile Include="Memory\BufferReader.cpp" />
-    <ClCompile Include="Memory\BufferWriter.cpp" />
     <ClCompile Include="Memory\CommonStatic.cpp" />
     <ClCompile Include="Module.cpp" />
     <ClCompile Include="Network\BinaryIPAddress.cpp" />

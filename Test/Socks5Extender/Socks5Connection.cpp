@@ -337,10 +337,18 @@ namespace QuantumGate::Socks5Extender
 			// Socks5 (error) replies
 			if (!m_Socket.GetIOStatus().HasException() && m_Socket.GetIOStatus().CanWrite())
 			{
-				while (m_Socket.Send(m_SendBuffer))
+				auto result = m_Socket.Send(m_SendBuffer);
+				while (result.Succeeded())
 				{
+					m_SendBuffer.RemoveFirst(*result);
+
 					if (m_SendBuffer.IsEmpty()) break;
-					else std::this_thread::sleep_for(1ms);
+					else
+					{
+						std::this_thread::sleep_for(1ms);
+
+						result = m_Socket.Send(m_SendBuffer);
+					}
 				}
 			}
 		}
@@ -503,8 +511,8 @@ namespace QuantumGate::Socks5Extender
 				{
 					if (m_Socket.GetIOStatus().CanRead())
 					{
-						success = m_Socket.Receive(m_ReceiveBuffer);
-						if (!success)
+						const auto result = m_Socket.Receive(m_ReceiveBuffer);
+						if (result.Failed())
 						{
 							const auto error_code = WSAGetLastError();
 							if (error_code != 0 && error_code != 5)
@@ -519,6 +527,8 @@ namespace QuantumGate::Socks5Extender
 										m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
 										GetID());
 							}
+
+							success = false;
 						}
 
 						if (success && !m_ReceiveBuffer.IsEmpty()) m_Extender.SetConnectionReceiveEvent();
@@ -528,12 +538,17 @@ namespace QuantumGate::Socks5Extender
 
 					if (m_Socket.GetIOStatus().CanWrite() && !m_SendBuffer.IsEmpty())
 					{
-						success = m_Socket.Send(m_SendBuffer);
-						if (!success)
+						const auto result = m_Socket.Send(m_SendBuffer);
+						if (result.Succeeded())
+						{
+							m_SendBuffer.RemoveFirst(*result);
+						}
+						else
 						{
 							LogErr(L"%s: send failed on endpoint %s for connection %llu (%s)",
 								   m_Extender.GetName().c_str(), m_Socket.GetPeerEndpoint().GetString().c_str(),
 								   GetID(), GetLastSocketErrorString().c_str());
+							success = false;
 						}
 						
 						if (success && !m_SendBuffer.IsEmpty()) m_Extender.SetConnectionSendEvent();
@@ -1190,11 +1205,14 @@ namespace QuantumGate::Socks5Extender
 		{
 			if (m_Socket.GetIOStatus().CanWrite())
 			{
-				success = m_Socket.Send(m_SendBuffer);
-				if (success)
+				const auto result = m_Socket.Send(m_SendBuffer);
+				if (result.Succeeded())
 				{
+					m_SendBuffer.RemoveFirst(*result);
+
 					m_LastActiveSteadyTime = Util::GetCurrentSteadyTime();
 				}
+				else success = false;
 			}
 
 			// Any remaining data will be sent later

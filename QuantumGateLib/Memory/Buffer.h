@@ -42,8 +42,8 @@ namespace QuantumGate::Implementation::Memory
 
 		inline explicit operator bool() const noexcept { return !IsEmpty(); }
 
-		inline Byte& operator[](Size index) { return m_Buffer[index]; }
-		inline const Byte& operator[](Size index) const { return m_Buffer[index]; }
+		inline Byte& operator[](const Size index) { return m_Buffer[index]; }
+		inline const Byte& operator[](const Size index) const { return m_Buffer[index]; }
 
 		inline BufferImpl& operator=(const BufferImpl& other)
 		{
@@ -105,6 +105,11 @@ namespace QuantumGate::Implementation::Memory
 			return (this->operator BufferView() == other);
 		}
 
+		inline bool operator==(const BufferSpan& other) const noexcept
+		{
+			return (this->operator BufferSpan() == other);
+		}
+
 		inline bool operator!=(const BufferImpl& other) const noexcept
 		{
 			return !(*this == other);
@@ -115,7 +120,13 @@ namespace QuantumGate::Implementation::Memory
 			return (this->operator BufferView() != other);
 		}
 
+		inline bool operator!=(const BufferSpan& other) const noexcept
+		{
+			return (this->operator BufferSpan() != other);
+		}
+
 		inline operator BufferView() const noexcept { return { GetBytes(), GetSize() }; }
+		inline operator BufferSpan() noexcept { return { GetBytes(), GetSize() }; }
 
 		inline BufferImpl& operator+=(const BufferImpl& other) { Add(other.GetBytes(), other.GetSize()); return *this; }
 		inline BufferImpl& operator+=(const BufferView& buffer) { Add(buffer.GetBytes(), buffer.GetSize()); return *this; }

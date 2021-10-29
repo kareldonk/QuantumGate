@@ -163,6 +163,8 @@ namespace QuantumGate::Implementation::Core
 		bool m_UseCompression{ true };
 	};
 
+	using RelayMessageID = UInt16;
+
 	struct RelayDataMessage final
 	{
 		RelayPort Port{ 0 };
