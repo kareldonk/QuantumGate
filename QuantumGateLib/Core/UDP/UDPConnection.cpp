@@ -114,6 +114,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void Connection::OnLocalIPInterfaceChanged() noexcept
 	{
+		// MTU needs to be checked again on IP/Network change
 		ResetMTU();
 
 		// Send immediate keepalive to let the peer know of
@@ -1286,7 +1287,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	bool Connection::ProcessReceivedMessageConnected(const IPEndpoint& endpoint, Message&& msg) noexcept
 	{
 		auto success = false;
-		auto endpoint_check = true;
+		auto endpoint_check = false;
 
 		switch (msg.GetType())
 		{
@@ -1314,6 +1315,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 							{
 								m_ReceiveQueue.emplace(msg.GetMessageSequenceNumber(), std::move(msg));
 								success = true;
+								endpoint_check = true;
 							}
 							catch (...) {}
 						}
@@ -1324,6 +1326,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 						// send an ack (again) and drop message
 						m_LastInOrderReceivedSequenceNumber.ResetAcked();
 						success = AckReceivedMessage(msg.GetMessageSequenceNumber());
+						endpoint_check = success;
 						break;
 					}
 					case ReceiveWindow::Unknown:
@@ -1355,6 +1358,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 				m_SendQueue.ProcessReceivedAcks(msg.GetAckRanges());
 				success = true;
+				endpoint_check = true;
 				break;
 			}
 			case Message::Type::MTUD:
@@ -1368,6 +1372,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					if (m_MTUDiscovery) m_MTUDiscovery->ProcessReceivedAck(msg.GetMessageAckNumber());
 				}
 				success = true;
+				endpoint_check = true;
 				break;
 			}
 			case Message::Type::Reset:
@@ -1386,6 +1391,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					Message::TypeToString(msg.GetType()), endpoint.GetString().c_str(), GetID());
 
 				success = true;
+				endpoint_check = true;
 				break;
 			}
 			case Message::Type::Syn:
@@ -1407,7 +1413,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				}
 
 				success = true;
-				endpoint_check = false;
 				break;
 			}
 			default:
@@ -1431,7 +1436,6 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					success = true;
 				}
 
-				endpoint_check = false;
 				break;
 			}
 		}
@@ -1470,6 +1474,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 						m_PeerEndpoint.GetString().c_str(), endpoint.GetString().c_str(), GetID());
 
 				m_PeerEndpoint = endpoint;
+
+				// MTU needs to be checked again on IP/Network change
+				ResetMTU();
 			}
 			else
 			{
