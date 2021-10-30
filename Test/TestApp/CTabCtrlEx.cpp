@@ -99,7 +99,7 @@ CTabCtrlPage* CTabCtrlEx::GetTab(const CRuntimeClass* rclass) const noexcept
 
 CTabCtrlPage* CTabCtrlEx::GetTab(const int idx) const noexcept
 {
-	if (idx >= 0 && idx < m_TabPages.size())
+	if (idx >= 0 && idx < static_cast<int>(m_TabPages.size()))
 	{
 		return m_TabPages[idx]->TabWnd.get();
 	}
@@ -123,11 +123,11 @@ int CTabCtrlEx::SetCurSel(const int idx) noexcept
 
 int CTabCtrlEx::SetCurSel(const CTabCtrlPage* obj) noexcept
 {
-	for (int idx = 0; idx < m_TabPages.size(); ++idx)
+	for (TabPages::size_type idx = 0; idx < m_TabPages.size(); ++idx)
 	{
 		if (m_TabPages[idx]->TabWnd.get() == obj)
 		{
-			return SetCurSel(idx);
+			return SetCurSel(static_cast<int>(idx));
 		}
 	}
 
@@ -139,7 +139,7 @@ void CTabCtrlEx::UpdateSelection() noexcept
 	const auto cursel = GetCurSel();
 	if (cursel != -1)
 	{
-		for (int idx = 0; idx < m_TabPages.size(); ++idx)
+		for (TabPages::size_type idx = 0; idx < m_TabPages.size(); ++idx)
 		{
 			CTabCtrlPage* tabpage = m_TabPages[idx]->TabWnd.get();
 			if (cursel == idx) tabpage->ShowWindow(SW_SHOW);
