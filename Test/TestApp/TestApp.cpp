@@ -138,7 +138,7 @@ bool CTestAppApp::LoadKey(const String& path, ProtectedBuffer& key) const noexce
 			ProtectedStringA b64keystr;
 			b64keystr.resize(static_cast<size_t>(fsize));
 
-			std::ifstream file(path, std::ios::in | std::ios::binary);
+			std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
 			file.read(b64keystr.data(), fsize);
 
 			auto b64key = Util::FromBase64(b64keystr);
@@ -172,7 +172,7 @@ bool CTestAppApp::SaveKey(const String& path, const ProtectedBuffer& key) const 
 {
 	try
 	{
-		std::ofstream file(path, std::ios::out | std::ios::binary | std::ios::trunc);
+		std::ofstream file(path.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
 		auto b64key = Util::ToBase64(key);
 		if (b64key)
 		{
