@@ -131,7 +131,7 @@ namespace UnitTests
 			Assert::AreEqual(true, lum.IsEmpty());
 		}
 
-		TEST_METHOD(IPEndpointMap)
+		TEST_METHOD(EndpointMap)
 		{
 			LookupMaps lum;
 
@@ -149,19 +149,19 @@ namespace UnitTests
 			Assert::AreEqual(true, lum.AddPeerData(*ep4));
 
 			// Should have 3 IPEndpoint combinations
-			Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 3);
+			Assert::AreEqual(true, lum.GetEndpointMap().size() == 3);
 
 			{
-				const auto it = lum.GetIPEndpointMap().find(lum.GetIPEndpointHash(ep1->WithSharedLock()->Cached.PeerEndpoint));
-				Assert::AreEqual(true, it != lum.GetIPEndpointMap().end());
+				const auto it = lum.GetEndpointMap().find(lum.GetEndpointHash(ep1->WithSharedLock()->Cached.PeerEndpoint));
+				Assert::AreEqual(true, it != lum.GetEndpointMap().end());
 
 				// Should have 2 LUIDs
 				Assert::AreEqual(true, it->second.size() == 2);
 			}
 
 			{
-				const auto it = lum.GetIPEndpointMap().find(lum.GetIPEndpointHash(ep3->WithSharedLock()->Cached.PeerEndpoint));
-				Assert::AreEqual(true, it != lum.GetIPEndpointMap().end());
+				const auto it = lum.GetEndpointMap().find(lum.GetEndpointHash(ep3->WithSharedLock()->Cached.PeerEndpoint));
+				Assert::AreEqual(true, it != lum.GetEndpointMap().end());
 
 				// Should have 1 LUID
 				Assert::AreEqual(true, it->second.size() == 1);
@@ -175,22 +175,22 @@ namespace UnitTests
 				Assert::AreEqual(true, lum.RemovePeerData(*ep1));
 
 				// Should still have 3 IPEndpoint combinations
-				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 3);
+				Assert::AreEqual(true, lum.GetEndpointMap().size() == 3);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep2));
 
 				// Should have 2 IPEndpoint combination
-				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 2);
+				Assert::AreEqual(true, lum.GetEndpointMap().size() == 2);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep3));
 
 				// Should have 1 IPEndpoint combination
-				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 1);
+				Assert::AreEqual(true, lum.GetEndpointMap().size() == 1);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep4));
 
 				// Should have no IPEndpoint combinations
-				Assert::AreEqual(true, lum.GetIPEndpointMap().empty());
+				Assert::AreEqual(true, lum.GetEndpointMap().empty());
 
 				// Removing nonexisting IPEndpoint combination should fail
 				Assert::AreEqual(false, lum.RemovePeerData(*ep3));
@@ -199,7 +199,7 @@ namespace UnitTests
 			Assert::AreEqual(true, lum.IsEmpty());
 		}
 
-		TEST_METHOD(IPMap)
+		TEST_METHOD(AddressMap)
 		{
 			LookupMaps lum;
 
@@ -219,19 +219,19 @@ namespace UnitTests
 			Assert::AreEqual(true, lum.AddPeerData(*ep4));
 
 			// Should have 3 IPs
-			Assert::AreEqual(true, lum.GetIPMap().size() == 3);
+			Assert::AreEqual(true, lum.GetAddressMap().size() == 3);
 
 			{
-				const auto it = lum.GetIPMap().find(IPAddress(L"192.168.1.10").GetBinary());
-				Assert::AreEqual(true, it != lum.GetIPMap().end());
+				const auto it = lum.GetAddressMap().find(IPAddress(L"192.168.1.10"));
+				Assert::AreEqual(true, it != lum.GetAddressMap().end());
 
 				// Should have 3 LUIDs
 				Assert::AreEqual(true, it->second.size() == 3);
 			}
 
 			{
-				const auto it = lum.GetIPMap().find(IPAddress(L"192.168.10.11").GetBinary());
-				Assert::AreEqual(true, it != lum.GetIPMap().end());
+				const auto it = lum.GetAddressMap().find(IPAddress(L"192.168.10.11"));
+				Assert::AreEqual(true, it != lum.GetAddressMap().end());
 
 				// Should have 1 LUID
 				Assert::AreEqual(true, it->second.size() == 1);
@@ -241,8 +241,8 @@ namespace UnitTests
 			}
 
 			{
-				const auto it = lum.GetIPMap().find(IPAddress(L"192.168.10.12").GetBinary());
-				Assert::AreEqual(true, it != lum.GetIPMap().end());
+				const auto it = lum.GetAddressMap().find(IPAddress(L"192.168.10.12"));
+				Assert::AreEqual(true, it != lum.GetAddressMap().end());
 
 				// Should have 1 LUID
 				Assert::AreEqual(true, it->second.size() == 1);
@@ -257,27 +257,27 @@ namespace UnitTests
 				Assert::AreEqual(true, lum.RemovePeerData(*ep1));
 
 				// Should still have 3 IPs
-				Assert::AreEqual(true, lum.GetIPMap().size() == 3);
+				Assert::AreEqual(true, lum.GetAddressMap().size() == 3);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep2));
 
 				// Should still have 3 IPs
-				Assert::AreEqual(true, lum.GetIPMap().size() == 3);
+				Assert::AreEqual(true, lum.GetAddressMap().size() == 3);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep2a));
 
 				// Should have 2 IPs
-				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 2);
+				Assert::AreEqual(true, lum.GetEndpointMap().size() == 2);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep3));
 
 				// Should have 1 IP
-				Assert::AreEqual(true, lum.GetIPEndpointMap().size() == 1);
+				Assert::AreEqual(true, lum.GetEndpointMap().size() == 1);
 
 				Assert::AreEqual(true, lum.RemovePeerData(*ep4));
 
 				// Should have no IPs
-				Assert::AreEqual(true, lum.GetIPEndpointMap().empty());
+				Assert::AreEqual(true, lum.GetEndpointMap().empty());
 
 				// Removing nonexisting IP should fail
 				Assert::AreEqual(false, lum.RemovePeerData(*ep3));
@@ -294,44 +294,44 @@ namespace UnitTests
 				const UInt8 cidr_lbits4{ 24 };
 				const UInt8 cidr_lbits6{ 48 };
 
-				const Vector<BinaryIPAddress> excl_addr
+				const Vector<Address> excl_addr
 				{
-					IPAddress(L"192.168.1.10").GetBinary(),
-					IPAddress(L"192.168.1.20").GetBinary(),
-					IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(),
-					IPAddress(L"fe80:c11a:3a9c:ef10:e796::").GetBinary()
+					IPAddress(L"192.168.1.10"),
+					IPAddress(L"192.168.1.20"),
+					IPAddress(L"fe80:c11a:3a9c:ef10:e795::"),
+					IPAddress(L"fe80:c11a:3a9c:ef10:e796::")
 				};
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"192.168.1.44").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"192.168.1.44"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"fe80:c11a:3a9c:ef11:e795::"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"192.168.2.44").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"192.168.2.44"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"172.217.7.238").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"172.217.7.238"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
@@ -339,11 +339,11 @@ namespace UnitTests
 
 				// Bad CIDR values
 				{
-					auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"172.217.7.238").GetBinary(),
+					auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"172.217.7.238"),
 																   excl_addr, 40, 96);
 					Assert::AreEqual(false, result2.Succeeded());
 
-					result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::").GetBinary(),
+					result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::"),
 															  excl_addr, 24, 130);
 					Assert::AreEqual(false, result2.Succeeded());
 				}
@@ -353,60 +353,60 @@ namespace UnitTests
 				const UInt8 cidr_lbits4{ 16 };
 				const UInt8 cidr_lbits6{ 48 };
 
-				Vector<BinaryIPAddress> excl_addr
+				Vector<Address> excl_addr
 				{
-					IPAddress(L"192.168.1.10").GetBinary(),
-					IPAddress(L"192.168.1.20").GetBinary(),
-					IPAddress(L"172.217.7.238").GetBinary(),
-					IPAddress(L"172.217.4.138").GetBinary(),
-					IPAddress(L"172.117.4.138").GetBinary(),
-					IPAddress(L"fe80:c11a:3a9c:ef10:e796::").GetBinary()
+					IPAddress(L"192.168.1.10"),
+					IPAddress(L"192.168.1.20"),
+					IPAddress(L"172.217.7.238"),
+					IPAddress(L"172.217.4.138"),
+					IPAddress(L"172.117.4.138"),
+					IPAddress(L"fe80:c11a:3a9c:ef10:e796::")
 				};
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"192.168.1.10").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"192.168.1.10"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"192.168.1.44").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"192.168.1.44"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"fe80:c11a:3a9c:ef11:e795::"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"192.169.2.44").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"192.169.2.44"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"172.217.7.239").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"172.217.7.239"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(true, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"172.218.7.238").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"172.218.7.238"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
 				}
 
 				{
-					const auto result2 = LookupMaps::AreIPsInSameNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::").GetBinary(),
+					const auto result2 = LookupMaps::AreAddressesInSameNetwork(IPAddress(L"fe80:c11a:4a9c:ef11:e795::"),
 																		 excl_addr, cidr_lbits4, cidr_lbits6);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, result2.GetValue());
@@ -447,14 +447,14 @@ namespace UnitTests
 					ep4->WithSharedLock()->LUID
 				};
 
-				const Vector<BinaryIPAddress> excl_addr1 =
+				const Vector<Address> excl_addr1 =
 				{
-					ep1->WithSharedLock()->Cached.PeerEndpoint.GetIPAddress().GetBinary() // Don't loop back
+					ep1->WithSharedLock()->Cached.PeerEndpoint // Don't loop back
 				};
 
-				const Vector<BinaryIPAddress> excl_addr2 =
+				const Vector<Address> excl_addr2 =
 				{
-					dest_ep.GetIPAddress().GetBinary() // Don't include the final endpoint
+					dest_ep.GetIPAddress() // Don't include the final endpoint
 				};
 
 				{
@@ -523,14 +523,14 @@ namespace UnitTests
 					ep2->WithSharedLock()->LUID
 				};
 
-				const Vector<BinaryIPAddress> excl_addr1 =
+				const Vector<Address> excl_addr1 =
 				{
-					ep7->WithSharedLock()->Cached.PeerEndpoint.GetIPAddress().GetBinary() // Don't loop back
+					ep7->WithSharedLock()->Cached.PeerEndpoint // Don't loop back
 				};
 
-				const Vector<BinaryIPAddress> excl_addr2 =
+				const Vector<Address> excl_addr2 =
 				{
-					dest_ep.GetIPAddress().GetBinary() // Don't include the final endpoint
+					dest_ep.GetIPAddress() // Don't include the final endpoint
 				};
 
 				{
@@ -576,12 +576,12 @@ namespace UnitTests
 			}
 		}
 
-		TEST_METHOD(AreIPsInSameNetwork)
+		TEST_METHOD(AreAddressesInSameNetwork)
 		{
 			struct IPTest
 			{
-				BinaryIPAddress ip1;
-				BinaryIPAddress ip2;
+				IPAddress ip1;
+				IPAddress ip2;
 				UInt8 cidr4{ 0 };
 				UInt8 cidr6{ 0 };
 				bool result{ false };
@@ -589,23 +589,23 @@ namespace UnitTests
 
 			const std::vector<IPTest> iptests
 			{
-				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.1.20").GetBinary(), 32, 128, false },
-				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"192.168.1.20").GetBinary(), 24, 128, true },
-				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 24, 128, false },
-				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 16, 128, false },
-				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 8, 128, false },
-				{ IPAddress(L"192.168.1.10").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, 128, true },
-				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 32, 128, false },
-				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 32, 48, false },
-				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"200.168.5.51").GetBinary(), 0, 0, false },
-				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 32, 128, false },
-				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 32, 64, false },
-				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::").GetBinary(), IPAddress(L"fe80:c11a:3a9c:ef11:e795::").GetBinary(), 32, 48, true }
+				{ IPAddress(L"192.168.1.10"), IPAddress(L"192.168.1.20"), 32, 128, false },
+				{ IPAddress(L"192.168.1.10"), IPAddress(L"192.168.1.20"), 24, 128, true },
+				{ IPAddress(L"192.168.1.10"), IPAddress(L"200.168.5.51"), 24, 128, false },
+				{ IPAddress(L"192.168.1.10"), IPAddress(L"200.168.5.51"), 16, 128, false },
+				{ IPAddress(L"192.168.1.10"), IPAddress(L"200.168.5.51"), 8, 128, false },
+				{ IPAddress(L"192.168.1.10"), IPAddress(L"200.168.5.51"), 0, 128, true },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::"), IPAddress(L"200.168.5.51"), 32, 128, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::"), IPAddress(L"200.168.5.51"), 32, 48, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::"), IPAddress(L"200.168.5.51"), 0, 0, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::"), IPAddress(L"fe80:c11a:3a9c:ef11:e795::"), 32, 128, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::"), IPAddress(L"fe80:c11a:3a9c:ef11:e795::"), 32, 64, false },
+				{ IPAddress(L"fe80:c11a:3a9c:ef10:e795::"), IPAddress(L"fe80:c11a:3a9c:ef11:e795::"), 32, 48, true }
 			};
 
 			for (const auto& test : iptests)
 			{
-				const auto result = LookupMaps::AreIPsInSameNetwork(test.ip1, test.ip2, test.cidr4, test.cidr6);
+				const auto result = LookupMaps::AreAddressesInSameNetwork(test.ip1, test.ip2, test.cidr4, test.cidr6);
 				Assert::AreEqual(true, result.Succeeded());
 				Assert::AreEqual(test.result, result.GetValue());
 			}

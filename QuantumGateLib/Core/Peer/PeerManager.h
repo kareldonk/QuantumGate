@@ -84,11 +84,13 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<> QueryPeers(const PeerQueryParameters& params, Vector<PeerLUID>& pluids) const noexcept;
 
-		PeerSharedPointer CreateTCP(const IP::AddressFamily af, const PeerConnectionType pctype,
+		PeerSharedPointer CreateTCP(const AddressFamily af, const PeerConnectionType pctype,
 									std::optional<ProtectedBuffer>&& shared_secret) noexcept;
-		PeerSharedPointer CreateUDP(const IP::AddressFamily af, const PeerConnectionType pctype,
+		PeerSharedPointer CreateUDP(const AddressFamily af, const PeerConnectionType pctype,
 									const UDP::ConnectionID id, const UDP::Message::SequenceNumber seqnum,
 									ProtectedBuffer&& handshake_data, std::optional<ProtectedBuffer>&& shared_secret) noexcept;
+		PeerSharedPointer CreateBTH(const AddressFamily af, const PeerConnectionType pctype,
+									std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 		PeerSharedPointer CreateRelay(const PeerConnectionType pctype,
 									  std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
@@ -111,7 +113,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<> Broadcast(const MessageType msgtype, const Buffer& buffer, BroadcastCallback&& callback);
 
-		const Vector<BinaryIPAddress>* GetLocalIPAddresses() const noexcept;
+		const Vector<Address>* GetLocalAddresses() const noexcept;
 
 	private:
 		void PreStartupThreadPools() noexcept;
@@ -135,19 +137,16 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Result<std::pair<PeerLUID, bool>> GetRelayPeer(const ConnectParameters& params, String& error_details) noexcept;
 
-		Result<PeerLUID> GetRelayPeer(const Vector<BinaryIPAddress>& excl_addr1,
-									  const Vector<BinaryIPAddress>& excl_addr2) const noexcept;
+		Result<PeerLUID> GetRelayPeer(const Vector<Address>& excl_addr1, const Vector<Address>& excl_addr2) const noexcept;
 
-		Result<bool> AreRelayIPsInSameNetwork(const BinaryIPAddress& ip1, const BinaryIPAddress& ip2) const noexcept;
-		Result<bool> AreRelayIPsInSameNetwork(const BinaryIPAddress& ip,
-											  const Vector<BinaryIPAddress>& addresses) noexcept;
+		Result<bool> AreRelayAddressesInSameNetwork(const Address& addr, const Vector<Address>& addrs) noexcept;
 
 		bool Add(PeerSharedPointer& peerths) noexcept;
 		void Remove(const PeerSharedPointer& peer_ths) noexcept;
 		void Remove(const Containers::List<PeerSharedPointer>& peerlist) noexcept;
 		void RemoveAll() noexcept;
 
-		PeerSharedPointer Create(const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
+		PeerSharedPointer Create(const AddressFamily af, const Protocol protocol, const PeerConnectionType pctype,
 								 std::optional<ProtectedBuffer>&& shared_secret) noexcept;
 
 		Result<PeerLUID> DirectConnectTo(ConnectParameters&& params, ConnectCallback&& function) noexcept;
@@ -173,8 +172,8 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		void SchedulePeerCallback(const UInt64 threadpool_key, Callback<void()>&& callback) noexcept;
 
-		void AddReportedPublicIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,
-										 const PeerConnectionType rep_con_type, const bool trusted) noexcept;
+		void AddReportedPublicEndpoint(const Endpoint& pub_endpoint, const Endpoint& rep_peer,
+									   const PeerConnectionType rep_con_type, const bool trusted) noexcept;
 
 		Result<Buffer> GetExtenderUpdateData() const noexcept;
 

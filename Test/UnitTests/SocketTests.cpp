@@ -55,9 +55,9 @@ namespace UnitTests
 				Assert::AreEqual(-1, socket.GetIOStatus().GetErrorCode());
 				Assert::AreEqual(true, socket.GetBytesReceived() == 0);
 				Assert::AreEqual(true, socket.GetBytesSent() == 0);
-				Assert::AreEqual(true, socket.GetAddressFamily() == IP::AddressFamily::Unspecified);
+				Assert::AreEqual(true, socket.GetAddressFamily() == Network::AddressFamily::Unspecified);
 				Assert::AreEqual(true, socket.GetType() == Socket::Type::Unspecified);
-				Assert::AreEqual(true, socket.GetProtocol() == IP::Protocol::Unspecified);
+				Assert::AreEqual(true, socket.GetProtocol() == Network::Protocol::Unspecified);
 			}
 
 			// SOCKET constructor
@@ -78,9 +78,9 @@ namespace UnitTests
 				Assert::AreEqual(-1, socket.GetIOStatus().GetErrorCode());
 				Assert::AreEqual(true, socket.GetBytesReceived() == 0);
 				Assert::AreEqual(true, socket.GetBytesSent() == 0);
-				Assert::AreEqual(true, socket.GetAddressFamily() == IP::AddressFamily::IPv4);
+				Assert::AreEqual(true, socket.GetAddressFamily() == Network::AddressFamily::IPv4);
 				Assert::AreEqual(true, socket.GetType() == Socket::Type::Stream);
-				Assert::AreEqual(true, socket.GetProtocol() == IP::Protocol::TCP);
+				Assert::AreEqual(true, socket.GetProtocol() == Network::Protocol::TCP);
 
 				socket.Close();
 				Assert::AreEqual(false, socket.GetIOStatus().IsOpen());
@@ -88,19 +88,19 @@ namespace UnitTests
 
 			// Constructor
 			{
-				std::array<IP::AddressFamily, 2> afs{ IP::AddressFamily::IPv4 ,IP::AddressFamily::IPv6 };
+				std::array<Network::AddressFamily, 2> afs{ Network::AddressFamily::IPv4 , Network::AddressFamily::IPv6 };
 
 				struct TestCases
 				{
 					Socket::Type Type{ Socket::Type::Unspecified };
-					IP::Protocol Protocol{ IP::Protocol::Unspecified };
+					Network::Protocol Protocol{ Network::Protocol::Unspecified };
 				};
 
 				const std::vector<TestCases> tests
 				{
-					{ Socket::Type::RAW, IP::Protocol::ICMP },
-					{ Socket::Type::Datagram, IP::Protocol::UDP },
-					{ Socket::Type::Stream, IP::Protocol::TCP }
+					{ Socket::Type::RAW, Network::Protocol::ICMP },
+					{ Socket::Type::Datagram, Network::Protocol::UDP },
+					{ Socket::Type::Stream, Network::Protocol::TCP }
 				};
 
 				for (const auto& test : tests)
@@ -124,7 +124,7 @@ namespace UnitTests
 						Assert::AreEqual(true, socket.GetType() == test.Type);
 
 						// Windows returns Unspecified for some reason in the case of ICMP
-						if (test.Protocol != IP::Protocol::ICMP)
+						if (test.Protocol != Network::Protocol::ICMP)
 						{
 							Assert::AreEqual(true, socket.GetProtocol() == test.Protocol);
 						}
@@ -200,7 +200,7 @@ namespace UnitTests
 				Assert::AreEqual(true, socket2.GetIOStatus().CanRead());
 
 				// Receive data sent by first socket
-				IPEndpoint endp_rcv;
+				Endpoint endp_rcv;
 				Buffer rcv_buf;
 				const auto rcv_result2 = socket2.ReceiveFrom(endp_rcv, rcv_buf);
 				Assert::AreEqual(true, rcv_result2.Succeeded());
@@ -234,7 +234,7 @@ namespace UnitTests
 				Assert::AreEqual(true, socket1.GetIOStatus().CanRead());
 
 				// Receive data on first socket
-				IPEndpoint endp_rcv2;
+				Endpoint endp_rcv2;
 				Buffer rcv_buf2;
 				const auto rcv_result1 = socket1.ReceiveFrom(endp_rcv2, rcv_buf2);
 				Assert::AreEqual(true, rcv_result1.Succeeded());

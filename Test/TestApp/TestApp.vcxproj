@@ -550,7 +550,7 @@
     <ClInclude Include="CTestAppDlgTestExtenderTab.h" />
     <ClInclude Include="CSecurityDlg.h" />
     <ClInclude Include="CUUIDDialog.h" />
-    <ClInclude Include="CIPReputationsDlg.h" />
+    <ClInclude Include="CAddressReputationsDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="TestApp.h" />
     <ClInclude Include="TestAppConsole.h" />
@@ -607,7 +607,7 @@
     <ClCompile Include="CTestAppDlgTestExtenderTab.cpp" />
     <ClCompile Include="CSecurityDlg.cpp" />
     <ClCompile Include="CUUIDDialog.cpp" />
-    <ClCompile Include="CIPReputationsDlg.cpp" />
+    <ClCompile Include="CAddressReputationsDlg.cpp" />
     <ClCompile Include="TestApp.cpp" />
     <ClCompile Include="TestAppConsole.cpp" />
     <ClCompile Include="TestAppDlg.cpp" />

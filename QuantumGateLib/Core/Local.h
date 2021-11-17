@@ -111,6 +111,8 @@ namespace QuantumGate::Implementation::Core
 		[[nodiscard]] bool StartupThreadPool() noexcept;
 		void ShutdownThreadPool() noexcept;
 
+		[[nodiscard]] bool InitializeLocalEnvironment() noexcept;
+		void DeinitializeLocalEnvironment() noexcept;
 		void OnLocalEnvironmentChanged() noexcept;
 		void OnUnhandledExtenderException(const ExtenderUUID extuuid) noexcept;
 

@@ -3,7 +3,7 @@
 
 #include "pch.h"
 #include "Settings.h"
-#include "Core\PublicIPEndpoints.h"
+#include "Core\PublicEndpoints.h"
 #include "Common\Util.h"
 
 #include <thread>
@@ -11,8 +11,9 @@
 using namespace std::literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace QuantumGate::Implementation::Core;
+using namespace QuantumGate::Implementation::Network;
 
-bool CheckIPs(const Vector<BinaryIPAddress>& ips, const std::vector<BinaryIPAddress>& exp_ips)
+bool CheckIPs(const Vector<Address>& ips, const std::vector<Address>& exp_ips)
 {
 	for (const auto& ip : ips)
 	{
@@ -33,16 +34,16 @@ bool CheckIPs(const Vector<BinaryIPAddress>& ips, const std::vector<BinaryIPAddr
 	return true;
 }
 
-bool CheckIPs(const PublicIPEndpoints& pubendp, const std::vector<BinaryIPAddress>& exp_ips)
+bool CheckIPs(const PublicEndpoints& pubendp, const std::vector<Address>& exp_ips)
 {
-	Vector<BinaryIPAddress> pub_ips;
+	Vector<Address> pub_ips;
 	const auto result = pubendp.AddIPAddresses(pub_ips, false);
 	if (!result.Succeeded()) return false;
 
 	return CheckIPs(pub_ips, exp_ips);
 }
 
-bool RemoveIP(std::vector<BinaryIPAddress>& list, const BinaryIPAddress& ip)
+bool RemoveIP(std::vector<Address>& list, const Address& ip)
 {
 	const auto it = std::find(list.begin(), list.end(), ip);
 	if (it != list.end())
@@ -56,7 +57,7 @@ bool RemoveIP(std::vector<BinaryIPAddress>& list, const BinaryIPAddress& ip)
 
 namespace UnitTests
 {
-	TEST_CLASS(PublicIPEndpointsTests)
+	TEST_CLASS(PublicEndpointsTests)
 	{
 	public:
 		TEST_METHOD(General)
@@ -184,15 +185,15 @@ namespace UnitTests
 
 			Settings_CThS settings;
 
-			PublicIPEndpoints pubendp{ settings };
+			PublicEndpoints pubendp{ settings };
 			Assert::AreEqual(false, pubendp.IsInitialized());
 			Assert::AreEqual(true, pubendp.Initialize());
 			Assert::AreEqual(true, pubendp.IsInitialized());
 
 			for (const auto& test : tests)
 			{
-				const auto result = pubendp.AddIPEndpoint(test.PublicIPEndpoint, test.ReportingPeer,
-														  test.ConnectionType, test.Trusted);
+				const auto result = pubendp.AddEndpoint(test.PublicIPEndpoint, test.ReportingPeer,
+														test.ConnectionType, test.Trusted);
 				Assert::AreEqual(test.Success, result.Succeeded());
 				if (result.Succeeded())
 				{
@@ -204,7 +205,7 @@ namespace UnitTests
 			{
 				struct ExpectedIP
 				{
-					BinaryIPAddress IPAddress;
+					IPAddress IPAddress;
 					bool Trusted{ false };
 					Set<UInt16> TCPPorts;
 					Set<UInt16> UDPPorts;
@@ -222,7 +223,7 @@ namespace UnitTests
 
 				// Check that we got back the expected IPs
 				{
-					Vector<BinaryIPAddress> pub_ips;
+					Vector<Address> pub_ips;
 					const auto result = pubendp.AddIPAddresses(pub_ips, false);
 					Assert::AreEqual(true, result.Succeeded());
 
@@ -245,7 +246,7 @@ namespace UnitTests
 
 				// Check that the IPEndpoint details are what we expect
 				{
-					auto endpoints = pubendp.GetIPEndpoints().WithSharedLock();
+					auto endpoints = pubendp.GetEndpoints().WithSharedLock();
 
 					for (const auto& exp_details : expected_ips)
 					{
@@ -263,11 +264,11 @@ namespace UnitTests
 
 						for (auto ports : it2->second.PortsMap)
 						{
-							if (ports.first == IPEndpoint::Protocol::TCP)
+							if (ports.first == Network::Protocol::TCP)
 							{
 								Assert::AreEqual(true, ports.second == exp_details.TCPPorts);
 							}
-							else if (ports.first == IPEndpoint::Protocol::UDP)
+							else if (ports.first == Network::Protocol::UDP)
 							{
 								Assert::AreEqual(true, ports.second == exp_details.UDPPorts);
 							}
@@ -284,7 +285,7 @@ namespace UnitTests
 			}
 		}
 
-		TEST_METHOD(RemoveLeastRelevantIPEndpoints)
+		TEST_METHOD(RemoveLeastRelevantEndpoints)
 		{
 			struct TestCases
 			{
@@ -358,13 +359,13 @@ namespace UnitTests
 
 			Settings_CThS settings;
 
-			PublicIPEndpoints pubendp{ settings };
+			PublicEndpoints pubendp{ settings };
 			Assert::AreEqual(true, pubendp.Initialize());
 
 			for (const auto& test : tests)
 			{
-				const auto result = pubendp.AddIPEndpoint(test.PublicIPEndpoint, test.ReportingPeer,
-														  test.ConnectionType, test.Trusted, test.Verified);
+				const auto result = pubendp.AddEndpoint(test.PublicIPEndpoint, test.ReportingPeer,
+														test.ConnectionType, test.Trusted, test.Verified);
 				Assert::AreEqual(test.Success, result.Succeeded());
 				if (result.Succeeded())
 				{
@@ -375,61 +376,61 @@ namespace UnitTests
 				std::this_thread::sleep_for(100ms);
 			}
 
-			std::vector<BinaryIPAddress> expected_ips
+			std::vector<Address> expected_ips
 			{
 				// These are in expected order from least recent updated and least trusted
 				// to most recent updated and most trusted
-				IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193").GetBinary(),
-				IPAddress(L"160.16.5.51").GetBinary(),
-				IPAddress(L"200.168.5.51").GetBinary(),
-				IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de").GetBinary(),
-				IPAddress(L"199.111.110.30").GetBinary()
+				IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193"),
+				IPAddress(L"160.16.5.51"),
+				IPAddress(L"200.168.5.51"),
+				IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de"),
+				IPAddress(L"199.111.110.30")
 			};
 
-			auto endpoints = pubendp.GetIPEndpoints().WithUniqueLock();
+			auto endpoints = pubendp.GetEndpoints().WithUniqueLock();
 
-			pubendp.RemoveLeastRelevantIPEndpoints(1, *endpoints);
-			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193").GetBinary()));
+			pubendp.RemoveLeastRelevantEndpoints(1, *endpoints);
+			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193")));
 			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
 
 			endpoints.Lock();
-			pubendp.RemoveLeastRelevantIPEndpoints(2, *endpoints);
-			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"160.16.5.51").GetBinary()));
-			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"200.168.5.51").GetBinary()));
+			pubendp.RemoveLeastRelevantEndpoints(2, *endpoints);
+			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"160.16.5.51")));
+			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"200.168.5.51")));
 			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
 
 			endpoints.Lock();
-			pubendp.RemoveLeastRelevantIPEndpoints(1, *endpoints);
-			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de").GetBinary()));
+			pubendp.RemoveLeastRelevantEndpoints(1, *endpoints);
+			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de")));
 			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
 
 			endpoints.Lock();
-			pubendp.RemoveLeastRelevantIPEndpoints(4, *endpoints); // Attempt to remove larger number than exists
-			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"199.111.110.30").GetBinary()));
+			pubendp.RemoveLeastRelevantEndpoints(4, *endpoints); // Attempt to remove larger number than exists
+			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"199.111.110.30")));
 			endpoints.Unlock();
 			Assert::AreEqual(true, CheckIPs(pubendp, expected_ips));
 		}
 
-		TEST_METHOD(CheckMaxIPEndpoints)
+		TEST_METHOD(CheckMaxEndpoints)
 		{
 			Settings_CThS settings;
 
-			PublicIPEndpoints pubendp{ settings };
+			PublicEndpoints pubendp{ settings };
 			Assert::AreEqual(true, pubendp.Initialize());
 
 			// Intentionally add more unique IP addresses from unique networks
 			// to overflow the maximum number of endpoints we manage
-			for (auto x = 0u; x < (PublicIPEndpoints::MaxIPEndpoints + 10); ++x)
+			for (auto x = 0u; x < (PublicEndpoints::MaxEndpoints + 10); ++x)
 			{
 				auto pubip_str = Util::FormatString(L"180.100.90.%u", x);
 				auto repip_str = Util::FormatString(L"18.%u.40.100", x);
 
-				const auto result = pubendp.AddIPEndpoint(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(pubip_str), 999),
-														  IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(repip_str), 5000),
-														  PeerConnectionType::Inbound, true, false);
+				const auto result = pubendp.AddEndpoint(IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(pubip_str), 999),
+														IPEndpoint(IPEndpoint::Protocol::TCP, IPAddress(repip_str), 5000),
+														PeerConnectionType::Inbound, true, false);
 				Assert::AreEqual(true, result.Succeeded());
 				if (result.Succeeded())
 				{
@@ -438,8 +439,8 @@ namespace UnitTests
 				}
 			}
 
-			Assert::AreEqual(true, pubendp.GetIPEndpoints().WithUniqueLock()->size() ==
-							 PublicIPEndpoints::MaxIPEndpoints);
+			Assert::AreEqual(true, pubendp.GetEndpoints().WithUniqueLock()->size() ==
+							 PublicEndpoints::MaxEndpoints);
 		}
 
 		TEST_METHOD(AddIPAddresses)
@@ -516,13 +517,13 @@ namespace UnitTests
 
 			Settings_CThS settings;
 
-			PublicIPEndpoints pubendp{ settings };
+			PublicEndpoints pubendp{ settings };
 			Assert::AreEqual(true, pubendp.Initialize());
 
 			for (const auto& test : tests)
 			{
-				const auto result = pubendp.AddIPEndpoint(test.PublicIPEndpoint, test.ReportingPeer,
-														  test.ConnectionType, test.Trusted, test.Verified);
+				const auto result = pubendp.AddEndpoint(test.PublicIPEndpoint, test.ReportingPeer,
+														test.ConnectionType, test.Trusted, test.Verified);
 				Assert::AreEqual(test.Success, result.Succeeded());
 				if (result.Succeeded())
 				{
@@ -533,24 +534,24 @@ namespace UnitTests
 				std::this_thread::sleep_for(100ms);
 			}
 
-			std::vector<BinaryIPAddress> expected_ips
+			std::vector<Address> expected_ips
 			{
-				IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193").GetBinary(),
-				IPAddress(L"160.16.5.51").GetBinary(),
-				IPAddress(L"200.168.5.51").GetBinary(),
-				IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de").GetBinary(),
-				IPAddress(L"199.111.110.30").GetBinary()
+				IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193"),
+				IPAddress(L"160.16.5.51"),
+				IPAddress(L"200.168.5.51"),
+				IPAddress(L"bdb0:434d:96c9:17d9:661c:db34:2ec0:21de"),
+				IPAddress(L"199.111.110.30")
 			};
 
-			Vector<BinaryIPAddress> ips;
+			Vector<Address> ips;
 			const auto result = pubendp.AddIPAddresses(ips, false);
 			Assert::AreEqual(true, result.Succeeded());
 			Assert::AreEqual(true, CheckIPs(ips, expected_ips));
 
 			ips.clear();
 
-			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193").GetBinary()));
-			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"160.16.5.51").GetBinary()));
+			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193")));
+			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"160.16.5.51")));
 
 			const auto result2 = pubendp.AddIPAddresses(ips, true);
 			Assert::AreEqual(true, result2.Succeeded());

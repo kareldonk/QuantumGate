@@ -18,7 +18,7 @@
 #include "CEndpointDlg.h"
 #include "CIPFiltersDlg.h"
 #include "CIPSubnetLimitsDlg.h"
-#include "CIPReputationsDlg.h"
+#include "CAddressReputationsDlg.h"
 #include "CSecurityDlg.h"
 #include "CAuthenticationDlg.h"
 #include "CUUIDDialog.h"
@@ -162,7 +162,7 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_UPDATE_COMMAND_UI(ID_STRESS_MULTIPLEINSTANCES, &CTestAppDlg::OnUpdateStressMultipleInstances)
 	ON_COMMAND(ID_BENCHMARKS_MEMORY, &CTestAppDlg::OnBenchmarksMemory)
 	ON_COMMAND(ID_UTILS_LOGPOOLALLOCATORSTATISTICS, &CTestAppDlg::OnUtilsLogAllocatorStatistics)
-	ON_COMMAND(ID_LOCAL_IPREPUTATIONS, &CTestAppDlg::OnLocalIPReputations)
+	ON_COMMAND(ID_LOCAL_ADDRESS_REPUTATIONS, &CTestAppDlg::OnLocalAddressReputations)
 	ON_COMMAND(ID_ATTACKS_CONNECTANDDISCONNECT, &CTestAppDlg::OnAttacksConnectAndDisconnect)
 	ON_COMMAND(ID_ATTACKS_CONNECTANDWAIT, &CTestAppDlg::OnAttacksConnectAndWait)
 	ON_UPDATE_COMMAND_UI(ID_ATTACKS_CONNECTANDDISCONNECT, &CTestAppDlg::OnUpdateAttacksConnectAndDisconnect)
@@ -1362,7 +1362,7 @@ void CTestAppDlg::OnLocalConnect()
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerIPEndpoint = IPEndpoint(m_DefaultProtocol, IPAddress(m_DefaultIP), m_DefaultPort);
+		params.PeerEndpoint = IPEndpoint(m_DefaultProtocol, IPAddress(m_DefaultIP), m_DefaultPort);
 		params.ReuseExistingConnection = dlg.GetReuseConnection();
 
 		params.GlobalSharedSecret.emplace();
@@ -1435,7 +1435,7 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerIPEndpoint = IPEndpoint(m_DefaultProtocol, IPAddress(m_DefaultIP), m_DefaultPort);
+		params.PeerEndpoint = IPEndpoint(m_DefaultProtocol, IPAddress(m_DefaultIP), m_DefaultPort);
 		params.ReuseExistingConnection = dlg.GetReuseConnection();
 		params.Relay.Hops = dlg.GetRelayHops();
 		params.Relay.GatewayPeer = dlg.GetRelayGatewayPeer();
@@ -1586,9 +1586,9 @@ void CTestAppDlg::OnUtilsLogAllocatorStatistics()
 	QuantumGate::Implementation::Memory::ProtectedFreeStoreAllocator<void>::LogStatistics();
 }
 
-void CTestAppDlg::OnLocalIPReputations()
+void CTestAppDlg::OnLocalAddressReputations()
 {
-	CIPReputationsDlg dlg;
+	CAddressReputationsDlg dlg;
 	dlg.SetAccessManager(&m_QuantumGate.GetAccessManager());
 	dlg.DoModal();
 }
@@ -1678,6 +1678,55 @@ void CTestAppDlg::OnLocalEnvironmentInfo()
 		}
 	}
 	else AfxMessageBox(L"Failed to get IP addresses!", MB_ICONERROR);
+
+	if (const auto result = env.GetBluetoothRadios(); result.Succeeded())
+	{
+		info += L"\r\n________________________________________________________\r\n\r\n";
+		info += L"Bluetooth radios:";
+
+		for (const auto& bthdev : *result)
+		{
+			info += L"\r\n\r\nName:\t\t" + bthdev.Name + L"\r\n";
+			info += L"Address:\t\t" + bthdev.Address.GetString() + L"\r\n";
+			info += L"Manufacturer ID:\t" + Util::FormatString(L"%u", bthdev.ManufacturerID);
+			
+			info += L"\r\n";
+
+			info += L"Connectable:\t";
+			if (bthdev.IsConnectable) info += L"Yes";
+			else info += L"No";
+			
+			info += L"\r\n";
+
+			info += L"Discoverable:\t";
+			if (bthdev.IsDiscoverable) info += L"Yes";
+			else info += L"No";
+		}
+	}
+	else AfxMessageBox(L"Failed to get Bluetooth radios!", MB_ICONERROR);
+
+	if (const auto result = env.GetBluetoothDevices(); result.Succeeded())
+	{
+		info += L"\r\n________________________________________________________\r\n\r\n";
+		info += L"Bluetooth devices:";
+
+		for (const auto& bthdev : *result)
+		{
+			info += L"\r\n\r\nName:\t\t" + bthdev.Name + L"\r\n";
+			
+			std::array<WChar, 256> gstr{ 0 };
+			const auto len = StringFromGUID2(bthdev.ServiceClassID, gstr.data(), static_cast<int>(gstr.size()));
+			if (len > 0)
+			{
+				info += L"Service Class ID:\t";
+				info += gstr.data();
+				info += L"\r\n";
+			}
+			
+			info += L"Remote Address:\t" + bthdev.RemoteAddress.GetString() + L"\r\n";
+		}
+	}
+	else AfxMessageBox(L"Failed to get Bluetooth devices!", MB_ICONERROR);
 
 	CInformationDlg dlg;
 	dlg.SetWindowTitle(L"Local Environment Information");

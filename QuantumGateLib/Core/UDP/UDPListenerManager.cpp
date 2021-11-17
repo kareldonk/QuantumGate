@@ -146,8 +146,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 				// Create and start the listenersocket
 				ThreadData ltd(shared_secret);
-				ltd.Socket = Socket(endpoint.GetIPAddress().GetFamily(),
-									Network::Socket::Type::Datagram, Network::IP::Protocol::UDP);
+				ltd.Socket = Socket(endpoint.GetIPAddress().GetFamily(), Network::Socket::Type::Datagram, Network::IP::Protocol::UDP);
 				ltd.SendQueue = std::make_shared<SendQueue_ThS>();
 
 				if (ltd.Socket.Bind(endpoint, nat_traversal))
@@ -176,7 +175,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 	std::optional<Manager::ThreadPool::ThreadType> Manager::RemoveListenerThread(Manager::ThreadPool::ThreadType&& thread) noexcept
 	{
-		const IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
+		const Endpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
 
 		const auto [success, next_thread] = m_ThreadPool.RemoveThread(std::move(thread));
 		if (success)
@@ -213,8 +212,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 				for (const auto& address : ifs.IPAddresses)
 				{
 					// Only for IPv4 and IPv6 addresses
-					if (address.GetFamily() == IP::AddressFamily::IPv4 ||
-						address.GetFamily() == IP::AddressFamily::IPv6)
+					if (address.GetFamily() == IPAddress::Family::IPv4 ||
+						address.GetFamily() == IPAddress::Family::IPv6)
 					{
 						auto found = false;
 
@@ -311,8 +310,8 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
 		auto& socket = thdata.Socket;
-		const IPEndpoint lendpoint = socket.GetLocalEndpoint();
-		IPEndpoint pendpoint;
+		const Endpoint lendpoint = socket.GetLocalEndpoint();
+		Endpoint pendpoint;
 		auto& buffer = GetReceiveBuffer();
 
 		while (!shutdown_event.IsSet())
@@ -332,24 +331,26 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 					{
 						auto& settings = m_Settings.GetCache();
 
-						pendpoint = IPEndpoint();
+						pendpoint = Endpoint();
 						auto bufspan = BufferSpan(buffer);
 
 						const auto result = socket.ReceiveFrom(pendpoint, bufspan);
 						if (result.Succeeded() && *result > 0)
 						{
 							// Check if IP is allowed through filters/limits and if it has acceptable reputation
-							if (const auto result1 = m_AccessManager.GetIPConnectionAllowed(pendpoint.GetIPAddress(),
-																							Access::CheckType::All); result1.Succeeded())
+							if (const auto result1 =
+								m_AccessManager.GetConnectionFromAddressAllowed(pendpoint.GetIPEndpoint().GetIPAddress(),
+																				Access::CheckType::All); result1.Succeeded())
 							{
 								bufspan = bufspan.GetFirst(*result);
 
 								[[maybe_unused]] const auto& [success, rep_update] =
 									AcceptConnection(settings, Util::GetCurrentSteadyTime(), Util::GetCurrentSystemTime(),
-													 thdata.SendQueue, lendpoint, pendpoint, bufspan, thdata.SymmetricKeys);
-								if (rep_update != Access::IPReputationUpdate::None)
+													 thdata.SendQueue, lendpoint.GetIPEndpoint(), pendpoint.GetIPEndpoint(),
+													 bufspan, thdata.SymmetricKeys);
+								if (rep_update != Access::AddressReputationUpdate::None)
 								{
-									const auto result2 = m_AccessManager.UpdateIPReputation(pendpoint.GetIPAddress(), rep_update);
+									const auto result2 = m_AccessManager.UpdateAddressReputation(pendpoint.GetIPEndpoint().GetIPAddress(), rep_update);
 									if (!result2.Succeeded())
 									{
 										LogWarn(L"UDP listenermanager couldn't update IP reputation for peer %s (%s)",
@@ -411,12 +412,11 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		}
 	}
 
-	std::pair<bool, Access::IPReputationUpdate> Manager::AcceptConnection(const Settings& settings,
-																		  const SteadyTime current_steadytime,
-																		  const SystemTime current_systemtime,
-																		  const std::shared_ptr<SendQueue_ThS>& send_queue,
-																		  const IPEndpoint& lendpoint, const IPEndpoint& pendpoint,
-																		  BufferSpan& buffer, const SymmetricKeys& symkeys) noexcept
+	std::pair<bool, Access::AddressReputationUpdate>
+		Manager::AcceptConnection(const Settings& settings, const SteadyTime current_steadytime,
+								  const SystemTime current_systemtime, const std::shared_ptr<SendQueue_ThS>& send_queue,
+								  const IPEndpoint& lendpoint, const IPEndpoint& pendpoint, BufferSpan& buffer,
+								  const SymmetricKeys& symkeys) noexcept
 	{
 		Message msg(Message::Type::Unknown, Message::Direction::Incoming);
 		if (msg.Read(buffer, symkeys) && msg.IsValid())
@@ -433,7 +433,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 						LogErr(L"UDP listenermanager could not accept connection from peer %s; unsupported UDP protocol version",
 							   pendpoint.GetString().c_str());
 
-						return { false, Access::IPReputationUpdate::DeteriorateMinimal };
+						return { false, Access::AddressReputationUpdate::DeteriorateMinimal };
 					}
 
 					const auto msgtime = Util::ToTime(syn_data.Time);
@@ -443,7 +443,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 						LogErr(L"UDP listenermanager refused connection from peer %s; message outside time tolerance (%jd seconds)",
 							   pendpoint.GetString().c_str(), settings.Message.AgeTolerance.count());
 
-						return { false, Access::IPReputationUpdate::DeteriorateModerate };
+						return { false, Access::AddressReputationUpdate::DeteriorateModerate };
 					}
 
 					auto cookie_verified{ false };
@@ -471,7 +471,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 							LogWarn(L"UDP listenermanager cannot accept incoming connection with ID %llu from peer %s; invalid cookie",
 									syn_data.ConnectionID, pendpoint.GetString().c_str());
 
-							return { false, Access::IPReputationUpdate::DeteriorateModerate };
+							return { false, Access::AddressReputationUpdate::DeteriorateModerate };
 						}
 					}
 
@@ -509,7 +509,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 							LogWarn(L"UDP listenermanager cannot accept incoming connection with ID %llu from peer %s; connection ID is in use by another peer",
 									syn_data.ConnectionID, pendpoint.GetString().c_str());
 
-							return { false, Access::IPReputationUpdate::DeteriorateModerate };
+							return { false, Access::AddressReputationUpdate::DeteriorateModerate };
 						}
 						default:
 						{
@@ -523,9 +523,10 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 					{
 						if (CanAcceptConnection(pendpoint.GetIPAddress()))
 						{
-							auto peerths = m_PeerManager.CreateUDP(pendpoint.GetIPAddress().GetFamily(), PeerConnectionType::Inbound,
-																   syn_data.ConnectionID, msg.GetMessageSequenceNumber(),
-																   std::move(*syn_data.HandshakeDataIn), std::nullopt);
+							auto peerths = m_PeerManager.CreateUDP(IP::AddressFamilyToNetwork(pendpoint.GetIPAddress().GetFamily()),
+																   PeerConnectionType::Inbound, syn_data.ConnectionID,
+																   msg.GetMessageSequenceNumber(), std::move(*syn_data.HandshakeDataIn),
+																   std::nullopt);
 							if (peerths != nullptr)
 							{
 								auto peer = peerths->WithUniqueLock();
@@ -535,7 +536,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 									{
 										LogInfo(L"Connection accepted from peer %s", peer->GetPeerName().c_str());
 
-										return { true, Access::IPReputationUpdate::None };
+										return { true, Access::AddressReputationUpdate::None };
 									}
 									else
 									{
@@ -553,13 +554,13 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 				case Message::Type::Null:
 				{
 					// Ignored
-					return { true, Access::IPReputationUpdate::None };
+					return { true, Access::AddressReputationUpdate::None };
 				}
 				default:
 				{
 					LogErr(L"Peer %s sent invalid messagetype for establishing UDP connection", pendpoint.GetString().c_str());
 
-					return { false, Access::IPReputationUpdate::DeteriorateModerate };
+					return { false, Access::AddressReputationUpdate::DeteriorateModerate };
 				}
 			}
 		}
@@ -568,10 +569,10 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 			// Unrecognized message; this is a fatal problem and may be an attack
 			LogErr(L"Peer %s sent an unrecognized message for establishing UDP connection", pendpoint.GetString().c_str());
 
-			return { false, Access::IPReputationUpdate::DeteriorateSevere };
+			return { false, Access::AddressReputationUpdate::DeteriorateSevere };
 		}
 
-		return { false, Access::IPReputationUpdate::None };
+		return { false, Access::AddressReputationUpdate::None };
 	}
 
 	void Manager::SendCookie(const Settings& settings, const SteadyTime current_steadytime,
@@ -619,10 +620,10 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 	{
 		// Increase connection attempts for this IP; if attempts get too high
 		// for a given interval the IP will get a bad reputation and this will fail
-		if (m_AccessManager.AddIPConnectionAttempt(ipaddr))
+		if (m_AccessManager.AddConnectionAttempt(ipaddr))
 		{
 			// Check if IP is allowed through filters/limits and if it has acceptable reputation
-			if (const auto result = m_AccessManager.GetIPConnectionAllowed(ipaddr, Access::CheckType::All); result.Succeeded())
+			if (const auto result = m_AccessManager.GetConnectionFromAddressAllowed(ipaddr, Access::CheckType::All); result.Succeeded())
 			{
 				return *result;
 			}

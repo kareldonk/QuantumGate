@@ -81,6 +81,44 @@ namespace QuantumGate::API
 		return ResultCode::Failed;
 	}
 
+	Result<Vector<API::Local::Environment::BluetoothRadio>> Local::Environment::GetBluetoothRadios() const noexcept
+	{
+		assert(m_LocalEnvironment != nullptr);
+
+		try
+		{
+			using namespace QuantumGate::Implementation::Core;
+			const auto local_env = static_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			if (local_env->IsInitialized())
+			{
+				// This is making a copy
+				return local_env->GetBluetoothRadios();
+			}
+		}
+		catch (...) {}
+
+		return ResultCode::Failed;
+	}
+
+	Result<Vector<API::Local::Environment::BluetoothDevice>> Local::Environment::GetBluetoothDevices() const noexcept
+	{
+		assert(m_LocalEnvironment != nullptr);
+
+		try
+		{
+			using namespace QuantumGate::Implementation::Core;
+			const auto local_env = static_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
+			if (local_env->IsInitialized())
+			{
+				// This is making a copy
+				return local_env->GetBluetoothDevices();
+			}
+		}
+		catch (...) {}
+
+		return ResultCode::Failed;
+	}
+
 	Local::Local() :
 		m_Local(std::make_shared<QuantumGate::Implementation::Core::Local>()),
 		m_AccessManager(&m_Local->GetAccessManager())

@@ -47,7 +47,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		using ThreadPool = Concurrency::ThreadPool<ThreadPoolData, ThreadData>;
 
-		enum RelayEventProcessResult
+		enum class RelayEventProcessResult
 		{
 			Failed, Succeeded, Retry
 		};
@@ -71,7 +71,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		std::optional<RelayPort> MakeRelayPort() const noexcept;
 
 		[[nodiscard]] bool Connect(const PeerLUID in_peer, const PeerLUID out_peer,
-								   const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hops) noexcept;
+								   const Endpoint& endpoint, const RelayPort rport, const RelayHop hops) noexcept;
 
 		[[nodiscard]] bool AddRelayEvent(RelayPort rport, Event&& event) noexcept;
 
@@ -101,8 +101,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		void GetUniqueLock(PeerDetails& rpeer, Peer::Peer_ThS::UniqueLockedType& peer) const noexcept;
 
 		void DeterioratePeerReputation(const PeerLUID pluid,
-									   const Access::IPReputationUpdate rep_update =
-									   Access::IPReputationUpdate::DeteriorateMinimal) const noexcept;
+									   const Access::AddressReputationUpdate rep_update =
+									   Access::AddressReputationUpdate::DeteriorateMinimal) const noexcept;
 
 		const Link_ThS* Get(const RelayPort rport) const noexcept;
 		Link_ThS* Get(const RelayPort rport) noexcept;
@@ -126,14 +126,14 @@ namespace QuantumGate::Implementation::Core::Relay
 							   Peer::Peer_ThS::UniqueLockedType& out_peer,
 							   const PeerLUID from_pluid, const RelayStatusUpdate status) noexcept;
 
-		[[nodiscard]] bool OnRelayStatusUpdate(Link& rl,
+		[[nodiscard]] bool OnRelayStatusUpdate(const Link& rl,
 											   Peer::Peer_ThS::UniqueLockedType& in_peer,
 											   Peer::Peer_ThS::UniqueLockedType& out_peer,
 											   const Status prev_status) noexcept;
 
 		[[nodiscard]] bool ProcessRelayConnect(Link& rc,
 											   Peer::Peer_ThS::UniqueLockedType& in_peer,
-											   Peer::Peer_ThS::UniqueLockedType& out_peer);
+											   Peer::Peer_ThS::UniqueLockedType& out_peer) noexcept;
 
 		[[nodiscard]] bool ProcessRelayConnected(Link& rc,
 												 Peer::Peer_ThS::UniqueLockedType& in_peer,

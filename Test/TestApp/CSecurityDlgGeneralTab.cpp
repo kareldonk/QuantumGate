@@ -37,10 +37,10 @@ bool CSecurityDlgGeneralTab::LoadData() noexcept
 	SetValue(IDC_HANDSHAKE_DELAY, params->General.MaxHandshakeDelay);
 	SetValue(IDC_HANDSHAKE_DURATION, params->General.MaxHandshakeDuration);
 
-	SetValue(IDC_IPREP_IMPROVE_INTERVAL, params->General.IPReputationImprovementInterval);
+	SetValue(IDC_IPREP_IMPROVE_INTERVAL, params->General.AddressReputationImprovementInterval);
 
-	SetValue(IDC_NUM_IPCON_ATTEMPTS, params->General.IPConnectionAttempts.MaxPerInterval);
-	SetValue(IDC_IPCON_ATTEMPTS_INTERVAL, params->General.IPConnectionAttempts.Interval);
+	SetValue(IDC_NUM_IPCON_ATTEMPTS, params->General.ConnectionAttempts.MaxPerInterval);
+	SetValue(IDC_IPCON_ATTEMPTS_INTERVAL, params->General.ConnectionAttempts.Interval);
 
 	return true;
 }
@@ -55,9 +55,9 @@ bool CSecurityDlgGeneralTab::SaveData() noexcept
 	params->General.MaxSuspendDuration = std::chrono::seconds(GetSizeValue(IDC_MAX_SUSPEND_DURATION));
 	params->General.MaxHandshakeDelay = std::chrono::milliseconds(GetSizeValue(IDC_HANDSHAKE_DELAY));
 	params->General.MaxHandshakeDuration = std::chrono::seconds(GetSizeValue(IDC_HANDSHAKE_DURATION));
-	params->General.IPReputationImprovementInterval = std::chrono::seconds(GetSizeValue(IDC_IPREP_IMPROVE_INTERVAL));
-	params->General.IPConnectionAttempts.MaxPerInterval = GetSizeValue(IDC_NUM_IPCON_ATTEMPTS);
-	params->General.IPConnectionAttempts.Interval = std::chrono::seconds(GetSizeValue(IDC_IPCON_ATTEMPTS_INTERVAL));
+	params->General.AddressReputationImprovementInterval = std::chrono::seconds(GetSizeValue(IDC_IPREP_IMPROVE_INTERVAL));
+	params->General.ConnectionAttempts.MaxPerInterval = GetSizeValue(IDC_NUM_IPCON_ATTEMPTS);
+	params->General.ConnectionAttempts.Interval = std::chrono::seconds(GetSizeValue(IDC_IPCON_ATTEMPTS_INTERVAL));
 
 	return true;
 }

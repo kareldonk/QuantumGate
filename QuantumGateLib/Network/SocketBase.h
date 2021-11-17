@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "IP.h"
-#include "IPEndpoint.h"
+#include "Address.h"
+#include "Endpoint.h"
 #include "..\Common\Callback.h"
 
 #include <bitset>
@@ -95,13 +95,13 @@ namespace QuantumGate::Implementation::Network
 		SocketBase& operator=(const SocketBase&) noexcept = default;
 		SocketBase& operator=(SocketBase&&) noexcept = default;
 
-		virtual bool BeginConnect(const IPEndpoint& endpoint) noexcept = 0;
+		virtual bool BeginConnect(const Endpoint& endpoint) noexcept = 0;
 		virtual bool CompleteConnect() noexcept = 0;
 
 		virtual Result<Size> Send(const BufferView& buffer, const Size max_snd_size = 0) noexcept = 0;
-		virtual Result<Size> SendTo(const IPEndpoint& endpoint, const BufferView& buffer, const Size max_snd_size = 0) noexcept = 0;
+		virtual Result<Size> SendTo(const Endpoint& endpoint, const BufferView& buffer, const Size max_snd_size = 0) noexcept = 0;
 		virtual Result<Size> Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept = 0;
-		virtual Result<Size> ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept = 0;
+		virtual Result<Size> ReceiveFrom(Endpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept = 0;
 
 		virtual void Close(const bool linger = false) noexcept = 0;
 
@@ -117,12 +117,12 @@ namespace QuantumGate::Implementation::Network
 		virtual Size GetBytesReceived() const noexcept = 0;
 		virtual Size GetBytesSent() const noexcept = 0;
 
-		virtual const IPEndpoint& GetLocalEndpoint() const noexcept = 0;
+		virtual const Endpoint& GetLocalEndpoint() const noexcept = 0;
 		virtual const IPAddress& GetLocalIPAddress() const noexcept = 0;
-		virtual String GetLocalName() const noexcept = 0;
 		virtual UInt32 GetLocalPort() const noexcept = 0;
+		virtual String GetLocalName() const noexcept = 0;
 
-		virtual const IPEndpoint& GetPeerEndpoint() const noexcept = 0;
+		virtual const Endpoint& GetPeerEndpoint() const noexcept = 0;
 		virtual const IPAddress& GetPeerIPAddress() const noexcept = 0;
 		virtual UInt32 GetPeerPort() const noexcept = 0;
 		virtual String GetPeerName() const noexcept = 0;

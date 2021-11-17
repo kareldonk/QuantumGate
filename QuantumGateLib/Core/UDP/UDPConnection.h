@@ -144,7 +144,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		[[nodiscard]] inline const SymmetricKeys& GetSymmetricKeys() const noexcept { return m_SymmetricKeys[0]; }
 		[[nodiscard]] inline const IPEndpoint& GetPeerEndpoint() const noexcept { return m_PeerEndpoint;  }
 
-		[[nodiscard]] bool Open(const Network::IP::AddressFamily af,
+		[[nodiscard]] bool Open(const Network::AddressFamily af,
 								const bool nat_traversal, UDP::Socket& socket) noexcept;
 		void Close() noexcept;
 
@@ -230,7 +230,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		void ProcessSocketEvents(const Settings& settings) noexcept;
 
-		void UpdateReputation(const IPEndpoint& endpoint, const Access::IPReputationUpdate rep_update) noexcept;
+		void UpdateReputation(const IPEndpoint& endpoint, const Access::AddressReputationUpdate rep_update) noexcept;
 
 	private:
 		static constexpr const std::chrono::seconds SuspendTimeoutMargin{ 15 };

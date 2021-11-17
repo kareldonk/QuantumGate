@@ -45,6 +45,22 @@ namespace QuantumGate::API
 				Vector<IPAddress> IPAddresses;
 			};
 
+			struct BluetoothRadio
+			{
+				String Name;
+				BTHAddress Address;
+				UInt16 ManufacturerID{ 0 };
+				bool IsConnectable{ false };
+				bool IsDiscoverable{ false };
+			};
+
+			struct BluetoothDevice
+			{
+				String Name;
+				GUID ServiceClassID;
+				BTHAddress RemoteAddress;
+			};
+
 			Environment() = delete;
 			Environment(const Environment&) = delete;
 			Environment(Environment&&) noexcept = default;
@@ -56,6 +72,8 @@ namespace QuantumGate::API
 			Result<String> GetUsername() const noexcept;
 			Result<Vector<IPAddressDetails>> GetIPAddresses() const noexcept;
 			Result<Vector<EthernetInterface>> GetEthernetInterfaces() const noexcept;
+			Result<Vector<BluetoothRadio>> GetBluetoothRadios() const noexcept;
+			Result<Vector<BluetoothDevice>> GetBluetoothDevices() const noexcept;
 
 		private:
 			Environment(const void* localenv) noexcept;

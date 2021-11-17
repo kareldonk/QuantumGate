@@ -12,8 +12,8 @@ namespace QuantumGate::Implementation::Core::TCP
 	public:
 		Socket() noexcept = default;
 
-		Socket(const Network::IP::AddressFamily af) :
-			Network::Socket(af, Network::Socket::Type::Stream, Network::IP::Protocol::TCP)
+		Socket(const Network::AddressFamily af) :
+			Network::Socket(af, Network::Socket::Type::Stream, Network::Protocol::TCP)
 		{}
 
 		Socket(const Socket&) = delete;

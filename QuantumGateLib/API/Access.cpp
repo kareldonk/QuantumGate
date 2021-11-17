@@ -78,49 +78,49 @@ namespace QuantumGate::API::Access
 		return m_AccessManager->GetAllIPSubnetLimits();
 	}
 
-	Result<> Manager::SetIPReputation(const IPReputation& ip_rep) noexcept
+	Result<> Manager::SetAddressReputation(const AddressReputation& ip_rep) noexcept
 	{
-		return m_AccessManager->SetIPReputation(ip_rep);
+		return m_AccessManager->SetAddressReputation(ip_rep);
 	}
 
-	Result<> Manager::ResetIPReputation(const WChar* ip_str) noexcept
+	Result<> Manager::ResetAddressReputation(const WChar* ip_str) noexcept
 	{
-		return m_AccessManager->ResetIPReputation(ip_str);
+		return m_AccessManager->ResetAddressReputation(ip_str);
 	}
 
-	Result<> Manager::ResetIPReputation(const String& ip_str) noexcept
+	Result<> Manager::ResetAddressReputation(const String& ip_str) noexcept
 	{
-		return m_AccessManager->ResetIPReputation(ip_str.c_str());
+		return m_AccessManager->ResetAddressReputation(ip_str.c_str());
 	}
 
-	Result<> Manager::ResetIPReputation(const IPAddress& ip) noexcept
+	Result<> Manager::ResetAddressReputation(const IPAddress& ip) noexcept
 	{
-		return m_AccessManager->ResetIPReputation(ip);
+		return m_AccessManager->ResetAddressReputation(ip);
 	}
 
-	void Manager::ResetAllIPReputations() noexcept
+	void Manager::ResetAllAddressReputations() noexcept
 	{
-		m_AccessManager->ResetAllIPReputations();
+		m_AccessManager->ResetAllAddressReputations();
 	}
 
-	Result<Vector<IPReputation>> Manager::GetAllIPReputations() const noexcept
+	Result<Vector<AddressReputation>> Manager::GetAllAddressReputations() const noexcept
 	{
-		return m_AccessManager->GetAllIPReputations();
+		return m_AccessManager->GetAllAddressReputations();
 	}
 
-	Result<bool> Manager::GetIPAllowed(const WChar* ip_str, const CheckType check) const noexcept
+	Result<bool> Manager::GetAddressAllowed(const WChar* addr_str, const CheckType check) const noexcept
 	{
-		return m_AccessManager->GetIPAllowed(ip_str, check);
+		return m_AccessManager->GetAddressAllowed(addr_str, check);
 	}
 
-	Result<bool> Manager::GetIPAllowed(const String& ip_str, const CheckType check) const noexcept
+	Result<bool> Manager::GetAddressAllowed(const String& addr_str, const CheckType check) const noexcept
 	{
-		return m_AccessManager->GetIPAllowed(ip_str.c_str(), check);
+		return m_AccessManager->GetAddressAllowed(addr_str.c_str(), check);
 	}
 
-	Result<bool> Manager::GetIPAllowed(const IPAddress& ip, const CheckType check) const noexcept
+	Result<bool> Manager::GetAddressAllowed(const Address& addr, const CheckType check) const noexcept
 	{
-		return m_AccessManager->GetIPAllowed(ip, check);
+		return m_AccessManager->GetAddressAllowed(addr, check);
 	}
 
 	Result<> Manager::AddPeer(PeerSettings&& pas) noexcept

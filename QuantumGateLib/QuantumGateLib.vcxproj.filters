@@ -258,7 +258,7 @@
     <ClInclude Include="Core\Extender\ExtenderModule.h">
       <Filter>Header Files\Core\Extender</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Access\IPAccessControl.h">
+    <ClInclude Include="Core\Access\AddressAccessControl.h">
       <Filter>Header Files\Core\Access</Filter>
     </ClInclude>
     <ClInclude Include="Core\Access\IPFilters.h">
@@ -363,7 +363,7 @@
     <ClInclude Include="Common\Result.h">
       <Filter>Header Files\Common</Filter>
     </ClInclude>
-    <ClInclude Include="Core\PublicIPEndpoints.h">
+    <ClInclude Include="Core\PublicEndpoints.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="Network\Ping.h">
@@ -516,6 +516,30 @@
     <ClInclude Include="Core\UDP\UDPConnectionCookies.h">
       <Filter>Header Files\Core\UDP</Filter>
     </ClInclude>
+    <ClInclude Include="Network\BTHEndpoint.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Network.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\BTH.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Endpoint.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\BinaryBTHAddress.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\BTHAddress.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Address.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\NetworkUtils.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -581,7 +605,7 @@
     <ClCompile Include="Network\Socket.cpp">
       <Filter>Source Files\Network</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Access\IPAccessControl.cpp">
+    <ClCompile Include="Core\Access\AddressAccessControl.cpp">
       <Filter>Source Files\Core\Access</Filter>
     </ClCompile>
     <ClCompile Include="Core\Access\IPFilters.cpp">
@@ -656,7 +680,7 @@
     <ClCompile Include="Common\Result.cpp">
       <Filter>Source Files\Common</Filter>
     </ClCompile>
-    <ClCompile Include="Core\PublicIPEndpoints.cpp">
+    <ClCompile Include="Core\PublicEndpoints.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
     <ClCompile Include="Network\Ping.cpp">
@@ -715,6 +739,30 @@
     </ClCompile>
     <ClCompile Include="Core\UDP\UDPConnectionKeys.cpp">
       <Filter>Source Files\Core\UDP</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Network.cpp">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\BTHEndpoint.cpp">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Endpoint.cpp">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\BinaryBTHAddress.cpp">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\BTH.cpp">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\BTHAddress.cpp">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Address.cpp">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\NetworkUtils.cpp">
+      <Filter>Source Files\Network</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

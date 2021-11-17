@@ -46,8 +46,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			Size BytesReceived{ 0 };
 			Size BytesSent{ 0 };
 
-			IPEndpoint LocalEndpoint;
-			IPEndpoint PeerEndpoint;
+			Endpoint LocalEndpoint;
+			Endpoint PeerEndpoint;
 
 			ExtenderUUIDs PeerExtenderUUIDs;
 		} Cached;
@@ -71,8 +71,8 @@ namespace QuantumGate::Implementation::Core::Peer
 				pdetails.IsRelayed = IsRelayed;
 				pdetails.IsAuthenticated = IsAuthenticated;
 				pdetails.IsUsingGlobalSharedSecret = IsUsingGlobalSharedSecret;
-				pdetails.LocalIPEndpoint = Cached.LocalEndpoint;
-				pdetails.PeerIPEndpoint = Cached.PeerEndpoint;
+				pdetails.LocalEndpoint = Cached.LocalEndpoint;
+				pdetails.PeerEndpoint = Cached.PeerEndpoint;
 				pdetails.PeerProtocolVersion = PeerProtocolVersion;
 				pdetails.LocalSessionID = LocalSessionID;
 				pdetails.PeerSessionID = PeerSessionID;

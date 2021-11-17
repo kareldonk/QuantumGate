@@ -388,7 +388,7 @@
     <ClCompile Include="PeerExtenderUUIDsTest.cpp" />
     <ClCompile Include="PeerLookupTests.cpp" />
     <ClCompile Include="PingTests.cpp" />
-    <ClCompile Include="PublicIPEndpointsTests.cpp" />
+    <ClCompile Include="PublicEndpointsTests.cpp" />
     <ClCompile Include="RateLimitTests.cpp" />
     <ClCompile Include="ResultTests.cpp" />
     <ClCompile Include="RingBufferTests.cpp" />
@@ -397,7 +397,7 @@
     <ClCompile Include="StackBufferTests.cpp" />
     <ClCompile Include="ThreadLocalCacheTests.cpp" />
     <ClCompile Include="CallbackTests.cpp" />
-    <ClCompile Include="IPAccessControlTests.cpp" />
+    <ClCompile Include="AddressAccessControlTests.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|x64'">Create</PrecompiledHeader>

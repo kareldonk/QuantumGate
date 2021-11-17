@@ -91,6 +91,11 @@ namespace QuantumGate::Implementation::Memory
 			return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));
 		}
 
+		[[nodiscard]] bool ReadImpl(Network::SerializedEndpoint& data)
+		{
+			return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));
+		}
+
 		[[nodiscard]] bool ReadImpl(SerializedUUID& data)
 		{
 			return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));

@@ -32,7 +32,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		bool SendBeginHandshake() const noexcept;
 
-		bool SendBeginRelay(const RelayPort rport, const IPEndpoint& endpoint, const RelayHop hops) const noexcept;
+		bool SendBeginRelay(const RelayPort rport, const Endpoint& endpoint, const RelayHop hops) const noexcept;
 		QuantumGate::Result<> SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept;
 		QuantumGate::Result<> SendRelayData(const RelayDataMessage& msg) const noexcept;
 		bool SendRelayDataAck(const RelayDataAckMessage& msg) const noexcept;

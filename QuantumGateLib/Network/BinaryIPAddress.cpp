@@ -2,6 +2,7 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "pch.h"
+#include "BinaryIPAddress.h"
 #include "..\Common\Hash.h"
 
 namespace QuantumGate::Implementation::Network

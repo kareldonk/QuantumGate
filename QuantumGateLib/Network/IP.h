@@ -3,8 +3,31 @@
 
 #pragma once
 
+#include "Network.h"
+
 namespace QuantumGate::Implementation::Network::IP
 {
+	enum class AddressFamily : UInt8
+	{
+		Unspecified = static_cast<UInt8>(Network::AddressFamily::Unspecified),
+		IPv4 = static_cast<UInt8>(Network::AddressFamily::IPv4),
+		IPv6 = static_cast<UInt8>(Network::AddressFamily::IPv6)
+	};
+
+	[[nodiscard]] AddressFamily AddressFamilyFromNetwork(const Network::AddressFamily af) noexcept;
+	[[nodiscard]] Network::AddressFamily AddressFamilyToNetwork(const AddressFamily protocol) noexcept;
+
+	enum class Protocol : UInt8
+	{
+		Unspecified = static_cast<UInt8>(Network::Protocol::Unspecified),
+		ICMP = static_cast<UInt8>(Network::Protocol::ICMP),
+		TCP = static_cast<UInt8>(Network::Protocol::TCP),
+		UDP = static_cast<UInt8>(Network::Protocol::UDP)
+	};
+
+	[[nodiscard]] Protocol ProtocolFromNetwork(const Network::Protocol protocol) noexcept;
+	[[nodiscard]] Network::Protocol ProtocolToNetwork(const Protocol protocol) noexcept;
+
 #pragma pack(push, 1) // Disable padding bytes
 	struct Header final
 	{
@@ -22,23 +45,6 @@ namespace QuantumGate::Implementation::Network::IP
 #pragma pack(pop)
 
 	static_assert(sizeof(Header) == 20, "Size of IP header should be 20 bytes");
-
-	enum class AddressFamily : UInt8
-	{
-		Unspecified = 0,
-		IPv4 = 2,
-		IPv6 = 23
-	};
-
-	enum class Protocol : UInt8
-	{
-		Unspecified = 0,
-		ICMP = 1,
-		TCP = 6,
-		UDP = 17
-	};
-
-	[[nodiscard]] const WChar* GetProtocolName(const Protocol protocol) noexcept;
 }
 
 namespace QuantumGate::Implementation::Network::ICMP

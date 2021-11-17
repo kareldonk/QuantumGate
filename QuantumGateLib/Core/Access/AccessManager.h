@@ -4,7 +4,7 @@
 #pragma once
 
 #include "IPFilters.h"
-#include "IPAccessControl.h"
+#include "AddressAccessControl.h"
 #include "IPSubnetLimits.h"
 #include "PeerAccessControl.h"
 #include "..\..\Common\Dispatcher.h"
@@ -43,18 +43,18 @@ namespace QuantumGate::Implementation::Core::Access
 
 		Result<Vector<IPFilter>> GetAllIPFilters() const noexcept;
 
-		Result<> SetIPReputation(const IPAddress& ip, const Int16 score,
-								 const std::optional<Time>& time = std::nullopt) noexcept;
-		Result<> SetIPReputation(const IPReputation& ip_rep) noexcept;
-		Result<> ResetIPReputation(const WChar* ip_str) noexcept;
-		Result<> ResetIPReputation(const IPAddress& ip) noexcept;
-		void ResetAllIPReputations() noexcept;
-		Result<std::pair<Int16, bool>> UpdateIPReputation(const IPAddress& ip,
-														  const IPReputationUpdate rep_update) noexcept;
-		Result<Vector<IPReputation>> GetAllIPReputations() const noexcept;
+		Result<> SetAddressReputation(const Address& addr, const Int16 score,
+									  const std::optional<Time>& time = std::nullopt) noexcept;
+		Result<> SetAddressReputation(const AddressReputation& addr_rep) noexcept;
+		Result<> ResetAddressReputation(const WChar* addr_str) noexcept;
+		Result<> ResetAddressReputation(const Address& addr) noexcept;
+		void ResetAllAddressReputations() noexcept;
+		Result<std::pair<Int16, bool>> UpdateAddressReputation(const Address& addr,
+															   const AddressReputationUpdate rep_update) noexcept;
+		Result<Vector<AddressReputation>> GetAllAddressReputations() const noexcept;
 
-		[[nodiscard]] bool AddIPConnectionAttempt(const IPAddress& ip) noexcept;
-		[[nodiscard]] bool AddIPRelayConnectionAttempt(const IPAddress& ip) noexcept;
+		[[nodiscard]] bool AddConnectionAttempt(const Address& addr) noexcept;
+		[[nodiscard]] bool AddRelayConnectionAttempt(const Address& addr) noexcept;
 
 		Result<> AddIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits, const Size max_con) noexcept;
 		Result<> AddIPSubnetLimit(const IPAddress::Family af, const UInt8 cidr_lbits, const Size max_con) noexcept;
@@ -66,10 +66,10 @@ namespace QuantumGate::Implementation::Core::Access
 		[[nodiscard]] bool AddIPConnection(const IPAddress& ip) noexcept;
 		[[nodiscard]] bool RemoveIPConnection(const IPAddress& ip) noexcept;
 
-		Result<bool> GetIPAllowed(const WChar* ip_str, const CheckType check) noexcept;
-		Result<bool> GetIPAllowed(const IPAddress& ip, const CheckType check) noexcept;
+		Result<bool> GetAddressAllowed(const WChar* addr_str, const CheckType check) noexcept;
+		Result<bool> GetAddressAllowed(const Address& addr, const CheckType check) noexcept;
 
-		Result<bool> GetIPConnectionAllowed(const IPAddress& ip, const CheckType check) noexcept;
+		Result<bool> GetConnectionFromAddressAllowed(const Address& addr, const CheckType check) noexcept;
 
 		Result<> AddPeer(PeerSettings&& pas) noexcept;
 		Result<> UpdatePeer(PeerSettings&& pas) noexcept;
@@ -91,7 +91,7 @@ namespace QuantumGate::Implementation::Core::Access
 		const Settings_CThS& m_Settings;
 
 		IPFilters_ThS m_IPFilters;
-		IPAccessControl_ThS m_IPAccessControl{ m_Settings };
+		AddressAccessControl_ThS m_AddressAccessControl{ m_Settings };
 		IPSubnetLimits_ThS m_SubnetLimits;
 		PeerAccessControl_ThS m_PeerAccessControl{ m_Settings };
 

@@ -223,6 +223,8 @@ namespace QuantumGate::Implementation::Network
 			return IsInBlock(bin_ipaddr, block);
 		}
 
+		[[nodiscard]] std::size_t GetHash() const noexcept { return m_BinaryAddress.GetHash(); }
+
 	private:
 		void SetAddress(const WChar* ipaddr_str);
 		void SetAddress(const sockaddr_storage* saddr);
@@ -257,5 +259,17 @@ namespace QuantumGate::Implementation::Network
 		static constexpr UInt8 MaxIPAddressStringLength{ 46 }; // Maximum length of IPv6 address
 
 		BinaryIPAddress m_BinaryAddress; // In network byte order (big endian)
+	};
+}
+
+namespace std
+{
+	// Specialization for standard hash function for IPAddress
+	template<> struct hash<QuantumGate::Implementation::Network::IPAddress>
+	{
+		std::size_t operator()(const QuantumGate::Implementation::Network::IPAddress& ip) const noexcept
+		{
+			return ip.GetHash();
+		}
 	};
 }

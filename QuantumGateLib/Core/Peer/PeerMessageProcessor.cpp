@@ -407,7 +407,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 							BufferWriter wrt(true);
 							if (wrt.WriteWithPreallocation(counter,
-														   m_Peer.GetPublicIPEndpointToReport(),
+														   m_Peer.GetPublicEndpointToReport(),
 														   WithSize(lsextlist, MaxSize::_UINT16)))
 							{
 								if (m_Peer.Send(MessageType::BeginSessionInit, wrt.MoveWrittenBytes()))
@@ -455,7 +455,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
 				UInt8 pcounter{ 0 };
-				Network::SerializedIPEndpoint pub_endp;
+				Network::SerializedEndpoint pub_endp;
 				Vector<SerializedUUID> psextlist;
 
 				BufferReader rdr(buffer, true);
@@ -463,7 +463,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					m_Peer.SetPeerMessageCounter(pcounter);
 
-					if (m_Peer.AddReportedPublicIPEndpoint(pub_endp))
+					if (m_Peer.AddReportedPublicEndpoint(pub_endp))
 					{
 						if (auto pextlist = ValidateExtenderUUIDs(psextlist); pextlist.has_value())
 						{
@@ -480,7 +480,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 								BufferWriter wrt(true);
 								if (wrt.WriteWithPreallocation(counter,
-															   m_Peer.GetPublicIPEndpointToReport(),
+															   m_Peer.GetPublicEndpointToReport(),
 															   WithSize(lsextlist, MaxSize::_UINT16)))
 								{
 									if (m_Peer.Send(MessageType::EndSessionInit, wrt.MoveWrittenBytes()))
@@ -499,7 +499,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						else LogDbg(L"Invalid BeginSessionInit message from peer %s; invalid extender UUID(s)",
 									m_Peer.GetPeerName().c_str());
 					}
-					else LogDbg(L"Invalid BeginSessionInit message from peer %s; invalid public IP endpoint",
+					else LogDbg(L"Invalid BeginSessionInit message from peer %s; invalid public endpoint",
 								m_Peer.GetPeerName().c_str());
 				}
 				else LogDbg(L"Invalid BeginSessionInit message from peer %s; couldn't read message data",
@@ -517,7 +517,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
 				UInt8 pcounter{ 0 };
-				Network::SerializedIPEndpoint pub_endp;
+				Network::SerializedEndpoint pub_endp;
 				Vector<SerializedUUID> psextlist;
 
 				BufferReader rdr(buffer, true);
@@ -525,7 +525,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					m_Peer.SetPeerMessageCounter(pcounter);
 
-					if (m_Peer.AddReportedPublicIPEndpoint(pub_endp))
+					if (m_Peer.AddReportedPublicEndpoint(pub_endp))
 					{
 						if (auto pextlist = ValidateExtenderUUIDs(psextlist); pextlist.has_value())
 						{
@@ -537,7 +537,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						else LogDbg(L"Invalid EndSessionInit message from peer %s; invalid extender UUID(s)",
 									m_Peer.GetPeerName().c_str());
 					}
-					else LogDbg(L"Invalid EndSessionInit message from peer %s; invalid public IP endpoint",
+					else LogDbg(L"Invalid EndSessionInit message from peer %s; invalid public endpoint",
 								m_Peer.GetPeerName().c_str());
 				}
 				else LogDbg(L"Invalid EndSessionInit message from peer %s; couldn't read message data",

@@ -39,8 +39,8 @@ namespace QuantumGate::Implementation
 		struct
 		{
 			Size MaxPerInterval{ 10 };								// Maximum number of allowed relay connection attempts per interval before IP gets blocked
-			std::chrono::seconds Interval{ 10 };					// Period of time after which the relay connection attempts are reset to 0 for an IP
-		} IPConnectionAttempts;
+			std::chrono::seconds Interval{ 10 };					// Period of time after which the relay connection attempts are reset to 0 for an address
+		} ConnectionAttempts;
 	};
 
 	struct UDPSettings final
@@ -95,13 +95,13 @@ namespace QuantumGate::Implementation
 		std::chrono::milliseconds MaxHandshakeDelay{ 0 };					// Maximum number of milliseconds to wait in between handshake messages
 		std::chrono::seconds MaxHandshakeDuration{ 30 };					// Maximum number of seconds a handshake may last after connecting before peer is disconnected
 
-		std::chrono::seconds IPReputationImprovementInterval{ 600 };		// Period of time after which the reputation of an IP address gets slightly improved
+		std::chrono::seconds AddressReputationImprovementInterval{ 600 };	// Period of time after which the reputation of an address gets slightly improved
 
 		struct
 		{
 			Size MaxPerInterval{ 2 };										// Maximum number of allowed connection attempts per interval before IP gets blocked
-			std::chrono::seconds Interval{ 10 };							// Period of time after which the connection attempts are reset to 0 for an IP
-		} IPConnectionAttempts;
+			std::chrono::seconds Interval{ 10 };							// Period of time after which the connection attempts are reset to 0 for an address
+		} ConnectionAttempts;
 
 		struct
 		{

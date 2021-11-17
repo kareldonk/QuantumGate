@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Network
 	class Export IPEndpoint
 	{
 	public:
-		using Protocol = IP::Protocol;
+		using Protocol = Network::IP::Protocol;
 
 		constexpr IPEndpoint() noexcept {}
 

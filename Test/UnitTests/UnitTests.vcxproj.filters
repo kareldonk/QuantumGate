@@ -53,7 +53,7 @@
     <ClCompile Include="HashTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="IPAccessControlTests.cpp">
+    <ClCompile Include="AddressAccessControlTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="IPAddressTests.cpp">
@@ -92,7 +92,7 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PublicIPEndpointsTests.cpp">
+    <ClCompile Include="PublicEndpointsTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BinaryIPAddressTests.cpp">

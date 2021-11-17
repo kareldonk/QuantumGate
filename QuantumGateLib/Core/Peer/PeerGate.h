@@ -20,7 +20,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 	public:
 		Gate(const GateType type) noexcept;
-		Gate(const IP::AddressFamily af, const IP::Protocol protocol);
+		Gate(const AddressFamily af, const Protocol protocol);
 		Gate(const Gate&) = delete;
 		Gate(Gate&&) noexcept = default;
 		virtual ~Gate();
@@ -35,7 +35,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		[[nodiscard]] GateType GetGateType() const noexcept { return m_Type; }
 
-		[[nodiscard]] bool BeginConnect(const IPEndpoint& endpoint) noexcept
+		[[nodiscard]] bool BeginConnect(const Endpoint& endpoint) noexcept
 		{
 			assert(m_Socket); return m_Socket->BeginConnect(endpoint);
 		}
@@ -68,12 +68,12 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] Size GetBytesReceived() const noexcept { assert(m_Socket); return m_Socket->GetBytesReceived(); }
 		[[nodiscard]] Size GetBytesSent() const noexcept { assert(m_Socket); return m_Socket->GetBytesSent(); }
 
-		[[nodiscard]] const IPEndpoint& GetLocalEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetLocalEndpoint(); }
+		[[nodiscard]] const Endpoint& GetLocalEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetLocalEndpoint(); }
 		[[nodiscard]] const IPAddress& GetLocalIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetLocalIPAddress(); }
 		[[nodiscard]] virtual String GetLocalName() const noexcept { assert(m_Socket); return m_Socket->GetLocalName(); }
 		[[nodiscard]] UInt32 GetLocalPort() const noexcept { assert(m_Socket); return m_Socket->GetLocalPort(); }
 
-		[[nodiscard]] const IPEndpoint& GetPeerEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetPeerEndpoint(); }
+		[[nodiscard]] const Endpoint& GetPeerEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetPeerEndpoint(); }
 		[[nodiscard]] const IPAddress& GetPeerIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetPeerIPAddress(); }
 		[[nodiscard]] UInt32 GetPeerPort() const noexcept { assert(m_Socket); return m_Socket->GetPeerPort(); }
 		[[nodiscard]] virtual String GetPeerName() const noexcept { assert(m_Socket); return m_Socket->GetPeerName(); }

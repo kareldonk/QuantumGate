@@ -281,19 +281,13 @@ namespace QuantumGate::Implementation::Core
 			return ResultCode::Failed;
 		}
 
-		if (!m_LocalEnvironment.WithSharedLock()->IsInitialized())
+		if (!InitializeLocalEnvironment())
 		{
-			if (!m_LocalEnvironment.WithUniqueLock()->Initialize(MakeCallback(this,
-																			  &Local::OnLocalEnvironmentChanged)))
-			{
-				LogErr(L"Couldn't initialize local environment");
-				return ResultCode::Failed;
-			}
+			return ResultCode::Failed;
 		}
 
 		{
 			const auto local_env = m_LocalEnvironment.WithSharedLock();
-
 			LogSys(L"Localhost %s (%s)", local_env->GetHostname().c_str(), local_env->GetIPAddressesString().c_str());
 			LogSys(L"Running as user %s", local_env->GetUsername().c_str());
 		}
@@ -418,7 +412,7 @@ namespace QuantumGate::Implementation::Core
 
 		m_KeyGenerationManager.Shutdown();
 
-		m_LocalEnvironment.WithUniqueLock()->Deinitialize();
+		DeinitializeLocalEnvironment();
 
 		ShutdownThreadPool();
 
@@ -451,6 +445,8 @@ namespace QuantumGate::Implementation::Core
 	{
 		m_ThreadPool.Shutdown();
 		m_ThreadPool.Clear();
+		
+		m_ThreadPool.GetData().EventQueue.Clear();
 	}
 
 	void Local::WorkerThreadWait(ThreadPoolData& thpdata, const Concurrency::Event& shutdown_event)
@@ -489,7 +485,7 @@ namespace QuantumGate::Implementation::Core
 
 	void Local::ProcessEvent(const Events::LocalEnvironmentChange& event) noexcept
 	{
-		if (m_LocalEnvironment.WithUniqueLock()->Update())
+		if (m_LocalEnvironment.WithUniqueLock()->Update(true))
 		{
 			if (IsRunning())
 			{
@@ -734,13 +730,52 @@ namespace QuantumGate::Implementation::Core
 		return Util::FormatString(L"%u.%u", ProtocolVersion::Major, ProtocolVersion::Minor);
 	}
 
-	const LocalEnvironment_ThS& Local::GetEnvironment() noexcept
+	bool Local::InitializeLocalEnvironment() noexcept
 	{
-		if (!m_LocalEnvironment.WithSharedLock()->IsInitialized())
+		auto local_env = m_LocalEnvironment.WithUniqueLock();
+
+		if (!local_env->IsInitialized())
 		{
-			if (!m_LocalEnvironment.WithUniqueLock()->Initialize(MakeCallback(this, &Local::OnLocalEnvironmentChanged)))
+			if (!local_env->Initialize(MakeCallback(this, &Local::OnLocalEnvironmentChanged)))
 			{
 				LogErr(L"Couldn't initialize local environment");
+				return false;
+			}
+		}
+		else
+		{
+			if (!local_env->Update())
+			{
+				LogErr(L"Couldn't update local environment");
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	void Local::DeinitializeLocalEnvironment() noexcept
+	{
+		m_LocalEnvironment.WithUniqueLock()->Deinitialize();
+	}
+
+	const LocalEnvironment_ThS& Local::GetEnvironment() noexcept
+	{
+		{
+			auto env = m_LocalEnvironment.WithUniqueLock();
+			if (!env->IsInitialized())
+			{
+				if (!env->Initialize(MakeCallback(this, &Local::OnLocalEnvironmentChanged)))
+				{
+					LogErr(L"Couldn't initialize local environment");
+				}
+			}
+			else
+			{
+				if (!env->Update())
+				{
+					LogErr(L"Couldn't update local environment");
+				}
 			}
 		}
 
@@ -749,11 +784,14 @@ namespace QuantumGate::Implementation::Core
 
 	void Local::OnLocalEnvironmentChanged() noexcept
 	{
-		try
+		if (IsRunning())
 		{
-			m_ThreadPool.GetData().EventQueue.Push(Events::LocalEnvironmentChange{});
+			try
+			{
+				m_ThreadPool.GetData().EventQueue.Push(Events::LocalEnvironmentChange{});
+			}
+			catch (...) {}
 		}
-		catch (...) {}
 	}
 
 	void Local::OnUnhandledExtenderException(const ExtenderUUID extuuid) noexcept
@@ -1153,8 +1191,8 @@ namespace QuantumGate::Implementation::Core
 		if (params.General.MaxHandshakeDelay > params.General.MaxHandshakeDuration)
 			return { false, L"General.MaxHandshakeDelay should be greater than General.MaxHandshakeDuration" };
 
-		if (params.General.IPReputationImprovementInterval < 0s) return { false, L"General.IPReputationImprovementInterval should be at least 0 seconds" };
-		if (params.General.IPConnectionAttempts.Interval < 0s) return { false, L"General.IPConnectionAttempts.Interval should be at least 0 seconds" };
+		if (params.General.AddressReputationImprovementInterval < 0s) return { false, L"General.AddressReputationImprovementInterval should be at least 0 seconds" };
+		if (params.General.ConnectionAttempts.Interval < 0s) return { false, L"General.ConnectionAttempts.Interval should be at least 0 seconds" };
 
 		if (params.KeyUpdate.MinInterval < 0s) return { false, L"KeyUpdate.MinInterval should be at least 0 seconds" };
 		if (params.KeyUpdate.MaxInterval < 0s) return { false, L"KeyUpdate.MaxInterval should be at least 0 seconds" };
@@ -1171,7 +1209,7 @@ namespace QuantumGate::Implementation::Core
 		if (params.Relay.GracePeriod < 0s) return { false, L"Relay.GracePeriod should be at least 0 seconds" };
 		if (params.Relay.MaxSuspendDuration < 0s) return { false, L"Relay.MaxSuspendDuration should be at least 0 seconds" };
 
-		if (params.Relay.IPConnectionAttempts.Interval < 0s) return { false, L"Relay.IPConnectionAttempts.Interval should be at least 0 seconds" };
+		if (params.Relay.ConnectionAttempts.Interval < 0s) return { false, L"Relay.ConnectionAttempts.Interval should be at least 0 seconds" };
 
 		if (params.UDP.MaxMTUDiscoveryDelay < 0ms) return { false, L"UDP.MaxMTUDiscoveryDelay should be at least 0 milliseconds" };
 		if (params.UDP.MaxDecoyMessageInterval < 0ms) return { false, L"UDP.MaxDecoyMessageInterval should be at least 0 milliseconds" };
@@ -1314,8 +1352,8 @@ namespace QuantumGate::Implementation::Core
 
 					settings.Relay.ConnectTimeout = 60s;
 					settings.Relay.GracePeriod = 60s;
-					settings.Relay.IPConnectionAttempts.MaxPerInterval = 10;
-					settings.Relay.IPConnectionAttempts.Interval = 10s;
+					settings.Relay.ConnectionAttempts.MaxPerInterval = 10;
+					settings.Relay.ConnectionAttempts.Interval = 10s;
 
 					settings.Message.AgeTolerance = 300s;
 					settings.Message.ExtenderGracePeriod = 60s;
@@ -1357,8 +1395,8 @@ namespace QuantumGate::Implementation::Core
 
 					settings.Relay.ConnectTimeout = 60s;
 					settings.Relay.GracePeriod = 60s;
-					settings.Relay.IPConnectionAttempts.MaxPerInterval = 10;
-					settings.Relay.IPConnectionAttempts.Interval = 10s;
+					settings.Relay.ConnectionAttempts.MaxPerInterval = 10;
+					settings.Relay.ConnectionAttempts.Interval = 10s;
 
 					settings.Message.AgeTolerance = 300s;
 					settings.Message.ExtenderGracePeriod = 60s;
@@ -1400,8 +1438,8 @@ namespace QuantumGate::Implementation::Core
 
 					settings.Relay.ConnectTimeout = 60s;
 					settings.Relay.GracePeriod = 60s;
-					settings.Relay.IPConnectionAttempts.MaxPerInterval = 10;
-					settings.Relay.IPConnectionAttempts.Interval = 10s;
+					settings.Relay.ConnectionAttempts.MaxPerInterval = 10;
+					settings.Relay.ConnectionAttempts.Interval = 10s;
 
 					settings.Message.AgeTolerance = 300s;
 					settings.Message.ExtenderGracePeriod = 60s;
@@ -1445,9 +1483,9 @@ namespace QuantumGate::Implementation::Core
 							
 							settings.Local.MaxHandshakeDelay = params->General.MaxHandshakeDelay;
 							settings.Local.MaxHandshakeDuration = params->General.MaxHandshakeDuration;
-							settings.Local.IPReputationImprovementInterval = params->General.IPReputationImprovementInterval;
-							settings.Local.IPConnectionAttempts.MaxPerInterval = params->General.IPConnectionAttempts.MaxPerInterval;
-							settings.Local.IPConnectionAttempts.Interval = params->General.IPConnectionAttempts.Interval;
+							settings.Local.AddressReputationImprovementInterval = params->General.AddressReputationImprovementInterval;
+							settings.Local.ConnectionAttempts.MaxPerInterval = params->General.ConnectionAttempts.MaxPerInterval;
+							settings.Local.ConnectionAttempts.Interval = params->General.ConnectionAttempts.Interval;
 
 							settings.Local.KeyUpdate.MinInterval = params->KeyUpdate.MinInterval;
 							settings.Local.KeyUpdate.MaxInterval = params->KeyUpdate.MaxInterval;
@@ -1457,8 +1495,8 @@ namespace QuantumGate::Implementation::Core
 							settings.Relay.ConnectTimeout = params->Relay.ConnectTimeout;
 							settings.Relay.GracePeriod = params->Relay.GracePeriod;
 							settings.Relay.MaxSuspendDuration = params->Relay.MaxSuspendDuration;
-							settings.Relay.IPConnectionAttempts.MaxPerInterval = params->Relay.IPConnectionAttempts.MaxPerInterval;
-							settings.Relay.IPConnectionAttempts.Interval = params->Relay.IPConnectionAttempts.Interval;
+							settings.Relay.ConnectionAttempts.MaxPerInterval = params->Relay.ConnectionAttempts.MaxPerInterval;
+							settings.Relay.ConnectionAttempts.Interval = params->Relay.ConnectionAttempts.Interval;
 
 							settings.Message.AgeTolerance = params->Message.AgeTolerance;
 							settings.Message.ExtenderGracePeriod = params->Message.ExtenderGracePeriod;
@@ -1538,10 +1576,10 @@ namespace QuantumGate::Implementation::Core
 		params.General.MaxHandshakeDelay = settings.Local.MaxHandshakeDelay;
 		params.General.MaxHandshakeDuration = settings.Local.MaxHandshakeDuration;
 
-		params.General.IPReputationImprovementInterval = settings.Local.IPReputationImprovementInterval;
+		params.General.AddressReputationImprovementInterval = settings.Local.AddressReputationImprovementInterval;
 
-		params.General.IPConnectionAttempts.MaxPerInterval = settings.Local.IPConnectionAttempts.MaxPerInterval;
-		params.General.IPConnectionAttempts.Interval = settings.Local.IPConnectionAttempts.Interval;
+		params.General.ConnectionAttempts.MaxPerInterval = settings.Local.ConnectionAttempts.MaxPerInterval;
+		params.General.ConnectionAttempts.Interval = settings.Local.ConnectionAttempts.Interval;
 
 		params.KeyUpdate.MinInterval = settings.Local.KeyUpdate.MinInterval;
 		params.KeyUpdate.MaxInterval = settings.Local.KeyUpdate.MaxInterval;
@@ -1551,8 +1589,8 @@ namespace QuantumGate::Implementation::Core
 		params.Relay.ConnectTimeout = settings.Relay.ConnectTimeout;
 		params.Relay.GracePeriod = settings.Relay.GracePeriod;
 		params.Relay.MaxSuspendDuration = settings.Relay.MaxSuspendDuration;
-		params.Relay.IPConnectionAttempts.MaxPerInterval = settings.Relay.IPConnectionAttempts.MaxPerInterval;
-		params.Relay.IPConnectionAttempts.Interval = settings.Relay.IPConnectionAttempts.Interval;
+		params.Relay.ConnectionAttempts.MaxPerInterval = settings.Relay.ConnectionAttempts.MaxPerInterval;
+		params.Relay.ConnectionAttempts.Interval = settings.Relay.ConnectionAttempts.Interval;
 
 		params.Message.AgeTolerance = settings.Message.AgeTolerance;
 		params.Message.ExtenderGracePeriod = settings.Message.ExtenderGracePeriod;
@@ -1586,10 +1624,10 @@ namespace QuantumGate::Implementation::Core
 		settings.Local.MaxHandshakeDelay = 0ms;
 		settings.Local.MaxHandshakeDuration = 30s;
 
-		settings.Local.IPReputationImprovementInterval = 600s;
+		settings.Local.AddressReputationImprovementInterval = 600s;
 
-		settings.Local.IPConnectionAttempts.MaxPerInterval = 2;
-		settings.Local.IPConnectionAttempts.Interval = 10s;
+		settings.Local.ConnectionAttempts.MaxPerInterval = 2;
+		settings.Local.ConnectionAttempts.Interval = 10s;
 
 		settings.Local.KeyUpdate.MinInterval = 300s;
 		settings.Local.KeyUpdate.MaxInterval = 1200s;
@@ -1599,8 +1637,8 @@ namespace QuantumGate::Implementation::Core
 		settings.Relay.ConnectTimeout = 60s;
 		settings.Relay.GracePeriod = 60s;
 		settings.Relay.MaxSuspendDuration = 60s;
-		settings.Relay.IPConnectionAttempts.MaxPerInterval = 10;
-		settings.Relay.IPConnectionAttempts.Interval = 10s;
+		settings.Relay.ConnectionAttempts.MaxPerInterval = 10;
+		settings.Relay.ConnectionAttempts.Interval = 10s;
 
 		settings.Message.AgeTolerance = 600s;
 		settings.Message.ExtenderGracePeriod = 60s;

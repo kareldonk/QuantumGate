@@ -5,19 +5,16 @@
 #include "LocalEnvironment.h"
 #include "..\Common\ScopeGuard.h"
 
-#include <ws2tcpip.h>
-#include <Iphlpapi.h>
-
 namespace QuantumGate::Implementation::Core
 {
 	bool LocalEnvironment::Initialize(ChangedCallback&& callback) noexcept
 	{
 		assert(!IsInitialized());
 
-		if (!m_PublicIPEndpoints.Initialize()) return false;
+		if (!m_PublicEndpoints.Initialize()) return false;
 
 		// Upon failure deinit public IP endpoints when we return
-		auto sg0 = MakeScopeGuard([&]() noexcept { m_PublicIPEndpoints.Deinitialize(); });
+		auto sg0 = MakeScopeGuard([&]() noexcept { m_PublicEndpoints.Deinitialize(); });
 
 		if (!UpdateEnvironmentInformation()) return false;
 
@@ -45,26 +42,35 @@ namespace QuantumGate::Implementation::Core
 		assert(IsInitialized());
 
 		m_Initialized = false;
+		m_UpdateRequired = false;
 
 		DeregisterIPInterfaceChangeNotification();
 
 		ClearEnvironmentInformation();
 
-		m_PublicIPEndpoints.Deinitialize();
+		m_PublicEndpoints.Deinitialize();
 	}
 
-	bool LocalEnvironment::Update() noexcept
+	bool LocalEnvironment::Update(const bool force_update) noexcept
 	{
 		assert(IsInitialized());
 
-		return UpdateEnvironmentInformation();
+		if (!force_update && !m_UpdateRequired) return true;
+
+		if (UpdateEnvironmentInformation())
+		{
+			m_UpdateRequired = false;
+			return true;
+		}
+
+		return false;
 	}
 
-	const Vector<BinaryIPAddress>* LocalEnvironment::GetTrustedAndVerifiedIPAddresses() const noexcept
+	const Vector<Network::Address>* LocalEnvironment::GetTrustedAndVerifiedAddresses() const noexcept
 	{
 		try
 		{
-			return &m_CachedIPAddresses.GetCache();
+			return &m_CachedAddresses.GetCache();
 		}
 		catch (...) {}
 
@@ -147,7 +153,7 @@ namespace QuantumGate::Implementation::Core
 			if (ret == 0)
 			{
 				// Free resources when we return
-				auto sg = MakeScopeGuard([&]() noexcept { FreeAddrInfoW(result); });
+				const auto sg = MakeScopeGuard([&]() noexcept { FreeAddrInfoW(result); });
 
 				Vector<BinaryIPAddress> alladdr;
 
@@ -243,6 +249,167 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
+	Result<Vector<API::Local::Environment::BluetoothDevice>> LocalEnvironment::OSGetBluetoothDevices() noexcept
+	{
+		try
+		{
+			DWORD query_set_len{ sizeof(WSAQUERYSET) };
+
+			auto query_set = reinterpret_cast<WSAQUERYSET*>(HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, query_set_len));
+			if (query_set != nullptr)
+			{
+				// Free resources when we return
+				const auto sg = MakeScopeGuard([&]() noexcept { if (query_set != nullptr) HeapFree(GetProcessHeap(), 0, query_set); });
+
+				Vector<API::Local::Environment::BluetoothDevice> allbths;
+
+				HANDLE lookup_handle{ nullptr };
+				auto lookup_flags = LUP_CONTAINERS | LUP_RETURN_NAME | LUP_RETURN_TYPE | LUP_RETURN_ADDR;
+
+				MemInit(query_set, 0);
+				query_set->dwNameSpace = NS_BTH;
+				query_set->dwSize = sizeof(WSAQUERYSET);
+
+				if (WSALookupServiceBegin(query_set, lookup_flags, &lookup_handle) == 0 && lookup_handle != nullptr)
+				{
+					// End lookup when we return
+					const auto sg2 = MakeScopeGuard([&]() noexcept { WSALookupServiceEnd(lookup_handle); });
+
+					while (true)
+					{
+						if (WSALookupServiceNext(lookup_handle, lookup_flags, &query_set_len, query_set) == 0)
+						{
+							if (query_set->lpszServiceInstanceName != nullptr &&
+								query_set->lpcsaBuffer->RemoteAddr.lpSockaddr->sa_family == AF_BTH)
+							{
+								auto& bthdev = allbths.emplace_back();
+								bthdev.Name = query_set->lpszServiceInstanceName;
+								bthdev.ServiceClassID = *query_set->lpServiceClassId;
+								bthdev.RemoteAddress = BTHAddress(query_set->lpcsaBuffer->RemoteAddr.lpSockaddr);
+							}
+						}
+						else
+						{
+							const auto error = WSAGetLastError();
+							if (error == WSA_E_NO_MORE)
+							{
+								// No more data
+								return std::move(allbths);
+							}
+							else if (error == WSAEFAULT)
+							{
+								// The buffer for QUERYSET was insufficient;
+								// needed size is set in query_set_len now
+								HeapFree(GetProcessHeap(), 0, query_set);
+								query_set = reinterpret_cast<WSAQUERYSET*>(HeapAlloc(GetProcessHeap(),
+																					 HEAP_ZERO_MEMORY, query_set_len));
+								if (query_set == nullptr)
+								{
+									break;
+								}
+							}
+							else LogErr(L"Could not get addresses for local Bluetooth devices; WSALookupServiceNext() failed (%s)",
+										GetLastSysErrorString().c_str());
+						}
+					}
+				}
+				else
+				{
+					const auto error = WSAGetLastError();
+					if (error == WSASERVICE_NOT_FOUND)
+					{
+						// Bluetooth is off or there are no devices
+						return std::move(allbths);
+					}
+					else LogErr(L"Could not get addresses for local Bluetooth devices; WSALookupServiceBegin() failed (%s)",
+								GetLastSysErrorString().c_str());
+				}
+			}
+		}
+		catch (const std::exception& e)
+		{
+			LogErr(L"Could not get addresses for local Bluetooth devices due to exception: %s",
+				   Util::ToStringW(e.what()).c_str());
+		}
+		catch (...) {}
+
+		return ResultCode::Failed;
+	}
+
+	Result<Vector<API::Local::Environment::BluetoothRadio>> LocalEnvironment::OSGetBluetoothRadios() noexcept
+	{
+		try
+		{
+			Vector<API::Local::Environment::BluetoothRadio> allbthr;
+
+			BLUETOOTH_FIND_RADIO_PARAMS bthfparams;
+			bthfparams.dwSize = sizeof(BLUETOOTH_FIND_RADIO_PARAMS);
+
+			HANDLE radio_handle{ nullptr };
+			auto find_handle = BluetoothFindFirstRadio(&bthfparams, &radio_handle);
+			if (find_handle != nullptr)
+			{
+				// End find when we return
+				const auto sg = MakeScopeGuard([&]() noexcept { BluetoothFindRadioClose(find_handle); });
+
+				while (true)
+				{
+					BLUETOOTH_RADIO_INFO radio_info{ 0 };
+					radio_info.dwSize = sizeof(BLUETOOTH_RADIO_INFO);
+
+					if (BluetoothGetRadioInfo(radio_handle, &radio_info) == ERROR_SUCCESS)
+					{
+						auto& bthradio = allbthr.emplace_back();
+						bthradio.Name = radio_info.szName;
+						bthradio.ManufacturerID = radio_info.manufacturer;
+						bthradio.IsConnectable = BluetoothIsConnectable(radio_handle);
+						bthradio.IsDiscoverable = BluetoothIsDiscoverable(radio_handle);
+						bthradio.Address = BTHAddress(BinaryBTHAddress(BinaryBTHAddress::Family::BTH, radio_info.address.ullLong));
+					}
+					else
+					{
+						LogErr(L"Could not get information for Bluetooth radio; BluetoothGetRadioInfo() failed (%s)",
+							   GetLastSysErrorString().c_str());
+						break;
+					}
+
+					if (!BluetoothFindNextRadio(find_handle, &radio_handle))
+					{
+						const auto error = WSAGetLastError();
+						if (error == ERROR_NO_MORE_ITEMS)
+						{
+							return std::move(allbthr);
+						}
+						else
+						{
+							LogErr(L"Could not get local Bluetooth radios; BluetoothFindNextRadio() failed (%s)",
+								   GetLastSysErrorString().c_str());
+							break;
+						}
+					}
+				}
+			}
+			else
+			{
+				const auto error = WSAGetLastError();
+				if (error == ERROR_NO_MORE_ITEMS)
+				{
+					return std::move(allbthr);
+				}
+				else LogErr(L"Could not get local Bluetooth radios; BluetoothFindFirstRadio() failed (%s)",
+							GetLastSysErrorString().c_str());
+			}
+		}
+		catch (const std::exception& e)
+		{
+			LogErr(L"Could not get local Bluetooth radios due to exception: %s",
+				   Util::ToStringW(e.what()).c_str());
+		}
+		catch (...) {}
+
+		return ResultCode::Failed;
+	}
+
 	Result<String> LocalEnvironment::OSGetUsername() noexcept
 	{
 		try
@@ -262,19 +429,16 @@ namespace QuantumGate::Implementation::Core
 		return ResultCode::Failed;
 	}
 
-	bool LocalEnvironment::AddPublicIPEndpoint(const IPEndpoint& pub_endpoint,
-											   const IPEndpoint& rep_peer,
-											   const PeerConnectionType rep_con_type,
-											   const bool trusted) noexcept
+	bool LocalEnvironment::AddPublicEndpoint(const Endpoint& pub_endpoint, const Endpoint& rep_peer,
+											 const PeerConnectionType rep_con_type, const bool trusted) noexcept
 	{
-		if (const auto result = m_PublicIPEndpoints.AddIPEndpoint(pub_endpoint, rep_peer,
-																  rep_con_type, trusted);
+		if (const auto result = m_PublicEndpoints.AddEndpoint(pub_endpoint, rep_peer, rep_con_type, trusted);
 			result.Succeeded())
 		{
 			if (result->first && result->second)
 			{
 				// New address was added; update cache
-				DiscardReturnValue(UpdateCachedIPAddresses());
+				DiscardReturnValue(UpdateCachedAddresses());
 			}
 
 			return true;
@@ -324,7 +488,8 @@ namespace QuantumGate::Implementation::Core
 
 		LogDbg(L"Received IP interface change notification (%d) from OS", NotificationType);
 
-		const auto le = reinterpret_cast<LocalEnvironment*>(CallerContext);
+		auto le = reinterpret_cast<LocalEnvironment*>(CallerContext);
+		le->m_UpdateRequired = true;
 		le->m_ChangedCallback.WithUniqueLock([](auto& callback)
 		{
 			if (callback) callback();
@@ -342,7 +507,13 @@ namespace QuantumGate::Implementation::Core
 		if (auto result = OSGetEthernetInterfaces(); result.Failed()) return false;
 		else m_EthernetInterfaces = std::move(result.GetValue());
 
-		if (!UpdateCachedIPAddresses()) return false;
+		if (auto result = OSGetBluetoothRadios(); result.Failed()) return false;
+		else m_BluetoothRadios = std::move(result.GetValue());
+
+		if (auto result = OSGetBluetoothDevices(); result.Failed()) return false;
+		else m_BluetoothDevices = std::move(result.GetValue());
+
+		if (!UpdateCachedAddresses()) return false;
 
 		return true;
 	}
@@ -352,8 +523,10 @@ namespace QuantumGate::Implementation::Core
 		m_Hostname.clear();
 		m_Username.clear();
 		m_EthernetInterfaces.clear();
+		m_BluetoothRadios.clear();
+		m_BluetoothDevices.clear();
 
-		m_CachedIPAddresses.UpdateValue([](auto& addresses) noexcept
+		m_CachedAddresses.UpdateValue([](auto& addresses) noexcept
 		{
 			addresses.clear();
 		});
@@ -361,12 +534,12 @@ namespace QuantumGate::Implementation::Core
 		return;
 	}
 
-	bool LocalEnvironment::UpdateCachedIPAddresses() noexcept
+	bool LocalEnvironment::UpdateCachedAddresses() noexcept
 	{
 		try
 		{
 			auto has_public_ip = false;
-			Vector<BinaryIPAddress> allips;
+			Vector<Network::Address> addrs;
 
 			// First add the local IP addresses configured on the host
 			for (const auto& ifs : m_EthernetInterfaces)
@@ -382,22 +555,34 @@ namespace QuantumGate::Implementation::Core
 							has_public_ip = true;
 						}
 
-						if (std::find(allips.begin(), allips.end(), ip.GetBinary()) == allips.end())
+						if (std::find(addrs.begin(), addrs.end(), ip) == addrs.end())
 						{
-							allips.emplace_back(ip.GetBinary());
+							addrs.emplace_back(ip);
 						}
 					}
 				}
 			}
 
-			m_PublicIPEndpoints.SetLocallyBoundPublicIPAddress(has_public_ip);
+			// Add the local Bluetooth addresses configured on the host
+			for (const auto& radio : m_BluetoothRadios)
+			{
+				if (radio.IsConnectable)
+				{
+					if (std::find(addrs.begin(), addrs.end(), radio.Address) == addrs.end())
+					{
+						addrs.emplace_back(radio.Address);
+					}
+				}
+			}
+
+			m_PublicEndpoints.SetLocallyBoundPublicIPAddress(has_public_ip);
 
 			// Add any trusted/verified public IP addresses if we have them
-			if (m_PublicIPEndpoints.AddIPAddresses(allips, true).Succeeded())
+			if (m_PublicEndpoints.AddIPAddresses(addrs, true).Succeeded())
 			{
-				m_CachedIPAddresses.UpdateValue([&](auto& addresses) noexcept
+				m_CachedAddresses.UpdateValue([&](auto& addresses) noexcept
 				{
-					addresses = std::move(allips);
+					addresses = std::move(addrs);
 				});
 
 				return true;
@@ -442,7 +627,7 @@ namespace QuantumGate::Implementation::Core
 			}
 
 			// Add any public IP addresses if we have them
-			if (m_PublicIPEndpoints.AddIPAddresses(allips).Succeeded())
+			if (m_PublicEndpoints.AddIPAddresses(allips).Succeeded())
 			{
 				return std::move(allips);
 			}

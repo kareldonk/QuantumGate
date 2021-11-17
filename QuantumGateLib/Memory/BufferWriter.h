@@ -113,6 +113,7 @@ namespace QuantumGate::Implementation::Memory
 
 		template<typename T> requires (std::is_same_v<T, Network::SerializedBinaryIPAddress> ||
 									   std::is_same_v<T, Network::SerializedIPEndpoint> ||
+									   std::is_same_v<T, Network::SerializedEndpoint> ||
 									   std::is_same_v<T, SerializedUUID>)
 		[[nodiscard]] bool WriteImpl(const T& data)
 		{
@@ -142,18 +143,18 @@ namespace QuantumGate::Implementation::Memory
 			}
 			else if (size <= MaxSize::_UINT16)
 			{
-				const UInt8 es = MaxSize::_UINT8 - 2;
+				constexpr UInt8 es = MaxSize::_UINT8 - 2;
 				return (Write(es) && Write(static_cast<UInt16>(size)));
 			}
 			else if (size <= MaxSize::_UINT32)
 			{
-				const UInt8 es = MaxSize::_UINT8 - 1;
+				constexpr UInt8 es = MaxSize::_UINT8 - 1;
 				return (Write(es) && Write(static_cast<UInt32>(size)));
 			}
 #ifdef _WIN64
 			else
 			{
-				const UInt8 es = MaxSize::_UINT8;
+				constexpr UInt8 es = MaxSize::_UINT8;
 				return (Write(es) && Write(static_cast<UInt64>(size)));
 			}
 #endif

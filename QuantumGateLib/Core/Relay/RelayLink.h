@@ -38,7 +38,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 	public:
 		Link(const PeerLUID ipeer, const PeerLUID opeer,
-			 const IPEndpoint& endpoint, const RelayPort port, const RelayHop hop,
+			 const Endpoint& endpoint, const RelayPort port, const RelayHop hop,
 			 const Position position) noexcept :
 			m_Port(port), m_Hop(hop), m_Endpoint(endpoint),
 			m_Position(position), m_IncomingPeer{ ipeer }, m_OutgoingPeer{ opeer }
@@ -48,7 +48,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		[[nodiscard]] inline Exception GetException() const noexcept { return m_Exception; }
 		[[nodiscard]] inline RelayPort GetPort() const noexcept { return m_Port; }
 		[[nodiscard]] inline RelayHop GetHop() const noexcept { return m_Hop; }
-		[[nodiscard]] inline const IPEndpoint& GetEndpoint() const noexcept { return m_Endpoint; }
+		[[nodiscard]] inline const Endpoint& GetEndpoint() const noexcept { return m_Endpoint; }
 		[[nodiscard]] inline SteadyTime GetLastStatusChangeSteadyTime() const noexcept { return m_LastStatusChangeSteadyTime; }
 		[[nodiscard]] inline Position GetPosition() const noexcept { return m_Position; }
 		[[nodiscard]] inline PeerDetails& GetIncomingPeer() noexcept { assert(m_IncomingPeer.PeerLUID); return m_IncomingPeer; }
@@ -266,7 +266,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		Exception m_Exception{ Exception::Unknown };
 		RelayPort m_Port{ 0 };
 		RelayHop m_Hop{ 0 };
-		IPEndpoint m_Endpoint;
+		Endpoint m_Endpoint;
 		SteadyTime m_LastStatusChangeSteadyTime;
 		Position m_Position{ Position::Unknown };
 		PeerDetails m_IncomingPeer;

@@ -20,12 +20,12 @@ namespace QuantumGate::Implementation::Core::Relay::Events
 
 		RelayPort Port{ 0 };
 		RelayHop Hop{ 0 };
-		IPEndpoint Endpoint;
+		Endpoint ConnectEndpoint;
 		struct
 		{
 			PeerLUID PeerLUID{ 0 };
-			IPEndpoint LocalEndpoint;
-			IPEndpoint PeerEndpoint;
+			Endpoint LocalEndpoint;
+			Endpoint PeerEndpoint;
 		} Origin;
 	};
 

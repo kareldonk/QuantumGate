@@ -17,7 +17,7 @@ namespace QuantumGate::Implementation::Network
 #endif
 	{}
 
-	Socket::Socket(const IP::AddressFamily af, const Type type, const IP::Protocol protocol) : Socket()
+	Socket::Socket(const AddressFamily af, const Type type, const Protocol protocol) : Socket()
 	{
 		int saf{ 0 };
 		int stype{ 0 };
@@ -25,14 +25,17 @@ namespace QuantumGate::Implementation::Network
 
 		switch (af)
 		{
-			case IP::AddressFamily::Unspecified:
+			case AddressFamily::Unspecified:
 				saf = AF_UNSPEC;
 				break;
-			case IP::AddressFamily::IPv4:
+			case AddressFamily::IPv4:
 				saf = AF_INET;
 				break;
-			case IP::AddressFamily::IPv6:
+			case AddressFamily::IPv6:
 				saf = AF_INET6;
+				break;
+			case AddressFamily::BTH:
+				saf = AF_BTH;
 				break;
 			default:
 				throw SocketException("Unsupported address family");
@@ -59,20 +62,23 @@ namespace QuantumGate::Implementation::Network
 
 		switch (protocol)
 		{
-			case IP::Protocol::Unspecified:
+			case Protocol::Unspecified:
 				sprotocol = IPPROTO_IP;
 				break;
-			case IP::Protocol::TCP:
+			case Protocol::TCP:
 				sprotocol = IPPROTO_TCP;
 				break;
-			case IP::Protocol::UDP:
+			case Protocol::UDP:
 				sprotocol = IPPROTO_UDP;
 				break;
-			case IP::Protocol::ICMP:
+			case Protocol::ICMP:
 				sprotocol = IPPROTO_ICMP;
 				break;
+			case Protocol::BTH:
+				sprotocol = BTHPROTO_RFCOMM;
+				break;
 			default:
-				throw SocketException("Unsupported IP protocol");
+				throw SocketException("Unsupported protocol");
 				assert(false);
 				return;
 		}
@@ -90,6 +96,14 @@ namespace QuantumGate::Implementation::Network
 		throw SocketException(Util::ToStringA(
 			Util::FormatString(L"Failed to create socket (%s)", GetLastSocketErrorString().c_str())).c_str());
 	}
+
+	Socket::Socket(const IP::AddressFamily af, const Type type, const IP::Protocol protocol) :
+		Socket(IP::AddressFamilyToNetwork(af), type, IP::ProtocolToNetwork(protocol))
+	{}
+
+	Socket::Socket(const BTH::AddressFamily af, const Type type, const BTH::Protocol protocol) :
+		Socket(BTH::AddressFamilyToNetwork(af), type, BTH::ProtocolToNetwork(protocol))
+	{}
 
 	Socket::Socket(const SOCKET s)
 	{
@@ -175,7 +189,7 @@ namespace QuantumGate::Implementation::Network
 			if (!SetBlockingMode(false)) return false;
 		}
 
-		if (GetProtocol() == IP::Protocol::TCP)
+		if (GetProtocol() == Protocol::TCP)
 		{
 			if (!SetNoDelay(true)) return false;
 		}
@@ -193,7 +207,7 @@ namespace QuantumGate::Implementation::Network
 
 		m_CloseCallback();
 
-		if (GetProtocol() == IP::Protocol::TCP)
+		if (GetProtocol() == Protocol::TCP)
 		{
 			// If we're supposed to abort the connection, set the linger value on the socket to 0,
 			// else keep connection alive for a few seconds to give time for shutdown
@@ -241,7 +255,7 @@ namespace QuantumGate::Implementation::Network
 		auto err = getsockname(m_Socket, reinterpret_cast<sockaddr*>(&addr), &nlen);
 		if (err != SOCKET_ERROR)
 		{
-			if (!SockAddrGetIPEndpoint(GetProtocol(), &addr, m_LocalEndpoint))
+			if (!SockAddrGetEndpoint(GetProtocol(), &addr, m_LocalEndpoint))
 			{
 				LogErr(L"Could not get local endpoint for socket");
 			}
@@ -249,7 +263,7 @@ namespace QuantumGate::Implementation::Network
 			err = getpeername(m_Socket, reinterpret_cast<sockaddr*>(&addr), &nlen);
 			if (err != SOCKET_ERROR)
 			{
-				if (!SockAddrGetIPEndpoint(GetProtocol(), &addr, m_PeerEndpoint))
+				if (!SockAddrGetEndpoint(GetProtocol(), &addr, m_PeerEndpoint))
 				{
 					LogErr(L"Could not get peer endpoint for socket");
 				}
@@ -472,7 +486,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::SetConditionalAccept(const bool cond_accept) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == IP::Protocol::TCP);
+		assert(GetProtocol() == Protocol::TCP);
 
 		// Enable conditional accept (in order to check IP access settings before allowing connection)
 		// Docs: https://msdn.microsoft.com/en-us/library/windows/desktop/dd264794(v=vs.85).aspx
@@ -522,11 +536,11 @@ namespace QuantumGate::Implementation::Network
 		int ret{ SOCKET_ERROR };
 
 		const auto af = GetAddressFamily();
-		if (af == IP::AddressFamily::IPv4)
+		if (af == AddressFamily::IPv4)
 		{
 			ret = setsockopt(m_Socket, IPPROTO_IP, IP_MTU_DISCOVER, reinterpret_cast<const char*>(&popt), sizeof(popt));
 		}
-		else if (af == IP::AddressFamily::IPv6)
+		else if (af == AddressFamily::IPv6)
 		{
 			ret = setsockopt(m_Socket, IPPROTO_IPV6, IPV6_MTU_DISCOVER, reinterpret_cast<const char*>(&popt), sizeof(popt));
 		}
@@ -548,7 +562,7 @@ namespace QuantumGate::Implementation::Network
 		int popt_len = sizeof(DWORD);
 
 		const auto af = GetAddressFamily();
-		if (af == IP::AddressFamily::IPv4)
+		if (af == AddressFamily::IPv4)
 		{
 			if (getsockopt(m_Socket, IPPROTO_IP, IP_MTU_DISCOVER, reinterpret_cast<char*>(&popt), &popt_len) != SOCKET_ERROR)
 			{
@@ -556,7 +570,7 @@ namespace QuantumGate::Implementation::Network
 				else return false;
 			}
 		}
-		else if (af == IP::AddressFamily::IPv6)
+		else if (af == AddressFamily::IPv6)
 		{
 			if (getsockopt(m_Socket, IPPROTO_IPV6, IPV6_MTU_DISCOVER, reinterpret_cast<char*>(&popt), &popt_len) != SOCKET_ERROR)
 			{
@@ -564,15 +578,23 @@ namespace QuantumGate::Implementation::Network
 				else return false;
 			}
 		}
+		else return false;
 
 		return std::error_code(WSAGetLastError(), std::system_category());
 	}
 
-	bool Socket::Bind(const IPEndpoint& endpoint, const bool nat_traversal) noexcept
+	bool Socket::Bind(const Endpoint& endpoint, const bool nat_traversal) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == IP::Protocol::ICMP || GetProtocol() == IP::Protocol::UDP);
-		assert(endpoint.GetProtocol() == IP::Protocol::ICMP || endpoint.GetProtocol() == IP::Protocol::UDP);
+		assert(GetProtocol() == Protocol::ICMP || GetProtocol() == Protocol::UDP);
+		DbgInvoke([&]()
+		{
+			if (endpoint.GetType() == Endpoint::Type::IP)
+			{
+				assert(endpoint.GetIPEndpoint().GetProtocol() == IPEndpoint::Protocol::ICMP ||
+					   endpoint.GetIPEndpoint().GetProtocol() == IPEndpoint::Protocol::UDP);
+			}
+		});
 
 		if (!SetNATTraversal(nat_traversal)) return false;
 
@@ -603,11 +625,17 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	bool Socket::Listen(const IPEndpoint& endpoint, const bool cond_accept,
+	bool Socket::Listen(const Endpoint& endpoint, const bool cond_accept,
 						const bool nat_traversal) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(endpoint.GetProtocol() == IP::Protocol::TCP);
+		DbgInvoke([&]()
+		{
+			if (endpoint.GetType() == Endpoint::Type::IP)
+			{
+				assert(endpoint.GetIPEndpoint().GetProtocol() == IPEndpoint::Protocol::TCP);
+			}
+		});
 
 		if (!SetConditionalAccept(cond_accept)) return false;
 
@@ -653,7 +681,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::Accept(Socket& s, const bool cond_accept, const LPCONDITIONPROC cond_func, void* cbdata) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == IP::Protocol::TCP);
+		assert(GetProtocol() == Protocol::TCP);
 
 		sockaddr_storage addr{ 0 };
 		int addrlen = sizeof(sockaddr_storage);
@@ -697,11 +725,17 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	bool Socket::BeginConnect(const IPEndpoint& endpoint) noexcept
+	bool Socket::BeginConnect(const Endpoint& endpoint) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == IP::Protocol::TCP);
-		assert(endpoint.GetProtocol() == IP::Protocol::TCP);
+		assert(GetProtocol() == Protocol::TCP);
+		DbgInvoke([&]()
+		{
+			if (endpoint.GetType() == Endpoint::Type::IP)
+			{
+				assert(endpoint.GetIPEndpoint().GetProtocol() == IPEndpoint::Protocol::TCP);
+			}
+		});
 
 		m_IOStatus.SetConnecting(false);
 
@@ -736,7 +770,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::CompleteConnect() noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == IP::Protocol::TCP);
+		assert(GetProtocol() == Protocol::TCP);
 
 		m_IOStatus.SetConnecting(false);
 		m_IOStatus.SetConnected(true);
@@ -749,7 +783,7 @@ namespace QuantumGate::Implementation::Network
 	Result<Size> Socket::Send(const BufferView& buffer, const Size max_snd_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == IP::Protocol::TCP);
+		assert(GetProtocol() == Protocol::TCP);
 
 		const auto send_size = std::invoke([&]()
 		{
@@ -792,11 +826,18 @@ namespace QuantumGate::Implementation::Network
 		return ResultCode::Failed;
 	}
 
-	Result<Size> Socket::SendTo(const IPEndpoint& endpoint, const BufferView& buffer, const Size max_snd_size) noexcept
+	Result<Size> Socket::SendTo(const Endpoint& endpoint, const BufferView& buffer, const Size max_snd_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == IP::Protocol::ICMP || GetProtocol() == IP::Protocol::UDP);
-		assert(endpoint.GetProtocol() == IP::Protocol::ICMP || endpoint.GetProtocol() == IP::Protocol::UDP);
+		assert(GetProtocol() == Protocol::ICMP || GetProtocol() == Protocol::UDP);
+		DbgInvoke([&]()
+		{
+			if (endpoint.GetType() == Endpoint::Type::IP)
+			{
+				assert(endpoint.GetIPEndpoint().GetProtocol() == IPEndpoint::Protocol::ICMP ||
+					   endpoint.GetIPEndpoint().GetProtocol() == IPEndpoint::Protocol::UDP);
+			}
+		});
 
 		sockaddr_storage sock_addr{ 0 };
 		if (!SockAddrSetEndpoint(sock_addr, endpoint))
@@ -896,7 +937,7 @@ namespace QuantumGate::Implementation::Network
 	Result<Size> Socket::Receive(BufferSpan& buffer) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == IP::Protocol::TCP);
+		assert(GetProtocol() == Protocol::TCP);
 
 		const auto bytesrcv = recv(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()), static_cast<int>(buffer.GetSize()), 0);
 
@@ -934,7 +975,7 @@ namespace QuantumGate::Implementation::Network
 		return ResultCode::Failed;
 	}
 
-	Result<Size> Socket::ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size) noexcept
+	Result<Size> Socket::ReceiveFrom(Endpoint& endpoint, Buffer& buffer, const Size max_rcv_size) noexcept
 	{
 		auto& rcvbuf = GetReceiveBuffer();
 
@@ -964,10 +1005,10 @@ namespace QuantumGate::Implementation::Network
 		return result;
 	}
 
-	Result<Size> Socket::ReceiveFrom(IPEndpoint& endpoint, BufferSpan& buffer) noexcept
+	Result<Size> Socket::ReceiveFrom(Endpoint& endpoint, BufferSpan& buffer) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == IP::Protocol::ICMP || GetProtocol() == IP::Protocol::UDP);
+		assert(GetProtocol() == Protocol::ICMP || GetProtocol() == Protocol::UDP);
 
 		sockaddr_storage sock_addr{ 0 };
 		int sock_addr_len{ sizeof(sock_addr) };
@@ -979,7 +1020,7 @@ namespace QuantumGate::Implementation::Network
 
 		if (sock_addr.ss_family != 0)
 		{
-			if (!SockAddrGetIPEndpoint(IP::Protocol::UDP, &sock_addr, endpoint))
+			if (!SockAddrGetEndpoint(Protocol::UDP, &sock_addr, endpoint))
 			{
 				LogDbg(L"Receive error on endpoint %s - SockAddrGetIPEndpoint() failed",
 					   GetLocalName().c_str());
@@ -1135,24 +1176,43 @@ namespace QuantumGate::Implementation::Network
 		return (Util::GetCurrentSystemTime() - dif);
 	}
 
-	bool Socket::SockAddrGetIPEndpoint(const IP::Protocol protocol, const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept
+	bool Socket::SockAddrGetEndpoint(const Protocol protocol, const sockaddr_storage* addr, Endpoint& endpoint) noexcept
 	{
 		assert(addr != nullptr);
 
 		try
 		{
-			const IPAddress ip(addr);
-			switch (ip.GetFamily())
+			switch (protocol)
 			{
-				case IPAddress::Family::IPv4:
-					endpoint = IPEndpoint(protocol, ip, ntohs(reinterpret_cast<const sockaddr_in*>(addr)->sin_port));
-					return true;
-				case IPAddress::Family::IPv6:
-					endpoint = IPEndpoint(protocol, ip, ntohs(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port));
-					return true;
-				default:
+				case Protocol::ICMP:
+				case Protocol::TCP:
+				case Protocol::UDP:
+				{
+					const IPAddress ip(addr);
+					switch (ip.GetFamily())
+					{
+						case IPAddress::Family::IPv4:
+							endpoint = IPEndpoint(IP::ProtocolFromNetwork(protocol), ip, ntohs(reinterpret_cast<const sockaddr_in*>(addr)->sin_port));
+							return true;
+						case IPAddress::Family::IPv6:
+							endpoint = IPEndpoint(IP::ProtocolFromNetwork(protocol), ip, ntohs(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port));
+							return true;
+						default:
+							assert(false);
+							break;
+					}
+					break;
+				}
+				case Protocol::BTH:
+				{
 					assert(false);
 					break;
+				}
+				default:
+				{
+					assert(false);
+					break;
+				}
 			}
 		}
 		catch (...) {}
@@ -1160,31 +1220,49 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	bool Socket::SockAddrSetEndpoint(sockaddr_storage& addr, const IPEndpoint& endpoint) noexcept
+	bool Socket::SockAddrSetEndpoint(sockaddr_storage& addr, const Endpoint& endpoint) noexcept
 	{
-		switch (endpoint.GetIPAddress().GetFamily())
+		switch (endpoint.GetType())
 		{
-			case IPAddress::Family::IPv4:
+			case Endpoint::Type::IP:
 			{
-				auto* saddr = reinterpret_cast<sockaddr_in*>(&addr);
-				saddr->sin_port = htons(static_cast<UShort>(endpoint.GetPort()));
-				saddr->sin_family = AF_INET;
-				saddr->sin_addr.s_addr = endpoint.GetIPAddress().GetBinary().UInt32s[0];
-				return true;
+				const auto& ep = endpoint.GetIPEndpoint();
+				const auto& ip = endpoint.GetIPEndpoint().GetIPAddress();
+				switch (ip.GetFamily())
+				{
+					case IPAddress::Family::IPv4:
+					{
+						auto* saddr = reinterpret_cast<sockaddr_in*>(&addr);
+						saddr->sin_port = htons(static_cast<UShort>(ep.GetPort()));
+						saddr->sin_family = AF_INET;
+						saddr->sin_addr.s_addr = ip.GetBinary().UInt32s[0];
+						return true;
+					}
+					case IPAddress::Family::IPv6:
+					{
+						auto* saddr = reinterpret_cast<sockaddr_in6*>(&addr);
+						saddr->sin6_port = htons(static_cast<UShort>(ep.GetPort()));
+						saddr->sin6_family = AF_INET6;
+						saddr->sin6_flowinfo = 0;
+						saddr->sin6_scope_id = 0;
+
+						static_assert(sizeof(ip.GetBinary().Bytes) >= sizeof(in6_addr), "IP Address length mismatch");
+
+						std::memcpy(&saddr->sin6_addr, &ip.GetBinary().Bytes, sizeof(in6_addr));
+						return true;
+					}
+					default:
+					{
+						assert(false);
+						break;
+					}
+				}
+				break;
 			}
-			case IPAddress::Family::IPv6:
+			case Endpoint::Type::BTH:
 			{
-				auto* saddr = reinterpret_cast<sockaddr_in6*>(&addr);
-				saddr->sin6_port = htons(static_cast<UShort>(endpoint.GetPort()));
-				saddr->sin6_family = AF_INET6;
-				saddr->sin6_flowinfo = 0;
-				saddr->sin6_scope_id = 0;
-
-				static_assert(sizeof(endpoint.GetIPAddress().GetBinary().Bytes) >= sizeof(in6_addr),
-							  "IP Address length mismatch");
-
-				std::memcpy(&saddr->sin6_addr, &endpoint.GetIPAddress().GetBinary().Bytes, sizeof(in6_addr));
-				return true;
+				assert(false);
+				break;
 			}
 			default:
 			{
@@ -1196,7 +1274,7 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	IP::AddressFamily Socket::GetAddressFamily() const noexcept
+	AddressFamily Socket::GetAddressFamily() const noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -1208,9 +1286,11 @@ namespace QuantumGate::Implementation::Network
 			switch (info.iAddressFamily)
 			{
 				case AF_INET:
-					return IP::AddressFamily::IPv4;
+					return AddressFamily::IPv4;
 				case AF_INET6:
-					return IP::AddressFamily::IPv6;
+					return AddressFamily::IPv6;
+				case AF_BTH:
+					return AddressFamily::BTH;
 				default:
 					assert(false);
 					break;
@@ -1218,10 +1298,10 @@ namespace QuantumGate::Implementation::Network
 		}
 		else LogDbg(L"getsockopt() failed for option %d (%s)", SO_PROTOCOL_INFO, GetLastSocketErrorString().c_str());
 
-		return IP::AddressFamily::Unspecified;
+		return AddressFamily::Unspecified;
 	}
 
-	IP::Protocol Socket::GetProtocol() const noexcept
+	Protocol Socket::GetProtocol() const noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 
@@ -1233,13 +1313,15 @@ namespace QuantumGate::Implementation::Network
 			switch (info.iProtocol)
 			{
 				case IPPROTO_TCP:
-					return IP::Protocol::TCP;
+					return Protocol::TCP;
 				case IPPROTO_UDP:
-					return IP::Protocol::UDP;
+					return Protocol::UDP;
 				case IPPROTO_ICMP:
-					return IP::Protocol::ICMP;
+					return Protocol::ICMP;
+				case BTHPROTO_RFCOMM:
+					return Protocol::BTH;
 				case IPPROTO_IP:
-					return IP::Protocol::Unspecified;
+					return Protocol::Unspecified;
 				default:
 					assert(false);
 					break;
@@ -1247,7 +1329,7 @@ namespace QuantumGate::Implementation::Network
 		}
 		else LogDbg(L"getsockopt() failed for option %d (%s)", SO_PROTOCOL_INFO, GetLastSocketErrorString().c_str());
 
-		return IP::Protocol::Unspecified;
+		return Protocol::Unspecified;
 	}
 
 	Socket::Type Socket::GetType() const noexcept

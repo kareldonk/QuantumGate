@@ -30,7 +30,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	Peer::Peer(Manager& peers, const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
+	Peer::Peer(Manager& peers, const AddressFamily af, const Protocol protocol, const PeerConnectionType pctype,
 			   std::optional<ProtectedBuffer>&& shared_secret) :
 		Gate(af, protocol), m_PeerManager(peers)
 	{
@@ -316,8 +316,8 @@ namespace QuantumGate::Implementation::Core::Peer
 				SetDisconnectCondition(DisconnectCondition::TimedOutError);
 
 				// This might be an attack ("slowloris" for example) so limit the
-				// number of times this may happen by updating the IP reputation
-				UpdateReputation(Access::IPReputationUpdate::DeteriorateMinimal);
+				// number of times this may happen by updating the address reputation
+				UpdateReputation(Access::AddressReputationUpdate::DeteriorateMinimal);
 
 				return false;
 			}
@@ -359,18 +359,18 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	void Peer::UpdateReputation(const Access::IPReputationUpdate rep_update) noexcept
+	void Peer::UpdateReputation(const Access::AddressReputationUpdate rep_update) noexcept
 	{
-		const auto result = GetAccessManager().UpdateIPReputation(GetPeerIPAddress(), rep_update);
+		const auto result = GetAccessManager().UpdateAddressReputation(GetPeerIPAddress(), rep_update);
 		if (result.Succeeded() && !result->second)
 		{
-			// Peer IP has an unacceptable reputation after the update;
+			// Peer address has an unacceptable reputation after the update;
 			// disconnect the peer as soon as possible
-			SetDisconnectCondition(DisconnectCondition::IPNotAllowed);
+			SetDisconnectCondition(DisconnectCondition::AddressNotAllowed);
 		}
 		else if (!result.Succeeded())
 		{
-			LogErr(L"Couldn't update IP reputation for peer %s", GetPeerName().c_str());
+			LogErr(L"Couldn't update address reputation for peer %s", GetPeerName().c_str());
 		}
 	}
 
@@ -1191,7 +1191,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			case MessageTransportCheck::TooMuchData:
 			{
 				LogErr(L"Peer %s sent a message that's too large (or contains bad data)", GetPeerName().c_str());
-				UpdateReputation(Access::IPReputationUpdate::DeteriorateSevere);
+				UpdateReputation(Access::AddressReputationUpdate::DeteriorateSevere);
 				break;
 			}
 			default:
@@ -1306,7 +1306,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		// Unrecognized or invalid message; this is a fatal problem and may be an attack
 		// so the peer should get disconnected asap
-		UpdateReputation(Access::IPReputationUpdate::DeteriorateSevere);
+		UpdateReputation(Access::AddressReputationUpdate::DeteriorateSevere);
 
 		return std::make_tuple(false, Size{ 0 }, UInt16{ 0 });
 	}
@@ -1364,7 +1364,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			// so the peer should get disconnected asap
 			LogErr(L"Peer %s sent an invalid message", GetPeerName().c_str());
 
-			UpdateReputation(Access::IPReputationUpdate::DeteriorateSevere);
+			UpdateReputation(Access::AddressReputationUpdate::DeteriorateSevere);
 			success = false;
 		}
 
@@ -1475,7 +1475,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			// Unexpected message fragment; this could be an attack
 			LogErr(L"Message fragment from peer %s was out of sequence", GetPeerName().c_str());
 
-			UpdateReputation(Access::IPReputationUpdate::DeteriorateSevere);
+			UpdateReputation(Access::AddressReputationUpdate::DeteriorateSevere);
 		}
 		else if (msg_complete)
 		{
@@ -1554,15 +1554,18 @@ namespace QuantumGate::Implementation::Core::Peer
 		});
 	}
 
-	PeerLUID Peer::MakeLUID(const IPEndpoint& endpoint, const UInt64 unique_data) noexcept
+	PeerLUID Peer::MakeLUID(const Endpoint& endpoint, const UInt64 unique_data) noexcept
 	{
-		assert(endpoint != IPEndpoint());
+		assert(endpoint != Endpoint());
 
 		struct HashData final
 		{
-			IPEndpoint::Protocol Protocol{ IPEndpoint::Protocol::Unspecified };
-			BinaryIPAddress IP;
-			UInt16 Port{ 0 };
+			Endpoint::Type Type{ Endpoint::Type::Unspecified };
+			IPEndpoint::Protocol IPProtocol{ IPEndpoint::Protocol::Unspecified };
+			BinaryIPAddress IPAddress;
+			BTHEndpoint::Protocol BTHProtocol{ BTHEndpoint::Protocol::Unspecified };
+			BinaryBTHAddress BTHAddress;
+			UInt32 Port{ 0 };
 			RelayPort RelayPort{ 0 };
 			RelayHop RelayHop{ 0 };
 			UInt64 UniqueData{ 0 };
@@ -1570,12 +1573,40 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		HashData data;
 		MemInit(&data, sizeof(data)); // Needed to zero out padding bytes for consistent hash
-		data.Protocol = endpoint.GetProtocol();
-		data.IP = endpoint.GetIPAddress().GetBinary();
-		data.Port = endpoint.GetPort();
-		data.RelayPort = endpoint.GetRelayPort();
-		data.RelayHop = endpoint.GetRelayHop();
+		data.Type = endpoint.GetType();
 		data.UniqueData = unique_data;
+
+		switch (endpoint.GetType())
+		{
+			case Endpoint::Type::IP:
+			{
+				const auto& ep = endpoint.GetIPEndpoint();
+
+				data.IPProtocol = ep.GetProtocol();
+				data.IPAddress = ep.GetIPAddress().GetBinary();
+				data.Port = ep.GetPort();
+				data.RelayPort = ep.GetRelayPort();
+				data.RelayHop = ep.GetRelayHop();
+				break;
+			}
+			case Endpoint::Type::BTH:
+			{
+				const auto& ep = endpoint.GetBTHEndpoint();
+
+				data.BTHProtocol = ep.GetProtocol();
+				data.BTHAddress = ep.GetBTHAddress().GetBinary();
+				data.Port = ep.GetPort();
+				data.RelayPort = ep.GetRelayPort();
+				data.RelayHop = ep.GetRelayHop();
+				break;
+			}
+			default:
+			{
+				// Shouldn't get here
+				assert(false);
+				break;
+			}
+		}
 
 		return Util::GetNonPersistentHash(BufferView(reinterpret_cast<const Byte*>(&data), sizeof(data)));
 	}
@@ -1681,42 +1712,89 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	SerializedIPEndpoint Peer::GetPublicIPEndpointToReport() const noexcept
+	SerializedEndpoint Peer::GetPublicEndpointToReport() const noexcept
 	{
 		// Only for normal connections because the reported
 		// IPs might not be accurate for relays because there
 		// are other peers in between
 		if (!IsRelayed())
 		{
-			return SerializedIPEndpoint{ GetPeerEndpoint() };
+			return SerializedEndpoint{ GetPeerEndpoint() };
 		}
 
 		// For relays we send an empty endpoint (all zeroes)
-		return SerializedIPEndpoint{};
+		return SerializedEndpoint{};
 	}
 
-	bool Peer::AddReportedPublicIPEndpoint(const SerializedIPEndpoint& pub_endpoint) noexcept
+	bool Peer::AddReportedPublicEndpoint(const SerializedEndpoint& pub_endpoint) noexcept
 	{
 		// Only for normal connections because the reported
-		// IPs might not be accurate for relays because there
+		// endpoints might not be accurate for relays because there
 		// are other peers in between
 		if (!IsRelayed())
 		{
-			// Protocol reported by peer should be the same protocol
+			const auto& lep = GetLocalEndpoint();
+
+			// Type reported by peer should be the same type
 			// as used for this connection
-			if (pub_endpoint.Protocol == GetLocalEndpoint().GetProtocol())
+			if (pub_endpoint.Type == lep.GetType())
 			{
-				// Public IP reported by peer should be the same
-				// family type as the address used for this connection
-				if (pub_endpoint.IPAddress.AddressFamily == GetLocalIPAddress().GetFamily())
+				const auto trusted = (IsUsingGlobalSharedSecret() || IsAuthenticated());
+
+				switch (pub_endpoint.Type)
 				{
-					IPAddress ip;
-					if (IPAddress::TryParse(pub_endpoint.IPAddress, ip))
+					case Endpoint::Type::IP:
 					{
-						const auto trusted = IsUsingGlobalSharedSecret() || IsAuthenticated();
-						GetPeerManager().AddReportedPublicIPEndpoint(IPEndpoint(pub_endpoint.Protocol, ip, pub_endpoint.Port),
-																	 GetPeerEndpoint(), GetConnectionType(), trusted);
-						return true;
+						const auto& pub_ipendpoint = pub_endpoint.IPEndpoint;
+
+						// Protocol reported by peer should be the same protocol
+						// as used for this connection
+						if (pub_ipendpoint.Protocol == lep.GetIPEndpoint().GetProtocol())
+						{
+							// Public IP reported by peer should be the same
+							// family type as the address used for this connection
+							if (pub_ipendpoint.IPAddress.AddressFamily == lep.GetIPEndpoint().GetIPAddress().GetFamily())
+							{
+								IPAddress ip;
+								if (IPAddress::TryParse(pub_ipendpoint.IPAddress, ip))
+								{
+									GetPeerManager().AddReportedPublicEndpoint(
+										IPEndpoint(pub_ipendpoint.Protocol, ip, pub_ipendpoint.Port),
+										GetPeerEndpoint(), GetConnectionType(), trusted);
+									return true;
+								}
+							}
+						}
+						break;
+					}
+					case Endpoint::Type::BTH:
+					{
+						const auto& pub_bthendpoint = pub_endpoint.BTHEndpoint;
+
+						// Protocol reported by peer should be the same protocol
+						// as used for this connection
+						if (pub_bthendpoint.Protocol == lep.GetBTHEndpoint().GetProtocol())
+						{
+							// Public address reported by peer should be the same
+							// family type as the address used for this connection
+							if (pub_bthendpoint.BTHAddress.AddressFamily == lep.GetBTHEndpoint().GetBTHAddress().GetFamily())
+							{
+								BTHAddress bth;
+								if (BTHAddress::TryParse(pub_bthendpoint.BTHAddress, bth))
+								{
+									GetPeerManager().AddReportedPublicEndpoint(
+										BTHEndpoint(pub_bthendpoint.Protocol, bth, pub_bthendpoint.Port),
+										GetPeerEndpoint(), GetConnectionType(), trusted);
+									return true;
+								}
+							}
+						}
+						break;
+					}
+					default:
+					{
+						assert(false);
+						break;
 					}
 				}
 			}
@@ -1724,10 +1802,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		else
 		{
 			// Should be empty (all zeroes)
-			return (pub_endpoint == SerializedIPEndpoint{});
+			return (pub_endpoint == SerializedEndpoint{});
 		}
 
-		LogErr(L"Couldn't add public IP endpoint reported by peer %s", GetPeerName().c_str());
+		LogErr(L"Couldn't add public endpoint reported by peer %s", GetPeerName().c_str());
 
 		return false;
 	}
@@ -1769,7 +1847,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				return ResultCode::TimedOut;
 			case DisconnectCondition::DisconnectRequest:
 				return ResultCode::Aborted;
-			case DisconnectCondition::IPNotAllowed:
+			case DisconnectCondition::AddressNotAllowed:
 			case DisconnectCondition::PeerNotAllowed:
 				return ResultCode::NotAllowed;
 			default:
@@ -1867,7 +1945,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					// Peer sent a message for an extender that's not running locally or
 					// message arrived way too late (could be an attack)
-					UpdateReputation(Access::IPReputationUpdate::DeteriorateModerate);
+					UpdateReputation(Access::AddressReputationUpdate::DeteriorateModerate);
 				}
 
 				return MessageProcessor::Result{ .Handled = retval.first, .Success = retval.second };
@@ -1876,7 +1954,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				LogErr(L"Received a message from peer %s for an invalid extender", GetPeerName().c_str());
 
-				UpdateReputation(Access::IPReputationUpdate::DeteriorateModerate);
+				UpdateReputation(Access::AddressReputationUpdate::DeteriorateModerate);
 
 				return MessageProcessor::Result{ .Handled = false, .Success = false };
 			}
@@ -1888,12 +1966,12 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				// Unhandled message; the message may not have been recognized;
 				// this could be an attack
-				UpdateReputation(Access::IPReputationUpdate::DeteriorateSevere);
+				UpdateReputation(Access::AddressReputationUpdate::DeteriorateSevere);
 			}
 			else if (!result.Success)
 			{
 				// Message was not successfully handled
-				UpdateReputation(Access::IPReputationUpdate::DeteriorateModerate);
+				UpdateReputation(Access::AddressReputationUpdate::DeteriorateModerate);
 			}
 
 			return result;
@@ -1909,14 +1987,14 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		LogDbg(L"Checking access for peer %s", GetPeerName().c_str());
 
-		// Check if peer IP is still allowed access
-		const auto result = GetAccessManager().GetIPAllowed(GetPeerIPAddress(), Access::CheckType::All);
+		// Check if peer address is still allowed access
+		const auto result = GetAccessManager().GetAddressAllowed(GetPeerIPAddress(), Access::CheckType::All);
 		if (!result || !(*result))
 		{
-			// Peer IP isn't allowed anymore; disconnect the peer as soon as possible
-			SetDisconnectCondition(DisconnectCondition::IPNotAllowed);
+			// Peer address isn't allowed anymore; disconnect the peer as soon as possible
+			SetDisconnectCondition(DisconnectCondition::AddressNotAllowed);
 
-			LogWarn(L"IP for peer %s is not allowed anymore; will disconnect peer", GetPeerName().c_str());
+			LogWarn(L"Address for peer %s is not allowed anymore; will disconnect peer", GetPeerName().c_str());
 
 			return false;
 		}
@@ -1956,7 +2034,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 			SetDisconnectCondition(DisconnectCondition::UnknownMessageError);
 
-			UpdateReputation(Access::IPReputationUpdate::DeteriorateModerate);
+			UpdateReputation(Access::AddressReputationUpdate::DeteriorateModerate);
 		}
 		else if (!result.Success)
 		{
@@ -1964,7 +2042,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			LogWarn(L"Message from peer %s was not successfully handled by extender with UUID %s",
 					GetPeerName().c_str(), extuuid.GetString().c_str());
 
-			UpdateReputation(Access::IPReputationUpdate::DeteriorateMinimal);
+			UpdateReputation(Access::AddressReputationUpdate::DeteriorateMinimal);
 		}
 	}
 }

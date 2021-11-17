@@ -221,7 +221,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	bool Manager::AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
+	bool Manager::AddConnection(const Network::AddressFamily af, const PeerConnectionType type,
 								const ConnectionID id, const Message::SequenceNumber seqnum, ProtectedBuffer&& handshake_data,
 								Socket& socket, std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
