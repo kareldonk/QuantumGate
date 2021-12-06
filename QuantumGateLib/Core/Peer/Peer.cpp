@@ -7,10 +7,6 @@
 #include "..\..\Common\Random.h"
 #include "..\..\API\Access.h"
 
-#include <thread>
-#include <chrono>
-#include <algorithm>
-
 using namespace std::literals;
 
 namespace QuantumGate::Implementation::Core::Peer
@@ -232,9 +228,19 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			if (GetIOStatus().HasException())
 			{
+				auto error_ex = std::invoke([&]() noexcept -> const WChar*
+				{
+					if (GetGateType() == GateType::BTHSocket)
+					{
+						return GetSocket<BTH::Socket>().GetExtendedErrorString(GetIOStatus().GetErrorCode());
+					}
+					return L"";
+				});
+
 				// There was an error on the socket
-				LogErr(L"Socket error for peer %s (%s)",
-					   GetPeerName().c_str(), GetSysErrorString(GetIOStatus().GetErrorCode()).c_str());
+				LogErr(L"Socket error for peer %s (%s%s%s)",
+					   GetPeerName().c_str(), GetSocketErrorString(GetIOStatus().GetErrorCode()).c_str(),
+					   std::wcslen(error_ex) == 0 ? L"" : L" ", error_ex);
 
 				SetDisconnectCondition(DisconnectCondition::SocketError);
 				return false;
@@ -361,7 +367,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	void Peer::UpdateReputation(const Access::AddressReputationUpdate rep_update) noexcept
 	{
-		const auto result = GetAccessManager().UpdateAddressReputation(GetPeerIPAddress(), rep_update);
+		const auto result = GetAccessManager().UpdateAddressReputation(GetPeerEndpoint(), rep_update);
 		if (result.Succeeded() && !result->second)
 		{
 			// Peer address has an unacceptable reputation after the update;
@@ -844,28 +850,31 @@ namespace QuantumGate::Implementation::Core::Peer
 		{
 			if (msg_size > 0) m_PeerData.WithUniqueLock()->ExtendersBytesSent += msg_size;
 
+			auto success{ false };
+
 			switch (GetGateType())
 			{
 				case GateType::TCPSocket:
-					if (!GetSocket<TCP::Socket>().GetEvent().Set())
-					{
-						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
-					}
+					success = GetSocket<TCP::Socket>().GetEvent().Set();
 					break;
 				case GateType::UDPSocket:
-					if (!GetSocket<UDP::Socket>().GetReceiveEvent().Set())
-					{
-						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
-					}
+					success = GetSocket<UDP::Socket>().GetReceiveEvent().Set();
+					break;
+				case GateType::BTHSocket:
+					success = GetSocket<BTH::Socket>().GetEvent().Set();
 					break;
 				case GateType::RelaySocket:
-					if (!GetSocket<Relay::Socket>().GetReceiveEvent().Set())
-					{
-						LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
-					}
+					success = GetSocket<Relay::Socket>().GetReceiveEvent().Set();
 					break;
 				default:
+					// Shouldn't get here
+					assert(false);
 					break;
+			}
+
+			if (!success)
+			{
+				LogErr(L"Failed to set event on socket (%s)", GetLastSysErrorString().c_str());
 			}
 		}
 
@@ -1137,8 +1146,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		m_ReceiveBuffer.ResetEvent();
 
 		// Check if there's a message in the receive buffer
-		MessageTransportCheck msgchk = MessageTransport::Peek(m_NextPeerRandomDataPrefixLength,
-															  m_MessageTransportDataSizeSettings, m_ReceiveBuffer);
+		const auto msgchk = MessageTransport::Peek(m_NextPeerRandomDataPrefixLength,
+												   m_MessageTransportDataSizeSettings, m_ReceiveBuffer);
 		switch (msgchk)
 		{
 			case MessageTransportCheck::CompleteMessage:
@@ -1565,7 +1574,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			BinaryIPAddress IPAddress;
 			BTHEndpoint::Protocol BTHProtocol{ BTHEndpoint::Protocol::Unspecified };
 			BinaryBTHAddress BTHAddress;
-			UInt32 Port{ 0 };
+			GUID BTHServiceClassID{ 0 };
+			UInt16 Port{ 0 };
 			RelayPort RelayPort{ 0 };
 			RelayHop RelayHop{ 0 };
 			UInt64 UniqueData{ 0 };
@@ -1595,6 +1605,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				data.BTHProtocol = ep.GetProtocol();
 				data.BTHAddress = ep.GetBTHAddress().GetBinary();
+				data.BTHServiceClassID = ep.GetServiceClassID();
 				data.Port = ep.GetPort();
 				data.RelayPort = ep.GetRelayPort();
 				data.RelayHop = ep.GetRelayHop();
@@ -1988,7 +1999,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		LogDbg(L"Checking access for peer %s", GetPeerName().c_str());
 
 		// Check if peer address is still allowed access
-		const auto result = GetAccessManager().GetAddressAllowed(GetPeerIPAddress(), Access::CheckType::All);
+		const auto result = GetAccessManager().GetAddressAllowed(GetPeerEndpoint(), Access::CheckType::All);
 		if (!result || !(*result))
 		{
 			// Peer address isn't allowed anymore; disconnect the peer as soon as possible

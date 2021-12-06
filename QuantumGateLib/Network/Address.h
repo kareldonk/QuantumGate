@@ -15,6 +15,8 @@ namespace QuantumGate::Implementation::Network
 	public:
 		enum class Type : UInt8 { Unspecified, IP, BTH };
 
+		using Family = Network::AddressFamily;
+
 		constexpr Address() noexcept :
 			m_Type(Type::Unspecified), m_Dummy(0)
 		{}
@@ -104,6 +106,8 @@ namespace QuantumGate::Implementation::Network
 
 		constexpr Type GetType() const noexcept { return m_Type; }
 
+		Family GetFamily() const noexcept;
+
 		constexpr const IPAddress& GetIPAddress() const noexcept
 		{
 			assert(m_Type == Type::IP);
@@ -121,6 +125,9 @@ namespace QuantumGate::Implementation::Network
 		std::size_t GetHash() const noexcept;
 
 		String GetString() const noexcept;
+
+		[[nodiscard]] static bool TryParse(const WChar* addr_str, Address& addr) noexcept;
+		[[nodiscard]] static bool TryParse(const String& addr_str, Address& addr) noexcept;
 
 		friend Export std::ostream& operator<<(std::ostream& stream, const Address& addr);
 		friend Export std::wostream& operator<<(std::wostream& stream, const Address& addr);
@@ -228,7 +235,7 @@ namespace QuantumGate::Implementation::Network
 
 namespace std
 {
-	// Specialization for standard hash function for BinaryIPAddress
+	// Specialization for standard hash function for Address
 	template<> struct hash<QuantumGate::Implementation::Network::Address>
 	{
 		std::size_t operator()(const QuantumGate::Implementation::Network::Address& addr) const noexcept

@@ -5,8 +5,6 @@
 #include "PeerMessageProcessor.h"
 #include "PeerManager.h"
 #include "Peer.h"
-#include "..\..\Memory\BufferReader.h"
-#include "..\..\Memory\BufferWriter.h"
 
 using namespace QuantumGate::Implementation::Memory;
 

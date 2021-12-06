@@ -267,9 +267,28 @@ namespace QuantumGate::Implementation::Core
 				}
 
 				settings.Local.Listeners.TCP.Ports = Util::SetToVector(params.Listeners.TCP.Ports);
+				settings.Local.Listeners.TCP.NATTraversal = params.Listeners.TCP.NATTraversal;
+				
 				settings.Local.Listeners.UDP.Ports = Util::SetToVector(params.Listeners.UDP.Ports);
-				settings.Local.Listeners.NATTraversal = params.Listeners.EnableNATTraversal;
+				settings.Local.Listeners.UDP.NATTraversal = params.Listeners.UDP.NATTraversal;
+				
+				settings.Local.Listeners.BTH.Ports = Util::SetToVector(params.Listeners.BTH.Ports);
+				settings.Local.Listeners.BTH.RequireAuthentication = params.Listeners.BTH.RequireAuthentication;
+				
+				if (params.Listeners.BTH.Service.has_value())
+				{
+					settings.Local.Listeners.BTH.Service = *params.Listeners.BTH.Service;
+				}
+				else
+				{
+					// Use defaults
+					settings.Local.Listeners.BTH.Service.Name = BTH::Listener::Manager::DefaultServiceName;
+					settings.Local.Listeners.BTH.Service.Comment = BTH::Listener::Manager::DefaultServiceComment;
+					settings.Local.Listeners.BTH.Service.ID = BTHEndpoint::GetQuantumGateServiceClassID();
+				}
+				
 				settings.Local.NumPreGeneratedKeysPerAlgorithm = params.NumPreGeneratedKeysPerAlgorithm;
+				
 				settings.Relay.IPv4ExcludedNetworksCIDRLeadingBits = params.Relays.IPv4ExcludedNetworksCIDRLeadingBits;
 				settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits = params.Relays.IPv6ExcludedNetworksCIDRLeadingBits;
 			});
@@ -358,11 +377,20 @@ namespace QuantumGate::Implementation::Core
 		// Upon failure shut down UDP listener manager when we return
 		auto sg6 = MakeScopeGuard([&]() noexcept { m_UDPListenerManager.Shutdown(); });
 
+		if (params.Listeners.BTH.Enable &&
+			!m_BTHListenerManager.Startup(m_LocalEnvironment.WithSharedLock()->GetBluetoothRadios()))
+		{
+			return ResultCode::FailedBluetoothListenerManagerStartup;
+		}
+
+		// Upon failure shut down BTH listener manager when we return
+		auto sg7 = MakeScopeGuard([&]() noexcept { m_BTHListenerManager.Shutdown(); });
+
 		// Enter running state; important for extenders
 		m_Running = true;
 
 		// Upon failure exit running state when we return
-		auto sg7 = MakeScopeGuard([&]() noexcept { m_Running = false; });
+		auto sg8 = MakeScopeGuard([&]() noexcept { m_Running = false; });
 
 		if (params.EnableExtenders && !m_ExtenderManager.Startup())
 		{
@@ -377,6 +405,7 @@ namespace QuantumGate::Implementation::Core
 		sg5.Deactivate();
 		sg6.Deactivate();
 		sg7.Deactivate();
+		sg8.Deactivate();
 
 		LogSys(L"QuantumGate startup successful");
 
@@ -400,6 +429,7 @@ namespace QuantumGate::Implementation::Core
 		// Stop accepting connections
 		m_TCPListenerManager.Shutdown();
 		m_UDPListenerManager.Shutdown();
+		m_BTHListenerManager.Shutdown();
 
 		// Shut down extenders
 		m_ExtenderManager.Shutdown();
@@ -485,11 +515,12 @@ namespace QuantumGate::Implementation::Core
 
 	void Local::ProcessEvent(const Events::LocalEnvironmentChange& event) noexcept
 	{
-		if (m_LocalEnvironment.WithUniqueLock()->Update(true))
+		if (m_LocalEnvironment.WithUniqueLock()->Update())
 		{
 			if (IsRunning())
 			{
-				if (m_TCPListenerManager.IsRunning() || m_UDPListenerManager.IsRunning())
+				if (m_TCPListenerManager.IsRunning() || m_UDPListenerManager.IsRunning() ||
+					m_BTHListenerManager.IsRunning())
 				{
 					LogDbg(L"Updating listeners because of local environment change");
 
@@ -554,6 +585,12 @@ namespace QuantumGate::Implementation::Core
 						result = ResultCode::Succeeded;
 					}
 					break;
+				case API::Local::ListenerType::BTH:
+					if (m_BTHListenerManager.Startup(local_env->GetBluetoothRadios()))
+					{
+						result = ResultCode::Succeeded;
+					}
+					break;
 				default:
 					assert(false);
 					result = ResultCode::InvalidArgument;
@@ -582,6 +619,9 @@ namespace QuantumGate::Implementation::Core
 				case API::Local::ListenerType::UDP:
 					m_UDPListenerManager.Shutdown();
 					break;
+				case API::Local::ListenerType::BTH:
+					m_BTHListenerManager.Shutdown();
+					break;
 				default:
 					assert(false);
 					result = ResultCode::InvalidArgument;
@@ -602,6 +642,8 @@ namespace QuantumGate::Implementation::Core
 				return m_TCPListenerManager.IsRunning();
 			case API::Local::ListenerType::UDP:
 				return m_UDPListenerManager.IsRunning();
+			case API::Local::ListenerType::BTH:
+				return m_BTHListenerManager.IsRunning();
 			default:
 				assert(false);
 				break;
@@ -631,6 +673,14 @@ namespace QuantumGate::Implementation::Core
 			if (m_UDPListenerManager.IsRunning())
 			{
 				if (!m_UDPListenerManager.Update(local_env->GetEthernetInterfaces()))
+				{
+					result = ResultCode::Failed;
+				}
+			}
+
+			if (m_BTHListenerManager.IsRunning())
+			{
+				if (!m_BTHListenerManager.Update(local_env->GetBluetoothRadios()))
 				{
 					result = ResultCode::Failed;
 				}
@@ -759,7 +809,7 @@ namespace QuantumGate::Implementation::Core
 		m_LocalEnvironment.WithUniqueLock()->Deinitialize();
 	}
 
-	const LocalEnvironment_ThS& Local::GetEnvironment() noexcept
+	const LocalEnvironment_ThS& Local::GetEnvironment(const bool refresh) noexcept
 	{
 		{
 			auto env = m_LocalEnvironment.WithUniqueLock();
@@ -772,7 +822,7 @@ namespace QuantumGate::Implementation::Core
 			}
 			else
 			{
-				if (!env->Update())
+				if (!env->Update(refresh))
 				{
 					LogErr(L"Couldn't update local environment");
 				}

@@ -79,14 +79,21 @@ namespace QuantumGate::Implementation
 			{
 				Vector<UInt16> Ports{ 999 };								// Which ports to listen on
 				bool UseConditionalAcceptFunction{ true };					// Whether to use the conditional accept function before accepting connections
+				bool NATTraversal{ false };									// Whether NAT traversal is enabled
 			} TCP;
 			
 			struct
 			{
 				Vector<UInt16> Ports{ 999 };								// Which ports to listen on
+				bool NATTraversal{ false };									// Whether NAT traversal is enabled
 			} UDP;
 
-			bool NATTraversal{ false };										// Whether NAT traversal is enabled
+			struct
+			{
+				Vector<UInt16> Ports{ 9 };									// Which ports to listen on
+				bool RequireAuthentication{ true };							// Whether to require Bluetooth authentication (device pairing) before accepting connections
+				BluetoothServiceDetails Service;									// Bluetooth service details to advertise to connecting peers
+			} BTH;
 		} Listeners;
 
 		std::chrono::seconds ConnectTimeout{ 60 };							// Maximum number of seconds to wait for a connection to be established

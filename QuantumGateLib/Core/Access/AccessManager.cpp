@@ -96,16 +96,10 @@ namespace QuantumGate::Implementation::Core::Access
 
 	Result<> Manager::ResetAddressReputation(const WChar* addr_str) noexcept
 	{
-		IPAddress ipaddr;
-		BTHAddress bthaddr;
-
-		if (IPAddress::TryParse(addr_str, ipaddr))
+		Address addr;
+		if (Address::TryParse(addr_str, addr))
 		{
-			return ResetAddressReputation(ipaddr);
-		}
-		else if (BTHAddress::TryParse(addr_str, bthaddr))
-		{
-			return ResetAddressReputation(bthaddr);
+			return ResetAddressReputation(addr);
 		}
 
 		return ResultCode::AddressInvalid;
@@ -229,16 +223,10 @@ namespace QuantumGate::Implementation::Core::Access
 
 	Result<bool> Manager::GetAddressAllowed(const WChar* addr_str, const CheckType check) noexcept
 	{
-		IPAddress ipaddr;
-		BTHAddress bthaddr;
-
-		if (IPAddress::TryParse(addr_str, ipaddr))
+		Address addr;
+		if (Address::TryParse(addr_str, addr))
 		{
-			return GetAddressAllowed(ipaddr, check);
-		}
-		else if (BTHAddress::TryParse(addr_str, bthaddr))
-		{
-			return GetAddressAllowed(bthaddr, check);
+			return GetAddressAllowed(addr, check);
 		}
 
 		return ResultCode::AddressInvalid;

@@ -7,7 +7,7 @@
 #include "..\Peer\PeerManager.h"
 #include "..\Access\AccessManager.h"
 
-namespace QuantumGate::Implementation::Core::TCP::Listener
+namespace QuantumGate::Implementation::Core::BTH::Listener
 {
 	class Manager final
 	{
@@ -26,7 +26,6 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 			ThreadData& operator=(ThreadData&&) noexcept = default;
 
 			Network::Socket Socket;
-			bool UseConditionalAcceptFunction{ true };
 		};
 
 		struct ThreadPoolData final
@@ -44,14 +43,15 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 		Manager& operator=(Manager&&) noexcept = default;
 
 		[[nodiscard]] bool Startup() noexcept;
-		[[nodiscard]] bool Startup(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept;
+		[[nodiscard]] bool Startup(const Vector<API::Local::Environment::BluetoothRadio>& radios) noexcept;
 		void Shutdown() noexcept;
 		[[nodiscard]] inline bool IsRunning() const noexcept { return m_Running; }
 
-		[[nodiscard]] bool AddListenerThreads(const IPAddress& address, const Vector<UInt16> ports,
-											  const bool cond_accept, const bool nat_traversal) noexcept;
-		std::optional<ThreadPool::ThreadType> RemoveListenerThread(ThreadPool::ThreadType&& thread) noexcept;
-		[[nodiscard]] bool Update(const Vector<API::Local::Environment::EthernetInterface>& interfaces) noexcept;
+		[[nodiscard]] bool AddListenerThreads(const BTHAddress& address, const Vector<UInt16> ports, const bool require_auth,
+											  const BluetoothServiceDetails& service_details) noexcept;
+		std::optional<ThreadPool::ThreadType> RemoveListenerThread(ThreadPool::ThreadType&& thread,
+																   const BluetoothServiceDetails& service_details) noexcept;
+		[[nodiscard]] bool Update(const Vector<API::Local::Environment::BluetoothRadio>& radios) noexcept;
 
 	private:
 		void PreStartup() noexcept;
@@ -59,13 +59,13 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
-		void AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept;
+		void AcceptConnection(Network::Socket& listener_socket) noexcept;
 
-		[[nodiscard]] bool CanAcceptConnection(const Address& ipaddr) const noexcept;
+		[[nodiscard]] bool CanAcceptConnection(const Address& addr) const noexcept;
 
-		static int CALLBACK AcceptConditionFunction(LPWSABUF lpCallerId, LPWSABUF lpCallerData, LPQOS lpSQOS,
-													LPQOS lpGQOS, LPWSABUF lpCalleeId, LPWSABUF lpCalleeData,
-													GROUP FAR* g, DWORD_PTR dwCallbackData) noexcept;
+	public:
+		static inline constexpr const WChar* DefaultServiceName{ L"QuantumGate" };
+		static inline constexpr const WChar* DefaultServiceComment{ L"QuantumGate Bluetooth Service" };
 
 	private:
 		std::atomic_bool m_Running{ false };

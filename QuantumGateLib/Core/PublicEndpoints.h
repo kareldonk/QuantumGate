@@ -133,8 +133,8 @@ namespace QuantumGate::Implementation::Core
 
 		inline EndpointsMap_ThS& GetEndpoints() noexcept { return m_Endpoints; }
 
-		Result<> AddIPAddresses(Vector<Network::Address>& ips, const bool only_trusted_verified) const noexcept;
-		Result<> AddIPAddresses(Vector<API::Local::Environment::IPAddressDetails>& ips) const noexcept;
+		Result<> AddAddresses(Vector<Network::Address>& addrs, const bool only_trusted_verified) const noexcept;
+		Result<> AddAddresses(Vector<API::Local::Environment::AddressDetails>& addrs) const noexcept;
 
 		void SetLocallyBoundPublicIPAddress(const bool flag) noexcept { m_HasLocallyBoundPublicIPAddress = flag; }
 		bool HasLocallyBoundPublicIPAddress() const noexcept { return m_HasLocallyBoundPublicIPAddress; }

@@ -25,7 +25,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 		const auto& settings = m_Settings.GetCache();
 		const auto& listener_ports = settings.Local.Listeners.UDP.Ports;
-		const auto nat_traversal = settings.Local.Listeners.NATTraversal;
+		const auto nat_traversal = settings.Local.Listeners.UDP.NATTraversal;
 		const auto& shared_secret = settings.Local.GlobalSharedSecret;
 		const auto cookie_expiration_interval = settings.UDP.CookieExpirationInterval;
 
@@ -90,7 +90,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 		const auto& settings = m_Settings.GetCache();
 		const auto& listener_ports = settings.Local.Listeners.UDP.Ports;
-		const auto nat_traversal = settings.Local.Listeners.NATTraversal;
+		const auto nat_traversal = settings.Local.Listeners.UDP.NATTraversal;
 		const auto& shared_secret = settings.Local.GlobalSharedSecret;
 		const auto cookie_expiration_interval = settings.UDP.CookieExpirationInterval;
 
@@ -177,7 +177,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 	{
 		const Endpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
 
-		const auto [success, next_thread] = m_ThreadPool.RemoveThread(std::move(thread));
+		const auto& [success, next_thread] = m_ThreadPool.RemoveThread(std::move(thread));
 		if (success)
 		{
 			LogSys(L"Stopped listening on endpoint %s", endpoint.GetString().c_str());
@@ -201,7 +201,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 		const auto& settings = m_Settings.GetCache();
 		const auto& listener_ports = settings.Local.Listeners.UDP.Ports;
-		const auto nat_traversal = settings.Local.Listeners.NATTraversal;
+		const auto nat_traversal = settings.Local.Listeners.UDP.NATTraversal;
 
 		// Check for interfaces/IP addresses that were added for which
 		// there are no listeners; we add listeners for those
@@ -221,7 +221,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 
 						while (thread.has_value())
 						{
-							if (thread->GetData().Socket.GetLocalIPAddress() == address)
+							if (thread->GetData().Socket.GetLocalEndpoint().GetIPEndpoint().GetIPAddress() == address)
 							{
 								found = true;
 								break;
@@ -253,7 +253,7 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 				{
 					for (const auto& address : ifs.IPAddresses)
 					{
-						if (thread->GetData().Socket.GetLocalIPAddress() == address)
+						if (thread->GetData().Socket.GetLocalEndpoint().GetIPEndpoint().GetIPAddress() == address)
 						{
 							found = true;
 							break;

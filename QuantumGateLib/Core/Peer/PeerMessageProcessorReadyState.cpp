@@ -93,8 +93,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		BufferWriter wrt(true);
 		if (wrt.WriteWithPreallocation(msg.Port, msg.ID))
 		{
-			auto result = m_Peer.Send(MessageType::RelayDataAck, wrt.MoveWrittenBytes(),
-									  SendParameters::PriorityOption::Normal, 0ms, false);
+			const auto result = m_Peer.Send(MessageType::RelayDataAck, wrt.MoveWrittenBytes(),
+											SendParameters::PriorityOption::Normal, 0ms, false);
 			if (result.Succeeded()) return true;
 			else
 			{
@@ -195,7 +195,7 @@ namespace QuantumGate::Implementation::Core::Peer
 								case Endpoint::Type::BTH:
 								{
 									const auto& bthendpoint = endpoint.BTHEndpoint;
-									if (bthendpoint.Protocol == BTHEndpoint::Protocol::BTH)
+									if (bthendpoint.Protocol == BTHEndpoint::Protocol::RFCOMM)
 									{
 										if (bthendpoint.BTHAddress.AddressFamily == BinaryBTHAddress::Family::BTH)
 										{
@@ -215,17 +215,17 @@ namespace QuantumGate::Implementation::Core::Peer
 										   m_Peer.GetPeerName().c_str());
 									break;
 								}
+							}
 
-								if (connect)
+							if (connect)
+							{
+								if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rce)))
 								{
-									if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rce)))
-									{
-										// Let the peer know we couldn't accept
-										SendRelayStatus(rport, RelayStatusUpdate::GeneralFailure);
-									}
-
-									result.Success = true;
+									// Let the peer know we couldn't accept
+									SendRelayStatus(rport, RelayStatusUpdate::GeneralFailure);
 								}
+
+								result.Success = true;
 							}
 						}
 						else LogDbg(L"Invalid RelayCreate message from peer %s; couldn't read message data",

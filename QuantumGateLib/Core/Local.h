@@ -5,6 +5,7 @@
 
 #include "TCP\TCPListenerManager.h"
 #include "UDP\UDPListenerManager.h"
+#include "BTH\BTHListenerManager.h"
 #include "KeyGeneration\KeyGenerationManager.h"
 
 namespace QuantumGate::Implementation::Core
@@ -62,7 +63,7 @@ namespace QuantumGate::Implementation::Core
 		Result<> DisableRelays() noexcept;
 		bool AreRelaysEnabled() const noexcept;
 
-		const LocalEnvironment_ThS& GetEnvironment() noexcept;
+		const LocalEnvironment_ThS& GetEnvironment(const bool refresh = false) noexcept;
 
 		inline Access::Manager& GetAccessManager() noexcept { return m_AccessManager; }
 		inline KeyGeneration::Manager& GetKeyGenerationManager() noexcept { return m_KeyGenerationManager; }
@@ -166,6 +167,7 @@ namespace QuantumGate::Implementation::Core
 			m_KeyGenerationManager, m_AccessManager, m_ExtenderManager };
 		TCP::Listener::Manager m_TCPListenerManager{ m_Settings, m_AccessManager, m_PeerManager };
 		UDP::Listener::Manager m_UDPListenerManager{ m_Settings, m_AccessManager, m_UDPConnectionManager, m_PeerManager };
+		BTH::Listener::Manager m_BTHListenerManager{ m_Settings, m_AccessManager, m_PeerManager };
 
 		std::shared_mutex m_Mutex;
 

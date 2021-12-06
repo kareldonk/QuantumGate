@@ -28,6 +28,15 @@ namespace QuantumGate::Implementation::Core::Peer
 				m_Type = GateType::UDPSocket;
 				break;
 			}
+			case GateType::BTHSocket:
+			{
+				static_assert(sizeof(BTH::Socket) <= sizeof(m_SocketStorage),
+							  "Type is too large for SocketStorage variable; increase size.");
+
+				m_Socket = new (&m_SocketStorage) BTH::Socket();
+				m_Type = GateType::BTHSocket;
+				break;
+			}
 			case GateType::RelaySocket:
 			{
 				static_assert(sizeof(Relay::Socket) <= sizeof(m_SocketStorage),
@@ -56,6 +65,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		static_assert(sizeof(UDP::Socket) <= sizeof(m_SocketStorage),
 					  "Type is too large for SocketStorage variable; increase size.");
 
+		static_assert(sizeof(BTH::Socket) <= sizeof(m_SocketStorage),
+					  "Type is too large for SocketStorage variable; increase size.");
+
 		switch (protocol)
 		{
 			case Protocol::TCP:
@@ -65,6 +77,10 @@ namespace QuantumGate::Implementation::Core::Peer
 			case Protocol::UDP:
 				m_Socket = new (&m_SocketStorage) UDP::Socket();
 				m_Type = GateType::UDPSocket;
+				break;
+			case Protocol::BTH:
+				m_Socket = new (&m_SocketStorage) BTH::Socket(af);
+				m_Type = GateType::BTHSocket;
 				break;
 			default:
 				// Shouldn't get here

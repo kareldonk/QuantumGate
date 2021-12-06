@@ -207,12 +207,25 @@ namespace QuantumGate::Implementation::Network
 
 		m_CloseCallback();
 
-		if (GetProtocol() == Protocol::TCP)
+		switch (GetProtocol())
 		{
-			// If we're supposed to abort the connection, set the linger value on the socket to 0,
-			// else keep connection alive for a few seconds to give time for shutdown
-			if (linger) DiscardReturnValue(SetLinger(Socket::DefaultLingerTime));
-			else DiscardReturnValue(SetLinger(0s));
+			case Protocol::TCP:
+			{
+				// If we're supposed to abort the connection, set the linger value on the socket to 0,
+				// else keep connection alive for a few seconds to give time for shutdown
+				if (linger) DiscardReturnValue(SetLinger(Socket::DefaultLingerTime));
+				else DiscardReturnValue(SetLinger(0s));
+				break;
+			}
+			case Protocol::BTH:
+			{
+				shutdown(m_Socket, SD_BOTH);
+				break;
+			}
+			default:
+			{
+				break;
+			}
 		}
 
 #ifdef USE_SOCKET_EVENT
@@ -249,10 +262,15 @@ namespace QuantumGate::Implementation::Network
 		m_ConnectedSteadyTime = Util::GetCurrentSteadyTime();
 
 		sockaddr_storage addr{ 0 };
-		int nlen = sizeof(sockaddr_storage);
+		const auto addr_len = std::invoke([&]() noexcept
+		{
+			return (GetAddressFamily() == AddressFamily::BTH) ? sizeof(SOCKADDR_BTH) : sizeof(sockaddr_storage);
+		});
+
+		int len = static_cast<int>(addr_len);
 
 		// This will only work for connected or bound (listener) sockets
-		auto err = getsockname(m_Socket, reinterpret_cast<sockaddr*>(&addr), &nlen);
+		auto err = getsockname(m_Socket, reinterpret_cast<sockaddr*>(&addr), &len);
 		if (err != SOCKET_ERROR)
 		{
 			if (!SockAddrGetEndpoint(GetProtocol(), &addr, m_LocalEndpoint))
@@ -260,7 +278,9 @@ namespace QuantumGate::Implementation::Network
 				LogErr(L"Could not get local endpoint for socket");
 			}
 
-			err = getpeername(m_Socket, reinterpret_cast<sockaddr*>(&addr), &nlen);
+			len = static_cast<int>(addr_len);
+
+			err = getpeername(m_Socket, reinterpret_cast<sockaddr*>(&addr), &len);
 			if (err != SOCKET_ERROR)
 			{
 				if (!SockAddrGetEndpoint(GetProtocol(), &addr, m_PeerEndpoint))
@@ -483,6 +503,30 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
+	bool Socket::SetBluetoothAuthentication(const bool bthauth) noexcept
+	{
+		assert(m_Socket != INVALID_SOCKET);
+
+		// Enable Bluetooth authentication
+		// Docs: https://docs.microsoft.com/en-us/windows/win32/bluetooth/bluetooth-and-socket-options
+		const ULONG ba = bthauth ? TRUE : FALSE;
+
+		// Enable/Disable encryption together with authentication
+		const auto ret1 = setsockopt(m_Socket, SOL_RFCOMM, SO_BTH_AUTHENTICATE,
+									 reinterpret_cast<const char*>(&ba), sizeof(ba));
+		const auto ret2 = setsockopt(m_Socket, SOL_RFCOMM, SO_BTH_ENCRYPT,
+									 reinterpret_cast<const char*>(&ba), sizeof(ba));
+		if (ret1 == SOCKET_ERROR || ret2 == SOCKET_ERROR)
+		{
+			LogErr(L"Could not set Bluetooth authentication for endpoint %s (%s)",
+				   GetLocalName().c_str(), GetLastSocketErrorString().c_str());
+
+			return false;
+		}
+
+		return true;
+	}
+
 	bool Socket::SetConditionalAccept(const bool cond_accept) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
@@ -625,8 +669,12 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
-	bool Socket::Listen(const Endpoint& endpoint, const bool cond_accept,
-						const bool nat_traversal) noexcept
+	bool Socket::Listen(const Endpoint& endpoint) noexcept
+	{
+		return Listen(endpoint, false, false);
+	}
+
+	bool Socket::Listen(const Endpoint& endpoint, const bool cond_accept, const bool nat_traversal) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
 		DbgInvoke([&]()
@@ -635,18 +683,32 @@ namespace QuantumGate::Implementation::Network
 			{
 				assert(endpoint.GetIPEndpoint().GetProtocol() == IPEndpoint::Protocol::TCP);
 			}
+			else if (endpoint.GetType() == Endpoint::Type::BTH)
+			{
+				assert(endpoint.GetBTHEndpoint().GetProtocol() == BTHEndpoint::Protocol::RFCOMM);
+			}
 		});
 
-		if (!SetConditionalAccept(cond_accept)) return false;
+		if (endpoint.GetType() == Endpoint::Type::IP)
+		{
+			if (!SetConditionalAccept(cond_accept)) return false;
 
-		if (!SetNATTraversal(nat_traversal)) return false;
+			if (!SetNATTraversal(nat_traversal)) return false;
+		}
 
 		sockaddr_storage saddr{ 0 };
 
 		if (SockAddrSetEndpoint(saddr, endpoint))
 		{
+			m_LocalEndpoint = endpoint;
+
+			const auto saddr_len = std::invoke([&]() noexcept
+			{
+				return (endpoint.GetType() == Endpoint::Type::BTH) ? sizeof(SOCKADDR_BTH) : sizeof(sockaddr_storage);
+			});
+
 			// Bind our name to the socket
-			auto ret = bind(m_Socket, reinterpret_cast<sockaddr*>(&saddr), sizeof(sockaddr_storage));
+			auto ret = bind(m_Socket, reinterpret_cast<sockaddr*>(&saddr), sizeof(SOCKADDR_BTH));
 			if (ret != SOCKET_ERROR)
 			{
 				// Set the socket to listen
@@ -655,6 +717,7 @@ namespace QuantumGate::Implementation::Network
 				{
 					m_IOStatus.SetListening(true);
 					UpdateSocketInfo();
+
 					return true;
 				}
 				else
@@ -678,10 +741,69 @@ namespace QuantumGate::Implementation::Network
 		return false;
 	}
 
+	bool Socket::SetService(const WChar* service_name, const WChar* service_comment, const GUID& guid,
+							const ServiceOperation op) noexcept
+	{
+		if (m_LocalEndpoint.GetType() == Endpoint::Type::BTH)
+		{
+			SOCKADDR_BTH laddr{ 0 };
+			laddr.addressFamily = AF_BTH;
+			laddr.btAddr = m_LocalEndpoint.GetBTHEndpoint().GetBTHAddress().GetBinary().UInt64s;
+
+			if (m_LocalEndpoint.GetBTHEndpoint().GetPort() == 0)
+			{
+				laddr.port = BT_PORT_ANY;
+			}
+			else laddr.port = m_LocalEndpoint.GetBTHEndpoint().GetPort();
+
+			laddr.serviceClassId = guid;
+
+			CSADDR_INFO addrinfo{ 0 };
+			addrinfo.iProtocol = BTHPROTO_RFCOMM;
+			addrinfo.iSocketType = SOCK_STREAM;
+			addrinfo.LocalAddr.iSockaddrLength = sizeof(SOCKADDR_BTH);
+			addrinfo.LocalAddr.lpSockaddr = reinterpret_cast<sockaddr*>(&laddr);
+			addrinfo.RemoteAddr.iSockaddrLength = sizeof(SOCKADDR_BTH);
+			addrinfo.RemoteAddr.lpSockaddr = reinterpret_cast<sockaddr*>(&laddr);
+
+			WSAQUERYSET wsaset{ 0 };
+			wsaset.dwSize = sizeof(WSAQUERYSET);
+			wsaset.lpServiceClassId = const_cast<GUID*>(&guid);
+			wsaset.lpszServiceInstanceName = const_cast<WChar*>(service_name);
+			wsaset.lpszComment = const_cast<WChar*>(service_comment);
+			wsaset.dwNameSpace = NS_BTH;
+			wsaset.dwNumberOfCsAddrs = 1;
+			wsaset.lpcsaBuffer = &addrinfo;
+
+			auto essop{ WSAESETSERVICEOP::RNRSERVICE_REGISTER };
+			switch (op)
+			{
+				case ServiceOperation::Register:
+					essop = WSAESETSERVICEOP::RNRSERVICE_REGISTER;
+					break;
+				case ServiceOperation::Delete:
+					essop = WSAESETSERVICEOP::RNRSERVICE_DELETE;
+					break;
+				default:
+					return false;
+			}
+
+			const auto ret = WSASetService(&wsaset, essop, 0);
+			if (ret == SOCKET_ERROR)
+			{
+				LogErr(L"WSASetService() error for endpoint %s (%s)",
+					   m_LocalEndpoint.GetString().c_str(), GetLastSocketErrorString().c_str());
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	bool Socket::Accept(Socket& s, const bool cond_accept, const LPCONDITIONPROC cond_func, void* cbdata) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == Protocol::TCP);
+		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::BTH);
 
 		sockaddr_storage addr{ 0 };
 		int addrlen = sizeof(sockaddr_storage);
@@ -728,12 +850,16 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::BeginConnect(const Endpoint& endpoint) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == Protocol::TCP);
+		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::BTH);
 		DbgInvoke([&]()
 		{
 			if (endpoint.GetType() == Endpoint::Type::IP)
 			{
 				assert(endpoint.GetIPEndpoint().GetProtocol() == IPEndpoint::Protocol::TCP);
+			}
+			else if (endpoint.GetType() == Endpoint::Type::BTH)
+			{
+				assert(endpoint.GetBTHEndpoint().GetProtocol() == BTHEndpoint::Protocol::RFCOMM);
 			}
 		});
 
@@ -743,11 +869,21 @@ namespace QuantumGate::Implementation::Network
 
 		if (SockAddrSetEndpoint(saddr, endpoint))
 		{
-			const auto ret = connect(m_Socket, reinterpret_cast<sockaddr*>(&saddr), sizeof(sockaddr_storage));
+			m_PeerEndpoint = endpoint;
+
+			const auto saddr_len = std::invoke([&]() noexcept
+			{
+				return (endpoint.GetType() == Endpoint::Type::BTH) ? sizeof(SOCKADDR_BTH) : sizeof(sockaddr_storage);
+			});
+
+			const auto ret = connect(m_Socket, reinterpret_cast<sockaddr*>(&saddr), static_cast<int>(saddr_len));
 			if (ret == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)
 			{
-				LogErr(L"Error connecting to endpoint %s (%s)",
-					   endpoint.GetString().c_str(), GetLastSocketErrorString().c_str());
+				const auto error_code = WSAGetLastError();
+				auto error_ex = GetExtendedErrorString(error_code);
+				LogErr(L"Error connecting to endpoint %s (%s%s%s)",
+					   endpoint.GetString().c_str(), GetSocketErrorString(error_code).c_str(),
+					   error_ex == L"" ? L"" : L" ", error_ex);
 			}
 			else
 			{
@@ -770,7 +906,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::CompleteConnect() noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == Protocol::TCP);
+		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::BTH);
 
 		m_IOStatus.SetConnecting(false);
 		m_IOStatus.SetConnected(true);
@@ -783,7 +919,7 @@ namespace QuantumGate::Implementation::Network
 	Result<Size> Socket::Send(const BufferView& buffer, const Size max_snd_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == Protocol::TCP);
+		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::BTH);
 
 		const auto send_size = std::invoke([&]()
 		{
@@ -937,7 +1073,7 @@ namespace QuantumGate::Implementation::Network
 	Result<Size> Socket::Receive(BufferSpan& buffer) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == Protocol::TCP);
+		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::BTH);
 
 		const auto bytesrcv = recv(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()), static_cast<int>(buffer.GetSize()), 0);
 
@@ -1205,7 +1341,26 @@ namespace QuantumGate::Implementation::Network
 				}
 				case Protocol::BTH:
 				{
-					assert(false);
+					const BTHAddress bth(addr);
+					switch (bth.GetFamily())
+					{
+						case BTHAddress::Family::BTH:
+						{
+							const auto bthaddr = reinterpret_cast<const SOCKADDR_BTH*>(addr);
+							UInt16 port{ 0 };
+							if (bthaddr->port != BT_PORT_ANY)
+							{
+								port = static_cast<UInt16>(bthaddr->port);
+							}
+							endpoint = BTHEndpoint(BTH::ProtocolFromNetwork(protocol), bth, port, bthaddr->serviceClassId);
+							return true;
+						}
+						default:
+						{
+							assert(false);
+							break;
+						}
+					}
 					break;
 				}
 				default:
@@ -1227,7 +1382,7 @@ namespace QuantumGate::Implementation::Network
 			case Endpoint::Type::IP:
 			{
 				const auto& ep = endpoint.GetIPEndpoint();
-				const auto& ip = endpoint.GetIPEndpoint().GetIPAddress();
+				const auto& ip = ep.GetIPAddress();
 				switch (ip.GetFamily())
 				{
 					case IPAddress::Family::IPv4:
@@ -1261,7 +1416,31 @@ namespace QuantumGate::Implementation::Network
 			}
 			case Endpoint::Type::BTH:
 			{
-				assert(false);
+				const auto& ep = endpoint.GetBTHEndpoint();
+				const auto& bth = ep.GetBTHAddress();
+				switch (bth.GetFamily())
+				{
+					case BTHAddress::Family::BTH:
+					{
+						auto* saddr = reinterpret_cast<SOCKADDR_BTH*>(&addr);
+						
+						if (ep.GetPort() == 0)
+						{
+							saddr->port = BT_PORT_ANY;
+						}
+						else saddr->port = ep.GetPort();
+
+						saddr->addressFamily = AF_BTH;
+						saddr->btAddr = bth.GetBinary().UInt64s;
+						saddr->serviceClassId = ep.GetServiceClassID();
+						return true;
+					}
+					default:
+					{
+						assert(false);
+						break;
+					}
+				}
 				break;
 			}
 			default:
@@ -1407,5 +1586,32 @@ namespace QuantumGate::Implementation::Network
 		else LogDbg(L"getsockopt() failed for option %d (%s)", optname, GetLastSocketErrorString().c_str());
 
 		return SOCKET_ERROR;
+	}
+
+	const WChar* Socket::GetLastExtendedErrorString() const noexcept
+	{
+		return GetExtendedErrorString(WSAGetLastError());
+	}
+
+	const WChar* Socket::GetExtendedErrorString(const int code) const noexcept
+	{
+		if (GetAddressFamily() == AddressFamily::BTH)
+		{
+			switch (code)
+			{
+				case WSAEINVAL:
+				case WSAENETDOWN:
+					return L"Make sure Bluetooth is enabled on the local device.";
+				case WSAENETUNREACH:
+					return L"Check the Bluetooth address of the peer and that the devices are paired if authentication is required.";
+				case WSAEHOSTDOWN:
+				case WSAETIMEDOUT:
+					return L"Make sure Bluetooth is enabled on the remote device.";
+				default:
+					break;
+			}
+		}
+
+		return L"";
 	}
 }

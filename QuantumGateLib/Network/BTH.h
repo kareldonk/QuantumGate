@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Network::BTH
 	enum class Protocol : UInt8
 	{
 		Unspecified = static_cast<UInt8>(Network::Protocol::Unspecified),
-		BTH = static_cast<UInt8>(Network::Protocol::BTH)
+		RFCOMM = static_cast<UInt8>(Network::Protocol::BTH)
 	};
 
 	[[nodiscard]] Protocol ProtocolFromNetwork(const Network::Protocol protocol) noexcept;

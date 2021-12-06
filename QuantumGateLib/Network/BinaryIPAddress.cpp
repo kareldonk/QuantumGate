@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "BinaryIPAddress.h"
+#include "SerializedBinaryIPAddress.h"
 #include "..\Common\Hash.h"
 
 namespace QuantumGate::Implementation::Network

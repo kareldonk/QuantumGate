@@ -29,6 +29,8 @@
 #include "CPingDlg.h"
 #include "CSocks5ExtenderConfigurationDlg.h"
 
+#include <regex>
+
 using namespace nlohmann;
 using namespace QuantumGate::Implementation;
 
@@ -60,8 +62,16 @@ void CTestAppDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_TAB_CTRL, m_TabCtrl);
 }
 
-Set<UInt16> CTestAppDlg::GetPorts(const CString ports)
+std::optional<Set<UInt16>> CTestAppDlg::GetPorts(const CString ports)
 {
+	// Require only numbers separated by semicolons, i.e. 999;1133
+	std::wregex r(LR"ports(^\s*([\d;]+)\s*$)ports");
+	std::wcmatch m;
+	if (!std::regex_search(ports.GetString(), m, r))
+	{
+		return std::nullopt;
+	}
+
 	Set<UInt16> portsv;
 	int pos{ 0 };
 	int start{ 0 };
@@ -71,16 +81,22 @@ Set<UInt16> CTestAppDlg::GetPorts(const CString ports)
 		const CString port = ports.Mid(start, pos - start);
 		const auto portn = static_cast<UInt16>(_wtoi((LPCWSTR)port));
 
-		if (portn > 0) portsv.emplace(portn);
+		if (errno != ERANGE && errno != EINVAL)
+		{
+			portsv.emplace(portn);
+		}
 
 		start = pos + 1;
 	}
 
 	const CString end = ports.Mid(start, ports.GetLength() - start);
-	if (end.GetLength() > 0)
+	if (end.GetLength() >= 0)
 	{
 		const auto portn = static_cast<UInt16>(_wtoi((LPCWSTR)end));
-		if (portn > 0) portsv.emplace(portn);
+		if (errno != ERANGE && errno != EINVAL)
+		{
+			portsv.emplace(portn);
+		}
 	}
 
 	return portsv;
@@ -175,6 +191,8 @@ BEGIN_MESSAGE_MAP(CTestAppDlg, CDialogBase)
 	ON_UPDATE_COMMAND_UI(ID_SOCKS5EXTENDER_CONFIGURATION, &CTestAppDlg::OnUpdateSocks5ExtenderConfiguration)
 	ON_COMMAND(ID_LOCAL_UDPLISTENERSENABLED, &CTestAppDlg::OnLocalUDPListenersEnabled)
 	ON_UPDATE_COMMAND_UI(ID_LOCAL_UDPLISTENERSENABLED, &CTestAppDlg::OnUpdateLocalUDPListenersEnabled)
+	ON_COMMAND(ID_LOCAL_BTHLISTENERSENABLED, &CTestAppDlg::OnLocalBTHListenersEnabled)
+	ON_UPDATE_COMMAND_UI(ID_LOCAL_BTHLISTENERSENABLED, &CTestAppDlg::OnUpdateLocalBTHListenersEnabled)
 END_MESSAGE_MAP()
 
 BOOL CTestAppDlg::OnInitDialog()
@@ -293,9 +311,11 @@ void CTestAppDlg::LoadSettings()
 	if (!std::filesystem::exists(Path(filepath)))
 	{
 		m_MainTab->SetValue(IDC_SERVERPORT, L"999");
-		m_DefaultIP = L"192.168.1.1";
-		m_DefaultIPHistory = L"";
+		m_MainTab->SetValue(IDC_SERVERPORT_BTH, L"9");
+		m_DefaultAddress = L"192.168.1.1";
+		m_DefaultAddressHistory = L"";
 		m_DefaultPort = 999;
+		m_DefaultBTHAuth = true;
 		return;
 	}
 
@@ -317,6 +337,22 @@ void CTestAppDlg::LoadSettings()
 					m_MainTab->SetValue(IDC_SERVERPORT, set["LocalPorts"].get<std::string>());
 				}
 				else m_MainTab->SetValue(IDC_SERVERPORT, L"999");
+
+				if (set.find("LocalBluetoothPorts") != set.end())
+				{
+					m_MainTab->SetValue(IDC_SERVERPORT_BTH, set["LocalBluetoothPorts"].get<std::string>());
+				}
+				else m_MainTab->SetValue(IDC_SERVERPORT_BTH, L"9");
+
+				if (set.find("LocalBluetoothAuth") != set.end())
+				{
+					if (set["LocalBluetoothAuth"].get<bool>())
+					{
+						((CButton*)m_MainTab->GetDlgItem(IDC_BTH_AUTH2))->SetCheck(BST_CHECKED);
+					}
+					else ((CButton*)m_MainTab->GetDlgItem(IDC_BTH_AUTH2))->SetCheck(BST_UNCHECKED);
+				}
+				else ((CButton*)m_MainTab->GetDlgItem(IDC_BTH_AUTH2))->SetCheck(BST_UNCHECKED);
 
 				if (set.find("LocalUUID") != set.end())
 				{
@@ -344,17 +380,17 @@ void CTestAppDlg::LoadSettings()
 																		  Access::PeerAccessDefault::Allowed : Access::PeerAccessDefault::NotAllowed);
 				}
 
-				if (set.find("ConnectIP") != set.end())
+				if (set.find("ConnectAddress") != set.end())
 				{
-					m_DefaultIP = Util::ToStringW(set["ConnectIP"].get<std::string>()).c_str();
+					m_DefaultAddress = Util::ToStringW(set["ConnectAddress"].get<std::string>()).c_str();
 				}
-				else m_DefaultIP = L"192.168.1.1";
+				else m_DefaultAddress = L"192.168.1.1";
 
-				if (set.find("ConnectIPHistory") != set.end())
+				if (set.find("ConnectAddressHistory") != set.end())
 				{
-					m_DefaultIPHistory = Util::ToStringW(set["ConnectIPHistory"].get<std::string>()).c_str();
+					m_DefaultAddressHistory = Util::ToStringW(set["ConnectAddressHistory"].get<std::string>()).c_str();
 				}
-				else m_DefaultIPHistory = L"";
+				else m_DefaultAddressHistory = L"";
 
 				if (set.find("ConnectPort") != set.end())
 				{
@@ -364,21 +400,30 @@ void CTestAppDlg::LoadSettings()
 
 				if (set.find("ConnectProtocol") != set.end())
 				{
-					const auto protocol = set["ConnectProtocol"].get<IPEndpoint::Protocol>();
+					const auto protocol = set["ConnectProtocol"].get<Endpoint::Protocol>();
 					switch (protocol)
 					{
-						case IPEndpoint::Protocol::TCP:
-							m_DefaultProtocol = IPEndpoint::Protocol::TCP;
+						case Endpoint::Protocol::TCP:
+							m_DefaultProtocol = Endpoint::Protocol::TCP;
 							break;
-						case IPEndpoint::Protocol::UDP:
-							m_DefaultProtocol = IPEndpoint::Protocol::UDP;
+						case Endpoint::Protocol::UDP:
+							m_DefaultProtocol = Endpoint::Protocol::UDP;
+							break;
+						case Endpoint::Protocol::BTH:
+							m_DefaultProtocol = Endpoint::Protocol::BTH;
 							break;
 						default:
-							m_DefaultProtocol = IPEndpoint::Protocol::TCP;
+							m_DefaultProtocol = Endpoint::Protocol::TCP;
 							break;
 					}
 				}
-				else m_DefaultProtocol = IPEndpoint::Protocol::TCP;
+				else m_DefaultProtocol = Endpoint::Protocol::TCP;
+
+				if (set.find("ConnectBTHAuth") != set.end())
+				{
+					m_DefaultBTHAuth = set["ConnectBTHAuth"].get<bool>();
+				}
+				else m_DefaultBTHAuth = true;
 
 				if (set.find("AutoFileTransferFile") != set.end())
 				{
@@ -532,11 +577,14 @@ void CTestAppDlg::SaveSettings()
 		try
 		{
 			auto localport = m_MainTab->GetTextValue(IDC_SERVERPORT);
+			auto localportbth = m_MainTab->GetTextValue(IDC_SERVERPORT_BTH);
 			auto luuid = m_MainTab->GetTextValue(IDC_LOCAL_UUID);
 			auto autotrf_file = m_TestExtenderTab->GetTextValue(IDC_FILE_PATH);
 
 			j["Settings"] = json::object();
 			j["Settings"]["LocalPorts"] = Util::ToStringA((LPCWSTR)localport);
+			j["Settings"]["LocalBluetoothPorts"] = Util::ToStringA((LPCWSTR)localportbth);
+			j["Settings"]["LocalBluetoothAuth"] = (((CButton*)m_MainTab->GetDlgItem(IDC_BTH_AUTH2))->GetCheck() == BST_CHECKED);
 			j["Settings"]["LocalUUID"] = Util::ToStringA((LPCWSTR)luuid);
 			j["Settings"]["RequirePeerAuthentication"] = m_StartupParameters.RequireAuthentication;
 			j["Settings"]["RelayIPv4ExcludedNetworksCIDRLeadingBits"] = m_StartupParameters.Relays.IPv4ExcludedNetworksCIDRLeadingBits;
@@ -548,10 +596,11 @@ void CTestAppDlg::SaveSettings()
 			}
 			else j["Settings"]["PeerAccessDefaultAllowed"] = false;
 
-			j["Settings"]["ConnectIP"] = Util::ToStringA(m_DefaultIP);
-			j["Settings"]["ConnectIPHistory"] = Util::ToStringA(m_DefaultIPHistory);
+			j["Settings"]["ConnectAddress"] = Util::ToStringA(m_DefaultAddress);
+			j["Settings"]["ConnectAddressHistory"] = Util::ToStringA(m_DefaultAddressHistory);
 			j["Settings"]["ConnectPort"] = m_DefaultPort;
 			j["Settings"]["ConnectProtocol"] = m_DefaultProtocol;
+			j["Settings"]["ConnectBTHAuth"] = m_DefaultBTHAuth;
 
 			j["Settings"]["AutoFileTransferFile"] = Util::ToStringA((LPCWSTR)autotrf_file);
 		}
@@ -710,11 +759,27 @@ void CTestAppDlg::OnClose()
 
 void CTestAppDlg::OnLocalInitialize()
 {
-	auto ports = m_MainTab->GetTextValue(IDC_SERVERPORT);
-	if (ports.IsEmpty())
+	const auto ports = GetPorts(m_MainTab->GetTextValue(IDC_SERVERPORT));
+	if (!ports.has_value() || ports->empty())
 	{
-		AfxMessageBox(L"Specify at least one listener port for the local instance.");
+		AfxMessageBox(L"Specify at least one TCP/UDP listener port for the local instance. Separate multiple ports with semicolons.");
 		return;
+	}
+
+	const auto portsbth = GetPorts(m_MainTab->GetTextValue(IDC_SERVERPORT_BTH));
+	if (!portsbth.has_value() || portsbth->empty())
+	{
+		AfxMessageBox(L"Specify at least one Bluetooth listener port for the local instance. Separate multiple ports with semicolons.");
+		return;
+	}
+
+	for (const auto port : *portsbth)
+	{
+		if (port > 30)
+		{
+			AfxMessageBox(L"Bluetooth ports should be between 0 and 30.");
+			return;
+		}
 	}
 
 	auto luuid = m_MainTab->GetTextValue(IDC_LOCAL_UUID);
@@ -741,10 +806,14 @@ void CTestAppDlg::OnLocalInitialize()
 	}
 
 	params.Listeners.TCP.Enable = true;
-	params.Listeners.TCP.Ports = GetPorts(ports);
+	params.Listeners.TCP.Ports = *ports;
+	params.Listeners.TCP.NATTraversal = true;
 	params.Listeners.UDP.Enable = true;
-	params.Listeners.UDP.Ports = GetPorts(ports);
-	params.Listeners.EnableNATTraversal = true;
+	params.Listeners.UDP.Ports = *ports;
+	params.Listeners.UDP.NATTraversal = true;
+	params.Listeners.BTH.Enable = true;
+	params.Listeners.BTH.Ports = *portsbth;
+	params.Listeners.BTH.RequireAuthentication = (((CButton*)m_MainTab->GetDlgItem(IDC_BTH_AUTH2))->GetCheck() == BST_CHECKED);
 	params.EnableExtenders = true;
 	params.Relays.Enable = true;
 
@@ -890,15 +959,16 @@ void CTestAppDlg::OnAttacksConnectWithGarbage()
 	if (!Attacks::IsConnectGarbageAttackRunning())
 	{
 		CEndpointDlg dlg;
-		dlg.SetIPAddress(m_DefaultIP);
-		dlg.SetIPAddressHistory(m_DefaultIPHistory);
+		dlg.SetAddress(m_DefaultAddress);
+		dlg.SetAddressHistory(m_DefaultAddressHistory);
 		dlg.SetPort(m_DefaultPort);
-		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
-		dlg.SetProtocolSelection(false);
+		dlg.SetBTHAuthentication(m_DefaultBTHAuth);
+		dlg.SetProtocol(Endpoint::Protocol::TCP);
+		dlg.RemoveProtocol(Endpoint::Protocol::UDP);
 
 		if (dlg.DoModal() == IDOK)
 		{
-			Attacks::StartConnectGarbageAttack(dlg.GetIPAddress().GetString().c_str(), dlg.GetPort());
+			Attacks::StartConnectGarbageAttack(dlg.GetEndpoint());
 		}
 	}
 	else
@@ -918,15 +988,16 @@ void CTestAppDlg::OnAttacksConnectAndDisconnect()
 	if (!Attacks::IsConnectAttackRunning())
 	{
 		CEndpointDlg dlg;
-		dlg.SetIPAddress(m_DefaultIP);
-		dlg.SetIPAddressHistory(m_DefaultIPHistory);
+		dlg.SetAddress(m_DefaultAddress);
+		dlg.SetAddressHistory(m_DefaultAddressHistory);
 		dlg.SetPort(m_DefaultPort);
-		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
-		dlg.SetProtocolSelection(false);
+		dlg.SetBTHAuthentication(m_DefaultBTHAuth);
+		dlg.SetProtocol(Endpoint::Protocol::TCP);
+		dlg.RemoveProtocol(Endpoint::Protocol::UDP);
 
 		if (dlg.DoModal() == IDOK)
 		{
-			Attacks::StartConnectAttack(dlg.GetIPAddress().GetString().c_str(), dlg.GetPort());
+			Attacks::StartConnectAttack(dlg.GetEndpoint());
 		}
 	}
 	else
@@ -946,15 +1017,16 @@ void CTestAppDlg::OnAttacksConnectAndWait()
 	if (!Attacks::IsConnectWaitAttackRunning())
 	{
 		CEndpointDlg dlg;
-		dlg.SetIPAddress(m_DefaultIP);
-		dlg.SetIPAddressHistory(m_DefaultIPHistory);
+		dlg.SetAddress(m_DefaultAddress);
+		dlg.SetAddressHistory(m_DefaultAddressHistory);
 		dlg.SetPort(m_DefaultPort);
-		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
-		dlg.SetProtocolSelection(false);
+		dlg.SetBTHAuthentication(m_DefaultBTHAuth);
+		dlg.SetProtocol(Endpoint::Protocol::TCP);
+		dlg.RemoveProtocol(Endpoint::Protocol::UDP);
 
 		if (dlg.DoModal() == IDOK)
 		{
-			Attacks::StartConnectWaitAttack(dlg.GetIPAddress().GetString().c_str(), dlg.GetPort());
+			Attacks::StartConnectWaitAttack(dlg.GetEndpoint());
 		}
 	}
 	else
@@ -1017,6 +1089,31 @@ void CTestAppDlg::OnUpdateLocalUDPListenersEnabled(CCmdUI* pCmdUI)
 	pCmdUI->Enable(m_QuantumGate.IsRunning());
 }
 
+void CTestAppDlg::OnLocalBTHListenersEnabled()
+{
+	if (!m_QuantumGate.AreListenersEnabled(Local::ListenerType::BTH))
+	{
+		m_QuantumGate.EnableListeners(Local::ListenerType::BTH).Failed([](auto& result)
+		{
+			LogErr(L"Failed to enable BTH listeners: %s", result.GetErrorString().c_str());
+		});
+	}
+	else
+	{
+		m_QuantumGate.DisableListeners(Local::ListenerType::BTH).Failed([](auto& result)
+		{
+			LogErr(L"Failed to disable BTH listeners: %s", result.GetErrorString().c_str());
+		});
+	}
+}
+
+void CTestAppDlg::OnUpdateLocalBTHListenersEnabled(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_QuantumGate.AreListenersEnabled(Local::ListenerType::BTH));
+	pCmdUI->Enable(m_QuantumGate.IsRunning());
+}
+
+
 void CTestAppDlg::OnLocalExtendersEnabled()
 {
 	if (!m_QuantumGate.AreExtendersEnabled())
@@ -1066,10 +1163,11 @@ void CTestAppDlg::OnStressConnectAndDisconnect()
 	if (!Stress::IsConnectStressRunning())
 	{
 		CEndpointDlg dlg;
-		dlg.SetIPAddress(m_DefaultIP);
-		dlg.SetIPAddressHistory(m_DefaultIPHistory);
+		dlg.SetAddress(m_DefaultAddress);
+		dlg.SetAddressHistory(m_DefaultAddressHistory);
 		dlg.SetPort(m_DefaultPort);
-		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
+		dlg.SetBTHAuthentication(m_DefaultBTHAuth);
+		dlg.SetProtocol(Endpoint::Protocol::TCP);
 		dlg.SetShowRelay(true);
 
 		if (dlg.DoModal() == IDOK)
@@ -1083,9 +1181,8 @@ void CTestAppDlg::OnStressConnectAndDisconnect()
 				if (!GenerateGlobalSharedSecret(passphrase, gsecret)) return;
 			}
 
-			Stress::StartConnectStress(m_QuantumGate, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort(),
-									   dlg.GetRelayHops(), dlg.GetProtocol(), dlg.GetReuseConnection(),
-									   dlg.GetRelayGatewayPeer(), gsecret);
+			Stress::StartConnectStress(m_QuantumGate, dlg.GetEndpoint(), dlg.GetBTHAuthentication(), dlg.GetRelayHops(),
+									   dlg.GetReuseConnection(), dlg.GetRelayGatewayPeer(), gsecret);
 		}
 	}
 	else Stress::StopConnectStress();
@@ -1348,22 +1445,25 @@ void CTestAppDlg::OnUpdateLocalRelaysEnabled(CCmdUI* pCmdUI)
 void CTestAppDlg::OnLocalConnect()
 {
 	CEndpointDlg dlg;
-	dlg.SetIPAddress(m_DefaultIP);
-	dlg.SetIPAddressHistory(m_DefaultIPHistory);
+	dlg.SetAddress(m_DefaultAddress);
+	dlg.SetAddressHistory(m_DefaultAddressHistory);
 	dlg.SetPort(m_DefaultPort);
+	dlg.SetBTHAuthentication(m_DefaultBTHAuth);
 	dlg.SetProtocol(m_DefaultProtocol);
 
 	if (dlg.DoModal() == IDOK)
 	{
-		m_DefaultIP = dlg.GetIPAddress().GetString();
-		m_DefaultIPHistory = dlg.GetIPAddressHistory();
+		m_DefaultAddress = dlg.GetAddress().GetString();
+		m_DefaultAddressHistory = dlg.GetAddressHistory();
 		m_DefaultPort = dlg.GetPort();
+		m_DefaultBTHAuth = dlg.GetBTHAuthentication();
 		m_DefaultProtocol = dlg.GetProtocol();
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerEndpoint = IPEndpoint(m_DefaultProtocol, IPAddress(m_DefaultIP), m_DefaultPort);
+		params.PeerEndpoint = dlg.GetEndpoint();
 		params.ReuseExistingConnection = dlg.GetReuseConnection();
+		params.Bluetooth.RequireAuthentication = dlg.GetBTHAuthentication();
 
 		params.GlobalSharedSecret.emplace();
 
@@ -1417,9 +1517,10 @@ void CTestAppDlg::OnLocalConnectRelayed()
 void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway_pluid)
 {
 	CEndpointDlg dlg;
-	dlg.SetIPAddress(m_DefaultIP);
-	dlg.SetIPAddressHistory(m_DefaultIPHistory);
+	dlg.SetAddress(m_DefaultAddress);
+	dlg.SetAddressHistory(m_DefaultAddressHistory);
 	dlg.SetPort(m_DefaultPort);
+	dlg.SetBTHAuthentication(m_DefaultBTHAuth);
 	dlg.SetProtocol(m_DefaultProtocol);
 
 	if (gateway_pluid) dlg.SetRelayGatewayPeer(*gateway_pluid);
@@ -1428,14 +1529,15 @@ void CTestAppDlg::CreateRelayedConnection(const std::optional<PeerLUID>& gateway
 
 	if (dlg.DoModal() == IDOK)
 	{
-		m_DefaultIP = dlg.GetIPAddress().GetString();
-		m_DefaultIPHistory = dlg.GetIPAddressHistory();
+		m_DefaultAddress = dlg.GetAddress().GetString();
+		m_DefaultAddressHistory = dlg.GetAddressHistory();
 		m_DefaultPort = dlg.GetPort();
+		m_DefaultBTHAuth = dlg.GetBTHAuthentication();
 		m_DefaultProtocol = dlg.GetProtocol();
 		auto passphrase = dlg.GetPassPhrase();
 
 		ConnectParameters params;
-		params.PeerEndpoint = IPEndpoint(m_DefaultProtocol, IPAddress(m_DefaultIP), m_DefaultPort);
+		params.PeerEndpoint = params.PeerEndpoint = dlg.GetEndpoint();
 		params.ReuseExistingConnection = dlg.GetReuseConnection();
 		params.Relay.Hops = dlg.GetRelayHops();
 		params.Relay.GatewayPeer = dlg.GetRelayGatewayPeer();
@@ -1524,10 +1626,11 @@ void CTestAppDlg::OnStressMultipleInstances()
 		}
 
 		CEndpointDlg dlg;
-		dlg.SetIPAddress(m_DefaultIP);
-		dlg.SetIPAddressHistory(m_DefaultIPHistory);
+		dlg.SetAddress(m_DefaultAddress);
+		dlg.SetAddressHistory(m_DefaultAddressHistory);
 		dlg.SetPort(m_DefaultPort);
-		dlg.SetProtocol(IPEndpoint::Protocol::TCP);
+		dlg.SetBTHAuthentication(m_DefaultBTHAuth);
+		dlg.SetProtocol(Endpoint::Protocol::TCP);
 
 		if (dlg.DoModal() == IDOK)
 		{
@@ -1549,6 +1652,7 @@ void CTestAppDlg::OnStressMultipleInstances()
 
 			params.Listeners.TCP.Enable = false;
 			params.Listeners.UDP.Enable = false;
+			params.Listeners.BTH.Enable = false;
 			params.EnableExtenders = true;
 			params.RequireAuthentication = false;
 
@@ -1559,8 +1663,7 @@ void CTestAppDlg::OnStressMultipleInstances()
 				if (!GenerateGlobalSharedSecret(passphrase, gsecret)) return;
 			}
 
-			Stress::StartMultiInstanceStress(params, dlg.GetIPAddress().GetString().c_str(), dlg.GetPort(),
-											 dlg.GetProtocol(), gsecret);
+			Stress::StartMultiInstanceStress(params, dlg.GetEndpoint(), gsecret);
 		}
 	}
 	else Stress::StopMultiInstanceStress();
@@ -1595,7 +1698,9 @@ void CTestAppDlg::OnLocalAddressReputations()
 
 void CTestAppDlg::OnLocalEnvironmentInfo()
 {
-	const auto env = m_QuantumGate.GetEnvironment();
+	CWaitCursor wait;
+	auto env = m_QuantumGate.GetEnvironment(true);
+
 	String info;
 
 	if (const auto result = env.GetHostname(); result.Succeeded())
@@ -1637,69 +1742,75 @@ void CTestAppDlg::OnLocalEnvironmentInfo()
 	}
 	else AfxMessageBox(L"Failed to get ethernet interfaces!", MB_ICONERROR);
 
-	if (const auto result = env.GetIPAddresses(); result.Succeeded())
+	if (const auto result = env.GetAddresses(); result.Succeeded())
 	{
 		info += L"\r\n________________________________________________________\r\n\r\n";
-		info += L"IP addresses:";
+		info += L"Addresses:";
 
-		for (const auto& ipdetails : *result)
+		for (const auto& adetails : *result)
 		{
-			info += L"\r\n\r\nAddress:\t\t\t\t" + ipdetails.IPAddress.GetString() + L"\r\n";
+			info += L"\r\n\r\n";
 
+			if (adetails.Address.GetType() == Address::Type::IP) info += L"IP";
+			else if (adetails.Address.GetType() == Address::Type::BTH) info += L"Bluetooth";
+			else info += L"Unknown";
+
+			info += L" Address:\t\t\t" + adetails.Address.GetString() + L"\r\n";
+			
 			info += L"On local interface:\t\t\t";
-			if (ipdetails.BoundToLocalEthernetInterface) info += L"Yes";
+			if (adetails.BoundToLocalInterface) info += L"Yes";
 			else info += L"No";
 
-			if (ipdetails.PublicDetails.has_value())
+			if (adetails.PublicDetails.has_value())
 			{
 				info += L"\r\n";
 
 				info += L"Reported by peers:\t\t\t";
-				if (ipdetails.PublicDetails->ReportedByPeers) info += L"Yes";
+				if (adetails.PublicDetails->ReportedByPeers) info += L"Yes";
 				else info += L"No";
 
 				info += L"\r\n";
 
 				info += L"Reported by trusted peers:\t\t";
-				if (ipdetails.PublicDetails->ReportedByTrustedPeers) info += L"Yes";
+				if (adetails.PublicDetails->ReportedByTrustedPeers) info += L"Yes";
 				else info += L"No";
 
 				info += L"\r\n";
 
 				info += L"Number of reporting networks:\t" +
-					Util::FormatString(L"%zu", ipdetails.PublicDetails->NumReportingNetworks);
+					Util::FormatString(L"%zu", adetails.PublicDetails->NumReportingNetworks);
 
 				info += L"\r\n";
 
 				info += L"Verified:\t\t\t\t";
-				if (ipdetails.PublicDetails->Verified) info += L"Yes";
+				if (adetails.PublicDetails->Verified) info += L"Yes";
 				else info += L"No";
 			}
 		}
 	}
-	else AfxMessageBox(L"Failed to get IP addresses!", MB_ICONERROR);
+	else AfxMessageBox(L"Failed to get addresses!", MB_ICONERROR);
 
 	if (const auto result = env.GetBluetoothRadios(); result.Succeeded())
 	{
 		info += L"\r\n________________________________________________________\r\n\r\n";
 		info += L"Bluetooth radios:";
 
-		for (const auto& bthdev : *result)
+		for (const auto& bthradio : *result)
 		{
-			info += L"\r\n\r\nName:\t\t" + bthdev.Name + L"\r\n";
-			info += L"Address:\t\t" + bthdev.Address.GetString() + L"\r\n";
-			info += L"Manufacturer ID:\t" + Util::FormatString(L"%u", bthdev.ManufacturerID);
+			info += L"\r\n\r\nName:\t\t" + bthradio.Name + L"\r\n";
+			info += L"Address:\t\t" + bthradio.Address.GetString() + L"\r\n";
+			info += L"Manufacturer ID:\t" + Util::FormatString(L"%u", bthradio.ManufacturerID);
 			
 			info += L"\r\n";
 
 			info += L"Connectable:\t";
-			if (bthdev.IsConnectable) info += L"Yes";
+			if (bthradio.Connectable) info += L"Yes";
 			else info += L"No";
 			
 			info += L"\r\n";
 
 			info += L"Discoverable:\t";
-			if (bthdev.IsDiscoverable) info += L"Yes";
+			if (bthradio.Discoverable) info += L"Yes";
 			else info += L"No";
 		}
 	}
@@ -1712,21 +1823,69 @@ void CTestAppDlg::OnLocalEnvironmentInfo()
 
 		for (const auto& bthdev : *result)
 		{
-			info += L"\r\n\r\nName:\t\t" + bthdev.Name + L"\r\n";
-			
-			std::array<WChar, 256> gstr{ 0 };
-			const auto len = StringFromGUID2(bthdev.ServiceClassID, gstr.data(), static_cast<int>(gstr.size()));
-			if (len > 0)
-			{
-				info += L"Service Class ID:\t";
-				info += gstr.data();
-				info += L"\r\n";
-			}
-			
+			info += L"\r\n\r\nDevice Name:\t" + bthdev.Name + L"\r\n";
+
+			info += L"Service Class ID:\t";
+			info += Util::ToString(bthdev.ServiceClassID);
+			info += L"\r\n";
+
+			if (bthdev.LocalAddress.has_value()) info += L"Local Address:\t" + bthdev.LocalAddress->GetString() + L"\r\n";
 			info += L"Remote Address:\t" + bthdev.RemoteAddress.GetString() + L"\r\n";
+
+			info += L"Connected:\t";
+			if (bthdev.Connected) info += L"Yes";
+			else info += L"No";
+
+			info += L"\r\n";
+
+			info += L"Authenticated:\t";
+			if (bthdev.Authenticated) info += L"Yes";
+			else info += L"No";
+
+			info += L"\r\n";
+
+			info += L"Remembered:\t";
+			if (bthdev.Remembered) info += L"Yes";
+			else info += L"No";
+
+			std::array<WChar, 128> tbuf{ 0 };
+
+			if (bthdev.LastSeen.has_value())
+			{
+				if (Util::TimeToLocalTimeString(std::chrono::system_clock::to_time_t(*bthdev.LastSeen), L"%d/%m/%Y %H:%M:%S", tbuf))
+				{
+					info += L"\r\n";
+					info += L"Last seen: \t" + Util::FormatString(L"%s", tbuf);
+				}
+			}
+
+			if (bthdev.LastUsed.has_value())
+			{
+				if (Util::TimeToLocalTimeString(std::chrono::system_clock::to_time_t(*bthdev.LastUsed), L"%d/%m/%Y %H:%M:%S", tbuf))
+				{
+					info += L"\r\n";
+					info += L"Last used: \t" + Util::FormatString(L"%s", tbuf);
+				}
+			}
+
+			String services;
+
+			for (const auto& guid : bthdev.Services)
+			{
+				if (services.size() > 0) services += L"\r\n\t\t";
+				services += Util::ToString(guid);
+			}
+
+			if (services.size() > 0)
+			{
+				info += L"\r\n";
+				info += L"Services:\t\t" + services;
+			}
 		}
 	}
 	else AfxMessageBox(L"Failed to get Bluetooth devices!", MB_ICONERROR);
+
+	wait.Restore();
 
 	CInformationDlg dlg;
 	dlg.SetWindowTitle(L"Local Environment Information");
@@ -1757,4 +1916,3 @@ void CTestAppDlg::OnBenchmarksThreadPause()
 {
 	Benchmarks::BenchmarkThreadPause();
 }
-

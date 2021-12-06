@@ -47,8 +47,8 @@ namespace QuantumGate::Implementation::Core::Relay
 
 				assert(lep.GetProtocol() == pep.GetProtocol());
 
-				m_LocalEndpoint = BTHEndpoint(lep.GetProtocol(), lep.GetBTHAddress(), lep.GetPort(), rport, hop);
-				m_PeerEndpoint = BTHEndpoint(pep.GetProtocol(), pep.GetBTHAddress(), pep.GetPort(), rport, hop);
+				m_LocalEndpoint = BTHEndpoint(lep.GetProtocol(), lep.GetBTHAddress(), lep.GetPort(), lep.GetServiceClassID(), rport, hop);
+				m_PeerEndpoint = BTHEndpoint(pep.GetProtocol(), pep.GetBTHAddress(), pep.GetPort(), pep.GetServiceClassID(), rport, hop);
 				break;
 			}
 			default:
@@ -124,8 +124,8 @@ namespace QuantumGate::Implementation::Core::Relay
 
 				assert(lep.GetProtocol() == pep.GetProtocol());
 
-				m_LocalEndpoint = BTHEndpoint(lep.GetProtocol(), lep.GetBTHAddress(), lep.GetPort(), rport, hop);
-				m_PeerEndpoint = BTHEndpoint(pep.GetProtocol(), pep.GetBTHAddress(), pep.GetPort(), rport, hop);
+				m_LocalEndpoint = BTHEndpoint(lep.GetProtocol(), lep.GetBTHAddress(), lep.GetPort(), lep.GetServiceClassID(), rport, hop);
+				m_PeerEndpoint = BTHEndpoint(pep.GetProtocol(), pep.GetBTHAddress(), pep.GetPort(), pep.GetServiceClassID(), rport, hop);
 				break;
 			}
 			default:

@@ -103,6 +103,12 @@
     <Filter Include="Source Files\Core\TCP">
       <UniqueIdentifier>{066ccc52-1445-451d-aaa4-1b123783b5af}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Core\BTH">
+      <UniqueIdentifier>{19223955-a4bb-4816-a94a-afedf185d20f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core\BTH">
+      <UniqueIdentifier>{75415b03-9232-4375-a61c-371a198030bb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -540,6 +546,27 @@
     <ClInclude Include="Network\NetworkUtils.h">
       <Filter>Header Files\Network</Filter>
     </ClInclude>
+    <ClInclude Include="Core\BTH\BTHSocket.h">
+      <Filter>Header Files\Core\BTH</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\BTH\BTHListenerManager.h">
+      <Filter>Header Files\Core\BTH</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\SerializedEndpoint.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\SerializedBTHEndpoint.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\SerializedIPEndpoint.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\SerializedBinaryIPAddress.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\SerializedBinaryBTHAddress.h">
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -763,6 +790,9 @@
     </ClCompile>
     <ClCompile Include="Network\NetworkUtils.cpp">
       <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\BTH\BTHListenerManager.cpp">
+      <Filter>Source Files\Core\BTH</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

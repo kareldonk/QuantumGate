@@ -578,6 +578,8 @@
     <ClInclude Include="Core\Access\IPFilters.h" />
     <ClInclude Include="Core\Access\IPSubnetLimits.h" />
     <ClInclude Include="Core\Access\PeerAccessControl.h" />
+    <ClInclude Include="Core\BTH\BTHListenerManager.h" />
+    <ClInclude Include="Core\BTH\BTHSocket.h" />
     <ClInclude Include="Core\Extender\ExtenderControl.h" />
     <ClInclude Include="Core\Extender\Extender.h" />
     <ClInclude Include="Core\Extender\ExtenderModule.h" />
@@ -665,6 +667,11 @@
     <ClInclude Include="Network\IPEndpoint.h" />
     <ClInclude Include="Network\Network.h" />
     <ClInclude Include="Network\Ping.h" />
+    <ClInclude Include="Network\SerializedBinaryBTHAddress.h" />
+    <ClInclude Include="Network\SerializedBinaryIPAddress.h" />
+    <ClInclude Include="Network\SerializedBTHEndpoint.h" />
+    <ClInclude Include="Network\SerializedEndpoint.h" />
+    <ClInclude Include="Network\SerializedIPEndpoint.h" />
     <ClInclude Include="Network\Socket.h" />
     <ClInclude Include="Network\SocketBase.h" />
     <ClInclude Include="Network\NetworkUtils.h" />
@@ -694,6 +701,7 @@
     <ClCompile Include="Core\Access\IPFilters.cpp" />
     <ClCompile Include="Core\Access\IPSubnetLimits.cpp" />
     <ClCompile Include="Core\Access\PeerAccessControl.cpp" />
+    <ClCompile Include="Core\BTH\BTHListenerManager.cpp" />
     <ClCompile Include="Core\Extender\ExtenderControl.cpp" />
     <ClCompile Include="Core\Extender\Extender.cpp" />
     <ClCompile Include="Core\Extender\ExtenderModule.cpp" />

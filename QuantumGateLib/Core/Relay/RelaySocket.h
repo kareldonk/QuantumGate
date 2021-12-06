@@ -85,13 +85,9 @@ namespace QuantumGate::Implementation::Core::Relay
 		[[nodiscard]] inline Size GetBytesSent() const noexcept override { return m_BytesSent; }
 
 		[[nodiscard]] inline const Endpoint& GetLocalEndpoint() const noexcept override { return m_LocalEndpoint; }
-		[[nodiscard]] inline const IPAddress& GetLocalIPAddress() const noexcept override { return m_LocalEndpoint.GetIPEndpoint().GetIPAddress(); }
 		[[nodiscard]] inline String GetLocalName() const noexcept override { return m_LocalEndpoint.GetString(); }
-		[[nodiscard]] inline UInt32 GetLocalPort() const noexcept override { return m_LocalEndpoint.GetIPEndpoint().GetPort(); }
 
 		[[nodiscard]] inline const Endpoint& GetPeerEndpoint() const noexcept override { return m_PeerEndpoint; }
-		[[nodiscard]] inline const IPAddress& GetPeerIPAddress() const noexcept override { return m_PeerEndpoint.GetIPEndpoint().GetIPAddress(); }
-		[[nodiscard]] inline UInt32 GetPeerPort() const noexcept override { return m_PeerEndpoint.GetIPEndpoint().GetPort(); }
 		[[nodiscard]] inline String GetPeerName() const noexcept override { return m_PeerEndpoint.GetString(); }
 
 		inline void SetConnectingCallback(ConnectingCallback&& callback) noexcept override

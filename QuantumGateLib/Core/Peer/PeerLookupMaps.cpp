@@ -27,7 +27,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (success)
 			{
 				// If anything fails below undo previous insert upon return
-				auto sg1 = MakeScopeGuard([&]
+				auto sg1 = MakeScopeGuard([&]() noexcept
 				{
 					m_PeerDataMap.erase(pluid);
 				});
@@ -60,6 +60,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	bool LookupMaps::RemovePeerData(const Data_ThS& data) noexcept
 	{
 		const auto pluid = data.WithSharedLock()->LUID;
+
 		const auto success1 = RemovePeerUUID(pluid, data.WithSharedLock()->PeerUUID);
 		const auto success2 = RemovePeerEndpoint(pluid, data.WithSharedLock()->Cached.PeerEndpoint);
 		const auto success3 = (m_PeerDataMap.erase(pluid) > 0);
@@ -357,7 +358,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			BinaryIPAddress IPAddress;
 			BTHEndpoint::Protocol BTHProtocol{ BTHEndpoint::Protocol::Unspecified };
 			BinaryBTHAddress BTHAddress;
-			UInt32 Port{ 0 };
+			GUID BTHServiceClassID{ 0 };
+			UInt16 Port{ 0 };
 			RelayHop RelayHop{ 0 };
 		};
 
@@ -383,6 +385,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 				data.BTHProtocol = ep.GetProtocol();
 				data.BTHAddress = ep.GetBTHAddress().GetBinary();
+				data.BTHServiceClassID = ep.GetServiceClassID();
 				data.Port = ep.GetPort();
 				data.RelayHop = ep.GetRelayHop();
 				break;

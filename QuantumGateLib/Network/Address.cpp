@@ -6,6 +6,30 @@
 
 namespace QuantumGate::Implementation::Network
 {
+	bool Address::TryParse(const WChar* addr_str, Address& addr) noexcept
+	{
+		IPAddress ipaddr;
+		BTHAddress bthaddr;
+
+		if (IPAddress::TryParse(addr_str, ipaddr))
+		{
+			addr = ipaddr;
+			return true;
+		}
+		else if (BTHAddress::TryParse(addr_str, bthaddr))
+		{
+			addr = bthaddr;
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Address::TryParse(const String& addr_str, Address& addr) noexcept
+	{
+		return TryParse(addr_str.c_str(), addr);
+	}
+
 	std::size_t Address::GetHash() const noexcept
 	{
 		switch (m_Type)
@@ -22,6 +46,24 @@ namespace QuantumGate::Implementation::Network
 		}
 
 		return 0;
+	}
+
+	Address::Family Address::GetFamily() const noexcept
+	{
+		switch (m_Type)
+		{
+			case Type::IP:
+				return IP::AddressFamilyToNetwork(m_IPAddress.GetFamily());
+			case Type::BTH:
+				return BTH::AddressFamilyToNetwork(m_BTHAddress.GetFamily());
+			case Type::Unspecified:
+				break;
+			default:
+				assert(false);
+				break;
+		}
+
+		return Family::Unspecified;
 	}
 
 	String Address::GetString() const noexcept

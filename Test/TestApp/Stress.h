@@ -18,11 +18,10 @@ class Stress final
 	struct ConnectStressData final
 	{
 		std::thread Thread;
-		String IP;
-		UInt16 Port{ 0 };
+		Endpoint Endpoint;
 		RelayHop Hops{ 0 };
-		IPEndpoint::Protocol Protocol{ IPEndpoint::Protocol::TCP };
 		bool ReuseConnection{ false };
+		bool BTHAuthentication{ true };
 		std::optional<PeerLUID> RelayPeer;
 		ProtectedBuffer GlobalSharedSecret;
 		std::atomic_bool Stop{ false };
@@ -33,9 +32,7 @@ class Stress final
 	{
 		std::thread Thread;
 		StartupParameters StartupParams;
-		String IP;
-		UInt16 Port{ 0 };
-		IPEndpoint::Protocol Protocol{ IPEndpoint::Protocol::TCP };
+		Endpoint Endpoint;
 		ProtectedBuffer GlobalSharedSecret;
 		std::atomic_bool Stop{ false };
 	};
@@ -48,14 +45,13 @@ public:
 	static void StopExtenderStartupShutdownStress();
 	static bool IsExtenderStartupShutdownStressRunning() noexcept;
 
-	static bool StartConnectStress(Local& qg, const CString& ip, const UInt16 port, const RelayHop hops,
-								   const IPEndpoint::Protocol protocol, const bool reuse,
+	static bool StartConnectStress(Local& qg, const Endpoint& endpoint, const bool bthauth, const RelayHop hops, const bool reuse,
 								   const std::optional<PeerLUID>& rpeer, const ProtectedBuffer& gsecret);
 	static void StopConnectStress();
 	static bool IsConnectStressRunning() noexcept;
 
-	static bool StartMultiInstanceStress(const StartupParameters& startup_params, const CString& ip, const UInt16 port,
-										 const IPEndpoint::Protocol protocol, const ProtectedBuffer& gsecret);
+	static bool StartMultiInstanceStress(const StartupParameters& startup_params, const Endpoint& endpoint,
+										 const ProtectedBuffer& gsecret);
 	static void StopMultiInstanceStress();
 	static bool IsMultiInstanceStressRunning() noexcept;
 

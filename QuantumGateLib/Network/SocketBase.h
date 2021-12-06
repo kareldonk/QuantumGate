@@ -118,13 +118,9 @@ namespace QuantumGate::Implementation::Network
 		virtual Size GetBytesSent() const noexcept = 0;
 
 		virtual const Endpoint& GetLocalEndpoint() const noexcept = 0;
-		virtual const IPAddress& GetLocalIPAddress() const noexcept = 0;
-		virtual UInt32 GetLocalPort() const noexcept = 0;
 		virtual String GetLocalName() const noexcept = 0;
 
 		virtual const Endpoint& GetPeerEndpoint() const noexcept = 0;
-		virtual const IPAddress& GetPeerIPAddress() const noexcept = 0;
-		virtual UInt32 GetPeerPort() const noexcept = 0;
 		virtual String GetPeerName() const noexcept = 0;
 
 		virtual void SetConnectingCallback(ConnectingCallback&& callback) noexcept = 0;

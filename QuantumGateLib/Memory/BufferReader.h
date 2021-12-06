@@ -7,7 +7,7 @@
 
 namespace QuantumGate::Implementation::Memory
 {
-	class BufferReader final : public BufferIO
+	class BufferReader final
 	{
 	public:
 		BufferReader() = delete;
@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Memory
 		
 		BufferReader(const BufferReader&) = delete;
 		BufferReader(BufferReader&&) = delete;
-		virtual ~BufferReader() = default;
+		~BufferReader() = default;
 		BufferReader& operator=(const BufferReader&) = delete;
 		BufferReader& operator=(BufferReader&&) = delete;
 
@@ -41,7 +41,7 @@ namespace QuantumGate::Implementation::Memory
 		{
 			static_assert(std::is_integral_v<T> || std::is_same_v<T, Byte>, "Unsupported type.");
 
-			return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data), m_ConvertFromNetworkByteOrder);
+			return ReadBytes(reinterpret_cast<Byte*>(&data), BufferIO::GetDataSize(data), m_ConvertFromNetworkByteOrder);
 		}
 
 		template<typename T> requires (std::is_enum_v<T>)
@@ -73,49 +73,55 @@ namespace QuantumGate::Implementation::Memory
 									   std::is_same_v<T, Buffer> || std::is_same_v<T, ProtectedBuffer>)
 		[[nodiscard]] bool ReadImpl(T& data)
 		{
-			return ReadBytes(data.GetBytes(), GetDataSize(data));
+			return ReadBytes(data.GetBytes(), BufferIO::GetDataSize(data));
+		}
+
+		template<typename T> requires (BufferIO::Readable<T, BufferReader>)
+		[[nodiscard]] bool ReadImpl(T& data)
+		{
+			return data.Read(*this);
 		}
 
 		[[nodiscard]] bool ReadImpl(String& data)
 		{
-			return ReadBytes(reinterpret_cast<Byte*>(data.data()), GetDataSize(data));
+			return ReadBytes(reinterpret_cast<Byte*>(data.data()), BufferIO::GetDataSize(data));
 		}
 
 		[[nodiscard]] bool ReadImpl(Network::SerializedBinaryIPAddress& data)
 		{
-			return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));
+			return ReadBytes(reinterpret_cast<Byte*>(&data), BufferIO::GetDataSize(data));
 		}
 
 		[[nodiscard]] bool ReadImpl(Network::SerializedIPEndpoint& data)
 		{
-			return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));
+			return ReadBytes(reinterpret_cast<Byte*>(&data), BufferIO::GetDataSize(data));
 		}
 
-		[[nodiscard]] bool ReadImpl(Network::SerializedEndpoint& data)
+		[[nodiscard]] bool ReadImpl(Network::SerializedBTHEndpoint& data)
 		{
-			return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));
+			return ReadBytes(reinterpret_cast<Byte*>(&data), BufferIO::GetDataSize(data));
 		}
 
 		[[nodiscard]] bool ReadImpl(SerializedUUID& data)
 		{
-			return ReadBytes(reinterpret_cast<Byte*>(&data), GetDataSize(data));
+			return ReadBytes(reinterpret_cast<Byte*>(&data), BufferIO::GetDataSize(data));
 		}
 
 		template<Size MaxSize>
 		[[nodiscard]] bool ReadImpl(StackBuffer<MaxSize>& data)
 		{
-			return ReadBytes(data.GetBytes(), GetDataSize(data));
+			return ReadBytes(data.GetBytes(), BufferIO::GetDataSize(data));
 		}
 
 		template<typename T>
-		[[nodiscard]] bool ReadImpl(const SizeWrap<T>& data)
+		[[nodiscard]] bool ReadImpl(const BufferIO::SizeWrap<T>& data)
 		{
 			static_assert(false, "Unsupported type.");
 			return false;
 		}
 
 		template<typename T>
-		[[nodiscard]] bool ReadImpl(const SizeWrap<Vector<T>>& data)
+		[[nodiscard]] bool ReadImpl(const BufferIO::SizeWrap<Vector<T>>& data)
 		{
 			Size size{ 0 };
 			if (!ReadEncodedSize(size, data.MaxSize())) return false;
@@ -131,7 +137,7 @@ namespace QuantumGate::Implementation::Memory
 			return ReadImpl(*data);
 		}
 
-		[[nodiscard]] bool ReadImpl(const SizeWrap<String>& data)
+		[[nodiscard]] bool ReadImpl(const BufferIO::SizeWrap<String>& data)
 		{
 			Size size{ 0 };
 			return (ReadEncodedSize(size, data.MaxSize()) &&
@@ -144,7 +150,7 @@ namespace QuantumGate::Implementation::Memory
 					ReadImpl(*data));
 		}
 
-		[[nodiscard]] bool ReadImpl(const SizeWrap<Buffer>& data)
+		[[nodiscard]] bool ReadImpl(const BufferIO::SizeWrap<Buffer>& data)
 		{
 			Size size{ 0 };
 			return (ReadEncodedSize(size, data.MaxSize()) &&
@@ -152,7 +158,7 @@ namespace QuantumGate::Implementation::Memory
 					ReadImpl(*data));
 		}
 
-		[[nodiscard]] bool ReadImpl(const SizeWrap<ProtectedBuffer>& data)
+		[[nodiscard]] bool ReadImpl(const BufferIO::SizeWrap<ProtectedBuffer>& data)
 		{
 			Size size{ 0 };
 			return (ReadEncodedSize(size, data.MaxSize()) &&
@@ -161,7 +167,7 @@ namespace QuantumGate::Implementation::Memory
 		}
 
 		template<Size MaxSize>
-		[[nodiscard]] bool ReadImpl(const SizeWrap<StackBuffer<MaxSize>>& data)
+		[[nodiscard]] bool ReadImpl(const BufferIO::SizeWrap<StackBuffer<MaxSize>>& data)
 		{
 			Size size{ 0 };
 			return (ReadEncodedSize(size, data.MaxSize()) &&

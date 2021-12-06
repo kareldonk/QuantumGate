@@ -5,6 +5,7 @@
 
 #include "PeerMessageDetails.h"
 #include "..\Relay\RelaySocket.h"
+#include "..\..\Network\SerializedEndpoint.h"
 
 namespace QuantumGate::Implementation::Core::Peer
 {

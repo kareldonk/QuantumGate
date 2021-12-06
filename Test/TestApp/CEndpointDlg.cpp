@@ -3,6 +3,11 @@
 
 #include "pch.h"
 #include "CEndpointDlg.h"
+#include "Common\Util.h"
+
+#include <regex>
+
+using namespace QuantumGate::Implementation;
 
 CEndpointDlg::CEndpointDlg(CWnd* pParent) : CDialogBase(CEndpointDlg::IDD, pParent)
 {}
@@ -17,11 +22,13 @@ void CEndpointDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CEndpointDlg, CDialogBase)
 	ON_BN_CLICKED(IDOK, &CEndpointDlg::OnBnClickedOk)
+	ON_CBN_SELCHANGE(IDC_PROTOCOL_COMBO, &CEndpointDlg::OnCbnSelChangeProtocolCombo)
+	ON_BN_CLICKED(IDC_BTH_SERVICE_BUTTON, &CEndpointDlg::OnBnClickedBthServiceButton)
 END_MESSAGE_MAP()
 
-void CEndpointDlg::SetIPAddress(const String& ip) noexcept
+void CEndpointDlg::SetAddress(const String& addr) noexcept
 {
-	if (!IPAddress::TryParse(ip, m_IPAddress)) AfxMessageBox(L"Invalid IP address.", MB_ICONERROR);
+	if (!Address::TryParse(addr, m_Address)) AfxMessageBox(L"Invalid address specified.", MB_ICONERROR);
 }
 
 BOOL CEndpointDlg::OnInitDialog()
@@ -30,55 +37,68 @@ BOOL CEndpointDlg::OnInitDialog()
 
 	// Init IP combo
 	{
-		const auto pcombo = (CComboBox*)GetDlgItem(IDC_IP);
+		const auto pcombo = (CComboBox*)GetDlgItem(IDC_ADDRESS);
 
-		IPAddress ip;
+		Address addr;
 		String::size_type pos{ 0 };
 		String::size_type start{ 0 };
 
-		while ((pos = m_IPAddressHistory.find(L";", start)) != String::npos)
+		while ((pos = m_AddressHistory.find(L";", start)) != String::npos)
 		{
-			const auto ipstr = m_IPAddressHistory.substr(start, pos - start);
+			const auto addr_str = m_AddressHistory.substr(start, pos - start);
 
-			if (IPAddress::TryParse(ipstr, ip))
+			if (Address::TryParse(addr_str, addr))
 			{
-				pcombo->AddString(ipstr.c_str());
+				pcombo->AddString(addr_str.c_str());
 			}
 
 			start = pos + 1;
 		}
 
-		const auto ipstr = m_IPAddressHistory.substr(start, m_IPAddressHistory.size() - start);
-		if (!ipstr.empty())
+		const auto addr_str = m_AddressHistory.substr(start, m_AddressHistory.size() - start);
+		if (!addr_str.empty())
 		{
-			if (IPAddress::TryParse(ipstr, ip))
+			if (Address::TryParse(addr_str, addr))
 			{
-				pcombo->AddString(ipstr.c_str());
+				pcombo->AddString(addr_str.c_str());
 			}
 		}
 	}
 
-	SetValue(IDC_IP, m_IPAddress.GetString());
+	SetValue(IDC_ADDRESS, m_Address.GetString());
 	SetValue(IDC_PORT, m_Port);
 
 	// Init protocol combo
 	{
 		const auto pcombo = (CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO);
-		auto pos = pcombo->AddString(L"TCP");
-		pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::IPEndpoint::Protocol::TCP));
-		if (m_Protocol == QuantumGate::IPEndpoint::Protocol::TCP) pcombo->SetCurSel(pos);
-		pos = pcombo->AddString(L"UDP");
-		pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::IPEndpoint::Protocol::UDP));
-		if (m_Protocol == QuantumGate::IPEndpoint::Protocol::UDP) pcombo->SetCurSel(pos);
 
-		if (!m_ProtocolSelection)
+		if (m_Protocols.contains(Endpoint::Protocol::TCP))
 		{
-			pcombo->EnableWindow(false);
+			const auto pos = pcombo->AddString(L"TCP");
+			pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::Endpoint::Protocol::TCP));
+			if (m_Protocol == QuantumGate::Endpoint::Protocol::TCP) pcombo->SetCurSel(pos);
 		}
+
+		if (m_Protocols.contains(Endpoint::Protocol::UDP))
+		{
+			const auto pos = pcombo->AddString(L"UDP");
+			pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::Endpoint::Protocol::UDP));
+			if (m_Protocol == QuantumGate::Endpoint::Protocol::UDP) pcombo->SetCurSel(pos);
+		}
+
+		if (m_Protocols.contains(Endpoint::Protocol::BTH))
+		{
+			const auto pos = pcombo->AddString(L"BTH");
+			pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::Endpoint::Protocol::BTH));
+			if (m_Protocol == QuantumGate::Endpoint::Protocol::BTH) pcombo->SetCurSel(pos);
+		}
+
+		OnCbnSelChangeProtocolCombo();
 	}
 
 	SetValue(IDC_HOPS, m_Hops);
 
+	if (m_BTHAuthentication) ((CButton*)GetDlgItem(IDC_BTH_AUTH))->SetCheck(BST_CHECKED);
 	if (m_ReuseConnection) ((CButton*)GetDlgItem(IDC_REUSE_CONNECTION))->SetCheck(BST_CHECKED);
 	if (m_RelayGatewayPeer) SetValue(IDC_RELAY_PEER, *m_RelayGatewayPeer);
 
@@ -95,8 +115,8 @@ BOOL CEndpointDlg::OnInitDialog()
 
 void CEndpointDlg::OnBnClickedOk()
 {
-	const auto ipstr = GetTextValue(IDC_IP);
-	if (IPAddress::TryParse(ipstr.GetString(), m_IPAddress))
+	const auto addr_str = GetTextValue(IDC_ADDRESS);
+	if (Address::TryParse(addr_str.GetString(), m_Address))
 	{
 		const auto sel = ((CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO))->GetCurSel();
 		if (sel == CB_ERR)
@@ -105,28 +125,109 @@ void CEndpointDlg::OnBnClickedOk()
 			return;
 		}
 
-		if (m_IPAddressHistory.find(ipstr) == String::npos)
-		{
-			if (!m_IPAddressHistory.empty()) m_IPAddressHistory += L";";
+		const auto protocol = static_cast<Endpoint::Protocol>(((CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO))->GetItemData(sel));
 
-			m_IPAddressHistory += ipstr;
+		auto perror{ false };
+		if (m_Address.GetType() == Address::Type::IP)
+		{
+			perror = (protocol != Endpoint::Protocol::TCP && protocol != Endpoint::Protocol::UDP);
+		}
+		else if (m_Address.GetType() == Address::Type::BTH)
+		{
+			perror = (protocol != Endpoint::Protocol::BTH);
 		}
 
-		m_Port = static_cast<UInt16>(GetInt64Value(IDC_PORT));
+		if (perror)
+		{
+			AfxMessageBox(L"Invalid address and protocol combination.", MB_ICONERROR);
+			return;
+		}
+		else m_Protocol = protocol;
 
-		m_Protocol = static_cast<QuantumGate::IPEndpoint::Protocol>(((CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO))->GetItemData(sel));
+		if (m_AddressHistory.find(addr_str) == String::npos)
+		{
+			if (!m_AddressHistory.empty()) m_AddressHistory += L";";
+
+			m_AddressHistory += addr_str;
+		}
+
+		const auto port_str = GetTextValue(IDC_PORT);
+
+		GUID temp_guid{ 0 };
+		if (CLSIDFromString(port_str, &temp_guid) == NOERROR)
+		{
+			m_Port = 0;
+			m_ServiceClassID = temp_guid;
+		}
+		else
+		{
+			// Require only numbers
+			std::wregex r(LR"port(^\s*([\d]+)\s*$)port");
+			std::wcmatch m;
+			if (!std::regex_search(port_str.GetString(), m, r))
+			{
+				AfxMessageBox(L"Please specify a valid port or service class ID.", MB_ICONINFORMATION);
+				return;
+			}
+
+			m_Port = static_cast<UInt16>(GetInt64Value(IDC_PORT));
+			m_ServiceClassID = BTHEndpoint::GetNullServiceClassID();
+		}
+
 		m_PassPhrase = GetTextValue(IDC_PASSPHRASE);
 		m_Hops = static_cast<UInt8>(GetInt64Value(IDC_HOPS));
 
 		const auto id = GetUInt64Value(IDC_RELAY_PEER);
 		if (id != 0) m_RelayGatewayPeer = id;
 
+		m_BTHAuthentication = (((CButton*)GetDlgItem(IDC_BTH_AUTH))->GetCheck() == BST_CHECKED);
 		m_ReuseConnection = (((CButton*)GetDlgItem(IDC_REUSE_CONNECTION))->GetCheck() == BST_CHECKED);
 
 		CDialogBase::OnOK();
 	}
 	else
 	{
-		AfxMessageBox(ipstr, MB_ICONERROR);
+		AfxMessageBox(L"Invalid address specified!", MB_ICONERROR);
 	}
+}
+
+Endpoint CEndpointDlg::GetEndpoint() const noexcept
+{
+	if (m_Address.GetType() == Address::Type::IP)
+	{
+		const auto protocol = m_Protocol == Endpoint::Protocol::TCP ? IPEndpoint::Protocol::TCP : IPEndpoint::Protocol::UDP;
+		return IPEndpoint(protocol, m_Address.GetIPAddress(), m_Port);
+	}
+	else if (m_Address.GetType() == Address::Type::BTH)
+	{
+		return BTHEndpoint(BTHEndpoint::Protocol::RFCOMM, m_Address.GetBTHAddress(), m_Port, m_ServiceClassID);
+	}
+
+	return {};
+}
+
+void CEndpointDlg::OnCbnSelChangeProtocolCombo()
+{
+	const auto sel = ((CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO))->GetCurSel();
+	if (sel != CB_ERR)
+	{
+		const auto protocol = static_cast<Endpoint::Protocol>(((CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO))->GetItemData(sel));
+		if (protocol == Endpoint::Protocol::BTH)
+		{
+			GetDlgItem(IDC_BTH_AUTH)->ShowWindow(SW_SHOW);
+			GetDlgItem(IDC_BTH_SERVICE_BUTTON)->ShowWindow(SW_SHOW);
+			GetDlgItem(IDC_PORT_LABEL)->SetWindowText(L"Port / Service Class ID:");
+		}
+		else
+		{
+			GetDlgItem(IDC_BTH_AUTH)->ShowWindow(SW_HIDE);
+			GetDlgItem(IDC_BTH_SERVICE_BUTTON)->ShowWindow(SW_HIDE);
+			GetDlgItem(IDC_PORT_LABEL)->SetWindowText(L"Port:");
+		}
+	}
+}
+
+void CEndpointDlg::OnBnClickedBthServiceButton()
+{
+	SetValue(IDC_PORT, Util::ToString(BTHEndpoint::GetQuantumGateServiceClassID()));
 }

@@ -34,7 +34,7 @@ namespace QuantumGate::Implementation::Core
 
 		inline const String& GetHostname() const noexcept { return m_Hostname; }
 		inline const String& GetUsername() const noexcept { return m_Username; }
-		Result<Vector<API::Local::Environment::IPAddressDetails>> GetIPAddresses() const noexcept;
+		Result<Vector<API::Local::Environment::AddressDetails>> GetAddresses() const noexcept;
 		inline const Vector<API::Local::Environment::EthernetInterface>& GetEthernetInterfaces() const noexcept { return m_EthernetInterfaces; }
 		inline const Vector<API::Local::Environment::BluetoothDevice>& GetBluetoothDevices() const noexcept { return m_BluetoothDevices; }
 		inline const Vector<API::Local::Environment::BluetoothRadio>& GetBluetoothRadios() const noexcept { return m_BluetoothRadios; }
@@ -54,7 +54,7 @@ namespace QuantumGate::Implementation::Core
 		static VOID NETIOAPI_API_ IPInterfaceChangeNotificationCallback(PVOID CallerContext, PMIB_IPINTERFACE_ROW Row,
 																		MIB_NOTIFICATION_TYPE NotificationType);
 
-		[[nodiscard]] bool UpdateEnvironmentInformation() noexcept;
+		[[nodiscard]] bool UpdateEnvironmentInformation(const bool refresh) noexcept;
 		void ClearEnvironmentInformation() noexcept;
 
 		[[nodiscard]] bool UpdateCachedAddresses() noexcept;
@@ -62,8 +62,12 @@ namespace QuantumGate::Implementation::Core
 		static Result<String> OSGetHostname() noexcept;
 		static Result<String> OSGetUsername() noexcept;
 		static Result<Vector<API::Local::Environment::EthernetInterface>> OSGetEthernetInterfaces() noexcept;
-		static Result<Vector<API::Local::Environment::BluetoothDevice>> OSGetBluetoothDevices() noexcept;
-		static Result<Vector<API::Local::Environment::BluetoothRadio>> OSGetBluetoothRadios() noexcept;
+		static Result<> OSGetBluetoothDevices(Vector<API::Local::Environment::BluetoothDevice>& devices, const bool refresh) noexcept;
+		static Result<std::pair<Vector<API::Local::Environment::BluetoothRadio>,
+			Vector<API::Local::Environment::BluetoothDevice>>> OSGetBluetoothRadios(const bool refresh) noexcept;
+		static Result<Vector<API::Local::Environment::BluetoothDevice>> OSGetBluetoothDevicesForRadio(const HANDLE radio,
+																									  const BTHAddress& local_bthaddr,
+																									  const bool refresh) noexcept;
 		static Result<Vector<BinaryIPAddress>> OSGetIPAddresses(const String& hostname) noexcept;
 
 	private:

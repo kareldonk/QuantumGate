@@ -351,7 +351,7 @@ namespace QuantumGate::Implementation::Core
 		{
 			const auto& settings = m_Settings.GetCache();
 
-			if (data_verification->Verify(settings.Local.Listeners.NATTraversal) &&
+			if (data_verification->Verify(settings.Local.Listeners.TCP.NATTraversal || settings.Local.Listeners.UDP.NATTraversal) &&
 				data_verification->IsVerified())
 			{
 				m_Endpoints.WithUniqueLock([&](auto& ipendpoints)
@@ -444,7 +444,7 @@ namespace QuantumGate::Implementation::Core
 			if (result.second)
 			{
 				// Upon failure to add to the queue, remove from the set
-				auto sg = MakeScopeGuard([&] { ipaddress_set->erase(result.first); });
+				auto sg = MakeScopeGuard([&]() noexcept { ipaddress_set->erase(result.first); });
 
 				m_DataVerification.Queue.Push(DataVerificationDetails{ ip });
 
@@ -482,7 +482,7 @@ namespace QuantumGate::Implementation::Core
 			if (result.second)
 			{
 				// Upon failure to add to the queue, remove from the set
-				auto sg = MakeScopeGuard([&] { ipaddress_set->erase(result.first); });
+				auto sg = MakeScopeGuard([&]() noexcept { ipaddress_set->erase(result.first); });
 
 				m_HopVerification.Queue.Push(HopVerificationDetails{ ip });
 
@@ -518,7 +518,7 @@ namespace QuantumGate::Implementation::Core
 
 		if (rep_con_type != PeerConnectionType::Unknown)
 		{
-			auto get_network = [](const Endpoint& pub_endpoint, const Endpoint& rep_peer) noexcept -> std::optional<Address>
+			const auto get_network = [](const Endpoint& pub_endpoint, const Endpoint& rep_peer) noexcept -> std::optional<Address>
 			{
 				switch (pub_endpoint.GetType())
 				{
@@ -557,6 +557,7 @@ namespace QuantumGate::Implementation::Core
 						{
 							return rep_bthep.GetBTHAddress();
 						}
+						break;
 					}
 					default:
 					{
@@ -762,25 +763,22 @@ namespace QuantumGate::Implementation::Core
 		return true;
 	}
 
-	Result<> PublicEndpoints::AddIPAddresses(Vector<Network::Address>& ips, const bool only_trusted_verified) const noexcept
+	Result<> PublicEndpoints::AddAddresses(Vector<Network::Address>& addrs, const bool only_trusted_verified) const noexcept
 	{
 		try
 		{
-			auto ipendpoints = m_Endpoints.WithSharedLock();
+			auto endpoints = m_Endpoints.WithSharedLock();
 
-			for (const auto& it : *ipendpoints)
+			for (const auto& it : *endpoints)
 			{
-				if (it.first.GetType() == Network::Address::Type::IP)
+				if (only_trusted_verified && !(it.second.IsTrusted() || it.second.IsVerified()))
 				{
-					if (only_trusted_verified && !(it.second.IsTrusted() || it.second.IsVerified()))
-					{
-						continue;
-					}
+					continue;
+				}
 
-					if (std::find(ips.begin(), ips.end(), it.first) == ips.end())
-					{
-						ips.emplace_back(it.first);
-					}
+				if (std::find(addrs.begin(), addrs.end(), it.first) == addrs.end())
+				{
+					addrs.emplace_back(it.first);
 				}
 			}
 
@@ -788,56 +786,53 @@ namespace QuantumGate::Implementation::Core
 		}
 		catch (const std::exception& e)
 		{
-			LogErr(L"Could not add public IP addresses due to exception: %s",
+			LogErr(L"Could not add public addresses due to exception: %s",
 				   Util::ToStringW(e.what()).c_str());
 		}
 		catch (...)
 		{
-			LogErr(L"Could not add public IP addresses due to unknown exception");
+			LogErr(L"Could not add public addresses due to unknown exception");
 		}
 
 		return ResultCode::Failed;
 	}
 
-	Result<> PublicEndpoints::AddIPAddresses(Vector<API::Local::Environment::IPAddressDetails>& ips) const noexcept
+	Result<> PublicEndpoints::AddAddresses(Vector<API::Local::Environment::AddressDetails>& addrs) const noexcept
 	{
 		try
 		{
-			auto ipendpoints = m_Endpoints.WithSharedLock();
+			auto endpoints = m_Endpoints.WithSharedLock();
 
-			for (const auto& it : *ipendpoints)
+			for (const auto& it : *endpoints)
 			{
-				if (it.first.GetType() == Network::Address::Type::IP)
+				const auto it2 = std::find_if(addrs.begin(), addrs.end(), [&](const auto& addrd)
 				{
-					const auto it2 = std::find_if(ips.begin(), ips.end(), [&](const auto& ipd)
-					{
-						return (ipd.IPAddress == it.first.GetIPAddress());
-					});
+					return (addrd.Address == it.first);
+				});
 
-					if (it2 == ips.end())
-					{
-						auto& ipdetails = ips.emplace_back();
-						ipdetails.IPAddress = it.first.GetIPAddress();
-						ipdetails.BoundToLocalEthernetInterface = false;
+				if (it2 == addrs.end())
+				{
+					auto& adetails = addrs.emplace_back();
+					adetails.Address = it.first;
+					adetails.BoundToLocalInterface = false;
 
-						ipdetails.PublicDetails.emplace();
-						ipdetails.PublicDetails->ReportedByPeers = true;
-						ipdetails.PublicDetails->ReportedByTrustedPeers = it.second.IsTrusted();
-						ipdetails.PublicDetails->NumReportingNetworks = it.second.ReportingPeerNetworkHashes.size();
-						ipdetails.PublicDetails->Verified = it.second.IsVerified();
-					}
-					else
+					adetails.PublicDetails.emplace();
+					adetails.PublicDetails->ReportedByPeers = true;
+					adetails.PublicDetails->ReportedByTrustedPeers = it.second.IsTrusted();
+					adetails.PublicDetails->NumReportingNetworks = it.second.ReportingPeerNetworkHashes.size();
+					adetails.PublicDetails->Verified = it.second.IsVerified();
+				}
+				else
+				{
+					// May be a locally configured IP that's also
+					// publicly visible; add the public details 
+					if (!it2->PublicDetails.has_value())
 					{
-						// May be a locally configured IP that's also
-						// publicly visible; add the public details 
-						if (!it2->PublicDetails.has_value())
-						{
-							it2->PublicDetails.emplace();
-							it2->PublicDetails->ReportedByPeers = true;
-							it2->PublicDetails->ReportedByTrustedPeers = it.second.IsTrusted();
-							it2->PublicDetails->NumReportingNetworks = it.second.ReportingPeerNetworkHashes.size();
-							it2->PublicDetails->Verified = it.second.IsVerified();
-						}
+						it2->PublicDetails.emplace();
+						it2->PublicDetails->ReportedByPeers = true;
+						it2->PublicDetails->ReportedByTrustedPeers = it.second.IsTrusted();
+						it2->PublicDetails->NumReportingNetworks = it.second.ReportingPeerNetworkHashes.size();
+						it2->PublicDetails->Verified = it.second.IsVerified();
 					}
 				}
 			}
@@ -846,12 +841,12 @@ namespace QuantumGate::Implementation::Core
 		}
 		catch (const std::exception& e)
 		{
-			LogErr(L"Could not add public IP addresses due to exception: %s",
+			LogErr(L"Could not add public addresses due to exception: %s",
 				   Util::ToStringW(e.what()).c_str());
 		}
 		catch (...)
 		{
-			LogErr(L"Could not add public IP addresses due to unknown exception");
+			LogErr(L"Could not add public addresses due to unknown exception");
 		}
 
 		return ResultCode::Failed;

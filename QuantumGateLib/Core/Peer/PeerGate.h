@@ -5,6 +5,7 @@
 
 #include "..\TCP\TCPSocket.h"
 #include "..\UDP\UDPSocket.h"
+#include "..\BTH\BTHSocket.h"
 #include "..\Relay\RelaySocket.h"
 
 namespace QuantumGate::Implementation::Core::Peer
@@ -13,7 +14,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	enum class GateType
 	{
-		Unknown, TCPSocket, UDPSocket, RelaySocket
+		Unknown, TCPSocket, UDPSocket, BTHSocket, RelaySocket
 	};
 
 	class Gate
@@ -69,13 +70,9 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] Size GetBytesSent() const noexcept { assert(m_Socket); return m_Socket->GetBytesSent(); }
 
 		[[nodiscard]] const Endpoint& GetLocalEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetLocalEndpoint(); }
-		[[nodiscard]] const IPAddress& GetLocalIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetLocalIPAddress(); }
 		[[nodiscard]] virtual String GetLocalName() const noexcept { assert(m_Socket); return m_Socket->GetLocalName(); }
-		[[nodiscard]] UInt32 GetLocalPort() const noexcept { assert(m_Socket); return m_Socket->GetLocalPort(); }
 
 		[[nodiscard]] const Endpoint& GetPeerEndpoint() const noexcept { assert(m_Socket); return m_Socket->GetPeerEndpoint(); }
-		[[nodiscard]] const IPAddress& GetPeerIPAddress() const noexcept { assert(m_Socket); return m_Socket->GetPeerIPAddress(); }
-		[[nodiscard]] UInt32 GetPeerPort() const noexcept { assert(m_Socket); return m_Socket->GetPeerPort(); }
 		[[nodiscard]] virtual String GetPeerName() const noexcept { assert(m_Socket); return m_Socket->GetPeerName(); }
 
 	protected:

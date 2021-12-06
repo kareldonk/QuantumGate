@@ -21,6 +21,8 @@ namespace QuantumGate::Implementation::Core::Peer
 				return WorkEvents.AddEvent(peer.GetSocket<TCP::Socket>().GetEvent().GetHandle());
 			case GateType::UDPSocket:
 				return WorkEvents.AddEvent(peer.GetSocket<UDP::Socket>().GetReceiveEvent().GetHandle());
+			case GateType::BTHSocket:
+				return WorkEvents.AddEvent(peer.GetSocket<BTH::Socket>().GetEvent().GetHandle());
 			case GateType::RelaySocket:
 				return WorkEvents.AddEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
 			default:
@@ -41,6 +43,9 @@ namespace QuantumGate::Implementation::Core::Peer
 				break;
 			case GateType::UDPSocket:
 				WorkEvents.RemoveEvent(peer.GetSocket<UDP::Socket>().GetReceiveEvent().GetHandle());
+				break;
+			case GateType::BTHSocket:
+				WorkEvents.RemoveEvent(peer.GetSocket<BTH::Socket>().GetEvent().GetHandle());
 				break;
 			case GateType::RelaySocket:
 				WorkEvents.RemoveEvent(peer.GetSocket<Relay::Socket>().GetReceiveEvent().GetHandle());
@@ -236,7 +241,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		auto success = true;
 
-		m_AccessManager.GetAccessUpdateCallbacks().WithUniqueLock([&](auto& callbacks)
+		m_AccessManager.GetAccessUpdateCallbacks().WithUniqueLock([&](auto& callbacks) noexcept
 		{
 			m_AccessUpdateCallbackHandle = callbacks.Add(MakeCallback(this, &Manager::OnAccessUpdate));
 			if (!m_AccessUpdateCallbackHandle)
@@ -266,12 +271,12 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	void Manager::RemoveCallbacks() noexcept
 	{
-		m_AccessManager.GetAccessUpdateCallbacks().WithUniqueLock([&](auto& callbacks)
+		m_AccessManager.GetAccessUpdateCallbacks().WithUniqueLock([&](auto& callbacks) noexcept
 		{
 			callbacks.Remove(m_AccessUpdateCallbackHandle);
 		});
 
-		m_ExtenderManager.GetExtenderUpdateCallbacks().WithUniqueLock([&](auto& callbacks)
+		m_ExtenderManager.GetExtenderUpdateCallbacks().WithUniqueLock([&](auto& callbacks) noexcept
 		{
 			callbacks.Remove(m_ExtenderUpdateCallbackHandle);
 		});
@@ -430,16 +435,9 @@ namespace QuantumGate::Implementation::Core::Peer
 	Result<bool> Manager::AreRelayAddressesInSameNetwork(const Address& addr, const Vector<Address>& addrs) noexcept
 	{
 		const auto& settings = GetSettings();
-		for (auto& addr2 : addrs)
-		{
-			if (LookupMaps::AreAddressesInSameNetwork(addr, addr2,
-													  settings.Relay.IPv4ExcludedNetworksCIDRLeadingBits,
-													  settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits))
-			{
-				return true;
-			}
-		}
-		return false;
+		return LookupMaps::AreAddressesInSameNetwork(addr, addrs,
+													 settings.Relay.IPv4ExcludedNetworksCIDRLeadingBits,
+													 settings.Relay.IPv6ExcludedNetworksCIDRLeadingBits);
 	}
 
 	PeerSharedPointer Manager::CreateUDP(const AddressFamily af, const PeerConnectionType pctype,
@@ -562,84 +560,88 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		peerths->WithUniqueLock([&](Peer& peer)
 		{
-			// Try to add connection to access manager; if this fails
-			// the connection was not allowed
-			if (m_AccessManager.AddIPConnection(peer.GetPeerIPAddress()))
+			if (peer.GetPeerEndpoint().GetType() == Endpoint::Type::IP)
 			{
-				PeerMap::iterator apit;
+				const auto& ip = peer.GetPeerEndpoint().GetIPEndpoint().GetIPAddress();
 
-				try
+				// Try to add connection to access manager; if this fails
+				// the connection was not allowed
+				if (!m_AccessManager.AddIPConnection(ip))
 				{
-					// If this fails there was already a peer in the map (this should not happen)
-					[[maybe_unused]] const auto [it, inserted] =
-						m_AllPeers.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
-
-					assert(inserted);
-					if (!inserted)
-					{
-						LogErr(L"Couldn't add new peer; a peer with LUID %llu already exists", peer.GetLUID());
-						return;
-					}
-
-					apit = it;
+					LogErr(L"Couldn't add new peer with LUID %llu; address %s is not allowed",
+						   peer.GetLUID(), ip.GetString().c_str());
+					return;
 				}
-				catch (...) { return; }
-
-				auto sg = MakeScopeGuard([&]
-				{
-					m_AllPeers.WithUniqueLock()->erase(apit);
-				});
-
-				// Get the threadpool with the least amount of peers so that the connections
-				// eventually get distributed among all available pools
-				const auto thpit = std::min_element(m_ThreadPools.begin(), m_ThreadPools.end(),
-													[](const auto& a, const auto& b)
-				{
-					return (a.second->GetData().PeerMap.WithSharedLock()->size() <
-							b.second->GetData().PeerMap.WithSharedLock()->size());
-				});
-
-				assert(thpit != m_ThreadPools.end());
-
-				// Add peer to the threadpool
-				peer.SetThreadPoolKey(thpit->first);
-
-				PeerMap::iterator pit;
-
-				try
-				{
-					// If this fails there was already a peer in the map (this should not happen)
-					[[maybe_unused]] const auto [it, inserted] =
-						thpit->second->GetData().PeerMap.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
-
-					assert(inserted);
-					if (!inserted)
-					{
-						LogErr(L"Couldn't add new peer; a peer with LUID %llu already exists", peer.GetLUID());
-						return;
-					}
-
-					pit = it;
-				}
-				catch (...) { return; }
-
-				auto sg2 = MakeScopeGuard([&]
-				{
-					thpit->second->GetData().PeerMap.WithUniqueLock()->erase(pit);
-				});
-
-				if (!thpit->second->GetData().AddWorkEvent(peer)) return;
-
-				sg.Deactivate();
-				sg2.Deactivate();
-
-				success = true;
 			}
-			else
+
+			PeerMap::iterator apit;
+
+			try
 			{
-				LogErr(L"Couldn't add new peer with LUID %llu; IP address %s is not allowed",
-					   peer.GetLUID(), peer.GetPeerIPAddress().GetString().c_str());
+				// If this fails there was already a peer in the map (this should not happen)
+				[[maybe_unused]] const auto [it, inserted] =
+					m_AllPeers.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
+
+				assert(inserted);
+				if (!inserted)
+				{
+					LogErr(L"Couldn't add new peer; a peer with LUID %llu already exists", peer.GetLUID());
+					return;
+				}
+
+				apit = it;
 			}
+			catch (...) { return; }
+
+			auto sg = MakeScopeGuard([&]
+			{
+				m_AllPeers.WithUniqueLock()->erase(apit);
+			});
+
+			// Get the threadpool with the least amount of peers so that the connections
+			// eventually get distributed among all available pools
+			const auto thpit = std::min_element(m_ThreadPools.begin(), m_ThreadPools.end(),
+												[](const auto& a, const auto& b)
+			{
+				return (a.second->GetData().PeerMap.WithSharedLock()->size() <
+						b.second->GetData().PeerMap.WithSharedLock()->size());
+			});
+
+			assert(thpit != m_ThreadPools.end());
+
+			// Add peer to the threadpool
+			peer.SetThreadPoolKey(thpit->first);
+
+			PeerMap::iterator pit;
+
+			try
+			{
+				// If this fails there was already a peer in the map (this should not happen)
+				[[maybe_unused]] const auto [it, inserted] =
+					thpit->second->GetData().PeerMap.WithUniqueLock()->insert({ peer.GetLUID(), peerths });
+
+				assert(inserted);
+				if (!inserted)
+				{
+					LogErr(L"Couldn't add new peer; a peer with LUID %llu already exists", peer.GetLUID());
+					return;
+				}
+
+				pit = it;
+			}
+			catch (...) { return; }
+
+			auto sg2 = MakeScopeGuard([&]
+			{
+				thpit->second->GetData().PeerMap.WithUniqueLock()->erase(pit);
+			});
+
+			if (!thpit->second->GetData().AddWorkEvent(peer)) return;
+
+			sg.Deactivate();
+			sg2.Deactivate();
+
+			success = true;
 		});
 
 		return success;
@@ -719,10 +721,13 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	void Manager::Disconnect(Peer& peer, const bool graceful) noexcept
 	{
-		// Remove connection from access manager
-		if (!m_AccessManager.RemoveIPConnection(peer.GetPeerIPAddress()))
+		if (peer.GetPeerEndpoint().GetType() == Endpoint::Type::IP)
 		{
-			LogErr(L"Could not remove connection for endpoint %s from access manager", peer.GetPeerName().c_str());
+			// Remove connection from access manager
+			if (!m_AccessManager.RemoveIPConnection(peer.GetPeerEndpoint().GetIPEndpoint().GetIPAddress()))
+			{
+				LogErr(L"Could not remove connection for endpoint %s from access manager", peer.GetPeerName().c_str());
+			}
 		}
 
 		if (peer.GetIOStatus().IsOpen())
@@ -768,7 +773,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 				else
 				{
-					LogErr(L"Could not connect to peer %s; IP address is not allowed", params.PeerEndpoint.GetString().c_str());
+					LogErr(L"Could not connect to peer %s; address is not allowed", params.PeerEndpoint.GetString().c_str());
 					return ResultCode::NotAllowed;
 				}
 			}
@@ -795,7 +800,7 @@ namespace QuantumGate::Implementation::Core::Peer
 					case Endpoint::Type::BTH:
 					{
 						const auto& ep = params.PeerEndpoint.GetBTHEndpoint();
-						return BTHEndpoint(ep.GetProtocol(), ep.GetBTHAddress(), ep.GetPort(), 0, params.Relay.Hops);
+						return BTHEndpoint(ep.GetProtocol(), ep.GetBTHAddress(), ep.GetPort(), ep.GetServiceClassID(), 0, params.Relay.Hops);
 					}
 					default:
 					{
@@ -862,43 +867,22 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		std::optional<PeerLUID> pluid;
 
-		auto peerths = std::invoke([&]() noexcept
-		{
-			auto addrfam = AddressFamily::Unspecified;
-			auto protocol = Protocol::Unspecified;
-
-			switch (params.PeerEndpoint.GetType())
-			{
-				case Endpoint::Type::IP:
-				{
-					const auto& ep = params.PeerEndpoint.GetIPEndpoint();
-					addrfam = IP::AddressFamilyToNetwork(ep.GetIPAddress().GetFamily());
-					protocol = IP::ProtocolToNetwork(ep.GetProtocol());
-					break;
-				}
-				case Endpoint::Type::BTH:
-				{
-					const auto& ep = params.PeerEndpoint.GetBTHEndpoint();
-					addrfam = BTH::AddressFamilyToNetwork(ep.GetBTHAddress().GetFamily());
-					protocol = BTH::ProtocolToNetwork(ep.GetProtocol());
-					break;
-				}
-				default:
-				{
-					// Shouldn't get here
-					assert(false);
-					break;
-				}
-			}
-
-			return Create(addrfam, protocol, PeerConnectionType::Outbound, std::move(params.GlobalSharedSecret));
-		});
-
+		auto peerths = Create(params.PeerEndpoint.GetAddressFamily(), params.PeerEndpoint.GetProtocol(),
+							  PeerConnectionType::Outbound, std::move(params.GlobalSharedSecret));
 		if (peerths != nullptr)
 		{
 			peerths->WithUniqueLock([&](Peer& peer) noexcept
 			{
 				if (function) peer.AddConnectCallback(std::move(function));
+
+				if (params.PeerEndpoint.GetType() == Endpoint::Type::BTH && params.Bluetooth.RequireAuthentication)
+				{
+					if (!peer.GetSocket<BTH::Socket>().SetBluetoothAuthentication(true))
+					{
+						peer.Close();
+						return;
+					}
+				}
 
 				if (peer.BeginConnect(params.PeerEndpoint))
 				{
@@ -958,7 +942,7 @@ namespace QuantumGate::Implementation::Core::Peer
 								case Endpoint::Type::BTH:
 								{
 									const auto& ep = params.PeerEndpoint.GetBTHEndpoint();
-									return BTHEndpoint(ep.GetProtocol(), ep.GetBTHAddress(), ep.GetPort(), *rport, params.Relay.Hops);
+									return BTHEndpoint(ep.GetProtocol(), ep.GetBTHAddress(), ep.GetPort(), ep.GetServiceClassID(), *rport, params.Relay.Hops);
 								}
 								default:
 								{
@@ -1046,10 +1030,11 @@ namespace QuantumGate::Implementation::Core::Peer
 											{
 												case Endpoint::Type::IP:
 													return (ep1.GetIPEndpoint().GetIPAddress() == ep2.GetIPEndpoint().GetIPAddress() &&
-															ep2.GetIPEndpoint().GetPort() == ep2.GetIPEndpoint().GetPort());
+															ep1.GetIPEndpoint().GetPort() == ep2.GetIPEndpoint().GetPort());
 												case Endpoint::Type::BTH:
 													return (ep1.GetBTHEndpoint().GetBTHAddress() == ep2.GetBTHEndpoint().GetBTHAddress() &&
-															ep2.GetBTHEndpoint().GetPort() == ep2.GetBTHEndpoint().GetPort());
+															ep1.GetBTHEndpoint().GetPort() == ep2.GetBTHEndpoint().GetPort() &&
+															ep1.GetBTHEndpoint().GetServiceClassID() == ep2.GetBTHEndpoint().GetServiceClassID());
 												default:
 													assert(false);
 													break;

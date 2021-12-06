@@ -12,6 +12,9 @@ namespace QuantumGate::Implementation::Network
 	{
 	public:
 		enum class Type : UInt8 { Unspecified, IP, BTH };
+		
+		using AddressFamily = Network::AddressFamily;
+		using Protocol = Network::Protocol;
 
 		constexpr Endpoint() noexcept :
 			m_Type(Type::Unspecified), m_Dummy(0)
@@ -80,6 +83,42 @@ namespace QuantumGate::Implementation::Network
 
 		constexpr Type GetType() const noexcept { return m_Type; }
 
+		constexpr AddressFamily GetAddressFamily() const noexcept
+		{
+			switch (m_Type)
+			{
+				case Type::IP:
+					return IP::AddressFamilyToNetwork(m_IPEndpoint.GetIPAddress().GetFamily());
+				case Type::BTH:
+					return BTH::AddressFamilyToNetwork(m_BTHEndpoint.GetBTHAddress().GetFamily());
+				case Type::Unspecified:
+					break;
+				default:
+					assert(false);
+					break;
+			}
+
+			return AddressFamily::Unspecified;
+		}
+
+		constexpr Protocol GetProtocol() const noexcept
+		{
+			switch (m_Type)
+			{
+				case Type::IP:
+					return IP::ProtocolToNetwork(m_IPEndpoint.GetProtocol());
+				case Type::BTH:
+					return BTH::ProtocolToNetwork(m_BTHEndpoint.GetProtocol());
+				case Type::Unspecified:
+					break;
+				default:
+					assert(false);
+					break;
+			}
+
+			return Protocol::Unspecified;
+		}
+
 		constexpr const IPEndpoint& GetIPEndpoint() const noexcept
 		{
 			assert(m_Type == Type::IP);
@@ -92,6 +131,24 @@ namespace QuantumGate::Implementation::Network
 			assert(m_Type == Type::BTH);
 
 			return m_BTHEndpoint;
+		}
+
+		constexpr RelayPort GetRelayPort() const noexcept
+		{
+			switch (m_Type)
+			{
+				case Type::IP:
+					return m_IPEndpoint.GetRelayPort();
+				case Type::BTH:
+					return m_BTHEndpoint.GetRelayPort();
+				case Type::Unspecified:
+					break;
+				default:
+					assert(false);
+					break;
+			}
+
+			return 0;
 		}
 
 		constexpr RelayHop GetRelayHop() const noexcept
@@ -194,7 +251,7 @@ namespace QuantumGate::Implementation::Network
 
 			switch (m_BTHEndpoint.GetProtocol())
 			{
-				case BTHEndpoint::Protocol::BTH:
+				case BTHEndpoint::Protocol::RFCOMM:
 					return Type::BTH;
 				case BTHEndpoint::Protocol::Unspecified:
 					break;
@@ -217,83 +274,4 @@ namespace QuantumGate::Implementation::Network
 			BTHEndpoint m_BTHEndpoint;
 		};
 	};
-
-#pragma pack(push, 1) // Disable padding bytes
-	struct SerializedEndpoint final
-	{
-		Endpoint::Type Type{ Endpoint::Type::Unspecified };
-		union
-		{
-			Byte Dummy[(std::max)(sizeof(SerializedIPEndpoint), sizeof(SerializedBTHEndpoint))]{ Byte{ 0 } };
-			SerializedIPEndpoint IPEndpoint;
-			SerializedBTHEndpoint BTHEndpoint;
-		};
-
-		SerializedEndpoint() noexcept {}
-		SerializedEndpoint(const Endpoint& endpoint) noexcept { *this = endpoint; }
-
-		SerializedEndpoint& operator=(const Endpoint& endpoint) noexcept
-		{
-			Type = endpoint.GetType();
-			switch (Type)
-			{
-				case Endpoint::Type::IP:
-					IPEndpoint = endpoint.GetIPEndpoint();
-					break;
-				case Endpoint::Type::BTH:
-					BTHEndpoint = endpoint.GetBTHEndpoint();
-					break;
-				case Endpoint::Type::Unspecified:
-					std::memset(&Dummy, 0, sizeof(Dummy));
-					break;
-				default:
-					assert(false);
-					break;
-			}
-			return *this;
-		}
-
-		operator Endpoint() const noexcept
-		{
-			switch (Type)
-			{
-				case Endpoint::Type::IP:
-					return Network::IPEndpoint(IPEndpoint);
-				case Endpoint::Type::BTH:
-					return Network::BTHEndpoint(BTHEndpoint);
-				case Endpoint::Type::Unspecified:
-					break;
-				default:
-					assert(false);
-					break;
-			}
-			return {};
-		}
-
-		bool operator==(const SerializedEndpoint& other) const noexcept
-		{
-			if (Type == other.Type)
-			{
-				switch (Type)
-				{
-					case Endpoint::Type::IP:
-						return (IPEndpoint == other.IPEndpoint);
-					case Endpoint::Type::BTH:
-						return (BTHEndpoint == other.BTHEndpoint);
-					case Endpoint::Type::Unspecified:
-						return (std::memcmp(Dummy, other.Dummy, sizeof(Dummy)) == 0);
-					default:
-						assert(false);
-						break;
-				}
-			}
-			return false;
-		}
-
-		bool operator!=(const SerializedEndpoint& other) const noexcept
-		{
-			return !(*this == other);
-		}
-	};
-#pragma pack(pop)
 }

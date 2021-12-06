@@ -152,6 +152,13 @@ namespace QuantumGate
 		Set<Algorithm::Compression> Compression;
 	};
 
+	struct BluetoothServiceDetails
+	{
+		String Name;											// The Bluetooth service name to advertise in the Bluetooth SDP service record
+		String Comment;											// A description of the Bluetooth service
+		GUID ID{ 0 };											// The service class ID to advertise in the Bluetooth SDP service record
+	};
+
 	struct StartupParameters
 	{
 		PeerUUID UUID;											// The UUID for the local peer
@@ -170,15 +177,23 @@ namespace QuantumGate
 			{
 				bool Enable{ false };							// Enable listening for incoming connections on startup?
 				Set<UInt16> Ports{ 999 };						// Which TCP ports to listen on
+				bool NATTraversal{ false };						// Whether NAT traversal is enabled
 			} TCP;
 
 			struct
 			{
 				bool Enable{ false };							// Enable listening for incoming connections on startup?
 				Set<UInt16> Ports{ 999 };						// Which UDP ports to listen on
+				bool NATTraversal{ false };						// Whether NAT traversal is enabled
 			} UDP;
 
-			bool EnableNATTraversal{ false };					// Whether NAT traversal is enabled
+			struct
+			{
+				bool Enable{ false };							// Enable listening for incoming connections on startup?
+				Set<UInt16> Ports{ 9 };							// Which Bluetooth ports to listen on
+				bool RequireAuthentication{ true };				// Whether to require Bluetooth authentication (device pairing) before accepting connections
+				std::optional<BluetoothServiceDetails> Service;	// Bluetooth service details to advertise to connecting peers
+			} BTH;
 		} Listeners;
 
 		struct
@@ -199,6 +214,7 @@ namespace QuantumGate
 		struct
 		{
 			bool UseConditionalAcceptFunction{ true };							// Whether to use the conditional accept function before accepting connections
+			bool RequireBluetoothAuthentication{ true };						// Whether to require Bluetooth authentication (device pairing) before accepting connections
 
 			std::chrono::seconds ConnectTimeout{ 0 };							// Maximum number of seconds to wait for a connection to be established
 
@@ -286,6 +302,11 @@ namespace QuantumGate
 		Endpoint PeerEndpoint;								// The address of the peer
 		std::optional<ProtectedBuffer> GlobalSharedSecret;	// Global shared secret to use for this connection
 		bool ReuseExistingConnection{ true };				// Whether or not an already existing connection to the peer is allowed to be reused
+
+		struct
+		{
+			bool RequireAuthentication{ true };				// Whether to require Bluetooth authentication (device pairing) before connecting
+		} Bluetooth;
 
 		struct
 		{

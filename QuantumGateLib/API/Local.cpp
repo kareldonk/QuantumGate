@@ -44,7 +44,7 @@ namespace QuantumGate::API
 		return ResultCode::Failed;
 	}
 
-	Result<Vector<API::Local::Environment::IPAddressDetails>> Local::Environment::GetIPAddresses() const noexcept
+	Result<Vector<API::Local::Environment::AddressDetails>> Local::Environment::GetAddresses() const noexcept
 	{
 		assert(m_LocalEnvironment != nullptr);
 
@@ -54,7 +54,7 @@ namespace QuantumGate::API
 			const auto local_env = static_cast<const LocalEnvironment_ThS*>(m_LocalEnvironment)->WithSharedLock();
 			if (local_env->IsInitialized())
 			{
-				return local_env->GetIPAddresses();
+				return local_env->GetAddresses();
 			}
 		}
 		catch (...) {}
@@ -184,9 +184,9 @@ namespace QuantumGate::API
 		return m_Local->AreRelaysEnabled();
 	}
 
-	Local::Environment Local::GetEnvironment() const noexcept
+	Local::Environment Local::GetEnvironment(const bool refresh) const noexcept
 	{
-		return Local::Environment(&m_Local->GetEnvironment());
+		return Local::Environment(&m_Local->GetEnvironment(refresh));
 	}
 
 	Access::Manager& Local::GetAccessManager() noexcept
