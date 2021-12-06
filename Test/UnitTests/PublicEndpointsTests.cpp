@@ -37,7 +37,7 @@ bool CheckIPs(const Vector<Address>& ips, const std::vector<Address>& exp_ips)
 bool CheckIPs(const PublicEndpoints& pubendp, const std::vector<Address>& exp_ips)
 {
 	Vector<Address> pub_ips;
-	const auto result = pubendp.AddIPAddresses(pub_ips, false);
+	const auto result = pubendp.AddAddresses(pub_ips, false);
 	if (!result.Succeeded()) return false;
 
 	return CheckIPs(pub_ips, exp_ips);
@@ -224,7 +224,7 @@ namespace UnitTests
 				// Check that we got back the expected IPs
 				{
 					Vector<Address> pub_ips;
-					const auto result = pubendp.AddIPAddresses(pub_ips, false);
+					const auto result = pubendp.AddAddresses(pub_ips, false);
 					Assert::AreEqual(true, result.Succeeded());
 
 					for (const auto& ip : pub_ips)
@@ -544,7 +544,7 @@ namespace UnitTests
 			};
 
 			Vector<Address> ips;
-			const auto result = pubendp.AddIPAddresses(ips, false);
+			const auto result = pubendp.AddAddresses(ips, false);
 			Assert::AreEqual(true, result.Succeeded());
 			Assert::AreEqual(true, CheckIPs(ips, expected_ips));
 
@@ -553,7 +553,7 @@ namespace UnitTests
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"5529:f4b2:3ff9:a074:d03a:d18e:760d:b193")));
 			Assert::AreEqual(true, RemoveIP(expected_ips, IPAddress(L"160.16.5.51")));
 
-			const auto result2 = pubendp.AddIPAddresses(ips, true);
+			const auto result2 = pubendp.AddAddresses(ips, true);
 			Assert::AreEqual(true, result2.Succeeded());
 			Assert::AreEqual(true, CheckIPs(ips, expected_ips));
 		}
