@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation
 	String UUID::GetString() const noexcept
 	{
 		const auto data4_bytes = reinterpret_cast<const Byte*>(&m_Data4);
-		return Util::FormatString(L"%.8x-%.4x-%.4x-%.2x%.2x-%.2x%.2x%.2x%.2x%.2x%.2x",
+		return Util::FormatString(L"%.8X-%.4X-%.4X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X",
 								  Endian::ToNetworkByteOrder(m_Data1), Endian::ToNetworkByteOrder(m_Data2),
 								  Endian::ToNetworkByteOrder(m_Data3), data4_bytes[0], data4_bytes[1],
 								  data4_bytes[2], data4_bytes[3], data4_bytes[4],
