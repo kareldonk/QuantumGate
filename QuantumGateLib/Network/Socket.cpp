@@ -631,7 +631,7 @@ namespace QuantumGate::Implementation::Network
 	{
 		assert(m_Socket != INVALID_SOCKET);
 		assert(GetProtocol() == Protocol::ICMP || GetProtocol() == Protocol::UDP);
-		DbgInvoke([&]()
+		DbgInvoke([&]() noexcept
 		{
 			if (endpoint.GetType() == Endpoint::Type::IP)
 			{
@@ -677,7 +677,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::Listen(const Endpoint& endpoint, const bool cond_accept, const bool nat_traversal) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		DbgInvoke([&]()
+		DbgInvoke([&]() noexcept
 		{
 			if (endpoint.GetType() == Endpoint::Type::IP)
 			{
@@ -708,7 +708,7 @@ namespace QuantumGate::Implementation::Network
 			});
 
 			// Bind our name to the socket
-			auto ret = bind(m_Socket, reinterpret_cast<sockaddr*>(&saddr), sizeof(SOCKADDR_BTH));
+			auto ret = bind(m_Socket, reinterpret_cast<sockaddr*>(&saddr), static_cast<int>(saddr_len));
 			if (ret != SOCKET_ERROR)
 			{
 				// Set the socket to listen
@@ -883,7 +883,7 @@ namespace QuantumGate::Implementation::Network
 				auto error_ex = GetExtendedErrorString(error_code);
 				LogErr(L"Error connecting to endpoint %s (%s%s%s)",
 					   endpoint.GetString().c_str(), GetSocketErrorString(error_code).c_str(),
-					   error_ex == L"" ? L"" : L" ", error_ex);
+					   std::wcslen(error_ex) == 0 ? L"" : L" ", error_ex);
 			}
 			else
 			{
@@ -983,13 +983,13 @@ namespace QuantumGate::Implementation::Network
 			return false;
 		}
 
-		const auto send_size = std::invoke([&]()
+		const auto send_size = std::invoke([&]() noexcept
 		{
 			if (max_snd_size > 0 && max_snd_size < buffer.GetSize()) return max_snd_size;
 			else return buffer.GetSize();
 		});
 
-		DbgInvoke([&]()
+		DbgInvoke([&]() noexcept
 		{
 			if (GetType() == Type::Datagram)
 			{
