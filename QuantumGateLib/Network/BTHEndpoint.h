@@ -25,17 +25,74 @@ namespace QuantumGate::Implementation::Network
 
 		constexpr BTHEndpoint(const Protocol protocol, const BTHAddress& addr, const UInt16 port, const GUID& serviceclassid) :
 			m_Protocol(ValidateProtocol(protocol)), m_Address(addr), m_Port(port), m_ServiceClassID(serviceclassid)
-		{}
+		{
+			if (m_Port != 0 && m_ServiceClassID != GetNullServiceClassID())
+			{
+				throw std::invalid_argument("Specify either a port or a Service Class ID, not both");
+			}
+		}
 
 		constexpr BTHEndpoint(const Protocol protocol, const BTHAddress& addr, const UInt16 port, const GUID& serviceclassid,
 							  const RelayPort rport, const RelayHop hop) :
 			m_Protocol(ValidateProtocol(protocol)), m_Address(addr), m_Port(port), m_ServiceClassID(serviceclassid),
 			m_RelayPort(rport), m_RelayHop(hop)
+		{
+			if (m_Port != 0 && m_ServiceClassID != GetNullServiceClassID())
+			{
+				throw std::invalid_argument("Specify either a port or a Service Class ID, not both");
+			}
+		}
+
+		constexpr BTHEndpoint(const BTHEndpoint& other) noexcept :
+			m_Protocol(other.m_Protocol), m_Address(other.m_Address), m_Port(other.m_Port),
+			m_ServiceClassID(other.m_ServiceClassID), m_RelayPort(other.m_RelayPort), m_RelayHop(other.m_RelayHop)
 		{}
+
+		constexpr BTHEndpoint(BTHEndpoint&& other) noexcept :
+			m_Protocol(other.m_Protocol), m_Address(std::move(other.m_Address)), m_Port(other.m_Port),
+			m_ServiceClassID(other.m_ServiceClassID), m_RelayPort(other.m_RelayPort), m_RelayHop(other.m_RelayHop)
+		{}
+
+		~BTHEndpoint() = default;
+
+		constexpr BTHEndpoint& operator=(const BTHEndpoint& other) noexcept
+		{
+			// Check for same object
+			if (this == &other) return *this;
+
+			m_Protocol = other.m_Protocol;
+			m_Address = other.m_Address;
+			m_Port = other.m_Port;
+			m_ServiceClassID = other.m_ServiceClassID;
+			m_RelayPort = other.m_RelayPort;
+			m_RelayHop = other.m_RelayHop;
+
+			return *this;
+		}
+
+		constexpr BTHEndpoint& operator=(BTHEndpoint&& other) noexcept
+		{
+			// Check for same object
+			if (this == &other) return *this;
+
+			m_Protocol = other.m_Protocol;
+			m_Address = std::move(other.m_Address);
+			m_Port = other.m_Port;
+			m_ServiceClassID = other.m_ServiceClassID;
+			m_RelayPort = other.m_RelayPort;
+			m_RelayHop = other.m_RelayHop;
+
+			return *this;
+		}
 
 		constexpr bool operator==(const BTHEndpoint& other) const noexcept
 		{
-			return false;
+			return ((m_Protocol == other.m_Protocol) &&
+					(m_Address == other.m_Address) &&
+					(m_Port == other.m_Port) &&
+					(m_ServiceClassID == other.m_ServiceClassID) &&
+					(m_RelayPort == other.m_RelayPort) &&
+					(m_RelayHop == other.m_RelayHop));
 		}
 
 		constexpr bool operator!=(const BTHEndpoint& other) const noexcept
@@ -43,7 +100,7 @@ namespace QuantumGate::Implementation::Network
 			return !(*this == other);
 		}
 
-		constexpr Protocol GetProtocol() const noexcept { return Protocol::RFCOMM; }
+		constexpr Protocol GetProtocol() const noexcept { return m_Protocol; }
 		constexpr const BTHAddress& GetBTHAddress() const noexcept { return m_Address; }
 		constexpr UInt16 GetPort() const noexcept { return m_Port; }
 		constexpr const GUID& GetServiceClassID() const noexcept { return m_ServiceClassID; }
@@ -76,8 +133,8 @@ namespace QuantumGate::Implementation::Network
 		Protocol m_Protocol{ Protocol::Unspecified };
 		BTHAddress m_Address;
 		UInt16 m_Port{ 0 };
+		GUID m_ServiceClassID{ 0 };
 		RelayPort m_RelayPort{ 0 };
 		RelayHop m_RelayHop{ 0 };
-		GUID m_ServiceClassID{ 0 };
 	};
 }

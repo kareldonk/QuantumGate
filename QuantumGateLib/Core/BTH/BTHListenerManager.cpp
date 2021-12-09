@@ -95,11 +95,12 @@ namespace QuantumGate::Implementation::Core::BTH::Listener
 		{
 			try
 			{
-				const auto endpoint = BTHEndpoint(BTHEndpoint::Protocol::RFCOMM, address, port, BTHEndpoint::GetQuantumGateServiceClassID());
+				const auto endpoint = BTHEndpoint(BTHEndpoint::Protocol::RFCOMM, address, port);
 
 				// Create and start the listenersocket
 				ThreadData ltd;
-				ltd.Socket = Network::Socket(endpoint.GetBTHAddress().GetFamily(), Network::Socket::Type::Stream, Network::BTH::Protocol::RFCOMM);
+				ltd.Socket = Network::Socket(endpoint.GetBTHAddress().GetFamily(), Network::Socket::Type::Stream,
+											 Network::BTH::Protocol::RFCOMM);
 
 				if (require_auth)
 				{
