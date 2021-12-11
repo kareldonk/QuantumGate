@@ -111,6 +111,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		}
 
 	private:
+		[[nodiscard]] Endpoint GetRelayEndpoint(const Endpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept;
 		void SetLocalEndpoint(const Endpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept;
 
 		[[nodiscard]] inline IOBuffer GetSendBuffer() noexcept { return { m_SendBuffer, m_SendEvent }; }
