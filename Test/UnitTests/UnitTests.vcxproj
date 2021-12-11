@@ -368,7 +368,11 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AddressTests.cpp" />
+    <ClCompile Include="BinaryBTHAddressTests.cpp" />
     <ClCompile Include="BinaryIPAddressTests.cpp" />
+    <ClCompile Include="BTHAddressTests.cpp" />
+    <ClCompile Include="BTHEndpointTests.cpp" />
     <ClCompile Include="BufferReaderWriterTests.cpp" />
     <ClCompile Include="BufferTests.cpp" />
     <ClCompile Include="BufferViewTests.cpp" />
@@ -377,6 +381,7 @@
     <ClCompile Include="DispatcherTests.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="EndianTests.cpp" />
+    <ClCompile Include="EndpointTests.cpp" />
     <ClCompile Include="EventCompositeTests.cpp" />
     <ClCompile Include="EventGroupTests.cpp" />
     <ClCompile Include="EventTests.cpp" />
