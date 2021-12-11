@@ -98,7 +98,9 @@ namespace QuantumGate::Implementation::Network
 			// Check for same object
 			if (this == &other) return *this;
 
-			*this = other;
+			AddressFamily = other.AddressFamily;
+			UInt64s[0] = other.UInt64s[0];
+			UInt64s[1] = other.UInt64s[1];
 
 			return *this;
 		}
