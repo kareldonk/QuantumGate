@@ -409,8 +409,8 @@ void CTestAppDlg::LoadSettings()
 						case Endpoint::Protocol::UDP:
 							m_DefaultProtocol = Endpoint::Protocol::UDP;
 							break;
-						case Endpoint::Protocol::BTH:
-							m_DefaultProtocol = Endpoint::Protocol::BTH;
+						case Endpoint::Protocol::RFCOMM:
+							m_DefaultProtocol = Endpoint::Protocol::RFCOMM;
 							break;
 						default:
 							m_DefaultProtocol = Endpoint::Protocol::TCP;

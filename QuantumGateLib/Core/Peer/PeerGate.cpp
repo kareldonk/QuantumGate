@@ -78,7 +78,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				m_Socket = new (&m_SocketStorage) UDP::Socket();
 				m_Type = GateType::UDPSocket;
 				break;
-			case Protocol::BTH:
+			case Protocol::RFCOMM:
 				m_Socket = new (&m_SocketStorage) BTH::Socket(af);
 				m_Type = GateType::BTHSocket;
 				break;

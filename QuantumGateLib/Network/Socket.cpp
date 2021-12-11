@@ -74,7 +74,7 @@ namespace QuantumGate::Implementation::Network
 			case Protocol::ICMP:
 				sprotocol = IPPROTO_ICMP;
 				break;
-			case Protocol::BTH:
+			case Protocol::RFCOMM:
 				sprotocol = BTHPROTO_RFCOMM;
 				break;
 			default:
@@ -217,7 +217,7 @@ namespace QuantumGate::Implementation::Network
 				else DiscardReturnValue(SetLinger(0s));
 				break;
 			}
-			case Protocol::BTH:
+			case Protocol::RFCOMM:
 			{
 				shutdown(m_Socket, SD_BOTH);
 				break;
@@ -803,7 +803,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::Accept(Socket& s, const bool cond_accept, const LPCONDITIONPROC cond_func, void* cbdata) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::BTH);
+		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::RFCOMM);
 
 		sockaddr_storage addr{ 0 };
 		int addrlen = sizeof(sockaddr_storage);
@@ -850,7 +850,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::BeginConnect(const Endpoint& endpoint) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::BTH);
+		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::RFCOMM);
 		DbgInvoke([&]()
 		{
 			if (endpoint.GetType() == Endpoint::Type::IP)
@@ -906,7 +906,7 @@ namespace QuantumGate::Implementation::Network
 	bool Socket::CompleteConnect() noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::BTH);
+		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::RFCOMM);
 
 		m_IOStatus.SetConnecting(false);
 		m_IOStatus.SetConnected(true);
@@ -919,7 +919,7 @@ namespace QuantumGate::Implementation::Network
 	Result<Size> Socket::Send(const BufferView& buffer, const Size max_snd_size) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::BTH);
+		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::RFCOMM);
 
 		const auto send_size = std::invoke([&]()
 		{
@@ -1073,7 +1073,7 @@ namespace QuantumGate::Implementation::Network
 	Result<Size> Socket::Receive(BufferSpan& buffer) noexcept
 	{
 		assert(m_Socket != INVALID_SOCKET);
-		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::BTH);
+		assert(GetProtocol() == Protocol::TCP || GetProtocol() == Protocol::RFCOMM);
 
 		const auto bytesrcv = recv(m_Socket, reinterpret_cast<char*>(buffer.GetBytes()), static_cast<int>(buffer.GetSize()), 0);
 
@@ -1339,7 +1339,7 @@ namespace QuantumGate::Implementation::Network
 					}
 					break;
 				}
-				case Protocol::BTH:
+				case Protocol::RFCOMM:
 				{
 					const BTHAddress bth(addr);
 					switch (bth.GetFamily())
@@ -1498,7 +1498,7 @@ namespace QuantumGate::Implementation::Network
 				case IPPROTO_ICMP:
 					return Protocol::ICMP;
 				case BTHPROTO_RFCOMM:
-					return Protocol::BTH;
+					return Protocol::RFCOMM;
 				case IPPROTO_IP:
 					return Protocol::Unspecified;
 				default:

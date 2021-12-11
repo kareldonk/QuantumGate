@@ -197,12 +197,17 @@ namespace QuantumGate::Implementation::Core::Peer
 									const auto& bthendpoint = endpoint.BTHEndpoint;
 									if (bthendpoint.Protocol == BTHEndpoint::Protocol::RFCOMM)
 									{
-										if (bthendpoint.BTHAddress.AddressFamily == BinaryBTHAddress::Family::BTH)
+										if (!(bthendpoint.Port != 0 && bthendpoint.ServiceClassID != BTHEndpoint::GetNullServiceClassID()))
 										{
-											rce.ConnectEndpoint = BTHEndpoint(bthendpoint);
-											connect = true;
+											if (bthendpoint.BTHAddress.AddressFamily == BinaryBTHAddress::Family::BTH)
+											{
+												rce.ConnectEndpoint = BTHEndpoint(bthendpoint);
+												connect = true;
+											}
+											else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported Bluetooth address family",
+														m_Peer.GetPeerName().c_str());
 										}
-										else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported Bluetooth address family",
+										else LogDbg(L"Invalid RelayCreate message from peer %s; invalid Bluetooth endpoint",
 													m_Peer.GetPeerName().c_str());
 									}
 									else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported Bluetooth protocol",

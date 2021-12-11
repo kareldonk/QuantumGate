@@ -19,7 +19,7 @@ namespace QuantumGate::Implementation::Network
 		ICMP = 1,
 		TCP = 6,
 		UDP = 17,
-		BTH = 3
+		RFCOMM = 3
 	};
 
 	[[nodiscard]] const WChar* GetProtocolName(const Protocol protocol) noexcept;

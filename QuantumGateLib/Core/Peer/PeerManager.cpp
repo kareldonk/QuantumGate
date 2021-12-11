@@ -486,7 +486,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	{
 		try
 		{
-			auto peer_ths = std::make_shared<Peer_ThS>(*this, af, Protocol::BTH, pctype, std::move(shared_secret));
+			auto peer_ths = std::make_shared<Peer_ThS>(*this, af, Protocol::RFCOMM, pctype, std::move(shared_secret));
 			if (peer_ths->WithUniqueLock()->Initialize(peer_ths))
 			{
 				return peer_ths;
@@ -519,7 +519,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				}
 				break;
 			}
-			case Protocol::BTH:
+			case Protocol::RFCOMM:
 			{
 				return CreateBTH(af, pctype, std::move(shared_secret));
 			}

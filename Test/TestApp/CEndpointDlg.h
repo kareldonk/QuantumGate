@@ -60,6 +60,6 @@ private:
 	bool m_BTHAuthentication{ true };
 	bool m_ReuseConnection{ true };
 	bool m_ShowRelay{ false };
-	std::set<Endpoint::Protocol> m_Protocols{ Endpoint::Protocol::TCP, Endpoint::Protocol::UDP, Endpoint::Protocol::BTH };
+	std::set<Endpoint::Protocol> m_Protocols{ Endpoint::Protocol::TCP, Endpoint::Protocol::UDP, Endpoint::Protocol::RFCOMM };
 };
 

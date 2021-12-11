@@ -44,7 +44,8 @@ namespace QuantumGate::Implementation::Network
 	{
 		static_assert(sizeof(m_BinaryAddress.Bytes) >= sizeof(SOCKADDR_BTH::btAddr), "BTH Address length mismatch");
 
-		if (std::wcslen(addr_str) <= BTHAddress::MaxBTHAddressStringLength)
+		const auto addr_len = std::wcslen(addr_str);
+		if (addr_len > 0 && addr_len <= BTHAddress::MaxBTHAddressStringLength)
 		{
 			SOCKADDR_BTH saddr;
 			MemInit(&saddr, sizeof(saddr));

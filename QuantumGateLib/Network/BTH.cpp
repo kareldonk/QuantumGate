@@ -44,7 +44,7 @@ namespace QuantumGate::Implementation::Network::BTH
 		{
 			case Network::Protocol::Unspecified:
 				return Protocol::Unspecified;
-			case Network::Protocol::BTH:
+			case Network::Protocol::RFCOMM:
 				return Protocol::RFCOMM;
 			default:
 				assert(false);
@@ -61,7 +61,7 @@ namespace QuantumGate::Implementation::Network::BTH
 			case Protocol::Unspecified:
 				return Network::Protocol::Unspecified;
 			case Protocol::RFCOMM:
-				return Network::Protocol::BTH;
+				return Network::Protocol::RFCOMM;
 			default:
 				assert(false);
 				break;

@@ -86,11 +86,11 @@ BOOL CEndpointDlg::OnInitDialog()
 			if (m_Protocol == QuantumGate::Endpoint::Protocol::UDP) pcombo->SetCurSel(pos);
 		}
 
-		if (m_Protocols.contains(Endpoint::Protocol::BTH))
+		if (m_Protocols.contains(Endpoint::Protocol::RFCOMM))
 		{
-			const auto pos = pcombo->AddString(L"BTH");
-			pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::Endpoint::Protocol::BTH));
-			if (m_Protocol == QuantumGate::Endpoint::Protocol::BTH) pcombo->SetCurSel(pos);
+			const auto pos = pcombo->AddString(L"RFCOMM");
+			pcombo->SetItemData(pos, static_cast<DWORD_PTR>(QuantumGate::Endpoint::Protocol::RFCOMM));
+			if (m_Protocol == QuantumGate::Endpoint::Protocol::RFCOMM) pcombo->SetCurSel(pos);
 		}
 
 		OnCbnSelChangeProtocolCombo();
@@ -134,7 +134,7 @@ void CEndpointDlg::OnBnClickedOk()
 		}
 		else if (m_Address.GetType() == Address::Type::BTH)
 		{
-			perror = (protocol != Endpoint::Protocol::BTH);
+			perror = (protocol != Endpoint::Protocol::RFCOMM);
 		}
 
 		if (perror)
@@ -212,7 +212,7 @@ void CEndpointDlg::OnCbnSelChangeProtocolCombo()
 	if (sel != CB_ERR)
 	{
 		const auto protocol = static_cast<Endpoint::Protocol>(((CComboBox*)GetDlgItem(IDC_PROTOCOL_COMBO))->GetItemData(sel));
-		if (protocol == Endpoint::Protocol::BTH)
+		if (protocol == Endpoint::Protocol::RFCOMM)
 		{
 			GetDlgItem(IDC_BTH_AUTH)->ShowWindow(SW_SHOW);
 			GetDlgItem(IDC_BTH_SERVICE_BUTTON)->ShowWindow(SW_SHOW);

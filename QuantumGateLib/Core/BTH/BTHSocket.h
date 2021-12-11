@@ -13,7 +13,7 @@ namespace QuantumGate::Implementation::Core::BTH
 		Socket() noexcept = default;
 
 		Socket(const Network::AddressFamily af) :
-			Network::Socket(af, Network::Socket::Type::Stream, Network::Protocol::BTH)
+			Network::Socket(af, Network::Socket::Type::Stream, Network::Protocol::RFCOMM)
 		{}
 
 		Socket(const Socket&) = delete;

@@ -16,8 +16,8 @@ namespace QuantumGate::Implementation::Network
 				return L"UDP";
 			case Protocol::TCP:
 				return L"TCP";
-			case Protocol::BTH:
-				return L"BTH";
+			case Protocol::RFCOMM:
+				return L"RFCOMM";
 			case Protocol::Unspecified:
 				return L"Unspecified";
 			default:
