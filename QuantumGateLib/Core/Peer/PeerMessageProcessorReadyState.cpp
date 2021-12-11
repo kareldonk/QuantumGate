@@ -111,7 +111,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessageReadyState(MessageDetails&& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageReadyState(MessageDetails&& msg) const noexcept
 	{
 		MessageProcessor::Result result;
 

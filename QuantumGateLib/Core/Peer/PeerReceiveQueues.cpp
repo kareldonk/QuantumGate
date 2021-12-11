@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	void PeerReceiveQueues::AddMessageRate(const MessageType type, const Size msg_size)
+	void PeerReceiveQueues::AddMessageRate(const MessageType type, const Size msg_size) noexcept
 	{
 		switch (type)
 		{
@@ -68,7 +68,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	void PeerReceiveQueues::SubtractMessageRate(const MessageType type, const Size msg_size)
+	void PeerReceiveQueues::SubtractMessageRate(const MessageType type, const Size msg_size) noexcept
 	{
 		switch (type)
 		{

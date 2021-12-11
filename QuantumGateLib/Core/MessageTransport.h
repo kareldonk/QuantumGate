@@ -10,7 +10,7 @@ namespace QuantumGate::Implementation::Core
 {
 	enum class MessageTransportCheck
 	{
-		Unknown, NotEnoughData, TooMuchData, CompleteMessage
+		Unknown, NotEnoughData, TooMuchData, CompleteMessage, Failed
 	};
 
 	class MessageTransport final
@@ -43,7 +43,7 @@ namespace QuantumGate::Implementation::Core
 
 			void Initialize() noexcept;
 
-			[[nodiscard]] bool Read(const BufferView& buffer);
+			[[nodiscard]] bool Read(const BufferView& buffer) noexcept;
 			[[nodiscard]] bool Write(Buffer& buffer) const noexcept;
 
 			static constexpr Size GetSize() noexcept
@@ -136,15 +136,16 @@ namespace QuantumGate::Implementation::Core
 
 		SystemTime GetMessageTime() const noexcept;
 
-		[[nodiscard]] std::pair<bool, bool> Read(BufferView buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce);
+		[[nodiscard]] std::pair<bool, bool> Read(BufferView buffer, Crypto::SymmetricKeyData& symkey,
+												 const BufferView& nonce) noexcept;
 
-		[[nodiscard]] bool Write(Buffer& buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce);
+		[[nodiscard]] bool Write(Buffer& buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce) noexcept;
 
 		static MessageTransportCheck Peek(const UInt16 rndp_len, const DataSizeSettings mds_settings,
 										  const Buffer& srcbuf) noexcept;
 
 		static MessageTransportCheck GetFromBuffer(const UInt16 rndp_len, const DataSizeSettings mds_settings,
-												   Buffer& srcbuf, Buffer& destbuf);
+												   Buffer& srcbuf, Buffer& destbuf) noexcept;
 
 		static std::optional<UInt32> GetNonceSeedFromBuffer(const BufferView& srcbuf) noexcept;
 

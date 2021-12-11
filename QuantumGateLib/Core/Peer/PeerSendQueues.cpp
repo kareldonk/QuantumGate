@@ -104,7 +104,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	std::pair<bool, Size> PeerSendQueues::GetMessages(Buffer& buffer, const Crypto::SymmetricKeyData& symkey,
-													  const bool concatenate)
+													  const bool concatenate) noexcept
 	{
 		// Expedited queue messages always go first
 		if (!m_ExpeditedQueue.empty())
@@ -131,7 +131,13 @@ namespace QuantumGate::Implementation::Core::Peer
 			{
 				if (buffer.GetSize() + tempbuf.GetSize() <= MessageTransport::MaxMessageDataSize)
 				{
-					buffer += tempbuf;
+					try { buffer += tempbuf; }
+					catch (...)
+					{
+						success = false;
+						break;
+					}
+
 					RemoveMessage(m_NormalQueue);
 
 					++num;
@@ -170,7 +176,13 @@ namespace QuantumGate::Implementation::Core::Peer
 					{
 						if (buffer.GetSize() + tempbuf.GetSize() <= MessageTransport::MaxMessageDataSize)
 						{
-							buffer += tempbuf;
+							try { buffer += tempbuf; }
+							catch (...)
+							{
+								success = false;
+								break;
+							}
+
 							RemoveMessage(m_DelayedQueue);
 
 							++num;

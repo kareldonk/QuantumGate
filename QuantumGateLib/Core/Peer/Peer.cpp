@@ -567,7 +567,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return success;
 	}
 
-	bool Peer::OnStatusChange(const Status old_status, const Status new_status)
+	bool Peer::OnStatusChange(const Status old_status, const Status new_status) noexcept
 	{
 		switch (new_status)
 		{
@@ -628,7 +628,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						if (m_ConnectCallbacks)
 						{
 							const auto pluid = GetLUID();
-							Result<API::Peer> result{ ResultCode::Failed };
+							Result<API::Peer> result;
 
 							const auto peer_ptr = m_PeerPointer.lock();
 							if (peer_ptr) result = API::Peer(pluid, &peer_ptr);
@@ -953,7 +953,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return Send(msgtype, std::move(buffer), SendParameters::PriorityOption::Delayed, delay);
 	}
 
-	bool Peer::SendFromQueues(const Settings& settings)
+	bool Peer::SendFromQueues(const Settings& settings) noexcept
 	{
 		// If the send buffer isn't empty yet
 		if (!m_SendBuffer.IsEmpty())
@@ -1077,7 +1077,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	bool Peer::ProcessFromReceiveQueues(const Settings& settings)
+	bool Peer::ProcessFromReceiveQueues(const Settings& settings) noexcept
 	{
 		Size num{ 0 };
 
@@ -1114,7 +1114,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return true;
 	}
 
-	bool Peer::ReceiveAndProcess(const Settings& settings)
+	bool Peer::ReceiveAndProcess(const Settings& settings) noexcept
 	{
 		// Receive queues need to be empty before we
 		// continue beyond this block
@@ -1159,36 +1159,45 @@ namespace QuantumGate::Implementation::Core::Peer
 				// as possible and process them
 				while (true)
 				{
-					if (MessageTransport::GetFromBuffer(m_NextPeerRandomDataPrefixLength,
-														m_MessageTransportDataSizeSettings,
-														m_ReceiveBuffer, msgbuf) == MessageTransportCheck::CompleteMessage)
+					const auto msgchk2 = MessageTransport::GetFromBuffer(m_NextPeerRandomDataPrefixLength,
+																		 m_MessageTransportDataSizeSettings,
+																		 m_ReceiveBuffer, msgbuf);
+					switch (msgchk2)
 					{
-						const auto& [retval, nump, nrndplen] = ProcessMessageTransport(msgbuf, settings);
-						if (retval)
+						case MessageTransportCheck::CompleteMessage:
 						{
-							num += nump;
-							m_NextPeerRandomDataPrefixLength = nrndplen;
-
-							// Check if the processing limit has been reached; in that case break
-							// and set the event again so that we'll return to continue processing later.
-							// This prevents this socket from hoarding all the processing capacity.
-							if (num >= settings.Local.Concurrency.WorkerThreadsMaxBurst)
+							const auto& [retval, nump, nrndplen] = ProcessMessageTransport(msgbuf, settings);
+							if (retval)
 							{
-								if (!m_ReceiveBuffer.IsEmpty()) m_ReceiveBuffer.SetEvent();
-								return true;
+								num += nump;
+								m_NextPeerRandomDataPrefixLength = nrndplen;
+
+								// Check if the processing limit has been reached; in that case break
+								// and set the event again so that we'll return to continue processing later.
+								// This prevents this socket from hoarding all the processing capacity.
+								if (num >= settings.Local.Concurrency.WorkerThreadsMaxBurst)
+								{
+									if (!m_ReceiveBuffer.IsEmpty()) m_ReceiveBuffer.SetEvent();
+									return true;
+								}
 							}
+							else
+							{
+								// Error occured
+								return false;
+							}
+							break;
 						}
-						else
+						case MessageTransportCheck::Failed:
 						{
-							// Error occured
-							return false;
+							break;
 						}
-					}
-					else
-					{
-						// No complete message anymore;
-						// we'll come back later
-						return true;
+						default:
+						{
+							// No complete message anymore;
+							// we'll come back later
+							return true;
+						}
 					}
 				}
 				break;
@@ -1214,7 +1223,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	std::tuple<bool, Size, UInt16> Peer::ProcessMessageTransport(const BufferView msgbuf, const Settings& settings)
+	std::tuple<bool, Size, UInt16> Peer::ProcessMessageTransport(const BufferView msgbuf, const Settings& settings) noexcept
 	{
 		const auto nonce_seed = MessageTransport::GetNonceSeedFromBuffer(msgbuf);
 		if (nonce_seed)
@@ -1320,7 +1329,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::make_tuple(false, Size{ 0 }, UInt16{ 0 });
 	}
 
-	std::pair<bool, Size> Peer::ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey)
+	std::pair<bool, Size> Peer::ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey) noexcept
 	{
 		auto success = true;
 		auto invalid_msg = false;
@@ -1407,7 +1416,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	bool Peer::ProcessMessage(Message& msg)
+	bool Peer::ProcessMessage(Message& msg) noexcept
 	{
 		auto msg_sequence_error = false;
 		auto msg_complete = false;
@@ -1488,7 +1497,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 		else if (msg_complete)
 		{
-			const auto result = std::invoke([&]()
+			const auto result = std::invoke([&]() noexcept
 			{
 				if (m_MessageFragments.has_value())
 				{
@@ -1554,7 +1563,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 	void Peer::SetLUID() noexcept
 	{
-		m_PeerData.WithUniqueLock([&](Data& peer_data)
+		m_PeerData.WithUniqueLock([&](Data& peer_data) noexcept
 		{
 			if (peer_data.LUID == 0)
 			{

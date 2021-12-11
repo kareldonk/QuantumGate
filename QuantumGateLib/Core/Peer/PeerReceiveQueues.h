@@ -53,8 +53,8 @@ namespace QuantumGate::Implementation::Core::Peer
 			return msg;
 		}
 
-		void AddMessageRate(const MessageType type, const Size msg_size);
-		void SubtractMessageRate(const MessageType type, const Size msg_size);
+		void AddMessageRate(const MessageType type, const Size msg_size) noexcept;
+		void SubtractMessageRate(const MessageType type, const Size msg_size) noexcept;
 
 	private:
 		Peer& m_Peer;

@@ -26,21 +26,25 @@ namespace QuantumGate::Implementation::Core
 		Dbg(L"MsgTOHdr Nonce seed: %u : 0b%s", m_MessageNonceSeed, Util::ToBinaryString(m_MessageNonceSeed).data());
 	}
 
-	bool MessageTransport::OHeader::Read(const BufferView& buffer)
+	bool MessageTransport::OHeader::Read(const BufferView& buffer) noexcept
 	{
 		assert(buffer.GetSize() >= OHeader::GetSize());
 
-		UInt32 size{ 0 };
-		m_MessageHMAC.Allocate(OHeader::MessageHMACSize);
-		BufferSpan hmac(m_MessageHMAC);
-
-		Memory::BufferReader rdr(buffer, true);
-		if (rdr.Read(size, m_MessageNonceSeed, hmac))
+		try
 		{
-			m_MessageDataSize = DeObfuscateMessageDataSize(m_MessageDataSizeSettings, size);
+			UInt32 size{ 0 };
+			m_MessageHMAC.Allocate(OHeader::MessageHMACSize);
+			BufferSpan hmac(m_MessageHMAC);
 
-			return true;
+			Memory::BufferReader rdr(buffer, true);
+			if (rdr.Read(size, m_MessageNonceSeed, hmac))
+			{
+				m_MessageDataSize = DeObfuscateMessageDataSize(m_MessageDataSizeSettings, size);
+
+				return true;
+			}
 		}
+		catch (...) {}
 
 		return false;
 	}
@@ -49,7 +53,7 @@ namespace QuantumGate::Implementation::Core
 	{
 		const auto size = ObfuscateMessageDataSize(m_MessageDataSizeSettings, m_MessageRandomBits, m_MessageDataSize);
 
-		BufferView hmac(m_MessageHMAC);
+		const BufferView hmac(m_MessageHMAC);
 
 		Memory::BufferWriter wrt(buffer, true);
 		return wrt.WriteWithPreallocation(size, m_MessageNonceSeed, hmac);
@@ -246,7 +250,8 @@ namespace QuantumGate::Implementation::Core
 		return m_IHeader.GetMessageTime();
 	}
 
-	std::pair<bool, bool> MessageTransport::Read(BufferView buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce)
+	std::pair<bool, bool> MessageTransport::Read(BufferView buffer, Crypto::SymmetricKeyData& symkey,
+												 const BufferView& nonce) noexcept
 	{
 		assert(buffer.GetSize() >= OHeader::GetSize());
 		assert(!nonce.IsEmpty());
@@ -260,138 +265,147 @@ namespace QuantumGate::Implementation::Core
 		auto success = false;
 		auto retry = false;
 
-		// If we have message data get it
-		if (m_OHeader.GetMessageDataSize() > 0)
+		try
 		{
-			// Remove outer message header from buffer
-			buffer.RemoveFirst(OHeader::GetSize());
-
-			// Remaining buffer size should match data size otherwise something is wrong
-			if (m_OHeader.GetMessageDataSize() == buffer.GetSize())
+			// If we have message data get it
+			if (m_OHeader.GetMessageDataSize() > 0)
 			{
-				OHeader::HMACBuffer hmac;
+				// Remove outer message header from buffer
+				buffer.RemoveFirst(OHeader::GetSize());
 
-				// Calculate message HMAC
-				if (Crypto::HMAC(buffer, hmac, symkey.AuthKey, Algorithm::Hash::BLAKE2S256))
+				// Remaining buffer size should match data size otherwise something is wrong
+				if (m_OHeader.GetMessageDataSize() == buffer.GetSize())
 				{
-					assert(hmac.GetSize() == OHeader::HMACBuffer::GetMaxSize());
+					OHeader::HMACBuffer hmac;
 
-					// Check if message data corresponds to HMAC
-					if (Crypto::CompareBuffers(m_OHeader.GetHMACBuffer(), hmac))
+					// Calculate message HMAC
+					if (Crypto::HMAC(buffer, hmac, symkey.AuthKey, Algorithm::Hash::BLAKE2S256))
 					{
-						Buffer decrbuf;
+						assert(hmac.GetSize() == OHeader::HMACBuffer::GetMaxSize());
 
-						// Decrypt message data
-						if (Crypto::Decrypt(buffer, decrbuf, symkey, nonce))
+						// Check if message data corresponds to HMAC
+						if (Crypto::CompareBuffers(m_OHeader.GetHMACBuffer(), hmac))
 						{
-							// Get message inner header from buffer
-							if (m_IHeader.Read(decrbuf))
+							Buffer decrbuf;
+
+							// Decrypt message data
+							if (Crypto::Decrypt(buffer, decrbuf, symkey, nonce))
 							{
-								// Remove inner message header and random padding data (if any) from buffer
-								decrbuf.RemoveFirst(IHeader::GetSize() + m_IHeader.GetRandomDataSize());
-
-								// Rest of message is message data
-								if (!decrbuf.IsEmpty())
+								// Get message inner header from buffer
+								if (m_IHeader.Read(decrbuf))
 								{
-									m_MessageData = std::move(decrbuf);
+									// Remove inner message header and random padding data (if any) from buffer
+									decrbuf.RemoveFirst(IHeader::GetSize() + m_IHeader.GetRandomDataSize());
+
+									// Rest of message is message data
+									if (!decrbuf.IsEmpty())
+									{
+										m_MessageData = std::move(decrbuf);
+									}
+
+									success = true;
 								}
-
-								success = true;
 							}
+							else LogErr(L"Could not decrypt message data");
 						}
-						else LogErr(L"Could not decrypt message data");
-					}
-					else
-					{
-						LogDbg(L"Incorrect message HMAC");
+						else
+						{
+							LogDbg(L"Incorrect message HMAC");
 
-						// If the message HMAC wasn't correct it could mean the message was encrypted
-						// using a different key, so we'll try again with another key if we have one
-						retry = true;
+							// If the message HMAC wasn't correct it could mean the message was encrypted
+							// using a different key, so we'll try again with another key if we have one
+							retry = true;
+						}
 					}
+					else LogErr(L"MessageTransport HMAC could not be computed");
 				}
-				else LogErr(L"MessageTransport HMAC could not be computed");
+				else LogDbg(L"MessageTransport data length mismatch");
 			}
-			else LogDbg(L"MessageTransport data length mismatch");
+			else LogDbg(L"MessageTransport has no data");
 		}
-		else LogDbg(L"MessageTransport has no data");
+		catch (...) {}
 
 		if (success) Validate();
 
 		return std::make_pair(success, retry);
 	}
 
-	bool MessageTransport::Write(Buffer& buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce)
+	bool MessageTransport::Write(Buffer& buffer, Crypto::SymmetricKeyData& symkey, const BufferView& nonce) noexcept
 	{
 		assert(!nonce.IsEmpty());
 
-		Buffer msgdatabuf;
-
-		// Add inner message header
-		if (!m_IHeader.Write(msgdatabuf)) return false;
-
-		// Add message data if any
-		if (!m_MessageData.IsEmpty())
+		try
 		{
-			msgdatabuf += m_MessageData;
-		}
+			Buffer msgdatabuf;
 
-		if (msgdatabuf.GetSize() > (MessageTransport::IHeader::GetSize() + MessageTransport::MaxMessageAndRandomDataSize))
-		{
-			LogErr(L"Size of MessageTransport data combined with random data is too large: %u bytes (Max. is %u bytes)",
-				   msgdatabuf.GetSize(), MessageTransport::MaxMessageAndRandomDataSize);
+			// Add inner message header
+			if (!m_IHeader.Write(msgdatabuf)) return false;
 
-			return false;
-		}
-
-		auto msgohdr = m_OHeader;
-		Buffer encrdata;
-
-		// Encrypt message
-		if (Crypto::Encrypt(msgdatabuf, encrdata, symkey, nonce))
-		{
-			msgohdr.SetMessageDataSize(encrdata.GetSize());
-
-			// Calculate HMAC for the encrypted message
-			if (Crypto::HMAC(encrdata, msgohdr.GetHMACBuffer(), symkey.AuthKey, Algorithm::Hash::BLAKE2S256))
+			// Add message data if any
+			if (!m_MessageData.IsEmpty())
 			{
-				assert(msgohdr.GetHMACBuffer().GetSize() == OHeader::HMACBuffer::GetMaxSize());
-
-				Dbg(L"MessageTransport hash: %s", Util::ToBase64(msgohdr.GetHMACBuffer())->c_str());
-
-				auto& msgbuffer = msgdatabuf;
-				msgbuffer.Clear();
-
-				// First get the outer message header into the output buffer, then
-				// add inner message header and message data to the output buffer
-				if (msgohdr.Write(msgbuffer))
-				{
-					msgbuffer += encrdata;
-
-					Dbg(L"Send buffer: %d bytes - %s", msgbuffer.GetSize(), Util::ToBase64(msgbuffer)->c_str());
-
-					if (msgbuffer.GetSize() <= MessageTransport::MaxMessageSize)
-					{
-						if (m_RandomDataPrefixLength > 0)
-						{
-							buffer.Preallocate(m_RandomDataPrefixLength + msgbuffer.GetSize());
-							buffer = Random::GetPseudoRandomBytes(m_RandomDataPrefixLength);
-							buffer += msgbuffer;
-						}
-						else buffer = std::move(msgbuffer);
-
-						Dbg(L"Send buffer plus random data prefix: %d bytes - %s",
-							buffer.GetSize(), Util::ToBase64(buffer)->c_str());
-
-						return true;
-					}
-					else LogErr(L"MessageTransport size too large: %u bytes (Max. is %u bytes)",
-								msgbuffer.GetSize(), MessageTransport::MaxMessageSize);
-				}
+				msgdatabuf += m_MessageData;
 			}
-			else LogErr(L"Could not compute MessageTransport HMAC");
+
+			if (msgdatabuf.GetSize() > (MessageTransport::IHeader::GetSize() + MessageTransport::MaxMessageAndRandomDataSize))
+			{
+				LogErr(L"Size of MessageTransport data combined with random data is too large: %u bytes (Max. is %u bytes)",
+					   msgdatabuf.GetSize(), MessageTransport::MaxMessageAndRandomDataSize);
+
+				return false;
+			}
+
+			auto msgohdr = m_OHeader;
+			Buffer encrdata;
+
+			// Encrypt message
+			if (Crypto::Encrypt(msgdatabuf, encrdata, symkey, nonce))
+			{
+				msgohdr.SetMessageDataSize(encrdata.GetSize());
+
+				// Calculate HMAC for the encrypted message
+				if (Crypto::HMAC(encrdata, msgohdr.GetHMACBuffer(), symkey.AuthKey, Algorithm::Hash::BLAKE2S256))
+				{
+					assert(msgohdr.GetHMACBuffer().GetSize() == OHeader::HMACBuffer::GetMaxSize());
+
+					Dbg(L"MessageTransport hash: %s", Util::ToBase64(msgohdr.GetHMACBuffer())->c_str());
+
+					auto& msgbuffer = msgdatabuf;
+					msgbuffer.Clear();
+
+					// First get the outer message header into the output buffer, then
+					// add inner message header and message data to the output buffer
+					if (msgohdr.Write(msgbuffer))
+					{
+						msgbuffer += encrdata;
+
+						Dbg(L"Send buffer: %d bytes - %s", msgbuffer.GetSize(), Util::ToBase64(msgbuffer)->c_str());
+
+						if (msgbuffer.GetSize() <= MessageTransport::MaxMessageSize)
+						{
+							if (m_RandomDataPrefixLength > 0)
+							{
+								buffer.Preallocate(m_RandomDataPrefixLength + msgbuffer.GetSize());
+								buffer += Random::GetPseudoRandomBytes(m_RandomDataPrefixLength);
+								buffer += msgbuffer;
+							}
+							else buffer = std::move(msgbuffer);
+
+							Dbg(L"Send buffer plus random data prefix: %d bytes - %s",
+								buffer.GetSize(), Util::ToBase64(buffer)->c_str());
+
+							return true;
+						}
+						else LogErr(L"MessageTransport size too large: %u bytes (Max. is %u bytes)",
+									msgbuffer.GetSize(), MessageTransport::MaxMessageSize);
+					}
+					else LogErr(L"Could not write MessageTransport");
+				}
+				else LogErr(L"Could not compute MessageTransport HMAC");
+			}
+			else LogErr(L"Could not encrypt MessageTransport data");
 		}
-		else LogErr(L"Could not encrypt MessageTransport data");
+		catch (...) {}
 
 		return false;
 	}
@@ -424,33 +438,39 @@ namespace QuantumGate::Implementation::Core
 	}
 
 	MessageTransportCheck MessageTransport::GetFromBuffer(const UInt16 rndp_len, const DataSizeSettings mds_settings,
-														  Buffer& srcbuf, Buffer& destbuf)
+														  Buffer& srcbuf, Buffer& destbuf) noexcept
 	{
-		// Check if buffer has enough data for outer MessageTransport header
-		if (srcbuf.GetSize() < rndp_len + OHeader::GetSize()) return MessageTransportCheck::NotEnoughData;
-
-		BufferView srcbufview(srcbuf);
-		srcbufview.RemoveFirst(rndp_len);
-
-		OHeader hdr(mds_settings);
-		if (hdr.Read(srcbufview))
+		try
 		{
-			const auto msglen = hdr.GetSize() + hdr.GetMessageDataSize();
+			// Check if buffer has enough data for outer MessageTransport header
+			if (srcbuf.GetSize() < rndp_len + OHeader::GetSize()) return MessageTransportCheck::NotEnoughData;
 
-			// If buffer has enough data for a complete message read
-			// the message out and remove it from the buffer
-			if (srcbufview.GetSize() >= msglen)
+			BufferView srcbufview(srcbuf);
+			srcbufview.RemoveFirst(rndp_len);
+
+			OHeader hdr(mds_settings);
+			if (hdr.Read(srcbufview))
 			{
-				destbuf.Allocate(msglen);
-				memcpy(destbuf.GetBytes(), srcbufview.GetBytes(), msglen);
+				const auto msglen = hdr.GetSize() + hdr.GetMessageDataSize();
 
-				srcbuf.RemoveFirst(rndp_len + msglen);
+				// If buffer has enough data for a complete message read
+				// the message out and remove it from the buffer
+				if (srcbufview.GetSize() >= msglen)
+				{
+					destbuf.Allocate(msglen);
+					memcpy(destbuf.GetBytes(), srcbufview.GetBytes(), msglen);
 
-				return MessageTransportCheck::CompleteMessage;
+					srcbuf.RemoveFirst(rndp_len + msglen);
+
+					return MessageTransportCheck::CompleteMessage;
+				}
 			}
-		}
 
-		return MessageTransportCheck::NotEnoughData;
+			return MessageTransportCheck::NotEnoughData;
+		}
+		catch (...) {}
+
+		return MessageTransportCheck::Failed;
 	}
 
 	std::optional<UInt32> MessageTransport::GetNonceSeedFromBuffer(const BufferView& srcbuf) noexcept

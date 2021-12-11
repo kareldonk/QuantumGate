@@ -228,7 +228,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Extender::Manager& GetExtenderManager() const noexcept;
 
-		[[nodiscard]] bool OnStatusChange(const Status old_status, const Status new_status);
+		[[nodiscard]] bool OnStatusChange(const Status old_status, const Status new_status) noexcept;
 
 		[[nodiscard]] bool SendFromNoiseQueue(const Settings& settings) noexcept;
 
@@ -251,18 +251,18 @@ namespace QuantumGate::Implementation::Core::Peer
 				(m_SendBuffer.IsEventSet() || m_SendQueues.HaveMessages()));
 		}
 
-		[[nodiscard]] bool SendFromQueues(const Settings& settings);
+		[[nodiscard]] bool SendFromQueues(const Settings& settings) noexcept;
 
 		[[nodiscard]] inline MessageRateLimits& GetMessageRateLimits() noexcept { return m_RateLimits; }
 
-		[[nodiscard]] bool ProcessFromReceiveQueues(const Settings& settings);
-		[[nodiscard]] bool ReceiveAndProcess(const Settings& settings);
-		[[nodiscard]] std::tuple<bool, Size, UInt16> ProcessMessageTransport(const BufferView msgbuf, const Settings& settings);
-		[[nodiscard]] std::pair<bool, Size> ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey);
+		[[nodiscard]] bool ProcessFromReceiveQueues(const Settings& settings) noexcept;
+		[[nodiscard]] bool ReceiveAndProcess(const Settings& settings) noexcept;
+		[[nodiscard]] std::tuple<bool, Size, UInt16> ProcessMessageTransport(const BufferView msgbuf, const Settings& settings) noexcept;
+		[[nodiscard]] std::pair<bool, Size> ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey) noexcept;
 
 		[[nodiscard]] PeerReceiveQueues& GetReceiveQueues() noexcept { return m_ReceiveQueues; }
 		[[nodiscard]] bool QueueOrProcessReceivedMessage(Message&& msg) noexcept;
-		[[nodiscard]] bool ProcessMessage(Message& msg);
+		[[nodiscard]] bool ProcessMessage(Message& msg) noexcept;
 		[[nodiscard]] MessageProcessor::Result ProcessMessage(MessageDetails&& msg) noexcept;
 
 		void ProcessEvent(const Event::Type etype) noexcept;

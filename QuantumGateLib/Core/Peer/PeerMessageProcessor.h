@@ -31,42 +31,42 @@ namespace QuantumGate::Implementation::Core::Peer
 		MessageProcessor& operator=(const MessageProcessor&) = delete;
 		MessageProcessor& operator=(MessageProcessor&&) noexcept = default;
 
-		bool SendBeginHandshake() const noexcept;
+		[[nodiscard]] bool SendBeginHandshake() const noexcept;
 
-		bool SendBeginRelay(const RelayPort rport, const Endpoint& endpoint, const RelayHop hops) const noexcept;
+		[[nodiscard]] bool SendBeginRelay(const RelayPort rport, const Endpoint& endpoint, const RelayHop hops) const noexcept;
 		QuantumGate::Result<> SendRelayStatus(const RelayPort rport, const RelayStatusUpdate status) const noexcept;
 		QuantumGate::Result<> SendRelayData(const RelayDataMessage& msg) const noexcept;
-		bool SendRelayDataAck(const RelayDataAckMessage& msg) const noexcept;
+		[[nodiscard]] bool SendRelayDataAck(const RelayDataAckMessage& msg) const noexcept;
 
-		Result ProcessMessage(MessageDetails&& msg) const;
+		[[nodiscard]] Result ProcessMessage(MessageDetails&& msg) const noexcept;
 
 	private:
-		bool SendBeginPrimaryKeyExchange() const noexcept;
-		bool SendBeginKeyExchange(const MessageType type) const noexcept;
-		bool SendBeginPrimaryKeyUpdateExchange() const noexcept;
+		[[nodiscard]] bool SendBeginPrimaryKeyExchange() const noexcept;
+		[[nodiscard]] bool SendBeginKeyExchange(const MessageType type) const noexcept;
+		[[nodiscard]] bool SendBeginPrimaryKeyUpdateExchange() const noexcept;
 
-		Result ProcessMessageMetaExchange(MessageDetails&& msg) const;
-		Result ProcessMessagePrimaryKeyExchange(MessageDetails&& msg) const;
-		Result ProcessMessageSecondaryKeyExchange(MessageDetails&& msg) const;
-		Result ProcessMessageAuthentication(MessageDetails&& msg) const;
-		Result ProcessMessageSessionInit(MessageDetails&& msg) const;
-		Result ProcessMessageReadyState(MessageDetails&& msg) const;
+		[[nodiscard]] Result ProcessMessageMetaExchange(const MessageDetails&& msg) const noexcept;
+		[[nodiscard]] Result ProcessMessagePrimaryKeyExchange(MessageDetails&& msg) const noexcept;
+		[[nodiscard]] Result ProcessMessageSecondaryKeyExchange(MessageDetails&& msg) const noexcept;
+		[[nodiscard]] Result ProcessMessageAuthentication(const MessageDetails&& msg) const noexcept;
+		[[nodiscard]] Result ProcessMessageSessionInit(const MessageDetails&& msg) const noexcept;
+		[[nodiscard]] Result ProcessMessageReadyState(MessageDetails&& msg) const noexcept;
 		
-		Result ProcessKeyExchange(MessageDetails&& msg) const;
+		[[nodiscard]] Result ProcessKeyExchange(const MessageDetails&& msg) const noexcept;
 
-		bool GetSignature(Buffer& sig) const;
+		[[nodiscard]] bool GetSignature(Buffer& sig) const noexcept;
 
-		bool MakeSignature(const UUID& uuid, const UInt64 sessionid, const BufferView& priv_key,
-						   const Algorithm::Hash ha, Buffer& sig) const;
+		[[nodiscard]] bool MakeSignature(const UUID& uuid, const UInt64 sessionid, const BufferView& priv_key,
+										 const Algorithm::Hash ha, Buffer& sig) const noexcept;
 
-		bool AuthenticatePeer(const Buffer& psig) const;
+		[[nodiscard]] bool AuthenticatePeer(const Buffer& psig) const noexcept;
 
-		bool VerifySignature(const Buffer& psig) const;
+		[[nodiscard]] bool VerifySignature(const Buffer& psig) const noexcept;
 
-		bool VerifySignature(const UUID& uuid, const UInt64 sessionid, const BufferView& pub_key,
-							 const Algorithm::Hash ha, const Buffer& psig) const;
+		[[nodiscard]] bool VerifySignature(const UUID& uuid, const UInt64 sessionid, const BufferView& pub_key,
+										   const Algorithm::Hash ha, const Buffer& psig) const noexcept;
 
-		std::optional<Vector<ExtenderUUID>> ValidateExtenderUUIDs(const Vector<SerializedUUID>& sextlist) const noexcept;
+		[[nodiscard]] std::optional<Vector<ExtenderUUID>> ValidateExtenderUUIDs(const Vector<SerializedUUID>& sextlist) const noexcept;
 
 	private:
 		Peer& m_Peer;

@@ -16,13 +16,13 @@ namespace QuantumGate::Implementation::Crypto
 	void SortAlgorithms(Vector<T>& list);
 
 	template<typename T>
-	Export bool HasAlgorithm(const Vector<T>& list, const T value);
+	[[nodiscard]] Export bool HasAlgorithm(const Vector<T>& list, const T value) noexcept;
 
 	template<typename T>
-	const T ChooseAlgorithm(const Vector<T>& list1, Vector<T>& list2);
+	T ChooseAlgorithm(const Vector<T>& list1, Vector<T>& list2) noexcept;
 
-	std::optional<UInt64> GetCryptoRandomNumber() noexcept;
-	std::optional<Buffer> GetCryptoRandomBytes(const Size size) noexcept;
+	[[nodiscard]] std::optional<UInt64> GetCryptoRandomNumber() noexcept;
+	[[nodiscard]] std::optional<Buffer> GetCryptoRandomBytes(const Size size) noexcept;
 
 	template<typename T>
 	[[nodiscard]] Export bool Hash(const BufferView& buffer, T& hashbuf, const Algorithm::Hash type) noexcept;

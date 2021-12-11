@@ -52,12 +52,10 @@ namespace QuantumGate::Implementation::Core::Peer
 		}
 	}
 
-	MessageDetails::MessageDetails(Peer& peer, const MessageType type, const ExtenderUUID& extuuid, Buffer&& msgdata) :
+	MessageDetails::MessageDetails(Peer& peer, const MessageType type, const ExtenderUUID& extuuid,
+								   Buffer&& msgdata)  noexcept :
 		m_MessageType(type), m_ExtenderUUID(extuuid), m_MessageData(std::move(msgdata)),
 		m_MessageRate(peer, m_MessageType, m_MessageData.GetSize())
-	{}
-
-	MessageDetails::~MessageDetails()
 	{}
 
 	bool MessageDetails::AddToMessageData(const Buffer& data) noexcept
