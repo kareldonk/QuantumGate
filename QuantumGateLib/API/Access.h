@@ -43,7 +43,7 @@ namespace QuantumGate::API::Access
 
 	enum class CheckType : UInt16
 	{
-		IPFilters, AddressReputations, IPSubnetLimits, All
+		AddressReputations, IPFilters, IPSubnetLimits, All
 	};
 
 	enum class PeerAccessDefault : UInt16
