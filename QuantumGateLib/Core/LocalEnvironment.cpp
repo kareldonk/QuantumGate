@@ -187,23 +187,22 @@ namespace QuantumGate::Implementation::Core
 			constexpr ULONG family{ AF_UNSPEC };
 
 			ULONG buflen{ sizeof(IP_ADAPTER_ADDRESSES) };
-			auto addresses = std::make_unique<Byte[]>(buflen);
+			Buffer addresses(buflen);
 
 			// Make an initial call to GetAdaptersAddresses to get the necessary size into the buflen variable
-			if (GetAdaptersAddresses(family, 0, nullptr, reinterpret_cast<IP_ADAPTER_ADDRESSES*>(addresses.get()),
+			if (GetAdaptersAddresses(family, 0, nullptr, reinterpret_cast<IP_ADAPTER_ADDRESSES*>(addresses.GetBytes()),
 									 &buflen) == ERROR_BUFFER_OVERFLOW)
 			{
-				addresses = std::make_unique<Byte[]>(buflen);
+				addresses.Allocate(buflen);
 			}
 
 			const auto ret = GetAdaptersAddresses(family, 0, nullptr,
-												  reinterpret_cast<IP_ADAPTER_ADDRESSES*>(addresses.get()),
-												  &buflen);
+												  reinterpret_cast<IP_ADAPTER_ADDRESSES*>(addresses.GetBytes()), &buflen);
 			if (ret == NO_ERROR)
 			{
 				Vector<API::Local::Environment::EthernetInterface> allifs;
 
-				auto address = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(addresses.get());
+				auto address = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(addresses.GetBytes());
 
 				while (address != nullptr)
 				{
@@ -255,90 +254,80 @@ namespace QuantumGate::Implementation::Core
 		try
 		{
 			DWORD query_set_len{ sizeof(WSAQUERYSET) };
+			Buffer query_buffer(query_set_len);
 
-			auto query_set = reinterpret_cast<WSAQUERYSET*>(HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, query_set_len));
-			if (query_set != nullptr)
+			auto query_set = reinterpret_cast<WSAQUERYSET*>(query_buffer.GetBytes());
+			
+			query_set->dwNameSpace = NS_BTH;
+			query_set->dwSize = sizeof(WSAQUERYSET);
+
+			HANDLE lookup_handle{ nullptr };
+			auto lookup_flags = LUP_CONTAINERS | LUP_RETURN_NAME | LUP_RETURN_TYPE | LUP_RETURN_ADDR;
+
+			if (refresh) lookup_flags |= LUP_FLUSHCACHE;
+
+			if (WSALookupServiceBegin(query_set, lookup_flags, &lookup_handle) == 0 && lookup_handle != nullptr)
 			{
-				// Free resources when we return
-				const auto sg = MakeScopeGuard([&]() noexcept { if (query_set != nullptr) HeapFree(GetProcessHeap(), 0, query_set); });
+				// End lookup when we return
+				const auto sg = MakeScopeGuard([&]() noexcept { WSALookupServiceEnd(lookup_handle); });
 
-				HANDLE lookup_handle{ nullptr };
-				auto lookup_flags = LUP_CONTAINERS | LUP_RETURN_NAME | LUP_RETURN_TYPE | LUP_RETURN_ADDR;
-
-				if (refresh) lookup_flags |= LUP_FLUSHCACHE;
-
-				MemInit(query_set, 0);
-				query_set->dwNameSpace = NS_BTH;
-				query_set->dwSize = sizeof(WSAQUERYSET);
-
-				if (WSALookupServiceBegin(query_set, lookup_flags, &lookup_handle) == 0 && lookup_handle != nullptr)
+				while (true)
 				{
-					// End lookup when we return
-					const auto sg2 = MakeScopeGuard([&]() noexcept { WSALookupServiceEnd(lookup_handle); });
-
-					while (true)
+					if (WSALookupServiceNext(lookup_handle, lookup_flags, &query_set_len, query_set) == 0)
 					{
-						if (WSALookupServiceNext(lookup_handle, lookup_flags, &query_set_len, query_set) == 0)
+						if (query_set->lpszServiceInstanceName != nullptr &&
+							query_set->lpcsaBuffer->RemoteAddr.lpSockaddr->sa_family == AF_BTH)
 						{
-							if (query_set->lpszServiceInstanceName != nullptr &&
-								query_set->lpcsaBuffer->RemoteAddr.lpSockaddr->sa_family == AF_BTH)
+							const auto raddr = BTHAddress(query_set->lpcsaBuffer->RemoteAddr.lpSockaddr);
+
+							const auto it = std::find_if(devices.begin(), devices.end(), [&](const auto& device)
 							{
-								const auto raddr = BTHAddress(query_set->lpcsaBuffer->RemoteAddr.lpSockaddr);
+								return (device.RemoteAddress == raddr);
+							});
 
-								const auto it = std::find_if(devices.begin(), devices.end(), [&](const auto& device)
-								{
-									return (device.RemoteAddress == raddr);
-								});
-
-								if (it != devices.end())
-								{
-									it->ServiceClassID = *query_set->lpServiceClassId;
-								}
-								else
-								{
-									auto& bthdev = devices.emplace_back();
-									bthdev.Name = query_set->lpszServiceInstanceName;
-									bthdev.ServiceClassID = *query_set->lpServiceClassId;
-									bthdev.RemoteAddress = raddr;
-								}
+							if (it != devices.end())
+							{
+								it->ServiceClassID = *query_set->lpServiceClassId;
+							}
+							else
+							{
+								auto& bthdev = devices.emplace_back();
+								bthdev.Name = query_set->lpszServiceInstanceName;
+								bthdev.ServiceClassID = *query_set->lpServiceClassId;
+								bthdev.RemoteAddress = raddr;
 							}
 						}
-						else
-						{
-							const auto error = WSAGetLastError();
-							if (error == WSA_E_NO_MORE)
-							{
-								// No more data
-								return ResultCode::Succeeded;
-							}
-							else if (error == WSAEFAULT)
-							{
-								// The buffer for QUERYSET was insufficient;
-								// needed size is set in query_set_len now
-								HeapFree(GetProcessHeap(), 0, query_set);
-								query_set = reinterpret_cast<WSAQUERYSET*>(HeapAlloc(GetProcessHeap(),
-																					 HEAP_ZERO_MEMORY, query_set_len));
-								if (query_set == nullptr)
-								{
-									break;
-								}
-							}
-							else LogErr(L"Could not get addresses for local Bluetooth devices; WSALookupServiceNext() failed (%s)",
-										GetLastSysErrorString().c_str());
-						}
 					}
-				}
-				else
-				{
-					const auto error = WSAGetLastError();
-					if (error == WSASERVICE_NOT_FOUND)
+					else
 					{
-						// Bluetooth is off or there are no devices
-						return ResultCode::Succeeded;
+						const auto error = WSAGetLastError();
+						if (error == WSA_E_NO_MORE)
+						{
+							// No more data
+							return ResultCode::Succeeded;
+						}
+						else if (error == WSAEFAULT)
+						{
+							// The buffer for QUERYSET was insufficient;
+							// needed size is set in query_set_len now
+							query_buffer.Allocate(query_set_len);
+							query_set = reinterpret_cast<WSAQUERYSET*>(query_buffer.GetBytes());
+						}
+						else LogErr(L"Could not get addresses for local Bluetooth devices; WSALookupServiceNext() failed (%s)",
+									GetLastSysErrorString().c_str());
 					}
-					else LogErr(L"Could not get addresses for local Bluetooth devices; WSALookupServiceBegin() failed (%s)",
-								GetLastSysErrorString().c_str());
 				}
+			}
+			else
+			{
+				const auto error = WSAGetLastError();
+				if (error == WSASERVICE_NOT_FOUND)
+				{
+					// Bluetooth is off or there are no devices
+					return ResultCode::Succeeded;
+				}
+				else LogErr(L"Could not get addresses for local Bluetooth devices; WSALookupServiceBegin() failed (%s)",
+							GetLastSysErrorString().c_str());
 			}
 		}
 		catch (const std::exception& e)
@@ -377,6 +366,7 @@ namespace QuantumGate::Implementation::Core
 					if (BluetoothGetRadioInfo(radio_handle, &radio_info) == ERROR_SUCCESS)
 					{
 						auto& bthradio = allbthr.emplace_back();
+						bthradio.NativeHandle = radio_handle;
 						bthradio.Name = radio_info.szName;
 						bthradio.ManufacturerID = radio_info.manufacturer;
 						bthradio.Connectable = BluetoothIsConnectable(radio_handle);

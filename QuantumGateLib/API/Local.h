@@ -62,6 +62,9 @@ namespace QuantumGate::API
 
 			struct BluetoothRadio
 			{
+				using NativeHandleType = void*;
+
+				NativeHandleType NativeHandle{ nullptr };
 				String Name;
 				BTHAddress Address;
 				UInt16 ManufacturerID{ 0 };

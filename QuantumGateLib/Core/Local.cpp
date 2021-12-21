@@ -274,6 +274,7 @@ namespace QuantumGate::Implementation::Core
 				
 				settings.Local.Listeners.BTH.Ports = Util::SetToVector(params.Listeners.BTH.Ports);
 				settings.Local.Listeners.BTH.RequireAuthentication = params.Listeners.BTH.RequireAuthentication;
+				settings.Local.Listeners.BTH.Discoverable = params.Listeners.BTH.Discoverable;
 				
 				if (params.Listeners.BTH.Service.has_value())
 				{

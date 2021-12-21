@@ -354,6 +354,16 @@ void CTestAppDlg::LoadSettings()
 				}
 				else ((CButton*)m_MainTab->GetDlgItem(IDC_BTH_AUTH2))->SetCheck(BST_UNCHECKED);
 
+				if (set.find("LocalBluetoothDiscoverable") != set.end())
+				{
+					if (set["LocalBluetoothDiscoverable"].get<bool>())
+					{
+						((CButton*)m_MainTab->GetDlgItem(IDC_BTH_DISCOV))->SetCheck(BST_CHECKED);
+					}
+					else ((CButton*)m_MainTab->GetDlgItem(IDC_BTH_DISCOV))->SetCheck(BST_UNCHECKED);
+				}
+				else ((CButton*)m_MainTab->GetDlgItem(IDC_BTH_DISCOV))->SetCheck(BST_UNCHECKED);
+
 				if (set.find("LocalUUID") != set.end())
 				{
 					m_MainTab->SetValue(IDC_LOCAL_UUID, set["LocalUUID"].get<std::string>());
@@ -585,6 +595,7 @@ void CTestAppDlg::SaveSettings()
 			j["Settings"]["LocalPorts"] = Util::ToStringA((LPCWSTR)localport);
 			j["Settings"]["LocalBluetoothPorts"] = Util::ToStringA((LPCWSTR)localportbth);
 			j["Settings"]["LocalBluetoothAuth"] = (((CButton*)m_MainTab->GetDlgItem(IDC_BTH_AUTH2))->GetCheck() == BST_CHECKED);
+			j["Settings"]["LocalBluetoothDiscoverable"] = (((CButton*)m_MainTab->GetDlgItem(IDC_BTH_DISCOV))->GetCheck() == BST_CHECKED);
 			j["Settings"]["LocalUUID"] = Util::ToStringA((LPCWSTR)luuid);
 			j["Settings"]["RequirePeerAuthentication"] = m_StartupParameters.RequireAuthentication;
 			j["Settings"]["RelayIPv4ExcludedNetworksCIDRLeadingBits"] = m_StartupParameters.Relays.IPv4ExcludedNetworksCIDRLeadingBits;
@@ -814,6 +825,7 @@ void CTestAppDlg::OnLocalInitialize()
 	params.Listeners.BTH.Enable = true;
 	params.Listeners.BTH.Ports = *portsbth;
 	params.Listeners.BTH.RequireAuthentication = (((CButton*)m_MainTab->GetDlgItem(IDC_BTH_AUTH2))->GetCheck() == BST_CHECKED);
+	params.Listeners.BTH.Discoverable = (((CButton*)m_MainTab->GetDlgItem(IDC_BTH_DISCOV))->GetCheck() == BST_CHECKED);
 	params.EnableExtenders = true;
 	params.Relays.Enable = true;
 

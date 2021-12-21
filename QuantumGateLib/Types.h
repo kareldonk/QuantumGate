@@ -192,6 +192,7 @@ namespace QuantumGate
 				bool Enable{ false };							// Enable listening for incoming connections on startup?
 				Set<UInt16> Ports{ 9 };							// Which Bluetooth ports to listen on
 				bool RequireAuthentication{ true };				// Whether to require Bluetooth authentication (device pairing) before accepting connections
+				bool Discoverable{ false };						// Whether to make the device discoverable via Bluetooth (devices scanning for other nearby devices will then be able to discover this device without pairing)
 				std::optional<BluetoothServiceDetails> Service;	// Bluetooth service details to advertise to connecting peers
 			} BTH;
 		} Listeners;

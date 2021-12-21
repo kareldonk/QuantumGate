@@ -25,6 +25,7 @@ namespace QuantumGate::Implementation::Core::BTH::Listener
 		const auto& settings = m_Settings.GetCache();
 		const auto& listener_ports = settings.Local.Listeners.BTH.Ports;
 		const auto require_auth = settings.Local.Listeners.BTH.RequireAuthentication;
+		const auto discoverable = settings.Local.Listeners.BTH.Discoverable;
 		const auto& service_details = settings.Local.Listeners.BTH.Service;
 
 		// Should have at least one port
@@ -38,6 +39,8 @@ namespace QuantumGate::Implementation::Core::BTH::Listener
 
 		if (m_ThreadPool.Startup())
 		{
+			if (discoverable) EnableDiscovery();
+
 			m_Running = true;
 			m_ListeningOnAnyAddresses = true;
 
@@ -60,6 +63,7 @@ namespace QuantumGate::Implementation::Core::BTH::Listener
 		const auto& settings = m_Settings.GetCache();
 		const auto& listener_ports = settings.Local.Listeners.BTH.Ports;
 		const auto require_auth = settings.Local.Listeners.BTH.RequireAuthentication;
+		const auto discoverable = settings.Local.Listeners.BTH.Discoverable;
 		const auto& service_details = settings.Local.Listeners.BTH.Service;
 
 		// Should have at least one port
@@ -77,6 +81,8 @@ namespace QuantumGate::Implementation::Core::BTH::Listener
 
 		if (m_ThreadPool.Startup())
 		{
+			if (discoverable) EnableDiscovery();
+
 			m_Running = true;
 			m_ListeningOnAnyAddresses = false;
 
@@ -249,6 +255,8 @@ namespace QuantumGate::Implementation::Core::BTH::Listener
 		const auto& settings = m_Settings.GetCache();
 		const auto& service_details = settings.Local.Listeners.BTH.Service;
 
+		DisableDiscovery();
+
 		m_ThreadPool.Shutdown();
 
 		// Remove all threads
@@ -270,8 +278,36 @@ namespace QuantumGate::Implementation::Core::BTH::Listener
 
 	void Manager::ResetState() noexcept
 	{
+		m_Discoverable = false;
 		m_ListeningOnAnyAddresses = false;
 		m_ThreadPool.Clear();
+	}
+
+	void Manager::EnableDiscovery() noexcept
+	{
+		if (BluetoothEnableDiscovery(nullptr, true))
+		{
+			m_Discoverable = true;
+
+			LogSys(L"Bluetooth discovery enabled");
+		}
+		else LogErr(L"Could not enable Bluetooth discovery; BluetoothEnableDiscovery() failed (%s)",
+					GetLastSysErrorString().c_str());
+	}
+
+	void Manager::DisableDiscovery() noexcept
+	{
+		if (m_Discoverable)
+		{
+			if (BluetoothEnableDiscovery(nullptr, false))
+			{
+				m_Discoverable = false;
+
+				LogSys(L"Bluetooth discovery disabled");
+			}
+			else LogErr(L"Could not disable Bluetooth discovery; BluetoothEnableDiscovery() failed (%s)",
+						GetLastSysErrorString().c_str());
+		}
 	}
 
 	void Manager::WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)

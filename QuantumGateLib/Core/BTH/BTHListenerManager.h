@@ -57,6 +57,9 @@ namespace QuantumGate::Implementation::Core::BTH::Listener
 		void PreStartup() noexcept;
 		void ResetState() noexcept;
 
+		void EnableDiscovery() noexcept;
+		void DisableDiscovery() noexcept;
+
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
 		void AcceptConnection(Network::Socket& listener_socket) noexcept;
@@ -70,6 +73,7 @@ namespace QuantumGate::Implementation::Core::BTH::Listener
 	private:
 		std::atomic_bool m_Running{ false };
 		std::atomic_bool m_ListeningOnAnyAddresses{ false };
+		std::atomic_bool m_Discoverable{ false };
 		const Settings_CThS& m_Settings;
 		Access::Manager& m_AccessManager;
 		Peer::Manager& m_PeerManager;

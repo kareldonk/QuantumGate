@@ -216,6 +216,7 @@
 #define IDC_BTH_AUTH2                   1084
 #define IDC_CHECK22                     1085
 #define IDC_VIDEO_FILL_CHECK            1085
+#define IDC_BTH_DISCOV                  1085
 #define IDC_VIDEO_SIZE_FORCE            1086
 #define IDC_UDP_THRESHOLD               1086
 #define IDC_UDP_COOKIE_THRESHOLD        1086

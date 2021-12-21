@@ -22,6 +22,7 @@ void CTestAppDlgMainTab::UpdateControls() noexcept
 	((CEdit*)GetDlgItem(IDC_SERVERPORT))->SetReadOnly(local->IsRunning());
 	((CEdit*)GetDlgItem(IDC_SERVERPORT_BTH))->SetReadOnly(local->IsRunning());
 	((CButton*)GetDlgItem(IDC_BTH_AUTH2))->EnableWindow(!local->IsRunning());
+	((CButton*)GetDlgItem(IDC_BTH_DISCOV))->EnableWindow(!local->IsRunning());
 	((CEdit*)GetDlgItem(IDC_LOCAL_UUID))->SetReadOnly(local->IsRunning());
 	GetDlgItem(IDC_CREATE_UUID)->EnableWindow(!local->IsRunning());
 	((CEdit*)GetDlgItem(IDC_PASSPHRASE))->SetReadOnly(local->IsRunning());

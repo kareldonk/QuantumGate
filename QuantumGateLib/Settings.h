@@ -92,7 +92,8 @@ namespace QuantumGate::Implementation
 			{
 				Vector<UInt16> Ports{ 9 };									// Which ports to listen on
 				bool RequireAuthentication{ true };							// Whether to require Bluetooth authentication (device pairing) before accepting connections
-				BluetoothServiceDetails Service;									// Bluetooth service details to advertise to connecting peers
+				bool Discoverable{ false };									// Whether to make the device discoverable via Bluetooth (devices scanning for other nearby devices will then be able to discover this device without pairing)
+				BluetoothServiceDetails Service;							// Bluetooth service details to advertise to connecting peers
 			} BTH;
 		} Listeners;
 
