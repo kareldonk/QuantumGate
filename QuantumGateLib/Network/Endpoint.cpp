@@ -6,42 +6,6 @@
 
 namespace QuantumGate::Implementation::Network
 {
-	AddressFamily Endpoint::GetAddressFamily() const noexcept
-	{
-		switch (m_Type)
-		{
-			case Type::IP:
-				return IP::AddressFamilyToNetwork(m_IPEndpoint.GetIPAddress().GetFamily());
-			case Type::BTH:
-				return BTH::AddressFamilyToNetwork(m_BTHEndpoint.GetBTHAddress().GetFamily());
-			case Type::Unspecified:
-				break;
-			default:
-				assert(false);
-				break;
-		}
-
-		return AddressFamily::Unspecified;
-	}
-
-	Protocol Endpoint::GetProtocol() const noexcept
-	{
-		switch (m_Type)
-		{
-			case Type::IP:
-				return IP::ProtocolToNetwork(m_IPEndpoint.GetProtocol());
-			case Type::BTH:
-				return BTH::ProtocolToNetwork(m_BTHEndpoint.GetProtocol());
-			case Type::Unspecified:
-				break;
-			default:
-				assert(false);
-				break;
-		}
-
-		return Protocol::Unspecified;
-	}
-
 	String Endpoint::GetString() const noexcept
 	{
 		switch (m_Type)

@@ -779,9 +779,6 @@
     <ClCompile Include="Network\BinaryBTHAddress.cpp">
       <Filter>Source Files\Network</Filter>
     </ClCompile>
-    <ClCompile Include="Network\BTH.cpp">
-      <Filter>Source Files\Network</Filter>
-    </ClCompile>
     <ClCompile Include="Network\BTHAddress.cpp">
       <Filter>Source Files\Network</Filter>
     </ClCompile>

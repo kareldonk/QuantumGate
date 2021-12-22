@@ -14,8 +14,41 @@ namespace QuantumGate::Implementation::Network::IP
 		IPv6 = static_cast<UInt8>(Network::AddressFamily::IPv6)
 	};
 
-	[[nodiscard]] AddressFamily AddressFamilyFromNetwork(const Network::AddressFamily af) noexcept;
-	[[nodiscard]] Network::AddressFamily AddressFamilyToNetwork(const AddressFamily protocol) noexcept;
+	[[nodiscard]] constexpr AddressFamily AddressFamilyFromNetwork(const Network::AddressFamily af) noexcept
+	{
+		switch (af)
+		{
+			case Network::AddressFamily::Unspecified:
+				return AddressFamily::Unspecified;
+			case Network::AddressFamily::IPv4:
+				return AddressFamily::IPv4;
+			case Network::AddressFamily::IPv6:
+				return AddressFamily::IPv6;
+			default:
+				assert(false);
+				break;
+		}
+
+		return AddressFamily::Unspecified;
+	}
+
+	[[nodiscard]] constexpr Network::AddressFamily AddressFamilyToNetwork(const AddressFamily protocol) noexcept
+	{
+		switch (protocol)
+		{
+			case AddressFamily::Unspecified:
+				return Network::AddressFamily::Unspecified;
+			case AddressFamily::IPv4:
+				return Network::AddressFamily::IPv4;
+			case AddressFamily::IPv6:
+				return Network::AddressFamily::IPv6;
+			default:
+				assert(false);
+				break;
+		}
+
+		return Network::AddressFamily::Unspecified;
+	}
 
 	enum class Protocol : UInt8
 	{
@@ -25,8 +58,45 @@ namespace QuantumGate::Implementation::Network::IP
 		UDP = static_cast<UInt8>(Network::Protocol::UDP)
 	};
 
-	[[nodiscard]] Protocol ProtocolFromNetwork(const Network::Protocol protocol) noexcept;
-	[[nodiscard]] Network::Protocol ProtocolToNetwork(const Protocol protocol) noexcept;
+	[[nodiscard]] constexpr Protocol ProtocolFromNetwork(const Network::Protocol protocol) noexcept
+	{
+		switch (protocol)
+		{
+			case Network::Protocol::Unspecified:
+				return Protocol::Unspecified;
+			case Network::Protocol::ICMP:
+				return Protocol::ICMP;
+			case Network::Protocol::TCP:
+				return Protocol::TCP;
+			case Network::Protocol::UDP:
+				return Protocol::UDP;
+			default:
+				assert(false);
+				break;
+		}
+
+		return Protocol::Unspecified;
+	}
+
+	[[nodiscard]] constexpr Network::Protocol ProtocolToNetwork(const Protocol protocol) noexcept
+	{
+		switch (protocol)
+		{
+			case Protocol::Unspecified:
+				return Network::Protocol::Unspecified;
+			case Protocol::ICMP:
+				return Network::Protocol::ICMP;
+			case Protocol::TCP:
+				return Network::Protocol::TCP;
+			case Protocol::UDP:
+				return Network::Protocol::UDP;
+			default:
+				assert(false);
+				break;
+		}
+
+		return Network::Protocol::Unspecified;
+	}
 
 #pragma pack(push, 1) // Disable padding bytes
 	struct Header final

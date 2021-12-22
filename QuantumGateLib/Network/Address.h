@@ -104,27 +104,43 @@ namespace QuantumGate::Implementation::Network
 			return !(*this == other);
 		}
 
-		constexpr Type GetType() const noexcept { return m_Type; }
+		[[nodiscard]] constexpr Type GetType() const noexcept { return m_Type; }
 
-		Family GetFamily() const noexcept;
+		[[nodiscard]] constexpr Address::Family GetFamily() const noexcept
+		{
+			switch (m_Type)
+			{
+				case Type::IP:
+					return IP::AddressFamilyToNetwork(m_IPAddress.GetFamily());
+				case Type::BTH:
+					return BTH::AddressFamilyToNetwork(m_BTHAddress.GetFamily());
+				case Type::Unspecified:
+					break;
+				default:
+					assert(false);
+					break;
+			}
 
-		constexpr const IPAddress& GetIPAddress() const noexcept
+			return Family::Unspecified;
+		}
+
+		[[nodiscard]] constexpr const IPAddress& GetIPAddress() const noexcept
 		{
 			assert(m_Type == Type::IP);
 
 			return m_IPAddress;
 		}
 
-		constexpr const BTHAddress& GetBTHAddress() const noexcept
+		[[nodiscard]] constexpr const BTHAddress& GetBTHAddress() const noexcept
 		{
 			assert(m_Type == Type::BTH);
 
 			return m_BTHAddress;
 		}
 
-		std::size_t GetHash() const noexcept;
+		[[nodiscard]] std::size_t GetHash() const noexcept;
 
-		String GetString() const noexcept;
+		[[nodiscard]] String GetString() const noexcept;
 
 		[[nodiscard]] static bool TryParse(const WChar* addr_str, Address& addr) noexcept;
 		[[nodiscard]] static bool TryParse(const String& addr_str, Address& addr) noexcept;
@@ -133,7 +149,7 @@ namespace QuantumGate::Implementation::Network
 		friend Export std::wostream& operator<<(std::wostream& stream, const Address& addr);
 
 	private:
-		constexpr Type Copy(const Address& other) noexcept
+		[[nodiscard]] constexpr Type Copy(const Address& other) noexcept
 		{
 			switch (other.m_Type)
 			{
@@ -155,7 +171,7 @@ namespace QuantumGate::Implementation::Network
 			return Type::Unspecified;
 		}
 
-		constexpr Type Move(Address&& other) noexcept
+		[[nodiscard]] constexpr Type Move(Address&& other) noexcept
 		{
 			const auto type = std::exchange(other.m_Type, Type::Unspecified);
 
@@ -180,7 +196,7 @@ namespace QuantumGate::Implementation::Network
 		}
 
 		template<typename T> requires (std::is_same_v<std::decay_t<T>, IPAddress>)
-		constexpr Type CopyOrMove(T&& other) noexcept
+		[[nodiscard]] constexpr Type CopyOrMove(T&& other) noexcept
 		{
 			m_IPAddress = std::forward<T>(other);
 
@@ -202,7 +218,7 @@ namespace QuantumGate::Implementation::Network
 		}
 
 		template<typename T> requires (std::is_same_v<std::decay_t<T>, BTHAddress>)
-		constexpr Type CopyOrMove(T&& other) noexcept
+		[[nodiscard]] constexpr Type CopyOrMove(T&& other) noexcept
 		{
 			m_BTHAddress = std::forward<T>(other);
 

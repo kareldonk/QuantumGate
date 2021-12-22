@@ -95,10 +95,17 @@ namespace UnitTests
 
 		TEST_METHOD(Constexpr)
 		{
+			// Default construction
+			constexpr BTHAddress bth1;
+			static_assert(bth1.GetFamily() == BTHAddress::Family::BTH, "Should be equal");
+			static_assert(bth1.GetBinary() == BTHAddress::AnyBTH(), "Should be equal");
+			Assert::AreEqual(true, bth1.GetString() == L"(00:00:00:00:00:00)");
+
+			// Construction
 			constexpr auto bin_bth = BinaryBTHAddress(BinaryBTHAddress::Family::BTH, 0x925FD35B93B2);
-			constexpr BTHAddress bth(bin_bth);
-			constexpr BinaryBTHAddress bin_bth2 = bth.GetBinary();
-			constexpr auto family = bth.GetFamily();
+			constexpr BTHAddress bth2(bin_bth);
+			constexpr auto bin_bth2 = bth2.GetBinary();
+			constexpr auto family = bth2.GetFamily();
 
 			static_assert(family == BTHAddress::Family::BTH, "Should be equal");
 			static_assert(bin_bth2 == bin_bth, "Should be equal");
@@ -106,7 +113,31 @@ namespace UnitTests
 			Assert::AreEqual(true, family == BTHAddress::Family::BTH);
 			Assert::AreEqual(true, bin_bth2 == bin_bth);
 
-			constexpr auto btha = BTHAddress::AnyBTH();
+			// Copy construction
+			constexpr BTHAddress bth3(bth2);
+			static_assert(bth3.GetFamily() == BTHAddress::Family::BTH, "Should be equal");
+			static_assert(bth3.GetBinary() == bin_bth2, "Should be equal");
+			Assert::AreEqual(true, bth3.GetString() == L"(92:5F:D3:5B:93:B2)");
+
+			// Equal and not equal
+			static_assert(bth2 == bth3, "Should be equal");
+			static_assert(!(bth2 != bth3), "Should not be equal");
+			static_assert(bth1 != bth2, "Should not be equal");
+
+			// Move construction
+			constexpr BTHAddress bth4(std::move(bth2));
+			static_assert(bth4 == bth2, "Should be equal");
+			static_assert(bth4.GetFamily() == BTHAddress::Family::BTH, "Should be equal");
+			static_assert(bth4.GetBinary() == bin_bth2, "Should be equal");
+			Assert::AreEqual(true, bth4.GetString() == L"(92:5F:D3:5B:93:B2)");
+
+			// Copy assignment
+			constexpr auto bth5 = bth3;
+			static_assert(bth5 == bth3, "Should be equal");
+
+			// Move assignment
+			constexpr auto bth6 = std::move(bth3);
+			static_assert(bth6 == bth3, "Should be equal");
 		}
 	};
 }

@@ -100,19 +100,19 @@ namespace QuantumGate::Implementation::Network
 			return !(*this == other);
 		}
 
-		constexpr Protocol GetProtocol() const noexcept { return m_Protocol; }
-		constexpr const IPAddress& GetIPAddress() const noexcept { return m_Address; }
-		constexpr UInt16 GetPort() const noexcept { return m_Port; }
-		constexpr RelayPort GetRelayPort() const noexcept { return m_RelayPort; }
-		constexpr RelayHop GetRelayHop() const noexcept { return m_RelayHop; }
+		[[nodiscard]] constexpr Protocol GetProtocol() const noexcept { return m_Protocol; }
+		[[nodiscard]] constexpr const IPAddress& GetIPAddress() const noexcept { return m_Address; }
+		[[nodiscard]] constexpr UInt16 GetPort() const noexcept { return m_Port; }
+		[[nodiscard]] constexpr RelayPort GetRelayPort() const noexcept { return m_RelayPort; }
+		[[nodiscard]] constexpr RelayHop GetRelayHop() const noexcept { return m_RelayHop; }
 
-		String GetString() const noexcept;
+		[[nodiscard]] String GetString() const noexcept;
 
 		friend Export std::ostream& operator<<(std::ostream& stream, const IPEndpoint& endpoint);
 		friend Export std::wostream& operator<<(std::wostream& stream, const IPEndpoint& endpoint);
 
 	private:
-		constexpr inline Protocol ValidateProtocol(const Protocol protocol)
+		[[nodiscard]] constexpr inline Protocol ValidateProtocol(const Protocol protocol)
 		{
 			switch (protocol)
 			{

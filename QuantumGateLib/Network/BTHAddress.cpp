@@ -78,7 +78,7 @@ namespace QuantumGate::Implementation::Network
 				m_BinaryAddress.AddressFamily = BinaryBTHAddress::Family::BTH;
 
 				auto bth = reinterpret_cast<const SOCKADDR_BTH*>(saddr);
-				memcpy(&m_BinaryAddress.Bytes, &bth->btAddr, sizeof(bth->btAddr));
+				std::memcpy(&m_BinaryAddress.Bytes, &bth->btAddr, sizeof(bth->btAddr));
 
 				break;
 			}
@@ -118,15 +118,15 @@ namespace QuantumGate::Implementation::Network
 		return {};
 	}
 
-	std::ostream& operator<<(std::ostream& stream, const BTHAddress& ipaddr)
+	std::ostream& operator<<(std::ostream& stream, const BTHAddress& addr)
 	{
-		stream << Util::ToStringA(ipaddr.GetString());
+		stream << Util::ToStringA(addr.GetString());
 		return stream;
 	}
 
-	std::wostream& operator<<(std::wostream& stream, const BTHAddress& ipaddr)
+	std::wostream& operator<<(std::wostream& stream, const BTHAddress& addr)
 	{
-		stream << ipaddr.GetString();
+		stream << addr.GetString();
 		return stream;
 	}
 }

@@ -81,26 +81,59 @@ namespace QuantumGate::Implementation::Network
 			return !(*this == other);
 		}
 
-		constexpr Type GetType() const noexcept { return m_Type; }
+		[[nodiscard]] constexpr Type GetType() const noexcept { return m_Type; }
 
-		AddressFamily GetAddressFamily() const noexcept;
-		Protocol GetProtocol() const noexcept;
+		[[nodiscard]] constexpr AddressFamily GetAddressFamily() const noexcept
+		{
+			switch (m_Type)
+			{
+				case Type::IP:
+					return IP::AddressFamilyToNetwork(m_IPEndpoint.GetIPAddress().GetFamily());
+				case Type::BTH:
+					return BTH::AddressFamilyToNetwork(m_BTHEndpoint.GetBTHAddress().GetFamily());
+				case Type::Unspecified:
+					break;
+				default:
+					assert(false);
+					break;
+			}
 
-		constexpr const IPEndpoint& GetIPEndpoint() const noexcept
+			return AddressFamily::Unspecified;
+		}
+
+		[[nodiscard]] constexpr Protocol GetProtocol() const noexcept
+		{
+			switch (m_Type)
+			{
+				case Type::IP:
+					return IP::ProtocolToNetwork(m_IPEndpoint.GetProtocol());
+				case Type::BTH:
+					return BTH::ProtocolToNetwork(m_BTHEndpoint.GetProtocol());
+				case Type::Unspecified:
+					break;
+				default:
+					assert(false);
+					break;
+			}
+
+			return Protocol::Unspecified;
+		}
+
+		[[nodiscard]] constexpr const IPEndpoint& GetIPEndpoint() const noexcept
 		{
 			assert(m_Type == Type::IP);
 
 			return m_IPEndpoint;
 		}
 
-		constexpr const BTHEndpoint& GetBTHEndpoint() const noexcept
+		[[nodiscard]] constexpr const BTHEndpoint& GetBTHEndpoint() const noexcept
 		{
 			assert(m_Type == Type::BTH);
 
 			return m_BTHEndpoint;
 		}
 
-		constexpr RelayPort GetRelayPort() const noexcept
+		[[nodiscard]] constexpr RelayPort GetRelayPort() const noexcept
 		{
 			switch (m_Type)
 			{
@@ -118,7 +151,7 @@ namespace QuantumGate::Implementation::Network
 			return 0;
 		}
 
-		constexpr RelayHop GetRelayHop() const noexcept
+		[[nodiscard]] constexpr RelayHop GetRelayHop() const noexcept
 		{
 			switch (m_Type)
 			{
@@ -136,13 +169,13 @@ namespace QuantumGate::Implementation::Network
 			return 0;
 		}
 
-		String GetString() const noexcept;
+		[[nodiscard]] String GetString() const noexcept;
 
 		friend Export std::ostream& operator<<(std::ostream& stream, const Endpoint& endpoint);
 		friend Export std::wostream& operator<<(std::wostream& stream, const Endpoint& endpoint);
 
 	private:
-		constexpr Type Copy(const Endpoint& other) noexcept
+		[[nodiscard]] constexpr Type Copy(const Endpoint& other) noexcept
 		{
 			switch (other.m_Type)
 			{
@@ -164,7 +197,7 @@ namespace QuantumGate::Implementation::Network
 			return Type::Unspecified;
 		}
 
-		constexpr Type Move(Endpoint&& other) noexcept
+		[[nodiscard]] constexpr Type Move(Endpoint&& other) noexcept
 		{
 			const auto type = std::exchange(other.m_Type, Type::Unspecified);
 
@@ -189,7 +222,7 @@ namespace QuantumGate::Implementation::Network
 		}
 
 		template<typename T> requires (std::is_same_v<std::decay_t<T>, IPEndpoint>)
-		constexpr Type CopyOrMove(T&& other) noexcept
+		[[nodiscard]] constexpr Type CopyOrMove(T&& other) noexcept
 		{
 			m_IPEndpoint = std::forward<T>(other);
 			
@@ -212,7 +245,7 @@ namespace QuantumGate::Implementation::Network
 		}
 
 		template<typename T> requires (std::is_same_v<std::decay_t<T>, BTHEndpoint>)
-		constexpr Type CopyOrMove(T&& other) noexcept
+		[[nodiscard]] constexpr Type CopyOrMove(T&& other) noexcept
 		{
 			m_BTHEndpoint = std::forward<T>(other);
 

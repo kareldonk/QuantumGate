@@ -145,13 +145,23 @@ namespace UnitTests
 
 		TEST_METHOD(Constexpr)
 		{
+			// Default construction
+			constexpr BTHEndpoint bth_ep0;
+			static_assert(bth_ep0.GetProtocol() == BTHEndpoint::Protocol::Unspecified, "Should be equal");
+			static_assert(bth_ep0.GetBTHAddress() == BTHAddress::AnyBTH(), "Should be equal");
+			static_assert(bth_ep0.GetPort() == 0, "Should be equal");
+			static_assert(BTHEndpoint::AreGUIDsEqual(bth_ep0.GetServiceClassID(), BTHEndpoint::GetNullServiceClassID()), "Should be equal");
+			static_assert(bth_ep0.GetRelayPort() == 0, "Should be equal");
+			static_assert(bth_ep0.GetRelayHop() == 0, "Should be equal");
+
+			// Construction
 			constexpr auto bth = BinaryBTHAddress(BinaryBTHAddress::Family::BTH, 0x925FD35B93B2);
-			constexpr BTHEndpoint bth_ep(BTHEndpoint::Protocol::RFCOMM, BTHAddress(bth), 9);
-			constexpr BTHAddress btha = bth_ep.GetBTHAddress();
-			constexpr auto protocol = bth_ep.GetProtocol();
-			constexpr auto port = bth_ep.GetPort();
-			constexpr auto rport = bth_ep.GetRelayPort();
-			constexpr auto rhop = bth_ep.GetRelayHop();
+			constexpr BTHEndpoint bth_ep1(BTHEndpoint::Protocol::RFCOMM, BTHAddress(bth), 9);
+			constexpr BTHAddress btha = bth_ep1.GetBTHAddress();
+			constexpr auto protocol = bth_ep1.GetProtocol();
+			constexpr auto port = bth_ep1.GetPort();
+			constexpr auto rport = bth_ep1.GetRelayPort();
+			constexpr auto rhop = bth_ep1.GetRelayHop();
 
 			static_assert(protocol == BTHEndpoint::Protocol::RFCOMM, "Should be equal");
 			static_assert(port == 9, "Should be equal");
@@ -163,22 +173,33 @@ namespace UnitTests
 			Assert::AreEqual(true, rport == 0);
 			Assert::AreEqual(true, rhop == 0);
 
-			constexpr BTHEndpoint bth_ep2(BTHEndpoint::Protocol::RFCOMM, BTHAddress::AnyBTH(), 8);
+			constexpr BTHEndpoint bth_ep2(BTHEndpoint::Protocol::RFCOMM, btha, 0, BTHEndpoint::GetQuantumGateServiceClassID(), 3000, 3);
 
-			constexpr BTHEndpoint bth_ep4(std::move(bth_ep));
+			constexpr BTHEndpoint bth_ep4(std::move(bth_ep2));
 			static_assert(bth_ep4.GetProtocol() == BTHEndpoint::Protocol::RFCOMM, "Should be equal");
-			static_assert(bth_ep4.GetPort() == 9, "Should be equal");
-			static_assert(bth_ep4.GetRelayPort() == 0, "Should be equal");
-			static_assert(bth_ep4.GetRelayHop() == 0, "Should be equal");
+			static_assert(bth_ep4.GetBTHAddress() == btha, "Should be equal");
+			static_assert(bth_ep4.GetPort() == 0, "Should be equal");
+			static_assert(BTHEndpoint::AreGUIDsEqual(bth_ep4.GetServiceClassID(), BTHEndpoint::GetQuantumGateServiceClassID()), "Should be equal");
+			static_assert(bth_ep4.GetRelayPort() == 3000, "Should be equal");
+			static_assert(bth_ep4.GetRelayHop() == 3, "Should be equal");
+			Assert::AreEqual(true, bth_ep4.GetProtocol() == BTHEndpoint::Protocol::RFCOMM);
 			Assert::AreEqual(true, bth_ep4.GetBTHAddress() == btha);
-			Assert::AreEqual(true, bth_ep4.GetPort() == 9);
-			Assert::AreEqual(true, bth_ep4.GetRelayPort() == 0);
-			Assert::AreEqual(true, bth_ep4.GetRelayHop() == 0);
+			Assert::AreEqual(true, bth_ep4.GetServiceClassID() == BTHEndpoint::GetQuantumGateServiceClassID());
+			Assert::AreEqual(true, bth_ep4.GetPort() == 0);
+			Assert::AreEqual(true, bth_ep4.GetRelayPort() == 3000);
+			Assert::AreEqual(true, bth_ep4.GetRelayHop() == 3);
 
-			constexpr BTHEndpoint bth_ep5 = std::move(bth_ep4);
+			constexpr BTHEndpoint bth_ep5 = std::move(bth_ep1);
+			static_assert(bth_ep5.GetProtocol() == BTHEndpoint::Protocol::RFCOMM, "Should be equal");
+			static_assert(bth_ep5.GetBTHAddress() == btha, "Should be equal");
+			static_assert(bth_ep5.GetPort() == 9, "Should be equal");
+			static_assert(BTHEndpoint::AreGUIDsEqual(bth_ep5.GetServiceClassID(), BTHEndpoint::GetNullServiceClassID()), "Should be equal");
+			static_assert(bth_ep5.GetRelayPort() == 0, "Should be equal");
+			static_assert(bth_ep5.GetRelayHop() == 0, "Should be equal");
 			Assert::AreEqual(true, bth_ep5.GetProtocol() == BTHEndpoint::Protocol::RFCOMM);
 			Assert::AreEqual(true, bth_ep5.GetBTHAddress() == btha);
 			Assert::AreEqual(true, bth_ep5.GetPort() == 9);
+			Assert::AreEqual(true, bth_ep5.GetServiceClassID() == BTHEndpoint::GetNullServiceClassID());
 			Assert::AreEqual(true, bth_ep5.GetRelayPort() == 0);
 			Assert::AreEqual(true, bth_ep5.GetRelayHop() == 0);
 
@@ -188,6 +209,34 @@ namespace UnitTests
 			Assert::AreEqual(true, bth_ep6.GetPort() == 9);
 			Assert::AreEqual(true, bth_ep6.GetRelayPort() == 0);
 			Assert::AreEqual(true, bth_ep6.GetRelayHop() == 0);
+
+			constexpr BTHEndpoint bth_ep7(BTHEndpoint::Protocol::RFCOMM, BTHAddress::AnyBTH(), 0);
+			static_assert(bth_ep7.GetProtocol() == BTHEndpoint::Protocol::RFCOMM, "Should be equal");
+			static_assert(bth_ep7.GetBTHAddress() == BTHAddress::AnyBTH(), "Should be equal");
+			static_assert(bth_ep7.GetPort() == 0, "Should be equal");
+			static_assert(BTHEndpoint::AreGUIDsEqual(bth_ep7.GetServiceClassID(), BTHEndpoint::GetNullServiceClassID()), "Should be equal");
+			static_assert(bth_ep7.GetRelayPort() == 0, "Should be equal");
+			static_assert(bth_ep7.GetRelayHop() == 0, "Should be equal");
+
+			constexpr BTHEndpoint bth_ep8(BTHEndpoint::Protocol::RFCOMM, BTHAddress::AnyBTH(), 4, BTHEndpoint::GetNullServiceClassID());
+
+			constexpr BTHEndpoint bth_ep9(BTHEndpoint::Protocol::RFCOMM, btha, 0, BTHEndpoint::GetQuantumGateServiceClassID());
+			static_assert(bth_ep9.GetProtocol() == BTHEndpoint::Protocol::RFCOMM, "Should be equal");
+			static_assert(bth_ep9.GetBTHAddress() == btha, "Should be equal");
+			static_assert(bth_ep9.GetPort() == 0, "Should be equal");
+			static_assert(BTHEndpoint::AreGUIDsEqual(bth_ep9.GetServiceClassID(), BTHEndpoint::GetQuantumGateServiceClassID()), "Should be equal");
+			static_assert(bth_ep9.GetRelayPort() == 0, "Should be equal");
+			static_assert(bth_ep9.GetRelayHop() == 0, "Should be equal");
+
+			constexpr BTHEndpoint bth_ep10(BTHEndpoint::Protocol::RFCOMM, BTHAddress::AnyBTH(), 0, BTHEndpoint::GetQuantumGateServiceClassID(), 2000, 2);
+
+			constexpr BTHEndpoint bth_ep11(BTHEndpoint::Protocol::RFCOMM, btha, 9, BTHEndpoint::GetNullServiceClassID(), 2000, 2);
+			static_assert(bth_ep11.GetProtocol() == BTHEndpoint::Protocol::RFCOMM, "Should be equal");
+			static_assert(bth_ep11.GetBTHAddress() == btha, "Should be equal");
+			static_assert(bth_ep11.GetPort() == 9, "Should be equal");
+			static_assert(BTHEndpoint::AreGUIDsEqual(bth_ep11.GetServiceClassID(), BTHEndpoint::GetNullServiceClassID()), "Should be equal");
+			static_assert(bth_ep11.GetRelayPort() == 2000, "Should be equal");
+			static_assert(bth_ep11.GetRelayHop() == 2, "Should be equal");
 		}
 	};
 }

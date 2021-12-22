@@ -771,7 +771,6 @@
     <ClCompile Include="Network\Address.cpp" />
     <ClCompile Include="Network\BinaryBTHAddress.cpp" />
     <ClCompile Include="Network\BinaryIPAddress.cpp" />
-    <ClCompile Include="Network\BTH.cpp" />
     <ClCompile Include="Network\BTHAddress.cpp" />
     <ClCompile Include="Network\BTHEndpoint.cpp" />
     <ClCompile Include="Network\Endpoint.cpp" />

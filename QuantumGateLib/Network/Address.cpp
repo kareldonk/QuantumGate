@@ -48,24 +48,6 @@ namespace QuantumGate::Implementation::Network
 		return 0;
 	}
 
-	Address::Family Address::GetFamily() const noexcept
-	{
-		switch (m_Type)
-		{
-			case Type::IP:
-				return IP::AddressFamilyToNetwork(m_IPAddress.GetFamily());
-			case Type::BTH:
-				return BTH::AddressFamilyToNetwork(m_BTHAddress.GetFamily());
-			case Type::Unspecified:
-				break;
-			default:
-				assert(false);
-				break;
-		}
-
-		return Family::Unspecified;
-	}
-
 	String Address::GetString() const noexcept
 	{
 		switch (m_Type)

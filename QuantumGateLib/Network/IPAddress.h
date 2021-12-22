@@ -81,9 +81,9 @@ namespace QuantumGate::Implementation::Network
 			return !(*this == other);
 		}
 
-		String GetString() const noexcept;
-		constexpr const BinaryIPAddress& GetBinary() const noexcept { return m_BinaryAddress; }
-		constexpr Family GetFamily() const noexcept { return m_BinaryAddress.AddressFamily; }
+		[[nodiscard]] String GetString() const noexcept;
+		[[nodiscard]] constexpr const BinaryIPAddress& GetBinary() const noexcept { return m_BinaryAddress; }
+		[[nodiscard]] constexpr Family GetFamily() const noexcept { return m_BinaryAddress.AddressFamily; }
 
 		[[nodiscard]] constexpr bool IsMask() const noexcept { return BinaryIPAddress::IsMask(m_BinaryAddress); }
 		[[nodiscard]] constexpr bool IsLocal() const noexcept { return IsLocal(m_BinaryAddress); }
@@ -99,16 +99,16 @@ namespace QuantumGate::Implementation::Network
 		friend Export std::ostream& operator<<(std::ostream& stream, const IPAddress& ipaddr);
 		friend Export std::wostream& operator<<(std::wostream& stream, const IPAddress& ipaddr);
 
-		static constexpr IPAddress AnyIPv4() noexcept { return { BinaryIPAddress(BinaryIPAddress::Family::IPv4) }; }
+		[[nodiscard]] static constexpr IPAddress AnyIPv4() noexcept { return { BinaryIPAddress(BinaryIPAddress::Family::IPv4) }; }
 
-		static constexpr IPAddress AnyIPv6() noexcept { return { BinaryIPAddress(BinaryIPAddress::Family::IPv6) }; }
+		[[nodiscard]] static constexpr IPAddress AnyIPv6() noexcept { return { BinaryIPAddress(BinaryIPAddress::Family::IPv6) }; }
 
-		static constexpr IPAddress LoopbackIPv4() noexcept
+		[[nodiscard]] static constexpr IPAddress LoopbackIPv4() noexcept
 		{
 			return { BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 127 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 }) };
 		}
 
-		static constexpr IPAddress LoopbackIPv6() noexcept
+		[[nodiscard]] static constexpr IPAddress LoopbackIPv6() noexcept
 		{
 			return { BinaryIPAddress(BinaryIPAddress::Family::IPv6,
 									 Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },

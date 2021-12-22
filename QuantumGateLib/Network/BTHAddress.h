@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation::Network
 	public:
 		using Family = BinaryBTHAddress::Family;
 
-		constexpr BTHAddress() noexcept :
+		explicit constexpr BTHAddress() noexcept :
 			m_BinaryAddress(BinaryBTHAddress{ BinaryBTHAddress::Family::BTH }) // Defaults to BTH any address
 		{}
 
@@ -68,14 +68,14 @@ namespace QuantumGate::Implementation::Network
 			return !(*this == other);
 		}
 
-		String GetString() const noexcept;
-		constexpr const BinaryBTHAddress& GetBinary() const noexcept { return m_BinaryAddress; }
-		constexpr Family GetFamily() const noexcept { return m_BinaryAddress.AddressFamily; }
+		[[nodiscard]] constexpr Family GetFamily() const noexcept { return m_BinaryAddress.AddressFamily; }
+		[[nodiscard]] constexpr const BinaryBTHAddress& GetBinary() const noexcept { return m_BinaryAddress; }
+		[[nodiscard]] String GetString() const noexcept;
 
-		friend Export std::ostream& operator<<(std::ostream& stream, const BTHAddress& ipaddr);
-		friend Export std::wostream& operator<<(std::wostream& stream, const BTHAddress& ipaddr);
+		friend Export std::ostream& operator<<(std::ostream& stream, const BTHAddress& addr);
+		friend Export std::wostream& operator<<(std::wostream& stream, const BTHAddress& addr);
 
-		static constexpr BTHAddress AnyBTH() noexcept { return { BinaryBTHAddress(BinaryBTHAddress::Family::BTH) }; }
+		[[nodiscard]] static constexpr BTHAddress AnyBTH() noexcept { return { BinaryBTHAddress(BinaryBTHAddress::Family::BTH) }; }
 
 		[[nodiscard]] static bool TryParse(const WChar* addr_str, BTHAddress& addr) noexcept;
 		[[nodiscard]] static bool TryParse(const String& addr_str, BTHAddress& addr) noexcept;
