@@ -78,24 +78,24 @@ namespace QuantumGate::API::Access
 		return m_AccessManager->GetAllIPSubnetLimits();
 	}
 
-	Result<> Manager::SetAddressReputation(const AddressReputation& ip_rep) noexcept
+	Result<> Manager::SetAddressReputation(const AddressReputation& addr_rep) noexcept
 	{
-		return m_AccessManager->SetAddressReputation(ip_rep);
+		return m_AccessManager->SetAddressReputation(addr_rep);
 	}
 
-	Result<> Manager::ResetAddressReputation(const WChar* ip_str) noexcept
+	Result<> Manager::ResetAddressReputation(const WChar* addr_str) noexcept
 	{
-		return m_AccessManager->ResetAddressReputation(ip_str);
+		return m_AccessManager->ResetAddressReputation(addr_str);
 	}
 
-	Result<> Manager::ResetAddressReputation(const String& ip_str) noexcept
+	Result<> Manager::ResetAddressReputation(const String& addr_str) noexcept
 	{
-		return m_AccessManager->ResetAddressReputation(ip_str.c_str());
+		return m_AccessManager->ResetAddressReputation(addr_str.c_str());
 	}
 
-	Result<> Manager::ResetAddressReputation(const IPAddress& ip) noexcept
+	Result<> Manager::ResetAddressReputation(const Address& addr) noexcept
 	{
-		return m_AccessManager->ResetAddressReputation(ip);
+		return m_AccessManager->ResetAddressReputation(addr);
 	}
 
 	void Manager::ResetAllAddressReputations() noexcept

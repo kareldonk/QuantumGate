@@ -98,10 +98,10 @@ namespace QuantumGate::API::Access
 
 		Result<Vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
 
-		Result<> SetAddressReputation(const AddressReputation& ip_rep) noexcept;
-		Result<> ResetAddressReputation(const WChar* ip_str) noexcept;
-		Result<> ResetAddressReputation(const String& ip_str) noexcept;
-		Result<> ResetAddressReputation(const IPAddress& ip) noexcept;
+		Result<> SetAddressReputation(const AddressReputation& addr_rep) noexcept;
+		Result<> ResetAddressReputation(const WChar* addr_str) noexcept;
+		Result<> ResetAddressReputation(const String& addr_str) noexcept;
+		Result<> ResetAddressReputation(const Address& addr) noexcept;
 		void ResetAllAddressReputations() noexcept;
 		Result<Vector<AddressReputation>> GetAllAddressReputations() const noexcept;
 
