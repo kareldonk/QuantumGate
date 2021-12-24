@@ -42,7 +42,7 @@ namespace QuantumGate::Implementation::Network
 
 	void BTHAddress::SetAddress(const WChar* addr_str)
 	{
-		static_assert(sizeof(m_BinaryAddress.Bytes) >= sizeof(SOCKADDR_BTH::btAddr), "BTH Address length mismatch");
+		static_assert(sizeof(m_BinaryAddress.UInt64s) >= sizeof(SOCKADDR_BTH::btAddr), "BTH Address length mismatch");
 
 		const auto addr_len = std::wcslen(addr_str);
 		if (addr_len > 0 && addr_len <= BTHAddress::MaxBTHAddressStringLength)
@@ -54,8 +54,8 @@ namespace QuantumGate::Implementation::Network
 			if (WSAStringToAddress(const_cast<WChar*>(addr_str), AF_BTH, nullptr,
 								   reinterpret_cast<sockaddr*>(&saddr), &saddr_len) == 0)
 			{
-				m_BinaryAddress.UInt64s = saddr.btAddr;
 				m_BinaryAddress.AddressFamily = BinaryBTHAddress::Family::BTH;
+				m_BinaryAddress.UInt64s = saddr.btAddr;
 				return;
 			}
 		}
@@ -73,12 +73,11 @@ namespace QuantumGate::Implementation::Network
 		{
 			case AF_BTH:
 			{
-				static_assert(sizeof(m_BinaryAddress.Bytes) >= sizeof(SOCKADDR_BTH::btAddr), "BTH Address length mismatch");
-
-				m_BinaryAddress.AddressFamily = BinaryBTHAddress::Family::BTH;
+				static_assert(sizeof(m_BinaryAddress.UInt64s) >= sizeof(SOCKADDR_BTH::btAddr), "BTH Address length mismatch");
 
 				auto bth = reinterpret_cast<const SOCKADDR_BTH*>(saddr);
-				std::memcpy(&m_BinaryAddress.Bytes, &bth->btAddr, sizeof(bth->btAddr));
+				m_BinaryAddress.AddressFamily = BinaryBTHAddress::Family::BTH;
+				m_BinaryAddress.UInt64s = bth->btAddr;
 
 				break;
 			}

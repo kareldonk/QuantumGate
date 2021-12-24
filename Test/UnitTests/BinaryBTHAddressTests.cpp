@@ -23,6 +23,13 @@ namespace UnitTests
 			constexpr BinaryBTHAddress bth1(BinaryBTHAddress::Family::BTH, 0x925FD35B93B2);
 			static_assert(bth1.AddressFamily == BinaryBTHAddress::Family::BTH);
 			static_assert(bth1.UInt64s == 0x925FD35B93B2);
+			Assert::AreEqual(true,
+							 (bth1.Bytes[0] == Byte{ 0xB2 }) &&
+							 (bth1.Bytes[1] == Byte{ 0x93 }) &&
+							 (bth1.Bytes[2] == Byte{ 0x5B }) &&
+							 (bth1.Bytes[3] == Byte{ 0xD3 }) &&
+							 (bth1.Bytes[4] == Byte{ 0x5F }) &&
+							 (bth1.Bytes[5] == Byte{ 0x92 }));
 
 			// Copy constructor
 			constexpr BinaryBTHAddress bth2(bth1);

@@ -12,7 +12,7 @@ namespace QuantumGate::Implementation::Network
 	public:
 		using Family = BinaryBTHAddress::Family;
 
-		explicit constexpr BTHAddress() noexcept :
+		constexpr BTHAddress() noexcept :
 			m_BinaryAddress(BinaryBTHAddress{ BinaryBTHAddress::Family::BTH }) // Defaults to BTH any address
 		{}
 
@@ -106,7 +106,7 @@ namespace QuantumGate::Implementation::Network
 	private:
 		static constexpr UInt8 MaxBTHAddressStringLength{ 20 }; // Maximum length of BTH address
 
-		BinaryBTHAddress m_BinaryAddress;
+		BinaryBTHAddress m_BinaryAddress;  // In host byte order (little endian)
 	};
 }
 

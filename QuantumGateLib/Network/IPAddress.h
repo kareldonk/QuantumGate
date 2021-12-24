@@ -25,7 +25,7 @@ namespace QuantumGate::Implementation::Network
 	public:
 		using Family = BinaryIPAddress::Family;
 
-		explicit constexpr IPAddress() noexcept :
+		constexpr IPAddress() noexcept :
 			m_BinaryAddress(BinaryIPAddress{ BinaryIPAddress::Family::IPv4 }) // Defaults to IPv4 any address
 		{}
 

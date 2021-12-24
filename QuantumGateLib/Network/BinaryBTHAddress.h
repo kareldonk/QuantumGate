@@ -14,7 +14,7 @@ namespace QuantumGate::Implementation::Network
 		Family AddressFamily{ Family::Unspecified };
 		union
 		{
-			Byte Bytes[8];
+			Byte Bytes[6];
 			UInt64 UInt64s{ 0 };
 		};
 

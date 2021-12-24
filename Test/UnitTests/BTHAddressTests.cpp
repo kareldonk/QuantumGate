@@ -55,9 +55,7 @@ namespace UnitTests
 							 (bth1.GetBinary().Bytes[2] == Byte{ 0x5B }) &&
 							 (bth1.GetBinary().Bytes[3] == Byte{ 0xD3 }) &&
 							 (bth1.GetBinary().Bytes[4] == Byte{ 0x5F }) &&
-							 (bth1.GetBinary().Bytes[5] == Byte{ 0x92 }) &&
-							 (bth1.GetBinary().Bytes[6] == Byte{ 0x00 }) &&
-							 (bth1.GetBinary().Bytes[7] == Byte{ 0x00 }));
+							 (bth1.GetBinary().Bytes[5] == Byte{ 0x92 }));
 
 			// GetFamily
 			Assert::AreEqual(true, bth1.GetFamily() == BTHAddress::Family::BTH);
