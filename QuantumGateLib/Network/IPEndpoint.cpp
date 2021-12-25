@@ -6,6 +6,29 @@
 
 namespace QuantumGate::Implementation::Network
 {
+	IPEndpoint::IPEndpoint(const Protocol protocol, const sockaddr_storage* addr)
+	{
+		assert(addr != nullptr);
+
+		m_Protocol = ValidateProtocol(protocol);
+		m_Address = IPAddress(addr);
+
+		switch (addr->ss_family)
+		{
+			case AF_INET:
+				m_Port = ntohs(reinterpret_cast<const sockaddr_in*>(addr)->sin_port);
+				break;
+			case AF_INET6:
+				m_Port = ntohs(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port);
+				break;
+			default:
+				// IPAddress should already have thrown an exception;
+				// this is just in case
+				assert(false);
+				break;
+		}
+	}
+
 	String IPEndpoint::GetString() const noexcept
 	{
 		String rph;

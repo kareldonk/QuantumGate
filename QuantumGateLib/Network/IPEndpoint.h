@@ -33,28 +33,7 @@ namespace QuantumGate::Implementation::Network
 			m_RelayPort(other.m_RelayPort), m_RelayHop(other.m_RelayHop)
 		{}
 
-		IPEndpoint(const Protocol protocol, const sockaddr_storage* addr)
-		{
-			assert(addr != nullptr);
-
-			m_Protocol = ValidateProtocol(protocol);
-			m_Address = IPAddress(addr);
-
-			switch (addr->ss_family)
-			{
-				case AF_INET:
-					m_Port = reinterpret_cast<const sockaddr_in*>(addr)->sin_port;
-					break;
-				case AF_INET6:
-					m_Port = reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port;
-					break;
-				default:
-					// IPAddress should already have thrown an exception;
-					// this is just in case
-					assert(false);
-					break;
-			}
-		}
+		IPEndpoint(const Protocol protocol, const sockaddr_storage* addr);
 
 		~IPEndpoint() = default;
 

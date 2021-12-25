@@ -19,12 +19,12 @@ namespace QuantumGate::Implementation::Network
 		{}
 
 
-		constexpr BTHEndpoint(const Protocol protocol, const BTHAddress& addr, const GUID& serviceclassid) :
-			m_Protocol(ValidateProtocol(protocol)), m_Address(addr), m_ServiceClassID(serviceclassid)
+		constexpr BTHEndpoint(const Protocol protocol, const BTHAddress& addr, const GUID& scid) :
+			m_Protocol(ValidateProtocol(protocol)), m_Address(addr), m_ServiceClassID(scid)
 		{}
 
-		constexpr BTHEndpoint(const Protocol protocol, const BTHAddress& addr, const UInt16 port, const GUID& serviceclassid) :
-			m_Protocol(ValidateProtocol(protocol)), m_Address(addr), m_Port(port), m_ServiceClassID(serviceclassid)
+		constexpr BTHEndpoint(const Protocol protocol, const BTHAddress& addr, const UInt16 port, const GUID& scid) :
+			m_Protocol(ValidateProtocol(protocol)), m_Address(addr), m_Port(port), m_ServiceClassID(scid)
 		{
 			if (m_Port != 0 && !AreGUIDsEqual(m_ServiceClassID, GetNullServiceClassID()))
 			{
@@ -32,9 +32,9 @@ namespace QuantumGate::Implementation::Network
 			}
 		}
 
-		constexpr BTHEndpoint(const Protocol protocol, const BTHAddress& addr, const UInt16 port, const GUID& serviceclassid,
+		constexpr BTHEndpoint(const Protocol protocol, const BTHAddress& addr, const UInt16 port, const GUID& scid,
 							  const RelayPort rport, const RelayHop hop) :
-			m_Protocol(ValidateProtocol(protocol)), m_Address(addr), m_Port(port), m_ServiceClassID(serviceclassid),
+			m_Protocol(ValidateProtocol(protocol)), m_Address(addr), m_Port(port), m_ServiceClassID(scid),
 			m_RelayPort(rport), m_RelayHop(hop)
 		{
 			if (m_Port != 0 && !AreGUIDsEqual(m_ServiceClassID, GetNullServiceClassID()))
@@ -52,6 +52,8 @@ namespace QuantumGate::Implementation::Network
 			m_Protocol(other.m_Protocol), m_Address(std::move(other.m_Address)), m_Port(other.m_Port),
 			m_ServiceClassID(other.m_ServiceClassID), m_RelayPort(other.m_RelayPort), m_RelayHop(other.m_RelayHop)
 		{}
+
+		BTHEndpoint(const Protocol protocol, const sockaddr_storage* saddr);
 
 		~BTHEndpoint() = default;
 

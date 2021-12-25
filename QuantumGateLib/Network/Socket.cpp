@@ -1324,44 +1324,13 @@ namespace QuantumGate::Implementation::Network
 				case Protocol::TCP:
 				case Protocol::UDP:
 				{
-					const IPAddress ip(addr);
-					switch (ip.GetFamily())
-					{
-						case IPAddress::Family::IPv4:
-							endpoint = IPEndpoint(IP::ProtocolFromNetwork(protocol), ip, ntohs(reinterpret_cast<const sockaddr_in*>(addr)->sin_port));
-							return true;
-						case IPAddress::Family::IPv6:
-							endpoint = IPEndpoint(IP::ProtocolFromNetwork(protocol), ip, ntohs(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port));
-							return true;
-						default:
-							assert(false);
-							break;
-					}
-					break;
+					endpoint = IPEndpoint(IP::ProtocolFromNetwork(protocol), addr);
+					return true;
 				}
 				case Protocol::RFCOMM:
 				{
-					const BTHAddress bth(addr);
-					switch (bth.GetFamily())
-					{
-						case BTHAddress::Family::BTH:
-						{
-							const auto bthaddr = reinterpret_cast<const SOCKADDR_BTH*>(addr);
-							UInt16 port{ 0 };
-							if (bthaddr->port != BT_PORT_ANY)
-							{
-								port = static_cast<UInt16>(bthaddr->port);
-							}
-							endpoint = BTHEndpoint(BTH::ProtocolFromNetwork(protocol), bth, port, bthaddr->serviceClassId);
-							return true;
-						}
-						default:
-						{
-							assert(false);
-							break;
-						}
-					}
-					break;
+					endpoint = BTHEndpoint(BTH::ProtocolFromNetwork(protocol), addr);
+					return true;
 				}
 				default:
 				{

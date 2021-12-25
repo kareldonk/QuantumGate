@@ -30,8 +30,8 @@ namespace QuantumGate::Implementation::Network
 		{}
 
 		template<typename T> requires (std::is_same_v<std::decay_t<T>, IPAddress> || std::is_same_v<std::decay_t<T>, BTHAddress>)
-		constexpr Address(T&& Address) noexcept :
-			m_Type(CopyOrMove(std::forward<T>(Address)))
+		constexpr Address(T&& addr) noexcept :
+			m_Type(CopyOrMove(std::forward<T>(addr)))
 		{}
 
 		constexpr Address(const Endpoint& ep) noexcept

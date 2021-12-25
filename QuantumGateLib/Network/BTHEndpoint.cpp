@@ -6,6 +6,35 @@
 
 namespace QuantumGate::Implementation::Network
 {
+	BTHEndpoint::BTHEndpoint(const Protocol protocol, const sockaddr_storage* saddr)
+	{
+		assert(saddr != nullptr);
+
+		m_Protocol = ValidateProtocol(protocol);
+		m_Address = BTHAddress(saddr);
+
+		switch (saddr->ss_family)
+		{
+			case AF_BTH:
+			{
+				const auto bthaddr = reinterpret_cast<const SOCKADDR_BTH*>(saddr);
+				if (bthaddr->port != BT_PORT_ANY)
+				{
+					m_Port = static_cast<UInt16>(bthaddr->port);
+				}
+				m_ServiceClassID = bthaddr->serviceClassId;
+				break;
+			}
+			default:
+			{
+				// BTHAddress should already have thrown an exception;
+				// this is just in case
+				assert(false);
+				break;
+			}
+		}
+	}
+
 	String BTHEndpoint::GetString() const noexcept
 	{
 		String rph;
