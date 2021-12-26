@@ -178,6 +178,7 @@ namespace QuantumGate
 				bool Enable{ false };							// Enable listening for incoming connections on startup?
 				Set<UInt16> Ports{ 999 };						// Which TCP ports to listen on
 				bool NATTraversal{ false };						// Whether NAT traversal is enabled
+				bool UseConditionalAcceptFunction{ true };		// Whether to use the conditional accept function before accepting connections
 			} TCP;
 
 			struct
@@ -214,9 +215,6 @@ namespace QuantumGate
 	{
 		struct
 		{
-			bool UseConditionalAcceptFunction{ true };							// Whether to use the conditional accept function before accepting connections
-			bool RequireBluetoothAuthentication{ true };						// Whether to require Bluetooth authentication (device pairing) before accepting connections
-
 			std::chrono::seconds ConnectTimeout{ 0 };							// Maximum number of seconds to wait for a connection to be established
 
 			std::chrono::seconds SuspendTimeout{ 0 };							// Maximum number of seconds of inactivity after which a connection gets suspended (only for endpoints that support suspending connections)

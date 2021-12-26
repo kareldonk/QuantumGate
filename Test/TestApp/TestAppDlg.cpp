@@ -819,13 +819,17 @@ void CTestAppDlg::OnLocalInitialize()
 	params.Listeners.TCP.Enable = true;
 	params.Listeners.TCP.Ports = *ports;
 	params.Listeners.TCP.NATTraversal = true;
+	params.Listeners.TCP.UseConditionalAcceptFunction = true;
+
 	params.Listeners.UDP.Enable = true;
 	params.Listeners.UDP.Ports = *ports;
 	params.Listeners.UDP.NATTraversal = true;
+	
 	params.Listeners.BTH.Enable = true;
 	params.Listeners.BTH.Ports = *portsbth;
 	params.Listeners.BTH.RequireAuthentication = (((CButton*)m_MainTab->GetDlgItem(IDC_BTH_AUTH2))->GetCheck() == BST_CHECKED);
 	params.Listeners.BTH.Discoverable = (((CButton*)m_MainTab->GetDlgItem(IDC_BTH_DISCOV))->GetCheck() == BST_CHECKED);
+	
 	params.EnableExtenders = true;
 	params.Relays.Enable = true;
 

@@ -268,6 +268,7 @@ namespace QuantumGate::Implementation::Core
 
 				settings.Local.Listeners.TCP.Ports = Util::SetToVector(params.Listeners.TCP.Ports);
 				settings.Local.Listeners.TCP.NATTraversal = params.Listeners.TCP.NATTraversal;
+				settings.Local.Listeners.TCP.UseConditionalAcceptFunction = params.Listeners.TCP.UseConditionalAcceptFunction;
 				
 				settings.Local.Listeners.UDP.Ports = Util::SetToVector(params.Listeners.UDP.Ports);
 				settings.Local.Listeners.UDP.NATTraversal = params.Listeners.UDP.NATTraversal;
@@ -1525,8 +1526,6 @@ namespace QuantumGate::Implementation::Core
 								LogWarn(L"Setting security level to Custom");
 							}
 
-							settings.Local.Listeners.TCP.UseConditionalAcceptFunction = params->General.UseConditionalAcceptFunction;
-							
 							settings.Local.ConnectTimeout = params->General.ConnectTimeout;
 							
 							settings.Local.SuspendTimeout = params->General.SuspendTimeout;
@@ -1620,7 +1619,6 @@ namespace QuantumGate::Implementation::Core
 
 		const auto& settings = m_Settings.GetCache();
 
-		params.General.UseConditionalAcceptFunction = settings.Local.Listeners.TCP.UseConditionalAcceptFunction;
 		params.General.ConnectTimeout = settings.Local.ConnectTimeout;
 		params.General.SuspendTimeout = settings.Local.SuspendTimeout;
 		params.General.MaxSuspendDuration = settings.Local.MaxSuspendDuration;
@@ -1668,7 +1666,6 @@ namespace QuantumGate::Implementation::Core
 
 	void Local::SetDefaultSecuritySettings(Settings& settings) noexcept
 	{
-		settings.Local.Listeners.TCP.UseConditionalAcceptFunction = true;
 		settings.Local.ConnectTimeout = 60s;
 		settings.Local.SuspendTimeout = 60s;
 		settings.Local.MaxSuspendDuration = 60s;

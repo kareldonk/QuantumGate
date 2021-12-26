@@ -28,8 +28,6 @@ bool CSecurityDlgGeneralTab::LoadData() noexcept
 {
 	auto params = GetSecurityParameters();
 
-	SetValue(IDC_COND_ACCEPT, params->General.UseConditionalAcceptFunction);
-
 	SetValue(IDC_CONNECT_TIMEOUT, params->General.ConnectTimeout);
 	SetValue(IDC_SUSPEND_TIMEOUT, params->General.SuspendTimeout);
 	SetValue(IDC_MAX_SUSPEND_DURATION, params->General.MaxSuspendDuration);
@@ -49,7 +47,6 @@ bool CSecurityDlgGeneralTab::SaveData() noexcept
 {
 	auto params = GetSecurityParameters();
 
-	params->General.UseConditionalAcceptFunction = (((CButton*)GetDlgItem(IDC_COND_ACCEPT))->GetCheck() == BST_CHECKED);
 	params->General.ConnectTimeout = std::chrono::seconds(GetSizeValue(IDC_CONNECT_TIMEOUT));
 	params->General.SuspendTimeout = std::chrono::seconds(GetSizeValue(IDC_SUSPEND_TIMEOUT));
 	params->General.MaxSuspendDuration = std::chrono::seconds(GetSizeValue(IDC_MAX_SUSPEND_DURATION));

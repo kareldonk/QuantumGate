@@ -51,10 +51,10 @@ namespace QuantumGate::API
 				GUID ServiceClassID;
 				BTHAddress RemoteAddress;
 				std::optional<BTHAddress> LocalAddress;
-				std::optional<ULong> ClassOfDevice{ 0 };
+				std::optional<ULong> ClassOfDevice;
 				bool Connected{ false };
-				bool Remembered{ false };
 				bool Authenticated{ false };
+				bool Remembered{ false };
 				std::optional<SystemTime> LastSeen;
 				std::optional<SystemTime> LastUsed;
 				Vector<GUID> Services;
