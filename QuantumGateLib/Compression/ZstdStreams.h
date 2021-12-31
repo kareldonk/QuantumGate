@@ -47,6 +47,11 @@ namespace QuantumGate::Implementation::Compression
 		inline static Int GetCompressionLevel() noexcept { return GetZstdStreams().m_CompressionLevel; }
 
 	public:
+		[[nodiscard]] static Size GetCompressBound(const Size input_size) noexcept
+		{
+			return ZSTD_compressBound(input_size);
+		}
+
 		[[nodiscard]] static bool Compress(Byte* outbuffer, Size& outlen, const BufferView& inbuffer) noexcept
 		{
 			assert(outbuffer != nullptr);
@@ -56,27 +61,33 @@ namespace QuantumGate::Implementation::Compression
 			if (zstream != nullptr)
 			{
 				// Begin new compression session
-				const auto result = ZSTD_initCStream(zstream, GetCompressionLevel());
+				auto result = ZSTD_initCStream(zstream, GetCompressionLevel());
 				if (!ZSTD_isError(result))
 				{
-					ZSTD_inBuffer input{ inbuffer.GetBytes(), inbuffer.GetSize(), 0 };
-					ZSTD_outBuffer output{ outbuffer, outlen, 0 };
-
-					// Loop for as long as there's input left to compress
-					while (input.pos < input.size)
+					// Required to reduce resources used by zstd for this use case, since
+					// we provide all input data to be compressed in one round
+					result = ZSTD_CCtx_setPledgedSrcSize(zstream, inbuffer.GetSize());
+					if (!ZSTD_isError(result))
 					{
-						const auto size = ZSTD_compressStream(zstream, &output, &input);
-						if (ZSTD_isError(size))
+						ZSTD_inBuffer input{ inbuffer.GetBytes(), inbuffer.GetSize(), 0 };
+						ZSTD_outBuffer output{ outbuffer, outlen, 0 };
+
+						// Loop for as long as there's input left to compress
+						while (input.pos < input.size)
 						{
-							return false;
+							const auto size = ZSTD_compressStream(zstream, &output, &input);
+							if (ZSTD_isError(size))
+							{
+								return false;
+							}
 						}
-					}
 
-					if (ZSTD_endStream(zstream, &output) == 0)
-					{
-						// Save final output size
-						outlen = output.pos;
-						return true;
+						if (ZSTD_endStream(zstream, &output) == 0)
+						{
+							// Save final output size
+							outlen = output.pos;
+							return true;
+						}
 					}
 				}
 			}
@@ -121,7 +132,7 @@ namespace QuantumGate::Implementation::Compression
 		}
 
 	private:
-		const Int m_CompressionLevel{ 10 };
+		const Int m_CompressionLevel{ 8 };
 
 		ZSTD_CStream* m_CompressionStream{ nullptr };
 		ZSTD_DStream* m_DecompressionStream{ nullptr };

@@ -9,14 +9,13 @@
 
 namespace QuantumGate::Implementation::Compression
 {
-	Export bool Compress(const BufferView& inbuffer, Buffer& outbuffer,
-						 const Algorithm::Compression ca) noexcept
+	Export bool Compress(const BufferView& inbuffer, Buffer& outbuffer, const Algorithm::Compression ca) noexcept
 	{
 		auto success = false;
 
 		try
 		{
-			const auto hdrlen = sizeof(UInt32);
+			constexpr auto hdrlen = sizeof(UInt32);
 			const Size sizeuncompr{ inbuffer.GetSize() };
 			Size sizecompr{ 0 };
 
@@ -26,7 +25,7 @@ namespace QuantumGate::Implementation::Compression
 			{
 				case Algorithm::Compression::DEFLATE:
 				{
-					sizecompr = compressBound(static_cast<uLong>(sizeuncompr));
+					sizecompr = ZlibStreams::GetCompressBound(sizeuncompr);
 
 					outbuffer.Allocate(hdrlen + sizecompr);
 
@@ -36,7 +35,7 @@ namespace QuantumGate::Implementation::Compression
 				}
 				case Algorithm::Compression::ZSTANDARD:
 				{
-					sizecompr = ZSTD_compressBound(sizeuncompr);
+					sizecompr = ZstdStreams::GetCompressBound(sizeuncompr);
 
 					outbuffer.Allocate(hdrlen + sizecompr);
 
@@ -58,7 +57,7 @@ namespace QuantumGate::Implementation::Compression
 				// Store the uncompressed size of the buffer at the beginning
 				// of the output buffer in a header 32-bit integer
 				const UInt32 suhdr = Endian::ToNetworkByteOrder(static_cast<UInt32>(sizeuncompr));
-				memcpy(outbuffer.GetBytes(), &suhdr, hdrlen);
+				std::memcpy(outbuffer.GetBytes(), &suhdr, hdrlen);
 			}
 		}
 		catch (...) {}
@@ -66,12 +65,12 @@ namespace QuantumGate::Implementation::Compression
 		return success;
 	}
 
-	Export bool Decompress(BufferView inbuffer, Buffer& outbuffer,
-						   const Algorithm::Compression ca, const std::optional<Size> maxsize) noexcept
+	Export bool Decompress(BufferView inbuffer, Buffer& outbuffer, const Algorithm::Compression ca,
+						   const std::optional<Size> maxsize) noexcept
 	{
 		try
 		{
-			const auto hdrlen = sizeof(UInt32);
+			constexpr auto hdrlen = sizeof(UInt32);
 
 			// Input buffer should at least have the header size integer
 			if (inbuffer.GetSize() < hdrlen) return false;
@@ -79,7 +78,7 @@ namespace QuantumGate::Implementation::Compression
 			UInt32 suhdr{ 0 };
 
 			// First get the size of uncompressed data from the buffer in the header 32-bit integer
-			memcpy(&suhdr, inbuffer.GetBytes(), hdrlen);
+			std::memcpy(&suhdr, inbuffer.GetBytes(), hdrlen);
 			Size sizeuncompr{ Endian::FromNetworkByteOrder(suhdr) };
 
 			// Check if the uncompressed data would be larger than the maximum allowed size
