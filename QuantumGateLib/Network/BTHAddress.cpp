@@ -5,7 +5,7 @@
 #include "BTHAddress.h"
 #include "..\Common\Endian.h"
 
-#include <regex>
+#include <cwctype>
 
 namespace QuantumGate::Implementation::Network
 {
@@ -42,22 +42,55 @@ namespace QuantumGate::Implementation::Network
 
 	void BTHAddress::SetAddress(const WChar* addr_str)
 	{
-		static_assert(sizeof(m_BinaryAddress.UInt64s) >= sizeof(SOCKADDR_BTH::btAddr), "BTH Address length mismatch");
-
-		const auto addr_len = std::wcslen(addr_str);
-		if (addr_len > 0 && addr_len <= BTHAddress::MaxBTHAddressStringLength)
+		// Look for address in the format (XX:XX:XX:XX:XX:XX) 
+		// for example "(92:5F:D3:5B:93:B2)" which is the
+		// same as the WSAStringToAddress() function
+		const auto parse_address = [](const WChar* addr_str, UInt64& bth_addr) noexcept -> bool
 		{
-			SOCKADDR_BTH saddr;
-			MemInit(&saddr, sizeof(saddr));
-			int saddr_len = sizeof(saddr);
-
-			if (WSAStringToAddress(const_cast<WChar*>(addr_str), AF_BTH, nullptr,
-								   reinterpret_cast<sockaddr*>(&saddr), &saddr_len) == 0)
+			if (std::wcslen(addr_str) != 19 ||
+				addr_str[0] != L'(' || addr_str[18] != L')')
 			{
-				m_BinaryAddress.AddressFamily = BinaryBTHAddress::Family::BTH;
-				m_BinaryAddress.UInt64s = saddr.btAddr;
-				return;
+				return false;
 			}
+
+			std::array<WChar, 4> addr{ 0 };
+
+			for (auto i = 1u; i <= 16u; i += 3)
+			{
+				addr[0] = addr_str[i];
+				addr[1] = addr_str[i+1];
+				addr[2] = addr_str[i+2];
+
+				if (std::iswspace(addr[0]) == 0)
+				{
+					WChar* end{ nullptr };
+					errno = 0;
+
+					const auto addri = std::wcstoull(addr.data(), &end, 16);
+					if (errno == 0 && end == (addr.data() + 2))
+					{
+						if (i < 16u && *end != L':')
+						{
+							return false;
+						}
+
+						bth_addr = ((bth_addr) << 8) | (addri & 0xff);
+					}
+					else return false;
+				}
+				else return false;
+			}
+
+			return true;
+		};
+
+		UInt64 bth_addr{ 0 };
+
+		if (parse_address(addr_str, bth_addr))
+		{
+			m_BinaryAddress.AddressFamily = BinaryBTHAddress::Family::BTH;
+			m_BinaryAddress.UInt64s = bth_addr;
+			return;
 		}
 
 		throw std::invalid_argument("Invalid Bluetooth address");
@@ -92,29 +125,10 @@ namespace QuantumGate::Implementation::Network
 
 	String BTHAddress::GetString() const noexcept
 	{
-		try
-		{
-			// WSAAddressToString() requires at least 40 characters even though
-			// the maximum Bluetooth address length is 20 characters; see docs:
-			// https://docs.microsoft.com/en-us/windows/win32/bluetooth/bluetooth-and-wsaaddresstostring
-			std::array<WChar, 40> addr_str{ 0 };
-
-			SOCKADDR_BTH saddr{
-				.addressFamily = static_cast<USHORT>(BTH::AddressFamilyToNetwork(m_BinaryAddress.AddressFamily)),
-				.btAddr = m_BinaryAddress.UInt64s
-			};
-
-			auto addr_str_len = static_cast<DWORD>(addr_str.size());
-
-			if (WSAAddressToString(reinterpret_cast<sockaddr*>(&saddr), sizeof(saddr), nullptr,
-								   addr_str.data(), &addr_str_len) == 0)
-			{
-				return addr_str.data();
-			}
-		}
-		catch (...) {}
-
-		return {};
+		// Same format as the WSAAddressToString() function
+		return Util::FormatString(L"(%02X:%02X:%02X:%02X:%02X:%02X)",
+								  m_BinaryAddress.Bytes[5], m_BinaryAddress.Bytes[4], m_BinaryAddress.Bytes[3],
+								  m_BinaryAddress.Bytes[2], m_BinaryAddress.Bytes[1], m_BinaryAddress.Bytes[0]);
 	}
 
 	std::ostream& operator<<(std::ostream& stream, const BTHAddress& addr)
