@@ -72,8 +72,27 @@ namespace UnitTests
 			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(00:00:00:00:00:00:00:00:00:00:00)"); });
 			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(0000000000000000000000000000000000)"); });
 			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"abcdadefbghtmjurfvbghtyhvfregthnmredfgertfghyjukiolj"); });
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92:5F:D3:5B:93:B2:"); }); // last : is invalid
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L":92:5F:D3:5B:93:B2:"); }); // first/last : is invalid
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92:5F:D3:5B:93.B2)"); }); // . is invalid
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92.5F:D3:5B:93:B2)"); }); // . is invalid
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(9215F:D3:5B:93:B2)"); }); // 2 is invalid
 			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92:5Z:D3:5B:93:B2)"); }); // 5Z is invalid
-			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92:5F:D3:5B:93: B2)"); });
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92:5F:D3:5B:GA:B2)"); }); // GA is invalid
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92:5F:D3:5B:93: B2)"); }); // Extra space
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"92:5F:D3:5B:93:B2"); }); // No parenthesis
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L" 92:5F:D3:5B:93:B2 "); }); // No parenthesis
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"((2:5F:D3:5B:93:B2)"); }); // Extra parenthesis
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"( 2:5F:D3:5B:93:B2)"); }); // Space
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(  :5F:D3:5B:93:B2)"); }); // Space
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(   5F:D3:5B:93:B2)"); }); // Space
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(2 :5F:D3:5B:93:B2)"); }); // Space
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92:5F: 3:5B:93:B2)"); }); // Space
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92:5F:3 :5B:93:B2)"); }); // Space
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92:5F:D3:5B:93:B )"); }); // Space
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92:5F:D3:5B:93: B)"); }); // Space
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(92:5F:D3:5B:93:  )"); }); // Space
+			Assert::ExpectException<std::invalid_argument>([] { BTHAddress(L"(9::5F:D3:5B:93:B2)"); }); // extra :
 
 			BTHAddress address;
 			Assert::AreEqual(false, BTHAddress::TryParse(L"", address));
@@ -89,6 +108,13 @@ namespace UnitTests
 			Assert::AreEqual(true, BTHAddress::TryParse(L"(92:5F:D3:5B:93:B2)", address));
 			Assert::AreEqual(true, address.GetString() == L"(92:5F:D3:5B:93:B2)");
 			Assert::AreEqual(true, address.GetFamily() == BTHAddress::Family::BTH);
+
+			Assert::AreEqual(true, BTHAddress::TryParse(L"(00:11:22:33:FF:EE)", address));
+			Assert::AreEqual(true, BTHAddress::TryParse(L"(01:23:45:67:89:AB)", address));
+			Assert::AreEqual(true, BTHAddress::TryParse(L"(00:25:96:12:34:56)", address));
+			Assert::AreEqual(true, BTHAddress::TryParse(L"(00:0a:95:9d:68:16)", address));
+			Assert::AreEqual(true, BTHAddress::TryParse(L"(3B:7D:25:2E:C6:87)", address));
+			Assert::AreEqual(true, BTHAddress::TryParse(L"(17:52:06:A6:0F:96)", address));
 		}
 
 		TEST_METHOD(Constexpr)
