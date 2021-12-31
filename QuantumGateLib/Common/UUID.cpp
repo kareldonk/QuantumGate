@@ -201,7 +201,7 @@ namespace QuantumGate::Implementation
 			{
 				// Looks for UUID in the format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
 				// such as "3df5b8e4-50d2-48c5-8c23-c544f0f0653e"
-				std::wregex r(LR"uuid(^\s*([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})\s*$)uuid",
+				std::wregex r(LR"uuid(^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$)uuid",
 							  std::regex_constants::icase);
 				std::wcmatch m;
 				if (std::regex_search(uuid, m, r))
