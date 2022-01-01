@@ -33,6 +33,7 @@ namespace QuantumGate::Implementation
 		FailedKeyGenerationManagerStartup = 14,
 		FailedUDPConnectionManagerStartup = 15,
 		FailedUDPListenerManagerStartup = 16,
+		FailedBluetoothListenerManagerStartup = 17,
 
 		NoPeersForRelay = 50,
 

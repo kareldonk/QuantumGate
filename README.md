@@ -27,7 +27,7 @@ There are releases available on the [releases page](https://github.com/kareldonk
 
 The `master` branch is generally kept as stable as possible so you can download the source code from there instead of from the [releases page](https://github.com/kareldonk/QuantumGate/releases) if you prefer to work with the latest version.
 
-You'll require the latest version of Microsoft Visual Studio 2019, as well as the dependencies listed below. When the paths to the dependency includes and libraries have been configured properly, building is as simple as opening the `QuantumGate.sln` file in the project root with Visual Studio and issuing the build command for the entire solution.
+You'll require the latest version of Microsoft Visual Studio 2022, as well as the dependencies listed below. When the paths to the dependency includes and libraries have been configured properly, building is as simple as opening the `QuantumGate.sln` file in the project root with Visual Studio and issuing the build command for the entire solution.
 
 ### Dependencies
 
@@ -38,14 +38,14 @@ You'll require the latest version of Microsoft Visual Studio 2019, as well as th
 | [OpenSSL](https://github.com/openssl/openssl) | At least 3.0.0 |
 | [PCG-Random](https://github.com/imneme/pcg-cpp) | Latest. |
 | [zlib](https://github.com/madler/zlib) | At least 1.2.11 |
-| [Zstandard](https://github.com/facebook/zstd) | At least 1.4.5 |
+| [Zstandard](https://github.com/facebook/zstd) | At least 1.5.1 |
 
 #### QuantumGate Test Applications/Extenders
 
 | Name | Version |
 |------|---------|
-| [Monocypher](https://github.com/LoupVaillant/Monocypher) | At least 3.1.1 |
-| [JSON for Modern C++](https://github.com/nlohmann/json) | At least 3.8.0 |
+| [Monocypher](https://github.com/LoupVaillant/Monocypher) | At least 3.1.2 |
+| [JSON for Modern C++](https://github.com/nlohmann/json) | At least 3.10.4 |
 
 #### Naming
 

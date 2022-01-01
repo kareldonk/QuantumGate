@@ -30,8 +30,8 @@ namespace QuantumGate::API
 			bool IsAuthenticated{ false };
 			bool IsRelayed{ false };
 			bool IsUsingGlobalSharedSecret{ false };
-			IPEndpoint LocalIPEndpoint;
-			IPEndpoint PeerIPEndpoint;
+			Endpoint LocalEndpoint;
+			Endpoint PeerEndpoint;
 			std::pair<UInt8, UInt8> PeerProtocolVersion{ 0, 0 };
 			UInt64 LocalSessionID{ 0 };
 			UInt64 PeerSessionID{ 0 };
@@ -65,8 +65,8 @@ namespace QuantumGate::API
 		Result<bool> GetRelayed() const noexcept;
 		Result<bool> GetUsingGlobalSharedSecret() const noexcept;
 
-		Result<IPEndpoint> GetLocalIPEndpoint() const noexcept;
-		Result<IPEndpoint> GetPeerIPEndpoint() const noexcept;
+		Result<Endpoint> GetLocalEndpoint() const noexcept;
+		Result<Endpoint> GetPeerEndpoint() const noexcept;
 
 		Result<std::pair<UInt8, UInt8>> GetPeerProtocolVersion() const noexcept;
 

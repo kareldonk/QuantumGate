@@ -70,14 +70,14 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		return false;
 	}
 
-	bool Connection::Open(const Network::IP::AddressFamily af, const bool nat_traversal, UDP::Socket& socket) noexcept
+	bool Connection::Open(const Network::AddressFamily af, const bool nat_traversal, UDP::Socket& socket) noexcept
 	{
 		try
 		{
-			m_Socket = Network::Socket(af, Network::Socket::Type::Datagram, Network::IP::Protocol::UDP);
+			m_Socket = Network::Socket(af, Network::Socket::Type::Datagram, Network::Protocol::UDP);
 
 			if (m_Socket.Bind(IPEndpoint(IPEndpoint::Protocol::UDP,
-										 (af == Network::IP::AddressFamily::IPv4) ? IPAddress::AnyIPv4() : IPAddress::AnyIPv6(),
+										 (af == Network::AddressFamily::IPv4) ? IPAddress::AnyIPv4() : IPAddress::AnyIPv6(),
 										 0), nat_traversal))
 			{
 				m_ConnectionData = std::make_shared<ConnectionData_ThS>(&m_Socket.GetEvent());
@@ -307,7 +307,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					{
 						// This might be an attack ("slowloris" for example) so limit the
 						// number of times this may happen by updating the IP reputation
-						UpdateReputation(m_PeerEndpoint, Access::IPReputationUpdate::DeteriorateMinimal);
+						UpdateReputation(m_PeerEndpoint, Access::AddressReputationUpdate::DeteriorateMinimal);
 					}
 				}
 
@@ -381,9 +381,9 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	void Connection::UpdateReputation(const IPEndpoint& endpoint, const Access::IPReputationUpdate rep_update) noexcept
+	void Connection::UpdateReputation(const IPEndpoint& endpoint, const Access::AddressReputationUpdate rep_update) noexcept
 	{
-		const auto result = m_AccessManager.UpdateIPReputation(endpoint.GetIPAddress(), rep_update);
+		const auto result = m_AccessManager.UpdateAddressReputation(endpoint.GetIPAddress(), rep_update);
 		if (result.Succeeded() && !result->second && m_PeerEndpoint == endpoint)
 		{
 			// Peer IP has an unacceptable reputation after the update;
@@ -573,7 +573,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				.ProtocolVersionMajor = ProtocolVersion::Major,
 				.ProtocolVersionMinor = ProtocolVersion::Minor,
 				.ConnectionID = GetID(),
-				.Port = m_Socket.GetLocalEndpoint().GetPort(),
+				.Port = m_Socket.GetLocalEndpoint().GetIPEndpoint().GetPort(),
 				.Time = static_cast<UInt64>(Util::ToTimeT(Util::GetCurrentSystemTime())),
 				.HandshakeDataOut = &m_KeyExchange->GetHandshakeData()
 			});
@@ -977,7 +977,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	bool Connection::ReceiveToQueue(const SteadyTime current_steadytime, const SystemTime current_systemtime,
 									const std::chrono::seconds msg_age_tolerance) noexcept
 	{
-		IPEndpoint endpoint;
+		Endpoint endpoint;
 		auto& buffer = GetReceiveBuffer();
 
 		if (m_Socket.UpdateIOStatus(0ms))
@@ -997,13 +997,13 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 							{
 								// Discard data from unknown endpoints that
 								// are not allowed by security configuration
-								if (!IsEndpointAllowed(endpoint)) continue;
+								if (!IsEndpointAllowed(endpoint.GetIPEndpoint())) continue;
 							}
 
 							bufspan = bufspan.GetFirst(*result);
 
 							if (!ProcessReceivedData(current_steadytime, current_systemtime,
-													 msg_age_tolerance, endpoint, bufspan))
+													 msg_age_tolerance, endpoint.GetIPEndpoint(), bufspan))
 							{
 								return false;
 							}
@@ -1060,7 +1060,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 	{
 		auto success{ false };
 
-		auto read_message = [this](Message& msg, BufferSpan& buf) noexcept -> bool
+		const auto read_message = [this](Message& msg, BufferSpan& buf) noexcept -> bool
 		{
 			assert(!m_SymmetricKeys[0].IsExpired());
 
@@ -1123,7 +1123,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		else
 		{
 			// Unrecognized message; this is a fatal problem and may be an attack
-			UpdateReputation(endpoint, Access::IPReputationUpdate::DeteriorateSevere);
+			UpdateReputation(endpoint, Access::AddressReputationUpdate::DeteriorateSevere);
 
 			if (m_PeerEndpoint == endpoint)
 			{
@@ -1157,7 +1157,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			LogErr(L"UDP connection: received handshake response from unexpected endpoint %s on connection %llu",
 				   endpoint.GetString().c_str(), GetID());
 
-			UpdateReputation(endpoint, Access::IPReputationUpdate::DeteriorateMinimal);
+			UpdateReputation(endpoint, Access::AddressReputationUpdate::DeteriorateMinimal);
 
 			// Might be someone else trying to interfere; we just
 			// ignore the message and keep the connection alive
@@ -1217,7 +1217,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 							m_ConnectionData->WithUniqueLock([&](auto& connection_data) noexcept
 							{
 								// Endpoint update
-								connection_data.SetLocalEndpoint(m_Socket.GetLocalEndpoint());
+								connection_data.SetLocalEndpoint(m_Socket.GetLocalEndpoint().GetIPEndpoint());
 								// Don't need listener send queue anymore
 								connection_data.ReleaseListenerSendQueue();
 								// Socket can now send data
@@ -1255,7 +1255,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 					LogErr(L"UDP connection: received unexpected message type %u during handshake on connection %llu",
 						   msg.GetType(), GetID());
 
-					UpdateReputation(endpoint, Access::IPReputationUpdate::DeteriorateModerate);
+					UpdateReputation(endpoint, Access::AddressReputationUpdate::DeteriorateModerate);
 					break;
 				}
 			}
@@ -1409,7 +1409,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 				{
 					// Might be someone else trying to interfere; we just
 					// ignore the message and keep the connection alive
-					UpdateReputation(endpoint, Access::IPReputationUpdate::DeteriorateMinimal);
+					UpdateReputation(endpoint, Access::AddressReputationUpdate::DeteriorateMinimal);
 				}
 
 				success = true;
@@ -1417,7 +1417,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 			}
 			default:
 			{
-				UpdateReputation(endpoint, Access::IPReputationUpdate::DeteriorateModerate);
+				UpdateReputation(endpoint, Access::AddressReputationUpdate::DeteriorateModerate);
 
 				if (m_PeerEndpoint == endpoint)
 				{
@@ -1447,8 +1447,8 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	bool Connection::IsEndpointAllowed(const IPEndpoint& endpoint) noexcept
 	{
-		const auto result1 = m_AccessManager.GetIPAllowed(endpoint.GetIPAddress(), Access::CheckType::IPFilters);
-		const auto result2 = m_AccessManager.GetIPAllowed(endpoint.GetIPAddress(), Access::CheckType::IPReputations);
+		const auto result1 = m_AccessManager.GetAddressAllowed(endpoint.GetIPAddress(), Access::CheckType::IPFilters);
+		const auto result2 = m_AccessManager.GetAddressAllowed(endpoint.GetIPAddress(), Access::CheckType::AddressReputations);
 
 		return ((result1 && *result1) && (result2 && *result2));
 	}

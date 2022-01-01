@@ -74,12 +74,11 @@ namespace QuantumGate::Implementation::Core::UDP::Listener
 		void WorkerThreadProcessor(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event);
 
 		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
-		[[nodiscard]] std::pair<bool, Access::IPReputationUpdate> AcceptConnection(const Settings& settings, 
-																				   const SteadyTime current_steadytime,
-																				   const SystemTime current_systemtime,
-																				   const std::shared_ptr<SendQueue_ThS>& send_queue,
-																				   const IPEndpoint& lendpoint, const IPEndpoint& pendpoint,
-																				   BufferSpan& buffer, const SymmetricKeys& symkeys) noexcept;
+		[[nodiscard]] std::pair<bool, Access::AddressReputationUpdate>
+			AcceptConnection(const Settings& settings, const SteadyTime current_steadytime,
+							 const SystemTime current_systemtime, const std::shared_ptr<SendQueue_ThS>& send_queue,
+							 const IPEndpoint& lendpoint, const IPEndpoint& pendpoint, BufferSpan& buffer,
+							 const SymmetricKeys& symkeys) noexcept;
 
 		void SendCookie(const Settings& settings, const SteadyTime current_steadytime,
 						const std::shared_ptr<SendQueue_ThS>& send_queue, const IPEndpoint& pendpoint,

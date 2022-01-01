@@ -45,35 +45,35 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugUnitTests|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <SpectreMitigation>Spectre</SpectreMitigation>
@@ -81,7 +81,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <SpectreMitigation>Spectre</SpectreMitigation>
@@ -89,7 +89,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <SpectreMitigation>Spectre</SpectreMitigation>
@@ -97,7 +97,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseUnitTests|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <SpectreMitigation>Spectre</SpectreMitigation>
@@ -574,10 +574,12 @@
     <ClInclude Include="Concurrency\ThreadPool.h" />
     <ClInclude Include="Concurrency\ThreadSafe.h" />
     <ClInclude Include="Core\Access\AccessManager.h" />
-    <ClInclude Include="Core\Access\IPAccessControl.h" />
+    <ClInclude Include="Core\Access\AddressAccessControl.h" />
     <ClInclude Include="Core\Access\IPFilters.h" />
     <ClInclude Include="Core\Access\IPSubnetLimits.h" />
     <ClInclude Include="Core\Access\PeerAccessControl.h" />
+    <ClInclude Include="Core\BTH\BTHListenerManager.h" />
+    <ClInclude Include="Core\BTH\BTHSocket.h" />
     <ClInclude Include="Core\Extender\ExtenderControl.h" />
     <ClInclude Include="Core\Extender\Extender.h" />
     <ClInclude Include="Core\Extender\ExtenderModule.h" />
@@ -607,7 +609,7 @@
     <ClInclude Include="Core\Peer\PeerReceiveQueues.h" />
     <ClInclude Include="Core\Peer\PeerSendQueues.h" />
     <ClInclude Include="Core\Peer\PeerTypes.h" />
-    <ClInclude Include="Core\PublicIPEndpoints.h" />
+    <ClInclude Include="Core\PublicEndpoints.h" />
     <ClInclude Include="Core\Relay\RelayDataRateLimit.h" />
     <ClInclude Include="Core\Relay\RelayEvents.h" />
     <ClInclude Include="Core\Relay\RelayLink.h" />
@@ -653,13 +655,26 @@
     <ClInclude Include="Memory\RingBuffer.h" />
     <ClInclude Include="Memory\StackBuffer.h" />
     <ClInclude Include="Module.h" />
+    <ClInclude Include="Network\Address.h" />
+    <ClInclude Include="Network\BinaryBTHAddress.h" />
     <ClInclude Include="Network\BinaryIPAddress.h" />
+    <ClInclude Include="Network\BTH.h" />
+    <ClInclude Include="Network\BTHAddress.h" />
+    <ClInclude Include="Network\BTHEndpoint.h" />
+    <ClInclude Include="Network\Endpoint.h" />
     <ClInclude Include="Network\IP.h" />
     <ClInclude Include="Network\IPAddress.h" />
     <ClInclude Include="Network\IPEndpoint.h" />
+    <ClInclude Include="Network\Network.h" />
     <ClInclude Include="Network\Ping.h" />
+    <ClInclude Include="Network\SerializedBinaryBTHAddress.h" />
+    <ClInclude Include="Network\SerializedBinaryIPAddress.h" />
+    <ClInclude Include="Network\SerializedBTHEndpoint.h" />
+    <ClInclude Include="Network\SerializedEndpoint.h" />
+    <ClInclude Include="Network\SerializedIPEndpoint.h" />
     <ClInclude Include="Network\Socket.h" />
     <ClInclude Include="Network\SocketBase.h" />
+    <ClInclude Include="Network\NetworkUtils.h" />
     <ClInclude Include="Settings.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Types.h" />
@@ -682,10 +697,11 @@
     <ClCompile Include="Compression\Compression.cpp" />
     <ClCompile Include="Concurrency\RecursiveSharedMutex.cpp" />
     <ClCompile Include="Core\Access\AccessManager.cpp" />
-    <ClCompile Include="Core\Access\IPAccessControl.cpp" />
+    <ClCompile Include="Core\Access\AddressAccessControl.cpp" />
     <ClCompile Include="Core\Access\IPFilters.cpp" />
     <ClCompile Include="Core\Access\IPSubnetLimits.cpp" />
     <ClCompile Include="Core\Access\PeerAccessControl.cpp" />
+    <ClCompile Include="Core\BTH\BTHListenerManager.cpp" />
     <ClCompile Include="Core\Extender\ExtenderControl.cpp" />
     <ClCompile Include="Core\Extender\Extender.cpp" />
     <ClCompile Include="Core\Extender\ExtenderModule.cpp" />
@@ -709,7 +725,7 @@
     <ClCompile Include="Core\Peer\PeerManager.cpp" />
     <ClCompile Include="Core\Peer\PeerReceiveQueues.cpp" />
     <ClCompile Include="Core\Peer\PeerSendQueues.cpp" />
-    <ClCompile Include="Core\PublicIPEndpoints.cpp" />
+    <ClCompile Include="Core\PublicEndpoints.cpp" />
     <ClCompile Include="Core\Relay\RelayManager.cpp" />
     <ClCompile Include="Core\Relay\RelaySocket.cpp" />
     <ClCompile Include="Core\TCP\TCPListenerManager.cpp" />
@@ -752,10 +768,17 @@
     <ClCompile Include="Memory\BufferIO.cpp" />
     <ClCompile Include="Memory\CommonStatic.cpp" />
     <ClCompile Include="Module.cpp" />
+    <ClCompile Include="Network\Address.cpp" />
+    <ClCompile Include="Network\BinaryBTHAddress.cpp" />
     <ClCompile Include="Network\BinaryIPAddress.cpp" />
+    <ClCompile Include="Network\BTHAddress.cpp" />
+    <ClCompile Include="Network\BTHEndpoint.cpp" />
+    <ClCompile Include="Network\Endpoint.cpp" />
     <ClCompile Include="Network\IP.cpp" />
     <ClCompile Include="Network\IPAddress.cpp" />
     <ClCompile Include="Network\IPEndpoint.cpp" />
+    <ClCompile Include="Network\Network.cpp" />
+    <ClCompile Include="Network\NetworkUtils.cpp" />
     <ClCompile Include="Network\Ping.cpp" />
     <ClCompile Include="Network\Socket.cpp" />
     <ClCompile Include="pch.cpp">

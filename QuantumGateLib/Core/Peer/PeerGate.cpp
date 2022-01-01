@@ -28,6 +28,15 @@ namespace QuantumGate::Implementation::Core::Peer
 				m_Type = GateType::UDPSocket;
 				break;
 			}
+			case GateType::BTHSocket:
+			{
+				static_assert(sizeof(BTH::Socket) <= sizeof(m_SocketStorage),
+							  "Type is too large for SocketStorage variable; increase size.");
+
+				m_Socket = new (&m_SocketStorage) BTH::Socket();
+				m_Type = GateType::BTHSocket;
+				break;
+			}
 			case GateType::RelaySocket:
 			{
 				static_assert(sizeof(Relay::Socket) <= sizeof(m_SocketStorage),
@@ -48,7 +57,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		SetCallbacks();
 	}
 
-	Gate::Gate(const IP::AddressFamily af, const IP::Protocol protocol)
+	Gate::Gate(const AddressFamily af, const Protocol protocol)
 	{
 		static_assert(sizeof(TCP::Socket) <= sizeof(m_SocketStorage),
 					  "Type is too large for SocketStorage variable; increase size.");
@@ -56,15 +65,22 @@ namespace QuantumGate::Implementation::Core::Peer
 		static_assert(sizeof(UDP::Socket) <= sizeof(m_SocketStorage),
 					  "Type is too large for SocketStorage variable; increase size.");
 
+		static_assert(sizeof(BTH::Socket) <= sizeof(m_SocketStorage),
+					  "Type is too large for SocketStorage variable; increase size.");
+
 		switch (protocol)
 		{
-			case IP::Protocol::TCP:
+			case Protocol::TCP:
 				m_Socket = new (&m_SocketStorage) TCP::Socket(af);
 				m_Type = GateType::TCPSocket;
 				break;
-			case IP::Protocol::UDP:
+			case Protocol::UDP:
 				m_Socket = new (&m_SocketStorage) UDP::Socket();
 				m_Type = GateType::UDPSocket;
+				break;
+			case Protocol::RFCOMM:
+				m_Socket = new (&m_SocketStorage) BTH::Socket(af);
+				m_Type = GateType::BTHSocket;
 				break;
 			default:
 				// Shouldn't get here

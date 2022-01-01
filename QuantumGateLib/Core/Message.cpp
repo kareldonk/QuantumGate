@@ -163,7 +163,7 @@ namespace QuantumGate::Implementation::Core
 		return std::move(m_MessageData);
 	}
 
-	bool Message::Read(BufferView buffer, const Crypto::SymmetricKeyData& symkey)
+	bool Message::Read(BufferView buffer, const Crypto::SymmetricKeyData& symkey) noexcept
 	{
 		assert(buffer.GetSize() >= Header::GetMinSize());
 
@@ -204,7 +204,11 @@ namespace QuantumGate::Implementation::Core
 						success = false;
 					}
 				}
-				else m_MessageData = buffer;
+				else
+				{
+					try { m_MessageData = buffer; }
+					catch (...) { success = false; }
+				}
 			}
 			else
 			{
@@ -218,7 +222,7 @@ namespace QuantumGate::Implementation::Core
 		return success;
 	}
 
-	bool Message::Write(Buffer& buffer, const Crypto::SymmetricKeyData& symkey)
+	bool Message::Write(Buffer& buffer, const Crypto::SymmetricKeyData& symkey) noexcept
 	{
 		const bool hasmsgdata = !m_MessageData.IsEmpty();
 		Buffer tmpdata;
@@ -267,11 +271,15 @@ namespace QuantumGate::Implementation::Core
 		// Add message data if any
 		if (hasmsgdata)
 		{
-			if (msghdr.IsCompressed())
+			try
 			{
-				buffer += tmpdata;
+				if (msghdr.IsCompressed())
+				{
+					buffer += tmpdata;
+				}
+				else buffer += m_MessageData;
 			}
-			else buffer += m_MessageData;
+			catch (...) { return false; }
 		}
 
 		if (buffer.GetSize() > MessageTransport::MaxMessageDataSize)

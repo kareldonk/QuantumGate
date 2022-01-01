@@ -25,7 +25,7 @@ namespace QuantumGate::Implementation::Network
 	public:
 		using Family = BinaryIPAddress::Family;
 
-		explicit constexpr IPAddress() noexcept :
+		constexpr IPAddress() noexcept :
 			m_BinaryAddress(BinaryIPAddress{ BinaryIPAddress::Family::IPv4 }) // Defaults to IPv4 any address
 		{}
 
@@ -56,7 +56,7 @@ namespace QuantumGate::Implementation::Network
 			// Check for same object
 			if (this == &other) return *this;
 
-			*this = other;
+			m_BinaryAddress = other.m_BinaryAddress;
 
 			return *this;
 		}
@@ -81,9 +81,9 @@ namespace QuantumGate::Implementation::Network
 			return !(*this == other);
 		}
 
-		String GetString() const noexcept;
-		constexpr const BinaryIPAddress& GetBinary() const noexcept { return m_BinaryAddress; }
-		constexpr Family GetFamily() const noexcept { return m_BinaryAddress.AddressFamily; }
+		[[nodiscard]] String GetString() const noexcept;
+		[[nodiscard]] constexpr const BinaryIPAddress& GetBinary() const noexcept { return m_BinaryAddress; }
+		[[nodiscard]] constexpr Family GetFamily() const noexcept { return m_BinaryAddress.AddressFamily; }
 
 		[[nodiscard]] constexpr bool IsMask() const noexcept { return BinaryIPAddress::IsMask(m_BinaryAddress); }
 		[[nodiscard]] constexpr bool IsLocal() const noexcept { return IsLocal(m_BinaryAddress); }
@@ -99,16 +99,16 @@ namespace QuantumGate::Implementation::Network
 		friend Export std::ostream& operator<<(std::ostream& stream, const IPAddress& ipaddr);
 		friend Export std::wostream& operator<<(std::wostream& stream, const IPAddress& ipaddr);
 
-		static constexpr IPAddress AnyIPv4() noexcept { return { BinaryIPAddress(BinaryIPAddress::Family::IPv4) }; }
+		[[nodiscard]] static constexpr IPAddress AnyIPv4() noexcept { return { BinaryIPAddress(BinaryIPAddress::Family::IPv4) }; }
 
-		static constexpr IPAddress AnyIPv6() noexcept { return { BinaryIPAddress(BinaryIPAddress::Family::IPv6) }; }
+		[[nodiscard]] static constexpr IPAddress AnyIPv6() noexcept { return { BinaryIPAddress(BinaryIPAddress::Family::IPv6) }; }
 
-		static constexpr IPAddress LoopbackIPv4() noexcept
+		[[nodiscard]] static constexpr IPAddress LoopbackIPv4() noexcept
 		{
 			return { BinaryIPAddress(BinaryIPAddress::Family::IPv4, Byte{ 127 }, Byte{ 0 }, Byte{ 0 }, Byte{ 1 }) };
 		}
 
-		static constexpr IPAddress LoopbackIPv6() noexcept
+		[[nodiscard]] static constexpr IPAddress LoopbackIPv6() noexcept
 		{
 			return { BinaryIPAddress(BinaryIPAddress::Family::IPv6,
 									 Byte{ 0 }, Byte{ 0 }, Byte{ 0 }, Byte{ 0 },
@@ -223,6 +223,8 @@ namespace QuantumGate::Implementation::Network
 			return IsInBlock(bin_ipaddr, block);
 		}
 
+		[[nodiscard]] std::size_t GetHash() const noexcept { return m_BinaryAddress.GetHash(); }
+
 	private:
 		void SetAddress(const WChar* ipaddr_str);
 		void SetAddress(const sockaddr_storage* saddr);
@@ -257,5 +259,17 @@ namespace QuantumGate::Implementation::Network
 		static constexpr UInt8 MaxIPAddressStringLength{ 46 }; // Maximum length of IPv6 address
 
 		BinaryIPAddress m_BinaryAddress; // In network byte order (big endian)
+	};
+}
+
+namespace std
+{
+	// Specialization for standard hash function for IPAddress
+	template<> struct hash<QuantumGate::Implementation::Network::IPAddress>
+	{
+		std::size_t operator()(const QuantumGate::Implementation::Network::IPAddress& ip) const noexcept
+		{
+			return ip.GetHash();
+		}
 	};
 }

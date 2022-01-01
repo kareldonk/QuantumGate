@@ -24,7 +24,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 		const auto& settings = m_Settings.GetCache();
 		const auto& listener_ports = settings.Local.Listeners.TCP.Ports;
-		const auto nat_traversal = settings.Local.Listeners.NATTraversal;
+		const auto nat_traversal = settings.Local.Listeners.TCP.NATTraversal;
 		const auto cond_accept = settings.Local.Listeners.TCP.UseConditionalAcceptFunction;
 
 		// Should have at least one port
@@ -85,7 +85,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 		const auto& settings = m_Settings.GetCache();
 		const auto& listener_ports = settings.Local.Listeners.TCP.Ports;
-		const auto nat_traversal = settings.Local.Listeners.NATTraversal;
+		const auto nat_traversal = settings.Local.Listeners.TCP.NATTraversal;
 		const auto cond_accept = settings.Local.Listeners.TCP.UseConditionalAcceptFunction;
 
 		// Should have at least one port
@@ -137,8 +137,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 				// Create and start the listenersocket
 				ThreadData ltd;
-				ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
-											 Network::Socket::Type::Stream, Network::IP::Protocol::TCP);
+				ltd.Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(), Network::Socket::Type::Stream, Network::IP::Protocol::TCP);
 				ltd.UseConditionalAcceptFunction = cond_accept;
 				
 				if (ltd.Socket.Listen(endpoint, true, nat_traversal))
@@ -167,9 +166,9 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 	std::optional<Manager::ThreadPool::ThreadType> Manager::RemoveListenerThread(Manager::ThreadPool::ThreadType&& thread) noexcept
 	{
-		const IPEndpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
+		const Endpoint endpoint = thread.GetData().Socket.GetLocalEndpoint();
 
-		const auto [success, next_thread] = m_ThreadPool.RemoveThread(std::move(thread));
+		const auto& [success, next_thread] = m_ThreadPool.RemoveThread(std::move(thread));
 		if (success)
 		{
 			LogSys(L"Stopped listening on endpoint %s", endpoint.GetString().c_str());
@@ -193,7 +192,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 		const auto& settings = m_Settings.GetCache();
 		const auto& listener_ports = settings.Local.Listeners.TCP.Ports;
-		const auto nat_traversal = settings.Local.Listeners.NATTraversal;
+		const auto nat_traversal = settings.Local.Listeners.TCP.NATTraversal;
 		const auto cond_accept = settings.Local.Listeners.TCP.UseConditionalAcceptFunction;
 
 		// Check for interfaces/IP addresses that were added for which
@@ -205,7 +204,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 				for (const auto& address : ifs.IPAddresses)
 				{
 					// Only for IPv4 and IPv6 addresses
-					if (address.GetFamily() == IP::AddressFamily::IPv4 || address.GetFamily() == IP::AddressFamily::IPv6)
+					if (address.GetFamily() == IPAddress::Family::IPv4 || address.GetFamily() == IPAddress::Family::IPv6)
 					{
 						auto found = false;
 
@@ -213,7 +212,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 						while (thread.has_value())
 						{
-							if (thread->GetData().Socket.GetLocalIPAddress() == address)
+							if (thread->GetData().Socket.GetLocalEndpoint().GetIPEndpoint().GetIPAddress() == address)
 							{
 								found = true;
 								break;
@@ -244,7 +243,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 				{
 					for (const auto& address : ifs.IPAddresses)
 					{
-						if (thread->GetData().Socket.GetLocalIPAddress() == address)
+						if (thread->GetData().Socket.GetLocalEndpoint().GetIPEndpoint().GetIPAddress() == address)
 						{
 							found = true;
 							break;
@@ -344,7 +343,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 					if (listener_socket.Accept(peer.GetSocket<TCP::Socket>(), false, nullptr, nullptr))
 					{
 						// Check if the IP address is allowed
-						if (!CanAcceptConnection(peer.GetPeerIPAddress()))
+						if (!CanAcceptConnection(peer.GetPeerEndpoint()))
 						{
 							peer.Close();
 							LogWarn(L"Incoming connection from peer %s was rejected; IP address is not allowed by access configuration",
@@ -368,14 +367,14 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 		}
 	}
 
-	bool Manager::CanAcceptConnection(const IPAddress& ipaddr) const noexcept
+	bool Manager::CanAcceptConnection(const Address& ipaddr) const noexcept
 	{
 		// Increase connection attempts for this IP; if attempts get too high
 		// for a given interval the IP will get a bad reputation and this will fail
-		if (m_AccessManager.AddIPConnectionAttempt(ipaddr))
+		if (m_AccessManager.AddConnectionAttempt(ipaddr))
 		{
 			// Check if IP is allowed through filters/limits and if it has acceptable reputation
-			if (const auto result = m_AccessManager.GetIPConnectionAllowed(ipaddr, Access::CheckType::All); result.Succeeded())
+			if (const auto result = m_AccessManager.GetConnectionFromAddressAllowed(ipaddr, Access::CheckType::All); result.Succeeded())
 			{
 				return *result;
 			}

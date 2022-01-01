@@ -20,6 +20,9 @@ void CTestAppDlgMainTab::UpdateControls() noexcept
 	auto local = GetQuantumGateInstance();
 
 	((CEdit*)GetDlgItem(IDC_SERVERPORT))->SetReadOnly(local->IsRunning());
+	((CEdit*)GetDlgItem(IDC_SERVERPORT_BTH))->SetReadOnly(local->IsRunning());
+	((CButton*)GetDlgItem(IDC_BTH_AUTH2))->EnableWindow(!local->IsRunning());
+	((CButton*)GetDlgItem(IDC_BTH_DISCOV))->EnableWindow(!local->IsRunning());
 	((CEdit*)GetDlgItem(IDC_LOCAL_UUID))->SetReadOnly(local->IsRunning());
 	GetDlgItem(IDC_CREATE_UUID)->EnableWindow(!local->IsRunning());
 	((CEdit*)GetDlgItem(IDC_PASSPHRASE))->SetReadOnly(local->IsRunning());
@@ -137,7 +140,7 @@ void CTestAppDlgMainTab::UpdatePeers()
 
 							lctrl->SetItemText(pos, 1, relayed);
 							lctrl->SetItemText(pos, 2, auth);
-							lctrl->SetItemText(pos, 3, retval->PeerIPEndpoint.GetString().c_str());
+							lctrl->SetItemText(pos, 3, retval->PeerEndpoint.GetString().c_str());
 						}
 
 						index = pos;
@@ -288,9 +291,9 @@ void CTestAppDlgMainTab::OnPeerlistViewDetails()
 				pitxt += Util::FormatString(L"Connection algorithms:\t%s\r\n", alg.c_str());
 
 				pitxt += Util::FormatString(L"Local endpoint:\t\t%s\r\n",
-											retval->LocalIPEndpoint.GetString().c_str());
+											retval->LocalEndpoint.GetString().c_str());
 				pitxt += Util::FormatString(L"Peer endpoint:\t\t%s\r\n",
-											retval->PeerIPEndpoint.GetString().c_str());
+											retval->PeerEndpoint.GetString().c_str());
 				pitxt += Util::FormatString(L"Peer protocol version:\t%u.%u\r\n",
 											retval->PeerProtocolVersion.first, retval->PeerProtocolVersion.second);
 				pitxt += Util::FormatString(L"Local session ID:\t\t%llu\r\n", retval->LocalSessionID);
@@ -378,12 +381,12 @@ void CTestAppDlgMainTab::LogPeerDetails(const QuantumGate::Peer& peer)
 		pitxt += Util::FormatString(L"Connection algorithms:\t\t%s\r\n", alg.c_str());
 	});
 
-	peer.GetLocalIPEndpoint().Succeeded([&](auto& result)
+	peer.GetLocalEndpoint().Succeeded([&](auto& result)
 	{
 		pitxt += Util::FormatString(L"Local endpoint:\t\t\t%s\r\n", result->GetString().c_str());
 	});
 
-	peer.GetPeerIPEndpoint().Succeeded([&](auto& result)
+	peer.GetPeerEndpoint().Succeeded([&](auto& result)
 	{
 		pitxt += Util::FormatString(L"Peer endpoint:\t\t\t%s\r\n", result->GetString().c_str());
 	});

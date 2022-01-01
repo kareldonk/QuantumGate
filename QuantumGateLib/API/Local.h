@@ -21,7 +21,7 @@ namespace QuantumGate::API
 			friend class Local;
 
 		public:
-			struct PublicIPAddressDetails
+			struct PublicAddressDetails
 			{
 				bool ReportedByPeers{ false };
 				bool ReportedByTrustedPeers{ false };
@@ -29,11 +29,11 @@ namespace QuantumGate::API
 				bool Verified{ false };
 			};
 
-			struct IPAddressDetails
+			struct AddressDetails
 			{
-				IPAddress IPAddress;
-				bool BoundToLocalEthernetInterface{ false };
-				std::optional<PublicIPAddressDetails> PublicDetails;
+				Address Address;
+				bool BoundToLocalInterface{ false };
+				std::optional<PublicAddressDetails> PublicDetails;
 			};
 
 			struct EthernetInterface
@@ -45,6 +45,33 @@ namespace QuantumGate::API
 				Vector<IPAddress> IPAddresses;
 			};
 
+			struct BluetoothDevice
+			{
+				String Name;
+				GUID ServiceClassID;
+				BTHAddress RemoteAddress;
+				std::optional<BTHAddress> LocalAddress;
+				std::optional<ULong> ClassOfDevice;
+				bool Connected{ false };
+				bool Authenticated{ false };
+				bool Remembered{ false };
+				std::optional<SystemTime> LastSeen;
+				std::optional<SystemTime> LastUsed;
+				Vector<GUID> Services;
+			};
+
+			struct BluetoothRadio
+			{
+				using NativeHandleType = void*;
+
+				NativeHandleType NativeHandle{ nullptr };
+				String Name;
+				BTHAddress Address;
+				UInt16 ManufacturerID{ 0 };
+				bool Connectable{ false };
+				bool Discoverable{ false };
+			};
+
 			Environment() = delete;
 			Environment(const Environment&) = delete;
 			Environment(Environment&&) noexcept = default;
@@ -54,8 +81,10 @@ namespace QuantumGate::API
 
 			Result<String> GetHostname() const noexcept;
 			Result<String> GetUsername() const noexcept;
-			Result<Vector<IPAddressDetails>> GetIPAddresses() const noexcept;
+			Result<Vector<AddressDetails>> GetAddresses() const noexcept;
 			Result<Vector<EthernetInterface>> GetEthernetInterfaces() const noexcept;
+			Result<Vector<BluetoothRadio>> GetBluetoothRadios() const noexcept;
+			Result<Vector<BluetoothDevice>> GetBluetoothDevices() const noexcept;
 
 		private:
 			Environment(const void* localenv) noexcept;
@@ -64,7 +93,7 @@ namespace QuantumGate::API
 			const void* m_LocalEnvironment{ nullptr };
 		};
 
-		enum class ListenerType : UInt8 { TCP, UDP };
+		enum class ListenerType : UInt8 { TCP, UDP, BTH };
 
 		Local();
 		Local(const Local&) = delete;
@@ -89,7 +118,7 @@ namespace QuantumGate::API
 		Result<> DisableRelays() noexcept;
 		[[nodiscard]] bool AreRelaysEnabled() const noexcept;
 
-		[[nodiscard]] Environment GetEnvironment() const noexcept;
+		[[nodiscard]] Environment GetEnvironment(const bool refresh = false) const noexcept;
 
 		[[nodiscard]] Access::Manager& GetAccessManager() noexcept;
 

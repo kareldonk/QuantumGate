@@ -104,7 +104,8 @@ namespace QuantumGate
 #include "Algorithms.h"
 #include "API\Result.h"
 #include "API\Callback.h"
-#include "Network\IPEndpoint.h"
+#include "Network\Endpoint.h"
+#include "Network\Address.h"
 
 namespace QuantumGate::Implementation
 {
@@ -131,10 +132,16 @@ namespace QuantumGate::Implementation
 
 namespace QuantumGate
 {
-	using IPAddress = Implementation::Network::IPAddress;
 	using BinaryIPAddress = Implementation::Network::BinaryIPAddress;
-
+	using IPAddress = Implementation::Network::IPAddress;
 	using IPEndpoint = Implementation::Network::IPEndpoint;
+
+	using BinaryBTHAddress = Implementation::Network::BinaryBTHAddress;
+	using BTHAddress = Implementation::Network::BTHAddress;
+	using BTHEndpoint = Implementation::Network::BTHEndpoint;
+	
+	using Address = Implementation::Network::Address;
+	using Endpoint = Implementation::Network::Endpoint;
 
 	struct Algorithms
 	{
@@ -143,6 +150,13 @@ namespace QuantumGate
 		Set<Algorithm::Asymmetric> SecondaryAsymmetric;
 		Set<Algorithm::Symmetric> Symmetric;
 		Set<Algorithm::Compression> Compression;
+	};
+
+	struct BluetoothServiceDetails
+	{
+		String Name;											// The Bluetooth service name to advertise in the Bluetooth SDP service record
+		String Comment;											// A description of the Bluetooth service
+		GUID ID{ 0 };											// The service class ID to advertise in the Bluetooth SDP service record
 	};
 
 	struct StartupParameters
@@ -163,15 +177,25 @@ namespace QuantumGate
 			{
 				bool Enable{ false };							// Enable listening for incoming connections on startup?
 				Set<UInt16> Ports{ 999 };						// Which TCP ports to listen on
+				bool NATTraversal{ false };						// Whether NAT traversal is enabled
+				bool UseConditionalAcceptFunction{ true };		// Whether to use the conditional accept function before accepting connections
 			} TCP;
 
 			struct
 			{
 				bool Enable{ false };							// Enable listening for incoming connections on startup?
 				Set<UInt16> Ports{ 999 };						// Which UDP ports to listen on
+				bool NATTraversal{ false };						// Whether NAT traversal is enabled
 			} UDP;
 
-			bool EnableNATTraversal{ false };					// Whether NAT traversal is enabled
+			struct
+			{
+				bool Enable{ false };							// Enable listening for incoming connections on startup?
+				Set<UInt16> Ports{ 9 };							// Which Bluetooth ports to listen on
+				bool RequireAuthentication{ true };				// Whether to require Bluetooth authentication (device pairing) before accepting connections
+				bool Discoverable{ false };						// Whether to make the device discoverable via Bluetooth (devices scanning for other nearby devices will then be able to discover this device without pairing)
+				std::optional<BluetoothServiceDetails> Service;	// Bluetooth service details to advertise to connecting peers
+			} BTH;
 		} Listeners;
 
 		struct
@@ -191,23 +215,21 @@ namespace QuantumGate
 	{
 		struct
 		{
-			bool UseConditionalAcceptFunction{ true };							// Whether to use the conditional accept function before accepting connections
-
 			std::chrono::seconds ConnectTimeout{ 0 };							// Maximum number of seconds to wait for a connection to be established
 
-			std::chrono::seconds SuspendTimeout{ 60 };							// Maximum number of seconds of inactivity after which a connection gets suspended (only for endpoints that support suspending connections)
-			std::chrono::seconds MaxSuspendDuration{ 60 };						// Maximum number of seconds that a connection may be suspended before the peer is disconnected (only for endpoints that support suspending connections)
+			std::chrono::seconds SuspendTimeout{ 0 };							// Maximum number of seconds of inactivity after which a connection gets suspended (only for endpoints that support suspending connections)
+			std::chrono::seconds MaxSuspendDuration{ 0 };						// Maximum number of seconds that a connection may be suspended before the peer is disconnected (only for endpoints that support suspending connections)
 
 			std::chrono::milliseconds MaxHandshakeDelay{ 0 };					// Maximum number of milliseconds to delay a handshake
 			std::chrono::seconds MaxHandshakeDuration{ 0 };						// Maximum number of seconds a handshake may last after connecting before peer is disconnected
 
-			std::chrono::seconds IPReputationImprovementInterval{ 0 };			// Period of time after which the reputation of an IP address gets slightly improved
+			std::chrono::seconds AddressReputationImprovementInterval{ 0 };		// Period of time after which the reputation of an address gets slightly improved
 
 			struct
 			{
 				Size MaxPerInterval{ 0 };										// Maximum number of allowed connection attempts per interval before IP gets blocked
-				std::chrono::seconds Interval{ 0 };								// Period of time after which the connection attempts are reset to 0 for an IP
-			} IPConnectionAttempts;
+				std::chrono::seconds Interval{ 0 };								// Period of time after which the connection attempts are reset to 0 for an address
+			} ConnectionAttempts;
 		} General;
 
 		struct
@@ -222,22 +244,22 @@ namespace QuantumGate
 		{
 			std::chrono::seconds ConnectTimeout{ 0 };					// Maximum number of seconds to wait for a relay link to be established
 			std::chrono::seconds GracePeriod{ 0 };						// Number of seconds after a relay is closed to still silently accept messages for that relay link
-			std::chrono::seconds MaxSuspendDuration{ 60 };				// Maximum number of seconds that a relay link may be suspended before it is closed/removed
+			std::chrono::seconds MaxSuspendDuration{ 0 };				// Maximum number of seconds that a relay link may be suspended before it is closed/removed
 
 			struct
 			{
 				Size MaxPerInterval{ 0 };								// Maximum number of allowed relay connection attempts per interval before IP gets blocked
-				std::chrono::seconds Interval{ 0 };						// Period of time after which the relay connection attempts are reset to 0 for an IP
-			} IPConnectionAttempts;
+				std::chrono::seconds Interval{ 0 };						// Period of time after which the relay connection attempts are reset to 0 for an address
+			} ConnectionAttempts;
 		} Relay;
 
 		struct
 		{
-			Size ConnectCookieRequirementThreshold{ 10 };				// The number of incoming connections that may be in the process of being established after which a cookie is required
-			std::chrono::seconds CookieExpirationInterval{ 120 };		// The number of seconds after which a cookie expires
+			Size ConnectCookieRequirementThreshold{ 0 };				// The number of incoming connections that may be in the process of being established after which a cookie is required
+			std::chrono::seconds CookieExpirationInterval{ 0 };			// The number of seconds after which a cookie expires
 			std::chrono::milliseconds MaxMTUDiscoveryDelay{ 0 };		// Maximum number of milliseconds to wait before starting MTU discovery
 			Size MaxNumDecoyMessages{ 0 };								// Maximum number of decoy messages to send during handshake
-			std::chrono::milliseconds MaxDecoyMessageInterval{ 1000 };	// Maximum time interval for decoy messages during handshake
+			std::chrono::milliseconds MaxDecoyMessageInterval{ 0 };		// Maximum time interval for decoy messages during handshake
 		} UDP;
 
 		struct
@@ -276,9 +298,14 @@ namespace QuantumGate
 
 	struct ConnectParameters
 	{
-		IPEndpoint PeerIPEndpoint;							// The address of the peer
+		Endpoint PeerEndpoint;								// The address of the peer
 		std::optional<ProtectedBuffer> GlobalSharedSecret;	// Global shared secret to use for this connection
 		bool ReuseExistingConnection{ true };				// Whether or not an already existing connection to the peer is allowed to be reused
+
+		struct
+		{
+			bool RequireAuthentication{ true };				// Whether to require Bluetooth authentication (device pairing) before connecting
+		} Bluetooth;
 
 		struct
 		{

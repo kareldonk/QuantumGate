@@ -3,8 +3,101 @@
 
 #pragma once
 
+#include "Network.h"
+
 namespace QuantumGate::Implementation::Network::IP
 {
+	enum class AddressFamily : UInt8
+	{
+		Unspecified = static_cast<UInt8>(Network::AddressFamily::Unspecified),
+		IPv4 = static_cast<UInt8>(Network::AddressFamily::IPv4),
+		IPv6 = static_cast<UInt8>(Network::AddressFamily::IPv6)
+	};
+
+	[[nodiscard]] constexpr AddressFamily AddressFamilyFromNetwork(const Network::AddressFamily af) noexcept
+	{
+		switch (af)
+		{
+			case Network::AddressFamily::Unspecified:
+				return AddressFamily::Unspecified;
+			case Network::AddressFamily::IPv4:
+				return AddressFamily::IPv4;
+			case Network::AddressFamily::IPv6:
+				return AddressFamily::IPv6;
+			default:
+				assert(false);
+				break;
+		}
+
+		return AddressFamily::Unspecified;
+	}
+
+	[[nodiscard]] constexpr Network::AddressFamily AddressFamilyToNetwork(const AddressFamily protocol) noexcept
+	{
+		switch (protocol)
+		{
+			case AddressFamily::Unspecified:
+				return Network::AddressFamily::Unspecified;
+			case AddressFamily::IPv4:
+				return Network::AddressFamily::IPv4;
+			case AddressFamily::IPv6:
+				return Network::AddressFamily::IPv6;
+			default:
+				assert(false);
+				break;
+		}
+
+		return Network::AddressFamily::Unspecified;
+	}
+
+	enum class Protocol : UInt8
+	{
+		Unspecified = static_cast<UInt8>(Network::Protocol::Unspecified),
+		ICMP = static_cast<UInt8>(Network::Protocol::ICMP),
+		TCP = static_cast<UInt8>(Network::Protocol::TCP),
+		UDP = static_cast<UInt8>(Network::Protocol::UDP)
+	};
+
+	[[nodiscard]] constexpr Protocol ProtocolFromNetwork(const Network::Protocol protocol) noexcept
+	{
+		switch (protocol)
+		{
+			case Network::Protocol::Unspecified:
+				return Protocol::Unspecified;
+			case Network::Protocol::ICMP:
+				return Protocol::ICMP;
+			case Network::Protocol::TCP:
+				return Protocol::TCP;
+			case Network::Protocol::UDP:
+				return Protocol::UDP;
+			default:
+				assert(false);
+				break;
+		}
+
+		return Protocol::Unspecified;
+	}
+
+	[[nodiscard]] constexpr Network::Protocol ProtocolToNetwork(const Protocol protocol) noexcept
+	{
+		switch (protocol)
+		{
+			case Protocol::Unspecified:
+				return Network::Protocol::Unspecified;
+			case Protocol::ICMP:
+				return Network::Protocol::ICMP;
+			case Protocol::TCP:
+				return Network::Protocol::TCP;
+			case Protocol::UDP:
+				return Network::Protocol::UDP;
+			default:
+				assert(false);
+				break;
+		}
+
+		return Network::Protocol::Unspecified;
+	}
+
 #pragma pack(push, 1) // Disable padding bytes
 	struct Header final
 	{
@@ -22,23 +115,6 @@ namespace QuantumGate::Implementation::Network::IP
 #pragma pack(pop)
 
 	static_assert(sizeof(Header) == 20, "Size of IP header should be 20 bytes");
-
-	enum class AddressFamily : UInt8
-	{
-		Unspecified = 0,
-		IPv4 = 2,
-		IPv6 = 23
-	};
-
-	enum class Protocol : UInt8
-	{
-		Unspecified = 0,
-		ICMP = 1,
-		TCP = 6,
-		UDP = 17
-	};
-
-	[[nodiscard]] const WChar* GetProtocolName(const Protocol protocol) noexcept;
 }
 
 namespace QuantumGate::Implementation::Network::ICMP

@@ -18,7 +18,7 @@
 #define IDD_QGTESTAPP_DIALOG_TESTEXTENDER_TAB 150
 #define IDD_ALGORITHMS_DIALOG           152
 #define IDD_SETTINGS                    154
-#define IDD_IPREPUTATIONS_DIALOG        156
+#define IDD_ADDRESS_REPUTATIONS_DIALOG  156
 #define IDD_INFO_DIALOG                 158
 #define IDD_PING_DIALOG                 160
 #define IDD_QGTESTAPP_DIALOG_AVEXTENDER_TAB 162
@@ -51,6 +51,7 @@
 #define IDC_SENDCHECK                   1009
 #define IDC_NUM_NOISE_MSG               1009
 #define IDC_IPV6LB                      1009
+#define IDC_SERVERPORT_BTH              1009
 #define IDC_SENDSECONDS                 1010
 #define IDC_NOISE_MINSIZE               1010
 #define IDC_ONLY_AUTHENTICATED_CHECK    1010
@@ -168,8 +169,8 @@
 #define IDC_CHECK4                      1065
 #define IDC_FILE_PATH                   1065
 #define IDC_CHECK5                      1066
-#define IDC_IPREPUTATIONS_LIST          1066
 #define IDC_BENCHMARK_SIZE              1066
+#define IDC_ADDRESS_REPUTATIONS_LIST    1066
 #define IDC_CHECK6                      1067
 #define IDC_REPUTATION                  1067
 #define IDC_CHECK7                      1068
@@ -208,11 +209,14 @@
 #define IDC_CHECK20                     1083
 #define IDC_VIDEO_COMPRESSION_CHECK     1083
 #define IDC_VERSION_INFO                1083
+#define IDC_BTH_AUTH                    1083
 #define IDC_CHECK21                     1084
 #define IDC_AUDIO_COMPRESSION_CHECK     1084
 #define IDC_PROTOCOL_COMBO              1084
+#define IDC_BTH_AUTH2                   1084
 #define IDC_CHECK22                     1085
 #define IDC_VIDEO_FILL_CHECK            1085
+#define IDC_BTH_DISCOV                  1085
 #define IDC_VIDEO_SIZE_FORCE            1086
 #define IDC_UDP_THRESHOLD               1086
 #define IDC_UDP_COOKIE_THRESHOLD        1086
@@ -220,6 +224,9 @@
 #define IDC_UDP_NUM_DECOY_MESSAGES      1088
 #define IDC_UDP_DECOY_MESSAGES_INTERVAL 1089
 #define IDC_UDP_MTU_DELAY               1090
+#define IDC_ADDRESS                     1091
+#define IDC_PORT_LABEL                  1092
+#define IDC_BTH_SERVICE_BUTTON          1093
 #define ID_CONSOLE_ENABLED              32771
 #define ID_CONSOLE_TERMINALWINDOW       32772
 #define ID_LOCAL_SECURITYLEVEL          32773
@@ -293,7 +300,6 @@
 #define ID_STRESS_MULTIPLEINSTANCES     32841
 #define ID_BENCHMARKS_MEMORY            32842
 #define ID_UTILS_LOGPOOLALLOCATORSTATISTICS 32843
-#define ID_LOCAL_IPREPUTATIONS          32844
 #define ID_ATTACKS_CONNECTANDDISCONNECT 32845
 #define ID_ATTACKS_CONNECTANDWAIT       32846
 #define ID_LOCAL_ENVIRONMENTINFO        32847
@@ -306,14 +312,17 @@
 #define ID_BENCHMARKS_THREADPAUSE       32854
 #define ID_SOCKS5EXTENDER_CONFIGURATION 32855
 #define ID_LOCAL_UDPLISTENERSENABLED    32856
+#define ID_LOCAL_ADDRESS_REPUTATIONS    32857
+#define ID_LOCAL_BTHLISTENERSENABLED    32858
+#define ID_LOCAL_LISTENERS              32859
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        178
-#define _APS_NEXT_COMMAND_VALUE         32857
-#define _APS_NEXT_CONTROL_VALUE         1091
+#define _APS_NEXT_COMMAND_VALUE         32860
+#define _APS_NEXT_CONTROL_VALUE         1094
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

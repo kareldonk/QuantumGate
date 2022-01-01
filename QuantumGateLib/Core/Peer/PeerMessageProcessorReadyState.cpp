@@ -13,15 +13,13 @@ using namespace std::literals;
 
 namespace QuantumGate::Implementation::Core::Peer
 {
-	bool MessageProcessor::SendBeginRelay(const RelayPort rport, const IPEndpoint& endpoint,
+	bool MessageProcessor::SendBeginRelay(const RelayPort rport, const Endpoint& endpoint,
 										  const RelayHop hops) const noexcept
 	{
 		Dbg(L"*********** SendBeginRelay ***********");
 
 		BufferWriter wrt(true);
-		if (wrt.WriteWithPreallocation(rport, endpoint.GetProtocol(),
-									   Network::SerializedBinaryIPAddress{ endpoint.GetIPAddress().GetBinary() },
-									   endpoint.GetPort(), hops))
+		if (wrt.WriteWithPreallocation(rport, SerializedEndpoint(endpoint), hops))
 		{
 			if (m_Peer.Send(MessageType::RelayCreate, wrt.MoveWrittenBytes()))
 			{
@@ -95,8 +93,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		BufferWriter wrt(true);
 		if (wrt.WriteWithPreallocation(msg.Port, msg.ID))
 		{
-			auto result = m_Peer.Send(MessageType::RelayDataAck, wrt.MoveWrittenBytes(),
-									  SendParameters::PriorityOption::Normal, 0ms, false);
+			const auto result = m_Peer.Send(MessageType::RelayDataAck, wrt.MoveWrittenBytes(),
+											SendParameters::PriorityOption::Normal, 0ms, false);
 			if (result.Succeeded()) return true;
 			else
 			{
@@ -113,7 +111,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessageReadyState(MessageDetails&& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageReadyState(MessageDetails&& msg) const noexcept
 	{
 		MessageProcessor::Result result;
 
@@ -159,39 +157,81 @@ namespace QuantumGate::Implementation::Core::Peer
 					if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 					{
 						RelayPort rport{ 0 };
-						IP::Protocol protocol{ IPEndpoint::Protocol::Unspecified };
-						SerializedBinaryIPAddress ip;
-						UInt16 port{ 0 };
+						SerializedEndpoint endpoint;
 						RelayHop hop{ 0 };
 
 						BufferReader rdr(buffer, true);
-						if (rdr.Read(rport, protocol, ip, port, hop))
+						if (rdr.Read(rport, endpoint, hop))
 						{
-							if (protocol == IP::Protocol::UDP || protocol == IP::Protocol::TCP)
+							Relay::Events::Connect rce;
+							rce.Port = rport;
+							rce.Hop = hop;
+							rce.Origin.PeerLUID = m_Peer.GetLUID();
+							rce.Origin.LocalEndpoint = m_Peer.GetLocalEndpoint();
+							rce.Origin.PeerEndpoint = m_Peer.GetPeerEndpoint();
+
+							bool connect{ false };
+
+							switch (endpoint.Type)
 							{
-								if (ip.AddressFamily == IP::AddressFamily::IPv4 || ip.AddressFamily == IP::AddressFamily::IPv6)
+								case Endpoint::Type::IP:
 								{
-									Relay::Events::Connect rce;
-									rce.Port = rport;
-									rce.Endpoint = IPEndpoint(protocol, IPAddress{ ip }, port);
-									rce.Hop = hop;
-									rce.Origin.PeerLUID = m_Peer.GetLUID();
-									rce.Origin.LocalEndpoint = m_Peer.GetLocalEndpoint();
-									rce.Origin.PeerEndpoint = m_Peer.GetPeerEndpoint();
-
-									if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rce)))
+									const auto& ipendpoint = endpoint.IPEndpoint;
+									if (ipendpoint.Protocol == IPEndpoint::Protocol::UDP || ipendpoint.Protocol == IPEndpoint::Protocol::TCP)
 									{
-										// Let the peer know we couldn't accept
-										SendRelayStatus(rport, RelayStatusUpdate::GeneralFailure);
+										if (ipendpoint.IPAddress.AddressFamily == BinaryIPAddress::Family::IPv4 ||
+											ipendpoint.IPAddress.AddressFamily == BinaryIPAddress::Family::IPv6)
+										{
+											rce.ConnectEndpoint = IPEndpoint(ipendpoint);
+											connect = true;
+										}
+										else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported internetwork address family",
+													m_Peer.GetPeerName().c_str());
 									}
-
-									result.Success = true;
+									else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported internetwork protocol",
+												m_Peer.GetPeerName().c_str());
+									break;
 								}
-								else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported internetwork address family",
-											m_Peer.GetPeerName().c_str());
+								case Endpoint::Type::BTH:
+								{
+									const auto& bthendpoint = endpoint.BTHEndpoint;
+									if (bthendpoint.Protocol == BTHEndpoint::Protocol::RFCOMM)
+									{
+										if (!(bthendpoint.Port != 0 && bthendpoint.ServiceClassID != BTHEndpoint::GetNullServiceClassID()))
+										{
+											if (bthendpoint.BTHAddress.AddressFamily == BinaryBTHAddress::Family::BTH)
+											{
+												rce.ConnectEndpoint = BTHEndpoint(bthendpoint);
+												connect = true;
+											}
+											else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported Bluetooth address family",
+														m_Peer.GetPeerName().c_str());
+										}
+										else LogDbg(L"Invalid RelayCreate message from peer %s; invalid Bluetooth endpoint",
+													m_Peer.GetPeerName().c_str());
+									}
+									else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported Bluetooth protocol",
+												m_Peer.GetPeerName().c_str());
+									break;
+								}
+								default:
+								{
+									LogDbg(L"Invalid RelayCreate message from peer %s; unsupported endpoint type",
+										   m_Peer.GetPeerName().c_str());
+									break;
+								}
 							}
-							else LogDbg(L"Invalid RelayCreate message from peer %s; unsupported internetwork protocol",
-										m_Peer.GetPeerName().c_str());
+
+							if (connect)
+							{
+								if (!m_Peer.GetRelayManager().AddRelayEvent(rport, std::move(rce)))
+								{
+									// Let the peer know we couldn't accept
+									SendRelayStatus(rport, RelayStatusUpdate::GeneralFailure);
+								}
+
+								result.Success = true;
+							}
 						}
 						else LogDbg(L"Invalid RelayCreate message from peer %s; couldn't read message data",
 									m_Peer.GetPeerName().c_str());

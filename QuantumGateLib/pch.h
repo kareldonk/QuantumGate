@@ -20,8 +20,16 @@
 #pragma comment(lib, "secur32.lib")
 
 #include <winsock2.h>
+#include <ws2bth.h>
+#include <ws2tcpip.h>
 #pragma comment(lib, "Ws2_32.lib")
+
+#include <Iphlpapi.h>
 #pragma comment(lib, "Iphlpapi.lib")
+
+#include <bluetoothapis.h>
+#pragma comment(lib, "Bthprops.lib")
+
 #pragma comment(lib, "Ntdll.lib")
 
 #if defined(_DEBUG)

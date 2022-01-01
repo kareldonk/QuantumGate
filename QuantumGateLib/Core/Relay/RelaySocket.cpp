@@ -22,15 +22,12 @@ namespace QuantumGate::Implementation::Core::Relay
 	}
 
 	bool Socket::BeginAccept(const RelayPort rport, const RelayHop hop,
-							 const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept
+							 const Endpoint& lendpoint, const Endpoint& pendpoint) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
-		assert(lendpoint.GetProtocol() == pendpoint.GetProtocol());
 
-		m_LocalEndpoint = IPEndpoint(lendpoint.GetProtocol(), lendpoint.GetIPAddress(),
-									 lendpoint.GetPort(), rport, hop);
-		m_PeerEndpoint = IPEndpoint(pendpoint.GetProtocol(), pendpoint.GetIPAddress(),
-									pendpoint.GetPort(), rport, hop);
+		m_LocalEndpoint = GetRelayEndpoint(lendpoint, rport, hop);
+		m_PeerEndpoint = GetRelayEndpoint(pendpoint, rport, hop);
 
 		m_AcceptCallback();
 
@@ -48,7 +45,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return m_ConnectCallback();
 	}
 
-	bool Socket::BeginConnect(const IPEndpoint& endpoint) noexcept
+	bool Socket::BeginConnect(const Endpoint& endpoint) noexcept
 	{
 		assert(m_IOStatus.IsOpen());
 
@@ -75,14 +72,37 @@ namespace QuantumGate::Implementation::Core::Relay
 		return m_ConnectCallback();
 	}
 
-	void Socket::SetLocalEndpoint(const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept
+	void Socket::SetLocalEndpoint(const Endpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept
 	{
-		assert(endpoint.GetProtocol() == m_PeerEndpoint.GetProtocol());
+		m_LocalEndpoint = GetRelayEndpoint(endpoint, rport, hop);
+		m_PeerEndpoint = GetRelayEndpoint(m_PeerEndpoint, rport, hop);
+	}
 
-		m_LocalEndpoint = IPEndpoint(endpoint.GetProtocol(), endpoint.GetIPAddress(),
-									 endpoint.GetPort(), rport, hop);
-		m_PeerEndpoint = IPEndpoint(m_PeerEndpoint.GetProtocol(), m_PeerEndpoint.GetIPAddress(),
-									m_PeerEndpoint.GetPort(), rport, hop);
+	Endpoint Socket::GetRelayEndpoint(const Endpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept
+	{
+		switch (endpoint.GetType())
+		{
+			case Endpoint::Type::IP:
+			{
+				const auto& ep = endpoint.GetIPEndpoint();
+
+				return IPEndpoint(ep.GetProtocol(), ep.GetIPAddress(), ep.GetPort(), rport, hop);
+			}
+			case Endpoint::Type::BTH:
+			{
+				const auto& ep = endpoint.GetBTHEndpoint();
+
+				return BTHEndpoint(ep.GetProtocol(), ep.GetBTHAddress(), ep.GetPort(), ep.GetServiceClassID(), rport, hop);
+			}
+			default:
+			{
+				// Shouldn't get here
+				assert(false);
+				break;
+			}
+		}
+
+		return endpoint;
 	}
 
 	Result<Size> Socket::Send(const BufferView& buffer, const Size /*max_snd_size*/) noexcept
@@ -93,7 +113,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			Size sent_size{ 0 };
 
-			const auto available_size = std::invoke([&]()
+			const auto available_size = std::invoke([&]() noexcept
 			{
 				Size size{ 0 };
 				if (MaxSendBufferSize > m_SendBuffer.GetSize())

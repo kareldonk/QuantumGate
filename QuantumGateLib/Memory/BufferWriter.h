@@ -8,7 +8,7 @@
 namespace QuantumGate::Implementation::Memory
 {
 	template<typename B>
-	class BufferWriterImpl final : public BufferIO
+	class BufferWriterImpl final
 	{
 	public:
 		BufferWriterImpl(const bool network_byteorder = false) noexcept : m_Buffer(m_LocalBuffer)
@@ -24,7 +24,7 @@ namespace QuantumGate::Implementation::Memory
 
 		BufferWriterImpl(const BufferWriterImpl&) = delete;
 		BufferWriterImpl(BufferWriterImpl&&) = delete;
-		virtual ~BufferWriterImpl() = default;
+		~BufferWriterImpl() = default;
 		BufferWriterImpl& operator=(const BufferWriterImpl&) = delete;
 		BufferWriterImpl& operator=(BufferWriterImpl&&) = delete;
 
@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation::Memory
 			try
 			{
 				// One preallocation for speed
-				const auto extra_size = GetDataSizes(data...);
+				const auto extra_size = BufferIO::GetDataSizes(data...);
 				Preallocate(extra_size);
 
 				return (WriteImpl(data) && ...);
@@ -78,7 +78,7 @@ namespace QuantumGate::Implementation::Memory
 		{
 			static_assert(std::is_integral_v<T> || std::is_same_v<T, Byte>, "Unsupported type.");
 
-			return WriteBytes(reinterpret_cast<const Byte*>(&data), GetDataSize(data), m_ConvertToNetworkByteOrder);
+			return WriteBytes(reinterpret_cast<const Byte*>(&data), BufferIO::GetDataSize(data), m_ConvertToNetworkByteOrder);
 		}
 
 		template<typename T> requires (std::is_enum_v<T>)
@@ -103,32 +103,39 @@ namespace QuantumGate::Implementation::Memory
 									   std::is_same_v<T, Buffer> || std::is_same_v<T, ProtectedBuffer>)
 		[[nodiscard]] bool WriteImpl(const T& data)
 		{
-			return WriteBytes(data.GetBytes(), GetDataSize(data));
+			return WriteBytes(data.GetBytes(), BufferIO::GetDataSize(data));
 		}
 
 		[[nodiscard]] bool WriteImpl(const String& data)
 		{
-			return WriteBytes(reinterpret_cast<const Byte*>(data.data()), GetDataSize(data));
+			return WriteBytes(reinterpret_cast<const Byte*>(data.data()), BufferIO::GetDataSize(data));
 		}
 
 		template<typename T> requires (std::is_same_v<T, Network::SerializedBinaryIPAddress> ||
 									   std::is_same_v<T, Network::SerializedIPEndpoint> ||
+									   std::is_same_v<T, Network::SerializedBTHEndpoint> ||
 									   std::is_same_v<T, SerializedUUID>)
 		[[nodiscard]] bool WriteImpl(const T& data)
 		{
-			return WriteBytes(reinterpret_cast<const Byte*>(&data), GetDataSize(data));
+			return WriteBytes(reinterpret_cast<const Byte*>(&data), BufferIO::GetDataSize(data));
+		}
+
+		template<typename T> requires (BufferIO::Writable<T, BufferWriterImpl<B>>)
+		[[nodiscard]] bool WriteImpl(const T& data)
+		{
+			return data.Write(*this);
 		}
 
 		template<typename T>
-		[[nodiscard]] bool WriteImpl(const SizeWrap<T>& data)
+		[[nodiscard]] bool WriteImpl(const BufferIO::SizeWrap<T>& data)
 		{
-			return (WriteEncodedSize(GetDataSize(*data), data.MaxSize()) && WriteImpl(*data));
+			return (WriteEncodedSize(BufferIO::GetDataSize(*data), data.MaxSize()) && WriteImpl(*data));
 		}
 
 		template<Size MaxSize>
 		[[nodiscard]] bool WriteImpl(const StackBuffer<MaxSize>& data)
 		{
-			return WriteBytes(data.GetBytes(), GetDataSize(data));
+			return WriteBytes(data.GetBytes(), BufferIO::GetDataSize(data));
 		}
 
 		[[nodiscard]] bool WriteEncodedSize(const Size size, const Size maxsize) noexcept
@@ -142,18 +149,18 @@ namespace QuantumGate::Implementation::Memory
 			}
 			else if (size <= MaxSize::_UINT16)
 			{
-				const UInt8 es = MaxSize::_UINT8 - 2;
+				constexpr UInt8 es = MaxSize::_UINT8 - 2;
 				return (Write(es) && Write(static_cast<UInt16>(size)));
 			}
 			else if (size <= MaxSize::_UINT32)
 			{
-				const UInt8 es = MaxSize::_UINT8 - 1;
+				constexpr UInt8 es = MaxSize::_UINT8 - 1;
 				return (Write(es) && Write(static_cast<UInt32>(size)));
 			}
 #ifdef _WIN64
 			else
 			{
-				const UInt8 es = MaxSize::_UINT8;
+				constexpr UInt8 es = MaxSize::_UINT8;
 				return (Write(es) && Write(static_cast<UInt64>(size)));
 			}
 #endif

@@ -43,7 +43,7 @@ bool Stress::IsExtenderStartupShutdownStressRunning() noexcept
 
 void Stress::ExtenderStartupShutdownStressThreadProc(Local* qg)
 {
-	LogWarn(L"Extender init/deinit stress starting...", m_ConnectStressData.IP, m_ConnectStressData.Port);
+	LogWarn(L"Extender init/deinit stress starting...");
 
 	while (!m_ExtenderStartupShutdownStressData.Stop)
 	{
@@ -70,18 +70,16 @@ void Stress::ExtenderStartupShutdownStressThreadProc(Local* qg)
 	}
 }
 
-bool Stress::StartConnectStress(Local& qg, const CString& ip, const UInt16 port, const RelayHop hops,
-								const IPEndpoint::Protocol protocol, const bool reuse,
+bool Stress::StartConnectStress(Local& qg, const Endpoint& endpoint, const bool bthauth, const RelayHop hops, const bool reuse,
 								const std::optional<PeerLUID>& rpeer, const ProtectedBuffer& gsecret)
 {
 	if (!m_ConnectStressData.Thread.joinable())
 	{
 		m_ConnectStressData.Stop = false;
-		m_ConnectStressData.IP = (LPCWSTR)ip;
-		m_ConnectStressData.Port = port;
+		m_ConnectStressData.Endpoint = endpoint;
 		m_ConnectStressData.Hops = hops;
-		m_ConnectStressData.Protocol = protocol;
 		m_ConnectStressData.ReuseConnection = reuse;
+		m_ConnectStressData.BTHAuthentication = bthauth;
 		m_ConnectStressData.RelayPeer = rpeer;
 		m_ConnectStressData.GlobalSharedSecret = gsecret;
 		m_ConnectStressData.Thread = std::thread(Stress::ConnectStressThreadProc, &qg);
@@ -109,7 +107,7 @@ void Stress::ConnectStressThreadProc(Local* qg)
 {
 	assert(qg != nullptr);
 
-	LogWarn(L"Connect stress starting for endpoint %s:%u...", m_ConnectStressData.IP.c_str(), m_ConnectStressData.Port);
+	LogWarn(L"Connect stress starting for endpoint %s...", m_ConnectStressData.Endpoint.GetString().c_str());
 
 	std::atomic<PeerLUID> pluid{ 0 };
 
@@ -118,8 +116,9 @@ void Stress::ConnectStressThreadProc(Local* qg)
 		if (!m_ConnectStressData.Connected)
 		{
 			ConnectParameters params;
-			params.PeerIPEndpoint = IPEndpoint(m_ConnectStressData.Protocol, IPAddress(m_ConnectStressData.IP), m_ConnectStressData.Port);
+			params.PeerEndpoint = m_ConnectStressData.Endpoint;
 			params.GlobalSharedSecret = m_ConnectStressData.GlobalSharedSecret;
+			params.Bluetooth.RequireAuthentication = m_ConnectStressData.BTHAuthentication;
 			params.Relay.Hops = m_ConnectStressData.Hops;
 			params.Relay.GatewayPeer = m_ConnectStressData.RelayPeer;
 			params.ReuseExistingConnection = m_ConnectStressData.ReuseConnection;
@@ -158,16 +157,14 @@ void Stress::ConnectStressThreadProc(Local* qg)
 	}
 }
 
-bool Stress::StartMultiInstanceStress(const StartupParameters& startup_params, const CString& ip, const UInt16 port,
-									  const IPEndpoint::Protocol protocol, const ProtectedBuffer& gsecret)
+bool Stress::StartMultiInstanceStress(const StartupParameters& startup_params, const Endpoint& endpoint,
+									  const ProtectedBuffer& gsecret)
 {
 	if (!m_MultiInstanceStressData.Thread.joinable())
 	{
 		m_MultiInstanceStressData.Stop = false;
 		m_MultiInstanceStressData.StartupParams = startup_params;
-		m_MultiInstanceStressData.IP = (LPCWSTR)ip;
-		m_MultiInstanceStressData.Port = port;
-		m_MultiInstanceStressData.Protocol = protocol;
+		m_MultiInstanceStressData.Endpoint = endpoint;
 		m_MultiInstanceStressData.GlobalSharedSecret = gsecret;
 		m_MultiInstanceStressData.Thread = std::thread(Stress::MultiInstanceStressThreadProc);
 		return true;
@@ -192,8 +189,7 @@ bool Stress::IsMultiInstanceStressRunning() noexcept
 
 void Stress::MultiInstanceStressThreadProc()
 {
-	LogWarn(L"Multi instance stress starting for endpoint %s:%u...",
-			m_MultiInstanceStressData.IP.c_str(), m_MultiInstanceStressData.Port);
+	LogWarn(L"Multi instance stress starting for endpoint %s...", m_MultiInstanceStressData.Endpoint.GetString().c_str());
 
 	const std::array<String, 5> messages =
 	{
@@ -264,7 +260,7 @@ void Stress::MultiInstanceStressThreadProc()
 			for (auto& instance : instances)
 			{
 				ConnectParameters params;
-				params.PeerIPEndpoint = IPEndpoint(m_MultiInstanceStressData.Protocol, IPAddress(m_MultiInstanceStressData.IP), m_MultiInstanceStressData.Port);
+				params.PeerEndpoint = m_MultiInstanceStressData.Endpoint;
 				params.GlobalSharedSecret = m_MultiInstanceStressData.GlobalSharedSecret;
 
 				const auto connect_result = instance.ConnectTo(std::move(params));

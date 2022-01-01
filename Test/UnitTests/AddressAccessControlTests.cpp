@@ -3,7 +3,7 @@
 
 #include "pch.h"
 #include "Settings.h"
-#include "Core\Access\IPAccessControl.h"
+#include "Core\Access\AddressAccessControl.h"
 #include "Common\Util.h"
 
 #include <thread>
@@ -15,7 +15,7 @@ using namespace QuantumGate::Implementation::Core::Access;
 
 namespace UnitTests
 {
-	TEST_CLASS(IPAccessControlTests)
+	TEST_CLASS(AddressAccessControlTests)
 	{
 	public:
 		TEST_METHOD(ReputationGeneral)
@@ -24,22 +24,22 @@ namespace UnitTests
 			settings.UpdateValue([](Settings& set)
 			{
 				// For testing we let reputation improve every second
-				set.Local.IPReputationImprovementInterval = 1s;
+				set.Local.AddressReputationImprovementInterval = 1s;
 			});
 
-			IPAccessControl reps(settings);
+			AddressAccessControl reps(settings);
 			IPAddress ipaddr(L"192.168.1.10");
 
 			// New address should have good reputation
 			Assert::AreEqual(true, reps.HasAcceptableReputation(ipaddr));
 
 			// Should not be able to set reputation above maximum
-			Assert::AreEqual(true, reps.SetReputation(ipaddr, IPReputation::ScoreLimits::Maximum + 1).Failed());
+			Assert::AreEqual(true, reps.SetReputation(ipaddr, AddressReputation::ScoreLimits::Maximum + 1).Failed());
 
 			// Should not be able to set reputation below minimum
-			Assert::AreEqual(true, reps.SetReputation(ipaddr, IPReputation::ScoreLimits::Minimum - 1).Failed());
+			Assert::AreEqual(true, reps.SetReputation(ipaddr, AddressReputation::ScoreLimits::Minimum - 1).Failed());
 
-			Assert::AreEqual(true, reps.SetReputation(ipaddr, IPReputation::ScoreLimits::Base).Succeeded());
+			Assert::AreEqual(true, reps.SetReputation(ipaddr, AddressReputation::ScoreLimits::Base).Succeeded());
 
 			// Base reputation is not acceptable
 			Assert::AreEqual(false, reps.HasAcceptableReputation(ipaddr));
@@ -47,7 +47,7 @@ namespace UnitTests
 			{
 				// Base reputation with minimal improvement should be acceptable
 				const auto result = reps.UpdateReputation(ipaddr,
-														  IPReputationUpdate::ImproveMinimal);
+														  AddressReputationUpdate::ImproveMinimal);
 				Assert::AreEqual(true, result.Succeeded());
 				Assert::AreEqual(true, reps.HasAcceptableReputation(ipaddr));
 			}
@@ -55,18 +55,18 @@ namespace UnitTests
 			{
 				// Minimal deterioration brings reputation back to base value
 				const auto result = reps.UpdateReputation(ipaddr,
-														  IPReputationUpdate::DeteriorateMinimal);
+														  AddressReputationUpdate::DeteriorateMinimal);
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(IPReputation::ScoreLimits::Base, result->first);
+				Assert::AreEqual(AddressReputation::ScoreLimits::Base, result->first);
 			}
 
 			{
 				// Should not be able to improve reputation beyond maximum
-				Assert::AreEqual(true, reps.SetReputation(ipaddr, IPReputation::ScoreLimits::Maximum).Succeeded());
+				Assert::AreEqual(true, reps.SetReputation(ipaddr, AddressReputation::ScoreLimits::Maximum).Succeeded());
 				const auto result = reps.UpdateReputation(ipaddr,
-														  IPReputationUpdate::ImproveMinimal);
+														  AddressReputationUpdate::ImproveMinimal);
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(IPReputation::ScoreLimits::Maximum, result->first);
+				Assert::AreEqual(AddressReputation::ScoreLimits::Maximum, result->first);
 
 				Assert::AreEqual(true, reps.HasAcceptableReputation(ipaddr));
 			}
@@ -74,7 +74,7 @@ namespace UnitTests
 			{
 				// Reputation deterioration from maximum should result in reputation not being acceptable
 				const auto result = reps.UpdateReputation(ipaddr,
-														  IPReputationUpdate::DeteriorateSevere);
+														  AddressReputationUpdate::DeteriorateSevere);
 				Assert::AreEqual(true, result.Succeeded());
 				Assert::AreEqual(false, reps.HasAcceptableReputation(ipaddr));
 			}
@@ -84,13 +84,13 @@ namespace UnitTests
 
 			{
 				const auto result = reps.UpdateReputation(ipaddr2,
-														  IPReputationUpdate::DeteriorateModerate);
+														  AddressReputationUpdate::DeteriorateModerate);
 				Assert::AreEqual(true, result.Succeeded());
 			}
 
 			{
 				const auto result = reps.UpdateReputation(ipaddr2,
-														  IPReputationUpdate::DeteriorateModerate);
+														  AddressReputationUpdate::DeteriorateModerate);
 				Assert::AreEqual(true, result.Succeeded());
 				Assert::AreEqual(false, reps.HasAcceptableReputation(ipaddr2));
 			}
@@ -109,10 +109,10 @@ namespace UnitTests
 			settings.UpdateValue([](Settings& set)
 			{
 				// For testing we let reputation improve every second
-				set.Local.IPReputationImprovementInterval = 1s;
+				set.Local.AddressReputationImprovementInterval = 1s;
 			});
 
-			IPAccessControl reps(settings);
+			AddressAccessControl reps(settings);
 
 			{
 				IPAddress ipaddr(L"200.1.157.11");
@@ -120,7 +120,7 @@ namespace UnitTests
 
 				// How many seconds needed to get to base reputation?
 				auto secs = std::chrono::seconds(std::abs(score /
-														  static_cast<Int16>(IPReputationUpdate::ImproveMinimal)));
+														  static_cast<Int16>(AddressReputationUpdate::ImproveMinimal)));
 				secs += 1s;
 
 				auto lutime = Util::ToTimeT(Util::GetCurrentSystemTime() - secs);
@@ -132,18 +132,18 @@ namespace UnitTests
 				Assert::AreEqual(true, reps.HasAcceptableReputation(ipaddr));
 
 				{
-					const auto result = reps.UpdateReputation(ipaddr, IPReputationUpdate::None);
+					const auto result = reps.UpdateReputation(ipaddr, AddressReputationUpdate::None);
 					Assert::AreEqual(true, result.Succeeded());
-					Assert::AreEqual(true, result->first < IPReputation::ScoreLimits::Maximum);
+					Assert::AreEqual(true, result->first < AddressReputation::ScoreLimits::Maximum);
 				}
 
 				{
 					// Reset to full positive reputation score
 					Assert::AreEqual(true, reps.ResetReputation(ipaddr).Succeeded());
 
-					const auto result = reps.UpdateReputation(ipaddr, IPReputationUpdate::None);
+					const auto result = reps.UpdateReputation(ipaddr, AddressReputationUpdate::None);
 					Assert::AreEqual(true, result.Succeeded());
-					Assert::AreEqual(true, result->first == IPReputation::ScoreLimits::Maximum);
+					Assert::AreEqual(true, result->first == AddressReputation::ScoreLimits::Maximum);
 				}
 			}
 
@@ -153,7 +153,7 @@ namespace UnitTests
 
 				// How many seconds needed to get to base reputation?
 				auto secs = std::chrono::seconds(std::abs(score /
-														  static_cast<Int16>(IPReputationUpdate::ImproveMinimal)));
+														  static_cast<Int16>(AddressReputationUpdate::ImproveMinimal)));
 
 				auto lutime = Util::ToTimeT(Util::GetCurrentSystemTime() - secs);
 
@@ -173,11 +173,11 @@ namespace UnitTests
 
 				// How many seconds needed to get to base reputation?
 				auto secs1 = std::chrono::seconds(std::abs(score /
-														   static_cast<Int16>(IPReputationUpdate::ImproveMinimal)));
+														   static_cast<Int16>(AddressReputationUpdate::ImproveMinimal)));
 
 				// How many seconds needed to get to max reputation?
-				auto secs2 = std::chrono::seconds(IPReputation::ScoreLimits::Maximum /
-												  static_cast<Int16>(IPReputationUpdate::ImproveMinimal));
+				auto secs2 = std::chrono::seconds(AddressReputation::ScoreLimits::Maximum /
+												  static_cast<Int16>(AddressReputationUpdate::ImproveMinimal));
 
 				auto lutime = Util::ToTimeT(Util::GetCurrentSystemTime() - (secs1 + secs2 + 10s));
 
@@ -186,9 +186,9 @@ namespace UnitTests
 				// Since reputation improves every second, it should now
 				// be at the maximum reputation score
 				Assert::AreEqual(true, reps.HasAcceptableReputation(ipaddr));
-				const auto result = reps.UpdateReputation(ipaddr, IPReputationUpdate::None);
+				const auto result = reps.UpdateReputation(ipaddr, AddressReputationUpdate::None);
 				Assert::AreEqual(true, result.Succeeded());
-				Assert::AreEqual(true, result->first == IPReputation::ScoreLimits::Maximum);
+				Assert::AreEqual(true, result->first == AddressReputation::ScoreLimits::Maximum);
 				Assert::AreEqual(true, result->second);
 			}
 
@@ -211,7 +211,7 @@ namespace UnitTests
 				for (const auto& rep : result.GetValue())
 				{
 					const auto result2 = reps.UpdateReputation(rep.Address,
-															   IPReputationUpdate::DeteriorateSevere);
+															   AddressReputationUpdate::DeteriorateSevere);
 					Assert::AreEqual(true, result2.Succeeded());
 					Assert::AreEqual(false, reps.HasAcceptableReputation(rep.Address));
 				}
@@ -222,9 +222,9 @@ namespace UnitTests
 				for (const auto& rep : result.GetValue())
 				{
 					Assert::AreEqual(true, reps.HasAcceptableReputation(rep.Address));
-					const auto result2 = reps.UpdateReputation(rep.Address, IPReputationUpdate::None);
+					const auto result2 = reps.UpdateReputation(rep.Address, AddressReputationUpdate::None);
 					Assert::AreEqual(true, result2.Succeeded());
-					Assert::AreEqual(true, result2->first == IPReputation::ScoreLimits::Maximum);
+					Assert::AreEqual(true, result2->first == AddressReputation::ScoreLimits::Maximum);
 				}
 			}
 		}
@@ -234,11 +234,11 @@ namespace UnitTests
 			Settings_CThS settings;
 			settings.UpdateValue([](Settings& set)
 			{
-				set.Local.IPConnectionAttempts.MaxPerInterval = 2;
-				set.Local.IPConnectionAttempts.Interval = 3s;
+				set.Local.ConnectionAttempts.MaxPerInterval = 2;
+				set.Local.ConnectionAttempts.Interval = 3s;
 			});
 
-			IPAccessControl ac(settings);
+			AddressAccessControl ac(settings);
 
 			// Connections should be accepted
 			{
@@ -284,11 +284,11 @@ namespace UnitTests
 			Settings_CThS settings;
 			settings.UpdateValue([](Settings& set)
 			{
-				set.Relay.IPConnectionAttempts.MaxPerInterval = 2;
-				set.Relay.IPConnectionAttempts.Interval = 3s;
+				set.Relay.ConnectionAttempts.MaxPerInterval = 2;
+				set.Relay.ConnectionAttempts.Interval = 3s;
 			});
 
-			IPAccessControl ac(settings);
+			AddressAccessControl ac(settings);
 
 			// Connections should be accepted
 			{

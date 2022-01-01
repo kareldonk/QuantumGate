@@ -3,7 +3,7 @@
 
 @echo off
 
-set vsdevcmd="C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\Common7\Tools\VsDevCmd.bat"
+set vsdevcmd="C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\Tools\VsDevCmd.bat"
 if not exist %vsdevcmd% (
     goto :exit_vserror
 )

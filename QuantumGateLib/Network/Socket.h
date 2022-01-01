@@ -27,9 +27,16 @@ namespace QuantumGate::Implementation::Network
 			RAW
 		};
 
+		enum class ServiceOperation
+		{
+			Register, Delete
+		};
+
 		Socket() noexcept;
 		Socket(const SOCKET s);
+		Socket(const AddressFamily af, const Type type, const Protocol protocol);
 		Socket(const IP::AddressFamily af, const Type type, const IP::Protocol protocol);
+		Socket(const BTH::AddressFamily af, const Type type, const BTH::Protocol protocol);
 		Socket(const Socket&) = delete;
 		Socket(Socket&& other) noexcept;
 		virtual ~Socket();
@@ -43,27 +50,30 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] inline const Concurrency::Event& GetEvent() const noexcept { return m_Event; }
 #endif
 
-		[[nodiscard]] IP::AddressFamily GetAddressFamily() const noexcept;
+		[[nodiscard]] AddressFamily GetAddressFamily() const noexcept;
 		[[nodiscard]] Type GetType() const noexcept;
-		[[nodiscard]] IP::Protocol GetProtocol() const noexcept;
+		[[nodiscard]] Protocol GetProtocol() const noexcept;
 
-		[[nodiscard]] bool Bind(const IPEndpoint& endpoint, const bool nat_traversal) noexcept;
+		[[nodiscard]] bool Bind(const Endpoint& endpoint, const bool nat_traversal) noexcept;
 
-		[[nodiscard]] bool Listen(const IPEndpoint& endpoint, const bool cond_accept,
-								  const bool nat_traversal) noexcept;
+		[[nodiscard]] bool Listen(const Endpoint& endpoint) noexcept;
+		[[nodiscard]] bool Listen(const Endpoint& endpoint, const bool cond_accept, const bool nat_traversal) noexcept;
 
 		[[nodiscard]] bool Accept(Socket& s, const bool cond_accept = false,
 								  const LPCONDITIONPROC cond_func = nullptr, void* cbdata = nullptr) noexcept;
 
-		[[nodiscard]] bool BeginConnect(const IPEndpoint& endpoint) noexcept override;
+		[[nodiscard]] bool SetService(const WChar* service_name, const WChar* service_comment, const GUID& guid,
+									  const ServiceOperation op) noexcept;
+
+		[[nodiscard]] bool BeginConnect(const Endpoint& endpoint) noexcept override;
 		[[nodiscard]] bool CompleteConnect() noexcept override;
 
 		[[nodiscard]] Result<Size> Send(const BufferView& buffer, const Size max_snd_size = 0) noexcept override;
-		[[nodiscard]] Result<Size> SendTo(const IPEndpoint& endpoint, const BufferView& buffer, const Size max_snd_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> SendTo(const Endpoint& endpoint, const BufferView& buffer, const Size max_snd_size = 0) noexcept override;
 		[[nodiscard]] Result<Size> Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
 		[[nodiscard]] Result<Size> Receive(BufferSpan& buffer) noexcept;
-		[[nodiscard]] Result<Size> ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
-		[[nodiscard]] Result<Size> ReceiveFrom(IPEndpoint& endpoint, BufferSpan& buffer) noexcept;
+		[[nodiscard]] Result<Size> ReceiveFrom(Endpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
+		[[nodiscard]] Result<Size> ReceiveFrom(Endpoint& endpoint, BufferSpan& buffer) noexcept;
 
 		void Close(const bool linger = false) noexcept override;
 
@@ -80,14 +90,10 @@ namespace QuantumGate::Implementation::Network
 		[[nodiscard]] inline Size GetBytesReceived() const noexcept override { return m_BytesReceived; }
 		[[nodiscard]] inline Size GetBytesSent() const noexcept override { return m_BytesSent; }
 
-		[[nodiscard]] inline const IPEndpoint& GetLocalEndpoint() const noexcept override { return m_LocalEndpoint; }
-		[[nodiscard]] inline const IPAddress& GetLocalIPAddress() const noexcept override { return m_LocalEndpoint.GetIPAddress(); }
-		[[nodiscard]] inline UInt32 GetLocalPort() const noexcept override { return m_LocalEndpoint.GetPort(); }
+		[[nodiscard]] inline const Endpoint& GetLocalEndpoint() const noexcept override { return m_LocalEndpoint; }
 		[[nodiscard]] inline String GetLocalName() const noexcept override { return m_LocalEndpoint.GetString(); }
 
-		[[nodiscard]] inline const IPEndpoint& GetPeerEndpoint() const noexcept override { return m_PeerEndpoint; }
-		[[nodiscard]] inline const IPAddress& GetPeerIPAddress() const noexcept override { return m_PeerEndpoint.GetIPAddress(); }
-		[[nodiscard]] inline UInt32 GetPeerPort() const noexcept override { return m_PeerEndpoint.GetPort(); }
+		[[nodiscard]] inline const Endpoint& GetPeerEndpoint() const noexcept override { return m_PeerEndpoint; }
 		[[nodiscard]] inline String GetPeerName() const noexcept override { return m_PeerEndpoint.GetString(); }
 
 		[[nodiscard]] bool SetBlockingMode(const bool blocking) noexcept;
@@ -105,6 +111,8 @@ namespace QuantumGate::Implementation::Network
 		
 		[[nodiscard]] bool SetNATTraversal(const bool nat_traversal) noexcept;
 		Result<bool> GetNATTraversal() noexcept;
+
+		[[nodiscard]] bool SetBluetoothAuthentication(const bool bthauth) noexcept;
 
 		[[nodiscard]] bool SetConditionalAccept(const bool cond_accept) noexcept;
 		[[nodiscard]] bool SetNoDelay(const bool no_delay) noexcept;
@@ -139,14 +147,16 @@ namespace QuantumGate::Implementation::Network
 			m_CloseCallback = std::move(callback);
 		}
 
-		[[nodiscard]] static bool SockAddrSetEndpoint(sockaddr_storage& addr, const IPEndpoint& endpoint) noexcept;
-		[[nodiscard]] static bool SockAddrGetIPEndpoint(const IP::Protocol protocol, const sockaddr_storage* addr, IPEndpoint& endpoint) noexcept;
+		[[nodiscard]] static bool SockAddrSetEndpoint(sockaddr_storage& addr, const Endpoint& endpoint) noexcept;
+		[[nodiscard]] static bool SockAddrGetEndpoint(const Protocol protocol, const sockaddr_storage* addr, Endpoint& endpoint) noexcept;
 
-		static constexpr std::chrono::seconds DefaultLingerTime{ 10 };
+		[[nodiscard]] const WChar* GetLastExtendedErrorString() const noexcept;
+		[[nodiscard]] const WChar* GetExtendedErrorString(const int code) const noexcept;
 
 	private:
 		[[nodiscard]] bool SetSocket(const SOCKET s, const bool excl_addr_use = true,
 									 const bool blocking = false) noexcept;
+
 		void UpdateSocketInfo() noexcept;
 
 		void Release() noexcept;
@@ -169,6 +179,9 @@ namespace QuantumGate::Implementation::Network
 #endif
 
 	private:
+		static constexpr std::chrono::seconds DefaultLingerTime{ 10 };
+
+	private:
 		SOCKET m_Socket{ INVALID_SOCKET };
 #ifdef USE_SOCKET_EVENT
 		Concurrency::Event m_Event;
@@ -178,8 +191,8 @@ namespace QuantumGate::Implementation::Network
 		Size m_BytesReceived{ 0 };
 		Size m_BytesSent{ 0 };
 
-		IPEndpoint m_LocalEndpoint;
-		IPEndpoint m_PeerEndpoint;
+		Endpoint m_LocalEndpoint;
+		Endpoint m_PeerEndpoint;
 
 		SteadyTime m_ConnectedSteadyTime;
 

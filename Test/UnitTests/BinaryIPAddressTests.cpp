@@ -22,7 +22,7 @@ namespace UnitTests
 
 			// UInt64 constructor
 			constexpr BinaryIPAddress ipv6(0x0, 0x0000000000000001); // ::1
-			
+
 			// Copy constructor
 			constexpr BinaryIPAddress ip3(ip1);
 
@@ -92,13 +92,13 @@ namespace UnitTests
 
 			// GetNetwork
 			constexpr BinaryIPAddress network1 = [](const BinaryIPAddress& bin_ipaddr,
-												   const BinaryIPAddress& bin_mask) constexpr
+													const BinaryIPAddress& bin_mask) constexpr
 			{
 				BinaryIPAddress network;
 				if (BinaryIPAddress::GetNetwork(bin_ipaddr, bin_mask, network)) return network;
 				return BinaryIPAddress{};
 			}(ip1, mask4);
-			
+
 			static_assert(network1 == BinaryIPAddress(0xc0a80000), "Should succeed");
 
 			constexpr BinaryIPAddress network2 = [](const BinaryIPAddress& bin_ipaddr,
@@ -114,7 +114,7 @@ namespace UnitTests
 			// AreInSameNetwork
 			{
 				constexpr auto aisnres = BinaryIPAddress::AreInSameNetwork(ip1,
-																			BinaryIPAddress(0xc0a80000), 16);
+																		   BinaryIPAddress(0xc0a80000), 16);
 				static_assert(aisnres.first, "Should succeed");
 				static_assert(aisnres.second, "Should be in same network");
 			}

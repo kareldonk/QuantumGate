@@ -4,29 +4,6 @@
 #include "pch.h"
 #include "IP.h"
 
-namespace QuantumGate::Implementation::Network::IP
-{
-	const WChar* GetProtocolName(const Protocol protocol) noexcept
-	{
-		switch (protocol)
-		{
-			case Protocol::ICMP:
-				return L"ICMP";
-			case Protocol::UDP:
-				return L"UDP";
-			case Protocol::TCP:
-				return L"TCP";
-			case Protocol::Unspecified:
-				return L"Unspecified";
-			default:
-				assert(false);
-				break;
-		}
-
-		return L"Unknown";
-	}
-}
-
 namespace QuantumGate::Implementation::Network::ICMP
 {
 	UInt16 CalculateChecksum(const BufferView buffer) noexcept

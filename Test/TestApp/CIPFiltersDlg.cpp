@@ -207,7 +207,7 @@ void CIPFiltersDlg::OnEnChangeTestIp()
 void CIPFiltersDlg::OnBnClickedTestButton()
 {
 	auto ip = GetTextValue(IDC_TEST_IP);
-	const auto result = m_AccessManager->GetIPAllowed((LPCTSTR)ip, QuantumGate::Access::CheckType::IPFilters);
+	const auto result = m_AccessManager->GetAddressAllowed((LPCTSTR)ip, QuantumGate::Access::CheckType::IPFilters);
 	if (result.Succeeded())
 	{
 		if (*result)

@@ -338,7 +338,7 @@ namespace QuantumGate::AVExtender
 		auto format_data = m_VideoFormatData.WithSharedLock();
 
 		if (trf->InVideoResampler.Create(format_data->ReaderFormat.Width, format_data->ReaderFormat.Height,
-										 CaptureDevices::GetMFVideoFormat(format_data->ReaderFormat.Format), MFVideoFormat_YV12))
+										 CaptureDevices::GetMFVideoFormat(format_data->ReaderFormat.Format), MFVideoFormat_RGB24))
 		{
 			auto result = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(trf->InVideoResampler.GetOutputFormat()));
 			if (result.Succeeded())
@@ -348,7 +348,7 @@ namespace QuantumGate::AVExtender
 				if (trf->VideoResizer.Create(trf->InVideoResampler.GetOutputFormat(),
 											 format_data->TransformWidth, format_data->TransformHeight))
 				{
-					if (trf->OutVideoResampler.Create(format_data->TransformWidth, format_data->TransformHeight, MFVideoFormat_YV12,
+					if (trf->OutVideoResampler.Create(format_data->TransformWidth, format_data->TransformHeight, MFVideoFormat_RGB24,
 													  CaptureDevices::GetMFVideoFormat(format_data->ReaderFormat.Format)))
 					{
 						auto result2 = CaptureDevices::CreateMediaSample(CaptureDevices::GetImageSize(trf->OutVideoResampler.GetOutputFormat()));

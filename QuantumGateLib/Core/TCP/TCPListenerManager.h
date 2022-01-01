@@ -61,7 +61,7 @@ namespace QuantumGate::Implementation::Core::TCP::Listener
 
 		void AcceptConnection(Network::Socket& listener_socket, const bool cond_accept) noexcept;
 
-		[[nodiscard]] bool CanAcceptConnection(const IPAddress& ipaddr) const noexcept;
+		[[nodiscard]] bool CanAcceptConnection(const Address& ipaddr) const noexcept;
 
 		static int CALLBACK AcceptConditionFunction(LPWSABUF lpCallerId, LPWSABUF lpCallerData, LPQOS lpSQOS,
 													LPQOS lpGQOS, LPWSABUF lpCalleeId, LPWSABUF lpCalleeData,

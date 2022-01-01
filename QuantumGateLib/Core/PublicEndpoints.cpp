@@ -2,18 +2,19 @@
 // licensing information refer to the license file(s) in the project root.
 
 #include "pch.h"
-#include "PublicIPEndpoints.h"
+#include "PublicEndpoints.h"
 #include "..\Common\ScopeGuard.h"
 #include "..\Crypto\Crypto.h"
 #include "..\Common\Endian.h"
 #include "..\Network\Ping.h"
+#include "..\Network\NetworkUtils.h"
 
 using namespace std::literals;
 using namespace QuantumGate::Implementation::Network;
 
 namespace QuantumGate::Implementation::Core
 {
-	bool PublicIPEndpoints::HopVerificationDetails::Verify(const bool has_locally_bound_pubip) noexcept
+	bool PublicEndpoints::HopVerificationDetails::Verify(const bool has_locally_bound_pubip) noexcept
 	{
 		// We ping the IP address with specific maximum number of hops to verify the
 		// distance on the network. If the distance is small it's more likely that the
@@ -33,12 +34,12 @@ namespace QuantumGate::Implementation::Core
 			return HopVerificationDetails::MaxHops;
 		});
 
-		Ping ping(IPAddress, static_cast<UInt16>(Util::GetPseudoRandomNumber(0, 255)),
+		Ping ping(IPAddress.GetBinary(), static_cast<UInt16>(Util::GetPseudoRandomNumber(0, 255)),
 				  std::chrono::duration_cast<std::chrono::milliseconds>(HopVerificationDetails::TimeoutPeriod),
 				  std::chrono::seconds(max_hops));
 
 		if (ping.Execute() && ping.GetStatus() == Ping::Status::Succeeded &&
-			ping.GetRespondingIPAddress() == IPAddress &&
+			ping.GetRespondingIPAddress() == IPAddress.GetBinary() &&
 			ping.GetRoundTripTime() <= HopVerificationDetails::MaxRTT)
 		{
 			return true;
@@ -46,17 +47,17 @@ namespace QuantumGate::Implementation::Core
 		else
 		{
 			LogWarn(L"Failed to verify hops for IP address %s; host may be further than %u hops away or behind a firewall",
-					Network::IPAddress(IPAddress).GetString().c_str(), max_hops);
+					IPAddress.GetString().c_str(), max_hops);
 		}
 
 		return false;
 	}
 
-	PublicIPEndpoints::DataVerificationDetails::DataVerificationDetails(const BinaryIPAddress ip) noexcept :
+	PublicEndpoints::DataVerificationDetails::DataVerificationDetails(const IPAddress& ip) noexcept :
 		m_IPAddress(ip), m_StartSteadyTime(Util::GetCurrentSteadyTime())
 	{}
 
-	bool PublicIPEndpoints::DataVerificationDetails::InitializeSocket(const bool nat_traversal) noexcept
+	bool PublicEndpoints::DataVerificationDetails::InitializeSocket(const bool nat_traversal) noexcept
 	{
 		auto tries = 0u;
 
@@ -70,11 +71,12 @@ namespace QuantumGate::Implementation::Core
 				const auto port = static_cast<UInt16>(Util::GetPseudoRandomNumber(49152, 65535));
 
 				const auto endpoint = IPEndpoint(IPEndpoint::Protocol::UDP,
-												 (m_IPAddress.AddressFamily == BinaryIPAddress::Family::IPv4) ?
+												 (m_IPAddress.GetFamily() == IPAddress::Family::IPv4) ?
 												 IPAddress::AnyIPv4() : IPAddress::AnyIPv6(), port);
-				m_Socket = Network::Socket(endpoint.GetIPAddress().GetFamily(),
+				m_Socket = Network::Socket(endpoint.GetIPAddress().GetFamily() == IPAddress::Family::IPv4 ?
+										   Network::AddressFamily::IPv4 : Network::AddressFamily::IPv6,
 										   Network::Socket::Type::Datagram,
-										   Network::IP::Protocol::UDP);
+										   Network::Protocol::UDP);
 
 				if (m_Socket.Bind(endpoint, nat_traversal))
 				{
@@ -95,7 +97,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	bool PublicIPEndpoints::DataVerificationDetails::SendVerification() noexcept
+	bool PublicEndpoints::DataVerificationDetails::SendVerification() noexcept
 	{
 		// We send a random 64-bit number to the IP address and the port
 		// that we're listening on locally. If the IP address is ours the random
@@ -105,7 +107,7 @@ namespace QuantumGate::Implementation::Core
 
 		try
 		{
-			const IPEndpoint endpoint(IPEndpoint::Protocol::UDP, m_IPAddress, m_Socket.GetLocalEndpoint().GetPort());
+			const IPEndpoint endpoint(IPEndpoint::Protocol::UDP, m_IPAddress, m_Socket.GetLocalEndpoint().GetIPEndpoint().GetPort());
 
 			const auto num = Crypto::GetCryptoRandomNumber();
 			if (num.has_value())
@@ -141,14 +143,14 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	Result<bool> PublicIPEndpoints::DataVerificationDetails::ReceiveVerification() noexcept
+	Result<bool> PublicEndpoints::DataVerificationDetails::ReceiveVerification() noexcept
 	{
 		// Wait for read event on socket
 		if (m_Socket.UpdateIOStatus(1s))
 		{
 			if (m_Socket.GetIOStatus().CanRead())
 			{
-				IPEndpoint sender_endpoint;
+				Endpoint sender_endpoint;
 				std::optional<UInt64> num;
 				Buffer rcv_buffer;
 
@@ -184,14 +186,14 @@ namespace QuantumGate::Implementation::Core
 					// Verification data should match and should have been sent by the IP address that we
 					// sent it to and expect to hear from, otherwise something is wrong (attack?)
 					if (m_ExpectedData == num &&
-						m_IPAddress == sender_endpoint.GetIPAddress().GetBinary())
+						m_IPAddress == sender_endpoint.GetIPEndpoint().GetIPAddress())
 					{
 						return true;
 					}
 					else
 					{
 						LogWarn(L"Received public IP address data verification (%llu) from endpoint %s, but expected %llu from IP address %s",
-								num, sender_endpoint.GetString().c_str(), m_ExpectedData, Network::IPAddress(m_IPAddress).GetString().c_str());
+								num, sender_endpoint.GetString().c_str(), m_ExpectedData, m_IPAddress.GetString().c_str());
 					}
 				}
 			}
@@ -213,7 +215,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	bool PublicIPEndpoints::DataVerificationDetails::Verify(const bool nat_traversal) noexcept
+	bool PublicEndpoints::DataVerificationDetails::Verify(const bool nat_traversal) noexcept
 	{
 		if (m_Status == Status::Initialized)
 		{
@@ -243,7 +245,7 @@ namespace QuantumGate::Implementation::Core
 		if (m_Status == Status::Verifying && (Util::GetCurrentSteadyTime() - m_StartSteadyTime > TimeoutPeriod))
 		{
 			LogErr(L"Public IP address data verification for %s timed out; this could be due to a router/firewall blocking UDP traffic",
-				   Network::IPAddress(m_IPAddress).GetString().c_str());
+				   m_IPAddress.GetString().c_str());
 
 			m_Status = Status::Timedout;
 			return false;
@@ -252,14 +254,14 @@ namespace QuantumGate::Implementation::Core
 		if (m_Status == Status::Failed)
 		{
 			LogErr(L"Public IP address data verification failed for IP address %s",
-				   Network::IPAddress(m_IPAddress).GetString().c_str());
+				   m_IPAddress.GetString().c_str());
 			return false;
 		}
 
 		return true;
 	}
 
-	bool PublicIPEndpoints::Initialize() noexcept
+	bool PublicEndpoints::Initialize() noexcept
 	{
 		assert(!m_Initialized);
 
@@ -267,27 +269,27 @@ namespace QuantumGate::Implementation::Core
 
 		PreInitialize();
 
-		if (!m_ThreadPool.AddThread(L"QuantumGate PublicIPEndpoints DataVerification Thread",
-									MakeCallback(this, &PublicIPEndpoints::DataVerificationWorkerThread),
-									MakeCallback(this, &PublicIPEndpoints::DataVerificationWorkerThreadWait),
-									MakeCallback(this, &PublicIPEndpoints::DataVerificationWorkerThreadWaitInterrupt)))
+		if (!m_ThreadPool.AddThread(L"QuantumGate PublicEndpoints DataVerification Thread",
+									MakeCallback(this, &PublicEndpoints::DataVerificationWorkerThread),
+									MakeCallback(this, &PublicEndpoints::DataVerificationWorkerThreadWait),
+									MakeCallback(this, &PublicEndpoints::DataVerificationWorkerThreadWaitInterrupt)))
 		{
-			LogErr(L"Could not add PublicIPEndpoints data verification thread");
+			LogErr(L"Could not add PublicEndpoints data verification thread");
 			return false;
 		}
 
-		if (!m_ThreadPool.AddThread(L"QuantumGate PublicIPEndpoints HopVerification Thread",
-									MakeCallback(this, &PublicIPEndpoints::HopVerificationWorkerThread),
-									MakeCallback(this, &PublicIPEndpoints::HopVerificationWorkerThreadWait),
-									MakeCallback(this, &PublicIPEndpoints::HopVerificationWorkerThreadWaitInterrupt)))
+		if (!m_ThreadPool.AddThread(L"QuantumGate PublicEndpoints HopVerification Thread",
+									MakeCallback(this, &PublicEndpoints::HopVerificationWorkerThread),
+									MakeCallback(this, &PublicEndpoints::HopVerificationWorkerThreadWait),
+									MakeCallback(this, &PublicEndpoints::HopVerificationWorkerThreadWaitInterrupt)))
 		{
-			LogErr(L"Could not add PublicIPEndpoints hop verification thread");
+			LogErr(L"Could not add PublicEndpoints hop verification thread");
 			return false;
 		}
 
 		if (!m_ThreadPool.Startup())
 		{
-			LogErr(L"PublicIPEndpoints threadpool initialization failed");
+			LogErr(L"PublicEndpoints threadpool initialization failed");
 			return false;
 		}
 
@@ -296,7 +298,7 @@ namespace QuantumGate::Implementation::Core
 		return true;
 	}
 
-	void PublicIPEndpoints::Deinitialize() noexcept
+	void PublicEndpoints::Deinitialize() noexcept
 	{
 		assert(m_Initialized);
 
@@ -309,33 +311,33 @@ namespace QuantumGate::Implementation::Core
 		m_Initialized = false;
 	}
 
-	void PublicIPEndpoints::PreInitialize() noexcept
+	void PublicEndpoints::PreInitialize() noexcept
 	{
 		ResetState();
 	}
 
-	void PublicIPEndpoints::ResetState() noexcept
+	void PublicEndpoints::ResetState() noexcept
 	{
 		m_ThreadPool.Clear();
 
 		m_DataVerification.Clear();
 		m_HopVerification.Clear();
 
-		m_IPEndpoints.WithUniqueLock()->clear();
+		m_Endpoints.WithUniqueLock()->clear();
 		m_ReportingNetworks.clear();
 	}
 
-	void PublicIPEndpoints::DataVerificationWorkerThreadWait(const Concurrency::Event& shutdown_event)
+	void PublicEndpoints::DataVerificationWorkerThreadWait(const Concurrency::Event& shutdown_event)
 	{
 		m_DataVerification.Queue.Wait(shutdown_event);
 	}
 
-	void PublicIPEndpoints::DataVerificationWorkerThreadWaitInterrupt()
+	void PublicEndpoints::DataVerificationWorkerThreadWaitInterrupt()
 	{
 		m_DataVerification.Queue.InterruptWait();
 	}
 
-	void PublicIPEndpoints::DataVerificationWorkerThread(const Concurrency::Event& shutdown_event)
+	void PublicEndpoints::DataVerificationWorkerThread(const Concurrency::Event& shutdown_event)
 	{
 		std::optional<DataVerificationDetails> data_verification;
 
@@ -349,23 +351,23 @@ namespace QuantumGate::Implementation::Core
 		{
 			const auto& settings = m_Settings.GetCache();
 
-			if (data_verification->Verify(settings.Local.Listeners.NATTraversal) &&
+			if (data_verification->Verify(settings.Local.Listeners.TCP.NATTraversal || settings.Local.Listeners.UDP.NATTraversal) &&
 				data_verification->IsVerified())
 			{
-				m_IPEndpoints.WithUniqueLock([&](auto& ipendpoints)
+				m_Endpoints.WithUniqueLock([&](auto& ipendpoints)
 				{
 					if (const auto it = ipendpoints.find(data_verification->GetIPAddress()); it != ipendpoints.end())
 					{
 						it->second.DataVerified = true;
 
 						LogInfo(L"Data verification succeeded for public IP address %s",
-								IPAddress(data_verification->GetIPAddress()).GetString().c_str());
+								data_verification->GetIPAddress().GetString().c_str());
 					}
 					else
 					{
 						// We should never get here
 						LogErr(L"Failed to verify IP address %s; IP address not found in public endpoints",
-							   IPAddress(data_verification->GetIPAddress()).GetString().c_str());
+							   data_verification->GetIPAddress().GetString().c_str());
 					}
 				});
 			}
@@ -384,17 +386,17 @@ namespace QuantumGate::Implementation::Core
 		}
 	}
 
-	void PublicIPEndpoints::HopVerificationWorkerThreadWait(const Concurrency::Event& shutdown_event)
+	void PublicEndpoints::HopVerificationWorkerThreadWait(const Concurrency::Event& shutdown_event)
 	{
 		m_HopVerification.Queue.Wait(shutdown_event);
 	}
 
-	void PublicIPEndpoints::HopVerificationWorkerThreadWaitInterrupt()
+	void PublicEndpoints::HopVerificationWorkerThreadWaitInterrupt()
 	{
 		m_HopVerification.Queue.InterruptWait();
 	}
 
-	void PublicIPEndpoints::HopVerificationWorkerThread(const Concurrency::Event& shutdown_event)
+	void PublicEndpoints::HopVerificationWorkerThread(const Concurrency::Event& shutdown_event)
 	{
 		std::optional<HopVerificationDetails> hop_verification;
 
@@ -408,20 +410,20 @@ namespace QuantumGate::Implementation::Core
 		{
 			if (hop_verification->Verify(HasLocallyBoundPublicIPAddress()))
 			{
-				m_IPEndpoints.WithUniqueLock([&](auto& ipendpoints)
+				m_Endpoints.WithUniqueLock([&](auto& ipendpoints)
 				{
 					if (const auto it = ipendpoints.find(hop_verification->IPAddress); it != ipendpoints.end())
 					{
 						it->second.HopVerified = true;
 
 						LogInfo(L"Hop verification succeeded for public IP address %s",
-								IPAddress(hop_verification->IPAddress).GetString().c_str());
+								hop_verification->IPAddress.GetString().c_str());
 					}
 					else
 					{
 						// We should never get here
 						LogErr(L"Failed to verify hops for IP address %s; IP address not found in public endpoints",
-							   IPAddress(hop_verification->IPAddress).GetString().c_str());
+							   hop_verification->IPAddress.GetString().c_str());
 					}
 				});
 			}
@@ -432,7 +434,7 @@ namespace QuantumGate::Implementation::Core
 		}
 	}
 
-	bool PublicIPEndpoints::AddIPAddressDataVerification(const BinaryIPAddress& ip) noexcept
+	bool PublicEndpoints::AddIPAddressDataVerification(const IPAddress& ip) noexcept
 	{
 		try
 		{
@@ -442,7 +444,7 @@ namespace QuantumGate::Implementation::Core
 			if (result.second)
 			{
 				// Upon failure to add to the queue, remove from the set
-				auto sg = MakeScopeGuard([&] { ipaddress_set->erase(result.first); });
+				auto sg = MakeScopeGuard([&]() noexcept { ipaddress_set->erase(result.first); });
 
 				m_DataVerification.Queue.Push(DataVerificationDetails{ ip });
 
@@ -470,7 +472,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	bool PublicIPEndpoints::AddIPAddressHopVerification(const BinaryIPAddress& ip) noexcept
+	bool PublicEndpoints::AddIPAddressHopVerification(const IPAddress& ip) noexcept
 	{
 		try
 		{
@@ -480,7 +482,7 @@ namespace QuantumGate::Implementation::Core
 			if (result.second)
 			{
 				// Upon failure to add to the queue, remove from the set
-				auto sg = MakeScopeGuard([&] { ipaddress_set->erase(result.first); });
+				auto sg = MakeScopeGuard([&]() noexcept { ipaddress_set->erase(result.first); });
 
 				m_HopVerification.Queue.Push(HopVerificationDetails{ ip });
 
@@ -508,157 +510,206 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	Result<std::pair<bool, bool>> PublicIPEndpoints::AddIPEndpoint(const IPEndpoint& pub_endpoint,
-																   const IPEndpoint& rep_peer,
-																   const PeerConnectionType rep_con_type,
-																   const bool trusted, const bool verified) noexcept
+	Result<std::pair<bool, bool>> PublicEndpoints::AddEndpoint(const Endpoint& pub_endpoint, const Endpoint& rep_peer,
+															   const PeerConnectionType rep_con_type, const bool trusted,
+															   const bool verified) noexcept
 	{
-		assert(pub_endpoint.GetProtocol() == rep_peer.GetProtocol());
+		assert(pub_endpoint.GetType() == rep_peer.GetType());
 
-		if (rep_con_type != PeerConnectionType::Unknown &&
-			pub_endpoint.GetIPAddress().GetFamily() == rep_peer.GetIPAddress().GetFamily())
+		if (rep_con_type != PeerConnectionType::Unknown)
 		{
-			// Should be in public network address range
-			if (pub_endpoint.GetIPAddress().IsPublic())
+			const auto get_network = [](const Endpoint& pub_endpoint, const Endpoint& rep_peer) noexcept -> std::optional<Address>
 			{
-				BinaryIPAddress network;
-				const auto cidr = (rep_peer.GetIPAddress().GetFamily() == BinaryIPAddress::Family::IPv4) ?
-					ReportingPeerNetworkIPv4CIDR : ReportingPeerNetworkIPv6CIDR;
-
-				if (BinaryIPAddress::GetNetwork(rep_peer.GetIPAddress().GetBinary(), cidr, network))
+				switch (pub_endpoint.GetType())
 				{
-					if (AddReportingNetwork(network, trusted))
+					case Endpoint::Type::IP:
 					{
-						// Upon failure to add the public IP address details remove the network
-						auto sg = MakeScopeGuard([&]() noexcept { RemoveReportingNetwork(network); });
+						const auto& pub_ipep = pub_endpoint.GetIPEndpoint();
+						const auto& rep_ipep = rep_peer.GetIPEndpoint();
 
-						auto ipendpoints = m_IPEndpoints.WithUniqueLock();
+						assert(pub_ipep.GetProtocol() == rep_ipep.GetProtocol());
 
-						const auto [pub_ipd, new_insert] =
-							GetIPEndpointDetails(pub_endpoint.GetIPAddress().GetBinary(), *ipendpoints);
-						if (pub_ipd != nullptr)
+						if (pub_ipep.GetIPAddress().GetFamily() == rep_ipep.GetIPAddress().GetFamily())
 						{
-							sg.Deactivate();
-
-							pub_ipd->LastUpdateSteadyTime = Util::GetCurrentSteadyTime();
-
-							if (trusted) pub_ipd->Trusted = true;
-
-							if (verified)
+							// Should be in public network address range
+							if (pub_ipep.GetIPAddress().IsPublic())
 							{
-								pub_ipd->DataVerified = true;
-								pub_ipd->HopVerified = true;
-							}
+								const auto cidr = (rep_ipep.GetIPAddress().GetFamily() == IPAddress::Family::IPv4) ?
+									ReportingPeerNetworkIPv4CIDR : ReportingPeerNetworkIPv6CIDR;
 
-							try
-							{
-								// Only interested in the protocol and port for inbound peers
-								// so we know what protocol and public port they actually used
-								// to connect to us
-								if (rep_con_type == PeerConnectionType::Inbound)
+								BinaryIPAddress network;
+								if (BinaryIPAddress::GetNetwork(rep_ipep.GetIPAddress().GetBinary(), cidr, network))
 								{
-									if (pub_ipd->PortsMap.size() < MaxProtocolsPerIPAddress)
+									return IPAddress(network);
+								}
+							}
+						}
+						break;
+					}
+					case Endpoint::Type::BTH:
+					{
+						const auto& pub_bthep = pub_endpoint.GetBTHEndpoint();
+						const auto& rep_bthep = rep_peer.GetBTHEndpoint();
+
+						assert(pub_bthep.GetProtocol() == rep_bthep.GetProtocol());
+
+						if (pub_bthep.GetBTHAddress().GetFamily() == rep_bthep.GetBTHAddress().GetFamily())
+						{
+							return rep_bthep.GetBTHAddress();
+						}
+						break;
+					}
+					default:
+					{
+						assert(false);
+						break;
+					}
+				}
+
+				return std::nullopt;
+			};
+
+			const auto network = get_network(pub_endpoint, rep_peer);
+			if (network.has_value())
+			{
+				if (AddReportingNetwork(network.value(), trusted))
+				{
+					// Upon failure to add the public address details remove the network
+					auto sg = MakeScopeGuard([&]() noexcept { RemoveReportingNetwork(network.value()); });
+
+					auto endpoints = m_Endpoints.WithUniqueLock();
+
+					const auto [pub_epd, new_insert] =
+						GetEndpointDetails(pub_endpoint, *endpoints);
+					if (pub_epd != nullptr)
+					{
+						sg.Deactivate();
+
+						pub_epd->LastUpdateSteadyTime = Util::GetCurrentSteadyTime();
+
+						if (trusted) pub_epd->Trusted = true;
+
+						if (verified)
+						{
+							pub_epd->DataVerified = true;
+							pub_epd->HopVerified = true;
+						}
+
+						try
+						{
+							// Only interested in the protocol and port for inbound peers
+							// so we know what protocol and public port they actually used
+							// to connect to us
+							if (rep_con_type == PeerConnectionType::Inbound)
+							{
+								if (pub_epd->PortsMap.size() < MaxProtocolsPerAddress)
+								{
+
+									// If protocol does't exist it will get inserted
+									auto& ports = pub_epd->PortsMap[GetEndpointNetworkProtocol(pub_endpoint)];
+									if (ports.size() < MaxPortsPerProtocol)
 									{
-										// If protocol does't exist it will get inserted
-										auto& ports = pub_ipd->PortsMap[pub_endpoint.GetProtocol()];
-										if (ports.size() < MaxPortsPerProtocol)
-										{
-											ports.emplace(pub_endpoint.GetPort());
-										}
+										ports.emplace(GetEndpointPort(pub_endpoint));
 									}
 								}
-
-								if (pub_ipd->ReportingPeerNetworkHashes.size() < MaxReportingPeerNetworks)
-								{
-									pub_ipd->ReportingPeerNetworkHashes.emplace(network.GetHash());
-								}
 							}
-							catch (...) {}
 
-							if (!pub_ipd->DataVerified)
+							if (pub_epd->ReportingPeerNetworkHashes.size() < MaxReportingPeerNetworks)
 							{
-								DiscardReturnValue(AddIPAddressDataVerification(pub_endpoint.GetIPAddress().GetBinary()));
+								pub_epd->ReportingPeerNetworkHashes.emplace(network->GetHash());
 							}
-
-							if (!pub_ipd->HopVerified)
-							{
-								DiscardReturnValue(AddIPAddressHopVerification(pub_endpoint.GetIPAddress().GetBinary()));
-							}
-
-							return std::make_pair(true, new_insert);
 						}
+						catch (...) {}
+
+						// Verification only for IP endpoints
+						if (pub_endpoint.GetType() == Endpoint::Type::IP)
+						{
+							const auto& pub_ipep = pub_endpoint.GetIPEndpoint();
+
+							if (!pub_epd->DataVerified)
+							{
+								DiscardReturnValue(AddIPAddressDataVerification(pub_ipep.GetIPAddress()));
+							}
+
+							if (!pub_epd->HopVerified)
+							{
+								DiscardReturnValue(AddIPAddressHopVerification(pub_ipep.GetIPAddress()));
+							}
+						}
+
+						return std::make_pair(true, new_insert);
 					}
-					else return std::make_pair(false, false);
 				}
+				else return std::make_pair(false, false);
 			}
 		}
 
 		return ResultCode::Failed;
 	}
 
-	std::pair<PublicIPEndpointDetails*, bool>
-		PublicIPEndpoints::GetIPEndpointDetails(const BinaryIPAddress& pub_ip, IPEndpointsMap& ipendpoints) noexcept
+	std::pair<PublicEndpointDetails*, bool>
+		PublicEndpoints::GetEndpointDetails(const Network::Address& pub_addr, EndpointsMap& endpoints) noexcept
 	{
 		auto new_insert = false;
-		PublicIPEndpointDetails* pub_ipd{ nullptr };
+		PublicEndpointDetails* pub_epd{ nullptr };
 
-		// If we already have a record for the IP address simply return
+		// If we already have a record for the address simply return
 		// it, otherwise we'll add a new one below
-		if (const auto it = ipendpoints.find(pub_ip); it != ipendpoints.end())
+		if (const auto it = endpoints.find(pub_addr); it != endpoints.end())
 		{
-			pub_ipd = &it->second;
+			pub_epd = &it->second;
 		}
 		else
 		{
-			if (ipendpoints.size() >= MaxIPEndpoints)
+			if (endpoints.size() >= MaxEndpoints)
 			{
-				// No room for new IP endpoints, so we need to remove the
+				// No room for new endpoints, so we need to remove the
 				// ones that are least relevant before we can add a new one
-				RemoveLeastRelevantIPEndpoints((ipendpoints.size() - MaxIPEndpoints) + 1, ipendpoints);
+				RemoveLeastRelevantEndpoints((endpoints.size() - MaxEndpoints) + 1, endpoints);
 			}
 
-			assert(ipendpoints.size() < MaxIPEndpoints);
+			assert(endpoints.size() < MaxEndpoints);
 
-			if (ipendpoints.size() < MaxIPEndpoints)
+			if (endpoints.size() < MaxEndpoints)
 			{
 				try
 				{
-					const auto [iti, inserted] = ipendpoints.emplace(
-						std::make_pair(pub_ip, PublicIPEndpointDetails{}));
+					const auto [iti, inserted] = endpoints.emplace(
+						std::make_pair(pub_addr, PublicEndpointDetails{}));
 
-					pub_ipd = &iti->second;
+					pub_epd = &iti->second;
 					new_insert = inserted;
 				}
 				catch (...)
 				{
-					LogErr(L"Failed to insert new public IP endpoint due to exception");
+					LogErr(L"Failed to insert new public endpoint due to exception");
 				}
 			}
 		}
 
-		return std::make_pair(pub_ipd, new_insert);
+		return std::make_pair(pub_epd, new_insert);
 	}
 
-	bool PublicIPEndpoints::RemoveLeastRelevantIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept
+	bool PublicEndpoints::RemoveLeastRelevantEndpoints(Size num, EndpointsMap& endpoints) noexcept
 	{
-		if (!ipendpoints.empty())
+		if (!endpoints.empty())
 		{
 			try
 			{
-				struct MinimalIPEndpointDetails final
+				struct MinimalEndpointDetails final
 				{
-					BinaryIPAddress IPAddress;
+					Network::Address Address;
 					bool Verified{ false };
 					bool Trusted{ false };
 					SteadyTime LastUpdateSteadyTime;
 				};
 
-				Vector<MinimalIPEndpointDetails> temp_endp;
+				Vector<MinimalEndpointDetails> temp_endp;
 
-				std::for_each(ipendpoints.begin(), ipendpoints.end(), [&](const auto& it)
+				std::for_each(endpoints.begin(), endpoints.end(), [&](const auto& it)
 				{
 					temp_endp.emplace_back(
-						MinimalIPEndpointDetails{
+						MinimalEndpointDetails{
 							it.first,
 							it.second.IsVerified(),
 							it.second.IsTrusted(),
@@ -679,12 +730,12 @@ namespace QuantumGate::Implementation::Core
 
 				DbgInvoke([&]() noexcept
 				{
-					Dbg(L"\r\nSorted IPEndpointDetails:");
+					Dbg(L"\r\nSorted EndpointDetails:");
 
 					for (auto& ep : temp_endp)
 					{
 						Dbg(L"%s - %s - %s - %lld",
-							IPAddress(ep.IPAddress).GetString().c_str(),
+							ep.Address.GetString().c_str(),
 							ep.Trusted ? L"Trusted" : L"Not Trusted",
 							ep.Verified ? L"Verified" : L"Not verified",
 							ep.LastUpdateSteadyTime.time_since_epoch().count());
@@ -699,12 +750,12 @@ namespace QuantumGate::Implementation::Core
 				// least trusted and least recent;
 				for (auto it = temp_endp.begin(); it < temp_endp.begin() + num; ++it)
 				{
-					ipendpoints.erase(it->IPAddress);
+					endpoints.erase(it->Address);
 				}
 			}
 			catch (...)
 			{
-				LogErr(L"Failed to remove least relevant public IP endpoints due to exception");
+				LogErr(L"Failed to remove least relevant public endpoints due to exception");
 				return false;
 			}
 		}
@@ -712,22 +763,22 @@ namespace QuantumGate::Implementation::Core
 		return true;
 	}
 
-	Result<> PublicIPEndpoints::AddIPAddresses(Vector<BinaryIPAddress>& ips, const bool only_trusted_verified) const noexcept
+	Result<> PublicEndpoints::AddAddresses(Vector<Network::Address>& addrs, const bool only_trusted_verified) const noexcept
 	{
 		try
 		{
-			auto ipendpoints = m_IPEndpoints.WithSharedLock();
+			auto endpoints = m_Endpoints.WithSharedLock();
 
-			for (const auto& it : *ipendpoints)
+			for (const auto& it : *endpoints)
 			{
 				if (only_trusted_verified && !(it.second.IsTrusted() || it.second.IsVerified()))
 				{
 					continue;
 				}
 
-				if (std::find(ips.begin(), ips.end(), it.first) == ips.end())
+				if (std::find(addrs.begin(), addrs.end(), it.first) == addrs.end())
 				{
-					ips.emplace_back(it.first);
+					addrs.emplace_back(it.first);
 				}
 			}
 
@@ -735,41 +786,41 @@ namespace QuantumGate::Implementation::Core
 		}
 		catch (const std::exception& e)
 		{
-			LogErr(L"Could not add public IP addresses due to exception: %s",
+			LogErr(L"Could not add public addresses due to exception: %s",
 				   Util::ToStringW(e.what()).c_str());
 		}
 		catch (...)
 		{
-			LogErr(L"Could not add public IP addresses due to unknown exception");
+			LogErr(L"Could not add public addresses due to unknown exception");
 		}
 
 		return ResultCode::Failed;
 	}
 
-	Result<> PublicIPEndpoints::AddIPAddresses(Vector<API::Local::Environment::IPAddressDetails>& ips) const noexcept
+	Result<> PublicEndpoints::AddAddresses(Vector<API::Local::Environment::AddressDetails>& addrs) const noexcept
 	{
 		try
 		{
-			auto ipendpoints = m_IPEndpoints.WithSharedLock();
+			auto endpoints = m_Endpoints.WithSharedLock();
 
-			for (const auto& it : *ipendpoints)
+			for (const auto& it : *endpoints)
 			{
-				const auto it2 = std::find_if(ips.begin(), ips.end(), [&](const auto& ipd)
+				const auto it2 = std::find_if(addrs.begin(), addrs.end(), [&](const auto& addrd)
 				{
-					return (ipd.IPAddress.GetBinary() == it.first);
+					return (addrd.Address == it.first);
 				});
 
-				if (it2 == ips.end())
+				if (it2 == addrs.end())
 				{
-					auto& ipdetails = ips.emplace_back();
-					ipdetails.IPAddress = it.first;
-					ipdetails.BoundToLocalEthernetInterface = false;
+					auto& adetails = addrs.emplace_back();
+					adetails.Address = it.first;
+					adetails.BoundToLocalInterface = false;
 
-					ipdetails.PublicDetails.emplace();
-					ipdetails.PublicDetails->ReportedByPeers = true;
-					ipdetails.PublicDetails->ReportedByTrustedPeers = it.second.IsTrusted();
-					ipdetails.PublicDetails->NumReportingNetworks = it.second.ReportingPeerNetworkHashes.size();
-					ipdetails.PublicDetails->Verified = it.second.IsVerified();
+					adetails.PublicDetails.emplace();
+					adetails.PublicDetails->ReportedByPeers = true;
+					adetails.PublicDetails->ReportedByTrustedPeers = it.second.IsTrusted();
+					adetails.PublicDetails->NumReportingNetworks = it.second.ReportingPeerNetworkHashes.size();
+					adetails.PublicDetails->Verified = it.second.IsVerified();
 				}
 				else
 				{
@@ -790,23 +841,23 @@ namespace QuantumGate::Implementation::Core
 		}
 		catch (const std::exception& e)
 		{
-			LogErr(L"Could not add public IP addresses due to exception: %s",
+			LogErr(L"Could not add public addresses due to exception: %s",
 				   Util::ToStringW(e.what()).c_str());
 		}
 		catch (...)
 		{
-			LogErr(L"Could not add public IP addresses due to unknown exception");
+			LogErr(L"Could not add public addresses due to unknown exception");
 		}
 
 		return ResultCode::Failed;
 	}
 
-	bool PublicIPEndpoints::IsNewReportingNetwork(const BinaryIPAddress& network) const noexcept
+	bool PublicEndpoints::IsNewReportingNetwork(const Network::Address& network) const noexcept
 	{
 		return (m_ReportingNetworks.find(network) == m_ReportingNetworks.end());
 	}
 
-	bool PublicIPEndpoints::AddReportingNetwork(const BinaryIPAddress& network, const bool trusted) noexcept
+	bool PublicEndpoints::AddReportingNetwork(const Network::Address& network, const bool trusted) noexcept
 	{
 		if (!IsNewReportingNetwork(network))
 		{
@@ -850,7 +901,7 @@ namespace QuantumGate::Implementation::Core
 		return false;
 	}
 
-	void PublicIPEndpoints::RemoveReportingNetwork(const BinaryIPAddress& network) noexcept
+	void PublicEndpoints::RemoveReportingNetwork(const Network::Address& network) noexcept
 	{
 		m_ReportingNetworks.erase(network);
 	}

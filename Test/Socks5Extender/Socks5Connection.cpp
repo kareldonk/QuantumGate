@@ -428,8 +428,8 @@ namespace QuantumGate::Socks5Extender
 								case SocksProtocolVersion::Socks4:
 								{
 									if (m_Extender.SendSocks4Reply(GetPeerLUID(), GetID(), Socks4Protocol::Replies::Succeeded,
-																   m_Socket.GetLocalEndpoint().GetIPAddress().GetBinary(),
-																   m_Socket.GetLocalEndpoint().GetPort()))
+																   m_Socket.GetLocalEndpoint().GetIPEndpoint().GetIPAddress().GetBinary(),
+																   m_Socket.GetLocalEndpoint().GetIPEndpoint().GetPort()))
 									{
 										SetStatus(Status::Ready);
 									}
@@ -445,14 +445,14 @@ namespace QuantumGate::Socks5Extender
 								case SocksProtocolVersion::Socks5:
 								{
 									Socks5Protocol::AddressTypes atype{ Socks5Protocol::AddressTypes::IPv4 };
-									if (m_Socket.GetLocalEndpoint().GetIPAddress().GetFamily() == IPAddress::Family::IPv6)
+									if (m_Socket.GetLocalEndpoint().GetIPEndpoint().GetIPAddress().GetFamily() == IPAddress::Family::IPv6)
 									{
 										atype = Socks5Protocol::AddressTypes::IPv6;
 									}
 
 									if (m_Extender.SendSocks5Reply(GetPeerLUID(), GetID(), Socks5Protocol::Replies::Succeeded, atype,
-																   m_Socket.GetLocalEndpoint().GetIPAddress().GetBinary(),
-																   m_Socket.GetLocalEndpoint().GetPort()))
+																   m_Socket.GetLocalEndpoint().GetIPEndpoint().GetIPAddress().GetBinary(),
+																   m_Socket.GetLocalEndpoint().GetIPEndpoint().GetPort()))
 									{
 										SetStatus(Status::Ready);
 									}

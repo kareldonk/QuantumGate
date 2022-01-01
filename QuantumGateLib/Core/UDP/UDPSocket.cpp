@@ -40,7 +40,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		return m_ConnectCallback();
 	}
 
-	bool Socket::BeginConnect(const IPEndpoint& endpoint) noexcept
+	bool Socket::BeginConnect(const Endpoint& endpoint) noexcept
 	{
 		assert(GetIOStatus().IsOpen());
 
@@ -49,7 +49,7 @@ namespace QuantumGate::Implementation::Core::UDP
 		m_ConnectionData->WithUniqueLock([&](auto& data)
 		{
 			data.SetConnectRequest();
-			data.SetPeerEndpoint(endpoint);
+			data.SetPeerEndpoint(endpoint.GetIPEndpoint());
 		});
 
 		UpdateSocketInfo();

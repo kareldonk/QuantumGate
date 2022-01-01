@@ -178,7 +178,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	}
 
 	bool Manager::Connect(const PeerLUID in_peer, const PeerLUID out_peer,
-						  const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hops) noexcept
+						  const Endpoint& endpoint, const RelayPort rport, const RelayHop hops) noexcept
 	{
 		assert(IsRunning());
 
@@ -222,7 +222,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			const auto position = (rcevent.Hop == 0) ? Position::End : Position::Between;
 
 			auto rlths = std::make_unique<Link_ThS>(rcevent.Origin.PeerLUID, out_peer,
-													rcevent.Endpoint, rcevent.Port, rcevent.Hop, position);
+													rcevent.ConnectEndpoint, rcevent.Port, rcevent.Hop, position);
 
 			{
 				auto rl = rlths->WithUniqueLock();
@@ -269,7 +269,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			try
 			{
-				m_ThreadPool.GetData().RelayPortToThreadKeys.WithUniqueLock([&](RelayPortToThreadKeyMap& ports)
+				m_ThreadPool.GetData().RelayPortToThreadKeys.WithUniqueLock([&](RelayPortToThreadKeyMap& ports) noexcept
 				{
 					// Add a relationship between RelayPort and ThreadKey so we can
 					// lookup which thread handles events for a certain port
@@ -320,7 +320,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			if (const auto it = ports.find(rport); it != ports.end())
 			{
-				m_ThreadPool.GetData().ThreadKeyToLinkTotals.WithUniqueLock([&](ThreadKeyToLinkTotalMap& link_totals)
+				m_ThreadPool.GetData().ThreadKeyToLinkTotals.WithUniqueLock([&](ThreadKeyToLinkTotalMap& link_totals) noexcept
 				{
 					if (const auto ltit = link_totals.find(it->second); ltit != link_totals.end())
 					{
@@ -435,7 +435,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 		try
 		{
-			m_RelayLinks.WithUniqueLock([&](LinkMap& relays)
+			m_RelayLinks.WithUniqueLock([&](LinkMap& relays) noexcept
 			{
 				const auto result = relays.insert({ rport, std::move(rl) });
 				if (result.second)
@@ -462,7 +462,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	{
 		try
 		{
-			m_RelayLinks.WithUniqueLock([&](LinkMap& relays)
+			m_RelayLinks.WithUniqueLock([&](LinkMap& relays) noexcept
 			{
 				for (auto rport : rlist)
 				{
@@ -577,7 +577,7 @@ namespace QuantumGate::Implementation::Core::Relay
 	}
 
 	void Manager::DeterioratePeerReputation(const PeerLUID pluid,
-											const Access::IPReputationUpdate rep_update) const noexcept
+											const Access::AddressReputationUpdate rep_update) const noexcept
 	{
 		if (auto orig_peer = GetPeerManager().Get(pluid); orig_peer != nullptr)
 		{
@@ -785,11 +785,11 @@ namespace QuantumGate::Implementation::Core::Relay
 		if (event.has_value())
 		{
 			std::visit(Util::Overloaded{
-				[&](auto& revent)
+				[&](auto& revent) noexcept
 				{
 					ProcessRelayEvent(revent);
 				},
-				[&](Events::RelayData& revent)
+				[&](Events::RelayData& revent) noexcept
 				{
 					if (ProcessRelayEvent(revent) == RelayEventProcessResult::Retry)
 					{
@@ -852,7 +852,7 @@ namespace QuantumGate::Implementation::Core::Relay
 		return false;
 	}
 
-	bool Manager::OnRelayStatusUpdate(Link& rl,
+	bool Manager::OnRelayStatusUpdate(const Link& rl,
 									  Peer::Peer_ThS::UniqueLockedType& in_peer,
 									  Peer::Peer_ThS::UniqueLockedType& out_peer,
 									  const Status prev_status) noexcept
@@ -882,7 +882,7 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	bool Manager::ProcessRelayConnect(Link& rl,
 									  Peer::Peer_ThS::UniqueLockedType& in_peer,
-									  Peer::Peer_ThS::UniqueLockedType& out_peer)
+									  Peer::Peer_ThS::UniqueLockedType& out_peer) noexcept
 	{
 		assert(rl.GetStatus() == Status::Connect);
 
@@ -1312,9 +1312,9 @@ namespace QuantumGate::Implementation::Core::Relay
 
 	Manager::RelayEventProcessResult Manager::ProcessRelayEvent(const Events::Connect& connect_event) noexcept
 	{
-		// Increase relay connection attempts for this IP; if attempts get too high
-		// for a given interval the IP will get a bad reputation and this will fail
-		if (!GetAccessManager().AddIPRelayConnectionAttempt(connect_event.Origin.PeerEndpoint.GetIPAddress()))
+		// Increase relay connection attempts for this address; if attempts get too high
+		// for a given interval the address will get a bad reputation and this will fail
+		if (!GetAccessManager().AddRelayConnectionAttempt(connect_event.Origin.PeerEndpoint))
 		{
 			LogWarn(L"Relay link from peer %s (LUID %llu) was rejected; maximum number of allowed attempts exceeded",
 					connect_event.Origin.PeerEndpoint.GetString().c_str(), connect_event.Origin.PeerLUID);
@@ -1355,24 +1355,22 @@ namespace QuantumGate::Implementation::Core::Relay
 		{
 			try
 			{
-				const auto excl_addr1 = m_PeerManager.GetLocalIPAddresses();
+				const auto excl_addr1 = m_PeerManager.GetLocalAddresses();
 				if (excl_addr1 != nullptr)
 				{
-					Vector<BinaryIPAddress> excl_addr2{ connect_event.Origin.PeerEndpoint.GetIPAddress().GetBinary() };
+					Vector<Network::Address> excl_addr2{ connect_event.Origin.PeerEndpoint };
 
 					// Don't include addresses/network of local instance
-					const auto result1 = m_PeerManager.AreRelayIPsInSameNetwork(connect_event.Endpoint.GetIPAddress().GetBinary(),
-																		  *excl_addr1);
+					const auto result1 = m_PeerManager.AreRelayAddressesInSameNetwork(connect_event.ConnectEndpoint, *excl_addr1);
 					// Don't include origin address/network
-					const auto result2 = m_PeerManager.AreRelayIPsInSameNetwork(connect_event.Endpoint.GetIPAddress().GetBinary(),
-																		  excl_addr2);
+					const auto result2 = m_PeerManager.AreRelayAddressesInSameNetwork(connect_event.ConnectEndpoint, excl_addr2);
 
 					if (result1.Succeeded() && result2.Succeeded())
 					{
 						if (!result1.GetValue() && !result2.GetValue())
 						{
 							// Connect to a specific endpoint for final hop 0
-							const auto result2 = m_PeerManager.ConnectTo({ connect_event.Endpoint }, nullptr);
+							const auto result2 = m_PeerManager.ConnectTo({ connect_event.ConnectEndpoint }, nullptr);
 							if (result2.Succeeded())
 							{
 								out_peer = result2->first;
@@ -1381,7 +1379,7 @@ namespace QuantumGate::Implementation::Core::Relay
 							else
 							{
 								LogErr(L"Couldn't connect to final endpoint %s for relay port %llu",
-									   connect_event.Endpoint.GetString().c_str(), connect_event.Port);
+									   connect_event.ConnectEndpoint.GetString().c_str(), connect_event.Port);
 
 								if (result2 == ResultCode::NotAllowed)
 								{
@@ -1410,15 +1408,15 @@ namespace QuantumGate::Implementation::Core::Relay
 			try
 			{
 				// Don't include addresses/network of local instance
-				const auto excl_addr1 = m_PeerManager.GetLocalIPAddresses();
+				const auto excl_addr1 = m_PeerManager.GetLocalAddresses();
 				if (excl_addr1 != nullptr)
 				{
-					Vector<BinaryIPAddress> excl_addr2
+					Vector<Network::Address> excl_addr2
 					{
 						// Don't include origin address/network
-						connect_event.Origin.PeerEndpoint.GetIPAddress().GetBinary(),
+						connect_event.Origin.PeerEndpoint,
 						// Don't include the final endpoint/network
-						connect_event.Endpoint.GetIPAddress().GetBinary()
+						connect_event.ConnectEndpoint
 					};
 
 					const auto result = m_PeerManager.GetRelayPeer(*excl_addr1, excl_addr2);
@@ -1820,7 +1818,7 @@ namespace QuantumGate::Implementation::Core::Relay
 			LogErr(L"Peer LUID %llu sent relay data for unrelated port %llu",
 				   event.Origin.PeerLUID, event.Port);
 
-			DeterioratePeerReputation(event.Origin.PeerLUID, Access::IPReputationUpdate::DeteriorateSevere);
+			DeterioratePeerReputation(event.Origin.PeerLUID, Access::AddressReputationUpdate::DeteriorateSevere);
 			return false;
 		}
 

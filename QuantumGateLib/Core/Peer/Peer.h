@@ -23,7 +23,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	enum class DisconnectCondition
 	{
 		None, Unknown, GeneralFailure, SocketError, ConnectError, TimedOutError, ReceiveError, SendError,
-		UnknownMessageError, DisconnectRequest, IPNotAllowed, PeerNotAllowed
+		UnknownMessageError, DisconnectRequest, AddressNotAllowed, PeerNotAllowed
 	};
 
 	class Peer final : public Gate
@@ -58,7 +58,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		Peer() = delete;
 		Peer(Manager& peers, const GateType pgtype, const PeerConnectionType pctype,
 			 std::optional<ProtectedBuffer>&& shared_secret);
-		Peer(Manager& peers, const IP::AddressFamily af, const IP::Protocol protocol, const PeerConnectionType pctype,
+		Peer(Manager& peers, const AddressFamily af, const Protocol protocol, const PeerConnectionType pctype,
 			 std::optional<ProtectedBuffer>&& shared_secret);
 		Peer(const Peer&) = delete;
 		Peer(Peer&&) noexcept = default;
@@ -82,7 +82,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			return m_PeerData.WithSharedLock()->LUID;
 		}
 
-		static PeerLUID MakeLUID(const IPEndpoint& endpoint, const UInt64 unique_data) noexcept;
+		static PeerLUID MakeLUID(const Endpoint& endpoint, const UInt64 unique_data) noexcept;
 
 		inline PeerConnectionType GetConnectionType() const noexcept { return m_PeerData.WithSharedLock()->Type; }
 
@@ -179,8 +179,8 @@ namespace QuantumGate::Implementation::Core::Peer
 		void SetPeerMessageCounter(const UInt8 counter) noexcept;
 		[[nodiscard]] std::optional<UInt8> GetNextPeerMessageCounter() noexcept;
 
-		[[nodiscard]] SerializedIPEndpoint GetPublicIPEndpointToReport() const noexcept;
-		[[nodiscard]] bool AddReportedPublicIPEndpoint(const SerializedIPEndpoint& pub_endpoint) noexcept;
+		[[nodiscard]] SerializedEndpoint GetPublicEndpointToReport() const noexcept;
+		[[nodiscard]] bool AddReportedPublicEndpoint(const SerializedEndpoint& pub_endpoint) noexcept;
 
 		[[nodiscard]] const Extender::ActiveExtenderUUIDs& GetLocalExtenderUUIDs() noexcept;
 		[[nodiscard]] inline ExtenderUUIDs& GetPeerExtenderUUIDs() noexcept { return m_PeerExtenderUUIDs; }
@@ -199,7 +199,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		[[nodiscard]] bool CheckStatus(const bool noise_enabled, const SteadyTime current_steadytime,
 									   const std::chrono::seconds max_connect_duration, std::chrono::seconds max_handshake_duration) noexcept;
 
-		void UpdateReputation(const Access::IPReputationUpdate rep_update) noexcept;
+		void UpdateReputation(const Access::AddressReputationUpdate rep_update) noexcept;
 
 		[[nodiscard]] bool HasPendingEvents(const SteadyTime current_steadytime) noexcept;
 		[[nodiscard]] bool ProcessEvents(const SteadyTime current_steadytime);
@@ -228,7 +228,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 		Extender::Manager& GetExtenderManager() const noexcept;
 
-		[[nodiscard]] bool OnStatusChange(const Status old_status, const Status new_status);
+		[[nodiscard]] bool OnStatusChange(const Status old_status, const Status new_status) noexcept;
 
 		[[nodiscard]] bool SendFromNoiseQueue(const Settings& settings) noexcept;
 
@@ -251,18 +251,18 @@ namespace QuantumGate::Implementation::Core::Peer
 				(m_SendBuffer.IsEventSet() || m_SendQueues.HaveMessages()));
 		}
 
-		[[nodiscard]] bool SendFromQueues(const Settings& settings);
+		[[nodiscard]] bool SendFromQueues(const Settings& settings) noexcept;
 
 		[[nodiscard]] inline MessageRateLimits& GetMessageRateLimits() noexcept { return m_RateLimits; }
 
-		[[nodiscard]] bool ProcessFromReceiveQueues(const Settings& settings);
-		[[nodiscard]] bool ReceiveAndProcess(const Settings& settings);
-		[[nodiscard]] std::tuple<bool, Size, UInt16> ProcessMessageTransport(const BufferView msgbuf, const Settings& settings);
-		[[nodiscard]] std::pair<bool, Size> ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey);
+		[[nodiscard]] bool ProcessFromReceiveQueues(const Settings& settings) noexcept;
+		[[nodiscard]] bool ReceiveAndProcess(const Settings& settings) noexcept;
+		[[nodiscard]] std::tuple<bool, Size, UInt16> ProcessMessageTransport(const BufferView msgbuf, const Settings& settings) noexcept;
+		[[nodiscard]] std::pair<bool, Size> ProcessMessages(BufferView buffer, const Crypto::SymmetricKeyData& symkey) noexcept;
 
 		[[nodiscard]] PeerReceiveQueues& GetReceiveQueues() noexcept { return m_ReceiveQueues; }
 		[[nodiscard]] bool QueueOrProcessReceivedMessage(Message&& msg) noexcept;
-		[[nodiscard]] bool ProcessMessage(Message& msg);
+		[[nodiscard]] bool ProcessMessage(Message& msg) noexcept;
 		[[nodiscard]] MessageProcessor::Result ProcessMessage(MessageDetails&& msg) noexcept;
 
 		void ProcessEvent(const Event::Type etype) noexcept;

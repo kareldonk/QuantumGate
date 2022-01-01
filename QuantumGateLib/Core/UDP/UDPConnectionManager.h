@@ -69,7 +69,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		void Shutdown() noexcept;
 		[[nodiscard]] inline bool IsRunning() const noexcept { return m_Running; }
 
-		[[nodiscard]] bool AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
+		[[nodiscard]] bool AddConnection(const Network::AddressFamily af, const PeerConnectionType type,
 										 const ConnectionID id, const Message::SequenceNumber seqnum,
 										 ProtectedBuffer&& handshake_data, Socket& socket,
 										 std::optional<ProtectedBuffer>&& shared_secret) noexcept;

@@ -9,6 +9,10 @@
 
 #include "StackBuffer.h"
 #include "..\Common\Endian.h"
+#include "..\Network\SerializedBinaryIPAddress.h"
+#include "..\Network\SerializedBinaryBTHAddress.h"
+#include "..\Network\SerializedBTHEndpoint.h"
+#include "..\Network\SerializedIPEndpoint.h"
 
 #include <limits>
 
@@ -59,15 +63,35 @@ namespace QuantumGate::Implementation::Memory
 		const Size m_Size{ 0 };
 	};
 
-	class Export BufferIO
+	namespace BufferIO
 	{
-	public:
+		template<typename T>
+		concept Sizeable = requires(T v)
+		{
+			{ v.GetDataSize() } -> std::same_as<Size>;
+		};
+
+		template<typename T, typename R>
+		concept Readable = requires(T v, R& x)
+		{
+			{ v.Read(x) } -> std::same_as<bool>;
+				requires Sizeable<T>;
+		};
+
+		template<typename T, typename W>
+		concept Writable = requires(T v, W& x)
+		{
+			{ v.Write(x) } -> std::same_as<bool>;
+				requires Sizeable<T>;
+		};
+
 		template<typename T>
 		class SizeWrap final
 		{
 		public:
 			SizeWrap(T& data, const Size maxsize) noexcept :
-				m_Data(data), m_MaxSize(maxsize) {}
+				m_Data(data), m_MaxSize(maxsize)
+			{}
 
 			const Size MaxSize() const noexcept { return m_MaxSize; }
 
@@ -79,32 +103,17 @@ namespace QuantumGate::Implementation::Memory
 			const Size m_MaxSize{ 0 };
 		};
 
-	public:
-		BufferIO() noexcept = default;
-		BufferIO(const BufferIO&) noexcept = default;
-		BufferIO(BufferIO&&) noexcept = default;
-		virtual ~BufferIO() = default;
-		BufferIO& operator=(const BufferIO&) noexcept = default;
-		BufferIO& operator=(BufferIO&&) noexcept = default;
-
 		// Encoding as also used in Satoshi Nakamoto's Bitcoin code
 		// size < 253 becomes 1 byte
 		// size <= UInt16 becomes 253 + 2 bytes)
 		// size <= UInt32 becomes 254 + 4 bytes)
 		// size > UInt32 becomes 255 + 8 bytes)
-		static constexpr Size GetSizeOfEncodedSize(Size size) noexcept
+		constexpr Size GetSizeOfEncodedSize(Size size) noexcept
 		{
 			if (size < MaxSize::_UINT8 - 2) return sizeof(UInt8);
 			else if (size <= MaxSize::_UINT16) return (sizeof(UInt8) + sizeof(UInt16));
 			else if (size <= MaxSize::_UINT32) return (sizeof(UInt8) + sizeof(UInt32));
 			else return (sizeof(UInt8) + sizeof(UInt64));
-		}
-
-	protected:
-		template<typename... Args>
-		Size GetDataSizes(const Args&... data) noexcept
-		{
-			return (GetDataSize(data) + ...);
 		}
 
 		template<typename T>
@@ -119,6 +128,12 @@ namespace QuantumGate::Implementation::Memory
 		std::enable_if_t<std::is_enum_v<T>, Size> GetDataSize(const T& data) noexcept
 		{
 			return sizeof(std::underlying_type_t<T>);
+		}
+
+		template<typename T> requires (Sizeable<T>)
+		Size GetDataSize(const T& data) noexcept
+		{
+			return data.GetDataSize();
 		}
 
 		template<typename T>
@@ -141,21 +156,29 @@ namespace QuantumGate::Implementation::Memory
 			const auto size = GetDataSize(*data);
 			return (GetSizeOfEncodedSize(size) + size);
 		}
-	};
 
-	// Specializations
-	template<> Export Size BufferIO::GetDataSize(const BufferSpan& data) noexcept;
-	template<> Export Size BufferIO::GetDataSize(const BufferView& data) noexcept;
-	template<> Export Size BufferIO::GetDataSize(const String& data) noexcept;
-	template<> Export Size BufferIO::GetDataSize(const Network::SerializedBinaryIPAddress& data) noexcept;
-	template<> Export Size BufferIO::GetDataSize(const Network::SerializedIPEndpoint& data) noexcept;
-	template<> Export Size BufferIO::GetDataSize(const SerializedUUID& data) noexcept;
-	template<> Export Size BufferIO::GetDataSize(const Buffer& data) noexcept;
-	template<> Export Size BufferIO::GetDataSize(const ProtectedBuffer& data) noexcept;
+		// Specializations
+		template<> Export Size GetDataSize(const BufferSpan& data) noexcept;
+		template<> Export Size GetDataSize(const BufferView& data) noexcept;
+		template<> Export Size GetDataSize(const String& data) noexcept;
+		template<> Export Size GetDataSize(const Network::SerializedBinaryIPAddress& data) noexcept;
+		template<> Export Size GetDataSize(const Network::SerializedBinaryBTHAddress& data) noexcept;
+		template<> Export Size GetDataSize(const Network::SerializedIPEndpoint& data) noexcept;
+		template<> Export Size GetDataSize(const Network::SerializedBTHEndpoint& data) noexcept;
+		template<> Export Size GetDataSize(const SerializedUUID& data) noexcept;
+		template<> Export Size GetDataSize(const Buffer& data) noexcept;
+		template<> Export Size GetDataSize(const ProtectedBuffer& data) noexcept;
+
+		template<typename... Args>
+		Size GetDataSizes(const Args&... data) noexcept
+		{
+			return (GetDataSize(data) + ...);
+		}
+	}
 
 	// Helper function
 	template<typename T>
-	static const BufferIO::SizeWrap<T> WithSize(T& data, const MaxSize maxsize) noexcept
+	const BufferIO::SizeWrap<T> WithSize(T& data, const MaxSize maxsize) noexcept
 	{
 		return { data, maxsize.GetSize() };
 	}

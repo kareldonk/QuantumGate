@@ -105,7 +105,7 @@
     <ClInclude Include="CEndpointDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CIPReputationsDlg.h">
+    <ClInclude Include="CAddressReputationsDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CInformationDlg.h">
@@ -275,7 +275,7 @@
     <ClCompile Include="CEndpointDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CIPReputationsDlg.cpp">
+    <ClCompile Include="CAddressReputationsDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CInformationDlg.cpp">

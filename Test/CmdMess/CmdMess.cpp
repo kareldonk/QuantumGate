@@ -425,7 +425,7 @@ void QueryPeers(const std::wstring& verb)
 					output += L" ";
 					output += PadRight(Util::FormatString(L"%s", result3->IsRelayed ? L"Yes" : L"No"), columns[3].Len);
 					output += L" ";
-					output += PadRight(Util::FormatString(L"%s", result3->PeerIPEndpoint.GetString().c_str()), columns[4].Len);
+					output += PadRight(Util::FormatString(L"%s", result3->PeerEndpoint.GetString().c_str()), columns[4].Len);
 				}
 			});
 		}

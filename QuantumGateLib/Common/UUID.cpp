@@ -52,7 +52,7 @@ namespace QuantumGate::Implementation
 	String UUID::GetString() const noexcept
 	{
 		const auto data4_bytes = reinterpret_cast<const Byte*>(&m_Data4);
-		return Util::FormatString(L"%.8x-%.4x-%.4x-%.2x%.2x-%.2x%.2x%.2x%.2x%.2x%.2x",
+		return Util::FormatString(L"%.8X-%.4X-%.4X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X",
 								  Endian::ToNetworkByteOrder(m_Data1), Endian::ToNetworkByteOrder(m_Data2),
 								  Endian::ToNetworkByteOrder(m_Data3), data4_bytes[0], data4_bytes[1],
 								  data4_bytes[2], data4_bytes[3], data4_bytes[4],
@@ -201,7 +201,7 @@ namespace QuantumGate::Implementation
 			{
 				// Looks for UUID in the format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
 				// such as "3df5b8e4-50d2-48c5-8c23-c544f0f0653e"
-				std::wregex r(LR"uuid(^\s*([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})\s*$)uuid",
+				std::wregex r(LR"uuid(^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$)uuid",
 							  std::regex_constants::icase);
 				std::wcmatch m;
 				if (std::regex_search(uuid, m, r))

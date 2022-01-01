@@ -27,7 +27,7 @@ namespace QuantumGate::API::Access
 		Size MaximumConnections{ 0 };
 	};
 
-	struct IPReputation
+	struct AddressReputation
 	{
 		struct ScoreLimits final
 		{
@@ -36,14 +36,14 @@ namespace QuantumGate::API::Access
 			static constexpr const Int16 Maximum{ 100 };
 		};
 
-		IPAddress Address;
+		Address Address;
 		Int16 Score{ ScoreLimits::Minimum };
 		std::optional<Time> LastUpdateTime;
 	};
 
 	enum class CheckType : UInt16
 	{
-		IPFilters, IPReputations, IPSubnetLimits, All
+		AddressReputations, IPFilters, IPSubnetLimits, All
 	};
 
 	enum class PeerAccessDefault : UInt16
@@ -98,16 +98,16 @@ namespace QuantumGate::API::Access
 
 		Result<Vector<IPSubnetLimit>> GetAllIPSubnetLimits() const noexcept;
 
-		Result<> SetIPReputation(const IPReputation& ip_rep) noexcept;
-		Result<> ResetIPReputation(const WChar* ip_str) noexcept;
-		Result<> ResetIPReputation(const String& ip_str) noexcept;
-		Result<> ResetIPReputation(const IPAddress& ip) noexcept;
-		void ResetAllIPReputations() noexcept;
-		Result<Vector<IPReputation>> GetAllIPReputations() const noexcept;
+		Result<> SetAddressReputation(const AddressReputation& addr_rep) noexcept;
+		Result<> ResetAddressReputation(const WChar* addr_str) noexcept;
+		Result<> ResetAddressReputation(const String& addr_str) noexcept;
+		Result<> ResetAddressReputation(const Address& addr) noexcept;
+		void ResetAllAddressReputations() noexcept;
+		Result<Vector<AddressReputation>> GetAllAddressReputations() const noexcept;
 
-		Result<bool> GetIPAllowed(const WChar* ip_str, const CheckType check) const noexcept;
-		Result<bool> GetIPAllowed(const String& ip_str, const CheckType check) const noexcept;
-		Result<bool> GetIPAllowed(const IPAddress& ip, const CheckType check) const noexcept;
+		Result<bool> GetAddressAllowed(const WChar* addr_str, const CheckType check) const noexcept;
+		Result<bool> GetAddressAllowed(const String& addr_str, const CheckType check) const noexcept;
+		Result<bool> GetAddressAllowed(const Address& addr, const CheckType check) const noexcept;
 
 		Result<> AddPeer(PeerSettings&& pas) noexcept;
 		Result<> UpdatePeer(PeerSettings&& pas) noexcept;

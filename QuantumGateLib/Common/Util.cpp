@@ -10,22 +10,47 @@
 #include <openssl/evp.h>
 #include <openssl/buffer.h>
 
+#include <combaseapi.h>
+
 namespace QuantumGate::Implementation::Util
 {
-	Export bool GetCurrentLocalTime(const WChar* format, std::array<WChar, 128>& timestr) noexcept
+	Export bool TimeToString(const Time& time, const WChar* format, std::array<WChar, 128>& timestr) noexcept
 	{
-		const Time time = std::time(nullptr);
+		tm time_tm{ 0 };
+
+		if (gmtime_s(&time_tm, &time) == 0)
+		{
+			return TimeToString(time_tm, format, timestr);
+		}
+
+		return false;
+	}
+
+	Export bool TimeToString(const tm& time, const WChar* format, std::array<WChar, 128>& timestr) noexcept
+	{
+		if (std::wcsftime(timestr.data(), timestr.size(), format, &time) != 0)
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	Export bool TimeToLocalTimeString(const Time& time, const WChar* format, std::array<WChar, 128>& timestr) noexcept
+	{
 		tm time_tm{ 0 };
 
 		if (localtime_s(&time_tm, &time) == 0)
 		{
-			if (std::wcsftime(timestr.data(), timestr.size(), format, &time_tm) != 0)
-			{
-				return true;
-			}
+			return TimeToString(time_tm, format, timestr);
 		}
 
 		return false;
+	}
+
+	Export bool GetCurrentLocalTime(const WChar* format, std::array<WChar, 128>& timestr) noexcept
+	{
+		return TimeToLocalTimeString(std::time(nullptr), format, timestr);
 	}
 
 	Export String GetCurrentLocalTime(const WChar* format) noexcept
@@ -57,6 +82,29 @@ namespace QuantumGate::Implementation::Util
 	SystemTime ToTime(const Time& time) noexcept
 	{
 		return std::chrono::system_clock::from_time_t(time);
+	}
+
+	SystemTime ToTime(const SYSTEMTIME& stime) noexcept
+	{
+		SYSTEMTIME stime2{ 0 };
+
+		if (SystemTimeToTzSpecificLocalTime(nullptr, &stime, &stime2))
+		{
+			tm time_tm{ 0 };
+
+			time_tm.tm_year = stime2.wYear - 1900;
+			time_tm.tm_mon = stime2.wMonth - 1;
+			time_tm.tm_mday = stime2.wDay;
+
+			time_tm.tm_hour = stime2.wHour;
+			time_tm.tm_min = stime2.wMinute;
+			time_tm.tm_sec = stime2.wSecond;
+			time_tm.tm_isdst = -1;
+
+			return std::chrono::system_clock::from_time_t(mktime(&time_tm));
+		}
+
+		return {};
 	}
 
 	Time ToTimeT(const SystemTime& time) noexcept
@@ -367,6 +415,14 @@ namespace QuantumGate::Implementation::Util
 		return std::nullopt;
 	}
 
+	String ToString(const GUID& guid) noexcept
+	{
+		return Util::FormatString(L"{%.8X-%.4X-%.4X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X}",
+								  guid.Data1, guid.Data2, guid.Data3,
+								  guid.Data4[0], guid.Data4[1], guid.Data4[2],
+								  guid.Data4[3], guid.Data4[4], guid.Data4[5],
+								  guid.Data4[6], guid.Data4[7]);
+	}
 
 	Export UInt64 GetNonPersistentHash(const String& txt) noexcept
 	{

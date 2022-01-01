@@ -12,12 +12,12 @@ Attacks::ThreadData Attacks::m_ConnectGarbageData;
 Attacks::ThreadData Attacks::m_ConnectData;
 Attacks::ThreadData Attacks::m_ConnectWaitData;
 
-bool Attacks::StartConnectGarbageAttack(const CString& ip, const UInt16 port)
+bool Attacks::StartConnectGarbageAttack(const Endpoint& endpoint)
 {
 	if (!m_ConnectGarbageData.Thread.joinable())
 	{
 		m_ConnectGarbageData.Stop = false;
-		m_ConnectGarbageData.Thread = std::thread(Attacks::ConnectGarbageThreadProc, ip, port);
+		m_ConnectGarbageData.Thread = std::thread(Attacks::ConnectGarbageThreadProc, endpoint);
 		return true;
 	}
 
@@ -38,14 +38,13 @@ bool Attacks::IsConnectGarbageAttackRunning() noexcept
 	return m_ConnectGarbageData.Thread.joinable();
 }
 
-void Attacks::ConnectGarbageThreadProc(const CString ip, const UInt16 port)
+void Attacks::ConnectGarbageThreadProc(const Endpoint& endpoint)
 {
-	LogWarn(L"ConnectGarbage: attack starting for endpoint %s:%u...", ip.GetString(), port);
+	LogWarn(L"ConnectGarbage: attack starting for endpoint %s...", endpoint.GetString().c_str());
 
 	while (!m_ConnectGarbageData.Stop)
 	{
-		const IPEndpoint endpoint(IPEndpoint::Protocol::TCP, IPAddress((LPCWSTR)ip), port);
-		AttackSocket socket(endpoint.GetIPAddress().GetFamily(), AttackSocket::Type::Stream, IP::Protocol::TCP);
+		AttackSocket socket(endpoint.GetAddressFamily(), AttackSocket::Type::Stream, endpoint.GetProtocol());
 
 		if (socket.BeginConnect(endpoint))
 		{
@@ -101,15 +100,15 @@ void Attacks::ConnectGarbageThreadProc(const CString ip, const UInt16 port)
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
-	LogWarn(L"ConnectGarbage: stopping attack on endpoint %s:%u...", ip.GetString(), port);
+	LogWarn(L"ConnectGarbage: stopping attack on endpoint %s...", endpoint.GetString().c_str());
 }
 
-bool Attacks::StartConnectAttack(const CString& ip, const UInt16 port)
+bool Attacks::StartConnectAttack(const Endpoint& endpoint)
 {
 	if (!m_ConnectData.Thread.joinable())
 	{
 		m_ConnectData.Stop = false;
-		m_ConnectData.Thread = std::thread(Attacks::ConnectThreadProc, ip, port);
+		m_ConnectData.Thread = std::thread(Attacks::ConnectThreadProc, endpoint);
 		return true;
 	}
 
@@ -130,14 +129,13 @@ bool Attacks::IsConnectAttackRunning() noexcept
 	return m_ConnectData.Thread.joinable();
 }
 
-void Attacks::ConnectThreadProc(const CString ip, const UInt16 port)
+void Attacks::ConnectThreadProc(const Endpoint& endpoint)
 {
-	LogWarn(L"ConnectAttack: attack starting for endpoint %s:%u...", ip.GetString(), port);
+	LogWarn(L"ConnectAttack: attack starting for endpoint %s...", endpoint.GetString().c_str());
 
 	while (!m_ConnectData.Stop)
 	{
-		const IPEndpoint endpoint(IPEndpoint::Protocol::TCP, IPAddress((LPCWSTR)ip), port);
-		AttackSocket socket(endpoint.GetIPAddress().GetFamily(), AttackSocket::Type::Stream, IP::Protocol::TCP);
+		AttackSocket socket(endpoint.GetAddressFamily(), AttackSocket::Type::Stream, endpoint.GetProtocol());
 
 		if (socket.BeginConnect(endpoint))
 		{
@@ -179,15 +177,15 @@ void Attacks::ConnectThreadProc(const CString ip, const UInt16 port)
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
-	LogWarn(L"ConnectAttack: stopping attack on endpoint %s:%u...", ip.GetString(), port);
+	LogWarn(L"ConnectAttack: stopping attack on endpoint %s...", endpoint.GetString().c_str());
 }
 
-bool Attacks::StartConnectWaitAttack(const CString& ip, const UInt16 port)
+bool Attacks::StartConnectWaitAttack(const Endpoint& endpoint)
 {
 	if (!m_ConnectWaitData.Thread.joinable())
 	{
 		m_ConnectWaitData.Stop = false;
-		m_ConnectWaitData.Thread = std::thread(Attacks::ConnectWaitThreadProc, ip, port);
+		m_ConnectWaitData.Thread = std::thread(Attacks::ConnectWaitThreadProc, endpoint);
 		return true;
 	}
 
@@ -208,14 +206,13 @@ bool Attacks::IsConnectWaitAttackRunning() noexcept
 	return m_ConnectWaitData.Thread.joinable();
 }
 
-void Attacks::ConnectWaitThreadProc(const CString ip, const UInt16 port)
+void Attacks::ConnectWaitThreadProc(const Endpoint& endpoint)
 {
-	LogWarn(L"ConnectWaitAttack: attack starting for endpoint %s:%u...", ip.GetString(), port);
+	LogWarn(L"ConnectWaitAttack: attack starting for endpoint %s...", endpoint.GetString().c_str());
 
 	while (!m_ConnectWaitData.Stop)
 	{
-		const IPEndpoint endpoint(IPEndpoint::Protocol::TCP, IPAddress((LPCWSTR)ip), port);
-		AttackSocket socket(endpoint.GetIPAddress().GetFamily(), AttackSocket::Type::Stream, IP::Protocol::TCP);
+		AttackSocket socket(endpoint.GetAddressFamily(), AttackSocket::Type::Stream, endpoint.GetProtocol());
 
 		if (socket.BeginConnect(endpoint))
 		{
@@ -261,5 +258,5 @@ void Attacks::ConnectWaitThreadProc(const CString ip, const UInt16 port)
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
-	LogWarn(L"ConnectWaitAttack: stopping attack on endpoint %s:%u...", ip.GetString(), port);
+	LogWarn(L"ConnectWaitAttack: stopping attack on endpoint %s...", endpoint.GetString().c_str());
 }

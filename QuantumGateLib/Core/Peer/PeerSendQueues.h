@@ -54,7 +54,7 @@ namespace QuantumGate::Implementation::Core::Peer
 							const std::chrono::milliseconds delay, SendCallback&& callback) noexcept;
 
 		[[nodiscard]] std::pair<bool, Size> GetMessages(Buffer& buffer, const Crypto::SymmetricKeyData& symkey,
-														const bool concatenate);
+														const bool concatenate) noexcept;
 
 		[[nodiscard]] Size GetAvailableExtenderCommunicationBufferSize() const noexcept;
 		[[nodiscard]] Size GetAvailableRelayDataBufferSize() const noexcept;

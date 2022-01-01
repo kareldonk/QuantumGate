@@ -59,16 +59,16 @@ namespace QuantumGate::Implementation::Core::Relay
 		[[nodiscard]] inline const Concurrency::Event& GetSendEvent() const noexcept { return m_SendEvent; }
 
 		[[nodiscard]] bool BeginAccept(const RelayPort rport, const RelayHop hop,
-									   const IPEndpoint& lendpoint, const IPEndpoint& pendpoint) noexcept;
+									   const Endpoint& lendpoint, const Endpoint& pendpoint) noexcept;
 		[[nodiscard]] bool CompleteAccept() noexcept;
 
-		[[nodiscard]] bool BeginConnect(const IPEndpoint& endpoint) noexcept override;
+		[[nodiscard]] bool BeginConnect(const Endpoint& endpoint) noexcept override;
 		[[nodiscard]] bool CompleteConnect() noexcept override;
 
 		[[nodiscard]] Result<Size> Send(const BufferView& buffer, const Size max_snd_size = 0) noexcept override;
-		[[nodiscard]] Result<Size> SendTo(const IPEndpoint& endpoint, const BufferView& buffer, const Size max_snd_size = 0) noexcept override { return ResultCode::Failed; }
+		[[nodiscard]] Result<Size> SendTo(const Endpoint& endpoint, const BufferView& buffer, const Size max_snd_size = 0) noexcept override { return ResultCode::Failed; }
 		[[nodiscard]] Result<Size> Receive(Buffer& buffer, const Size max_rcv_size = 0) noexcept override;
-		[[nodiscard]] Result<Size> ReceiveFrom(IPEndpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override { return ResultCode::Failed; }
+		[[nodiscard]] Result<Size> ReceiveFrom(Endpoint& endpoint, Buffer& buffer, const Size max_rcv_size = 0) noexcept override { return ResultCode::Failed; }
 
 		void Close(const bool linger = false) noexcept override;
 
@@ -84,14 +84,10 @@ namespace QuantumGate::Implementation::Core::Relay
 		[[nodiscard]] inline Size GetBytesReceived() const noexcept override { return m_BytesReceived; }
 		[[nodiscard]] inline Size GetBytesSent() const noexcept override { return m_BytesSent; }
 
-		[[nodiscard]] inline const IPEndpoint& GetLocalEndpoint() const noexcept override { return m_LocalEndpoint; }
-		[[nodiscard]] inline const IPAddress& GetLocalIPAddress() const noexcept override { return m_LocalEndpoint.GetIPAddress(); }
+		[[nodiscard]] inline const Endpoint& GetLocalEndpoint() const noexcept override { return m_LocalEndpoint; }
 		[[nodiscard]] inline String GetLocalName() const noexcept override { return m_LocalEndpoint.GetString(); }
-		[[nodiscard]] inline UInt32 GetLocalPort() const noexcept override { return m_LocalEndpoint.GetPort(); }
 
-		[[nodiscard]] inline const IPEndpoint& GetPeerEndpoint() const noexcept override { return m_PeerEndpoint; }
-		[[nodiscard]] inline const IPAddress& GetPeerIPAddress() const noexcept override { return m_PeerEndpoint.GetIPAddress(); }
-		[[nodiscard]] inline UInt32 GetPeerPort() const noexcept override { return m_PeerEndpoint.GetPort(); }
+		[[nodiscard]] inline const Endpoint& GetPeerEndpoint() const noexcept override { return m_PeerEndpoint; }
 		[[nodiscard]] inline String GetPeerName() const noexcept override { return m_PeerEndpoint.GetString(); }
 
 		inline void SetConnectingCallback(ConnectingCallback&& callback) noexcept override
@@ -115,7 +111,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		}
 
 	private:
-		void SetLocalEndpoint(const IPEndpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept;
+		[[nodiscard]] Endpoint GetRelayEndpoint(const Endpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept;
+		void SetLocalEndpoint(const Endpoint& endpoint, const RelayPort rport, const RelayHop hop) noexcept;
 
 		[[nodiscard]] inline IOBuffer GetSendBuffer() noexcept { return { m_SendBuffer, m_SendEvent }; }
 		[[nodiscard]] inline IOBuffer GetReceiveBuffer() noexcept { return { m_ReceiveBuffer, m_ReceiveEvent }; }
@@ -170,8 +167,8 @@ namespace QuantumGate::Implementation::Core::Relay
 		Size m_BytesReceived{ 0 };
 		Size m_BytesSent{ 0 };
 
-		IPEndpoint m_LocalEndpoint;
-		IPEndpoint m_PeerEndpoint;
+		Endpoint m_LocalEndpoint;
+		Endpoint m_PeerEndpoint;
 
 		SteadyTime m_ConnectedSteadyTime;
 		std::optional<SteadyTime> m_LastSuspendedSteadyTime;

@@ -6,7 +6,6 @@
 #include "..\Common\Random.h"
 #include "..\Common\ScopeGuard.h"
 
-#include <Iphlpapi.h>
 #include <Ipexport.h>
 #include <icmpapi.h>
 #include <winternl.h> //  for IO_STATUS_BLOCK
@@ -224,11 +223,11 @@ namespace QuantumGate::Implementation::Network
 
 			reinterpret_cast<ICMP::EchoMessage*>(icmp_msg.GetBytes())->Header.Checksum = ICMP::CalculateChecksum(icmp_msg);
 
-			Socket socket(IP::AddressFamily::IPv4, Socket::Type::RAW, IP::Protocol::ICMP);
+			Socket socket(AddressFamily::IPv4, Socket::Type::RAW, Protocol::ICMP);
 
 			if (!socket.SetIPTimeToLive(m_TTL)) return false;
 
-			const auto result = socket.SendTo(IPEndpoint(IP::Protocol::ICMP, m_DestinationIPAddress, 0), icmp_msg);
+			const auto result = socket.SendTo(IPEndpoint(IPEndpoint::Protocol::ICMP, m_DestinationIPAddress, 0), icmp_msg);
 			if (result.Succeeded() && *result == icmp_msg.GetSize())
 			{
 				const auto snd_steady_time = Util::GetCurrentSteadyTime();
@@ -239,7 +238,7 @@ namespace QuantumGate::Implementation::Network
 
 					if (socket.GetIOStatus().CanRead())
 					{
-						IPEndpoint endpoint;
+						Endpoint endpoint;
 						Buffer data;
 
 						if (socket.ReceiveFrom(endpoint, data).Succeeded())
@@ -248,7 +247,7 @@ namespace QuantumGate::Implementation::Network
 							{
 								const auto ip_hdr = reinterpret_cast<const IP::Header*>(data.GetBytes());
 
-								if (ip_hdr->Protocol == static_cast<UInt8>(IP::Protocol::ICMP))
+								if (ip_hdr->Protocol == static_cast<UInt8>(Protocol::ICMP))
 								{
 									const auto ttl = ip_hdr->TTL;
 
@@ -274,7 +273,7 @@ namespace QuantumGate::Implementation::Network
 										if (m_Status != Status::Unknown)
 										{
 											m_ResponseTTL = std::chrono::seconds(ttl);
-											m_RespondingIPAddress = endpoint.GetIPAddress().GetBinary();
+											m_RespondingIPAddress = endpoint.GetIPEndpoint().GetIPAddress().GetBinary();
 											m_RoundTripTime = std::chrono::duration_cast<std::chrono::milliseconds>(rcv_steady_time -
 																													snd_steady_time);
 											return true;

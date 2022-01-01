@@ -137,8 +137,8 @@ namespace QuantumGate::Implementation::Core
 		const Buffer& GetMessageData() const noexcept;
 		Buffer&& MoveMessageData() noexcept;
 
-		[[nodiscard]] bool Read(BufferView buffer, const Crypto::SymmetricKeyData& symkey);
-		[[nodiscard]] bool Write(Buffer& buffer, const Crypto::SymmetricKeyData& symkey);
+		[[nodiscard]] bool Read(BufferView buffer, const Crypto::SymmetricKeyData& symkey) noexcept;
+		[[nodiscard]] bool Write(Buffer& buffer, const Crypto::SymmetricKeyData& symkey) noexcept;
 
 		static BufferView GetFromBuffer(BufferView& srcbuf) noexcept;
 

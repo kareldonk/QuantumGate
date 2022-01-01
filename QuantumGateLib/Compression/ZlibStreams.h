@@ -105,6 +105,11 @@ namespace QuantumGate::Implementation::Compression
 		}
 
 	public:
+		[[nodiscard]] static Size GetCompressBound(const Size input_size) noexcept
+		{
+			return compressBound(static_cast<uLong>(input_size));
+		}
+
 		[[nodiscard]] static bool Compress(Byte* outbuffer, Size& outlen, const BufferView& inbuffer) noexcept
 		{
 			assert(outbuffer != nullptr);
@@ -123,11 +128,11 @@ namespace QuantumGate::Implementation::Compression
 				// End zstream when we exit
 				const auto sg = MakeScopeGuard([&]() noexcept { deflateEnd(&zstream); });
 
-				const uInt max = std::numeric_limits<uInt>::max();
+				constexpr uInt max = std::numeric_limits<uInt>::max();
 				Size left = outlen;
 				Size sourcelen = inbuffer.GetSize();
 
-				zstream.next_in = (Bytef*)inbuffer.GetBytes();
+				zstream.next_in = reinterpret_cast<Bytef*>(const_cast<Byte*>(inbuffer.GetBytes()));
 				zstream.avail_in = 0;
 				zstream.next_out = reinterpret_cast<Bytef*>(outbuffer);
 				zstream.avail_out = 0;
@@ -180,7 +185,7 @@ namespace QuantumGate::Implementation::Compression
 				// End zstream when we exit
 				const auto sg = MakeScopeGuard([&]() noexcept { inflateEnd(&zstream); });
 
-				const uInt max = std::numeric_limits<uInt>::max();
+				constexpr uInt max = std::numeric_limits<uInt>::max();
 				Byte buf{ 0 };
 				Size left = outlen;
 				Size sourcelen = inbuffer.GetSize();
@@ -193,7 +198,7 @@ namespace QuantumGate::Implementation::Compression
 					outbuffer = &buf;
 				}
 
-				zstream.next_in = (Bytef*)inbuffer.GetBytes();
+				zstream.next_in = reinterpret_cast<Bytef*>(const_cast<Byte*>(inbuffer.GetBytes()));
 				zstream.avail_in = 0;
 				zstream.next_out = reinterpret_cast<Bytef*>(outbuffer);
 				zstream.avail_out = 0;

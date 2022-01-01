@@ -5,8 +5,6 @@
 #include "PeerMessageProcessor.h"
 #include "PeerManager.h"
 #include "Peer.h"
-#include "..\..\Memory\BufferReader.h"
-#include "..\..\Memory\BufferWriter.h"
 
 using namespace QuantumGate::Implementation::Memory;
 
@@ -108,7 +106,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessage(MessageDetails&& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessage(MessageDetails&& msg) const noexcept
 	{
 		switch (m_Peer.GetStatus())
 		{
@@ -133,7 +131,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return MessageProcessor::Result{ .Handled = false, .Success = false };
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessageMetaExchange(MessageDetails&& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageMetaExchange(const MessageDetails&& msg) const noexcept
 	{
 		MessageProcessor::Result result;
 
@@ -239,7 +237,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessagePrimaryKeyExchange(MessageDetails&& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessagePrimaryKeyExchange(MessageDetails&& msg) const noexcept
 	{
 		MessageProcessor::Result result;
 
@@ -256,7 +254,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessageSecondaryKeyExchange(MessageDetails&& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageSecondaryKeyExchange(MessageDetails&& msg) const noexcept
 	{
 		MessageProcessor::Result result;
 
@@ -303,7 +301,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessageAuthentication(MessageDetails&& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageAuthentication(const MessageDetails&& msg) const noexcept
 	{
 		MessageProcessor::Result result;
 
@@ -407,7 +405,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 							BufferWriter wrt(true);
 							if (wrt.WriteWithPreallocation(counter,
-														   m_Peer.GetPublicIPEndpointToReport(),
+														   m_Peer.GetPublicEndpointToReport(),
 														   WithSize(lsextlist, MaxSize::_UINT16)))
 							{
 								if (m_Peer.Send(MessageType::BeginSessionInit, wrt.MoveWrittenBytes()))
@@ -441,7 +439,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessMessageSessionInit(MessageDetails&& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessMessageSessionInit(const MessageDetails&& msg) const noexcept
 	{
 		MessageProcessor::Result result;
 
@@ -455,7 +453,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
 				UInt8 pcounter{ 0 };
-				Network::SerializedIPEndpoint pub_endp;
+				Network::SerializedEndpoint pub_endp;
 				Vector<SerializedUUID> psextlist;
 
 				BufferReader rdr(buffer, true);
@@ -463,7 +461,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					m_Peer.SetPeerMessageCounter(pcounter);
 
-					if (m_Peer.AddReportedPublicIPEndpoint(pub_endp))
+					if (m_Peer.AddReportedPublicEndpoint(pub_endp))
 					{
 						if (auto pextlist = ValidateExtenderUUIDs(psextlist); pextlist.has_value())
 						{
@@ -480,7 +478,7 @@ namespace QuantumGate::Implementation::Core::Peer
 
 								BufferWriter wrt(true);
 								if (wrt.WriteWithPreallocation(counter,
-															   m_Peer.GetPublicIPEndpointToReport(),
+															   m_Peer.GetPublicEndpointToReport(),
 															   WithSize(lsextlist, MaxSize::_UINT16)))
 								{
 									if (m_Peer.Send(MessageType::EndSessionInit, wrt.MoveWrittenBytes()))
@@ -499,7 +497,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						else LogDbg(L"Invalid BeginSessionInit message from peer %s; invalid extender UUID(s)",
 									m_Peer.GetPeerName().c_str());
 					}
-					else LogDbg(L"Invalid BeginSessionInit message from peer %s; invalid public IP endpoint",
+					else LogDbg(L"Invalid BeginSessionInit message from peer %s; invalid public endpoint",
 								m_Peer.GetPeerName().c_str());
 				}
 				else LogDbg(L"Invalid BeginSessionInit message from peer %s; couldn't read message data",
@@ -517,7 +515,7 @@ namespace QuantumGate::Implementation::Core::Peer
 			if (auto& buffer = msg.GetMessageData(); !buffer.IsEmpty())
 			{
 				UInt8 pcounter{ 0 };
-				Network::SerializedIPEndpoint pub_endp;
+				Network::SerializedEndpoint pub_endp;
 				Vector<SerializedUUID> psextlist;
 
 				BufferReader rdr(buffer, true);
@@ -525,7 +523,7 @@ namespace QuantumGate::Implementation::Core::Peer
 				{
 					m_Peer.SetPeerMessageCounter(pcounter);
 
-					if (m_Peer.AddReportedPublicIPEndpoint(pub_endp))
+					if (m_Peer.AddReportedPublicEndpoint(pub_endp))
 					{
 						if (auto pextlist = ValidateExtenderUUIDs(psextlist); pextlist.has_value())
 						{
@@ -537,7 +535,7 @@ namespace QuantumGate::Implementation::Core::Peer
 						else LogDbg(L"Invalid EndSessionInit message from peer %s; invalid extender UUID(s)",
 									m_Peer.GetPeerName().c_str());
 					}
-					else LogDbg(L"Invalid EndSessionInit message from peer %s; invalid public IP endpoint",
+					else LogDbg(L"Invalid EndSessionInit message from peer %s; invalid public endpoint",
 								m_Peer.GetPeerName().c_str());
 				}
 				else LogDbg(L"Invalid EndSessionInit message from peer %s; couldn't read message data",
@@ -549,7 +547,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return result;
 	}
 
-	bool MessageProcessor::GetSignature(Buffer& sig) const
+	bool MessageProcessor::GetSignature(Buffer& sig) const noexcept
 	{
 		// If we have a local private key we make a signature
 		// otherwise we send an empty signature to try and establish
@@ -569,7 +567,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	bool MessageProcessor::MakeSignature(const UUID& uuid, const UInt64 sessionid, const BufferView& priv_key,
-										 const Algorithm::Hash ha, Buffer& sig) const
+										 const Algorithm::Hash ha, Buffer& sig) const noexcept
 	{
 		auto salg = Algorithm::Asymmetric::Unknown;
 		switch (uuid.GetSignAlgorithm())
@@ -588,15 +586,20 @@ namespace QuantumGate::Implementation::Core::Peer
 		const SerializedUUID suuid{ uuid };
 
 		ProtectedBuffer sigdata;
-		sigdata += BufferView(reinterpret_cast<const Byte*>(&suuid), sizeof(SerializedUUID));
-		sigdata += BufferView(reinterpret_cast<const Byte*>(&sessionid), sizeof(sessionid));
+
+		try
+		{
+			sigdata += BufferView(reinterpret_cast<const Byte*>(&suuid), sizeof(SerializedUUID));
+			sigdata += BufferView(reinterpret_cast<const Byte*>(&sessionid), sizeof(sessionid));
+		}
+		catch (...) { return false; }
 
 		if (!m_Peer.GetKeyExchange().AddKeyExchangeData(sigdata)) return false;
 
 		return Crypto::HashAndSign(sigdata, salg, priv_key, sig, ha);
 	}
 
-	bool MessageProcessor::AuthenticatePeer(const Buffer& psig) const
+	bool MessageProcessor::AuthenticatePeer(const Buffer& psig) const noexcept
 	{
 		// Should have a peer UUID by now
 		assert(m_Peer.GetPeerUUID().IsValid());
@@ -624,7 +627,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return false;
 	}
 
-	bool MessageProcessor::VerifySignature(const Buffer& psig) const
+	bool MessageProcessor::VerifySignature(const Buffer& psig) const noexcept
 	{
 		// Peers may send empty signatures to try
 		// unauthenticated communications
@@ -660,7 +663,7 @@ namespace QuantumGate::Implementation::Core::Peer
 	}
 
 	bool MessageProcessor::VerifySignature(const UUID& uuid, const UInt64 sessionid, const BufferView& pub_key,
-										   const Algorithm::Hash ha, const Buffer& psig) const
+										   const Algorithm::Hash ha, const Buffer& psig) const noexcept
 	{
 		auto salg = Algorithm::Asymmetric::Unknown;
 		switch (uuid.GetSignAlgorithm())
@@ -679,8 +682,13 @@ namespace QuantumGate::Implementation::Core::Peer
 		const SerializedUUID suuid{ uuid };
 
 		ProtectedBuffer sigdata;
-		sigdata += BufferView(reinterpret_cast<const Byte*>(&suuid), sizeof(SerializedUUID));
-		sigdata += BufferView(reinterpret_cast<const Byte*>(&sessionid), sizeof(sessionid));
+
+		try
+		{
+			sigdata += BufferView(reinterpret_cast<const Byte*>(&suuid), sizeof(SerializedUUID));
+			sigdata += BufferView(reinterpret_cast<const Byte*>(&sessionid), sizeof(sessionid));
+		}
+		catch (...) { return false; }
 
 		if (!m_Peer.GetKeyExchange().AddKeyExchangeData(sigdata)) return false;
 
@@ -715,7 +723,7 @@ namespace QuantumGate::Implementation::Core::Peer
 		return std::nullopt;
 	}
 
-	MessageProcessor::Result MessageProcessor::ProcessKeyExchange(MessageDetails&& msg) const
+	MessageProcessor::Result MessageProcessor::ProcessKeyExchange(const MessageDetails&& msg) const noexcept
 	{
 		MessageProcessor::Result result;
 

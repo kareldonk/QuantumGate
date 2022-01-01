@@ -11,9 +11,9 @@
 
 namespace QuantumGate::Implementation::Core
 {
-	struct PublicIPEndpointDetails final
+	struct PublicEndpointDetails final
 	{
-		Containers::Map<IPEndpoint::Protocol, Set<UInt16>> PortsMap;
+		Containers::Map<Network::Protocol, Set<UInt16>> PortsMap;
 		bool Trusted{ false };
 		bool DataVerified{ false };
 		bool HopVerified{ false };
@@ -30,14 +30,14 @@ namespace QuantumGate::Implementation::Core
 		}
 	};
 
-	class PublicIPEndpoints final
+	class PublicEndpoints final
 	{
-		using IPAddressSet = Containers::UnorderedSet<BinaryIPAddress>;
+		using IPAddressSet = Containers::UnorderedSet<IPAddress>;
 		using IPAddressSet_ThS = Concurrency::ThreadSafe<IPAddressSet, std::shared_mutex>;
 
 		struct HopVerificationDetails final
 		{
-			BinaryIPAddress IPAddress;
+			IPAddress IPAddress;
 
 			[[nodiscard]] bool Verify(const bool has_locally_bound_pubip) noexcept;
 
@@ -67,11 +67,11 @@ namespace QuantumGate::Implementation::Core
 			enum class Status { Initialized, Verifying, Succeeded, Timedout, Failed };
 
 		public:
-			DataVerificationDetails(const BinaryIPAddress ip) noexcept;
+			DataVerificationDetails(const IPAddress& ip) noexcept;
 
 			[[nodiscard]] bool Verify(const bool nat_traversal) noexcept;
 
-			[[nodiscard]] inline const BinaryIPAddress& GetIPAddress() const noexcept { return m_IPAddress; }
+			[[nodiscard]] inline const IPAddress& GetIPAddress() const noexcept { return m_IPAddress; }
 			[[nodiscard]] inline bool IsVerifying() const noexcept { return (m_Status == Status::Verifying); }
 			[[nodiscard]] inline bool IsVerified() const noexcept { return (m_Status == Status::Succeeded); }
 
@@ -81,7 +81,7 @@ namespace QuantumGate::Implementation::Core
 			Result<bool> ReceiveVerification() noexcept;
 
 		private:
-			BinaryIPAddress m_IPAddress;
+			IPAddress m_IPAddress;
 			SteadyTime m_StartSteadyTime;
 			UInt64 m_ExpectedData{ 0 };
 			Status m_Status{ Status::Initialized };
@@ -104,37 +104,37 @@ namespace QuantumGate::Implementation::Core
 			}
 		};
 
-		using IPEndpointsMap = Containers::UnorderedMap<BinaryIPAddress, PublicIPEndpointDetails>;
-		using IPEndpointsMap_ThS = Concurrency::ThreadSafe<IPEndpointsMap, std::shared_mutex>;
+		using EndpointsMap = Containers::UnorderedMap<Network::Address, PublicEndpointDetails>;
+		using EndpointsMap_ThS = Concurrency::ThreadSafe<EndpointsMap, std::shared_mutex>;
 
-		using ReportingNetworkMap = Containers::UnorderedMap<BinaryIPAddress, SteadyTime>;
+		using ReportingNetworkMap = Containers::UnorderedMap<Network::Address, SteadyTime>;
 
 		using ThreadPool = Concurrency::ThreadPool<>;
 
 	public:
-		PublicIPEndpoints(const Settings_CThS& settings) noexcept :
+		PublicEndpoints(const Settings_CThS& settings) noexcept :
 			m_Settings(settings)
 		{}
 
-		PublicIPEndpoints(const PublicIPEndpoints&) = delete;
-		PublicIPEndpoints(PublicIPEndpoints&&) noexcept = default;
-		~PublicIPEndpoints() { if (IsInitialized()) Deinitialize(); }
-		PublicIPEndpoints& operator=(const PublicIPEndpoints&) = delete;
-		PublicIPEndpoints& operator=(PublicIPEndpoints&&) noexcept = default;
+		PublicEndpoints(const PublicEndpoints&) = delete;
+		PublicEndpoints(PublicEndpoints&&) noexcept = default;
+		~PublicEndpoints() { if (IsInitialized()) Deinitialize(); }
+		PublicEndpoints& operator=(const PublicEndpoints&) = delete;
+		PublicEndpoints& operator=(PublicEndpoints&&) noexcept = default;
 
 		[[nodiscard]] bool Initialize() noexcept;
 		void Deinitialize() noexcept;
 		[[nodiscard]] inline bool IsInitialized() const noexcept { return m_Initialized; }
 
-		Result<std::pair<bool, bool>> AddIPEndpoint(const IPEndpoint& pub_endpoint, const IPEndpoint& rep_peer,
-													const PeerConnectionType rep_con_type,
-													const bool trusted, const bool verified = false) noexcept;
-		bool RemoveLeastRelevantIPEndpoints(Size num, IPEndpointsMap& ipendpoints) noexcept;
+		Result<std::pair<bool, bool>> AddEndpoint(const Endpoint& pub_endpoint, const Endpoint& rep_peer,
+												  const PeerConnectionType rep_con_type,
+												  const bool trusted, const bool verified = false) noexcept;
+		bool RemoveLeastRelevantEndpoints(Size num, EndpointsMap& ipendpoints) noexcept;
 
-		inline IPEndpointsMap_ThS& GetIPEndpoints() noexcept { return m_IPEndpoints; }
+		inline EndpointsMap_ThS& GetEndpoints() noexcept { return m_Endpoints; }
 
-		Result<> AddIPAddresses(Vector<BinaryIPAddress>& ips, const bool only_trusted_verified) const noexcept;
-		Result<> AddIPAddresses(Vector<API::Local::Environment::IPAddressDetails>& ips) const noexcept;
+		Result<> AddAddresses(Vector<Network::Address>& addrs, const bool only_trusted_verified) const noexcept;
+		Result<> AddAddresses(Vector<API::Local::Environment::AddressDetails>& addrs) const noexcept;
 
 		void SetLocallyBoundPublicIPAddress(const bool flag) noexcept { m_HasLocallyBoundPublicIPAddress = flag; }
 		bool HasLocallyBoundPublicIPAddress() const noexcept { return m_HasLocallyBoundPublicIPAddress; }
@@ -143,15 +143,15 @@ namespace QuantumGate::Implementation::Core
 		void PreInitialize() noexcept;
 		void ResetState() noexcept;
 
-		[[nodiscard]] bool AddIPAddressDataVerification(const BinaryIPAddress& ip) noexcept;
-		[[nodiscard]] bool AddIPAddressHopVerification(const BinaryIPAddress& ip) noexcept;
+		[[nodiscard]] bool AddIPAddressDataVerification(const IPAddress& ip) noexcept;
+		[[nodiscard]] bool AddIPAddressHopVerification(const IPAddress& ip) noexcept;
 
-		[[nodiscard]] bool IsNewReportingNetwork(const BinaryIPAddress& network) const noexcept;
-		[[nodiscard]] bool AddReportingNetwork(const BinaryIPAddress& network, const bool trusted) noexcept;
-		void RemoveReportingNetwork(const BinaryIPAddress& network) noexcept;
+		[[nodiscard]] bool IsNewReportingNetwork(const Network::Address& network) const noexcept;
+		[[nodiscard]] bool AddReportingNetwork(const Network::Address& network, const bool trusted) noexcept;
+		void RemoveReportingNetwork(const Network::Address& network) noexcept;
 
-		std::pair<PublicIPEndpointDetails*, bool>
-			GetIPEndpointDetails(const BinaryIPAddress& pub_ip, IPEndpointsMap& ipendpoints) noexcept;
+		std::pair<PublicEndpointDetails*, bool>
+			GetEndpointDetails(const Network::Address& pub_addr, EndpointsMap& endpoints) noexcept;
 
 		void DataVerificationWorkerThreadWait(const Concurrency::Event& shutdown_event);
 		void DataVerificationWorkerThreadWaitInterrupt();
@@ -166,8 +166,8 @@ namespace QuantumGate::Implementation::Core
 		static constexpr const UInt8 ReportingPeerNetworkIPv4CIDR{ 16 };
 		static constexpr const UInt8 ReportingPeerNetworkIPv6CIDR{ 48 };
 
-		static constexpr const UInt8 MaxIPEndpoints{ 32 };
-		static constexpr const UInt8 MaxProtocolsPerIPAddress{ 2 };
+		static constexpr const UInt8 MaxEndpoints{ 32 };
+		static constexpr const UInt8 MaxProtocolsPerAddress{ 2 };
 		static constexpr const UInt8 MaxPortsPerProtocol{ 16 };
 
 	private:
@@ -178,7 +178,7 @@ namespace QuantumGate::Implementation::Core
 		DataVerification m_DataVerification;
 		HopVerification m_HopVerification;
 
-		IPEndpointsMap_ThS m_IPEndpoints;
+		EndpointsMap_ThS m_Endpoints;
 		ReportingNetworkMap m_ReportingNetworks;
 
 		std::atomic_bool m_HasLocallyBoundPublicIPAddress{ false };

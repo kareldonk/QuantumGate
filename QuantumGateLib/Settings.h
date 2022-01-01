@@ -39,8 +39,8 @@ namespace QuantumGate::Implementation
 		struct
 		{
 			Size MaxPerInterval{ 10 };								// Maximum number of allowed relay connection attempts per interval before IP gets blocked
-			std::chrono::seconds Interval{ 10 };					// Period of time after which the relay connection attempts are reset to 0 for an IP
-		} IPConnectionAttempts;
+			std::chrono::seconds Interval{ 10 };					// Period of time after which the relay connection attempts are reset to 0 for an address
+		} ConnectionAttempts;
 	};
 
 	struct UDPSettings final
@@ -79,14 +79,22 @@ namespace QuantumGate::Implementation
 			{
 				Vector<UInt16> Ports{ 999 };								// Which ports to listen on
 				bool UseConditionalAcceptFunction{ true };					// Whether to use the conditional accept function before accepting connections
+				bool NATTraversal{ false };									// Whether NAT traversal is enabled
 			} TCP;
 			
 			struct
 			{
 				Vector<UInt16> Ports{ 999 };								// Which ports to listen on
+				bool NATTraversal{ false };									// Whether NAT traversal is enabled
 			} UDP;
 
-			bool NATTraversal{ false };										// Whether NAT traversal is enabled
+			struct
+			{
+				Vector<UInt16> Ports{ 9 };									// Which ports to listen on
+				bool RequireAuthentication{ true };							// Whether to require Bluetooth authentication (device pairing) before accepting connections
+				bool Discoverable{ false };									// Whether to make the device discoverable via Bluetooth (devices scanning for other nearby devices will then be able to discover this device without pairing)
+				BluetoothServiceDetails Service;							// Bluetooth service details to advertise to connecting peers
+			} BTH;
 		} Listeners;
 
 		std::chrono::seconds ConnectTimeout{ 60 };							// Maximum number of seconds to wait for a connection to be established
@@ -95,13 +103,13 @@ namespace QuantumGate::Implementation
 		std::chrono::milliseconds MaxHandshakeDelay{ 0 };					// Maximum number of milliseconds to wait in between handshake messages
 		std::chrono::seconds MaxHandshakeDuration{ 30 };					// Maximum number of seconds a handshake may last after connecting before peer is disconnected
 
-		std::chrono::seconds IPReputationImprovementInterval{ 600 };		// Period of time after which the reputation of an IP address gets slightly improved
+		std::chrono::seconds AddressReputationImprovementInterval{ 600 };	// Period of time after which the reputation of an address gets slightly improved
 
 		struct
 		{
 			Size MaxPerInterval{ 2 };										// Maximum number of allowed connection attempts per interval before IP gets blocked
-			std::chrono::seconds Interval{ 10 };							// Period of time after which the connection attempts are reset to 0 for an IP
-		} IPConnectionAttempts;
+			std::chrono::seconds Interval{ 10 };							// Period of time after which the connection attempts are reset to 0 for an address
+		} ConnectionAttempts;
 
 		struct
 		{

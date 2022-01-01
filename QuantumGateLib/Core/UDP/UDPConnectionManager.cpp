@@ -125,7 +125,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 		m_ThreadPool.Clear();
 
-		DbgInvoke([&]()
+		DbgInvoke([&]() noexcept
 		{
 			// If all threads are shut down, and connections
 			// are cleared the count should be zero
@@ -180,7 +180,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 
 	void Manager::WorkerThreadWait(ThreadPoolData& thpdata, ThreadData& thdata, const Concurrency::Event& shutdown_event)
 	{
-		auto result = thdata.WorkEvents->Wait(1ms);
+		const auto result = thdata.WorkEvents->Wait(1ms);
 		if (!result.Waited)
 		{
 			shutdown_event.Wait(1ms);
@@ -221,7 +221,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		}
 	}
 
-	bool Manager::AddConnection(const Network::IP::AddressFamily af, const PeerConnectionType type,
+	bool Manager::AddConnection(const Network::AddressFamily af, const PeerConnectionType type,
 								const ConnectionID id, const Message::SequenceNumber seqnum, ProtectedBuffer&& handshake_data,
 								Socket& socket, std::optional<ProtectedBuffer>&& shared_secret) noexcept
 	{
@@ -230,7 +230,7 @@ namespace QuantumGate::Implementation::Core::UDP::Connection
 		try
 		{
 			const auto& settings = m_Settings.GetCache();
-			const auto nat_traversal = settings.Local.Listeners.NATTraversal;
+			const auto nat_traversal = settings.Local.Listeners.UDP.NATTraversal;
 
 			auto thread = GetThreadWithLeastConnections();
 			if (thread)

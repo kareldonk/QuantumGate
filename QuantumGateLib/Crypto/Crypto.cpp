@@ -112,7 +112,7 @@ namespace QuantumGate::Implementation::Crypto
 	template void SortAlgorithms<Algorithm::Compression>(Vector<Algorithm::Compression>& list);
 
 	template<typename T>
-	Export bool HasAlgorithm(const Vector<T>& list, const T value)
+	Export bool HasAlgorithm(const Vector<T>& list, const T value) noexcept
 	{
 		// Assuming list is sorted already
 		assert(std::is_sorted(list.begin(), list.end()));
@@ -125,51 +125,55 @@ namespace QuantumGate::Implementation::Crypto
 
 	// Specific instantiations
 	template Export bool HasAlgorithm<Algorithm::Hash>(
-		const Vector<Algorithm::Hash>& list, const Algorithm::Hash value);
+		const Vector<Algorithm::Hash>& list, const Algorithm::Hash value) noexcept;
 
 	template Export bool HasAlgorithm<Algorithm::Asymmetric>(
-		const Vector<Algorithm::Asymmetric>& list, const Algorithm::Asymmetric value);
+		const Vector<Algorithm::Asymmetric>& list, const Algorithm::Asymmetric value) noexcept;
 
 	template Export bool HasAlgorithm<Algorithm::Symmetric>(
-		const Vector<Algorithm::Symmetric>& list, const Algorithm::Symmetric value);
+		const Vector<Algorithm::Symmetric>& list, const Algorithm::Symmetric value) noexcept;
 
 	template Export bool HasAlgorithm<Algorithm::Compression>(
-		const Vector<Algorithm::Compression>& list, const Algorithm::Compression value);
+		const Vector<Algorithm::Compression>& list, const Algorithm::Compression value) noexcept;
 
 	template<typename T>
-	const T ChooseAlgorithm(const Vector<T>& list1, Vector<T>& list2)
+	T ChooseAlgorithm(const Vector<T>& list1, Vector<T>& list2) noexcept
 	{
 		// Assuming list1 is sorted already
 		assert(std::is_sorted(list1.begin(), list1.end()));
 
-		// Sort list2 and make an intersection
-		// of algorithms that exist in both lists
-		SortAlgorithms(list2);
+		try
+		{
+			// Sort list2 and make an intersection
+			// of algorithms that exist in both lists
+			SortAlgorithms(list2);
 
-		Vector<T> intersect;
-		std::set_intersection(list1.begin(), list1.end(),
-							  list2.begin(), list2.end(),
-							  std::back_inserter(intersect));
+			Vector<T> intersect;
+			std::set_intersection(list1.begin(), list1.end(),
+								  list2.begin(), list2.end(),
+								  std::back_inserter(intersect));
 
-		// Always choose the last algorithm which is the one
-		// with the highest integer value in the sorted list
-		if (intersect.size() > 0) return intersect.back();
+			// Always choose the last algorithm which is the one
+			// with the highest integer value in the sorted list
+			if (intersect.size() > 0) return intersect.back();
+		}
+		catch (...) {}
 
 		return static_cast<T>(0);
 	}
 
 	// Specific instantiations
-	template const Algorithm::Hash ChooseAlgorithm<Algorithm::Hash>(
-		const Vector<Algorithm::Hash>& list1, Vector<Algorithm::Hash>& list2);
+	template Algorithm::Hash ChooseAlgorithm<Algorithm::Hash>(
+		const Vector<Algorithm::Hash>& list1, Vector<Algorithm::Hash>& list2) noexcept;
 
-	template const Algorithm::Asymmetric ChooseAlgorithm<Algorithm::Asymmetric>(
-		const Vector<Algorithm::Asymmetric>& list1, Vector<Algorithm::Asymmetric>& list2);
+	template Algorithm::Asymmetric ChooseAlgorithm<Algorithm::Asymmetric>(
+		const Vector<Algorithm::Asymmetric>& list1, Vector<Algorithm::Asymmetric>& list2) noexcept;
 
-	template const Algorithm::Symmetric ChooseAlgorithm<Algorithm::Symmetric>(
-		const Vector<Algorithm::Symmetric>& list1, Vector<Algorithm::Symmetric>& list2);
+	template Algorithm::Symmetric ChooseAlgorithm<Algorithm::Symmetric>(
+		const Vector<Algorithm::Symmetric>& list1, Vector<Algorithm::Symmetric>& list2) noexcept;
 
-	template const Algorithm::Compression ChooseAlgorithm<Algorithm::Compression>(
-		const Vector<Algorithm::Compression>& list1, Vector<Algorithm::Compression>& list2);
+	template Algorithm::Compression ChooseAlgorithm<Algorithm::Compression>(
+		const Vector<Algorithm::Compression>& list1, Vector<Algorithm::Compression>& list2) noexcept;
 
 	std::optional<UInt64> GetCryptoRandomNumber() noexcept
 	{

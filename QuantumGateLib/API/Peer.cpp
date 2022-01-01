@@ -226,18 +226,18 @@ namespace QuantumGate::API
 									 [](auto& peer_data) { return peer_data->IsUsingGlobalSharedSecret; });
 	}
 
-	Result<IPEndpoint> Peer::GetLocalIPEndpoint() const noexcept
+	Result<Endpoint> Peer::GetLocalEndpoint() const noexcept
 	{
 		assert(HasPeer());
-		return GetPeerDataItem<IPEndpoint>(PeerDataCast(GetPeerDataStorage()),
-										   [](auto& peer_data) { return peer_data->Cached.LocalEndpoint; });
+		return GetPeerDataItem<Endpoint>(PeerDataCast(GetPeerDataStorage()),
+										 [](auto& peer_data) { return peer_data->Cached.LocalEndpoint; });
 	}
 
-	Result<IPEndpoint> Peer::GetPeerIPEndpoint() const noexcept
+	Result<Endpoint> Peer::GetPeerEndpoint() const noexcept
 	{
 		assert(HasPeer());
-		return GetPeerDataItem<IPEndpoint>(PeerDataCast(GetPeerDataStorage()),
-										   [](auto& peer_data) { return peer_data->Cached.PeerEndpoint; });
+		return GetPeerDataItem<Endpoint>(PeerDataCast(GetPeerDataStorage()),
+										 [](auto& peer_data) { return peer_data->Cached.PeerEndpoint; });
 	}
 
 	Result<std::pair<UInt8, UInt8>> Peer::GetPeerProtocolVersion() const noexcept

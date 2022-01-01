@@ -69,10 +69,10 @@ namespace QuantumGate::Implementation::Core::Access
 		return m_IPFilters.WithSharedLock()->GetFilters();
 	}
 
-	Result<> Manager::SetIPReputation(const IPAddress& ip, const Int16 score,
-									  const std::optional<Time>& time) noexcept
+	Result<> Manager::SetAddressReputation(const Address& addr, const Int16 score,
+										   const std::optional<Time>& time) noexcept
 	{
-		auto result = m_IPAccessControl.WithUniqueLock()->SetReputation(ip, score, time);
+		auto result = m_AddressAccessControl.WithUniqueLock()->SetReputation(addr, score, time);
 		if (result.Succeeded())
 		{
 			m_AccessUpdateCallbacks.WithUniqueLock()();
@@ -81,11 +81,11 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	Result<> Manager::SetIPReputation(const IPReputation& ip_rep) noexcept
+	Result<> Manager::SetAddressReputation(const AddressReputation& addr_rep) noexcept
 	{
-		auto result = m_IPAccessControl.WithUniqueLock()->SetReputation(ip_rep.Address,
-																		ip_rep.Score,
-																		ip_rep.LastUpdateTime);
+		auto result = m_AddressAccessControl.WithUniqueLock()->SetReputation(addr_rep.Address,
+																			 addr_rep.Score,
+																			 addr_rep.LastUpdateTime);
 		if (result.Succeeded())
 		{
 			m_AccessUpdateCallbacks.WithUniqueLock()();
@@ -94,20 +94,20 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	Result<> Manager::ResetIPReputation(const WChar* ip_str) noexcept
+	Result<> Manager::ResetAddressReputation(const WChar* addr_str) noexcept
 	{
-		IPAddress ipaddr;
-		if (IPAddress::TryParse(ip_str, ipaddr))
+		Address addr;
+		if (Address::TryParse(addr_str, addr))
 		{
-			return ResetIPReputation(ipaddr);
+			return ResetAddressReputation(addr);
 		}
 
 		return ResultCode::AddressInvalid;
 	}
 
-	Result<> Manager::ResetIPReputation(const IPAddress& ip) noexcept
+	Result<> Manager::ResetAddressReputation(const Address& addr) noexcept
 	{
-		auto result = m_IPAccessControl.WithUniqueLock()->ResetReputation(ip);
+		auto result = m_AddressAccessControl.WithUniqueLock()->ResetReputation(addr);
 		if (result.Succeeded())
 		{
 			m_AccessUpdateCallbacks.WithUniqueLock()();
@@ -116,16 +116,16 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	void Manager::ResetAllIPReputations() noexcept
+	void Manager::ResetAllAddressReputations() noexcept
 	{
-		m_IPAccessControl.WithUniqueLock()->ResetAllReputations();
+		m_AddressAccessControl.WithUniqueLock()->ResetAllReputations();
 		m_AccessUpdateCallbacks.WithUniqueLock()();
 	}
 
-	Result<std::pair<Int16, bool>> Manager::UpdateIPReputation(const IPAddress& ip,
-															   const IPReputationUpdate rep_update) noexcept
+	Result<std::pair<Int16, bool>> Manager::UpdateAddressReputation(const Address& addr,
+																	const AddressReputationUpdate rep_update) noexcept
 	{
-		auto result = m_IPAccessControl.WithUniqueLock()->UpdateReputation(ip, rep_update);
+		auto result = m_AddressAccessControl.WithUniqueLock()->UpdateReputation(addr, rep_update);
 		if (result.Succeeded())
 		{
 			m_AccessUpdateCallbacks.WithUniqueLock()();
@@ -134,9 +134,9 @@ namespace QuantumGate::Implementation::Core::Access
 		return result;
 	}
 
-	Result<Vector<IPReputation>> Manager::GetAllIPReputations() const noexcept
+	Result<Vector<AddressReputation>> Manager::GetAllAddressReputations() const noexcept
 	{
-		return m_IPAccessControl.WithUniqueLock()->GetReputations();
+		return m_AddressAccessControl.WithUniqueLock()->GetReputations();
 	}
 
 	bool Manager::AddIPConnection(const IPAddress& ip) noexcept
@@ -149,9 +149,9 @@ namespace QuantumGate::Implementation::Core::Access
 		return m_SubnetLimits.WithUniqueLock()->RemoveConnection(ip);
 	}
 
-	bool Manager::AddIPConnectionAttempt(const IPAddress& ip) noexcept
+	bool Manager::AddConnectionAttempt(const Address& addr) noexcept
 	{
-		if (!m_IPAccessControl.WithUniqueLock()->AddConnectionAttempt(ip))
+		if (!m_AddressAccessControl.WithUniqueLock()->AddConnectionAttempt(addr))
 		{
 			m_AccessUpdateCallbacks.WithUniqueLock()();
 			return false;
@@ -160,9 +160,9 @@ namespace QuantumGate::Implementation::Core::Access
 		return true;
 	}
 
-	bool Manager::AddIPRelayConnectionAttempt(const IPAddress& ip) noexcept
+	bool Manager::AddRelayConnectionAttempt(const Address& addr) noexcept
 	{
-		if (!m_IPAccessControl.WithUniqueLock()->AddRelayConnectionAttempt(ip))
+		if (!m_AddressAccessControl.WithUniqueLock()->AddRelayConnectionAttempt(addr))
 		{
 			m_AccessUpdateCallbacks.WithUniqueLock()();
 			return false;
@@ -193,7 +193,7 @@ namespace QuantumGate::Implementation::Core::Access
 
 		return result;
 	}
-	
+
 	Result<> Manager::RemoveIPSubnetLimit(const IPAddress::Family af, const String& cidr_lbits) noexcept
 	{
 		auto result = m_SubnetLimits.WithUniqueLock()->RemoveLimit(af, cidr_lbits);
@@ -221,42 +221,65 @@ namespace QuantumGate::Implementation::Core::Access
 		return m_SubnetLimits.WithSharedLock()->GetLimits();
 	}
 
-	Result<bool> Manager::GetIPAllowed(const WChar* ip_str, const CheckType check) noexcept
+	Result<bool> Manager::GetAddressAllowed(const WChar* addr_str, const CheckType check) noexcept
 	{
-		IPAddress ipaddr;
-		if (IPAddress::TryParse(ip_str, ipaddr))
+		Address addr;
+		if (Address::TryParse(addr_str, addr))
 		{
-			return GetIPAllowed(ipaddr, check);
+			return GetAddressAllowed(addr, check);
 		}
 
 		return ResultCode::AddressInvalid;
 	}
 
-	Result<bool> Manager::GetIPAllowed(const IPAddress& ip, const CheckType check) noexcept
+	Result<bool> Manager::GetAddressAllowed(const Address& addr, const CheckType check) noexcept
 	{
 		switch (check)
 		{
 			case CheckType::IPFilters:
 			{
-				return m_IPFilters.WithSharedLock()->GetAllowed(ip);
+				if (addr.GetType() == Address::Type::IP)
+				{
+					return m_IPFilters.WithSharedLock()->GetAllowed(addr.GetIPAddress());
+				}
+				break;
 			}
-			case CheckType::IPReputations:
+			case CheckType::AddressReputations:
 			{
-				return m_IPAccessControl.WithUniqueLock()->HasAcceptableReputation(ip);
+				return m_AddressAccessControl.WithUniqueLock()->HasAcceptableReputation(addr);
 			}
 			case CheckType::IPSubnetLimits:
 			{
-				return !m_SubnetLimits.WithSharedLock()->HasConnectionOverflow(ip);
+				if (addr.GetType() == Address::Type::IP)
+				{
+					return !m_SubnetLimits.WithSharedLock()->HasConnectionOverflow(addr.GetIPAddress());
+				}
+				break;
 			}
 			case CheckType::All:
 			{
-				if (const auto result = m_IPFilters.WithSharedLock()->GetAllowed(ip); result)
+				switch (addr.GetType())
 				{
-					if (*result &&
-						m_IPAccessControl.WithUniqueLock()->HasAcceptableReputation(ip) &&
-						!m_SubnetLimits.WithSharedLock()->HasConnectionOverflow(ip))
+					case Address::Type::IP:
 					{
-						return true;
+						if (const auto result = m_IPFilters.WithSharedLock()->GetAllowed(addr.GetIPAddress()); result)
+						{
+							if (*result &&
+								m_AddressAccessControl.WithUniqueLock()->HasAcceptableReputation(addr) &&
+								!m_SubnetLimits.WithSharedLock()->HasConnectionOverflow(addr.GetIPAddress()))
+							{
+								return true;
+							}
+						}
+						break;
+					}
+					case Address::Type::BTH:
+					{
+						return m_AddressAccessControl.WithUniqueLock()->HasAcceptableReputation(addr);
+					}
+					default:
+					{
+						break;
 					}
 				}
 				break;
@@ -273,31 +296,54 @@ namespace QuantumGate::Implementation::Core::Access
 		return false;
 	}
 
-	Result<bool> Manager::GetIPConnectionAllowed(const IPAddress& ip, const CheckType check) noexcept
+	Result<bool> Manager::GetConnectionFromAddressAllowed(const Address& addr, const CheckType check) noexcept
 	{
 		switch (check)
 		{
 			case CheckType::IPFilters:
 			{
-				return m_IPFilters.WithSharedLock()->GetAllowed(ip);
+				if (addr.GetType() == Address::Type::IP)
+				{
+					return m_IPFilters.WithSharedLock()->GetAllowed(addr.GetIPAddress());
+				}
+				break;
 			}
-			case CheckType::IPReputations:
+			case CheckType::AddressReputations:
 			{
-				return m_IPAccessControl.WithUniqueLock()->HasAcceptableReputation(ip);
+				return m_AddressAccessControl.WithUniqueLock()->HasAcceptableReputation(addr);
 			}
 			case CheckType::IPSubnetLimits:
 			{
-				return m_SubnetLimits.WithSharedLock()->CanAcceptConnection(ip);
+				if (addr.GetType() == Address::Type::IP)
+				{
+					return m_SubnetLimits.WithSharedLock()->CanAcceptConnection(addr.GetIPAddress());
+				}
+				break;
 			}
 			case CheckType::All:
 			{
-				if (const auto result = m_IPFilters.WithSharedLock()->GetAllowed(ip); result)
+				switch (addr.GetType())
 				{
-					if (*result &&
-						m_IPAccessControl.WithUniqueLock()->HasAcceptableReputation(ip) &&
-						m_SubnetLimits.WithSharedLock()->CanAcceptConnection(ip))
+					case Address::Type::IP:
 					{
-						return true;
+						if (const auto result = m_IPFilters.WithSharedLock()->GetAllowed(addr.GetIPAddress()); result)
+						{
+							if (*result &&
+								m_AddressAccessControl.WithUniqueLock()->HasAcceptableReputation(addr) &&
+								m_SubnetLimits.WithSharedLock()->CanAcceptConnection(addr.GetIPAddress()))
+							{
+								return true;
+							}
+						}
+						break;
+					}
+					case Address::Type::BTH:
+					{
+						return m_AddressAccessControl.WithUniqueLock()->HasAcceptableReputation(addr);
+					}
+					default:
+					{
+						break;
 					}
 				}
 				break;

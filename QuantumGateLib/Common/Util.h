@@ -11,11 +11,15 @@ namespace QuantumGate::Implementation::Util
 	template<class... Ts> struct Overloaded : Ts... { using Ts::operator()...; };
 	template<class... Ts> Overloaded(Ts...)->Overloaded<Ts...>;
 
+	Export bool TimeToString(const Time& time, const WChar* format, std::array<WChar, 128>& timestr) noexcept;
+	Export bool TimeToString(const tm& time, const WChar* format, std::array<WChar, 128>& timestr) noexcept;
+	Export bool TimeToLocalTimeString(const Time& time, const WChar* format, std::array<WChar, 128>& timestr) noexcept;
 	Export bool GetCurrentLocalTime(const WChar* format, std::array<WChar, 128>& timestr) noexcept;
 	Export String GetCurrentLocalTime(const WChar* format) noexcept;
 	Export SystemTime GetCurrentSystemTime() noexcept;
 	Export SteadyTime GetCurrentSteadyTime() noexcept;
 	SystemTime ToTime(const Time& time) noexcept;
+	SystemTime ToTime(const SYSTEMTIME& stime) noexcept;
 	Time ToTimeT(const SystemTime& time) noexcept;
 
 	Export String FormatString(const WChar* format, va_list arglist) noexcept;
@@ -74,6 +78,8 @@ namespace QuantumGate::Implementation::Util
 	Export std::optional<ProtectedBuffer> FromBase64(const ProtectedString& b64) noexcept;
 	Export std::optional<ProtectedBuffer> FromBase64(const ProtectedStringA& b64) noexcept;
 
+	Export String ToString(const GUID& guid) noexcept;
+
 	template<typename T>
 	Vector<T> SetToVector(const Set<T>& set)
 	{
@@ -126,6 +132,7 @@ namespace QuantumGate::Implementation::Util
 #define GetLastSocketErrorString() QuantumGate::Implementation::Util::GetSystemErrorString(::WSAGetLastError())
 #define GetLastSysErrorString() QuantumGate::Implementation::Util::GetSystemErrorString(::GetLastError())
 #define GetSysErrorString(x) QuantumGate::Implementation::Util::GetSystemErrorString(x)
+#define GetSocketErrorString(x) QuantumGate::Implementation::Util::GetSystemErrorString(x)
 
 #define DiscardReturnValue(x) (void)(x)
 

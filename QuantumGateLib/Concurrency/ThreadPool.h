@@ -143,6 +143,9 @@ namespace QuantumGate::Implementation::Concurrency
 			template<typename U = ThData, typename = std::enable_if_t<has_thread_data<U>>>
 			[[nodiscard]] auto& GetData() noexcept { return m_ThreadIterator->ThreadData; }
 
+			template<typename U = ThData, typename = std::enable_if_t<has_thread_data<U>>>
+			[[nodiscard]] const auto& GetData() const noexcept { return m_ThreadIterator->ThreadData; }
+
 		private:
 			Iterator m_ThreadIterator;
 		};
@@ -161,8 +164,12 @@ namespace QuantumGate::Implementation::Concurrency
 
 		[[nodiscard]] inline bool IsRunning() const noexcept
 		{
+			return m_Running;
+		}
+
+		[[nodiscard]] inline bool HasRunningThreads() const noexcept
+		{
 			// If at least one thread is active
-			// then threadpool is running
 			for (const auto& threadctrl : m_Threads)
 			{
 				if (threadctrl.Thread.joinable()) return true;
@@ -239,6 +246,40 @@ namespace QuantumGate::Implementation::Concurrency
 			return std::nullopt;
 		}
 
+		[[nodiscard]] inline std::optional<ThreadType> GetLastThread() noexcept
+		{
+			if (m_Threads.size() > 0)
+			{
+				return ThreadType(std::prev(m_Threads.end(), 1));
+			}
+
+			return std::nullopt;
+		}
+
+		[[nodiscard]] inline std::optional<ConstThreadType> GetLastThread() const noexcept
+		{
+			if (m_Threads.size() > 0)
+			{
+				return ConstThreadType(std::prev(m_Threads.cend(), 1));
+			}
+
+			return std::nullopt;
+		}
+
+		[[nodiscard]] inline std::optional<ThreadType> GetPreviousThread(const ThreadType& thread) noexcept
+		{
+			if (thread.m_ThreadIterator == m_Threads.begin()) return std::nullopt;
+
+			return ThreadType(std::prev(thread.m_ThreadIterator, 1));
+		}
+
+		[[nodiscard]] inline std::optional<ConstThreadType> GetPreviousThread(const ConstThreadType& thread) const noexcept
+		{
+			if (thread.m_ThreadIterator == m_Threads.begin()) return std::nullopt;
+
+			return ConstThreadType(std::prev(thread.m_ThreadIterator, 1));
+		}
+
 		inline void Clear() noexcept
 		{
 			assert(!IsRunning());
@@ -250,18 +291,26 @@ namespace QuantumGate::Implementation::Concurrency
 		{
 			assert(!IsRunning());
 
+			auto error{ false };
+
 			// Start all threads
 			for (auto& threadctrl : m_Threads)
 			{
-				StartThread(threadctrl);
+				if (!StartThread(threadctrl)) error = true;
 			}
 
-			return IsRunning();
+			if (error && !HasRunningThreads()) return false;
+
+			m_Running = true;
+
+			return true;
 		}
 
 		void Shutdown() noexcept
 		{
 			assert(IsRunning());
+
+			m_Running = false;
 
 			// Set the shutdown event to notify threads
 			// that we're shutting down
@@ -311,7 +360,7 @@ namespace QuantumGate::Implementation::Concurrency
 			return false;
 		}
 
-		bool StartThread(ThreadCtrl& threadctrl) noexcept
+		[[nodiscard]] bool StartThread(ThreadCtrl& threadctrl) noexcept
 		{
 			try
 			{
@@ -433,6 +482,7 @@ namespace QuantumGate::Implementation::Concurrency
 
 	private:
 		[[no_unique_address]] ThPData m_Data;
+		bool m_Running{ false };
 		ThreadList m_Threads;
 	};
 }

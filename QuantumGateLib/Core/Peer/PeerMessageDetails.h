@@ -30,10 +30,10 @@ namespace QuantumGate::Implementation::Core::Peer
 			PeerWeakPointer m_PeerPointer;
 		};
 
-		MessageDetails(Peer& peer, const MessageType type, const ExtenderUUID& extuuid, Buffer&& msgdata);
+		MessageDetails(Peer& peer, const MessageType type, const ExtenderUUID& extuuid, Buffer&& msgdata) noexcept;
 		MessageDetails(const MessageDetails&) = delete;
 		MessageDetails(MessageDetails&&) noexcept = default;
-		~MessageDetails();
+		~MessageDetails() = default;
 		MessageDetails& operator=(const MessageDetails&) = delete;
 		MessageDetails& operator=(MessageDetails&&) noexcept = default;
 

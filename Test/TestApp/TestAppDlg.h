@@ -38,7 +38,7 @@ protected:
 	void LoadSocks5Extender();
 	void UnloadSocks5Extender();
 
-	Set<UInt16> GetPorts(const CString ports);
+	std::optional<Set<UInt16>> GetPorts(const CString ports);
 
 	void UpdateControls();
 
@@ -125,7 +125,7 @@ protected:
 	afx_msg void OnUpdateStressMultipleInstances(CCmdUI* pCmdUI);
 	afx_msg void OnBenchmarksMemory();
 	afx_msg void OnUtilsLogAllocatorStatistics();
-	afx_msg void OnLocalIPReputations();
+	afx_msg void OnLocalAddressReputations();
 	afx_msg void OnAttacksConnectAndDisconnect();
 	afx_msg void OnAttacksConnectAndWait();
 	afx_msg void OnUpdateAttacksConnectAndDisconnect(CCmdUI* pCmdUI);
@@ -138,6 +138,8 @@ protected:
 	afx_msg void OnUpdateSocks5ExtenderConfiguration(CCmdUI* pCmdUI);
 	afx_msg void OnLocalUDPListenersEnabled();
 	afx_msg void OnUpdateLocalUDPListenersEnabled(CCmdUI* pCmdUI);
+	afx_msg void OnLocalBTHListenersEnabled();
+	afx_msg void OnUpdateLocalBTHListenersEnabled(CCmdUI* pCmdUI);
 
 private:
 	static inline const char* m_SettingsFilename{ "TestAppSettings.json" };
@@ -158,8 +160,9 @@ private:
 	std::atomic_bool m_ConnectStressThreadStop{ false };
 	std::unique_ptr<std::thread> m_ConnectStressThread;
 
-	String m_DefaultIP;
-	String m_DefaultIPHistory;
+	String m_DefaultAddress;
+	String m_DefaultAddressHistory;
 	UInt16 m_DefaultPort{ 999 };
-	IPEndpoint::Protocol m_DefaultProtocol{ IPEndpoint::Protocol::TCP };
+	Endpoint::Protocol m_DefaultProtocol{ Endpoint::Protocol::TCP };
+	bool m_DefaultBTHAuth{ true };
 };
