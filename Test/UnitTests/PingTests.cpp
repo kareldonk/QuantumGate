@@ -5,6 +5,8 @@
 #include "Network\Ping.h"
 #include "Common\Util.h"
 
+#include <ws2tcpip.h>
+
 using namespace std::literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace QuantumGate::Implementation::Network;

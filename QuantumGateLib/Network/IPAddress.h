@@ -5,9 +5,6 @@
 
 #include "BinaryIPAddress.h"
 
-#include <ws2tcpip.h>
-#include <Mstcpip.h>
-
 namespace QuantumGate::Implementation::Network
 {
 	class Export IPAddress
