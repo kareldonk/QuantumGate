@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2036
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{CF38D879-7097-48E4-BB10-8C9D3C5BB8D6}"
 	ProjectSection(SolutionItems) = preProject
@@ -63,6 +63,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QuantumGateConsole", "Examp
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QuantumGateExtenderHandshake", "Examples\QuantumGateExtenderHandshake\QuantumGateExtenderHandshake.vcxproj", "{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A6B8A4CE-ECAB-47D4-B9E8-651386DF5193} = {A6B8A4CE-ECAB-47D4-B9E8-651386DF5193}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QuantumGateBluetooth", "Examples\QuantumGateBluetooth\QuantumGateBluetooth.vcxproj", "{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}"
 	ProjectSection(ProjectDependencies) = postProject
 		{A6B8A4CE-ECAB-47D4-B9E8-651386DF5193} = {A6B8A4CE-ECAB-47D4-B9E8-651386DF5193}
 	EndProjectSection
@@ -219,6 +224,18 @@ Global
 		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.Release|x64.Build.0 = Release|x64
 		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.ReleaseUnitTests|Win32.ActiveCfg = Release|Win32
 		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9}.ReleaseUnitTests|x64.ActiveCfg = Release|x64
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.Debug|Win32.Build.0 = Debug|Win32
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.Debug|x64.ActiveCfg = Debug|x64
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.Debug|x64.Build.0 = Debug|x64
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.DebugUnitTests|Win32.ActiveCfg = Debug|Win32
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.DebugUnitTests|x64.ActiveCfg = Debug|x64
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.Release|Win32.ActiveCfg = Release|Win32
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.Release|Win32.Build.0 = Release|Win32
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.Release|x64.ActiveCfg = Release|x64
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.Release|x64.Build.0 = Release|x64
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.ReleaseUnitTests|Win32.ActiveCfg = Release|Win32
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355}.ReleaseUnitTests|x64.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -233,6 +250,7 @@ Global
 		{824C5AA8-19B5-42AE-9AE9-3AD816725E4C} = {841410DA-E519-4F24-B217-771C32A4F5DD}
 		{03981773-134A-446A-A169-75FA46BA920D} = {841410DA-E519-4F24-B217-771C32A4F5DD}
 		{11D5EC3D-3E3F-4742-8C9F-8F6A331A65E9} = {841410DA-E519-4F24-B217-771C32A4F5DD}
+		{0DFFB565-F5EE-4C49-B2D8-DB9FC76B8355} = {841410DA-E519-4F24-B217-771C32A4F5DD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {67930584-02C2-47E4-A702-B3F67535C8BD}

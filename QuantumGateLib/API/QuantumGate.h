@@ -3,11 +3,8 @@
 
 #pragma once
 
-// Include and libraries for Windows Sockets
+// Include for Windows Sockets
 #include <winsock2.h>
-#pragma comment(lib, "Ws2_32.lib")
-#pragma comment(lib, "Iphlpapi.lib")
-#pragma comment(lib, "Ntdll.lib")
 
 // QuantumGate Types
 #include "..\Types.h"

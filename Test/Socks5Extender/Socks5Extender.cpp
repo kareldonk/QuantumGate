@@ -6,8 +6,11 @@
 
 #include <cassert>
 #include <regex>
+
+// Windows Sockets includes and library
 #include <ws2tcpip.h>
 #include <Iphlpapi.h>
+#pragma comment(lib, "Ws2_32.lib")
 
 #include "Console.h"
 #include "Common\Util.h"
