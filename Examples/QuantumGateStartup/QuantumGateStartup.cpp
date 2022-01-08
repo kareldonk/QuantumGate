@@ -23,8 +23,6 @@
 
 #include <iostream>
 
-using namespace std::literals;
-
 int main()
 {
 	// Send console output to terminal;

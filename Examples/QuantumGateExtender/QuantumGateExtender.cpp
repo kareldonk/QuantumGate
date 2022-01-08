@@ -62,8 +62,7 @@ int main()
 	auto answer = GetInput();
 	if (answer.size() > 0)
 	{
-		if (answer.find(L'y') != std::wstring::npos ||
-			answer.find(L'Y') != std::wstring::npos)
+		if (answer == L"y" || answer == L"Y")
 		{
 			first_instance = true;
 		}
@@ -74,8 +73,7 @@ int main()
 	answer = GetInput();
 	if (answer.size() > 0)
 	{
-		if (answer.find(L'y') != std::wstring::npos ||
-			answer.find(L'Y') != std::wstring::npos)
+		if (answer == L"y" || answer == L"Y")
 		{
 			enable_console = true;
 		}

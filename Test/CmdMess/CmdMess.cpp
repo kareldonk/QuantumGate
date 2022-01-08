@@ -161,7 +161,7 @@ bool HandleCommand(const String& cmdline)
 					{
 						const auto endp = IPEndpoint(IPEndpoint::Protocol::TCP, addr, static_cast<UInt16>(port));
 
-						const auto result = m_QuantumGate.ConnectTo({ endp }, [&](PeerLUID pluid, Result<Peer> cresult) mutable
+						const auto result = m_QuantumGate.ConnectTo({ endp }, [=](PeerLUID pluid, Result<Peer> cresult) mutable
 						{
 							if (cresult.Succeeded())
 							{

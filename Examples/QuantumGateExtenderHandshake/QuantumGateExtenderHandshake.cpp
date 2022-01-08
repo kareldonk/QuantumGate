@@ -212,8 +212,7 @@ int main()
 		{
 			std::wcout << L"\x1b[106m\x1b[30m" << L" >> " << L"\x1b[40m\x1b[39m ";
 
-			std::wstring cmdline;
-			std::getline(std::wcin, cmdline);
+			const auto cmdline = GetInput();
 
 			if (cmdline == L"quit") break;
 			else
