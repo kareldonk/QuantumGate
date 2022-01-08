@@ -245,7 +245,7 @@ bool HandleCommand(const String& cmdline)
 		if (!handled)
 		{
 			PrintErrLine(L"Unrecognized command or bad syntax: %s", cmdline.c_str());
-			PrintErrLine(L"Type 'help' or '?' and press Enter for help.", cmdline.c_str());
+			PrintErrLine(L"Type 'help' or '?' and press Enter for help.");
 		}
 	}
 
