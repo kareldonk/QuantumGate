@@ -417,8 +417,7 @@ namespace QuantumGate::Socks5Extender
 
 		PeerEvent::Result result;
 
-		auto msgdata = event.GetMessageData();
-		if (msgdata != nullptr)
+		if (const auto msgdata = event.GetMessageData(); msgdata != nullptr)
 		{
 			UInt16 mtype = 0;
 			BufferReader rdr(*msgdata, true);

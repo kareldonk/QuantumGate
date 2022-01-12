@@ -26,16 +26,16 @@ namespace TestExtender
 {
 	FileTransfer::FileTransfer(QuantumGate::Peer& peer, const FileTransferType type, const Size trfbuf_size,
 							   const bool autotrf, const bool benchmark, const Size benchmark_size) noexcept :
-		m_Peer(peer), m_LastActiveSteadyTime(Util::GetCurrentSteadyTime()),	m_Type(type), m_Auto(autotrf),
-		m_Benchmark(benchmark), m_BenchmarkSize(benchmark_size), m_TransferBuffer(trfbuf_size)
+		m_Peer(peer), m_Type(type), m_Auto(autotrf), m_Benchmark(benchmark), m_BenchmarkSize(benchmark_size),
+		m_TransferBuffer(trfbuf_size), m_LastActiveSteadyTime(Util::GetCurrentSteadyTime())
 	{}
 
 	FileTransfer::FileTransfer(QuantumGate::Peer& peer, const FileTransferType type, const FileTransferID id,
 							   const Size filesize, const String& filename, Buffer&& filehash,
 							   const Size trfbuf_size, const bool autotrf, const bool benchmark) noexcept :
-		m_Peer(peer), m_LastActiveSteadyTime(Util::GetCurrentSteadyTime()), m_Type(type), m_Auto(autotrf),
-		m_Benchmark(benchmark), m_ID(id), m_FileSize(filesize), m_FileName(filename), m_FileHash(std::move(filehash)),
-		m_TransferBuffer(trfbuf_size)
+		m_Peer(peer), m_Type(type), m_Auto(autotrf), m_Benchmark(benchmark), m_ID(id), m_FileHash(std::move(filehash)),
+		m_FileName(filename), m_FileSize(filesize), m_TransferBuffer(trfbuf_size),
+		m_LastActiveSteadyTime(Util::GetCurrentSteadyTime())
 	{}
 
 	FileTransfer::~FileTransfer()
@@ -443,8 +443,7 @@ namespace TestExtender
 
 		if (event.GetType() == PeerEvent::Type::Message)
 		{
-			auto msgdata = event.GetMessageData();
-			if (msgdata != nullptr)
+			if (const auto msgdata = event.GetMessageData(); msgdata != nullptr)
 			{
 				UInt16 mtype = 0;
 				BufferReader rdr(*msgdata, true);
@@ -1113,7 +1112,7 @@ namespace TestExtender
 			if (ft.IsAuto()) return 1;
 			else return 0;
 		}();
-		
+
 		const UInt8 benchmark = [&]()
 		{
 			if (ft.IsBenchmark()) return 1;

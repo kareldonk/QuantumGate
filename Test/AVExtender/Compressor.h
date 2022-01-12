@@ -34,7 +34,7 @@ namespace QuantumGate::AVExtender
 
 	protected:
 		[[nodiscard]] virtual bool OnCreate() noexcept;
-		[[nodiscard]] virtual void OnClose() noexcept;
+		virtual void OnClose() noexcept;
 		[[nodiscard]] virtual bool OnCreateMediaTypes(IMFMediaType* input_type, IMFMediaType* output_type) noexcept;
 		[[nodiscard]] virtual bool OnSetMediaTypes(IMFTransform* transform, IMFMediaType* input_type, IMFMediaType* output_type) noexcept;
 		[[nodiscard]] virtual UInt64 GetDuration(const Size sample_size) noexcept;

@@ -81,12 +81,12 @@ protected:
 
 		QuantumGate::Extender::PeerEvent::Result result;
 
-		if (event.GetMessageData())
+		if (const auto msgdata = event.GetMessageData(); msgdata != nullptr)
 		{
 			std::wstring msg;
-			msg.resize(event.GetMessageData()->GetSize() / sizeof(std::wstring::value_type));
+			msg.resize(msgdata->GetSize() / sizeof(std::wstring::value_type));
 
-			std::memcpy(msg.data(), event.GetMessageData()->GetBytes(), event.GetMessageData()->GetSize());
+			std::memcpy(msg.data(), msgdata->GetBytes(), msgdata->GetSize());
 
 			std::wcout << L"Received message from peer LUID " << event.GetPeerLUID() << L": ";
 			std::wcout << L"\x1b[92m";

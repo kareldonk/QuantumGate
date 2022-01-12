@@ -17,8 +17,8 @@ using namespace std::literals;
 namespace QuantumGate::AVExtender
 {
 	Extender::Extender(HWND hwnd) :
-		m_Window(hwnd),
-		QuantumGate::Extender(UUID, String(L"QuantumGate Audio/Video Extender"))
+		QuantumGate::Extender(UUID, String(L"QuantumGate Audio/Video Extender")),
+		m_Window(hwnd)
 	{
 		if (!SetStartupCallback(MakeCallback(this, &Extender::OnStartup)) ||
 			!SetPostStartupCallback(MakeCallback(this, &Extender::OnPostStartup)) ||
@@ -169,8 +169,7 @@ namespace QuantumGate::AVExtender
 
 		PeerEvent::Result result;
 
-		auto msgdata = event.GetMessageData();
-		if (msgdata != nullptr)
+		if (const auto msgdata = event.GetMessageData(); msgdata != nullptr)
 		{
 			UInt16 mtype{ 0 };
 			BufferReader rdr(*msgdata, true);

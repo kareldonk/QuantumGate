@@ -110,10 +110,10 @@ QuantumGate::Extender::PeerEvent::Result MinimalExtender::OnPeerMessage(QuantumG
 
 	QuantumGate::Extender::PeerEvent::Result result;
 
-	if (event.GetMessageData())
+	if (const auto msgdata = event.GetMessageData(); msgdata != nullptr)
 	{
 		std::wcout << L"MinimalExtender received message from peer LUID " << event.GetPeerLUID() <<
-			L": " << reinterpret_cast<const wchar_t*>(event.GetMessageData()->GetBytes()) << L"\r\n";
+			L": " << reinterpret_cast<const wchar_t*>(msgdata->GetBytes()) << L"\r\n";
 
 		result.Handled = true; // Should be true if message was recognized, otherwise false
 		result.Success = true; // Should be true if message was handled successfully, otherwise false

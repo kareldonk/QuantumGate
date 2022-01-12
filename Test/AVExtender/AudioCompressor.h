@@ -37,7 +37,7 @@ namespace QuantumGate::AVExtender
 		[[nodiscard]] const AudioFormat& GetOutputFormat() const noexcept { return m_OutputFormat; }
 
 	private:
-		[[nodiscard]] void OnClose() noexcept override;
+		void OnClose() noexcept override;
 		[[nodiscard]] UInt64 GetDuration(const Size sample_size) noexcept override;
 		[[nodiscard]] bool OnCreateMediaTypes(IMFMediaType* input_type, IMFMediaType* output_type) noexcept override;
 		[[nodiscard]] bool OnSetMediaTypes(IMFTransform* transform, IMFMediaType* input_type, IMFMediaType* output_type) noexcept override;

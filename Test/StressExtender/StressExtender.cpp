@@ -90,8 +90,7 @@ namespace StressExtender
 
 		if (event.GetType() == PeerEvent::Type::Message)
 		{
-			auto msgdata = event.GetMessageData();
-			if (msgdata != nullptr)
+			if (const auto msgdata = event.GetMessageData(); msgdata != nullptr)
 			{
 				UInt16 mtype = 0;
 				BufferReader rdr(*msgdata, true);

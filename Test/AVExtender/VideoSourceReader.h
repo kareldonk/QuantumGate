@@ -40,7 +40,7 @@ namespace QuantumGate::AVExtender
 		VideoSourceReader& operator=(const VideoSourceReader&) = delete;
 		VideoSourceReader& operator=(VideoSourceReader&&) = delete;
 
-		[[nodiscard]] void SetPreferredSize(const UInt16 width, const UInt16 height) noexcept;
+		void SetPreferredSize(const UInt16 width, const UInt16 height) noexcept;
 		[[nodiscard]] bool SetSampleSize(const UInt16 width, const UInt16 height) noexcept;
 
 		[[nodiscard]] VideoFormat GetSampleFormat() const noexcept;
