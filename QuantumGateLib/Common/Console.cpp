@@ -18,8 +18,10 @@ namespace QuantumGate::Implementation
 
 		[[nodiscard]] inline bool CanAddMessage(const Console::MessageType type) const noexcept
 		{
-			if (!HasOutput.load() ||
-				!(static_cast<Int16>(type) & static_cast<Int16>(Verbosity.load()))) return false;
+			if (!HasOutput.load() || !(static_cast<Int16>(type) & static_cast<Int16>(Verbosity.load())))
+			{
+				return false;
+			}
 
 			return true;
 		}
@@ -183,12 +185,12 @@ namespace QuantumGate::Implementation
 		// Set output mode to handle virtual terminal sequences
 		std::array<ULong, 2> handles{ STD_OUTPUT_HANDLE, STD_ERROR_HANDLE };
 
-		for (auto& handle : handles)
+		for (const auto& handle : handles)
 		{
-			HANDLE stdhandle = GetStdHandle(handle);
+			const auto stdhandle = GetStdHandle(handle);
 			if (stdhandle != INVALID_HANDLE_VALUE)
 			{
-				DWORD mode = 0;
+				DWORD mode{ 0 };
 				if (GetConsoleMode(stdhandle, &mode))
 				{
 					mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_ECHO_INPUT |

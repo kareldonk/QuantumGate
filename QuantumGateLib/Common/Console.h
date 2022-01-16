@@ -203,7 +203,11 @@ namespace QuantumGate::Implementation
 		public:
 			WindowOutput() noexcept;
 			WindowOutput(const bool close_button_enabled, const bool ctrl_break_enabled) noexcept;
-			~WindowOutput();
+			WindowOutput(const WindowOutput&) = delete;
+			WindowOutput(WindowOutput&&) noexcept = default;
+			virtual ~WindowOutput();
+			WindowOutput& operator=(const WindowOutput&) = delete;
+			WindowOutput& operator=(WindowOutput&&) noexcept = default;
 
 			void AddMessage(const MessageType type, const WChar* message) override;
 
