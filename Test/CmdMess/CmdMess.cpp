@@ -198,15 +198,15 @@ int main()
 
 bool HandleCommand(const String& cmdline)
 {
-	if (cmdline.size() > 0)
+	if (!cmdline.empty())
 	{
 		auto handled{ false };
 
-		for (auto& cmd : commands)
+		for (const auto& cmd : commands)
 		{
 			std::wregex r(cmd.RegEx, std::regex_constants::icase);
 			std::wsmatch m;
-			if (regex_search(cmdline, m, r))
+			if (std::regex_search(cmdline, m, r))
 			{
 				switch (cmd.ID)
 				{

@@ -119,13 +119,17 @@ void ScanForDevices(QuantumGate::Local& qg) noexcept
 {
 	std::wcout << L"Looking for Bluetooth devices, please wait...\r\n";
 
-	// Note that we pass 'true' to GetEnvironment() to
-	// update cached information and scan for changes,
-	// in this case possibly new Bluetooth devices in range
-	const auto result = qg.GetEnvironment(true).GetBluetoothDevices();
+	// Note that we pass 'true' to GetEnvironment() to update cached information
+	// and scan for changes, in this case possibly new Bluetooth devices in range.
+	// Passing 'true' to GetEnvironment() blocks the current thread while QuantumGate
+	// looks for Bluetooth devices and updating other information, so do not call
+	// this from a UI thread.
+	const auto environment = qg.GetEnvironment(true);
+
+	const auto result = environment.GetBluetoothDevices();
 	if (result.Failed())
 	{
-		std::wcout << L"Failed to look for Bluetooth devices (" << result << L")\r\n";
+		std::wcout << L"Failed to get Bluetooth devices (" << result << L")\r\n";
 		return;
 	}
 
@@ -182,15 +186,15 @@ void ScanForDevices(QuantumGate::Local& qg) noexcept
 
 bool HandleCommand(QuantumGate::Local& qg, const BluetoothMessengerExtender& ext, const std::wstring& cmdline)
 {
-	if (cmdline.size() > 0)
+	if (!cmdline.empty())
 	{
 		auto handled{ false };
 
-		for (auto& cmd : commands)
+		for (const auto& cmd : commands)
 		{
 			std::wregex r(cmd.RegEx, std::regex_constants::icase);
 			std::wsmatch m;
-			if (regex_search(cmdline, m, r))
+			if (std::regex_search(cmdline, m, r))
 			{
 				switch (cmd.ID)
 				{
