@@ -328,6 +328,11 @@ bool HandleCommand(QuantumGate::Local& qg, const BluetoothMessengerExtender& ext
 
 						return false;
 					}
+					default:
+					{
+						assert(false);
+						break;
+					}
 				}
 
 				handled = true;

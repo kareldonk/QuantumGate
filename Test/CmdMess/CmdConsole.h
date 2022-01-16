@@ -49,6 +49,7 @@ public:
 	{
 		INPUT_RECORD ir{ 0 };
 		DWORD num{ 0 };
+
 		if (PeekConsoleInput(m_StdInHandle, &ir, 1, &num))
 		{
 			if (num > 0)
@@ -75,9 +76,15 @@ public:
 			}
 		}
 
-		if (wc == 0) return KeyInputEventResult::NoInput;
-
-		if (wc != L'\n' && wc != L'\r')
+		if (wc == 0)
+		{
+			return KeyInputEventResult::NoInput;
+		}
+		else if (wc == L'\n' || wc == L'\r')
+		{
+			return KeyInputEventResult::ReturnPressed;
+		}
+		else
 		{
 			std::unique_lock lock(GetTerminalMutex());
 
@@ -121,8 +128,6 @@ public:
 
 			return KeyInputEventResult::NormalInput;
 		}
-
-		return KeyInputEventResult::ReturnPressed;
 	}
 
 	[[nodiscard]] static int GetWidth() noexcept
