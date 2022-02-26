@@ -43,7 +43,7 @@ namespace QuantumGate::Implementation::Network
 			// Check for same object
 			if (this == &other) return *this;
 
-			m_BinaryAddress = other.m_BinaryAddress;
+			m_BinaryAddress = std::move(other.m_BinaryAddress);
 
 			return *this;
 		}

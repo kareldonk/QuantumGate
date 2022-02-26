@@ -134,7 +134,7 @@ namespace QuantumGate::Implementation::Network
 				m_BinaryAddress.AddressFamily = BinaryIPAddress::Family::IPv4;
 
 				auto ip4 = reinterpret_cast<const sockaddr_in*>(saddr);
-				memcpy(&m_BinaryAddress.Bytes, &ip4->sin_addr, sizeof(ip4->sin_addr));
+				std::memcpy(&m_BinaryAddress.Bytes, &ip4->sin_addr, sizeof(ip4->sin_addr));
 
 				break;
 			}
@@ -145,7 +145,7 @@ namespace QuantumGate::Implementation::Network
 				m_BinaryAddress.AddressFamily = BinaryIPAddress::Family::IPv6;
 
 				auto ip6 = reinterpret_cast<const sockaddr_in6*>(saddr);
-				memcpy(&m_BinaryAddress.Bytes, &ip6->sin6_addr, sizeof(ip6->sin6_addr));
+				std::memcpy(&m_BinaryAddress.Bytes, &ip6->sin6_addr, sizeof(ip6->sin6_addr));
 
 				break;
 			}
