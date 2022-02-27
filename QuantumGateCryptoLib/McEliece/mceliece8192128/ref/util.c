@@ -2,7 +2,7 @@
   This file is for loading/storing data in a little-endian fashion
 */
 
-#include <cassert>
+#include <assert.h>
 #include <openssl/evp.h>
 
 #include "util.h"
