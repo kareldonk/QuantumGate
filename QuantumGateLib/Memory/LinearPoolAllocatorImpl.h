@@ -49,7 +49,7 @@ namespace QuantumGate::Implementation::Memory::LinearPoolAllocator
 		}
 		else
 		{
-			static_assert(false, "Unsupported type used");
+			static_assert(AlwaysFalse<Type>, "Unsupported type used");
 		}
 	}
 
@@ -66,7 +66,7 @@ namespace QuantumGate::Implementation::Memory::LinearPoolAllocator
 		}
 		else
 		{
-			static_assert(false, "Unsupported type used");
+			static_assert(AlwaysFalse<Type>, "Unsupported type used");
 		}
 	}
 
@@ -83,7 +83,7 @@ namespace QuantumGate::Implementation::Memory::LinearPoolAllocator
 		}
 		else
 		{
-			static_assert(false, "Unsupported type used");
+			static_assert(AlwaysFalse<Type>, "Unsupported type used");
 		}
 	}
 

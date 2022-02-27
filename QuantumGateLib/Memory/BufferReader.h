@@ -116,7 +116,7 @@ namespace QuantumGate::Implementation::Memory
 		template<typename T>
 		[[nodiscard]] bool ReadImpl(const BufferIO::SizeWrap<T>& data)
 		{
-			static_assert(false, "Unsupported type.");
+			static_assert(AlwaysFalse<T>, "Unsupported type.");
 			return false;
 		}
 
