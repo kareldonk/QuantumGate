@@ -47,7 +47,7 @@ namespace QuantumGate::Implementation::Network
 		// same as the WSAStringToAddress() function
 		const auto parse_address = [](const WChar* addr_str, UInt64& bth_addr) noexcept -> bool
 		{
-			if (std::wcslen(addr_str) != 19 ||
+			if (std::wcslen(addr_str) != BTHAddress::MaxBTHAddressStringLength ||
 				addr_str[0] != L'(' || addr_str[18] != L')')
 			{
 				return false;

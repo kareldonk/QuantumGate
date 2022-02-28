@@ -104,7 +104,7 @@ namespace QuantumGate::Implementation::Network
 		constexpr void Clear() noexcept { m_BinaryAddress.Clear(); }
 
 	private:
-		static constexpr UInt8 MaxBTHAddressStringLength{ 20 }; // Maximum length of BTH address
+		static constexpr UInt8 MaxBTHAddressStringLength{ 19 }; // Maximum length of BTH address excluding null terminator
 
 		BinaryBTHAddress m_BinaryAddress;  // In host byte order (little endian)
 	};

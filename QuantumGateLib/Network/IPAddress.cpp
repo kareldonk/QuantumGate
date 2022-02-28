@@ -176,7 +176,7 @@ namespace QuantumGate::Implementation::Network
 					return {};
 			}
 
-			std::array<WChar, IPAddress::MaxIPAddressStringLength> ipstr{ 0 };
+			std::array<WChar, IPAddress::MaxIPAddressStringLength + 1> ipstr{ 0 };
 
 			const auto ip = InetNtop(afws, &m_BinaryAddress.Bytes, reinterpret_cast<PWSTR>(ipstr.data()), ipstr.size());
 			if (ip != NULL)

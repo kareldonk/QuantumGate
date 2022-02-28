@@ -253,7 +253,7 @@ namespace QuantumGate::Implementation::Network
 		}
 
 	private:
-		static constexpr UInt8 MaxIPAddressStringLength{ 46 }; // Maximum length of IPv6 address
+		static constexpr UInt8 MaxIPAddressStringLength{ 45 }; // Maximum length of IPv6 address excluding null terminator
 
 		BinaryIPAddress m_BinaryAddress; // In network byte order (big endian)
 	};
