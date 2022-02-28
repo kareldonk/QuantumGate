@@ -35,16 +35,16 @@ namespace UnitTests
 			Assert::AreEqual(true, bth1 != bth2);
 
 			// Move construction
-			BTHAddress ip4(std::move(bth2));
-			Assert::AreEqual(true, bth3 == ip4);
+			BTHAddress bth4(std::move(bth2));
+			Assert::AreEqual(true, bth3 == bth4);
 
 			// Copy assignment
 			bth1 = bth3;
 			Assert::AreEqual(true, bth3 == bth1);
 
 			// Move assignment
-			const auto bth4 = std::move(bth3);
-			Assert::AreEqual(true, bth4 == bth1);
+			const auto bth5 = std::move(bth3);
+			Assert::AreEqual(true, bth5 == bth1);
 
 			// GetBinary
 			Assert::AreEqual(true, bth1.GetBinary().AddressFamily == BinaryBTHAddress::Family::BTH);

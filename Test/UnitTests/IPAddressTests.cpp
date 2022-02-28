@@ -134,6 +134,12 @@ namespace UnitTests
 			Assert::AreEqual(true, IPAddress::TryParse(L"fd00::", address));
 			Assert::AreEqual(true, address.GetString() == L"fd00::");
 			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv6);
+			Assert::AreEqual(true, IPAddress::TryParse(L"0000:0000:0000:0000:0000:ffff:192.168.100.228", address)); // max IPv6 length
+			Assert::AreEqual(true, address.GetString() == L"::ffff:192.168.100.228");
+			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv6);
+			Assert::AreEqual(true, IPAddress::TryParse(L"f0a0:f0a0:f0a0:f0a0:f0a0:ffff:192.168.100.228", address));
+			Assert::AreEqual(true, address.GetString() == L"f0a0:f0a0:f0a0:f0a0:f0a0:ffff:c0a8:64e4");
+			Assert::AreEqual(true, address.GetFamily() == IPAddress::Family::IPv6);
 		}
 
 		TEST_METHOD(Mask)
