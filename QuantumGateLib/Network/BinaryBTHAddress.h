@@ -32,6 +32,8 @@ namespace QuantumGate::Implementation::Network
 			AddressFamily(other.AddressFamily), UInt64s(other.UInt64s)
 		{}
 
+		constexpr ~BinaryBTHAddress() = default;
+
 		constexpr BinaryBTHAddress& operator=(const BinaryBTHAddress& other) noexcept
 		{
 			// Check for same object

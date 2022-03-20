@@ -81,6 +81,8 @@ namespace QuantumGate::Implementation::Network
 			AddressFamily(other.AddressFamily), UInt64s{ other.UInt64s[0], other.UInt64s[1] }
 		{}
 
+		constexpr ~BinaryIPAddress() = default;
+
 		constexpr BinaryIPAddress& operator=(const BinaryIPAddress& other) noexcept
 		{
 			// Check for same object
