@@ -10,7 +10,8 @@ namespace QuantumGate::Implementation::Network
 		Unspecified = 0,
 		IPv4 = 2,
 		IPv6 = 23,
-		BTH = 32
+		BTH = 32,
+		IMF = 254
 	};
 
 	enum class Protocol : UInt8
@@ -19,7 +20,8 @@ namespace QuantumGate::Implementation::Network
 		ICMP = 1,
 		TCP = 6,
 		UDP = 17,
-		RFCOMM = 3
+		RFCOMM = 3,
+		IMF = 254
 	};
 
 	[[nodiscard]] const WChar* GetProtocolName(const Protocol protocol) noexcept;

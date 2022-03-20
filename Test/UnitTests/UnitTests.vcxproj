@@ -370,6 +370,7 @@
   <ItemGroup>
     <ClCompile Include="AddressTests.cpp" />
     <ClCompile Include="BinaryBTHAddressTests.cpp" />
+    <ClCompile Include="BinaryIMFAddressTests.cpp" />
     <ClCompile Include="BinaryIPAddressTests.cpp" />
     <ClCompile Include="BTHAddressTests.cpp" />
     <ClCompile Include="BTHEndpointTests.cpp" />
@@ -385,6 +386,8 @@
     <ClCompile Include="EventCompositeTests.cpp" />
     <ClCompile Include="EventGroupTests.cpp" />
     <ClCompile Include="EventTests.cpp" />
+    <ClCompile Include="IMFAddressTests.cpp" />
+    <ClCompile Include="IMFEndpointTests.cpp" />
     <ClCompile Include="IPEndPointTests.cpp" />
     <ClCompile Include="HashTests.cpp" />
     <ClCompile Include="IPAddressTests.cpp" />

@@ -84,6 +84,44 @@ namespace UnitTests
 
 			Assert::AreEqual(true, ep5 == ep);
 
+			// Copy assignment of different Endpoint type
+			ep = ep3;
+			Assert::AreEqual(true, ep.GetString() == L"TCP:192.168.0.1:80:3000:3");
+			Assert::AreEqual(true, ep.GetType() == Endpoint::Type::IP);
+			Assert::AreEqual(true, ep.GetAddressFamily() == Endpoint::AddressFamily::IPv4);
+			Assert::AreEqual(true, ep.GetIPEndpoint().GetIPAddress().GetBinary().UInt32s[0] == 0x0100A8C0);
+			Assert::AreEqual(true, ep.GetRelayPort() == 3000);
+			Assert::AreEqual(true, ep.GetRelayHop() == 3);
+
+			Endpoint ep5a(IMFEndpoint(IMFEndpoint::Protocol::IMF, IMFAddress(L"info@example.com"), 999, 4000, 1));
+			ep = ep5a;
+			Assert::AreEqual(true, ep.GetString() == L"IMF:info@example.com:999:4000:1");
+			Assert::AreEqual(true, ep.GetType() == Endpoint::Type::IMF);
+			Assert::AreEqual(true, ep.GetAddressFamily() == Endpoint::AddressFamily::IMF);
+			Assert::AreEqual(true, ep.GetIMFEndpoint().GetIMFAddress().GetBinary().GetStringView() == L"info@example.com");
+			Assert::AreEqual(true, ep.GetRelayPort() == 4000);
+			Assert::AreEqual(true, ep.GetRelayHop() == 1);
+
+			Endpoint ep5b(IMFEndpoint(IMFEndpoint::Protocol::IMF, IMFAddress(L"info2@example.com"), 9, 3000, 3));
+			ep = ep5b;
+			Assert::AreEqual(true, ep.GetString() == L"IMF:info2@example.com:9:3000:3");
+			Assert::AreEqual(true, ep.GetType() == Endpoint::Type::IMF);
+			Assert::AreEqual(true, ep.GetAddressFamily() == Endpoint::AddressFamily::IMF);
+			Assert::AreEqual(true, ep.GetIMFEndpoint().GetIMFAddress().GetBinary().GetStringView() == L"info2@example.com");
+			Assert::AreEqual(true, ep.GetRelayPort() == 3000);
+			Assert::AreEqual(true, ep.GetRelayHop() == 3);
+
+			Endpoint ep5c(BTHEndpoint(BTHEndpoint::Protocol::RFCOMM, BTHAddress(L"(92:5F:D3:5B:93:B2)"), 9,
+									 BTHEndpoint::GetNullServiceClassID(), 2000, 2));
+			ep = ep5c;
+			Assert::AreEqual(true, ep.GetString() == L"RFCOMM:(92:5F:D3:5B:93:B2):9:2000:2");
+			Assert::AreEqual(true, ep.GetType() == Endpoint::Type::BTH);
+			Assert::AreEqual(true, ep.GetProtocol() == Endpoint::Protocol::RFCOMM);
+			Assert::AreEqual(true, ep.GetAddressFamily() == Endpoint::AddressFamily::BTH);
+			Assert::AreEqual(true, ep.GetBTHEndpoint().GetBTHAddress().GetBinary().UInt64s == 0x925FD35B93B2);
+			Assert::AreEqual(true, ep.GetRelayPort() == 2000);
+			Assert::AreEqual(true, ep.GetRelayHop() == 2);
+
 			// Move assignment
 			const auto ep6 = std::move(ep5);
 			Assert::AreEqual(true, ep6.GetString() == L"RFCOMM:(92:5F:D3:5B:93:B2):9:2000:2");
@@ -104,6 +142,35 @@ namespace UnitTests
 			Assert::AreEqual(true, ep.GetIPEndpoint().GetIPAddress().GetBinary().UInt32s[0] == 0x0100A8C0);
 			Assert::AreEqual(true, ep.GetRelayPort() == 3000);
 			Assert::AreEqual(true, ep.GetRelayHop() == 3);
+
+			Endpoint ep7(IMFEndpoint(IMFEndpoint::Protocol::IMF, IMFAddress(L"info@example.com"), 999, 4000, 1));
+			ep = std::move(ep7);
+			Assert::AreEqual(true, ep.GetString() == L"IMF:info@example.com:999:4000:1");
+			Assert::AreEqual(true, ep.GetType() == Endpoint::Type::IMF);
+			Assert::AreEqual(true, ep.GetAddressFamily() == Endpoint::AddressFamily::IMF);
+			Assert::AreEqual(true, ep.GetIMFEndpoint().GetIMFAddress().GetBinary().GetStringView() == L"info@example.com");
+			Assert::AreEqual(true, ep.GetRelayPort() == 4000);
+			Assert::AreEqual(true, ep.GetRelayHop() == 1);
+
+			Endpoint ep8(IMFEndpoint(IMFEndpoint::Protocol::IMF, IMFAddress(L"info2@example.com"), 9, 3000, 3));
+			ep = std::move(ep8);
+			Assert::AreEqual(true, ep.GetString() == L"IMF:info2@example.com:9:3000:3");
+			Assert::AreEqual(true, ep.GetType() == Endpoint::Type::IMF);
+			Assert::AreEqual(true, ep.GetAddressFamily() == Endpoint::AddressFamily::IMF);
+			Assert::AreEqual(true, ep.GetIMFEndpoint().GetIMFAddress().GetBinary().GetStringView() == L"info2@example.com");
+			Assert::AreEqual(true, ep.GetRelayPort() == 3000);
+			Assert::AreEqual(true, ep.GetRelayHop() == 3);
+
+			Endpoint ep9(BTHEndpoint(BTHEndpoint::Protocol::RFCOMM, BTHAddress(L"(92:5F:D3:5B:93:B2)"), 9,
+									 BTHEndpoint::GetNullServiceClassID(), 2000, 2));
+			ep = std::move(ep9);
+			Assert::AreEqual(true, ep.GetString() == L"RFCOMM:(92:5F:D3:5B:93:B2):9:2000:2");
+			Assert::AreEqual(true, ep.GetType() == Endpoint::Type::BTH);
+			Assert::AreEqual(true, ep.GetProtocol() == Endpoint::Protocol::RFCOMM);
+			Assert::AreEqual(true, ep.GetAddressFamily() == Endpoint::AddressFamily::BTH);
+			Assert::AreEqual(true, ep.GetBTHEndpoint().GetBTHAddress().GetBinary().UInt64s == 0x925FD35B93B2);
+			Assert::AreEqual(true, ep.GetRelayPort() == 2000);
+			Assert::AreEqual(true, ep.GetRelayHop() == 2);
 		}
 
 		TEST_METHOD(Constexpr)
@@ -197,6 +264,15 @@ namespace UnitTests
 
 			// Move assignment of different Endpoint type
 			constexpr auto ep7 = std::move(ep3);
+			static_assert(ep7.GetType() == Endpoint::Type::IP, "Should be equal");
+			static_assert(ep7.GetAddressFamily() == Endpoint::AddressFamily::IPv4, "Should be equal");
+			static_assert(ep7.GetProtocol() == Endpoint::Protocol::TCP, "Should be equal");
+			static_assert(ep7.GetIPEndpoint().GetIPAddress().GetBinary() == bin_ip, "Should be equal");
+			static_assert(ep7.GetRelayPort() == 3000, "Should be equal");
+			static_assert(ep7.GetRelayHop() == 3, "Should be equal");
+			Assert::AreEqual(true, ep7.GetString() == L"TCP:192.168.0.1:80:3000:3");
+
+			constexpr auto ep8 = std::move(ep3);
 			static_assert(ep7.GetType() == Endpoint::Type::IP, "Should be equal");
 			static_assert(ep7.GetAddressFamily() == Endpoint::AddressFamily::IPv4, "Should be equal");
 			static_assert(ep7.GetProtocol() == Endpoint::Protocol::TCP, "Should be equal");

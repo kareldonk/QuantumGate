@@ -14,6 +14,8 @@ namespace QuantumGate::Implementation::Network
 				return m_IPEndpoint.GetString();
 			case Type::BTH:
 				return m_BTHEndpoint.GetString();
+			case Type::IMF:
+				return m_IMFEndpoint.GetString();
 			case Type::Unspecified:
 				break;
 			default:

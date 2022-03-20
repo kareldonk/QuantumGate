@@ -56,6 +56,34 @@ namespace UnitTests
 
 			Assert::AreEqual(true, addr5 == addr);
 
+			// Copy assignment of different address type
+			addr = addr3;
+			Assert::AreEqual(true, addr.GetString() == L"192.168.0.1");
+			Assert::AreEqual(true, addr.GetType() == Address::Type::IP);
+			Assert::AreEqual(true, addr.GetFamily() == Address::Family::IPv4);
+			Assert::AreEqual(true, addr.GetIPAddress().GetBinary().UInt32s[0] == 0x0100A8C0);
+
+			const auto addr5a = IMFAddress(L"info@example.com");
+			addr = addr5a;
+			Assert::AreEqual(true, addr.GetString() == L"info@example.com");
+			Assert::AreEqual(true, addr.GetType() == Address::Type::IMF);
+			Assert::AreEqual(true, addr.GetFamily() == Address::Family::IMF);
+			Assert::AreEqual(true, addr.GetIMFAddress().GetBinary().GetStringView() == L"info@example.com");
+
+			const auto addr5b = IMFAddress(L"info2@example.com");
+			addr = addr5b;
+			Assert::AreEqual(true, addr.GetString() == L"info2@example.com");
+			Assert::AreEqual(true, addr.GetType() == Address::Type::IMF);
+			Assert::AreEqual(true, addr.GetFamily() == Address::Family::IMF);
+			Assert::AreEqual(true, addr.GetIMFAddress().GetBinary().GetStringView() == L"info2@example.com");
+
+			const auto addr5c = BTHAddress(L"(92:5F:D3:5B:93:B2)");
+			addr = addr5c;
+			Assert::AreEqual(true, addr.GetString() == L"(92:5F:D3:5B:93:B2)");
+			Assert::AreEqual(true, addr.GetType() == Address::Type::BTH);
+			Assert::AreEqual(true, addr.GetFamily() == Address::Family::BTH);
+			Assert::AreEqual(true, addr.GetBTHAddress().GetBinary().UInt64s == 0x925FD35B93B2);
+
 			// Move assignment
 			const auto addr6 = std::move(addr5);
 			Assert::AreEqual(true, addr6 == addr);
@@ -66,6 +94,27 @@ namespace UnitTests
 			Assert::AreEqual(true, addr.GetType() == Address::Type::IP);
 			Assert::AreEqual(true, addr.GetFamily() == Address::Family::IPv4);
 			Assert::AreEqual(true, addr.GetIPAddress().GetBinary().UInt32s[0] == 0x0100A8C0);
+
+			auto addr7 = IMFAddress(L"info@example.com");
+			addr = std::move(addr7);
+			Assert::AreEqual(true, addr.GetString() == L"info@example.com");
+			Assert::AreEqual(true, addr.GetType() == Address::Type::IMF);
+			Assert::AreEqual(true, addr.GetFamily() == Address::Family::IMF);
+			Assert::AreEqual(true, addr.GetIMFAddress().GetBinary().GetStringView() == L"info@example.com");
+
+			auto addr8 = IMFAddress(L"info2@example.com");
+			addr = std::move(addr8);
+			Assert::AreEqual(true, addr.GetString() == L"info2@example.com");
+			Assert::AreEqual(true, addr.GetType() == Address::Type::IMF);
+			Assert::AreEqual(true, addr.GetFamily() == Address::Family::IMF);
+			Assert::AreEqual(true, addr.GetIMFAddress().GetBinary().GetStringView() == L"info2@example.com");
+
+			auto addr9 = BTHAddress(L"(92:5F:D3:5B:93:B2)");
+			addr = std::move(addr9);
+			Assert::AreEqual(true, addr.GetString() == L"(92:5F:D3:5B:93:B2)");
+			Assert::AreEqual(true, addr.GetType() == Address::Type::BTH);
+			Assert::AreEqual(true, addr.GetFamily() == Address::Family::BTH);
+			Assert::AreEqual(true, addr.GetBTHAddress().GetBinary().UInt64s == 0x925FD35B93B2);
 		}
 
 		TEST_METHOD(Constexpr)

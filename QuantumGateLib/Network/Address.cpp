@@ -38,6 +38,8 @@ namespace QuantumGate::Implementation::Network
 				return m_IPAddress.GetHash();
 			case Type::BTH:
 				return m_BTHAddress.GetHash();
+			case Type::IMF:
+				return m_IMFAddress.GetHash();
 			case Type::Unspecified:
 				break;
 			default:
@@ -56,6 +58,8 @@ namespace QuantumGate::Implementation::Network
 				return m_IPAddress.GetString();
 			case Type::BTH:
 				return m_BTHAddress.GetString();
+			case Type::IMF:
+				return m_IMFAddress.GetString();
 			case Type::Unspecified:
 				break;
 			default:

@@ -18,6 +18,8 @@ namespace QuantumGate::Implementation::Network
 				return L"TCP";
 			case Protocol::RFCOMM:
 				return L"RFCOMM";
+			case Protocol::IMF:
+				return L"IMF";
 			case Protocol::Unspecified:
 				return L"Unspecified";
 			default:

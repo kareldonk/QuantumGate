@@ -215,7 +215,7 @@ namespace QuantumGate::Implementation
 			{
 				if (!m_IsPointer)
 				{
-					m_Data.~BaseType();
+					std::destroy_at(std::addressof(m_Data));
 				}
 			}
 		}

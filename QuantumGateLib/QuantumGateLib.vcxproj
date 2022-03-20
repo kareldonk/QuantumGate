@@ -138,7 +138,7 @@
     <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
-    <CodeAnalysisRuleSet>CppCoreCheckRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\CodeAnalysis.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
     <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
@@ -153,7 +153,7 @@
     <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
-    <CodeAnalysisRuleSet>CppCoreCheckRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\CodeAnalysis.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
     <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
@@ -168,7 +168,7 @@
     <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
-    <CodeAnalysisRuleSet>CppCoreCheckRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\CodeAnalysis.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
     <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
@@ -183,7 +183,7 @@
     <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
-    <CodeAnalysisRuleSet>CppCoreCheckRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\CodeAnalysis.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
     <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
@@ -198,7 +198,7 @@
     <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
-    <CodeAnalysisRuleSet>CppCoreCheckRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\CodeAnalysis.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
     <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
@@ -213,7 +213,7 @@
     <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
-    <CodeAnalysisRuleSet>CppCoreCheckRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\CodeAnalysis.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
     <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
@@ -228,7 +228,7 @@
     <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
-    <CodeAnalysisRuleSet>CppCoreCheckRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\CodeAnalysis.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
     <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
@@ -243,7 +243,7 @@
     <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
-    <CodeAnalysisRuleSet>CppCoreCheckRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\CodeAnalysis.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableExperimentalCppCoreCheck>false</EnableExperimentalCppCoreCheck>
     <CustomBuildAfterTargets>Clean</CustomBuildAfterTargets>
@@ -657,11 +657,15 @@
     <ClInclude Include="Module.h" />
     <ClInclude Include="Network\Address.h" />
     <ClInclude Include="Network\BinaryBTHAddress.h" />
+    <ClInclude Include="Network\BinaryIMFAddress.h" />
     <ClInclude Include="Network\BinaryIPAddress.h" />
     <ClInclude Include="Network\BTH.h" />
     <ClInclude Include="Network\BTHAddress.h" />
     <ClInclude Include="Network\BTHEndpoint.h" />
     <ClInclude Include="Network\Endpoint.h" />
+    <ClInclude Include="Network\IMF.h" />
+    <ClInclude Include="Network\IMFAddress.h" />
+    <ClInclude Include="Network\IMFEndpoint.h" />
     <ClInclude Include="Network\IP.h" />
     <ClInclude Include="Network\IPAddress.h" />
     <ClInclude Include="Network\IPEndpoint.h" />
@@ -770,10 +774,13 @@
     <ClCompile Include="Module.cpp" />
     <ClCompile Include="Network\Address.cpp" />
     <ClCompile Include="Network\BinaryBTHAddress.cpp" />
+    <ClCompile Include="Network\BinaryIMFAddress.cpp" />
     <ClCompile Include="Network\BinaryIPAddress.cpp" />
     <ClCompile Include="Network\BTHAddress.cpp" />
     <ClCompile Include="Network\BTHEndpoint.cpp" />
     <ClCompile Include="Network\Endpoint.cpp" />
+    <ClCompile Include="Network\IMFAddress.cpp" />
+    <ClCompile Include="Network\IMFEndpoint.cpp" />
     <ClCompile Include="Network\IP.cpp" />
     <ClCompile Include="Network\IPAddress.cpp" />
     <ClCompile Include="Network\IPEndpoint.cpp" />
