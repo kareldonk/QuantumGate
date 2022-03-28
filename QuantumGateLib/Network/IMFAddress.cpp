@@ -9,6 +9,8 @@
 
 namespace QuantumGate::Implementation::Network
 {
+	// Email regex based on https://github.com/Microsoft/referencesource/blob/master/System.ComponentModel.DataAnnotations/DataAnnotations/EmailAddressAttribute.cs
+
 	ForceInline static const std::wregex& GetIMFAddrSpecLocalPartRegEx()
 	{
 		static std::wregex r(LR"imf(^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))$)imf",
@@ -18,14 +20,14 @@ namespace QuantumGate::Implementation::Network
 
 	ForceInline static const std::wregex& GetIMFAddrSpecDomainPartDotAtomRegEx()
 	{
-		static std::wregex r(LR"imf(^((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$)imf",
+		static std::wregex r(LR"imf(^(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$|^(((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))\.?$)imf",
 							 std::regex_constants::ECMAScript | std::regex_constants::icase | std::regex_constants::optimize);
 		return r;
 	}
 
 	ForceInline static const std::wregex& GetIMFAddrSpecDomainPartLiteralRegEx()
 	{
-		static std::wregex r(LR"imf(^\[([0-9.]+)\]|\[([0-9a-f:.]+)\]$)imf",
+		static std::wregex r(LR"imf(^\[([0-9.]+)\]$|^\[(?:IPv6:)?([0-9a-f:.]+)\]$)imf",
 							 std::regex_constants::ECMAScript | std::regex_constants::icase | std::regex_constants::optimize);
 		return r;
 	}
@@ -67,7 +69,7 @@ namespace QuantumGate::Implementation::Network
 
 		if (addr_strv.size() <= BinaryIMFAddress::MaxAddressStringLength)
 		{
-			const auto pos = addr_strv.find(L"@");
+			const auto pos = addr_strv.rfind(L"@");
 			if (pos != addr_strv.npos)
 			{
 				const auto local_part = addr_strv.substr(0, pos);
