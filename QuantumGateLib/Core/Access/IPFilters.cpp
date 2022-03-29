@@ -11,6 +11,17 @@
 
 namespace QuantumGate::Implementation::Core::Access
 {
+	ForceInline static const std::wregex& GetCIDRRegEx()
+	{
+		// CIDR address notation, "address/leading bits"
+		// e.g. 127.0.0.1/8, 192.168.0.0/16, fc00::/7 etc.
+		// Below regex just splits the CIDR notation into an address and
+		// number of leading bits; the IPAddress class will validate them
+		static const std::wregex r(LR"r(^\s*(.*)(\/\d+)\s*$)r",
+								   std::regex_constants::ECMAScript | std::regex_constants::icase | std::regex_constants::optimize);
+		return r;
+	}
+
 	Result<IPFilterID> IPFilters::AddFilter(const WChar* ip_cidr,
 											const IPFilterType type) noexcept
 	{
@@ -20,13 +31,8 @@ namespace QuantumGate::Implementation::Core::Access
 			case IPFilterType::Blocked:
 				try
 				{
-					// CIDR address notation, "address/leading bits"
-					// e.g. 127.0.0.1/8, 192.168.0.0/16, fc00::/7 etc.
-					// Below regex just splits the CIDR notation into an address and
-					// number of leading bits; the IPAddress class will validate them
-					std::wregex r(LR"r(^\s*(.*)(\/\d+)\s*$)r");
 					std::wcmatch m;
-					if (std::regex_search(ip_cidr, m, r))
+					if (std::regex_match(ip_cidr, m, GetCIDRRegEx()))
 					{
 						return AddFilter(m[1].str().c_str(), m[2].str().c_str(), type);
 					}

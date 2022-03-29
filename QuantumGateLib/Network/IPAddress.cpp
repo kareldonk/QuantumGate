@@ -9,6 +9,16 @@
 
 namespace QuantumGate::Implementation::Network
 {
+	ForceInline static const std::wregex& GetCIDRBitsRegEx()
+	{
+		// Looks for mask bits specified in the format
+		// "/999" in the mask string used in CIDR notations
+		// such as "192.168.0.0/16"
+		static const std::wregex r(LR"bits(^\s*\/(\d+)\s*$)bits",
+								   std::regex_constants::ECMAScript | std::regex_constants::icase | std::regex_constants::optimize);
+		return r;
+	}
+
 	bool IPAddress::TryParse(const WChar* ipaddr_str, IPAddress& ipaddr) noexcept
 	{
 		try
@@ -46,12 +56,8 @@ namespace QuantumGate::Implementation::Network
 		{
 			if (std::wcslen(mask_str) <= IPAddress::MaxIPAddressStringLength)
 			{
-				// Looks for mask bits specified in the format
-				// "/999" in the mask string used in CIDR notations
-				// such as "192.168.0.0/16"
-				std::wregex r(LR"bits(^\s*\/(\d+)\s*$)bits");
 				std::wcmatch m;
-				if (std::regex_search(mask_str, m, r))
+				if (std::regex_match(mask_str, m, GetCIDRBitsRegEx()))
 				{
 					auto cidr_lbits = std::stoi(m[1].str());
 

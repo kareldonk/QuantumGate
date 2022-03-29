@@ -9,17 +9,23 @@
 
 namespace QuantumGate::Implementation::Core::Access
 {
+	ForceInline static const std::wregex& GetCIDRBitsRegEx()
+	{
+		// Looks for CIDR bits specified in the format
+		// "/999" used in CIDR notations
+		static const std::wregex r(LR"bits(^\s*\/(\d+)\s*$)bits",
+								   std::regex_constants::ECMAScript | std::regex_constants::icase | std::regex_constants::optimize);
+		return r;
+	}
+
 	Result<> IPSubnetLimits::AddLimit(const IPAddress::Family af, const String& cidr_lbits, const Size max_con) noexcept
 	{
 		auto result_code = ResultCode::Failed;
 
 		try
 		{
-			// Looks for CIDR bits specified in the format
-			// "/999" used in CIDR notations
-			std::wregex r(LR"bits(^\s*\/(\d+)\s*$)bits");
 			std::wsmatch m;
-			if (std::regex_search(cidr_lbits, m, r))
+			if (std::regex_match(cidr_lbits, m, GetCIDRBitsRegEx()))
 			{
 				const auto lbits = std::stoi(m[1].str());
 
@@ -98,11 +104,8 @@ namespace QuantumGate::Implementation::Core::Access
 
 		try
 		{
-			// Looks for CIDR bits specified in the format
-			// "/999" used in CIDR notations
-			std::wregex r(LR"bits(^\s*\/(\d+)\s*$)bits");
 			std::wsmatch m;
-			if (std::regex_search(cidr_lbits, m, r))
+			if (std::regex_match(cidr_lbits, m, GetCIDRBitsRegEx()))
 			{
 				const auto lbits = std::stoi(m[1].str());
 

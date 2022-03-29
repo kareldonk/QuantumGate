@@ -13,6 +13,15 @@
 
 namespace QuantumGate::Implementation
 {
+	ForceInline static const std::wregex& GetUUIDRegEx()
+	{
+		// Looks for UUID in the format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+		// such as "3df5b8e4-50d2-48c5-8c23-c544f0f0653e"
+		static const std::wregex r(LR"uuid(^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$)uuid",
+								   std::regex_constants::ECMAScript | std::regex_constants::icase | std::regex_constants::optimize);
+		return r;
+	}
+
 	UUID::UUID(const WChar* uuid)
 	{
 		Set(uuid);
@@ -199,12 +208,8 @@ namespace QuantumGate::Implementation
 		{
 			if (std::wcslen(uuid) == 36)
 			{
-				// Looks for UUID in the format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
-				// such as "3df5b8e4-50d2-48c5-8c23-c544f0f0653e"
-				std::wregex r(LR"uuid(^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$)uuid",
-							  std::regex_constants::icase);
 				std::wcmatch m;
-				if (std::regex_search(uuid, m, r))
+				if (std::regex_match(uuid, m, GetUUIDRegEx()))
 				{
 					wchar_t* end{ nullptr };
 					errno = 0;
