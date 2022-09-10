@@ -101,7 +101,7 @@ namespace UnitTests
 					Assert::AreEqual(true, result.Waited);
 					Assert::AreEqual(false, result.HadEvent);
 
-					const std::uniform_int_distribution<std::size_t> dist(0, events.size() - 1);
+					std::uniform_int_distribution<std::size_t> dist(0, events.size() - 1);
 					const auto idx = dist(rng);
 					events[idx].Set();
 

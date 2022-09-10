@@ -86,7 +86,7 @@ namespace QuantumGate::Implementation
 			assert(min <= max);
 
 			GetRngEngine().CheckSeed64();
-			const std::uniform_int_distribution<Int64> dist(min, max);
+			std::uniform_int_distribution<Int64> dist(min, max);
 
 			return dist(GetRngEngine().Rng64);
 		}

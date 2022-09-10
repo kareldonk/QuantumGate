@@ -189,6 +189,50 @@ namespace UnitTests
 			Assert::IsTrue(IMFAddress::TryParse(L"user%example.com@example.org", address));
 			Assert::IsTrue(IMFAddress::TryParse(L"user-@example.org", address));
 			Assert::IsTrue(IMFAddress::TryParse(L"postmaster@[IPv6:2001:0db8:85a3:0000:0000:8a2e:0370:7334]", address));
+
+			Assert::IsTrue(IMFAddress::TryParse(L"\"@1st.relay,@2nd.relay:user\"@final.domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\".jdoe\"@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"jdoe.\"@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"jd..oe\"@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"jschauma@شبكةمايستر.شبكة", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"Abc\\@def\"@example.com", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"Fred\\ Bloggs\"@example.com", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"Joe.\\\\Blow\"@example.com", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"customer/department = shipping\"@example.com", address));
+
+			Assert::IsTrue(IMFAddress::TryParse(L"relay.domain!user@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"user%final.domain@1st.relay", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"'*+-/=?^_`{|}~#$@netmeister.org", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"jdoe@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"jdoe+whatever@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"jdoe+somethingelse@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\".jdoe\"@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"jdoe.\"@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"jd..oe\"@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\" \"@netmeister.org", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"<>\"@netmeister.org", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"put a literal escaped newline here\ <--\"@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"josé.arrañoça\"@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"сайт\"@domain", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"poop@xn--ls8h.la", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"ai@ai", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"m@tt", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"santa.cl@ws", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"jschauma@[166.84.7.99]", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"jschauma@[IPv6:2001:470:30:84:e276:63ff:fe72:3900]", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"jschauma@[IPv6:::1]", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"[IPv6:::1]\"@[IPv6:::1]", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"Abc@def\"@example.com", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"\"Fred Bloggs\"@example.com", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"$A12345@example.com", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"!def!xyz%abc@example.com", address));
+			Assert::IsTrue(IMFAddress::TryParse(L"_somename@example.com", address));
+
+			// Should be valid according to https://www.netmeister.org/blog/email.html ?
+			//Assert::IsTrue(IMFAddress::TryParse(L"\"💩\"@domain", address));
+			//Assert::IsTrue(IMFAddress::TryParse(L"\"🍺🕺🎉\"@domain", address));
+			//Assert::IsTrue(IMFAddress::TryParse(L"poop@💩.la", address));
+			//Assert::IsTrue(IMFAddress::TryParse(L"\"🌮\"@i❤️tacos.ws", address));
 		}
 
 		TEST_METHOD(Constexpr)
